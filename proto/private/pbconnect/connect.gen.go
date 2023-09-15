@@ -89,6 +89,8 @@ func IssuedCertToStructsIssuedCert(s *IssuedCert, t *structs.IssuedCert) {
 	t.SerialNumber = s.SerialNumber
 	t.CertPEM = s.CertPEM
 	t.PrivateKeyPEM = s.PrivateKeyPEM
+	t.WorkloadIdentity = s.WorkloadIdentity
+	t.WorkloadIdentityURI = s.WorkloadIdentityURI
 	t.Service = s.Service
 	t.ServiceURI = s.ServiceURI
 	t.Agent = s.Agent
@@ -108,6 +110,8 @@ func IssuedCertFromStructsIssuedCert(t *structs.IssuedCert, s *IssuedCert) {
 	s.SerialNumber = t.SerialNumber
 	s.CertPEM = t.CertPEM
 	s.PrivateKeyPEM = t.PrivateKeyPEM
+	s.WorkloadIdentity = t.WorkloadIdentity
+	s.WorkloadIdentityURI = t.WorkloadIdentityURI
 	s.Service = t.Service
 	s.ServiceURI = t.ServiceURI
 	s.Agent = t.Agent

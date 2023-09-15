@@ -489,8 +489,9 @@ type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
 	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
-	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
 
 	EventChannel() chan controller.Event
 }
@@ -909,7 +910,6 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 				}
 				return &bundle, nil
 			},
-			ProxyUpdater: proxyUpdater,
 			// This function is adapted from server_connect.go:getCARoots.
 			TrustDomainFetcher: func() (string, error) {
 				_, caConfig, err := s.fsm.State().CAConfig(nil)
@@ -919,6 +919,10 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 				return s.getTrustDomain(caConfig)
 			},
+
+			LeafCertManager: deps.LeafCertManager,
+			LocalDatacenter: s.config.Datacenter,
+			ProxyUpdater:    proxyUpdater,
 		})
 	}
 

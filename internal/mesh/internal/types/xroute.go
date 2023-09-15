@@ -81,6 +81,16 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				))
 			}
 
+			if parent.Ref.Name == "" {
+				merr = multierror.Append(merr, resource.ErrInvalidField{
+					Name: "ref",
+					Wrapped: resource.ErrInvalidField{
+						Name:    "name",
+						Wrapped: resource.ErrMissing,
+					},
+				})
+			}
+
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,
@@ -175,6 +185,16 @@ func validateBackendRef(backendRef *pbmesh.BackendReference) []error {
 			})
 		}
 
+		if backendRef.Ref.Name == "" {
+			errs = append(errs, resource.ErrInvalidField{
+				Name: "ref",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "name",
+					Wrapped: resource.ErrMissing,
+				},
+			})
+		}
+
 		if backendRef.Ref.Section != "" {
 			errs = append(errs, resource.ErrInvalidField{
 				Name: "ref",
@@ -254,13 +274,6 @@ func validateHTTPRetries(retries *pbmesh.HTTPRouteRetries) []error {
 	}
 
 	var errs []error
-
-	if retries.Number < 0 {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "number",
-			Wrapped: fmt.Errorf("cannot be negative: %v", retries.Number),
-		})
-	}
 
 	for i, condition := range retries.OnConditions {
 		if !isValidRetryCondition(condition) {

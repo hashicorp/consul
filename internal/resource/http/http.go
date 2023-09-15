@@ -82,14 +82,18 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	var req writeRequest
 	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request body", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body format is invalid"))
+		return
 	}
 	// convert data struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
+		h.logger.Error("Failed to unmarshal to proto message", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body didn't follow the resource schema"))
+		return
 	}
 	// proto message to any
 	anyProtoMsg, err := anypb.New(data)

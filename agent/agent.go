@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -71,7 +73,6 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
@@ -873,12 +874,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
-
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
 		a.baseDeps.Logger.Debug("starting file watcher")
@@ -953,20 +948,28 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher) {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	if server, ok := a.delegate.(*consul.Server); ok {
-		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-			NodeName:          a.config.NodeName,
-			LocalState:        a.State,
-			LocalConfigSource: proxyWatcher,
-			Manager:           a.proxyConfig,
-			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-		})
-		go func() {
-			<-a.shutdownCh
-			catalogCfg.Shutdown()
-		}()
-		proxyWatcher = catalogCfg
+		switch proxyWatcher.(type) {
+		case *proxytracker.ProxyTracker:
+			go func() {
+				<-a.shutdownCh
+				proxyWatcher.(*proxytracker.ProxyTracker).Shutdown()
+			}()
+		default:
+			catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+				NodeName:          a.config.NodeName,
+				LocalState:        a.State,
+				LocalConfigSource: proxyWatcher,
+				Manager:           a.proxyConfig,
+				GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+				Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+				SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+			})
+			go func() {
+				<-a.shutdownCh
+				catalogCfg.Shutdown()
+			}()
+			proxyWatcher = catalogCfg
+		}
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,

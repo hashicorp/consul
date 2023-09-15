@@ -196,7 +196,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 
 	// PushChange
 	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
-		IntentionDefaultAllow: true,
+		TrafficPermissionDefaultAllow: true,
 	}}
 
 	// using a goroutine so that the channel and main test thread do not cause
@@ -229,7 +229,7 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 
 	// PushChange
 	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
-		IntentionDefaultAllow: true,
+		TrafficPermissionDefaultAllow: true,
 	}}
 
 	err := pt.PushChange(resourceID, proxyState)
@@ -277,7 +277,8 @@ func TestProxyTracker_ProxyConnectedToServer(t *testing.T) {
 		})
 		resourceID := resourcetest.Resource(types.ProxyStateTemplateType, "test").ID()
 		tc.preProcessingFunc(pt, resourceID, lim, session1, session1TermCh)
-		require.Equal(t, tc.shouldExist, pt.ProxyConnectedToServer(resourceID))
+		_, ok := pt.ProxyConnectedToServer(resourceID)
+		require.Equal(t, tc.shouldExist, ok)
 	}
 }
 

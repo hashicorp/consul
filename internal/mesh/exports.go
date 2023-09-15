@@ -6,6 +6,7 @@ package mesh
 import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -34,28 +35,28 @@ var (
 
 	// Resource Types for the v1alpha1 version.
 
-	ProxyConfigurationV1Alpha1Type              = types.ProxyConfigurationV1Alpha1Type
-	UpstreamsV1Alpha1Type                       = types.UpstreamsV1Alpha1Type
-	UpstreamsConfigurationV1Alpha1Type          = types.UpstreamsConfigurationV1Alpha1Type
-	ProxyStateTemplateConfigurationV1Alpha1Type = types.ProxyStateTemplateV1Alpha1Type
-	HTTPRouteV1Alpha1Type                       = types.HTTPRouteV1Alpha1Type
-	GRPCRouteV1Alpha1Type                       = types.GRPCRouteV1Alpha1Type
-	TCPRouteV1Alpha1Type                        = types.TCPRouteV1Alpha1Type
-	DestinationPolicyV1Alpha1Type               = types.DestinationPolicyV1Alpha1Type
-	ComputedRoutesV1Alpha1Type                  = types.ComputedRoutesV1Alpha1Type
-	ProxyStateTemplateV1AlphaType               = types.ProxyStateTemplateV1Alpha1Type
+	ProxyConfigurationV1Alpha1Type     = types.ProxyConfigurationV1Alpha1Type
+	UpstreamsV1Alpha1Type              = types.UpstreamsV1Alpha1Type
+	UpstreamsConfigurationV1Alpha1Type = types.UpstreamsConfigurationV1Alpha1Type
+	HTTPRouteV1Alpha1Type              = types.HTTPRouteV1Alpha1Type
+	GRPCRouteV1Alpha1Type              = types.GRPCRouteV1Alpha1Type
+	TCPRouteV1Alpha1Type               = types.TCPRouteV1Alpha1Type
+	DestinationPolicyV1Alpha1Type      = types.DestinationPolicyV1Alpha1Type
+	ComputedRoutesV1Alpha1Type         = types.ComputedRoutesV1Alpha1Type
+	ProxyStateTemplateV1AlphaType      = types.ProxyStateTemplateV1Alpha1Type
 
 	// Resource Types for the latest version.
 
-	ProxyConfigurationType     = types.ProxyConfigurationType
-	UpstreamsType              = types.UpstreamsType
-	UpstreamsConfigurationType = types.UpstreamsConfigurationType
-	ProxyStateTemplateType     = types.ProxyStateTemplateType
-	HTTPRouteType              = types.HTTPRouteType
-	GRPCRouteType              = types.GRPCRouteType
-	TCPRouteType               = types.TCPRouteType
-	DestinationPolicyType      = types.DestinationPolicyType
-	ComputedRoutesType         = types.ComputedRoutesType
+	ProxyConfigurationType              = types.ProxyConfigurationType
+	UpstreamsType                       = types.UpstreamsType
+	UpstreamsConfigurationType          = types.UpstreamsConfigurationType
+	ProxyStateTemplateType              = types.ProxyStateTemplateType
+	ProxyStateTemplateConfigurationType = types.ProxyStateTemplateType
+	HTTPRouteType                       = types.HTTPRouteType
+	GRPCRouteType                       = types.GRPCRouteType
+	TCPRouteType                        = types.TCPRouteType
+	DestinationPolicyType               = types.DestinationPolicyType
+	ComputedRoutesType                  = types.ComputedRoutesType
 
 	// Controller statuses.
 
@@ -68,6 +69,25 @@ var (
 	SidecarProxyStatusReasonDestinationServiceFound        = status.StatusReasonDestinationServiceFound
 	SidecarProxyStatusReasonMeshProtocolDestinationPort    = status.StatusReasonMeshProtocolDestinationPort
 	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
+
+	// Routes controller
+	RoutesStatusKey                                                = routes.StatusKey
+	RoutesStatusConditionAccepted                                  = routes.StatusConditionAccepted
+	RoutesStatusConditionAcceptedMissingParentRefReason            = routes.MissingParentRefReason
+	RoutesStatusConditionAcceptedMissingBackendRefReason           = routes.MissingBackendRefReason
+	RoutesStatusConditionAcceptedParentRefOutsideMeshReason        = routes.ParentRefOutsideMeshReason
+	RoutesStatusConditionAcceptedBackendRefOutsideMeshReason       = routes.BackendRefOutsideMeshReason
+	RoutesStatusConditionAcceptedParentRefUsingMeshPortReason      = routes.ParentRefUsingMeshPortReason
+	RoutesStatusConditionAcceptedBackendRefUsingMeshPortReason     = routes.BackendRefUsingMeshPortReason
+	RoutesStatusConditionAcceptedUnknownParentRefPortReason        = routes.UnknownParentRefPortReason
+	RoutesStatusConditionAcceptedUnknownBackendRefPortReason       = routes.UnknownBackendRefPortReason
+	RoutesStatusConditionAcceptedConflictNotBoundToParentRefReason = routes.ConflictNotBoundToParentRefReason
+)
+
+const (
+	// Important constants
+
+	NullRouteBackend = types.NullRouteBackend
 )
 
 // RegisterTypes adds all resource types within the "mesh" API group

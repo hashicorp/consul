@@ -9,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"hash/fnv"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
 
 	"golang.org/x/crypto/blake2b"
@@ -62,6 +62,10 @@ agent_prefix "" {
 }
 event_prefix "" {
 	policy = "%[1]s"
+}
+identity_prefix "" {
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 key_prefix "" {
 	policy = "%[1]s"
@@ -178,22 +182,20 @@ func (s *ACLServiceIdentity) EstimateSize() int {
 }
 
 func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
+	// use templated policy to generate synthetic policy
+	templatedPolicy := ACLTemplatedPolicy{
+		TemplateID:   ACLTemplatedPolicyServiceID,
+		TemplateName: api.ACLTemplatedPolicyServiceName,
+		Datacenters:  s.Datacenters,
+		TemplateVariables: &ACLTemplatedPolicyVariables{
+			Name: s.ServiceName,
+		},
+	}
+
 	// Given that we validate this string name before persisting, we do not
-	// have to escape it before doing the following interpolation.
-	rules := aclServiceIdentityRules(s.ServiceName, entMeta)
+	// expect any errors from generating the synthetic policy
+	policy, _ := templatedPolicy.SyntheticPolicy(entMeta)
 
-	hasher := fnv.New128a()
-	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
-
-	policy := &ACLPolicy{}
-	policy.ID = hashID
-	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	sn := NewServiceName(s.ServiceName, entMeta)
-	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
-	policy.Rules = rules
-	policy.Datacenters = s.Datacenters
-	policy.EnterpriseMeta.Merge(entMeta)
-	policy.SetHash(true)
 	return policy
 }
 
@@ -250,21 +252,20 @@ func (s *ACLNodeIdentity) EstimateSize() int {
 }
 
 func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
+	// use templated policy to generate synthetic policy
+	templatedPolicy := ACLTemplatedPolicy{
+		TemplateID:   ACLTemplatedPolicyNodeID,
+		TemplateName: api.ACLTemplatedPolicyNodeName,
+		Datacenters:  []string{s.Datacenter},
+		TemplateVariables: &ACLTemplatedPolicyVariables{
+			Name: s.NodeName,
+		},
+	}
+
 	// Given that we validate this string name before persisting, we do not
-	// have to escape it before doing the following interpolation.
-	rules := aclNodeIdentityRules(s.NodeName, entMeta)
+	// expect any errors from generating the synthetic policy
+	policy, _ := templatedPolicy.SyntheticPolicy(entMeta)
 
-	hasher := fnv.New128a()
-	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
-
-	policy := &ACLPolicy{}
-	policy.ID = hashID
-	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
-	policy.Rules = rules
-	policy.Datacenters = []string{s.Datacenter}
-	policy.EnterpriseMeta.Merge(entMeta)
-	policy.SetHash(true)
 	return policy
 }
 
@@ -1068,6 +1069,21 @@ const (
 	//   }
 	// }
 	BindingRuleBindTypeNode = "node"
+
+	// BindingRuleBindTypeTemplatedPolicy is the binding rule bind type that
+	// assigns a TemplatedPolicy to the token that is created using the value
+	// of the computed BindVars as template variables and BindName as template name like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   TemplatedPolicies: []*ACLTemplatedPolicy{
+	//     &ACLTemplatedPolicy{
+	//       TemplateName: "<BindName>",
+	//       TemplateVariables: &ACLTemplatedPolicyVariables{<computed BindVars>}
+	//     },
+	//   },
+	// }
+	BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -1087,14 +1103,20 @@ type ACLBindingRule struct {
 	// BindType adjusts how this binding rule is applied at login time.  The
 	// valid values are:
 	//
-	//  - BindingRuleBindTypeService = "service"
-	//  - BindingRuleBindTypeRole    = "role"
+	//  - BindingRuleBindTypeService         = "service"
+	//  - BindingRuleBindTypeNode            = "node"
+	//  - BindingRuleBindTypeRole            = "role"
+	//  - BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 	BindType string
 
 	// BindName is the target of the binding. Can be lightly templated using
 	// HIL ${foo} syntax from available field names. How it is used depends
 	// upon the BindType.
 	BindName string
+
+	// BindVars is a the variables used when binding rule type is `templated-policy`. Can be lightly
+	// templated using HIL ${foo} syntax from available field names.
+	BindVars *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	// Embedded Enterprise ACL metadata
 	acl.EnterpriseMeta `mapstructure:",squash"`

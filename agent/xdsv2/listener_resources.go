@@ -10,7 +10,6 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_grpc_http1_bridge_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_http1_bridge/v3"
 	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
@@ -19,7 +18,6 @@ import (
 	envoy_tls_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/tls_inspector/v3"
 	envoy_connection_limit_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/connection_limit/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	envoy_network_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/rbac/v3"
 	envoy_sni_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/sni_cluster/v3"
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -275,6 +273,14 @@ func makeEnvoyFilterChainMatch(routerMatch *pbproxystate.Match) *envoy_listener_
 			}
 			envoyFilterChainMatch.SourcePrefixRanges = ranges
 		}
+		if len(routerMatch.AlpnProtocols) > 0 {
+			sort.Strings(routerMatch.AlpnProtocols)
+			var alpnProtocols []string
+			for _, protocol := range routerMatch.AlpnProtocols {
+				alpnProtocols = append(alpnProtocols, protocol)
+			}
+			envoyFilterChainMatch.ApplicationProtocols = alpnProtocols
+		}
 	}
 	return envoyFilterChainMatch
 }
@@ -298,11 +304,11 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeEnvoyClusterFromL4Destination(l4.L4.Name)
+	err := pr.makeEnvoyClusterFromL4Destination(l4.L4)
 	if err != nil {
 		return nil, err
 	}
-	envoyFilters, err := makeL4Filters(l4.L4)
+	envoyFilters, err := makeL4Filters(pr.proxyState.TrafficPermissionDefaultAllow, l4.L4)
 	return envoyFilters, err
 }
 
@@ -327,18 +333,16 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 	return alpnProtocols
 }
 
-func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
+func makeL4Filters(defaultAllow bool, l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
-		// Add rbac filter. RBAC filter needs to be added first so any
-		// unauthorized connections will get rejected.
-		// TODO(proxystate): Intentions will be added in the future.
-		if l4.AddEmptyIntention {
-			rbacFilter, err := makeEmptyRBACNetworkFilter()
-			if err != nil {
-				return nil, err
-			}
-			envoyFilters = append(envoyFilters, rbacFilter)
+		rbacFilters, err := MakeL4RBAC(defaultAllow, l4.TrafficPermissions)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(rbacFilters) > 0 {
+			envoyFilters = append(envoyFilters, rbacFilters...)
 		}
 
 		if l4.MaxInboundConnections > 0 {
@@ -351,9 +355,30 @@ func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter,
 
 		// Add tcp proxy filter
 		tcp := &envoy_tcp_proxy_v3.TcpProxy{
-			ClusterSpecifier: &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: l4.Name},
-			StatPrefix:       l4.StatPrefix,
+			StatPrefix: l4.StatPrefix,
 		}
+
+		switch dest := l4.Destination.(type) {
+		case *pbproxystate.L4Destination_Cluster:
+			tcp.ClusterSpecifier = &envoy_tcp_proxy_v3.TcpProxy_Cluster{Cluster: dest.Cluster.Name}
+		case *pbproxystate.L4Destination_WeightedClusters:
+			clusters := make([]*envoy_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight, 0, len(dest.WeightedClusters.Clusters))
+			for _, cluster := range dest.WeightedClusters.Clusters {
+				clusters = append(clusters, &envoy_tcp_proxy_v3.TcpProxy_WeightedCluster_ClusterWeight{
+					Name:   cluster.Name,
+					Weight: cluster.Weight.GetValue(),
+				})
+			}
+
+			tcp.ClusterSpecifier = &envoy_tcp_proxy_v3.TcpProxy_WeightedClusters{
+				WeightedClusters: &envoy_tcp_proxy_v3.TcpProxy_WeightedCluster{
+					Clusters: clusters,
+				},
+			}
+		default:
+			return nil, fmt.Errorf("unexpected l4 destination type: %T", l4.Destination)
+		}
+
 		tcpFilter, err := makeEnvoyFilter(envoyNetworkFilterName, tcp)
 		if err != nil {
 			return nil, err
@@ -362,18 +387,6 @@ func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter,
 	}
 	return envoyFilters, nil
 
-}
-
-func makeEmptyRBACNetworkFilter() (*envoy_listener_v3.Filter, error) {
-	cfg := &envoy_network_rbac_v3.RBAC{
-		StatPrefix: "connect_authz",
-		Rules:      &envoy_rbac_v3.RBAC{},
-	}
-	filter, err := makeEnvoyFilter("envoy.filters.network.rbac", cfg)
-	if err != nil {
-		return nil, err
-	}
-	return filter, nil
 }
 
 // TODO: Forward client cert details will be added as part of L7 listeners task.
@@ -527,6 +540,10 @@ func (pr *ProxyResources) makeEnvoyTLSParameters(defaultParams *pbproxystate.TLS
 }
 
 func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSocket) (*envoy_core_v3.TransportSocket, error) {
+	// TODO(JM): did this just make tests pass.  Figure out whether proxyState.Tls will always be available.
+	if pr.proxyState.Tls == nil {
+		return nil, nil
+	}
 	if ts == nil {
 		return nil, nil
 	}

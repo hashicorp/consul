@@ -33,6 +33,9 @@ func (n fieldNamer) GetField(fds protoreflect.FieldDescriptors, name string) pro
 		}
 	}
 
+	if len(name) <= 1 {
+		return fds.ByJSONName(name)
+	}
 	camel := strings.ToLower(name[:1]) + name[1:]
 	return fds.ByJSONName(camel)
 }

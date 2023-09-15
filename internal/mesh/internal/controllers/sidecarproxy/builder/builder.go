@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package builder
 
 import (
@@ -10,18 +13,29 @@ import (
 type Builder struct {
 	id                 *pbresource.ID
 	proxyStateTemplate *pbmesh.ProxyStateTemplate
+	proxyCfg           *pbmesh.ProxyConfiguration
 	trustDomain        string
+	localDatacenter    string
 }
 
-func New(id *pbresource.ID, identity *pbresource.Reference, trustDomain string) *Builder {
+func New(
+	id *pbresource.ID,
+	identity *pbresource.Reference,
+	trustDomain string,
+	dc string,
+	proxyCfg *pbmesh.ProxyConfiguration,
+) *Builder {
 	return &Builder{
-		id:          id,
-		trustDomain: trustDomain,
+		id:              id,
+		trustDomain:     trustDomain,
+		localDatacenter: dc,
+		proxyCfg:        proxyCfg,
 		proxyStateTemplate: &pbmesh.ProxyStateTemplate{
 			ProxyState: &pbmesh.ProxyState{
 				Identity:  identity,
 				Clusters:  make(map[string]*pbproxystate.Cluster),
 				Endpoints: make(map[string]*pbproxystate.Endpoints),
+				Routes:    make(map[string]*pbproxystate.Route),
 			},
 			RequiredEndpoints:        make(map[string]*pbproxystate.EndpointRef),
 			RequiredLeafCertificates: make(map[string]*pbproxystate.LeafCertificateRef),
@@ -46,8 +60,22 @@ func (b *Builder) NewListenerBuilder(l *pbproxystate.Listener) *ListenerBuilder 
 	}
 }
 
-func (l *ListenerBuilder) buildListener() *Builder {
+func (l *ListenerBuilder) buildListener() {
 	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+}
 
-	return l.builder
+type RouterBuilder struct {
+	router  *pbproxystate.Router
+	builder *ListenerBuilder
+}
+
+func (b *ListenerBuilder) NewRouterBuilder(r *pbproxystate.Router) *RouterBuilder {
+	return &RouterBuilder{
+		router:  r,
+		builder: b,
+	}
+}
+
+func (r *RouterBuilder) buildRouter() {
+	r.builder.listener.Routers = append(r.builder.listener.Routers, r.router)
 }

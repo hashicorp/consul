@@ -8,15 +8,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/consul/command/helpers"
-	"github.com/hashicorp/consul/internal/resourcehcl"
+	"github.com/hashicorp/consul/command/resource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -50,11 +47,6 @@ func (c *cmd) Run(args []string) int {
 	var resourceName string
 	var opts *api.QueryOptions
 
-	if len(args) == 0 {
-		c.UI.Error("Please provide required arguments")
-		return 1
-	}
-
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -64,14 +56,14 @@ func (c *cmd) Run(args []string) int {
 
 	if c.flags.Lookup("f").Value.String() != "" {
 		if c.filePath != "" {
-			data, err := helpers.LoadDataSourceNoRaw(c.filePath, nil)
-			if err != nil {
-				c.UI.Error(fmt.Sprintf("Failed to load data: %v", err))
-				return 1
-			}
-			parsedResource, err := resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+			parsedResource, err := resource.ParseResourceFromFile(c.filePath)
 			if err != nil {
 				c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
+				return 1
+			}
+
+			if parsedResource == nil {
+				c.UI.Error("Unable to parse the file argument")
 				return 1
 			}
 
@@ -94,27 +86,24 @@ func (c *cmd) Run(args []string) int {
 		}
 	} else {
 		if len(args) < 2 {
-			c.UI.Error("Must specify two arguments: resource type and resource name")
+			c.UI.Error("Your argument format is incorrect: Must specify two arguments: resource type and resource name")
 			return 1
 		}
 		var err error
-		gvk, resourceName, err = getTypeAndResourceName(args)
+		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Your argument format is incorrect: %s", err))
 			return 1
 		}
 
 		inputArgs := args[2:]
-		if err := c.flags.Parse(inputArgs); err != nil {
-			if errors.Is(err, flag.ErrHelp) {
-				return 0
-			}
-			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
+		err = resource.ParseInputParams(inputArgs, c.flags)
+		if err != nil {
+			c.UI.Error(fmt.Sprintf("Error parsing input arguments: %v", err))
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Error("You need to provide all information in the HCL file if provide its file path")
-			return 1
+			c.UI.Warn("We ignored the -f flag if you provide gvk and resource name")
 		}
 		opts = &api.QueryOptions{
 			Namespace:         c.http.Namespace(),
@@ -145,22 +134,6 @@ func (c *cmd) Run(args []string) int {
 
 	c.UI.Info(string(b))
 	return 0
-}
-
-func getTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e error) {
-	if strings.HasPrefix(args[1], "-") {
-		return nil, "", fmt.Errorf("Must provide resource name right after type")
-	}
-
-	s := strings.Split(args[0], ".")
-	gvk = &api.GVK{
-		Group:   s[0],
-		Version: s[1],
-		Kind:    s[2],
-	}
-
-	resourceName = args[1]
-	return
 }
 
 func (c *cmd) Synopsis() string {

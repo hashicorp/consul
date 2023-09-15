@@ -5,6 +5,7 @@ package api
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -33,6 +34,11 @@ type WriteResponse struct {
 	ID         *pbresource.ID    `json:"id"`
 	Version    string            `json:"version"`
 	Generation string            `json:"generation"`
+	Status     map[string]any    `json:"status"`
+}
+
+type ListResponse struct {
+	Resources []WriteResponse `json:"resources"`
 }
 
 // Config returns a handle to the Config endpoints
@@ -60,6 +66,20 @@ func (resource *Resource) Read(gvk *GVK, resourceName string, q *QueryOptions) (
 	return out, nil
 }
 
+func (resource *Resource) Delete(gvk *GVK, resourceName string, q *QueryOptions) error {
+	r := resource.c.newRequest("DELETE", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
+	r.setQueryOptions(q)
+	_, resp, err := resource.c.doRequest(r)
+	if err != nil {
+		return err
+	}
+	defer closeResponseBody(resp)
+	if err := requireHttpCodes(resp, http.StatusNoContent); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, payload *WriteRequest) (*WriteResponse, *WriteMeta, error) {
 	url := strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
 
@@ -83,4 +103,24 @@ func (resource *Resource) Apply(gvk *GVK, resourceName string, q *QueryOptions, 
 		return nil, nil, err
 	}
 	return out, wm, nil
+}
+
+func (resource *Resource) List(gvk *GVK, q *QueryOptions) (*ListResponse, error) {
+	r := resource.c.newRequest("GET", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind)))
+	r.setQueryOptions(q)
+	_, resp, err := resource.c.doRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, err
+	}
+
+	var out *ListResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

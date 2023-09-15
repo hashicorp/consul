@@ -46,8 +46,8 @@ message ProxyState {
   map<string, pbproxystate.TrustBundle> trust_bundles = 7;
   // tls has TLS configuration for this proxy.
   pbproxystate.TLS tls = 8;
-  // intention_default_allow is the default action for intentions. This determines how the Envoy RBAC filters are generated.
-  bool intention_default_allow = 9;
+  // traffic_permission_default_allow is the default action for traffic permissions. This determines how the Envoy RBAC filters are generated.
+  bool traffic_permission_default_allow = 9;
   // escape defines top level escape hatches. These are user configured json strings that configure an entire piece of listener or cluster Envoy configuration.
   pbproxystate.EscapeHatches escape = 10;
   // access_logs configures access logging for this proxy.
