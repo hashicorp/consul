@@ -12,15 +12,19 @@ For more detailed guidance, refer to the [`learn-consul-apigee-external-authz` r
 
 ## Workflow
 
-Complete the following steps to use the external authorization extension:
+Complete the following steps to use the external authorization extension with Apigee:
 
-1. Deploy the `apigee-remote-service-envoy` service and register the service in Consul.
-1. Configure an `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry. 
+1. Deploy the Apigee Adapter for Envoy and register the service in Consul.
+1. Configure the `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry. 
 1. Apply the configuration entry.
 
-## Configure the `apigee-remote-service-envoy` service default
+## Deploy the Apigee Adapter for Envoy
 
-The following example shows the service defaults configuration entry for the `apigee-remote-service-envoy` service that directs the authorization requests to Apigee:
+The [Apigee Adapter for Envoy](https://cloud.google.com/apigee/docs/api-platform/envoy-adapter/v2.0.x/concepts) is an Apigee-managed API gateway that uses Envoy to proxy API traffic.
+
+To download and install Apigee Adapter for Envoy refer to the [getting started documentation](https://cloud.google.com/apigee/docs/api-platform/envoy-adapter/v2.0.x/getting-started) or follow along with the [`learn-consul-apigee-external-authz` repo on GitHub](https://github.com/hashicorp-education/learn-consul-apigee-external-authz).
+
+Once the service is deployed in the desired runtime configure the default behavior of the service to direct the authorization requests to Apigee:
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -62,7 +66,7 @@ spec:
 </Tab>
 </Tabs>
 
-## Add the `EnvoyExtensions`
+## Configure the `EnvoyExtensions`
 
 Add Envoy extension configurations to a proxy defaults or service defaults configuration entry. Place the extension configuration in an `EnvoyExtensions` block in the configuration entry.
 
@@ -73,7 +77,7 @@ Add Envoy extension configurations to a proxy defaults or service defaults confi
 
 Consul applies Envoy extensions configured in proxy defaults before it applies extensions in service defaults. As a result, the Envoy extension configuration in service defaults may override configurations in proxy defaults.
 
-The following example shows a service defaults configuration entry for the `api` service that directs the Envoy proxy to make gRPC authorization requests to the `authz` service:
+The following example configures the default behavior for all services named `api` so that the Envoy proxies running as sidecars for those service instances target the apigee-remote-service-envoy service for gRPC authorization requests:
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
@@ -160,18 +164,6 @@ spec:
 Refer to the [external authorization extension configuration reference](/consul/docs/connect/proxies/envoy-extensions/configuration/ext-authz) for details on how to configure the extension. 
 
 Refer to the [proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) and [service defaults configuration entry reference](/consul/docs/connect/config-entries/service-defaults) for details on how to define the configuration entries. 
-
-### Unsupported Envoy configuration fields
-
-Consul does not support all parameters in Envoy extension configurations. The following table lists these parameters and their suggested workarounds:
-
-| Configuration | Workaround |
-| :--- | :--- |
-| `deny_at_disable` | Disable filter by removing it from the service’s configuration in the `service-default` configuration entry. |
-| `failure_mode_allow` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
-| `filter_enabled` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
-| `filter_enabled_metadata` | Set the `EnvoyExtension.Required` field to `true` in the [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults#envoyextensions) or [proxy defaults configuration entry](/consul/docs/connect/config-entries/proxy-defaults#envoyextensions). |
-| `transport_api_version` | The API version for xDS transport protocol that Consul supports is `v3`. Because Consul does not support other API versions, there is no workaround for implementing the behavior of this field. |
 
 ## Apply the configuration entry
 
