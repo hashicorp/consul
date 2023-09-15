@@ -63,9 +63,9 @@ func (suite *controllerSuite) requireCTP(resource *pbresource.Resource, allowExp
 }
 
 func (suite *controllerSuite) TestReconcile_CTPCreate_NoReferencingTrafficPermissionsExist() {
-	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").WithTenancy(resource.DefaultNamespacedTenancy()).Write(suite.T(), suite.client)
+	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
 	require.NotNil(suite.T(), wi)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 	require.NotNil(suite.T(), id)
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
@@ -89,7 +89,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 	suite.requireTrafficPermissionsTracking(tp1)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
-			&pbauth.Source{
+			{
 				IdentityName: "wi2",
 			}},
 	}
@@ -104,7 +104,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 
 	// create the workload identity that they reference
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -127,7 +127,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 	suite.requireTrafficPermissionsTracking(tp1)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
-			&pbauth.Source{
+			{
 				IdentityName: "wi2",
 			}},
 	}
@@ -142,7 +142,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 
 	// create the workload identity that they reference
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -171,7 +171,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencingTrafficPermissionsExist() {
 	// create the workload identity that they reference
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -192,7 +192,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencing
 func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_DestinationWorkloadIdentityExists() {
 	// create the workload identity to be referenced
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -206,10 +206,10 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		Action:      pbauth.Action_ACTION_DENY,
 		Permissions: []*pbauth.Permission{p1},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp1)
+	suite.requireTrafficPermissionsTracking(tp1, id)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
-			&pbauth.Source{
+			{
 				IdentityName: "wi2",
 			}},
 	}
@@ -220,7 +220,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 		Action:      pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{p2},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp2)
+	suite.requireTrafficPermissionsTracking(tp2, id)
 
 	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -229,12 +229,36 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 	ctp := suite.client.RequireResourceExists(suite.T(), id)
 	suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1})
 	rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
+
+	// Add another TP
+	p3 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "wi3",
+			}},
+	}
+	tp3 := rtest.Resource(types.TrafficPermissionsType, "tp3").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{
+			IdentityName: "wi1",
+		},
+		Action:      pbauth.Action_ACTION_DENY,
+		Permissions: []*pbauth.Permission{p3},
+	}).Write(suite.T(), suite.client)
+	suite.requireTrafficPermissionsTracking(tp3, id)
+
+	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+	require.NoError(suite.T(), err)
+
+	// Ensure that the CTP was updated
+	ctp = suite.client.RequireResourceExists(suite.T(), id)
+	suite.requireCTP(ctp, []*pbauth.Permission{p2}, []*pbauth.Permission{p1, p3})
+	rtest.RequireOwner(suite.T(), ctp, wi.Id, true)
 }
 
 func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_DestinationWorkloadIdentityExists() {
 	// create the workload identity to be referenced
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).ID()
+	id := rtest.Resource(types.ComputedTrafficPermissionsType, wi.Id.Name).WithTenancy(resource.DefaultNamespacedTenancy()).WithOwner(wi.Id).ID()
 
 	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -248,10 +272,10 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		Action:      pbauth.Action_ACTION_DENY,
 		Permissions: []*pbauth.Permission{p1},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp1)
+	suite.requireTrafficPermissionsTracking(tp1, id)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
-			&pbauth.Source{
+			{
 				IdentityName: "wi2",
 			}},
 	}
@@ -262,7 +286,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		Action:      pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{p2},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp2)
+	suite.requireTrafficPermissionsTracking(tp2, id)
 
 	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
@@ -285,9 +309,6 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 	newTps := suite.mapper.GetTrafficPermissionsForCTP(ctp.Id)
 	require.Len(suite.T(), newTps, 1)
 	require.Equal(suite.T(), newTps[0].Name, tp1.Id.Name)
-	reqs, err := suite.mapper.MapTrafficPermissions(suite.ctx, suite.rt, tp2)
-	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), reqs)
 }
 
 func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_DestinationWorkloadIdentityDoesNotExist() {
@@ -303,7 +324,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 	suite.requireTrafficPermissionsTracking(tp1)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
-			&pbauth.Source{
+			{
 				IdentityName: "wi2",
 			}},
 	}
@@ -322,8 +343,9 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 	// Ensure that no CTPs exist
 	rsp, err := suite.client.List(suite.ctx, &pbresource.ListRequest{
 		Type:    types.ComputedTrafficPermissionsType,
-		Tenancy: tp2.Id.Tenancy,
+		Tenancy: resource.DefaultNamespacedTenancy(),
 	})
+	require.NoError(suite.T(), err)
 	require.Empty(suite.T(), rsp.Resources)
 
 	// Ensure TP2 is untracked

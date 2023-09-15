@@ -746,7 +746,6 @@ func verifyServiceEndpoints(t *testing.T, c *rtest.Client, id *pbresource.ID, ex
 	c.WaitForResourceState(t, id, func(t rtest.T, res *pbresource.Resource) {
 		var actual pbcatalog.ServiceEndpoints
 		err := res.Data.UnmarshalTo(&actual)
-		fmt.Printf("DENY expected: %v, actual: %v\n", expected.Endpoints, actual.Endpoints)
 		require.NoError(t, err)
 		prototest.AssertElementsMatch(t, expected.Endpoints, actual.Endpoints)
 	})

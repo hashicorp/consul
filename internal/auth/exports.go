@@ -5,6 +5,7 @@ package auth
 
 import (
 	"github.com/hashicorp/consul/internal/auth/internal/controllers"
+	"github.com/hashicorp/consul/internal/auth/internal/controllers/trafficpermissions"
 	"github.com/hashicorp/consul/internal/auth/internal/mappers/trafficpermissionsmapper"
 	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -36,7 +37,10 @@ var (
 	TrafficPermissionsType         = types.TrafficPermissionsType
 	ComputedTrafficPermissionsType = types.ComputedTrafficPermissionsType
 
-	// TODO: Controller statuses
+	// Controller statuses
+
+	StatusKey                           = trafficpermissions.StatusKey
+	TrafficPermissionsConditionComputed = trafficpermissions.ConditionComputed
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group

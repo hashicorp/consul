@@ -15,30 +15,15 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// TODO: methods to map to NamespaceTrafficPermissionsMapper
-type PartitionTrafficPermissionsMapper struct {
-	lock                       sync.Mutex
-	partitionToNamespaceMapper map[string]NamespaceTrafficPermissionsMapper
-}
-
-// TODO: methods to map to TrafficPermissionsMapper
-type NamespaceTrafficPermissionsMapper struct {
-	lock            sync.Mutex
-	NamespaceMapper map[string]TrafficPermissionsMapper
-}
-
 type TrafficPermissionsMapper struct {
-	lock   sync.Mutex
-	mapper *bimapper.Mapper
-	// This holds traffic permissions with explicit destinations that are missing a workload identity
-	// TODO: decide if we should require WorkloadIdentity to already exist on TP validation
-	// Either way, this will still be needed if we do not want to clean up TrafficPermissions after
-	// WorkloadIdentity deletion.
-	// TODO: We wouldn't need this if we can make a generic bimapper that doesn't clean up dead-end links.
+	lock                     sync.Mutex
+	mapper                   *bimapper.Mapper
 	missingMap               *MissingWorkloadIdentityMapper // indexes on the name of the missing Workload Identity
-	workloadIdentityToCTPMap map[resource.ReferenceKey]*pbresource.ID
+	workloadIdentityToCTPMap map[string]*pbresource.ID
 }
 
+// TODO: We wouldn't need this if we can make a generic bimapper that doesn't clean up dead-end links.
+// MissingWorkloadIdentityMapper holds traffic permissions with explicit destinations that are missing an active workload identity.
 type MissingWorkloadIdentityMapper struct {
 	tpToWorkloadIdentityName map[resource.ReferenceKey]map[string]bool
 	workloadIdentityNameToTP map[string]map[resource.ReferenceKey]bool
@@ -69,7 +54,7 @@ func (mm *MissingWorkloadIdentityMapper) untrack(tp *pbresource.ID) {
 	tpRef := resource.NewReferenceKey(tp)
 	wiNames, ok := mm.tpToWorkloadIdentityName[tpRef]
 	if ok {
-		for wiName, _ := range wiNames {
+		for wiName := range wiNames {
 			delete(mm.workloadIdentityNameToTP[wiName], tpRef)
 		}
 	}
@@ -81,7 +66,7 @@ func New() *TrafficPermissionsMapper {
 		lock:                     sync.Mutex{},
 		mapper:                   bimapper.New(types.ComputedTrafficPermissionsType, types.TrafficPermissionsType),
 		missingMap:               newMissingWorkloadIdentityMapper(),
-		workloadIdentityToCTPMap: make(map[resource.ReferenceKey]*pbresource.ID, 0),
+		workloadIdentityToCTPMap: make(map[string]*pbresource.ID, 0),
 	}
 }
 
@@ -105,23 +90,16 @@ func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ c
 	// get new CTP associations based on destination
 	if len(tp.Destination.IdentityName) > 0 {
 		// Does the identity exist in our mappings?
-		newWorkloadIdentityRef := &pbresource.Reference{
-			Type:    res.Id.Type,
-			Tenancy: res.Id.Tenancy,
-			Name:    tp.Destination.IdentityName,
-		}
-		ctp, ok := tm.workloadIdentityToCTPMap[resource.NewReferenceKey(newWorkloadIdentityRef)]
+		ctp, ok := tm.workloadIdentityToCTPMap[tp.Destination.IdentityName]
 		if ok {
-			newCTPs := tm.trackTrafficPermissionsForCTP(res.Id, ctp)
-			for _, newCTP := range newCTPs {
-				ctpID := resource.IDFromReference(newCTP)
-				newWorkloadIdentities = append(workloadIdentities, controller.Request{ID: ctpID})
-			}
+			tm.trackTrafficPermissionsForCTP(res.Id, ctp)
+			newWorkloadIdentities = append(workloadIdentities, controller.Request{ID: ctp})
 		} else {
 			// if not add to missingWIMap
-			tm.missingMap.track(res.Id, newWorkloadIdentityRef.Name)
+			tm.missingMap.track(res.Id, tp.Destination.IdentityName)
 		}
 	} else {
+		// this error should never happen if validation is working
 		return nil, types.ErrWildcardNotSupported
 	}
 	return append(workloadIdentities, newWorkloadIdentities...), nil
@@ -130,12 +108,7 @@ func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ c
 // tracks a new TP for a given WI, returns the new list of tracked TPs for that WI
 func (tm *TrafficPermissionsMapper) trackTrafficPermissionsForCTP(tp *pbresource.ID, ctp *pbresource.ID) []*pbresource.Reference {
 	// Update the bimapper entry with a new link
-	tpRef := &pbresource.Reference{
-		Type:    types.TrafficPermissionsType,
-		Tenancy: tp.Tenancy,
-		Name:    tp.Name,
-	}
-	tpsForWI := append(tm.mapper.LinkRefsForItem(ctp), tpRef)
+	tpsForWI := append(tm.mapper.LinkRefsForItem(ctp), resource.ReferenceFromReferenceOrID(tp))
 	var tpsAsIDsOrRefs []resource.ReferenceOrID
 	for _, ref := range tpsForWI {
 		tpsAsIDsOrRefs = append(tpsAsIDsOrRefs, ref)
@@ -158,6 +131,8 @@ func (tm *TrafficPermissionsMapper) UntrackWorkloadIdentity(ctp *pbresource.ID) 
 	}
 	// remove from bimapper
 	tm.mapper.UntrackItem(ctp)
+	// remove from tracked WIs
+	delete(tm.workloadIdentityToCTPMap, ctp.Name)
 	return
 }
 
@@ -169,7 +144,7 @@ func (tm *TrafficPermissionsMapper) TrackCTPForWorkloadIdentity(ctp *pbresource.
 		tpIDs = append(tpIDs, tp.ToID())
 		tm.missingMap.untrack(tp.ToID())
 	}
-	tm.workloadIdentityToCTPMap[resource.NewReferenceKey(wi)] = ctp
+	tm.workloadIdentityToCTPMap[wi.Name] = ctp
 	// insert into bimapper
 	tm.mapper.TrackItem(ctp, tpIDs)
 }

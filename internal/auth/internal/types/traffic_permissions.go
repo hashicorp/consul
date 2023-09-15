@@ -12,9 +12,7 @@ import (
 )
 
 const (
-	NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
-	PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
-	TrafficPermissionsKind          = "TrafficPermissions"
+	TrafficPermissionsKind = "TrafficPermissions"
 )
 
 var (

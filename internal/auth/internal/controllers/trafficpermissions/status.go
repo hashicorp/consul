@@ -12,15 +12,15 @@ import (
 const (
 	StatusKey                        = "consul.io/traffic-permissions"
 	StatusTrafficPermissionsComputed = "Traffic permissions have been computed"
-	ConditionPermissionsAppliedMsg   = "Workload Identity %s has permission set hash %s"
+	ConditionPermissionsAppliedMsg   = "Workload Identity %s has new permission set"
 )
 
 var (
-	ConditionComputed = func(workloadIdentity, hash string) *pbresource.Condition {
+	ConditionComputed = func(workloadIdentity string) *pbresource.Condition {
 		return &pbresource.Condition{
 			Type:    StatusTrafficPermissionsComputed,
 			State:   pbresource.Condition_STATE_TRUE,
-			Message: fmt.Sprintf(ConditionPermissionsAppliedMsg, workloadIdentity, hash),
+			Message: fmt.Sprintf(ConditionPermissionsAppliedMsg, workloadIdentity),
 		}
 	}
 )

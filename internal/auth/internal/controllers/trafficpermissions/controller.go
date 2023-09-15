@@ -18,11 +18,11 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Mapper is used to map a watch event for a TrafficPermission resource and translate
+// ComputedTrafficPermissionsMapper is used to map a watch event for a TrafficPermissions resource and translate
 // it to a ComputedTrafficPermissions resource which contains the effective permissions
-// from the TrafficPermission resource.
+// from all referencing TrafficPermissions resources.
 type ComputedTrafficPermissionsMapper interface {
-	// MapTrafficPermission will take a TrafficPermission resource and return controller requests for all
+	// MapTrafficPermissions will take a TrafficPermission resource and return controller requests for all
 	// ComputedTrafficPermissions associated with that TrafficPermission.
 	MapTrafficPermissions(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
 
@@ -34,11 +34,16 @@ type ComputedTrafficPermissionsMapper interface {
 	// ComputedTrafficPermission.
 	UntrackWorkloadIdentity(*pbresource.ID)
 
-	// UntrackTrafficPermission instructs the Mapper to forget about the TrafficPermission.
+	// UntrackTrafficPermissions instructs the Mapper to forget about the TrafficPermission.
 	UntrackTrafficPermissions(*pbresource.ID)
 
 	// GetTrafficPermissionsForCTP returns the tracked TrafficPermissions that are used to create a CTP
 	GetTrafficPermissionsForCTP(id *pbresource.ID) []*pbresource.Reference
+}
+
+type ctpData struct {
+	resource *pbresource.Resource
+	ctp      *pbauth.ComputedTrafficPermissions
 }
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
@@ -51,8 +56,6 @@ func Controller(mapper ComputedTrafficPermissionsMapper) controller.Controller {
 	return controller.ForType(types.ComputedTrafficPermissionsType).
 		WithWatch(types.WorkloadIdentityType, controller.ReplaceType(types.ComputedTrafficPermissionsType)).
 		WithWatch(types.TrafficPermissionsType, mapper.MapTrafficPermissions).
-		WithWatch(types.NamespaceTrafficPermissionsType, mapper.MapTrafficPermissions).
-		WithWatch(types.PartitionTrafficPermissionsType, mapper.MapTrafficPermissions).
 		WithReconciler(&reconciler{mapper: mapper})
 }
 
@@ -100,10 +103,17 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		// Write the new CTP.
 		_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 			Resource: &pbresource.Resource{
-				Id:   ctpID,
-				Data: nil,
+				Id:    ctpID,
+				Data:  nil,
+				Owner: workloadIdentity.Id,
 			},
 		})
+		if err != nil {
+			rt.Logger.Error("error writing new computed traffic permissions", "error", err)
+			return err
+		} else {
+			rt.Logger.Trace("new computed traffic permissions were successfully written")
+		}
 		r.mapper.TrackCTPForWorkloadIdentity(ctpID, workloadIdentity.Id)
 	}
 
@@ -118,25 +128,37 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		// there are no changes to the computed traffic permissions, and we can return early
 		return nil
 	}
-	// First encode the data as an Any type.
 	newCTPData, err := anypb.New(latestTrafficPermissions)
 	if err != nil {
 		rt.Logger.Error("error marshalling latest traffic permissions", "error", err)
 		return err
 	}
-	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
+	rt.Logger.Trace("writing new computed traffic permissions with ID", "id:", req.ID)
+	rsp, err := rt.Client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
-			Id:    ctpID,
+			Id:    req.ID,
 			Data:  newCTPData,
 			Owner: workloadIdentity.Id,
 		},
 	})
+	if err != nil || rsp.Resource == nil {
+		rt.Logger.Error("error writing new computed traffic permissions", "error", err)
+		return err
+	} else {
+		rt.Logger.Trace("new computed traffic permissions were successfully written")
+	}
+	newStatus := &pbresource.Status{
+		ObservedGeneration: rsp.Resource.Generation,
+		Conditions: []*pbresource.Condition{
+			ConditionComputed(req.ID.Name),
+		},
+	}
+	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
+		Id:     rsp.Resource.Id,
+		Key:    StatusKey,
+		Status: newStatus,
+	})
 	return err
-}
-
-type ctpData struct {
-	resource *pbresource.Resource
-	ctp      *pbauth.ComputedTrafficPermissions
 }
 
 // getCTPData will read the computed traffic permissions with the given
@@ -163,7 +185,7 @@ func getCTPData(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (
 	return &ctpData{resource: rsp.Resource, ctp: &ctp}, nil
 }
 
-// LookupWorkloadIdentityByName finds a workload identity with a specified name in the same tenancy as
+// lookupWorkloadIdentityByName finds a workload identity with a specified name in the same tenancy as
 // the provided resource. If no workload identity is found, it returns nil.
 func lookupWorkloadIdentityByName(ctx context.Context, rt controller.Runtime, r *pbresource.ID, name string) (*pbresource.Resource, error) {
 	wi := &pbresource.ID{
@@ -185,16 +207,15 @@ func lookupWorkloadIdentityByName(ctx context.Context, rt controller.Runtime, r 
 	return activeWI, nil
 }
 
-// computeNewTrafficPermissions will use all associated Traffic Permissions to create new Computed Traffic Permissions data
+// computeNewTrafficPermissions will use all associated Traffic Permissions to create new ComputedTrafficPermissions data
 func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm ComputedTrafficPermissionsMapper, ctpID *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
 	// Part 1: Get all TPs that apply to workload identity
-	// explicit permissions
-	allTrafficPermissions := make([]pbauth.TrafficPermissions, 0)
 	// Get already associated WorkloadIdentities/CTPs for reconcile requests:
-	explicitTPs := wm.GetTrafficPermissionsForCTP(ctpID)
-	// explicitTPs := wm.mapper.LinkRefsForItem(ctpID)
-	rt.Logger.Trace("got explicit TPs for CTP", "ctp:", ctpID.Name, "tps:", explicitTPs)
-	for _, tp := range explicitTPs {
+	trackedTPs := wm.GetTrafficPermissionsForCTP(ctpID)
+	rt.Logger.Trace("got tracked TPs for CTP", "ctp:", ctpID.Name, "tps:", trackedTPs)
+	ap := make([]*pbauth.Permission, 0)
+	dp := make([]*pbauth.Permission, 0)
+	for _, tp := range trackedTPs {
 		rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: resource.IDFromReference(tp)})
 		switch {
 		case status.Code(err) == codes.NotFound:
@@ -210,18 +231,10 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 		if err != nil {
 			return nil, status.Error(codes.Internal, "failed to parse traffic permissions data")
 		}
-		allTrafficPermissions = append(allTrafficPermissions, tp)
-	}
-	// Part 2: For all TPs affecting WI, aggregate Allow and Deny permissions
-	ap := make([]*pbauth.Permission, 0)
-	dp := make([]*pbauth.Permission, 0)
-	for _, t := range allTrafficPermissions {
-		if t.Action == pbauth.Action_ACTION_ALLOW {
-			ap = append(ap, t.Permissions...)
-			rt.Logger.Trace("adding Allow permission to CTP", "workloadID:", ctpID.Name, "permission:", t.Permissions)
+		if tp.Action == pbauth.Action_ACTION_ALLOW {
+			ap = append(ap, tp.Permissions...)
 		} else {
-			dp = append(dp, t.Permissions...)
-			rt.Logger.Trace("adding Deny permission to CTP", "workloadID:", ctpID.Name, "permission:", t.Permissions)
+			dp = append(dp, tp.Permissions...)
 		}
 	}
 	return &pbauth.ComputedTrafficPermissions{AllowPermissions: ap, DenyPermissions: dp}, nil
