@@ -8345,7 +8345,7 @@ func TestCatalog_cleanupGatewayWildcards_proxy(t *testing.T) {
 		},
 	}))
 
-	// Register two services that share a prefix, both will be covered by gateway wildcards above
+	// Register two services, a regular service, and a sidecar proxy for it
 	api := structs.NodeService{
 		ID:             "api",
 		Service:        "api",
