@@ -71,12 +71,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// Check V1 tenancy exists for the V2 resource
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
 	// Check V1 tenancy not marked for deletion.
-	if err = v1TenancyMarkedForDeletion(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+	if err = v1TenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
 		return nil, err
 	}
 

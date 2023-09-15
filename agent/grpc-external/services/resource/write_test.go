@@ -416,7 +416,7 @@ func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
 			mockTenancyBridge := &MockTenancyBridge{}
 			mockTenancyBridge.On("PartitionExists", "part1").Return(true, nil)
 			mockTenancyBridge.On("NamespaceExists", "part1", "ns1").Return(true, nil)
-			server.V1TenancyBridge = mockTenancyBridge
+			server.TenancyBridge = mockTenancyBridge
 
 			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: tc.modFn(artist, recordLabel, mockTenancyBridge)})
 			require.Error(t, err)

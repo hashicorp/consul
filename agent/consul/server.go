@@ -137,6 +137,7 @@ const (
 	LeaderTransferMinVersion = "1.6.0"
 
 	CatalogResourceExperimentName = "resource-apis"
+	V2TenancyExperimentName       = "v2tenancy"
 )
 
 const (
@@ -819,7 +820,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Setup insecure resource service client.
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger, flat); err != nil {
 		return nil, err
 	}
 
@@ -1393,29 +1394,38 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
+
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        deps.Registry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     s.ACLResolver,
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
+		Registry:      deps.Registry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   s.ACLResolver,
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
 
 	reflection.Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger, deps Deps) error {
 	if s.raftStorageBackend == nil {
 		return fmt.Errorf("raft storage backend cannot be nil")
 	}
 
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        typeRegistry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     resolver.DANGER_NO_AUTH{},
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
+		Registry:      typeRegistry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   resolver.DANGER_NO_AUTH{},
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

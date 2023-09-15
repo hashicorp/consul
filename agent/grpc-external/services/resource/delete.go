@@ -20,7 +20,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Deletes a resource.
+// Delete deletes a resource.
 // - To delete a resource regardless of the stored version, set Version = ""
 // - Supports deleting a resource by name, hence Id.Uid may be empty.
 // - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
