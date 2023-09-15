@@ -127,7 +127,7 @@ func TestResourceListInvalidArgs(t *testing.T) {
 			expectedCode: 1,
 			expectedErr:  errors.New("Failed to decode resource from input file"),
 		},
-		"file argument is ignored": {
+		"file argument with resource type": {
 			args: []string{
 				"demo.v2.artist",
 				"-namespace=default",
@@ -137,8 +137,8 @@ func TestResourceListInvalidArgs(t *testing.T) {
 				"-token=root",
 				"-f=demo.hcl",
 			},
-			expectedCode: 0,
-			expectedErr:  errors.New("File argument is ignored when resource information is provided with the command"),
+			expectedCode: 1,
+			expectedErr:  errors.New("Incorrect argument format: File argument is not needed when resource information is provided with the command"),
 		},
 		"resource type invalid": {
 			args: []string{
@@ -149,6 +149,17 @@ func TestResourceListInvalidArgs(t *testing.T) {
 			},
 			expectedCode: 1,
 			expectedErr:  errors.New("Must include resource type argument in group.verion.kind format"),
+		},
+		"resource name is provided": {
+			args: []string{
+				"demo.v2.artist",
+				"test",
+				"-namespace=default",
+				"-peer=local",
+				"-partition=default",
+			},
+			expectedCode: 1,
+			expectedErr:  errors.New("Must include flag arguments after resource type"),
 		},
 	}
 

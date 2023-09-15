@@ -101,7 +101,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Warn("File argument is ignored when resource information is provided with the command")
+			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
+			return 1
 		}
 		opts = &api.QueryOptions{
 			Namespace: c.http.Namespace(),

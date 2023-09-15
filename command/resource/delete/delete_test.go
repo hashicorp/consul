@@ -52,12 +52,12 @@ func TestResourceDeleteInvalidArgs(t *testing.T) {
 		"provide type and name with -f": {
 			args:         []string{"a.b.c", "name", "-f", "test.hcl"},
 			expectedCode: 1,
-			expectedErr:  errors.New("File argument is ignored when resource information is provided with the command"),
+			expectedErr:  errors.New("Incorrect argument format: File argument is not needed when resource information is provided with the command"),
 		},
 		"provide type and name with -f and other flags": {
 			args:         []string{"a.b.c", "name", "-f", "test.hcl", "-namespace", "default"},
 			expectedCode: 1,
-			expectedErr:  errors.New("File argument is ignored when resource information is provided with the command"),
+			expectedErr:  errors.New("Incorrect argument format: File argument is not needed when resource information is provided with the command"),
 		},
 		"does not provide resource name after type": {
 			args:         []string{"a.b.c", "-namespace", "default"},

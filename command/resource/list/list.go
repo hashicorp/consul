@@ -99,7 +99,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Warn(fmt.Sprintf("File argument is ignored when resource information is provided with the command"))
+			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
+			return 1
 		}
 
 		opts = &api.QueryOptions{
@@ -136,6 +137,10 @@ func (c *cmd) Run(args []string) int {
 func getResourceType(args []string) (gvk *api.GVK, e error) {
 	if len(args) < 1 {
 		return nil, fmt.Errorf("Must include resource type argument")
+	}
+	// it should not have resource name
+	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
+		return nil, fmt.Errorf("Must include flag arguments after resource type")
 	}
 
 	s := strings.Split(args[0], ".")
