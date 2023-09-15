@@ -51,6 +51,10 @@ var deleteResource = func(client *api.Client, config config) error {
 	err := client.Resource().Delete(&config.gvk, config.resourceName, &config.queryOptions)
 	return err
 }
+var listResource = func(client *api.Client, config config) error {
+	_, err := client.Resource().List(&config.gvk, &config.queryOptions)
+	return err
+}
 
 func TestWriteEndpoint(t *testing.T) {
 	testCases := []testCase{
@@ -237,6 +241,80 @@ func TestDeleteEndpoint(t *testing.T) {
 					gvk:          commonGVK,
 					resourceName: "fake-korn",
 					queryOptions: commonQueryOptions,
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+			cluster, client := SetupClusterAndClient(t, clusterConfig, true)
+			defer Terminate(t, cluster)
+
+			for i, op := range tc.operations {
+				err := op.action(client, tc.config[i])
+				if len(op.expectedErrorMsg) > 0 {
+					require.Error(t, err)
+					require.Equal(t, op.expectedErrorMsg, err.Error())
+				} else {
+					require.NoError(t, err)
+				}
+			}
+		})
+	}
+}
+
+func TestListEndpoint(t *testing.T) {
+	testCases := []testCase{
+		{
+			description: "should list resource successfully",
+			operations: []operation{
+				{
+					action:           applyResource,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           listResource,
+					expectedErrorMsg: "",
+				},
+			},
+			config: []config{
+				{
+					gvk:          commonGVK,
+					resourceName: "korn",
+					queryOptions: commonQueryOptions,
+					payload:      commonPayload,
+				},
+				{
+					gvk:          commonGVK,
+					queryOptions: commonQueryOptions,
+				},
+			},
+		},
+		{
+			description: "should read empty resource list",
+			operations: []operation{
+				{
+					action:           applyResource,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           listResource,
+					expectedErrorMsg: "",
+				},
+			},
+			config: []config{
+				{
+					gvk:          commonGVK,
+					resourceName: "korn",
+					queryOptions: commonQueryOptions,
+					payload:      commonPayload,
+				},
+				{
+					gvk:          commonGVK,
+					queryOptions: fakeQueryOptions,
 				},
 			},
 		},

@@ -22,6 +22,11 @@ var commonQueryOptions = api.QueryOptions{
 	Partition: "default",
 	Peer:      "local",
 }
+var fakeQueryOptions = api.QueryOptions{
+	Namespace: "fake-default",
+	Partition: "fake-default",
+	Peer:      "fake-local",
+}
 var commonPayload = api.WriteRequest{
 	Metadata: map[string]string{
 		"foo": "bar",
