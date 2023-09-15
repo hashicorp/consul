@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -28,6 +28,7 @@ func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     HealthChecksV1Alpha1Type,
 		Proto:    &pbcatalog.HealthChecks{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,
 	})
 }

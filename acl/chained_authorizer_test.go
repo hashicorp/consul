@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package acl
 
@@ -27,6 +27,18 @@ func (authz testAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDec
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
 func (authz testAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {

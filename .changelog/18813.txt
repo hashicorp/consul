@@ -1,0 +1,3 @@
+```release-note:improvement
+acl: Use templated policy to generate synthetic policies for tokens/roles with node and/or service identities
+```

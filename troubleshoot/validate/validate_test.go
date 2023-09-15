@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package validate
 
@@ -349,7 +349,7 @@ func TestMakeValidate(t *testing.T) {
 				},
 				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					svc: {
-						SNI: tc.snis,
+						SNIs: tc.snis,
 					},
 				},
 			}

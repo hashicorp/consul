@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -13,20 +13,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/acl/resolver"
-	"github.com/hashicorp/consul/lib/stringslice"
-
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/copystructure"
 )
 
 var StateCounters = []prometheus.CounterDefinition{
@@ -838,6 +838,12 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	existing := l.checks[id]
 	if existing != nil {
 		c.InSync = c.Check.IsSame(existing.Check)
+		// If the existing check has a Defercheck, it needs to be
+		// assigned to the new check
+		if existing.DeferCheck != nil && c.DeferCheck == nil {
+			c.DeferCheck = existing.DeferCheck
+			c.InSync = false
+		}
 	}
 
 	l.checks[id] = c
@@ -1252,6 +1258,7 @@ func (l *State) SyncChanges() error {
 		}
 	}
 
+	var errs error
 	// Sync the services
 	// (logging happens in the helper methods)
 	for id, s := range l.services {
@@ -1265,7 +1272,7 @@ func (l *State) SyncChanges() error {
 			l.logger.Debug("Service in sync", "service", id.String())
 		}
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -1286,10 +1293,10 @@ func (l *State) SyncChanges() error {
 			l.logger.Debug("Check in sync", "check", id.String())
 		}
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
-	return nil
+	return errs
 }
 
 // deleteService is used to delete a service from the server

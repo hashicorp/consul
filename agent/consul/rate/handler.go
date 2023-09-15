@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package rate implements server-side RPC rate limiting.
 package rate
@@ -119,15 +119,15 @@ const (
 	OperationCategoryKV              OperationCategory = "KV"
 	OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
 	OperationCategorySession         OperationCategory = "Session"
-	OperationCategoryStatus          OperationCategory = "Status"
+	OperationCategoryStatus          OperationCategory = "Status" // not limited
 	OperationCategoryTxn             OperationCategory = "Txn"
 	OperationCategoryAutoConfig      OperationCategory = "AutoConfig"
 	OperationCategoryFederationState OperationCategory = "FederationState"
 	OperationCategoryInternal        OperationCategory = "Internal"
-	OperationCategoryOperator        OperationCategory = "Operator"
+	OperationCategoryOperator        OperationCategory = "Operator" // not limited
 	OperationCategoryPeerStream      OperationCategory = "PeerStream"
 	OperationCategoryPeering         OperationCategory = "Peering"
-	OperationCategoryPartition       OperationCategory = "Partition"
+	OperationCategoryPartition       OperationCategory = "Tenancy"
 	OperationCategoryDataPlane       OperationCategory = "DataPlane"
 	OperationCategoryDNS             OperationCategory = "DNS"
 	OperationCategorySubscribe       OperationCategory = "Subscribe"

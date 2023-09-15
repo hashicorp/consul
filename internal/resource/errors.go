@@ -1,10 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -12,10 +11,32 @@ import (
 )
 
 var (
-	ErrMissing                  = errors.New("missing required field")
-	ErrEmpty                    = errors.New("cannot be empty")
-	ErrReferenceTenancyNotEqual = errors.New("resource tenancy and reference tenancy differ")
+	ErrMissing                  = NewConstError("missing required field")
+	ErrEmpty                    = NewConstError("cannot be empty")
+	ErrReferenceTenancyNotEqual = NewConstError("resource tenancy and reference tenancy differ")
 )
+
+// ConstError is more or less equivalent to the stdlib errors.errorstring. However, having
+// our own exported type allows us to more accurately compare error values in tests.
+//
+//   - go-cmp will not compared unexported fields by default.
+//   - cmp.AllowUnexported(<type>) requires a concrete struct type and due to the stdlib not
+//     exporting the errorstring type there doesn't seem to be a way to get at the type.
+//   - cmpopts.EquateErrors has issues with protobuf types within other error structs.
+//
+// Due to these factors the easiest thing to do is to create a custom comparer for
+// the ConstError type and use it where necessary.
+type ConstError struct {
+	message string
+}
+
+func NewConstError(msg string) ConstError {
+	return ConstError{message: msg}
+}
+
+func (e ConstError) Error() string {
+	return e.message
+}
 
 type ErrDataParse struct {
 	TypeName string
@@ -92,16 +113,30 @@ func (err ErrInvalidMapKey) Unwrap() error {
 	return err.Wrapped
 }
 
-type ErrOwnerInvalid struct {
+type ErrOwnerTypeInvalid struct {
 	ResourceType *pbresource.Type
 	OwnerType    *pbresource.Type
 }
 
-func (err ErrOwnerInvalid) Error() string {
+func (err ErrOwnerTypeInvalid) Error() string {
 	return fmt.Sprintf(
 		"resources of type %s cannot be owned by resources with type %s",
 		ToGVK(err.ResourceType),
 		ToGVK(err.OwnerType),
+	)
+}
+
+type ErrOwnerTenantInvalid struct {
+	ResourceType    *pbresource.Type
+	ResourceTenancy *pbresource.Tenancy
+	OwnerTenancy    *pbresource.Tenancy
+}
+
+func (err ErrOwnerTenantInvalid) Error() string {
+	return fmt.Sprintf(
+		"resource in partition %s, namespace %s and peer %s cannot be owned by a resource in partition %s, namespace %s and peer %s",
+		err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
+		err.OwnerTenancy.Partition, err.OwnerTenancy.Namespace, err.OwnerTenancy.PeerName,
 	)
 }
 

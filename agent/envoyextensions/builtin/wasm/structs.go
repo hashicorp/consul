@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package wasm
 
@@ -195,7 +195,7 @@ func (p *pluginConfig) asyncDataSource(rtCfg *extensioncommon.RuntimeConfig) (*e
 	clusterSNI := ""
 	for service, upstream := range rtCfg.Upstreams {
 		if service == remote.HttpURI.Service {
-			for sni := range upstream.SNI {
+			for sni := range upstream.SNIs {
 				clusterSNI = sni
 				break
 			}

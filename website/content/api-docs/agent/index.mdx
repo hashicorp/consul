@@ -206,6 +206,24 @@ $ curl \
 }
 ```
 
+## Retrieve version information
+
+This endpoint returns version information about Consul.
+
+| Method | Path             | Produces           |
+| ------ | ---------------- | ------------------ |
+| `GET`  | `/agent/version` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
 ## List Members
 
 This endpoint returns the members the agent sees in the cluster gossip pool. Due

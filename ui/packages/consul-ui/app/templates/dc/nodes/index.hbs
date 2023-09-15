@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <Route @name={{routeName}} as |route|>
@@ -40,10 +40,15 @@
               change=(action (mut searchproperty) value='target.selectedItems')
               default=this._searchProperties
             )
+            version=(hash 
+              value=(if this.version (split this.version ',') undefined)
+              change=(action (mut this.version) value='target.selectedItems')
+            )
           )
           api.data
           leader.data
-          as |sort filters items leader|
+          api.data.meta.versions
+          as |sort filters items leader versions|
         }}
           {{#let (reject-by 'Meta.synthetic-node' items) as |filtered|}}
             <AppView>
@@ -61,6 +66,7 @@
                     @onsearch={{action (mut search) value='target.value'}}
                     @sort={{sort}}
                     @filter={{filters}}
+                    @versions={{versions}}
                   />
                 {{/if}}
               </BlockSlot>

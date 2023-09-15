@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 //go:build integration
 // +build integration
@@ -7,6 +7,9 @@
 package envoy
 
 import (
+	"flag"
+	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"sort"
@@ -16,11 +19,31 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var (
+	flagWin          = flag.Bool("win", false, "Execute tests on windows")
+	flagResourceAPIs = flag.Bool("enable-resource-apis", false, "Execute tests with resource apis enabled.")
+)
+
 func TestEnvoy(t *testing.T) {
-	testcases, err := discoverCases()
+	flag.Parse()
+
+	if *flagWin == true {
+		dir := "../../../"
+		check_dir_files(dir)
+	}
+
+	var testcases []string
+	var err error
+	if *flagResourceAPIs == true {
+		os.Setenv("USE_RESOURCE_APIS", "true")
+		testcases, err = discoverResourceAPICases()
+	} else {
+		testcases, err = discoverCases()
+	}
 	require.NoError(t, err)
 
 	runCmd(t, "suite_setup")
+
 	defer runCmd(t, "suite_teardown")
 
 	for _, tc := range testcases {
@@ -40,7 +63,7 @@ func TestEnvoy(t *testing.T) {
 	}
 }
 
-func runCmd(t *testing.T, c string, env ...string) {
+func runCmdLinux(t *testing.T, c string, env ...string) {
 	t.Helper()
 
 	cmd := exec.Command("./run-tests.sh", c)
@@ -52,7 +75,35 @@ func runCmd(t *testing.T, c string, env ...string) {
 	}
 }
 
-// Discover the cases so we pick up both oss and ent copies.
+func runCmdWindows(t *testing.T, c string, env ...string) {
+	t.Helper()
+
+	param_5 := "false"
+	if env != nil {
+		param_5 = strings.Join(env, " ")
+	}
+
+	cmd := exec.Command("cmd", "/C", "bash run-tests.windows.sh", c, param_5)
+	cmd.Env = append(os.Environ(), env...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("command failed: %v", err)
+	}
+}
+
+func runCmd(t *testing.T, c string, env ...string) {
+	t.Helper()
+
+	if *flagWin == true {
+		runCmdWindows(t, c, env...)
+
+	} else {
+		runCmdLinux(t, c, env...)
+	}
+}
+
+// Discover the cases so we pick up both ce and ent copies.
 func discoverCases() ([]string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -73,4 +124,85 @@ func discoverCases() ([]string, error) {
 
 	sort.Strings(out)
 	return out, nil
+}
+
+// discoverResourceAPICases will discover the Envoy tests case files but will contain
+// a filter in it to only return those case for which functionality has been added
+// to the V2 catalog resources.
+func discoverResourceAPICases() ([]string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+
+	dirs, err := os.ReadDir(cwd)
+	if err != nil {
+		return nil, err
+	}
+
+	var out []string
+	for _, fi := range dirs {
+		// TODO(proxystate): enable this to only include tests cases that are supported.
+		// Currently the work is in progress, so it is wired up in CI, but this excludes any tests from actually running.
+		if fi.IsDir() && strings.HasPrefix(fi.Name(), "case-don-match-me-on-anything-yet-because-i-am-not-ready") {
+			out = append(out, fi.Name())
+		}
+	}
+
+	sort.Strings(out)
+	return out, nil
+}
+
+// CRLF convert functions
+// Recursively iterates through the directory passed by parameter looking for the sh and bash files.
+// Upon finding them, it calls crlf_file_check.
+func check_dir_files(path string) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, fil := range files {
+
+		v := strings.Split(fil.Name(), ".")
+		file_extension := v[len(v)-1]
+
+		file_path := path + "/" + fil.Name()
+
+		if fil.IsDir() == true {
+			check_dir_files(file_path)
+		}
+
+		if file_extension == "sh" || file_extension == "bash" {
+			crlf_file_check(file_path)
+		}
+	}
+}
+
+// Check if a file contains CRLF line endings if so call crlf_normalize
+func crlf_file_check(file_name string) {
+
+	file, err := ioutil.ReadFile(file_name)
+	text := string(file)
+
+	if edit := crlf_verify(text); edit != -1 {
+		crlf_normalize(file_name, text)
+	}
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Checks for the existence of CRLF line endings.
+func crlf_verify(text string) int {
+	position := strings.Index(text, "\r\n")
+	return position
+}
+
+// Replace CRLF line endings with LF.
+func crlf_normalize(filename, text string) {
+	text = strings.Replace(text, "\r\n", "\n", -1)
+	data := []byte(text)
+
+	ioutil.WriteFile(filename, data, 0644)
 }

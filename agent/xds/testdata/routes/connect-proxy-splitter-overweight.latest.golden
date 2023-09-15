@@ -1,0 +1,99 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "db",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "*"
+          ],
+          "name": "db",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "weightedClusters": {
+                  "clusters": [
+                    {
+                      "name": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "big"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "big"
+                          }
+                        }
+                      ],
+                      "weight": 10000
+                    },
+                    {
+                      "name": "goldilocks-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "goldilocks"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "goldilocks"
+                          }
+                        }
+                      ],
+                      "weight": 10000
+                    },
+                    {
+                      "name": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "requestHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "small"
+                          }
+                        }
+                      ],
+                      "responseHeadersToAdd": [
+                        {
+                          "append": false,
+                          "header": {
+                            "key": "x-split-leg",
+                            "value": "small"
+                          }
+                        }
+                      ],
+                      "weight": 10000
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}

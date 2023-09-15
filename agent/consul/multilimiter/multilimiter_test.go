@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package multilimiter
 
@@ -95,7 +95,7 @@ func TestRateLimiterCleanup(t *testing.T) {
 	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 10 * time.Second}, t, func(r *retry.R) {
 		v, ok := limiters.Get(key)
 		require.True(r, ok)
-		require.NotNil(t, v)
+		require.NotNil(r, v)
 	})
 
 	time.Sleep(c.ReconcileCheckInterval)

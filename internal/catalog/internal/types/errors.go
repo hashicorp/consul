@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -59,4 +59,13 @@ type errTooMuchMesh struct {
 
 func (err errTooMuchMesh) Error() string {
 	return fmt.Sprintf("protocol \"mesh\" was specified in more than 1 port: %+v", err.Ports)
+}
+
+type errInvalidEndpointsOwnerName struct {
+	Name      string
+	OwnerName string
+}
+
+func (err errInvalidEndpointsOwnerName) Error() string {
+	return fmt.Sprintf("invalid owner name %q. ServiceEndpoints objects must be owned by a Service with the same name: %q", err.OwnerName, err.Name)
 }

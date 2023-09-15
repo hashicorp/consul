@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package extensioncommon
 
@@ -30,6 +30,10 @@ type UpstreamEnvoyExtender struct {
 
 var _ EnvoyExtender = (*UpstreamEnvoyExtender)(nil)
 
+func (ext *UpstreamEnvoyExtender) CanApply(config *RuntimeConfig) bool {
+	return ext.Extension.CanApply(config)
+}
+
 func (ext *UpstreamEnvoyExtender) Validate(_ *RuntimeConfig) error {
 	return nil
 }
@@ -56,10 +60,6 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 		return resources, nil
 	}
 
-	if !ext.Extension.CanApply(config) {
-		return resources, nil
-	}
-
 	for _, indexType := range []string{
 		xdscommon.ListenerType,
 		xdscommon.RouteType,
@@ -74,7 +74,7 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 					continue
 				}
 
-				newCluster, patched, err := ext.Extension.PatchCluster(config, resource)
+				newCluster, patched, err := ext.Extension.PatchCluster(config.GetClusterPayload(resource))
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching cluster: %w", err))
 					continue
@@ -101,7 +101,7 @@ func (ext *UpstreamEnvoyExtender) Extend(resources *xdscommon.IndexedResources, 
 					continue
 				}
 
-				newRoute, patched, err := ext.Extension.PatchRoute(config, resource)
+				newRoute, patched, err := ext.Extension.PatchRoute(config.GetRoutePayload(resource))
 				if err != nil {
 					resultErr = multierror.Append(resultErr, fmt.Errorf("error patching route: %w", err))
 					continue
@@ -146,7 +146,7 @@ func (ext *UpstreamEnvoyExtender) patchTerminatingGatewayListener(config *Runtim
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
@@ -190,7 +190,7 @@ func (ext *UpstreamEnvoyExtender) patchConnectProxyListener(config *RuntimeConfi
 		var filters []*envoy_listener_v3.Filter
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)
@@ -214,7 +214,11 @@ func (ext *UpstreamEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *
 	var resultErr error
 	patched := false
 
-	vip := config.Upstreams[config.ServiceName].VIP
+	upstream := config.Upstreams[config.ServiceName]
+	if upstream == nil {
+		return l, false, nil
+	}
+	vip := upstream.VIP
 
 	for _, filterChain := range l.FilterChains {
 		var filters []*envoy_listener_v3.Filter
@@ -225,7 +229,7 @@ func (ext *UpstreamEnvoyExtender) patchTProxyListener(config *RuntimeConfig, l *
 		}
 
 		for _, filter := range filterChain.Filters {
-			newFilter, ok, err := ext.Extension.PatchFilter(config, filter, IsInboundPublicListener(l))
+			newFilter, ok, err := ext.Extension.PatchFilter(config.GetFilterPayload(filter, l))
 			if err != nil {
 				resultErr = multierror.Append(resultErr, fmt.Errorf("error patching listener filter: %w", err))
 				filters = append(filters, filter)

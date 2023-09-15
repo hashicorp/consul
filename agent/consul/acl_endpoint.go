@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -350,9 +350,10 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 	policyIDs := make(map[string]struct{})
 	roleIDs := make(map[string]struct{})
 	identityPolicies := make(map[string]*structs.ACLPolicy)
+	templatedPolicies := make(map[string]*structs.ACLPolicy)
 	tokenInfo := structs.ExpandedTokenInfo{}
 
-	// Add the token's policies and node/service identity policies
+	// Add the token's policies, templated policies and node/service identity policies
 	for _, policy := range token.Policies {
 		policyIDs[policy.ID] = struct{}{}
 	}
@@ -367,6 +368,14 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 	for _, identity := range token.NodeIdentities {
 		policy := identity.SyntheticPolicy(&token.EnterpriseMeta)
 		identityPolicies[policy.ID] = policy
+	}
+	for _, templatedPolicy := range token.TemplatedPolicies {
+		policy, err := templatedPolicy.SyntheticPolicy(&token.EnterpriseMeta)
+		if err != nil {
+			a.logger.Warn(fmt.Sprintf("could not generate synthetic policy for templated policy: %q", templatedPolicy.TemplateName), "error", err)
+			continue
+		}
+		templatedPolicies[policy.ID] = policy
 	}
 
 	// Get any namespace default roles/policies to look up
@@ -405,6 +414,14 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 			policy := identity.SyntheticPolicy(&role.EnterpriseMeta)
 			identityPolicies[policy.ID] = policy
 		}
+		for _, templatedPolicy := range role.TemplatedPolicies {
+			policy, err := templatedPolicy.SyntheticPolicy(&role.EnterpriseMeta)
+			if err != nil {
+				a.logger.Warn(fmt.Sprintf("could not generate synthetic policy for templated policy: %q", templatedPolicy.TemplateName), "error", err)
+				continue
+			}
+			templatedPolicies[policy.ID] = policy
+		}
 
 		tokenInfo.ExpandedRoles = append(tokenInfo.ExpandedRoles, role)
 	}
@@ -421,6 +438,9 @@ func (a *ACL) lookupExpandedTokenInfo(ws memdb.WatchSet, state *state.Store, tok
 		policies = append(policies, policy)
 	}
 	for _, policy := range identityPolicies {
+		policies = append(policies, policy)
+	}
+	for _, policy := range templatedPolicies {
 		policies = append(policies, policy)
 	}
 
@@ -486,6 +506,7 @@ func (a *ACL) TokenClone(args *structs.ACLTokenSetRequest, reply *structs.ACLTok
 		Roles:             token.Roles,
 		ServiceIdentities: token.ServiceIdentities,
 		NodeIdentities:    token.NodeIdentities,
+		TemplatedPolicies: token.TemplatedPolicies,
 		Local:             token.Local,
 		Description:       token.Description,
 		ExpirationTime:    token.ExpirationTime,
@@ -680,8 +701,18 @@ func (a *ACL) TokenList(args *structs.ACLTokenListRequest, reply *structs.ACLTok
 	}
 
 	return a.srv.blockingQuery(&args.QueryOptions, &reply.QueryMeta,
-		func(ws memdb.WatchSet, state *state.Store) error {
-			index, tokens, err := state.ACLTokenList(ws, args.IncludeLocal, args.IncludeGlobal, args.Policy, args.Role, args.AuthMethod, methodMeta, &args.EnterpriseMeta)
+		func(ws memdb.WatchSet, s *state.Store) error {
+			index, tokens, err := s.ACLTokenListWithParameters(ws, state.ACLTokenListParameters{
+				Local:          args.IncludeLocal,
+				Global:         args.IncludeGlobal,
+				Policy:         args.Policy,
+				Role:           args.Role,
+				MethodName:     args.AuthMethod,
+				ServiceName:    args.ServiceName,
+				MethodMeta:     methodMeta,
+				EnterpriseMeta: &args.EnterpriseMeta,
+			})
+
 			if err != nil {
 				return err
 			}
@@ -869,8 +900,8 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 		return fmt.Errorf("Invalid Policy: no Name is set")
 	}
 
-	if !acl.IsValidPolicyName(policy.Name) {
-		return fmt.Errorf("Invalid Policy: invalid Name. Only alphanumeric characters, '-' and '_' are allowed")
+	if err := acl.ValidatePolicyName(policy.Name); err != nil {
+		return err
 	}
 
 	var idMatch *structs.ACLPolicy
@@ -915,13 +946,13 @@ func (a *ACL) PolicySet(args *structs.ACLPolicySetRequest, reply *structs.ACLPol
 			return fmt.Errorf("Invalid Policy: A policy with name %q already exists", policy.Name)
 		}
 
-		if policy.ID == structs.ACLPolicyGlobalManagementID {
+		if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
 			if policy.Datacenters != nil || len(policy.Datacenters) > 0 {
-				return fmt.Errorf("Changing the Datacenters of the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Datacenters of the %s policy is not permitted", builtinPolicy.Name)
 			}
 
 			if policy.Rules != idMatch.Rules {
-				return fmt.Errorf("Changing the Rules for the builtin global-management policy is not permitted")
+				return fmt.Errorf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name)
 			}
 		}
 	}
@@ -999,8 +1030,8 @@ func (a *ACL) PolicyDelete(args *structs.ACLPolicyDeleteRequest, reply *string) 
 		return fmt.Errorf("policy does not exist: %w", acl.ErrNotFound)
 	}
 
-	if policy.ID == structs.ACLPolicyGlobalManagementID {
-		return fmt.Errorf("Delete operation not permitted on the builtin global-management policy")
+	if builtinPolicy, ok := structs.ACLBuiltinPolicies[policy.ID]; ok {
+		return fmt.Errorf("Delete operation not permitted on the builtin %s policy", builtinPolicy.Name)
 	}
 
 	req := structs.ACLPolicyBatchDeleteRequest{
@@ -1354,6 +1385,27 @@ func (a *ACL) RoleSet(args *structs.ACLRoleSetRequest, reply *structs.ACLRole) e
 	}
 	role.NodeIdentities = role.NodeIdentities.Deduplicate()
 
+	for _, templatedPolicy := range role.TemplatedPolicies {
+		if templatedPolicy.TemplateName == "" {
+			return fmt.Errorf("templated policy is missing the template name field on this role")
+		}
+
+		baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templatedPolicy.TemplateName)
+		if !ok {
+			return fmt.Errorf("templated policy with an invalid templated name: %s for this role", templatedPolicy.TemplateName)
+		}
+
+		if templatedPolicy.TemplateID == "" {
+			templatedPolicy.TemplateID = baseTemplate.TemplateID
+		}
+
+		err := templatedPolicy.ValidateTemplatedPolicy(baseTemplate.Schema)
+		if err != nil {
+			return fmt.Errorf("encountered role with invalid templated policy: %w", err)
+		}
+	}
+	role.TemplatedPolicies = role.TemplatedPolicies.Deduplicate()
+
 	// calculate the hash for this role
 	role.SetHash(true)
 
@@ -1667,18 +1719,23 @@ func (a *ACL) BindingRuleSet(args *structs.ACLBindingRuleSetRequest, reply *stru
 		return fmt.Errorf("Invalid Binding Rule: no BindName is set")
 	}
 
+	if rule.BindType != structs.BindingRuleBindTypeTemplatedPolicy && rule.BindVars != nil {
+		return fmt.Errorf("invalid Binding Rule: BindVars cannot be set when bind type is not templated-policy.")
+	}
+
 	switch rule.BindType {
 	case structs.BindingRuleBindTypeService:
 	case structs.BindingRuleBindTypeNode:
 	case structs.BindingRuleBindTypeRole:
+	case structs.BindingRuleBindTypeTemplatedPolicy:
 	default:
 		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", rule.BindType)
 	}
 
-	if valid, err := auth.IsValidBindName(rule.BindType, rule.BindName, blankID.ProjectedVarNames()); err != nil {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName: %v", err)
+	if valid, err := auth.IsValidBindNameOrBindVars(rule.BindType, rule.BindName, rule.BindVars, blankID.ProjectedVarNames()); err != nil {
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName or BindVars: %v", err)
 	} else if !valid {
-		return fmt.Errorf("Invalid Binding Rule: invalid BindName")
+		return fmt.Errorf("Invalid Binding Rule: invalid BindName or BindVars")
 	}
 
 	req := &structs.ACLBindingRuleBatchSetRequest{

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -220,6 +220,9 @@ const (
 	// WildcardSpecifier is the string which should be used for specifying a wildcard
 	// The exact semantics of the wildcard is left up to the code where its used.
 	WildcardSpecifier = "*"
+
+	// MetaConsulVersion is the node metadata key used to store the node's consul version
+	MetaConsulVersion = "consul-version"
 )
 
 var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: {}}
@@ -1480,6 +1483,10 @@ func (s *NodeService) IsGateway() bool {
 func (s *NodeService) Validate() error {
 	var result error
 
+	if err := s.Locality.Validate(); err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	if s.Kind == ServiceKindConnectProxy {
 		if s.Port == 0 && s.SocketPath == "" {
 			result = multierror.Append(result, fmt.Errorf("Port or SocketPath must be set for a %s", s.Kind))
@@ -1872,6 +1879,7 @@ type HealthCheckDefinition struct {
 	Body                           string              `json:",omitempty"`
 	DisableRedirects               bool                `json:",omitempty"`
 	TCP                            string              `json:",omitempty"`
+	TCPUseTLS                      bool                `json:",omitempty"`
 	UDP                            string              `json:",omitempty"`
 	H2PING                         string              `json:",omitempty"`
 	OSService                      string              `json:",omitempty"`
@@ -2024,6 +2032,7 @@ func (c *HealthCheck) CheckType() *CheckType {
 		Body:                           c.Definition.Body,
 		DisableRedirects:               c.Definition.DisableRedirects,
 		TCP:                            c.Definition.TCP,
+		TCPUseTLS:                      c.Definition.TCPUseTLS,
 		UDP:                            c.Definition.UDP,
 		H2PING:                         c.Definition.H2PING,
 		OSService:                      c.Definition.OSService,
@@ -2089,6 +2098,18 @@ func (csn *CheckServiceNode) CanRead(authz acl.Authorizer) acl.EnforcementDecisi
 		return acl.Deny
 	}
 	return acl.Allow
+}
+
+func (csn *CheckServiceNode) Locality() *Locality {
+	if csn.Service != nil && csn.Service.Locality != nil {
+		return csn.Service.Locality
+	}
+
+	if csn.Node != nil && csn.Node.Locality != nil {
+		return csn.Node.Locality
+	}
+
+	return nil
 }
 
 type CheckServiceNodes []CheckServiceNode
@@ -2308,6 +2329,7 @@ type ServiceUsage struct {
 	ServiceInstances         int
 	ConnectServiceInstances  map[string]int
 	BillableServiceInstances int
+	Nodes                    int
 	EnterpriseServiceUsage
 }
 
@@ -2319,6 +2341,11 @@ type PeeredServiceName struct {
 
 func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
+}
+
+type ServiceNameWithSamenessGroup struct {
+	SamenessGroup string
+	ServiceName
 }
 
 type ServiceName struct {
@@ -3105,4 +3132,16 @@ func (l *Locality) GetRegion() string {
 		return ""
 	}
 	return l.Region
+}
+
+func (l *Locality) Validate() error {
+	if l == nil {
+		return nil
+	}
+
+	if l.Region == "" && l.Zone != "" {
+		return fmt.Errorf("zone cannot be set without region")
+	}
+
+	return nil
 }

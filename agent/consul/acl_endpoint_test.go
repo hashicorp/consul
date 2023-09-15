@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -23,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -143,7 +144,7 @@ func TestACLEndpoint_ReplicationStatus(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		var status structs.ACLReplicationStatus
 		err := msgpackrpc.CallWithCodec(codec, "ACL.ReplicationStatus", &getR, &status)
-		require.NoError(t, err)
+		require.NoError(r, err)
 
 		require.True(r, status.Enabled)
 		require.True(r, status.Running)
@@ -220,7 +221,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 				time.Sleep(200 * time.Millisecond)
 				err := aclEp.TokenRead(&req, &resp)
 				require.Error(r, err)
-				require.ErrorContains(t, err, "ACL not found")
+				require.ErrorContains(r, err, "ACL not found")
 				require.Nil(r, resp.Token)
 			})
 		})
@@ -376,7 +377,7 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		require.ElementsMatch(t, []*structs.ACLRole{r1, r2}, resp.ExpandedRoles)
 	})
 
-	t.Run("expanded output with node/service identities", func(t *testing.T) {
+	t.Run("expanded output with node/service identities and templated policies", func(t *testing.T) {
 		setReq := structs.ACLTokenSetRequest{
 			Datacenter: "dc1",
 			ACLToken: structs.ACLToken{
@@ -401,6 +402,22 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 						Datacenter: "dc1",
 					},
 				},
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{
+						TemplateName: api.ACLTemplatedPolicyServiceName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "web",
+						},
+						Datacenters: []string{"dc1"},
+					},
+					{
+						TemplateName: api.ACLTemplatedPolicyNodeName,
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "foo",
+						},
+						Datacenters: []string{"dc1"},
+					},
+				},
 				Local: false,
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -413,6 +430,11 @@ func TestACLEndpoint_TokenRead(t *testing.T) {
 		}
 		for _, serviceIdentity := range setReq.ACLToken.NodeIdentities {
 			expectedPolicies = append(expectedPolicies, serviceIdentity.SyntheticPolicy(entMeta))
+		}
+		for _, templatedPolicy := range setReq.ACLToken.TemplatedPolicies {
+			pol, tmplError := templatedPolicy.SyntheticPolicy(entMeta)
+			require.NoError(t, tmplError)
+			expectedPolicies = append(expectedPolicies, pol)
 		}
 
 		setResp := structs.ACLToken{}
@@ -468,6 +490,10 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		t.NodeIdentities = []*structs.ACLNodeIdentity{
 			{NodeName: "foo", Datacenter: "bar"},
 		}
+		t.TemplatedPolicies = []*structs.ACLTemplatedPolicy{
+			{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "foo"}, Datacenters: []string{"bar"}},
+			{TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "node"}},
+		}
 	})
 	require.NoError(t, err)
 
@@ -490,6 +516,7 @@ func TestACLEndpoint_TokenClone(t *testing.T) {
 		require.Equal(t, t1.Roles, t2.Roles)
 		require.Equal(t, t1.ServiceIdentities, t2.ServiceIdentities)
 		require.Equal(t, t1.NodeIdentities, t2.NodeIdentities)
+		require.Equal(t, t1.TemplatedPolicies, t2.TemplatedPolicies)
 		require.Equal(t, t1.Local, t2.Local)
 		require.NotEqual(t, t1.AccessorID, t2.AccessorID)
 		require.NotEqual(t, t1.SecretID, t2.SecretID)
@@ -548,6 +575,10 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 						Datacenter: "dc1",
 					},
 				},
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "foo"}, Datacenters: []string{"bar"}},
+					{TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "node"}},
+				},
 			},
 			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
 		}
@@ -569,6 +600,19 @@ func TestACLEndpoint_TokenSet(t *testing.T) {
 		require.Len(t, token.NodeIdentities, 1)
 		require.Equal(t, "foo", token.NodeIdentities[0].NodeName)
 		require.Equal(t, "dc1", token.NodeIdentities[0].Datacenter)
+
+		require.Len(t, token.TemplatedPolicies, 2)
+		require.Contains(t, token.TemplatedPolicies, &structs.ACLTemplatedPolicy{
+			TemplateID:        structs.ACLTemplatedPolicyServiceID,
+			TemplateName:      api.ACLTemplatedPolicyServiceName,
+			TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "foo"},
+			Datacenters:       []string{"bar"},
+		})
+		require.Contains(t, token.TemplatedPolicies, &structs.ACLTemplatedPolicy{
+			TemplateID:        structs.ACLTemplatedPolicyNodeID,
+			TemplateName:      api.ACLTemplatedPolicyNodeName,
+			TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "node"},
+		})
 
 		accessorID = token.AccessorID
 	})
@@ -2183,7 +2227,40 @@ func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
+func TestACLEndpoint_TemplatedPolicySet_UnknownTemplateName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	_, srv, _ := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
+
+	aclEp := ACL{srv: srv}
+
+	t.Run("unknown template name", func(t *testing.T) {
+		req := structs.ACLTokenSetRequest{
+			Datacenter: "dc1",
+			ACLToken: structs.ACLToken{
+				Description:       "foobar",
+				Policies:          nil,
+				Local:             false,
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{{TemplateName: "fake-builtin"}},
+			},
+			Create:       true,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+
+		resp := structs.ACLToken{}
+
+		err := aclEp.TokenSet(&req, &resp)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "no such ACL templated policy with Name \"fake-builtin\"")
+	})
+}
+
+func TestACLEndpoint_PolicySet_builtins(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2195,47 +2272,50 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 
 	aclEp := ACL{srv: srv}
 
-	// Can't change the rules
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:    structs.ACLPolicyGlobalManagementID,
-				Name:  "foobar", // This is required to get past validation
-				Rules: "service \"\" { policy = \"write\" }",
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+	for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+		name := fmt.Sprintf("foobar-%s", builtinPolicy.Name) // This is required to get past validation
+
+		// Can't change the rules
+		{
+			req := structs.ACLPolicySetRequest{
+				Datacenter: "dc1",
+				Policy: structs.ACLPolicy{
+					ID:    builtinPolicy.ID,
+					Name:  name,
+					Rules: "service \"\" { policy = \"write\" }",
+				},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			}
+			resp := structs.ACLPolicy{}
+
+			err := aclEp.PolicySet(&req, &resp)
+			require.EqualError(t, err, fmt.Sprintf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name))
 		}
-		resp := structs.ACLPolicy{}
 
-		err := aclEp.PolicySet(&req, &resp)
-		require.EqualError(t, err, "Changing the Rules for the builtin global-management policy is not permitted")
-	}
+		// Can rename it
+		{
+			req := structs.ACLPolicySetRequest{
+				Datacenter: "dc1",
+				Policy: structs.ACLPolicy{
+					ID:    builtinPolicy.ID,
+					Name:  name,
+					Rules: builtinPolicy.Rules,
+				},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			}
+			resp := structs.ACLPolicy{}
 
-	// Can rename it
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:    structs.ACLPolicyGlobalManagementID,
-				Name:  "foobar",
-				Rules: structs.ACLPolicyGlobalManagement,
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			err := aclEp.PolicySet(&req, &resp)
+			require.NoError(t, err)
+
+			// Get the policy again
+			policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", builtinPolicy.ID)
+			require.NoError(t, err)
+			policy := policyResp.Policy
+
+			require.Equal(t, policy.ID, builtinPolicy.ID)
+			require.Equal(t, policy.Name, name)
 		}
-		resp := structs.ACLPolicy{}
-
-		err := aclEp.PolicySet(&req, &resp)
-		require.NoError(t, err)
-
-		// Get the policy again
-		policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", structs.ACLPolicyGlobalManagementID)
-		require.NoError(t, err)
-		policy := policyResp.Policy
-
-		require.Equal(t, policy.ID, structs.ACLPolicyGlobalManagementID)
-		require.Equal(t, policy.Name, "foobar")
-
 	}
 }
 
@@ -2271,7 +2351,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	require.Nil(t, tokenResp.Policy)
 }
 
-func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
+func TestACLEndpoint_PolicyDelete_builtins(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2282,16 +2362,17 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 	waitForLeaderEstablishment(t, srv)
 	aclEp := ACL{srv: srv}
 
-	req := structs.ACLPolicyDeleteRequest{
-		Datacenter:   "dc1",
-		PolicyID:     structs.ACLPolicyGlobalManagementID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+	for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+		req := structs.ACLPolicyDeleteRequest{
+			Datacenter:   "dc1",
+			PolicyID:     builtinPolicy.ID,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var resp string
+
+		err := aclEp.PolicyDelete(&req, &resp)
+		require.EqualError(t, err, fmt.Sprintf("Delete operation not permitted on the builtin %s policy", builtinPolicy.Name))
 	}
-	var resp string
-
-	err := aclEp.PolicyDelete(&req, &resp)
-
-	require.EqualError(t, err, "Delete operation not permitted on the builtin global-management policy")
 }
 
 func TestACLEndpoint_PolicyList(t *testing.T) {
@@ -2324,6 +2405,7 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 
 	policies := []string{
 		structs.ACLPolicyGlobalManagementID,
+		structs.ACLPolicyGlobalReadOnlyID,
 		p1.ID,
 		p2.ID,
 	}
@@ -3491,7 +3573,7 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		}
 	}
 
-	requireSetErrors := func(t *testing.T, reqRule structs.ACLBindingRule) {
+	requireSetErrors := func(t *testing.T, reqRule structs.ACLBindingRule, msg ...string) {
 		req := structs.ACLBindingRuleSetRequest{
 			Datacenter:   "dc1",
 			BindingRule:  reqRule,
@@ -3501,6 +3583,10 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 
 		err := aclEp.BindingRuleSet(&req, &resp)
 		require.Error(t, err)
+
+		for _, s := range msg {
+			require.Contains(t, err.Error(), s)
+		}
 	}
 
 	requireOK := func(t *testing.T, reqRule structs.ACLBindingRule) *structs.ACLBindingRule {
@@ -3575,6 +3661,40 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
 		require.Equal(t, structs.BindingRuleBindTypeNode, rule.BindType)
 		require.Equal(t, "test-node", rule.BindName)
+	})
+
+	t.Run("templated policy", func(t *testing.T) {
+		req := structs.ACLBindingRuleSetRequest{
+			Datacenter: "dc1",
+			BindingRule: structs.ACLBindingRule{
+				Description: "templated policy binding rule",
+				AuthMethod:  testAuthMethod.Name,
+				Selector:    "serviceaccount.name==abc",
+				BindType:    structs.BindingRuleBindTypeTemplatedPolicy,
+				BindName:    api.ACLTemplatedPolicyNodeName,
+				BindVars: &structs.ACLTemplatedPolicyVariables{
+					Name: "test-node",
+				},
+			},
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var resp structs.ACLBindingRule
+
+		err := aclEp.BindingRuleSet(&req, &resp)
+		require.NoError(t, err)
+		require.NotNil(t, resp.ID)
+
+		// Get the rule directly to validate that it exists
+		ruleResp, err := retrieveTestBindingRule(codec, TestDefaultInitialManagementToken, "dc1", resp.ID)
+		require.NoError(t, err)
+		rule := ruleResp.BindingRule
+
+		require.NotEmpty(t, rule.ID)
+		require.Equal(t, rule.Description, "templated policy binding rule")
+		require.Equal(t, rule.AuthMethod, testAuthMethod.Name)
+		require.Equal(t, "serviceaccount.name==abc", rule.Selector)
+		require.Equal(t, structs.BindingRuleBindTypeTemplatedPolicy, rule.BindType)
+		require.Equal(t, api.ACLTemplatedPolicyNodeName, rule.BindName)
 	})
 
 	t.Run("Update fails; cannot change method name", func(t *testing.T) {
@@ -3693,10 +3813,35 @@ func TestACLEndpoint_BindingRuleSet(t *testing.T) {
 		requireSetErrors(t, reqRule)
 	})
 
+	t.Run("Create fails; when bind vars is set for non templated policy", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindVars = &structs.ACLTemplatedPolicyVariables{
+			Name: "test",
+		}
+		requireSetErrors(t, reqRule, "invalid Binding Rule: BindVars cannot be set when bind type is not templated-policy.")
+	})
+
+	t.Run("Create fails; when missing required bindvars", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindName = api.ACLTemplatedPolicyServiceName
+		reqRule.BindType = structs.BindingRuleBindTypeTemplatedPolicy
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: invalid BindName or BindVars")
+	})
+
+	t.Run("Create fails; when bindvars contains unknown vars", func(t *testing.T) {
+		reqRule := newRule()
+		reqRule.BindName = api.ACLTemplatedPolicyServiceName
+		reqRule.BindType = structs.BindingRuleBindTypeTemplatedPolicy
+		reqRule.BindVars = &structs.ACLTemplatedPolicyVariables{
+			Name: "method-${serviceaccount.bizarroname}",
+		}
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: invalid BindName or BindVars")
+	})
+
 	t.Run("Create fails; invalid bind type", func(t *testing.T) {
 		reqRule := newRule()
 		reqRule.BindType = "invalid"
-		requireSetErrors(t, reqRule)
+		requireSetErrors(t, reqRule, "Invalid Binding Rule: unknown BindType")
 	})
 
 	t.Run("Create fails; bind name with unknown vars", func(t *testing.T) {

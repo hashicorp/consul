@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -183,6 +183,7 @@ type Config struct {
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
+	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
@@ -422,6 +423,7 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
+	TCPUseTLS                      *bool               `mapstructure:"tcp_use_tls"`
 	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
@@ -691,6 +693,7 @@ type Telemetry struct {
 	CirconusSubmissionInterval         *string  `mapstructure:"circonus_submission_interval" json:"circonus_submission_interval,omitempty"`
 	CirconusSubmissionURL              *string  `mapstructure:"circonus_submission_url" json:"circonus_submission_url,omitempty"`
 	DisableHostname                    *bool    `mapstructure:"disable_hostname" json:"disable_hostname,omitempty"`
+	EnableHostMetrics                  *bool    `mapstructure:"enable_host_metrics" json:"enable_host_metrics,omitempty"`
 	DogstatsdAddr                      *string  `mapstructure:"dogstatsd_addr" json:"dogstatsd_addr,omitempty"`
 	DogstatsdTags                      []string `mapstructure:"dogstatsd_tags" json:"dogstatsd_tags,omitempty"`
 	RetryFailedConfiguration           *bool    `mapstructure:"retry_failed_connection" json:"retry_failed_connection,omitempty"`
@@ -806,8 +809,9 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled *bool                `mapstructure:"enabled"`
-	Sinks   map[string]AuditSink `mapstructure:"sink"`
+	Enabled    *bool                `mapstructure:"enabled"`
+	Sinks      map[string]AuditSink `mapstructure:"sink"`
+	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing

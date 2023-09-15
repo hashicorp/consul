@@ -1,0 +1,1 @@
+invalid-gvk.hcl:2,10-14: Error in function call; Call to function "gvk" failed: GVK string must be in the form <Group>.<GroupVersion>.<Kind>, got: nope.

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -51,6 +51,10 @@ func TestErrorStrings(t *testing.T) {
 		},
 		"errTooMuchMesh": errTooMuchMesh{
 			Ports: []string{"http", "grpc"},
+		},
+		"errInvalidEndpointsOwnerName": errInvalidEndpointsOwnerName{
+			Name:      "foo",
+			OwnerName: "bar",
 		},
 		"errNotDNSLabel":                errNotDNSLabel,
 		"errNotIPAddress":               errNotIPAddress,

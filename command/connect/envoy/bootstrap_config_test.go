@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoy
 
@@ -539,7 +539,8 @@ const (
 		"envoy_grpc": {
 		  "cluster_name": "consul_telemetry_collector_loopback"
 		}
-	  }
+	  },
+	  "emit_tags_as_labels": true
 	}
   }`
 
@@ -638,7 +639,8 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 						"envoy_grpc": {
 						  "cluster_name": "consul_telemetry_collector_loopback"
 						}
-					  }
+					  },
+					  "emit_tags_as_labels": true
 					}
 				  }`,
 				StaticClustersJSON: `{
@@ -1522,7 +1524,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp listener no namespace or partition (OSS)",
+			name: "tcp listener no namespace or partition (CE)",
 			stat: "tcp.upstream.db.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"db.dc1.", "dc1"},
@@ -1532,7 +1534,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "tcp peered listener no namespace or partition (OSS)",
+			name: "tcp peered listener no namespace or partition (CE)",
 			stat: "tcp.upstream_peered.db.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"db.cloudpeer.", "cloudpeer"},
@@ -1560,7 +1562,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "http listener no namespace or partition (OSS)",
+			name: "http listener no namespace or partition (CE)",
 			stat: "http.upstream.web.dc1.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.datacenter": {"web.dc1.", "dc1"},
@@ -1570,7 +1572,7 @@ func TestConsulTagSpecifiers(t *testing.T) {
 			},
 		},
 		{
-			name: "http peered listener no namespace or partition (OSS)",
+			name: "http peered listener no namespace or partition (CE)",
 			stat: "http.upstream_peered.web.cloudpeer.downstream_cx_total",
 			expect: map[string][]string{
 				"consul.upstream.peer":      {"web.cloudpeer.", "cloudpeer"},

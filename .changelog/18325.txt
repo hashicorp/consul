@@ -1,0 +1,3 @@
+```release-note:bug
+mesh: **(Enterprise Only)** Require that `jwt-provider` config entries are created in the `default` namespace.
+```

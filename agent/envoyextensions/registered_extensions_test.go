@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package envoyextensions
 
@@ -46,6 +46,30 @@ func TestValidateExtensions(t *testing.T) {
 			expectErrs: []string{
 				"invalid EnvoyExtensions[0][builtin/lua]",
 				"missing Script value",
+			},
+		},
+		"invalid consul version constraint": {
+			input: []api.EnvoyExtension{{
+				Name: "builtin/aws/lambda",
+				Arguments: map[string]interface{}{
+					"ARN": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+				},
+				ConsulVersion: "bad",
+			}},
+			expectErrs: []string{
+				"invalid EnvoyExtensions[0].ConsulVersion: Malformed constraint: bad",
+			},
+		},
+		"invalid envoy version constraint": {
+			input: []api.EnvoyExtension{{
+				Name: "builtin/aws/lambda",
+				Arguments: map[string]interface{}{
+					"ARN": "arn:aws:lambda:us-east-1:111111111111:function:lambda-1234",
+				},
+				EnvoyVersion: "bad",
+			}},
+			expectErrs: []string{
+				"invalid EnvoyExtensions[0].EnvoyVersion: Malformed constraint: bad",
 			},
 		},
 	}

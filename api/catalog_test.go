@@ -65,6 +65,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 			},
 			Meta: map[string]string{
 				"consul-network-segment": "",
+				"consul-version":         s.Config.Version,
 			},
 		}
 		require.Equal(r, want, got)

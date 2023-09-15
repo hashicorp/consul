@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lib
 
@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/logging"
+
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
@@ -24,15 +26,16 @@ func newCfg() TelemetryConfig {
 
 func TestConfigureSinks(t *testing.T) {
 	cfg := newCfg()
-	sinks, err := configureSinks(cfg, nil)
+	extraSinks := []metrics.MetricSink{&metrics.BlackholeSink{}}
+	sinks, err := configureSinks(cfg, nil, extraSinks)
 	require.Error(t, err)
-	// 3 sinks: statsd, statsite, inmem
-	require.Equal(t, 3, len(sinks))
+	// 4 sinks: statsd, statsite, inmem, extra sink (blackhole)
+	require.Equal(t, 4, len(sinks))
 
 	cfg = TelemetryConfig{
 		DogstatsdAddr: "",
 	}
-	_, err = configureSinks(cfg, nil)
+	_, err = configureSinks(cfg, nil, nil)
 	require.NoError(t, err)
 
 }

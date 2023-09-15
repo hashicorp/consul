@@ -1,0 +1,3 @@
+```release-note:improvement
+raft: Remove expensive reflection from raft/mesh hot path
+```

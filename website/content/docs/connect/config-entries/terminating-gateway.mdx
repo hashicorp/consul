@@ -7,9 +7,6 @@ description: >-
 
 # Terminating Gateway Configuration Entry
 
--> **v1.8.4+:** On Kubernetes, the `TerminatingGateway` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
-
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
 to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
 [service mesh sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service

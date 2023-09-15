@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 #
 # Script for bringing up an N node consul cluster

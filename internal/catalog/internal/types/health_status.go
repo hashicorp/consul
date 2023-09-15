@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
@@ -28,6 +28,7 @@ func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     HealthStatusV1Alpha1Type,
 		Proto:    &pbcatalog.HealthStatus{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthStatus,
 	})
 }
@@ -73,7 +74,7 @@ func ValidateHealthStatus(res *pbresource.Resource) error {
 			Wrapped: resource.ErrMissing,
 		})
 	} else if !resource.EqualType(res.Owner.Type, WorkloadType) && !resource.EqualType(res.Owner.Type, NodeType) {
-		err = multierror.Append(err, resource.ErrOwnerInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
+		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 
 	return err

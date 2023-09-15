@@ -7,6 +7,14 @@ import (
 	"time"
 )
 
+const (
+	DiscoveryTypeStrictDNS   ClusterDiscoveryType = "STRICT_DNS"
+	DiscoveryTypeStatic      ClusterDiscoveryType = "STATIC"
+	DiscoveryTypeLogicalDNS  ClusterDiscoveryType = "LOGICAL_DNS"
+	DiscoveryTypeEDS         ClusterDiscoveryType = "EDS"
+	DiscoveryTypeOriginalDST ClusterDiscoveryType = "ORIGINAL_DST"
+)
+
 type JWTProviderConfigEntry struct {
 	// Kind is the kind of configuration entry and must be "jwt-provider".
 	Kind string `json:",omitempty"`
@@ -188,6 +196,71 @@ type RemoteJWKS struct {
 	//
 	// There is no retry by default.
 	RetryPolicy *JWKSRetryPolicy `json:",omitempty" alias:"retry_policy"`
+
+	// JWKSCluster defines how the specified Remote JWKS URI is to be fetched.
+	JWKSCluster *JWKSCluster `json:",omitempty" alias:"jwks_cluster"`
+}
+
+type JWKSCluster struct {
+	// DiscoveryType refers to the service discovery type to use for resolving the cluster.
+	//
+	// This defaults to STRICT_DNS.
+	// Other options include STATIC, LOGICAL_DNS, EDS or ORIGINAL_DST.
+	DiscoveryType ClusterDiscoveryType `json:",omitempty" alias:"discovery_type"`
+
+	// TLSCertificates refers to the data containing certificate authority certificates to use
+	// in verifying a presented peer certificate.
+	// If not specified and a peer certificate is presented it will not be verified.
+	//
+	// Must be either CaCertificateProviderInstance or TrustedCA.
+	TLSCertificates *JWKSTLSCertificate `json:",omitempty" alias:"tls_certificates"`
+
+	// The timeout for new network connections to hosts in the cluster.
+	// If not set, a default value of 5s will be used.
+	ConnectTimeout time.Duration `json:",omitempty" alias:"connect_timeout"`
+}
+
+type ClusterDiscoveryType string
+
+// JWKSTLSCertificate refers to the data containing certificate authority certificates to use
+// in verifying a presented peer certificate.
+// If not specified and a peer certificate is presented it will not be verified.
+//
+// Must be either CaCertificateProviderInstance or TrustedCA.
+type JWKSTLSCertificate struct {
+	// CaCertificateProviderInstance Certificate provider instance for fetching TLS certificates.
+	CaCertificateProviderInstance *JWKSTLSCertProviderInstance `json:",omitempty" alias:"ca_certificate_provider_instance"`
+
+	// TrustedCA defines TLS certificate data containing certificate authority certificates
+	// to use in verifying a presented peer certificate.
+	//
+	// Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
+	TrustedCA *JWKSTLSCertTrustedCA `json:",omitempty" alias:"trusted_ca"`
+}
+
+// JWKSTLSCertTrustedCA defines TLS certificate data containing certificate authority certificates
+// to use in verifying a presented peer certificate.
+//
+// Exactly one of Filename, EnvironmentVariable, InlineString or InlineBytes must be specified.
+type JWKSTLSCertTrustedCA struct {
+	Filename            string `json:",omitempty" alias:"filename"`
+	EnvironmentVariable string `json:",omitempty" alias:"environment_variable"`
+	InlineString        string `json:",omitempty" alias:"inline_string"`
+	InlineBytes         []byte `json:",omitempty" alias:"inline_bytes"`
+}
+
+type JWKSTLSCertProviderInstance struct {
+	// InstanceName refers to the certificate provider instance name
+	//
+	// The default value is "default".
+	InstanceName string `json:",omitempty" alias:"instance_name"`
+
+	// CertificateName is used to specify certificate instances or types. For example, "ROOTCA" to specify
+	// a root-certificate (validation context) or "example.com" to specify a certificate for a
+	// particular domain.
+	//
+	// The default value is the empty string.
+	CertificateName string `json:",omitempty" alias:"certificate_name"`
 }
 
 type JWKSRetryPolicy struct {

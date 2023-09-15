@@ -18,6 +18,8 @@ The overall process for establishing a cluster peering connection consists of th
 
 Cluster peering between services cannot be established until all four steps are complete.
 
+Cluster peering between services cannot be established until all four steps are complete. If you want to establish cluster peering connections and create sameness groups at the same time, refer to the guidance in [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups).
+
 For general guidance for establishing cluster peering connections, refer to [Establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering).
 
 ## Prerequisites
@@ -46,7 +48,7 @@ After you provision a Kubernetes cluster and set up your kubeconfig file to mana
   $ export CLUSTER2_CONTEXT=<CONTEXT for second Kubernetes cluster>
   ```
 
-### Update the Helm chart
+### Install Consul using Helm and configure peering over mesh gateways 
 
 To use cluster peering with Consul on Kubernetes deployments, update the Helm chart with [the required values](/consul/docs/k8s/connect/cluster-peering/tech-specs#helm-requirements). After updating the Helm chart, you can use the `consul-k8s` CLI to apply `values.yaml` to each cluster.
 
@@ -57,7 +59,7 @@ To use cluster peering with Consul on Kubernetes deployments, update the Helm ch
   ```
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_NAME1} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc1 --kube-context $CLUSTER1_CONTEXT
+  $ helm install ${HELM_RELEASE_NAME1} hashicorp/consul --create-namespace --namespace consul --version "1.2.0" --values values.yaml --set global.datacenter=dc1 --kube-context $CLUSTER1_CONTEXT
   ```
 
 1. In `cluster-02`, run the following commands:
@@ -67,8 +69,10 @@ To use cluster peering with Consul on Kubernetes deployments, update the Helm ch
   ```
 
   ```shell-session
-  $ helm install ${HELM_RELEASE_NAME2} hashicorp/consul --create-namespace --namespace consul --version "1.0.1" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
+  $ helm install ${HELM_RELEASE_NAME2} hashicorp/consul --create-namespace --namespace consul --version "1.2.0" --values values.yaml --set global.datacenter=dc2 --kube-context $CLUSTER2_CONTEXT
   ```
+
+1. For both clusters apply the `Mesh` configuration entry values provided in [Mesh Gateway Specifications](/consul/docs/k8s/connect/cluster-peering/tech-specs#mesh-gateway-specifications) to allow establishing peering connections over mesh gateways. 
 
 ### Configure the mesh gateway mode for traffic between services
 

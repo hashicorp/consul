@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package discoverychain
 
@@ -27,9 +27,10 @@ type GatewayChainSynthesizer struct {
 }
 
 type hostnameMatch struct {
-	match    structs.HTTPMatch
-	filters  structs.HTTPFilters
-	services []structs.HTTPService
+	match           structs.HTTPMatch
+	filters         structs.HTTPFilters
+	responseFilters structs.HTTPResponseFilters
+	services        []structs.HTTPService
 }
 
 // NewGatewayChainSynthesizer creates a new GatewayChainSynthesizer for the
@@ -87,9 +88,10 @@ func initHostMatches(hostname string, route *structs.HTTPRouteConfigEntry, curre
 			// Add all matches for this rule to the list for this hostname
 			for _, match := range rule.Matches {
 				matches = append(matches, hostnameMatch{
-					match:    match,
-					filters:  rule.Filters,
-					services: rule.Services,
+					match:           match,
+					filters:         rule.Filters,
+					responseFilters: rule.ResponseFilters,
+					services:        rule.Services,
 				})
 			}
 		}
@@ -226,9 +228,10 @@ func consolidateHTTPRoutes(matchesByHostname map[string][]hostnameMatch, listene
 		// Add all rules for this hostname
 		for _, rule := range rules {
 			route.Rules = append(route.Rules, structs.HTTPRouteRule{
-				Matches:  []structs.HTTPMatch{rule.match},
-				Filters:  rule.filters,
-				Services: rule.services,
+				Matches:         []structs.HTTPMatch{rule.match},
+				Filters:         rule.filters,
+				ResponseFilters: rule.responseFilters,
+				Services:        rule.services,
 			})
 		}
 
@@ -249,6 +252,13 @@ func targetForResolverNode(nodeName string, chains []*structs.CompiledDiscoveryC
 	splitterName := splitterPrefix + strings.TrimPrefix(nodeName, resolverPrefix)
 
 	for _, c := range chains {
+		targetChainPrefix := resolverPrefix + c.ServiceName + "."
+		if strings.HasPrefix(nodeName, targetChainPrefix) && len(c.Nodes) == 1 {
+			// we have a virtual resolver that just maps to another resolver, return
+			// the given node name
+			return c.StartNode
+		}
+
 		for name, node := range c.Nodes {
 			if node.IsSplitter() && strings.HasPrefix(splitterName, name) {
 				return name

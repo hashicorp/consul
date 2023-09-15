@@ -53,6 +53,11 @@ or optionally provided. There is more documentation on watch
 - `-type` - Watch type. Required, one of "`key`, `keyprefix`, `services`,
   `nodes`, `service`, `checks`, or `event`.
 
+- `-filter=<filter>` - Expression to use for filtering the results. Optional for
+  `checks` `nodes`, `services`, and `service` type.
+  See the [`/catalog/nodes` API documentation](/consul/api-docs/catalog#filtering) for a
+  description of what is filterable.
+
 #### API Options
 
 @include 'http_api_options_client.mdx'

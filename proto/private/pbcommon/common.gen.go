@@ -11,6 +11,8 @@ func EnvoyExtensionToStructs(s *EnvoyExtension, t *structs.EnvoyExtension) {
 	t.Name = s.Name
 	t.Required = s.Required
 	t.Arguments = ProtobufTypesStructToMapStringInterface(s.Arguments)
+	t.ConsulVersion = s.ConsulVersion
+	t.EnvoyVersion = s.EnvoyVersion
 }
 func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
 	if s == nil {
@@ -19,6 +21,8 @@ func EnvoyExtensionFromStructs(t *structs.EnvoyExtension, s *EnvoyExtension) {
 	s.Name = t.Name
 	s.Required = t.Required
 	s.Arguments = MapStringInterfaceToProtobufTypesStruct(t.Arguments)
+	s.ConsulVersion = t.ConsulVersion
+	s.EnvoyVersion = t.EnvoyVersion
 }
 func LocalityToStructs(s *Locality, t *structs.Locality) {
 	if s == nil {

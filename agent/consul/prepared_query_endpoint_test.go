@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -1539,8 +1539,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Len(t, reply.Nodes, 0)
 	})
 
-	expectNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc1", reply.Datacenter)
 		assert.Equal(t, 0, reply.Failovers)
@@ -1548,8 +1547,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.Equal(t, query.Query.DNS, reply.DNS)
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
-	expectFailoverNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "dc2", reply.Datacenter)
 		assert.Equal(t, 1, reply.Failovers)
@@ -1558,8 +1556,7 @@ func TestPreparedQuery_Execute(t *testing.T) {
 		assert.True(t, reply.QueryMeta.KnownLeader)
 	}
 
-	expectFailoverPeerNodes := func(t *testing.T, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
-		t.Helper()
+	expectFailoverPeerNodes := func(t require.TestingT, query *structs.PreparedQueryRequest, reply *structs.PreparedQueryExecuteResponse, n int) {
 		assert.Len(t, reply.Nodes, n)
 		assert.Equal(t, "", reply.Datacenter)
 		assert.Equal(t, es.peeringServer.acceptingPeerName, reply.PeerName)
@@ -2372,13 +2369,13 @@ func TestPreparedQuery_Execute(t *testing.T) {
 			}
 
 			var reply structs.PreparedQueryExecuteResponse
-			require.NoError(t, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
+			require.NoError(r, msgpackrpc.CallWithCodec(es.server.codec, "PreparedQuery.Execute", &req, &reply))
 
 			for _, node := range reply.Nodes {
-				assert.NotEqual(t, "node3", node.Node.Node)
+				assert.NotEqual(r, "node3", node.Node.Node)
 			}
 
-			expectNodes(t, &query, &reply, 9)
+			expectNodes(r, &query, &reply, 9)
 		})
 	})
 }
@@ -2811,7 +2808,7 @@ func TestPreparedQuery_Wrapper(t *testing.T) {
 		t.Fatalf("bad: %v", ret)
 	}
 	// Since we have no idea when the joinWAN operation completes
-	// we keep on querying until the the join operation completes.
+	// we keep on querying until the join operation completes.
 	retry.Run(t, func(r *retry.R) {
 		r.Check(s1.forwardDC("Status.Ping", "dc2", &struct{}{}, &struct{}{}))
 	})

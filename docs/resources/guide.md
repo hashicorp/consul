@@ -55,14 +55,20 @@ var BarV1Alpha1Type = &pbresource.Type{
 
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  BarV1Alpha1Type,
+		Type:  BarV1Alpha1Type, 
+		Scope: resource.ScopePartition,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
+Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
+mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
+and a partition.
 
-Update the `registerResources` method in [`server.go`] to call your package's
-type registration method:
+Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
+package's type registration method:
+
+[`type_registry.go`]: ../../agent/consul/type_registry.go
 
 ```Go
 import (
@@ -71,14 +77,12 @@ import (
 	// …
 )
 
-func (s *Server) registerResources() {
+func NewTypeRegistry() resource.Registry {
 	// …
-	foo.RegisterTypes(s.typeRegistry)
+    foo.RegisterTypes(registry)
 	// …
 }
 ```
-
-[`server.go`]: ../../agent/consul/server.go
 
 That should be all you need to start using your new resource type. Test it out
 by starting an agent in dev mode:
@@ -140,7 +144,8 @@ using a validation hook provided in the type registration:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     BarV1Alpha1Type,
-		Proto:    &pbv1alpha1.Bar{},
+		Proto:    &pbv1alpha1.Bar{}, 
+		Scope:    resource.ScopeNamespace,
 		Validate: validateBar,
 	})
 }
@@ -172,7 +177,8 @@ a set of ACL hooks:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  BarV1Alpha1Type,
-		Proto: &pbv1alpha1.Bar{},
+		Proto: &pbv1alpha1.Bar{}, 
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -181,19 +187,19 @@ func RegisterTypes(r resource.Registry) {
 	})
 }
 
-func authzReadBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 	return authz.ToAllowAuthorizer().
-		BarReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarReadAllowed(id.Name, authzContext)
 }
 
-func authzWriteBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzWriteBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authz.ToAllowAuthorizer().
-		BarWriteAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarWriteAllowed(res.ID().Name, authzContext)
 }
 
-func authzListBar(authz acl.Authorizer, ten *pbresource.Tenancy) error {
+func authzListBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 	return authz.ToAllowAuthorizer().
-		BarListAllowed(resource.AuthorizerContext(ten))
+		BarListAllowed(authzContext)
 }
 ```
 
@@ -210,7 +216,8 @@ by providing a mutation hook:
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:   BarV1Alpha1Type,
-		Proto:  &pbv1alpha1.Bar{},
+		Proto:  &pbv1alpha1.Bar{}, 
+		Scope:  resource.ScopeNamespace,
 		Mutate: mutateBar,
 	})
 }
@@ -277,7 +284,9 @@ func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 Next, register your controller with the controller manager. Another common
 pattern is to have your package expose a method for registering controllers,
-which is also called from `registerResources` in [`server.go`].
+which is called from `registerControllers` in [`server.go`].
+
+[`server.go`]: ../../agent/consul/server.go
 
 ```Go
 package foo
@@ -290,7 +299,7 @@ func RegisterControllers(mgr *controller.Manager) {
 ```Go
 package consul
 
-func (s *Server) registerResources() {
+func (s *Server) registerControllers() {
 	// …
 	foo.RegisterControllers(s.controllerManager)
 	// …

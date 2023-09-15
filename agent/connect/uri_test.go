@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package connect
 
@@ -50,6 +50,61 @@ func TestParseCertURIFromString(t *testing.T) {
 				Service:    "web",
 			},
 			ParseError: "",
+		},
+		{
+			Name: "basic workload ID",
+			URI:  "spiffe://1234.consul/ap/default/ns/default/identity/web",
+			Struct: &SpiffeIDWorkloadIdentity{
+				TrustDomain:      "1234.consul",
+				Partition:        defaultEntMeta.PartitionOrDefault(),
+				Namespace:        "default",
+				WorkloadIdentity: "web",
+			},
+			ParseError: "",
+		},
+		{
+			Name: "basic workload ID with nondefault partition",
+			URI:  "spiffe://1234.consul/ap/bizdev/ns/default/identity/web",
+			Struct: &SpiffeIDWorkloadIdentity{
+				TrustDomain:      "1234.consul",
+				Partition:        "bizdev",
+				Namespace:        "default",
+				WorkloadIdentity: "web",
+			},
+			ParseError: "",
+		},
+		{
+			Name: "workload ID error - missing identity",
+			URI:  "spiffe://1234.consul/ns/default",
+			Struct: &SpiffeIDWorkloadIdentity{
+				TrustDomain:      "1234.consul",
+				Partition:        defaultEntMeta.PartitionOrDefault(),
+				Namespace:        "default",
+				WorkloadIdentity: "web",
+			},
+			ParseError: "SPIFFE ID is not in the expected format",
+		},
+		{
+			Name: "workload ID error - missing partition",
+			URI:  "spiffe://1234.consul/ns/default/identity/web",
+			Struct: &SpiffeIDWorkloadIdentity{
+				TrustDomain:      "1234.consul",
+				Partition:        defaultEntMeta.PartitionOrDefault(),
+				Namespace:        "default",
+				WorkloadIdentity: "web",
+			},
+			ParseError: "SPIFFE ID is not in the expected format",
+		},
+		{
+			Name: "workload ID error - missing namespace",
+			URI:  "spiffe://1234.consul/ap/default/identity/web",
+			Struct: &SpiffeIDWorkloadIdentity{
+				TrustDomain:      "1234.consul",
+				Partition:        defaultEntMeta.PartitionOrDefault(),
+				Namespace:        "default",
+				WorkloadIdentity: "web",
+			},
+			ParseError: "SPIFFE ID is not in the expected format",
 		},
 		{
 			Name: "basic agent ID",

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -259,8 +259,8 @@ type mockCAProvider struct {
 
 func (m *mockCAProvider) Configure(cfg ca.ProviderConfig) error { return nil }
 func (m *mockCAProvider) State() (map[string]string, error)     { return nil, nil }
-func (m *mockCAProvider) GenerateCAChain() (ca.CAChainResult, error) {
-	return ca.CAChainResult{PEM: m.rootPEM}, nil
+func (m *mockCAProvider) GenerateCAChain() (string, error) {
+	return m.rootPEM, nil
 }
 func (m *mockCAProvider) GenerateIntermediateCSR() (string, string, error) {
 	m.callbackCh <- "provider/GenerateIntermediateCSR"
@@ -566,7 +566,7 @@ func TestCAManager_Initialize_Logging(t *testing.T) {
 	deps := newDefaultDeps(t, conf1)
 	deps.Logger = logger
 
-	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger)
+	s1, err := NewServer(conf1, deps, grpc.NewServer(), nil, logger, nil)
 	require.NoError(t, err)
 	defer s1.Shutdown()
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
@@ -624,7 +624,7 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 	require.Equal(t, connect.HexString(cert.SubjectKeyId), origRoot.SigningKeyID)
 
 	t.Run("update config without changing root", func(t *testing.T) {
-		err = s1.caManager.UpdateConfiguration(&structs.CARequest{
+		require.NoError(t, s1.caManager.UpdateConfiguration(&structs.CARequest{
 			Config: &structs.CAConfiguration{
 				Provider: "vault",
 				Config: map[string]interface{}{
@@ -635,26 +635,81 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 					"CSRMaxPerSecond":     100,
 				},
 			},
-		})
-		require.NoError(t, err)
-		_, sameRoot, err := s1.fsm.State().CARootActive(nil)
-		require.NoError(t, err)
-		require.Len(t, sameRoot.IntermediateCerts, 1)
-		sameRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
-		sameRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
+		}))
 
-		cert, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(sameRoot))
+		_, newRoot, err := s1.fsm.State().CARootActive(nil)
 		require.NoError(t, err)
-		require.Equal(t, connect.HexString(cert.SubjectKeyId), sameRoot.SigningKeyID)
+		require.Len(t, newRoot.IntermediateCerts, 1)
+		newRoot.CreateIndex = s1.caManager.providerRoot.CreateIndex
+		newRoot.ModifyIndex = s1.caManager.providerRoot.ModifyIndex
 
-		require.Equal(t, origRoot, sameRoot)
-		require.Equal(t, sameRoot, s1.caManager.providerRoot)
+		orig, err := connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+		require.NoError(t, err)
+		require.Equal(t, connect.HexString(orig.SubjectKeyId), newRoot.SigningKeyID)
+
+		require.Equal(t, origRoot, newRoot)
+		require.Equal(t, newRoot, s1.caManager.providerRoot)
 	})
 
-	t.Run("update config and change root", func(t *testing.T) {
+	t.Run("update config and change root only", func(t *testing.T) {
+		// Read the active leaf CA
+		provider, _ := s1.caManager.getCAProvider()
+
+		before, err := provider.ActiveLeafSigningCert()
+		require.NoError(t, err)
+
 		vaultToken2 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
 			RootPath:         "pki-root-2",
-			IntermediatePath: "pki-intermediate-2",
+			IntermediatePath: "pki-intermediate",
+			ConsulManaged:    true,
+			WithSudo:         true,
+		})
+
+		require.NoError(t, s1.caManager.UpdateConfiguration(&structs.CARequest{
+			Config: &structs.CAConfiguration{
+				Provider: "vault",
+				Config: map[string]interface{}{
+					"Address":             vault.Addr,
+					"Token":               vaultToken2,
+					"RootPKIPath":         "pki-root-2/",
+					"IntermediatePKIPath": "pki-intermediate/",
+				},
+			},
+		}))
+
+		// fetch the new root from the state store to check that
+		// raft apply has occurred.
+		_, newRoot, err := s1.fsm.State().CARootActive(nil)
+		require.NoError(t, err)
+		require.Len(t, newRoot.IntermediateCerts, 2,
+			"expected one cross-sign cert and one local leaf sign cert")
+
+		// Refresh provider
+		provider, _ = s1.caManager.getCAProvider()
+
+		// Leaf signing cert should have been updated
+		after, err := provider.ActiveLeafSigningCert()
+		require.NoError(t, err)
+
+		require.NotEqual(t, before, after,
+			"expected leaf signing cert to be changed after RootPKIPath was changed")
+
+		cert, err = connect.ParseCert(after)
+		require.NoError(t, err)
+
+		require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
+	})
+
+	t.Run("update config, change root and intermediate", func(t *testing.T) {
+		// Read the active leaf CA
+		provider, _ := s1.caManager.getCAProvider()
+
+		before, err := provider.ActiveLeafSigningCert()
+		require.NoError(t, err)
+
+		vaultToken3 := ca.CreateVaultTokenWithAttrs(t, vault.Client(), &ca.VaultTokenAttributes{
+			RootPath:         "pki-root-3",
+			IntermediatePath: "pki-intermediate-3",
 			ConsulManaged:    true,
 		})
 
@@ -663,22 +718,34 @@ func TestCAManager_UpdateConfiguration_Vault_Primary(t *testing.T) {
 				Provider: "vault",
 				Config: map[string]interface{}{
 					"Address":             vault.Addr,
-					"Token":               vaultToken2,
-					"RootPKIPath":         "pki-root-2/",
-					"IntermediatePKIPath": "pki-intermediate-2/",
+					"Token":               vaultToken3,
+					"RootPKIPath":         "pki-root-3/",
+					"IntermediatePKIPath": "pki-intermediate-3/",
 				},
 			},
 		})
 		require.NoError(t, err)
 
+		// fetch the new root from the state store to check that
+		// raft apply has occurred.
 		_, newRoot, err := s1.fsm.State().CARootActive(nil)
 		require.NoError(t, err)
 		require.Len(t, newRoot.IntermediateCerts, 2,
 			"expected one cross-sign cert and one local leaf sign cert")
-		require.NotEqual(t, origRoot.ID, newRoot.ID)
 
-		cert, err = connect.ParseCert(s1.caManager.getLeafSigningCertFromRoot(newRoot))
+		// Refresh provider
+		provider, _ = s1.caManager.getCAProvider()
+
+		// Leaf signing cert should have been updated
+		after, err := provider.ActiveLeafSigningCert()
 		require.NoError(t, err)
+
+		require.NotEqual(t, before, after,
+			"expected leaf signing cert to be changed after RootPKIPath and IntermediatePKIPath were changed")
+
+		cert, err = connect.ParseCert(after)
+		require.NoError(t, err)
+
 		require.Equal(t, connect.HexString(cert.SubjectKeyId), newRoot.SigningKeyID)
 	})
 }

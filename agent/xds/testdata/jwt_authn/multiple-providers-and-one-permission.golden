@@ -3,29 +3,31 @@
   "typedConfig": {
     "@type": "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
     "providers": {
-      "okta": {
-        "issuer": "test-issuer",
+      "auth0": {
+        "issuer": "another-issuer",
+        "payloadInMetadata": "jwt_payload_auth0",
         "remoteJwks": {
-          "httpUri": {
-            "uri": "https://example-okta.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
-            "timeout": "1s"
-          },
           "asyncFetch": {
             "fastListener": true
+          },
+          "httpUri": {
+            "cluster": "jwks_cluster_auth0",
+            "timeout": "1s",
+            "uri": "https://example-auth0.com/.well-known/jwks.json"
           }
         }
       },
-      "auth0": {
-        "issuer": "another-issuer",
+      "okta": {
+        "issuer": "test-issuer",
+        "payloadInMetadata": "jwt_payload_okta",
         "remoteJwks": {
-          "httpUri": {
-            "uri": "https://example-auth0.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
-            "timeout": "1s"
-          },
           "asyncFetch": {
             "fastListener": true
+          },
+          "httpUri": {
+            "cluster": "jwks_cluster_okta",
+            "timeout": "1s",
+            "uri": "https://example-okta.com/.well-known/jwks.json"
           }
         }
       }
@@ -33,26 +35,37 @@
     "rules": [
       {
         "match": {
-          "prefix": "/some-special-path"
-        },
-        "requires": {
-          "providerName": "okta"
-        }
-      },
-      {
-        "match": {
           "prefix": "/"
         },
         "requires": {
-          "providerName": "okta"
-        }
-      },
-      {
-        "match": {
-          "prefix": "/"
-        },
-        "requires": {
-          "providerName": "auth0"
+          "requiresAll": {
+            "requirements": [
+              {
+                "requiresAny": {
+                  "requirements": [
+                    {
+                      "providerName": "okta"
+                    },
+                    {
+                      "allowMissingOrFailed": {}
+                    }
+                  ]
+                }
+              },
+              {
+                "requiresAny": {
+                  "requirements": [
+                    {
+                      "providerName": "auth0"
+                    },
+                    {
+                      "allowMissingOrFailed": {}
+                    }
+                  ]
+                }
+              }
+            ]
+          }
         }
       }
     ]

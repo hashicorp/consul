@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 
 # retry based on
@@ -210,7 +210,7 @@ function assert_envoy_expose_checks_listener_count {
   RANGES=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filter_chain_match.source_prefix_ranges | length')
   echo "RANGES = $RANGES (expect 3)"
   # note: if IPv6 is not supported in the kernel per
-  # agent/xds:kernelSupportsIPv6() then this will only be 2
+  # agent/xds/platform:SupportsIPv6() then this will only be 2
   [ "${RANGES:-0}" -eq 3 ]
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
@@ -226,6 +226,13 @@ function get_envoy_expose_checks_listener_once {
   run curl -s -f $HOSTPORT/config_dump
   [ "$status" -eq 0 ]
   echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("exposed_path_"))'
+}
+
+function get_envoy_public_listener_once {
+  local HOSTPORT=$1
+  run curl -s -f $HOSTPORT/config_dump
+  [ "$status" -eq 0 ]
+  echo "$output" | jq --raw-output '.configs[] | select(.["@type"] == "type.googleapis.com/envoy.admin.v3.ListenersConfigDump") | .dynamic_listeners[] | select(.name | startswith("public_listener:"))'
 }
 
 function assert_envoy_http_rbac_policy_count {

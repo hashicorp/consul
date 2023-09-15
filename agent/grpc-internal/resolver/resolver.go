@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resolver
 
@@ -96,7 +96,7 @@ func (s *ServerResolverBuilder) Build(target resolver.Target, cc resolver.Client
 	}
 
 	//nolint:staticcheck
-	serverType, datacenter, err := parseEndpoint(target.Endpoint)
+	serverType, datacenter, err := parseEndpoint(target.Endpoint())
 	if err != nil {
 		return nil, err
 	}

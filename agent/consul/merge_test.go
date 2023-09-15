@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 func TestMerge_LAN(t *testing.T) {
@@ -282,6 +283,7 @@ func makeTestNode(t *testing.T, tm testMember) *serf.Member {
 			"vsn":     "2",
 			"vsn_max": "3",
 			"vsn_min": "2",
+			"fips":    version.GetFIPSInfo(),
 		},
 	}
 	if tm.partition != "" {

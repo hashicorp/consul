@@ -1,11 +1,11 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
         "endpoints": [
@@ -27,30 +27,24 @@
           }
         ]
       },
-      "dnsRefreshRate": "10s",
-      "dnsLookupFamily": "V4_ONLY",
-      "outlierDetection": {
-
-      }
+      "name": "alt.default.default.peer-b.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "outlierDetection": {},
+      "type": "STRICT_DNS"
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name": "db.default.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-      "type": "EDS",
+      "connectTimeout": "5s",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {
-
-          },
+          "ads": {},
           "resourceApiVersion": "V3"
         }
       },
-      "connectTimeout": "5s",
-      "outlierDetection": {
-
-      }
+      "name": "db.default.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "outlierDetection": {},
+      "type": "EDS"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -172,7 +172,7 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			// This cert is used to terminate mTLS connections on the service's behalf
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        svc.Service.Name,

@@ -1,15 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfgglue
 
 import (
 	"context"
+	"errors"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-
-	"github.com/hashicorp/consul/proto/private/pbpeering"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
@@ -22,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 // ServerDataSourceDeps contains the dependencies needed for sourcing data from
@@ -52,6 +52,9 @@ type Store interface {
 	PeeringTrustBundleList(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	TrustBundleListByService(ws memdb.WatchSet, service, dc string, entMeta acl.EnterpriseMeta) (uint64, []*pbpeering.PeeringTrustBundle, error)
 	VirtualIPsForAllImportedServices(ws memdb.WatchSet, entMeta acl.EnterpriseMeta) (uint64, []state.ServiceVirtualIP, error)
+	CheckConnectServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
+	CheckIngressServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta) (uint64, structs.CheckServiceNodes, error)
+	CheckServiceNodes(ws memdb.WatchSet, serviceName string, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.CheckServiceNodes, error)
 }
 
 // CacheCARoots satisfies the proxycfg.CARoots interface by sourcing data from
@@ -78,17 +81,6 @@ func CacheDatacenters(c *cache.Cache) proxycfg.Datacenters {
 // sourcing data from the agent cache.
 func CacheServiceGateways(c *cache.Cache) proxycfg.GatewayServices {
 	return &cacheProxyDataSource[*structs.ServiceSpecificRequest]{c, cachetype.ServiceGatewaysName}
-}
-
-// CacheLeafCertificate satisifies the proxycfg.LeafCertificate interface by
-// sourcing data from the agent cache.
-//
-// Note: there isn't a server-local equivalent of this data source because
-// "agentless" proxies obtain certificates via SDS served by consul-dataplane.
-// If SDS is not supported on consul-dataplane, data is sourced from the server agent cache
-// even for "agentless" proxies.
-func CacheLeafCertificate(c *cache.Cache) proxycfg.LeafCertificate {
-	return &cacheProxyDataSource[*cachetype.ConnectCALeafRequest]{c, cachetype.ConnectCALeafName}
 }
 
 // CachePrepraredQuery satisfies the proxycfg.PreparedQuery interface by
@@ -139,6 +131,12 @@ func dispatchBlockingQueryUpdate[ResultType any](ch chan<- proxycfg.UpdateEvent)
 func newUpdateEvent(correlationID string, result any, err error) proxycfg.UpdateEvent {
 	// This roughly matches the logic in agent/submatview.LocalMaterializer.isTerminalError.
 	if acl.IsErrNotFound(err) {
+		err = proxycfg.TerminalError(err)
+	}
+	// these are also errors where we should mark them
+	// as terminal for the sake of proxycfg, since they require
+	// a resubscribe.
+	if errors.Is(err, stream.ErrSubForceClosed) || errors.Is(err, stream.ErrShuttingDown) {
 		err = proxycfg.TerminalError(err)
 	}
 	return proxycfg.UpdateEvent{

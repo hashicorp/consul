@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -26,9 +26,13 @@ func init() {
 	registerEndpoint("/v1/acl/token", []string{"PUT"}, (*HTTPHandlers).ACLTokenCreate)
 	registerEndpoint("/v1/acl/token/self", []string{"GET"}, (*HTTPHandlers).ACLTokenSelf)
 	registerEndpoint("/v1/acl/token/", []string{"GET", "PUT", "DELETE"}, (*HTTPHandlers).ACLTokenCRUD)
+	registerEndpoint("/v1/acl/templated-policies", []string{"GET"}, (*HTTPHandlers).ACLTemplatedPoliciesList)
+	registerEndpoint("/v1/acl/templated-policy/name/", []string{"GET"}, (*HTTPHandlers).ACLTemplatedPolicyRead)
+	registerEndpoint("/v1/acl/templated-policy/preview/", []string{"POST"}, (*HTTPHandlers).ACLTemplatedPolicyPreview)
 	registerEndpoint("/v1/agent/token/", []string{"PUT"}, (*HTTPHandlers).AgentToken)
 	registerEndpoint("/v1/agent/self", []string{"GET"}, (*HTTPHandlers).AgentSelf)
 	registerEndpoint("/v1/agent/host", []string{"GET"}, (*HTTPHandlers).AgentHost)
+	registerEndpoint("/v1/agent/version", []string{"GET"}, (*HTTPHandlers).AgentVersion)
 	registerEndpoint("/v1/agent/maintenance", []string{"PUT"}, (*HTTPHandlers).AgentNodeMaintenance)
 	registerEndpoint("/v1/agent/reload", []string{"PUT"}, (*HTTPHandlers).AgentReload)
 	registerEndpoint("/v1/agent/monitor", []string{"GET"}, (*HTTPHandlers).AgentMonitor)

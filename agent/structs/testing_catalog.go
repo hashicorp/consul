@@ -1,13 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 // TestRegisterRequest returns a RegisterRequest for registering a typical service.
@@ -47,11 +48,11 @@ func TestRegisterIngressGateway(t testing.T) *RegisterRequest {
 }
 
 // TestNodeService returns a *NodeService representing a valid regular service: "web".
-func TestNodeService(t testing.T) *NodeService {
-	return TestNodeServiceWithName(t, "web")
+func TestNodeService() *NodeService {
+	return TestNodeServiceWithName("web")
 }
 
-func TestNodeServiceWithName(t testing.T, name string) *NodeService {
+func TestNodeServiceWithName(name string) *NodeService {
 	return &NodeService{
 		Kind:    ServiceKindTypical,
 		Service: name,
@@ -172,6 +173,14 @@ func TestNodeServiceMeshGateway(t testing.T) *NodeService {
 		8443,
 		ServiceAddress{Address: "10.1.2.3", Port: 8443},
 		ServiceAddress{Address: "198.18.4.5", Port: 443})
+}
+
+func TestNodeServiceAPIGateway(t testing.T) *NodeService {
+	return &NodeService{
+		Kind:    ServiceKindAPIGateway,
+		Service: "api-gateway",
+		Address: "1.1.1.1",
+	}
 }
 
 func TestNodeServiceTerminatingGateway(t testing.T, address string) *NodeService {

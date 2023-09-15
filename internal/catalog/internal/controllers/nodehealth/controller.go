@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package nodehealth
 
@@ -50,22 +50,10 @@ func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runt
 		return err
 	}
 
-	message := NodeHealthyMessage
-	statusState := pbresource.Condition_STATE_TRUE
-	if health != pbcatalog.Health_HEALTH_PASSING {
-		statusState = pbresource.Condition_STATE_FALSE
-		message = NodeUnhealthyMessage
-	}
-
 	newStatus := &pbresource.Status{
 		ObservedGeneration: res.Generation,
 		Conditions: []*pbresource.Condition{
-			{
-				Type:    StatusConditionHealthy,
-				State:   statusState,
-				Reason:  health.String(),
-				Message: message,
-			},
+			Conditions[health],
 		},
 	}
 

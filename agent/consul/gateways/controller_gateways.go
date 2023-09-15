@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package gateways
 
@@ -63,6 +63,8 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 		return reconcileEntry(r.fsm.State(), r.logger, ctx, req, r.reconcileTCPRoute, r.cleanupRoute)
 	case structs.InlineCertificate:
 		return r.enqueueCertificateReferencedGateways(r.fsm.State(), ctx, req)
+	case structs.JWTProvider:
+		return r.enqueueJWTProviderReferencedGatewaysAndHTTPRoutes(r.fsm.State(), ctx, req)
 	default:
 		return nil
 	}
@@ -93,7 +95,7 @@ func (r *apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state
 	logger.Trace("certificate changed, enqueueing dependent gateways")
 	defer logger.Trace("finished enqueuing gateways")
 
-	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		logger.Warn("error retrieving api gateways", "error", err)
 		return err
@@ -233,7 +235,18 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		logger.Warn("error retrieving bound api gateway", "error", err)
 		return err
 	}
-	meta := newGatewayMeta(gateway, bound)
+
+	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
+	if err != nil {
+		return err
+	}
+
+	jwtProviders := make(map[string]*structs.JWTProviderConfigEntry, len(jwtProvidersConfigEntries))
+	for _, provider := range jwtProvidersConfigEntries {
+		jwtProviders[provider.GetName()] = provider.(*structs.JWTProviderConfigEntry)
+	}
+
+	meta := newGatewayMeta(gateway, bound, jwtProviders)
 
 	certificateErrors, err := meta.checkCertificates(store)
 	if err != nil {
@@ -241,16 +254,22 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		return err
 	}
 
-	// set each listener as having valid certs, then overwrite that status condition
+	jwtErrors, err := meta.checkJWTProviders()
+	if err != nil {
+		logger.Warn("error checking gateway JWT Providers", "error", err)
+		return err
+	}
+
+	// set each listener as having resolved refs, then overwrite that status condition
 	// if there are any certificate errors
-	meta.eachListener(func(listener *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
+	meta.eachListener(func(_ *structs.APIGatewayListener, bound *structs.BoundAPIGatewayListener) error {
 		listenerRef := structs.ResourceReference{
 			Kind:           structs.APIGateway,
 			Name:           meta.BoundGateway.Name,
 			SectionName:    bound.Name,
 			EnterpriseMeta: meta.BoundGateway.EnterpriseMeta,
 		}
-		updater.SetCondition(validCertificate(listenerRef))
+		updater.SetCondition(resolvedRefs(listenerRef))
 		return nil
 	})
 
@@ -258,9 +277,19 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		updater.SetCondition(invalidCertificate(ref, err))
 	}
 
+	for ref, err := range jwtErrors {
+		updater.SetCondition(invalidJWTProvider(ref, err))
+	}
+
 	if len(certificateErrors) > 0 {
 		updater.SetCondition(invalidCertificates())
-	} else {
+	}
+
+	if len(jwtErrors) > 0 {
+		updater.SetCondition(invalidJWTProviders())
+	}
+
+	if len(certificateErrors) == 0 && len(jwtErrors) == 0 {
 		updater.SetCondition(gatewayAccepted())
 	}
 
@@ -536,6 +565,11 @@ func NewAPIGatewayController(fsm *fsm.FSM, publisher state.EventPublisher, updat
 		&stream.SubscribeRequest{
 			Topic:   state.EventTopicInlineCertificate,
 			Subject: stream.SubjectWildcard,
+		},
+	).Subscribe(
+		&stream.SubscribeRequest{
+			Topic:   state.EventTopicJWTProvider,
+			Subject: stream.SubjectWildcard,
 		})
 }
 
@@ -558,19 +592,33 @@ type gatewayMeta struct {
 	// the map values are pointers so that we can update them directly
 	// and have the changes propagate back to the container gateways.
 	boundListeners map[string]*structs.BoundAPIGatewayListener
+	// jwtProviders holds the list of all the JWT Providers in a given partition
+	// we expect this list to be relatively small so we're okay with holding them all
+	// in memory
+	jwtProviders map[string]*structs.JWTProviderConfigEntry
 }
 
 // getAllGatewayMeta returns a pre-constructed list of all valid gateway and state
 // tuples based on the state coming from the store. Any gateway that does not have
 // a corresponding bound-api-gateway config entry will be filtered out.
 func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
-	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, acl.WildcardEnterpriseMeta())
+	_, gateways, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
-	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, acl.WildcardEnterpriseMeta())
+	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
+	}
+
+	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
+	if err != nil {
+		return nil, err
+	}
+
+	jwtProviders := make(map[string]*structs.JWTProviderConfigEntry, len(jwtProvidersConfigEntries))
+	for _, provider := range jwtProvidersConfigEntries {
+		jwtProviders[provider.GetName()] = provider.(*structs.JWTProviderConfigEntry)
 	}
 
 	meta := make([]*gatewayMeta, 0, len(boundGateways))
@@ -582,6 +630,7 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 				meta = append(meta, (&gatewayMeta{
 					BoundGateway: bound,
 					Gateway:      gateway,
+					jwtProviders: jwtProviders,
 				}).initialize())
 				break
 			}
@@ -636,6 +685,14 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 			if err != nil {
 				errors[ref] = err
 			}
+
+			if httpRoute, ok := route.(*structs.HTTPRouteConfigEntry); ok {
+				var jwtErrors map[structs.ResourceReference]error
+				didBind, jwtErrors = g.validateJWTForRoute(httpRoute)
+				for ref, err := range jwtErrors {
+					errors[ref] = err
+				}
+			}
 			if didBind {
 				refDidBind = true
 				listenerBound[listener.Name] = true
@@ -647,6 +704,7 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		if !refDidBind && errors[ref] == nil {
 			errors[ref] = fmt.Errorf("failed to bind route %s to gateway %s with listener '%s'", route.GetName(), g.Gateway.Name, ref.SectionName)
 		}
+
 		if refDidBind {
 			boundRefs = append(boundRefs, ref)
 		}
@@ -819,7 +877,7 @@ func (g *gatewayMeta) initialize() *gatewayMeta {
 }
 
 // newGatewayMeta returns an object that wraps the given APIGateway and BoundAPIGateway
-func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry) *gatewayMeta {
+func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.ConfigEntry, jwtProviders map[string]*structs.JWTProviderConfigEntry) *gatewayMeta {
 	var b *structs.BoundAPIGatewayConfigEntry
 	if bound == nil {
 		b = &structs.BoundAPIGatewayConfigEntry{
@@ -845,6 +903,7 @@ func newGatewayMeta(gateway *structs.APIGatewayConfigEntry, bound structs.Config
 	return (&gatewayMeta{
 		BoundGateway: b,
 		Gateway:      gateway,
+		jwtProviders: jwtProviders,
 	}).initialize()
 }
 
@@ -862,7 +921,7 @@ func gatewayAccepted() structs.Condition {
 // invalidCertificate returns a condition used when a gateway references a
 // certificate that does not exist. It takes a ref used to scope the condition
 // to a given APIGateway listener.
-func validCertificate(ref structs.ResourceReference) structs.Condition {
+func resolvedRefs(ref structs.ResourceReference) structs.Condition {
 	return structs.NewGatewayCondition(
 		api.GatewayConditionResolvedRefs,
 		api.ConditionStatusTrue,
@@ -893,6 +952,31 @@ func invalidCertificates() structs.Condition {
 		api.ConditionStatusFalse,
 		api.GatewayReasonInvalidCertificates,
 		"gateway references invalid certificates",
+		structs.ResourceReference{},
+	)
+}
+
+// invalidJWTProvider returns a condition used when a gateway listener references
+// a JWTProvider that does not exist. It takes a ref used to scope the condition
+// to a given APIGateway listener.
+func invalidJWTProvider(ref structs.ResourceReference, err error) structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionResolvedRefs,
+		api.ConditionStatusFalse,
+		api.GatewayListenerReasonInvalidJWTProviderRef,
+		err.Error(),
+		ref,
+	)
+}
+
+// invalidJWTProviders is used to set the overall condition of the APIGateway
+// to invalid due to missing JWT providers that it references.
+func invalidJWTProviders() structs.Condition {
+	return structs.NewGatewayCondition(
+		api.GatewayConditionAccepted,
+		api.ConditionStatusFalse,
+		api.GatewayReasonInvalidJWTProviders,
+		"gateway references invalid JWT Providers",
 		structs.ResourceReference{},
 	)
 }
@@ -1074,12 +1158,12 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, acl.WildcardEnterpriseMeta())
+	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, acl.WildcardEnterpriseMeta())
+	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
@@ -1140,4 +1224,10 @@ func routeRequestLogger(logger hclog.Logger, request controller.Request) hclog.L
 func routeLogger(logger hclog.Logger, route structs.ConfigEntry) hclog.Logger {
 	meta := route.GetEnterpriseMeta()
 	return logger.With("route.kind", route.GetKind(), "route.name", route.GetName(), "route.namespace", meta.NamespaceOrDefault(), "route.partition", meta.PartitionOrDefault())
+}
+
+func wildcardMeta() *acl.EnterpriseMeta {
+	meta := acl.WildcardEnterpriseMeta()
+	meta.OverridePartition(acl.WildcardPartitionName)
+	return meta
 }

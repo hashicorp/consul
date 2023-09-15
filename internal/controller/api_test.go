@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package controller_test
 
@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -26,9 +25,20 @@ func TestController_API(t *testing.T) {
 	rec := newTestReconciler()
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 
+	concertsChan := make(chan controller.Event)
+	defer close(concertsChan)
+	concertSource := &controller.Source{Source: concertsChan}
+	concertMapper := func(ctx context.Context, rt controller.Runtime, event controller.Event) ([]controller.Request, error) {
+		artistID := event.Obj.(*Concert).artistID
+		var requests []controller.Request
+		requests = append(requests, controller.Request{ID: artistID})
+		return requests, nil
+	}
+
 	ctrl := controller.
 		ForType(demo.TypeV2Artist).
 		WithWatch(demo.TypeV2Album, controller.MapOwner).
+		WithCustomWatch(concertSource, concertMapper).
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
 		WithReconciler(rec)
 
@@ -68,6 +78,32 @@ func TestController_API(t *testing.T) {
 
 		req = rec.wait(t)
 		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+	})
+
+	t.Run("custom watched resource type", func(t *testing.T) {
+		res, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+
+		req := rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+
+		rec.expectNoRequest(t, 500*time.Millisecond)
+
+		concertsChan <- controller.Event{Obj: &Concert{name: "test-concert", artistID: rsp.Resource.Id}}
+
+		watchedReq := rec.wait(t)
+		prototest.AssertDeepEqual(t, req.ID, watchedReq.ID)
+
+		otherArtist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		concertsChan <- controller.Event{Obj: &Concert{name: "test-concert", artistID: otherArtist.Id}}
+
+		watchedReq = rec.wait(t)
+		prototest.AssertDeepEqual(t, otherArtist.Id, watchedReq.ID)
 	})
 
 	t.Run("error retries", func(t *testing.T) {
@@ -191,7 +227,7 @@ func TestController_String(t *testing.T) {
 		WithPlacement(controller.PlacementEachServer)
 
 	require.Equal(t,
-		`<Controller managed_type="demo.v2.artist", watched_types=["demo.v2.album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
+		`<Controller managed_type="demo.v2.Artist", watched_types=["demo.v2.Album"], backoff=<base="5s", max="1h0m0s">, placement="each-server">`,
 		ctrl.String(),
 	)
 }
@@ -202,7 +238,7 @@ func TestController_NoReconciler(t *testing.T) {
 
 	ctrl := controller.ForType(demo.TypeV2Artist)
 	require.PanicsWithValue(t,
-		`cannot register controller without a reconciler <Controller managed_type="demo.v2.artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
+		`cannot register controller without a reconciler <Controller managed_type="demo.v2.Artist", watched_types=[], backoff=<base="5ms", max="16m40s">, placement="singleton">`,
 		func() { mgr.Register(ctrl) })
 }
 
@@ -268,75 +304,11 @@ func testContext(t *testing.T) context.Context {
 	return ctx
 }
 
-func resourceID(group string, version string, kind string, name string) *pbresource.ID {
-	return &pbresource.ID{
-		Type: &pbresource.Type{
-			Group:        group,
-			GroupVersion: version,
-			Kind:         kind,
-		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
-	}
+type Concert struct {
+	name     string
+	artistID *pbresource.ID
 }
 
-func TestMapOwnerFiltered(t *testing.T) {
-	mapper := controller.MapOwnerFiltered(&pbresource.Type{
-		Group:        "foo",
-		GroupVersion: "v1",
-		Kind:         "bar",
-	})
-
-	type testCase struct {
-		owner   *pbresource.ID
-		matches bool
-	}
-
-	cases := map[string]testCase{
-		"nil-owner": {
-			owner:   nil,
-			matches: false,
-		},
-		"group-mismatch": {
-			owner:   resourceID("other", "v1", "bar", "irrelevant"),
-			matches: false,
-		},
-		"group-version-mismatch": {
-			owner:   resourceID("foo", "v2", "bar", "irrelevant"),
-			matches: false,
-		},
-		"kind-mismatch": {
-			owner:   resourceID("foo", "v1", "baz", "irrelevant"),
-			matches: false,
-		},
-		"match": {
-			owner:   resourceID("foo", "v1", "bar", "irrelevant"),
-			matches: true,
-		},
-	}
-
-	for name, tcase := range cases {
-		t.Run(name, func(t *testing.T) {
-			// the runtime is not used by the mapper so its fine to pass an empty struct
-			req, err := mapper(context.Background(), controller.Runtime{}, &pbresource.Resource{
-				Id:    resourceID("foo", "v1", "other", "x"),
-				Owner: tcase.owner,
-			})
-
-			// The mapper has no error paths at present
-			require.NoError(t, err)
-
-			if tcase.matches {
-				require.NotNil(t, req)
-				require.Len(t, req, 1)
-				prototest.AssertDeepEqual(t, req[0].ID, tcase.owner, cmpopts.EquateEmpty())
-			} else {
-				require.Nil(t, req)
-			}
-		})
-	}
+func (c Concert) Key() string {
+	return c.name
 }

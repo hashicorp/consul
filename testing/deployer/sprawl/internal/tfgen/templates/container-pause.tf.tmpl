@@ -1,0 +1,38 @@
+resource "docker_container" "{{.PodName}}" {
+  name     = "{{.PodName}}"
+  image = docker_image.pause.latest
+  hostname = "{{.PodName}}"
+  restart  = "always"
+  dns      = ["{{.DNSAddress}}"]
+
+{{- range $k, $v := .Labels }}
+  labels {
+    label = "{{ $k }}"
+    value = "{{ $v }}"
+  }
+{{- end }}
+
+depends_on = [
+  docker_container.{{.DockerNetworkName}}-coredns,
+  docker_container.{{.DockerNetworkName}}-forwardproxy,
+]
+
+{{- range .Ports }}
+ports {
+  internal = {{.}}
+}
+{{- end }}
+
+{{- range .Node.Addresses }}
+networks_advanced {
+  name         = docker_network.{{.DockerNetworkName}}.name
+  ipv4_address = "{{.IPAddress}}"
+}
+{{- end }}
+}
+
+output "ports_{{.Node.Cluster}}_{{.Node.Partition}}_{{.Node.Name}}" {
+  value = {
+    for port in docker_container.{{.PodName}}.ports : port.internal => port.external
+  }
+}

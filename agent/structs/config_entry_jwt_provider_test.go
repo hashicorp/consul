@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -22,6 +22,7 @@ func newTestAuthz(t *testing.T, src string) acl.Authorizer {
 
 var tenSeconds time.Duration = 10 * time.Second
 var hundredSeconds time.Duration = 100 * time.Second
+var connectTimeout = time.Duration(5) * time.Second
 
 func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 	defaultMeta := DefaultEnterpriseMetaInDefaultPartition()
@@ -113,7 +114,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 				Name:          "okta",
 				JSONWebKeySet: &JSONWebKeySet{},
 			},
-			validateErr: "Must specify exactly one of Local or Remote JSON Web key set",
+			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
 		},
 		"invalid jwt-provider - local jwks with non-encoded base64 jwks": {
 			entry: &JWTProviderConfigEntry{
@@ -138,7 +139,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					Remote: &RemoteJWKS{},
 				},
 			},
-			validateErr: "Must specify exactly one of Local or Remote JSON Web key set",
+			validateErr: "must specify exactly one of Local or Remote JSON Web key set",
 		},
 		"invalid jwt-provider - local jwks string and filename both set": {
 			entry: &JWTProviderConfigEntry{
@@ -151,7 +152,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Must specify exactly one of String or filename for local keyset",
+			validateErr: "must specify exactly one of String or filename for local keyset",
 		},
 		"invalid jwt-provider - remote jwks missing uri": {
 			entry: &JWTProviderConfigEntry{
@@ -202,7 +203,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
+			validateErr: "must set exactly one of: JWT location header, query param or cookie",
 		},
 		"invalid jwt-provider - Remote JWKS retry policy maxinterval < baseInterval": {
 			entry: &JWTProviderConfigEntry{
@@ -221,7 +222,63 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Retry policy backoff's MaxInterval should be greater or equal to BaseInterval",
+			validateErr: "retry policy backoff's MaxInterval should be greater or equal to BaseInterval",
+		},
+		"invalid jwt-provider - Remote JWKS cluster wrong discovery type": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						JWKSCluster: &JWKSCluster{
+							DiscoveryType: "FAKE",
+						},
+					},
+				},
+			},
+			validateErr: "unsupported jwks cluster discovery type: \"FAKE\"",
+		},
+		"invalid jwt-provider - Remote JWKS cluster with both trustedCa and provider instance": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						JWKSCluster: &JWKSCluster{
+							TLSCertificates: &JWKSTLSCertificate{
+								TrustedCA:                     &JWKSTLSCertTrustedCA{},
+								CaCertificateProviderInstance: &JWKSTLSCertProviderInstance{},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "must specify exactly one of: CaCertificateProviderInstance or TrustedCA for JKWS' TLSCertificates",
+		},
+		"invalid jwt-provider - Remote JWKS cluster with multiple trustedCa options": {
+			entry: &JWTProviderConfigEntry{
+				Kind: JWTProvider,
+				Name: "okta",
+				JSONWebKeySet: &JSONWebKeySet{
+					Remote: &RemoteJWKS{
+						FetchAsynchronously: true,
+						URI:                 "https://example.com/.well-known/jwks.json",
+						JWKSCluster: &JWKSCluster{
+							TLSCertificates: &JWKSTLSCertificate{
+								TrustedCA: &JWKSTLSCertTrustedCA{
+									Filename:     "myfile.cert",
+									InlineString: "*****",
+								},
+							},
+						},
+					},
+				},
+			},
+			validateErr: "must specify exactly one of: Filename, EnvironmentVariable, InlineString or InlineBytes for JWKS' TrustedCA",
 		},
 		"invalid jwt-provider - JWT location with 2 fields": {
 			entry: &JWTProviderConfigEntry{
@@ -244,7 +301,7 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 					},
 				},
 			},
-			validateErr: "Must set exactly one of: JWT location header, query param or cookie",
+			validateErr: "must set exactly one of: JWT location header, query param or cookie",
 		},
 		"valid jwt-provider - with all possible fields": {
 			entry: &JWTProviderConfigEntry{
@@ -263,6 +320,15 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 							RetryPolicyBackOff: &RetryPolicyBackOff{
 								BaseInterval: tenSeconds,
 								MaxInterval:  hundredSeconds,
+							},
+						},
+						JWKSCluster: &JWKSCluster{
+							DiscoveryType:  "STATIC",
+							ConnectTimeout: connectTimeout,
+							TLSCertificates: &JWKSTLSCertificate{
+								TrustedCA: &JWKSTLSCertTrustedCA{
+									Filename: "myfile.cert",
+								},
 							},
 						},
 					},
@@ -295,6 +361,15 @@ func TestJWTProviderConfigEntry_ValidateAndNormalize(t *testing.T) {
 							RetryPolicyBackOff: &RetryPolicyBackOff{
 								BaseInterval: tenSeconds,
 								MaxInterval:  hundredSeconds,
+							},
+						},
+						JWKSCluster: &JWKSCluster{
+							DiscoveryType:  "STATIC",
+							ConnectTimeout: connectTimeout,
+							TLSCertificates: &JWKSTLSCertificate{
+								TrustedCA: &JWKSTLSCertTrustedCA{
+									Filename: "myfile.cert",
+								},
 							},
 						},
 					},
@@ -336,6 +411,24 @@ func TestJWTProviderConfigEntry_ACLs(t *testing.T) {
 					name:       "no-authz",
 					authorizer: newTestAuthz(t, ``),
 					canRead:    false,
+					canWrite:   false,
+				},
+				{
+					name:       "jwt-provider: any service write",
+					authorizer: newTestAuthz(t, `service "" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "jwt-provider: specific service write",
+					authorizer: newTestAuthz(t, `service "web" { policy = "write" }`),
+					canRead:    true,
+					canWrite:   false,
+				},
+				{
+					name:       "jwt-provider: any service prefix write",
+					authorizer: newTestAuthz(t, `service_prefix "" { policy = "write" }`),
+					canRead:    true,
 					canWrite:   false,
 				},
 				{

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 import Model, { attr, hasMany } from '@ember-data/model';
@@ -66,5 +66,10 @@ export default class Node extends Model {
   @computed('NodeChecks.[]')
   get ChecksWarning() {
     return this.NodeChecks.filter((item) => item.Status === 'warning').length;
+  }
+
+  @computed('Meta')
+  get Version() {
+    return this.Meta?.['consul-version'] ?? '';
   }
 }

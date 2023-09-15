@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package autoconf
 
@@ -13,7 +13,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
 )
@@ -31,6 +33,19 @@ type DirectRPC interface {
 type Cache interface {
 	Notify(ctx context.Context, t string, r cache.Request, correlationID string, ch chan<- cache.UpdateEvent) error
 	Prepopulate(t string, result cache.FetchResult, dc string, peerName string, token string, key string) error
+}
+
+// LeafCertManager is an interface to represent the methods of the
+// agent/leafcert.Manager struct that we care about
+type LeafCertManager interface {
+	Prepopulate(
+		ctx context.Context,
+		key string,
+		index uint64,
+		value *structs.IssuedCert,
+		authorityKeyID string,
+	) error
+	Notify(ctx context.Context, req *leafcert.ConnectCALeafRequest, correlationID string, ch chan<- cache.UpdateEvent) error
 }
 
 // ServerProvider is an interface that can be used to find one server in the local DC known to
@@ -92,8 +107,11 @@ type Config struct {
 	TLSConfigurator TLSConfigurator
 
 	// Cache is an object implementing our Cache interface. The Cache
-	// used at runtime must be able to handle Roots and Leaf Cert watches
+	// used at runtime must be able to handle Roots watches
 	Cache Cache
+
+	// LeafCertManager is an object implementing our LeafCertManager interface.
+	LeafCertManager LeafCertManager
 
 	// FallbackLeeway is the amount of time after certificate expiration before
 	// invoking the fallback routine. If not set this will default to 10s.

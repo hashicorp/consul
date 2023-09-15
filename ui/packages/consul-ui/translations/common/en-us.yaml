@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 brand:
   consul: Consul
@@ -53,6 +53,7 @@ consul:
   redundancyzone: Redundancy zone
   peername: Peer
   partition: Admin Partitions
+  version: Version
 search:
   search: Search
   searchproperty: Search Across
@@ -77,6 +78,9 @@ sort:
   status:
     asc: Unhealthy to Healthy
     desc: Healthy to Unhealthy
+  version:
+    asc: Oldest to Latest
+    desc: Latest to Oldest
 validations:
   dns-hostname:
     help: |

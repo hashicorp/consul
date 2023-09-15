@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -162,6 +162,9 @@ func TestUINodes(t *testing.T) {
 	require.Len(t, nodes[2].Services, 0)
 	require.NotNil(t, nodes[1].Checks)
 	require.Len(t, nodes[2].Services, 0)
+
+	// check for consul-version in node meta
+	require.Equal(t, nodes[0].Meta[structs.MetaConsulVersion], a.Config.Version)
 }
 
 func TestUINodes_Filter(t *testing.T) {
@@ -260,6 +263,9 @@ func TestUINodeInfo(t *testing.T) {
 		node.Checks == nil || len(node.Checks) != 0 {
 		t.Fatalf("bad: %v", node)
 	}
+
+	// check for consul-version in node meta
+	require.Equal(t, node.Meta[structs.MetaConsulVersion], a.Config.Version)
 }
 
 func TestUIServices(t *testing.T) {
@@ -1115,7 +1121,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	// Construct expected addresses so that differences between OSS/Ent are
+	// Construct expected addresses so that differences between CE/Ent are
 	// handled by code. We specifically don't include the trailing DNS . here as
 	// we are constructing what we are expecting, not the actual value
 	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -1681,19 +1687,43 @@ func TestUIServiceTopology(t *testing.T) {
 				SkipNodeUpdate: true,
 				Service: &structs.NodeService{
 					Kind:    structs.ServiceKindTypical,
-					ID:      "cproxy",
+					ID:      "cproxy-https",
 					Service: "cproxy",
 					Port:    1111,
 					Address: "198.18.1.70",
+					Tags:    []string{"https"},
 					Connect: structs.ServiceConnect{Native: true},
 				},
 				Checks: structs.HealthChecks{
 					&structs.HealthCheck{
 						Node:        "cnative",
-						CheckID:     "cnative:cproxy",
+						CheckID:     "cnative:cproxy-https",
 						Name:        "cproxy-liveness",
 						Status:      api.HealthPassing,
-						ServiceID:   "cproxy",
+						ServiceID:   "cproxy-https",
+						ServiceName: "cproxy",
+					},
+				},
+			},
+			"Service cproxy/http on cnative": {
+				Datacenter:     "dc1",
+				Node:           "cnative",
+				SkipNodeUpdate: true,
+				Service: &structs.NodeService{
+					Kind:    structs.ServiceKindTypical,
+					ID:      "cproxy-http",
+					Service: "cproxy",
+					Port:    1112,
+					Address: "198.18.1.70",
+					Tags:    []string{"http"},
+				},
+				Checks: structs.HealthChecks{
+					&structs.HealthCheck{
+						Node:        "cnative",
+						CheckID:     "cnative:cproxy-http",
+						Name:        "cproxy-liveness",
+						Status:      api.HealthPassing,
+						ServiceID:   "cproxy-http",
 						ServiceName: "cproxy",
 					},
 				},
@@ -2114,6 +2144,42 @@ func TestUIServiceTopology(t *testing.T) {
 							HasExact:       true,
 						},
 						Source: structs.TopologySourceRegistration,
+					},
+				},
+				FilteredByACLs: false,
+			},
+		},
+		{
+			name: "cbackend",
+			httpReq: func() *http.Request {
+				req, _ := http.NewRequest("GET", "/v1/internal/ui/service-topology/cbackend?kind=", nil)
+				return req
+			}(),
+			want: &ServiceTopology{
+				Protocol:         "http",
+				TransparentProxy: false,
+				Upstreams:        []*ServiceTopologySummary{},
+				Downstreams: []*ServiceTopologySummary{
+					{
+						ServiceSummary: ServiceSummary{
+							Name:           "cproxy",
+							Datacenter:     "dc1",
+							Tags:           []string{"http", "https"},
+							Nodes:          []string{"cnative"},
+							InstanceCount:  2,
+							ChecksPassing:  3,
+							ChecksWarning:  0,
+							ChecksCritical: 0,
+							ConnectNative:  true,
+							EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+						},
+						Intention: structs.IntentionDecisionSummary{
+							DefaultAllow:   true,
+							Allowed:        true,
+							HasPermissions: false,
+							HasExact:       true,
+						},
+						Source: structs.TopologySourceSpecificIntention,
 					},
 				},
 				FilteredByACLs: false,
@@ -2620,7 +2686,9 @@ func TestUIEndpoint_MetricsProxy(t *testing.T) {
 			require.NoError(t, a.Agent.reloadConfigInternal(&cfg))
 
 			// Now fetch the API handler to run requests against
-			h := a.srv.handler(true)
+			a.enableDebug.Store(true)
+
+			h := a.srv.handler()
 
 			req := httptest.NewRequest("GET", tc.path, nil)
 			rec := httptest.NewRecorder()

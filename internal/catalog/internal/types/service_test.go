@@ -1,17 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func createServiceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
@@ -44,6 +45,18 @@ func TestValidateService_Ok(t *testing.T) {
 				TargetPort:  "http-internal",
 				VirtualPort: 42,
 				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
+			},
+			{
+				TargetPort: "other",
+				// leaving VirtualPort unset to verify that seeing
+				// a zero virtual port multiple times is fine.
+				Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2,
+			},
+			{
+				TargetPort: "other2",
+				// leaving VirtualPort unset to verify that seeing
+				// a zero virtual port multiple times is fine.
+				Protocol: pbcatalog.Protocol_PROTOCOL_GRPC,
 			},
 		},
 		VirtualIps: []string{"198.18.0.1"},
@@ -157,6 +170,37 @@ func TestValidateService_VirtualPortReused(t *testing.T) {
 	require.ErrorAs(t, err, &actual)
 	require.EqualValues(t, 0, actual.Index)
 	require.EqualValues(t, 42, actual.Value)
+}
+
+func TestValidateService_InvalidPortProtocol(t *testing.T) {
+	data := &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{
+			Prefixes: []string{""},
+		},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: "foo",
+				Protocol:   99,
+			},
+		},
+	}
+
+	res := createServiceResource(t, data)
+
+	err := ValidateService(res)
+
+	expected := resource.ErrInvalidListElement{
+		Name:  "ports",
+		Index: 0,
+		Wrapped: resource.ErrInvalidField{
+			Name:    "protocol",
+			Wrapped: resource.NewConstError("not a supported enum value: 99"),
+		},
+	}
+
+	var actual resource.ErrInvalidListElement
+	require.ErrorAs(t, err, &actual)
+	require.Equal(t, expected, actual)
 }
 
 func TestValidateService_VirtualPortInvalid(t *testing.T) {

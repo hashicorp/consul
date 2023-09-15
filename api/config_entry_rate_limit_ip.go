@@ -20,19 +20,29 @@ type RateLimitIPConfigEntry struct {
 	WriteRate float64
 
 	//limits specific to a type of call
-	ACL            *ReadWriteRatesConfig `json:",omitempty"`
-	Catalog        *ReadWriteRatesConfig `json:",omitempty"`
-	ConfigEntry    *ReadWriteRatesConfig `json:",omitempty"`
-	ConnectCA      *ReadWriteRatesConfig `json:",omitempty"`
-	Coordinate     *ReadWriteRatesConfig `json:",omitempty"`
-	DiscoveryChain *ReadWriteRatesConfig `json:",omitempty"`
-	Health         *ReadWriteRatesConfig `json:",omitempty"`
-	Intention      *ReadWriteRatesConfig `json:",omitempty"`
-	KV             *ReadWriteRatesConfig `json:",omitempty"`
-	Tenancy        *ReadWriteRatesConfig `json:",omitempty"`
-	PreparedQuery  *ReadWriteRatesConfig `json:",omitempty"`
-	Session        *ReadWriteRatesConfig `json:",omitempty"`
-	Txn            *ReadWriteRatesConfig `json:",omitempty"`
+	ACL             *ReadWriteRatesConfig `json:",omitempty"` //	OperationCategoryACL             OperationCategory = "ACL"
+	Catalog         *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryCatalog         OperationCategory = "Catalog"
+	ConfigEntry     *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryConfigEntry     OperationCategory = "ConfigEntry"
+	ConnectCA       *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryConnectCA       OperationCategory = "ConnectCA"
+	Coordinate      *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryCoordinate      OperationCategory = "Coordinate"
+	DiscoveryChain  *ReadWriteRatesConfig `json:",omitempty"` //   OperationCategoryDiscoveryChain  OperationCategory = "DiscoveryChain"
+	ServerDiscovery *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryServerDiscovery OperationCategory = "ServerDiscovery"
+	Health          *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryHealth          OperationCategory = "Health"
+	Intention       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryIntention       OperationCategory = "Intention"
+	KV              *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryKV              OperationCategory = "KV"
+	Tenancy         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPartition        OperationCategory = "Tenancy"
+	PreparedQuery   *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPreparedQuery   OperationCategory = "PreparedQuery"
+	Session         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategorySession         OperationCategory = "Session"
+	Txn             *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryTxn             OperationCategory = "Txn"
+	AutoConfig      *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryAutoConfig      OperationCategory = "AutoConfig"
+	FederationState *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryFederationState OperationCategory = "FederationState"
+	Internal        *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryInternal        OperationCategory = "Internal"
+	PeerStream      *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPeerStream      OperationCategory = "PeerStream"
+	Peering         *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryPeering         OperationCategory = "Peering"
+	DataPlane       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryDataPlane       OperationCategory = "DataPlane"
+	DNS             *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryDNS             OperationCategory = "DNS"
+	Subscribe       *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategorySubscribe       OperationCategory = "Subscribe"
+	Resource        *ReadWriteRatesConfig `json:",omitempty"` //  OperationCategoryResource        OperationCategory = "Resource"
 
 	// Partition is the partition the config entry is associated with.
 	// Partitioning is a Consul Enterprise feature.

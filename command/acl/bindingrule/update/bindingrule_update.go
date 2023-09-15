@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package bindingruleupdate
 
@@ -34,6 +34,7 @@ type cmd struct {
 	selector    string
 	bindType    string
 	bindName    string
+	bindVars    map[string]string
 
 	noMerge  bool
 	showMeta bool
@@ -102,6 +103,14 @@ func (c *cmd) init() {
 		fmt.Sprintf("Output format {%s}", strings.Join(bindingrule.GetSupportedFormats(), "|")),
 	)
 
+	c.flags.Var(
+		(*flags.FlagMapValue)(&c.bindVars),
+		"bind-vars",
+		"Templated policy variables. Can only be used when -bind-type is templated-policy."+
+			" May be specified multiple times with different variables. Can use ${var} interpolation."+
+			" Format is VariableName=Value",
+	)
+
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -115,7 +124,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.ruleID == "" {
-		c.UI.Error(fmt.Sprintf("Cannot update a binding rule without specifying the -id parameter"))
+		c.UI.Error("Cannot update a binding rule without specifying the -id parameter")
 		return 1
 	}
 
@@ -141,14 +150,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	processBindVars, err := acl.ExtractBindVars(c.bindVars)
+	if err != nil {
+		c.UI.Error("Failed to decode '-bind-vars'")
+		c.UI.Error(c.Help())
+		return 1
+	}
+
 	var rule *api.ACLBindingRule
 	if c.noMerge {
 		if c.bindType == "" {
-			c.UI.Error(fmt.Sprintf("Missing required '-bind-type' flag"))
+			c.UI.Error("Missing required '-bind-type' flag")
 			c.UI.Error(c.Help())
 			return 1
 		} else if c.bindName == "" {
-			c.UI.Error(fmt.Sprintf("Missing required '-bind-name' flag"))
+			c.UI.Error("Missing required '-bind-name' flag")
+			c.UI.Error(c.Help())
+			return 1
+		} else if len(c.bindVars) > 0 && api.BindingRuleBindType(c.bindType) != api.BindingRuleBindTypeTemplatedPolicy {
+			c.UI.Error("-bind-vars cannot be specified when -bind-type is not templated-policy")
 			c.UI.Error(c.Help())
 			return 1
 		}
@@ -158,6 +178,7 @@ func (c *cmd) Run(args []string) int {
 			AuthMethod:  currentRule.AuthMethod, // immutable
 			Description: c.description,
 			BindType:    api.BindingRuleBindType(c.bindType),
+			BindVars:    processBindVars,
 			BindName:    c.bindName,
 			Selector:    c.selector,
 		}
@@ -174,6 +195,14 @@ func (c *cmd) Run(args []string) int {
 		if c.bindName != "" {
 			rule.BindName = c.bindName
 		}
+		if len(c.bindVars) > 0 {
+			rule.BindVars = processBindVars
+		}
+		// remove bind vars for non templated-policy binding rules types
+		if api.BindingRuleBindType(c.bindType) != api.BindingRuleBindTypeTemplatedPolicy {
+			rule.BindVars = nil
+		}
+
 		if isFlagSet(c.flags, "selector") {
 			rule.Selector = c.selector // empty is valid
 		}

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package discoverychain
 
@@ -518,8 +518,70 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 					Kind: structs.HTTPRoute,
 					Name: "http-route",
 					Rules: []structs.HTTPRouteRule{{
+						Filters: structs.HTTPFilters{
+							Headers: []structs.HTTPHeaderFilter{
+								{
+									Add:    map[string]string{"add me to the rule request": "present"},
+									Set:    map[string]string{"set me on the rule request": "present"},
+									Remove: []string{"remove me from the rule request"},
+								},
+								{
+									Add: map[string]string{"add me to the rule and service request": "rule"},
+									Set: map[string]string{"set me on the rule and service request": "rule"},
+								},
+								{
+									Remove: []string{"remove me from the rule and service request"},
+								},
+							},
+						},
+						ResponseFilters: structs.HTTPResponseFilters{
+							Headers: []structs.HTTPHeaderFilter{{
+								Add: map[string]string{
+									"add me to the rule response":             "present",
+									"add me to the rule and service response": "rule",
+								},
+								Set: map[string]string{
+									"set me on the rule response":             "present",
+									"set me on the rule and service response": "rule",
+								},
+								Remove: []string{
+									"remove me from the rule response",
+									"remove me from the rule and service response",
+								},
+							}},
+						},
 						Services: []structs.HTTPService{{
 							Name: "foo",
+							Filters: structs.HTTPFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add: map[string]string{"add me to the service request": "present"},
+									},
+									{
+										Set:    map[string]string{"set me on the service request": "present"},
+										Remove: []string{"remove me from the service request"},
+									},
+									{
+										Add:    map[string]string{"add me to the rule and service request": "service"},
+										Set:    map[string]string{"set me on the rule and service request": "service"},
+										Remove: []string{"remove me from the rule and service request"},
+									},
+								},
+							},
+							ResponseFilters: structs.HTTPResponseFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add:    map[string]string{"add me to the service response": "present"},
+										Set:    map[string]string{"set me on the service response": "present"},
+										Remove: []string{"remove me from the service response"},
+									},
+									{
+										Add:    map[string]string{"add me to the rule and service response": "service"},
+										Set:    map[string]string{"set me on the rule and service response": "service"},
+										Remove: []string{"remove me from the rule and service response"},
+									},
+								},
+							},
 						}},
 					}},
 				},
@@ -557,8 +619,40 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
-										Add: make(map[string]string),
-										Set: make(map[string]string),
+										Add: map[string]string{
+											"add me to the rule request":             "present",
+											"add me to the service request":          "present",
+											"add me to the rule and service request": "service",
+										},
+										Set: map[string]string{
+											"set me on the rule request":             "present",
+											"set me on the service request":          "present",
+											"set me on the rule and service request": "service",
+										},
+										Remove: []string{
+											"remove me from the rule request",
+											"remove me from the rule and service request",
+											"remove me from the service request",
+											"remove me from the rule and service request",
+										},
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
+										Add: map[string]string{
+											"add me to the rule response":             "present",
+											"add me to the service response":          "present",
+											"add me to the rule and service response": "service",
+										},
+										Set: map[string]string{
+											"set me on the rule response":             "present",
+											"set me on the service response":          "present",
+											"set me on the rule and service response": "service",
+										},
+										Remove: []string{
+											"remove me from the rule response",
+											"remove me from the rule and service response",
+											"remove me from the service response",
+											"remove me from the rule and service response",
+										},
 									},
 								},
 							},
@@ -570,6 +664,122 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 						Name: "foo.default.default.dc1",
 						Resolver: &structs.DiscoveryResolver{
 							Target:         "foo.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+				},
+				Targets: map[string]*structs.DiscoveryTarget{
+					"gateway-suffix-9b9265b.default.default.dc1": {
+						ID:             "gateway-suffix-9b9265b.default.default.dc1",
+						Service:        "gateway-suffix-9b9265b",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "gateway-suffix-9b9265b.default.dc1.internal.domain",
+						Name:           "gateway-suffix-9b9265b.default.dc1.internal.domain",
+					},
+					"foo.default.default.dc1": {
+						ID:             "foo.default.default.dc1",
+						Service:        "foo",
+						Datacenter:     "dc1",
+						Partition:      "default",
+						Namespace:      "default",
+						ConnectTimeout: 5000000000,
+						SNI:            "foo.default.dc1.internal.domain",
+						Name:           "foo.default.dc1.internal.domain",
+					},
+				},
+			}},
+		},
+		"HTTPRoute with virtual resolver": {
+			synthesizer: NewGatewayChainSynthesizer("dc1", "domain", "suffix", &structs.APIGatewayConfigEntry{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+			}),
+			httpRoutes: []*structs.HTTPRouteConfigEntry{
+				{
+					Kind: structs.HTTPRoute,
+					Name: "http-route",
+					Rules: []structs.HTTPRouteRule{{
+						Services: []structs.HTTPService{{
+							Name: "foo",
+						}},
+					}},
+				},
+			},
+			chain: &structs.CompiledDiscoveryChain{
+				ServiceName: "foo",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+				StartNode:   "resolver:foo-2.default.default.dc2",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"resolver:foo-2.default.default.dc2": {
+						Type: "resolver",
+						Name: "foo-2.default.default.dc2",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "foo-2.default.default.dc2",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+				},
+			},
+			extra: []*structs.CompiledDiscoveryChain{},
+			expectedIngressServices: []structs.IngressService{{
+				Name:  "gateway-suffix-9b9265b",
+				Hosts: []string{"*"},
+			}},
+			expectedDiscoveryChains: []*structs.CompiledDiscoveryChain{{
+				ServiceName: "gateway-suffix-9b9265b",
+				Partition:   "default",
+				Namespace:   "default",
+				Datacenter:  "dc1",
+				Protocol:    "http",
+				StartNode:   "router:gateway-suffix-9b9265b.default.default",
+				Nodes: map[string]*structs.DiscoveryGraphNode{
+					"router:gateway-suffix-9b9265b.default.default": {
+						Type: "router",
+						Name: "gateway-suffix-9b9265b.default.default",
+						Routes: []*structs.DiscoveryRoute{{
+							Definition: &structs.ServiceRoute{
+								Match: &structs.ServiceRouteMatch{
+									HTTP: &structs.ServiceRouteHTTPMatch{
+										PathPrefix: "/",
+									},
+								},
+								Destination: &structs.ServiceRouteDestination{
+									Service:   "foo",
+									Partition: "default",
+									Namespace: "default",
+									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+								},
+							},
+							NextNode: "resolver:foo-2.default.default.dc2",
+						}},
+					},
+					"resolver:foo.default.default.dc1": {
+						Type: "resolver",
+						Name: "foo.default.default.dc1",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "foo.default.default.dc1",
+							Default:        true,
+							ConnectTimeout: 5000000000,
+						},
+					},
+					"resolver:foo-2.default.default.dc2": {
+						Type: "resolver",
+						Name: "foo-2.default.default.dc2",
+						Resolver: &structs.DiscoveryResolver{
+							Target:         "foo-2.default.default.dc2",
 							Default:        true,
 							ConnectTimeout: 5000000000,
 						},
@@ -735,6 +945,10 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 									Partition: "default",
 									Namespace: "default",
 									RequestHeaders: &structs.HTTPHeaderModifiers{
+										Add: make(map[string]string),
+										Set: make(map[string]string),
+									},
+									ResponseHeaders: &structs.HTTPHeaderModifiers{
 										Add: make(map[string]string),
 										Set: make(map[string]string),
 									},

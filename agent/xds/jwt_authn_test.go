@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
@@ -65,21 +64,21 @@ var (
 	pWithOktaProvider = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 		JWT: oktaIntention,
 	}
 	pWithMultiProviders = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 		JWT: multiProviderIntentions,
 	}
 	pWithNoJWT = &structs.IntentionPermission{
 		Action: structs.IntentionActionAllow,
 		HTTP: &structs.IntentionHTTPPermission{
-			PathPrefix: "/some-special-path",
+			PathPrefix: "some-special-path",
 		},
 	}
 	fullRetryPolicy = &structs.JWKSRetryPolicy{
@@ -173,6 +172,10 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 		intentions structs.SimplifiedIntentions
 		provider   map[string]*structs.JWTProviderConfigEntry
 	}{
+		"no-provider": {
+			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow})),
+			provider:   nil,
+		},
 		"remote-provider": {
 			intentions: simplified(makeTestIntention(t, ixnOpts{src: "web", action: structs.IntentionActionAllow, jwt: oktaIntention})),
 			provider:   remoteCE,
@@ -206,51 +209,45 @@ func TestMakeJWTAUTHFilters(t *testing.T) {
 	}
 }
 
-func TestCollectJWTRequirements(t *testing.T) {
-	var (
-		emptyReq = []*structs.IntentionJWTProvider{}
-		oneReq   = []*structs.IntentionJWTProvider{&oktaProvider}
-		multiReq = append(oneReq, &auth0Provider)
-	)
-
+func TestCollectJWTProviders(t *testing.T) {
 	tests := map[string]struct {
 		intention *structs.Intention
 		expected  []*structs.IntentionJWTProvider
 	}{
 		"empty-top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web"}),
-			expected:  emptyReq,
+			expected:  []*structs.IntentionJWTProvider{},
 		},
 		"top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: oktaIntention}),
-			expected:  oneReq,
+			expected:  []*structs.IntentionJWTProvider{&oktaProvider},
 		},
 		"multi-top-level-jwt-and-empty-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: multiProviderIntentions}),
-			expected:  multiReq,
+			expected:  []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
 		},
 		"top-level-jwt-and-one-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: auth0Intention, perms: pWithOktaProvider}),
-			expected:  multiReq,
+			expected:  []*structs.IntentionJWTProvider{&auth0Provider, &oktaProvider},
 		},
 		"top-level-jwt-and-multi-jwt-permissions": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", jwt: fakeIntention, perms: pWithMultiProviders}),
-			expected:  append(multiReq, &fakeProvider),
+			expected:  []*structs.IntentionJWTProvider{&fakeProvider, &oktaProvider, &auth0Provider},
 		},
 		"empty-top-level-jwt-and-one-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithOktaProvider}),
-			expected:  oneReq,
+			expected:  []*structs.IntentionJWTProvider{&oktaProvider},
 		},
 		"empty-top-level-jwt-and-multi-jwt-permission": {
 			intention: makeTestIntention(t, ixnOpts{src: "web", perms: pWithMultiProviders}),
-			expected:  multiReq,
+			expected:  []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
 		},
 	}
 
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			reqs := collectJWTRequirements(tt.intention)
+			reqs := collectJWTProviders(tt.intention)
 			require.ElementsMatch(t, reqs, tt.expected)
 		})
 	}
@@ -279,18 +276,15 @@ func TestGetPermissionsProviders(t *testing.T) {
 		},
 		"permissions-with-multiple-jwt": {
 			perms:    []*structs.IntentionPermission{pWithMultiProviders, pWithNoJWT},
-			expected: []*structs.IntentionJWTProvider{&oktaProvider, &auth0Provider},
+			expected: []*structs.IntentionJWTProvider{&auth0Provider, &oktaProvider},
 		},
 	}
 
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			t.Run("getPermissionsProviders", func(t *testing.T) {
-				p := getPermissionsProviders(tt.perms)
-
-				require.ElementsMatch(t, p, tt.expected)
-			})
+			p := getPermissionsProviders(tt.perms)
+			require.ElementsMatch(t, p, tt.expected)
 		})
 	}
 }
@@ -338,6 +332,7 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 				Issuer:                  fullCE.Issuer,
 				Audiences:               fullCE.Audiences,
 				ForwardPayloadHeader:    "user-token",
+				PayloadInMetadata:       buildPayloadInMetadataKey(ceRemoteJWKS.Name),
 				PadForwardPayloadHeader: false,
 				Forward:                 true,
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_LocalJwks{
@@ -353,13 +348,14 @@ func TestBuildJWTProviderConfig(t *testing.T) {
 		"entry-with-remote-jwks": {
 			ce: &ceRemoteJWKS,
 			expected: &envoy_http_jwt_authn_v3.JwtProvider{
-				Issuer:    fullCE.Issuer,
-				Audiences: fullCE.Audiences,
+				Issuer:            fullCE.Issuer,
+				Audiences:         fullCE.Audiences,
+				PayloadInMetadata: buildPayloadInMetadataKey(ceRemoteJWKS.Name),
 				JwksSourceSpecifier: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 					RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 						HttpUri: &envoy_core_v3.HttpUri{
 							Uri:              oktaRemoteJWKS.URI,
-							HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+							HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName(ceRemoteJWKS.Name)},
 							Timeout:          &durationpb.Duration{Seconds: 1},
 						},
 						AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -441,16 +437,18 @@ func TestMakeLocalJWKS(t *testing.T) {
 
 func TestMakeRemoteJWKS(t *testing.T) {
 	tests := map[string]struct {
-		jwks     *structs.RemoteJWKS
-		expected *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks
+		jwks         *structs.RemoteJWKS
+		providerName string
+		expected     *envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks
 	}{
 		"with-no-cache-duration": {
-			jwks: oktaRemoteJWKS,
+			jwks:         oktaRemoteJWKS,
+			providerName: "auth0",
 			expected: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 				RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 					HttpUri: &envoy_core_v3.HttpUri{
 						Uri:              oktaRemoteJWKS.URI,
-						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName("auth0")},
 						Timeout:          &durationpb.Duration{Seconds: 1},
 					},
 					AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -460,12 +458,13 @@ func TestMakeRemoteJWKS(t *testing.T) {
 			},
 		},
 		"with-retry-policy": {
-			jwks: extendedRemoteJWKS,
+			jwks:         extendedRemoteJWKS,
+			providerName: "okta",
 			expected: &envoy_http_jwt_authn_v3.JwtProvider_RemoteJwks{
 				RemoteJwks: &envoy_http_jwt_authn_v3.RemoteJwks{
 					HttpUri: &envoy_core_v3.HttpUri{
 						Uri:              oktaRemoteJWKS.URI,
-						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: "jwks_cluster"},
+						HttpUpstreamType: &envoy_core_v3.HttpUri_Cluster{Cluster: makeJWKSClusterName("okta")},
 						Timeout:          &durationpb.Duration{Seconds: 1},
 					},
 					AsyncFetch: &envoy_http_jwt_authn_v3.JwksAsyncFetch{
@@ -481,7 +480,7 @@ func TestMakeRemoteJWKS(t *testing.T) {
 	for name, tt := range tests {
 		tt := tt
 		t.Run(name, func(t *testing.T) {
-			res := makeRemoteJWKS(tt.jwks)
+			res := makeRemoteJWKS(tt.jwks, tt.providerName)
 			require.Equal(t, res, tt.expected)
 		})
 	}
@@ -533,104 +532,6 @@ func TestBuildJWTRetryPolicy(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			res := buildJWTRetryPolicy(tt.retryPolicy)
 
-			require.Equal(t, res, tt.expected)
-		})
-	}
-}
-
-func TestBuildRouteRule(t *testing.T) {
-	var (
-		pWithExactPath = &structs.IntentionPermission{
-			Action: structs.IntentionActionAllow,
-			HTTP: &structs.IntentionHTTPPermission{
-				PathExact: "/exact-match",
-			},
-		}
-		pWithRegex = &structs.IntentionPermission{
-			Action: structs.IntentionActionAllow,
-			HTTP: &structs.IntentionHTTPPermission{
-				PathRegex: "p([a-z]+)ch",
-			},
-		}
-	)
-	tests := map[string]struct {
-		provider *structs.IntentionJWTProvider
-		perm     *structs.IntentionPermission
-		route    string
-		expected *envoy_http_jwt_authn_v3.RequirementRule
-	}{
-		"permission-nil": {
-			provider: &oktaProvider,
-			perm:     nil,
-			route:    "/my-route",
-			expected: &envoy_http_jwt_authn_v3.RequirementRule{
-				Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{Prefix: "/my-route"}},
-				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
-					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
-						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
-						},
-					},
-				},
-			},
-		},
-		"permission-with-path-prefix": {
-			provider: &oktaProvider,
-			perm:     pWithOktaProvider,
-			route:    "/my-route",
-			expected: &envoy_http_jwt_authn_v3.RequirementRule{
-				Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Prefix{
-					Prefix: pWithMultiProviders.HTTP.PathPrefix,
-				}},
-				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
-					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
-						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
-						},
-					},
-				},
-			},
-		},
-		"permission-with-exact-path": {
-			provider: &oktaProvider,
-			perm:     pWithExactPath,
-			route:    "/",
-			expected: &envoy_http_jwt_authn_v3.RequirementRule{
-				Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_Path{
-					Path: pWithExactPath.HTTP.PathExact,
-				}},
-				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
-					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
-						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
-						},
-					},
-				},
-			},
-		},
-		"permission-with-regex": {
-			provider: &oktaProvider,
-			perm:     pWithRegex,
-			route:    "/",
-			expected: &envoy_http_jwt_authn_v3.RequirementRule{
-				Match: &envoy_route_v3.RouteMatch{PathSpecifier: &envoy_route_v3.RouteMatch_SafeRegex{
-					SafeRegex: makeEnvoyRegexMatch(pWithRegex.HTTP.PathRegex),
-				}},
-				RequirementType: &envoy_http_jwt_authn_v3.RequirementRule_Requires{
-					Requires: &envoy_http_jwt_authn_v3.JwtRequirement{
-						RequiresType: &envoy_http_jwt_authn_v3.JwtRequirement_ProviderName{
-							ProviderName: oktaProvider.Name,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	for name, tt := range tests {
-		tt := tt
-		t.Run(name, func(t *testing.T) {
-			res := buildRouteRule(tt.provider, tt.perm, tt.route)
 			require.Equal(t, res, tt.expected)
 		})
 	}

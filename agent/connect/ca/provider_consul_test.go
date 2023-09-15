@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package ca
 
@@ -93,10 +93,10 @@ func TestConsulCAProvider_Bootstrap(t *testing.T) {
 	// Intermediate should be the same cert.
 	inter, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
-	require.Equal(t, root.PEM, inter)
+	require.Equal(t, root, inter)
 
 	// Should be a valid cert
-	parsed, err := connect.ParseCert(root.PEM)
+	parsed, err := connect.ParseCert(root)
 	require.NoError(t, err)
 	require.Equal(t, parsed.URIs[0].String(), fmt.Sprintf("spiffe://%s.consul", conf.ClusterID))
 	requireNotEncoded(t, parsed.SubjectKeyId)
@@ -128,10 +128,10 @@ func TestConsulCAProvider_Bootstrap_WithCert(t *testing.T) {
 
 	root, err := provider.GenerateCAChain()
 	require.NoError(t, err)
-	require.Equal(t, root.PEM, rootCA.RootCert)
+	require.Equal(t, root, rootCA.RootCert)
 
 	// Should be a valid cert
-	parsed, err := connect.ParseCert(root.PEM)
+	parsed, err := connect.ParseCert(root)
 	require.NoError(t, err)
 
 	// test that the default root cert ttl was not applied to the provided cert
@@ -298,7 +298,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 	root, err := provider2.GenerateCAChain()
 	require.NoError(t, err)
 
-	newRoot, err := connect.ParseCert(root.PEM)
+	newRoot, err := connect.ParseCert(root)
 	require.NoError(t, err)
 	oldSubject := newRoot.Subject.CommonName
 	requireNotEncoded(t, newRoot.SubjectKeyId)
@@ -321,7 +321,7 @@ func testCrossSignProviders(t *testing.T, provider1, provider2 Provider) {
 
 	p1Root, err := provider1.GenerateCAChain()
 	require.NoError(t, err)
-	oldRoot, err := connect.ParseCert(p1Root.PEM)
+	oldRoot, err := connect.ParseCert(p1Root)
 	require.NoError(t, err)
 	requireNotEncoded(t, oldRoot.SubjectKeyId)
 	requireNotEncoded(t, oldRoot.AuthorityKeyId)
@@ -385,7 +385,7 @@ func testCrossSignProvidersShouldFail(t *testing.T, provider1, provider2 Provide
 	root, err := provider2.GenerateCAChain()
 	require.NoError(t, err)
 
-	newRoot, err := connect.ParseCert(root.PEM)
+	newRoot, err := connect.ParseCert(root)
 	require.NoError(t, err)
 	requireNotEncoded(t, newRoot.SubjectKeyId)
 	requireNotEncoded(t, newRoot.AuthorityKeyId)
@@ -454,7 +454,7 @@ func testSignIntermediateCrossDC(t *testing.T, provider1, provider2 Provider) {
 	require.NoError(t, err)
 	root, err := provider1.GenerateCAChain()
 	require.NoError(t, err)
-	rootPEM := root.PEM
+	rootPEM := root
 
 	// Give the new intermediate to provider2 to use.
 	require.NoError(t, provider2.SetIntermediate(intermediatePEM, rootPEM, opaque))

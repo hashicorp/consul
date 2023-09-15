@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -31,12 +32,16 @@ func TestList_InputValidation(t *testing.T) {
 	testCases := map[string]func(*pbresource.ListRequest){
 		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
 		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+		"partitioned resource provides non-empty namespace": func(req *pbresource.ListRequest) {
+			req.Type = demo.TypeV1RecordLabel
+			req.Tenancy.Namespace = "bad"
+		},
 	}
 	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.ListRequest{
 				Type:    demo.TypeV2Album,
-				Tenancy: demo.TenancyDefault,
+				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
 			modFn(req)
 
@@ -53,12 +58,12 @@ func TestList_TypeNotFound(t *testing.T) {
 
 	_, err := client.List(context.Background(), &pbresource.ListRequest{
 		Type:       demo.TypeV2Artist,
-		Tenancy:    demo.TenancyDefault,
+		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
 	require.Error(t, err)
 	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-	require.Contains(t, err.Error(), "resource type demo.v2.artist not registered")
+	require.Contains(t, err.Error(), "resource type demo.v2.Artist not registered")
 }
 
 func TestList_Empty(t *testing.T) {
@@ -70,7 +75,7 @@ func TestList_Empty(t *testing.T) {
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       demo.TypeV1Artist,
-				Tenancy:    demo.TenancyDefault,
+				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
@@ -102,12 +107,50 @@ func TestList_Many(t *testing.T) {
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       demo.TypeV2Artist,
-				Tenancy:    demo.TenancyDefault,
+				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
 			require.NoError(t, err)
 			prototest.AssertElementsMatch(t, resources, rsp.Resources)
 		})
+	}
+}
+
+func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
+	// Test units of tenancy get defaulted correctly when empty.
+	ctx := context.Background()
+	for desc, tc := range wildcardTenancyCases() {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			demo.RegisterTypes(server.Registry)
+			client := testClient(t, server)
+
+			// Write partition scoped record label
+			recordLabel, err := demo.GenerateV1RecordLabel("LooneyTunes")
+			require.NoError(t, err)
+			recordLabelRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
+			require.NoError(t, err)
+
+			// Write namespace scoped artist
+			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+			artistRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
+			require.NoError(t, err)
+
+			// List and verify correct resource returned for empty tenancy units.
+			listRsp, err := client.List(ctx, &pbresource.ListRequest{
+				Type:    tc.typ,
+				Tenancy: tc.tenancy,
+			})
+			require.NoError(t, err)
+			require.Len(t, listRsp.Resources, 1)
+			if tc.typ == demo.TypeV1RecordLabel {
+				prototest.AssertDeepEqual(t, recordLabelRsp.Resource, listRsp.Resources[0])
+			} else {
+				prototest.AssertDeepEqual(t, artistRsp.Resource, listRsp.Resources[0])
+			}
+		})
+
 	}
 }
 
@@ -178,7 +221,7 @@ func TestList_ACL_ListAllowed_ReadDenied(t *testing.T) {
 
 	// allow list, deny read
 	authz := AuthorizerFrom(t, demo.ArtistV2ListPolicy,
-		`key_prefix "resource/demo.v2.artist/" { policy = "deny" }`)
+		`key_prefix "resource/demo.v2.Artist/" { policy = "deny" }`)
 	_, rsp, err := roundTripList(t, authz)
 
 	// verify resource filtered out by key:read denied hence no results

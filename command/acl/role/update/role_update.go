@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package roleupdate
 
@@ -28,13 +28,18 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	roleID        string
-	name          string
-	description   string
-	policyIDs     []string
-	policyNames   []string
-	serviceIdents []string
-	nodeIdents    []string
+	roleID                     string
+	name                       string
+	description                string
+	policyIDs                  []string
+	policyNames                []string
+	serviceIdents              []string
+	nodeIdents                 []string
+	appendTemplatedPolicy      string
+	replaceTemplatedPolicy     string
+	appendTemplatedPolicyFile  string
+	replaceTemplatedPolicyFile string
+	templatedPolicyVariables   []string
 
 	noMerge  bool
 	showMeta bool
@@ -69,6 +74,16 @@ func (c *cmd) init() {
 		role.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(role.GetSupportedFormats(), "|")),
 	)
+	c.flags.Var((*flags.AppendSliceValue)(&c.templatedPolicyVariables), "var", "Templated policy variables."+
+		" Must be used in combination with -append-templated-policy or -replace-templated-policy flags to specify required variables."+
+		" May be specified multiple times with different variables."+
+		" Format is VariableName:Value")
+	c.flags.StringVar(&c.appendTemplatedPolicy, "append-templated-policy", "", "The templated policy name to attach to the role's existing templated policies list. Use -var flag to specify variables when required."+
+		" The role retains existing templated policies.")
+	c.flags.StringVar(&c.replaceTemplatedPolicy, "replace-templated-policy", "", "The templated policy name to replace the existing templated policies list with. Use -var flag to specify variables when required."+
+		" Overwrites the role's existing templated policies.")
+	c.flags.StringVar(&c.appendTemplatedPolicyFile, "append-templated-policy-file", "", "Path to a file containing templated policies and variables. Works like `-append-templated-policy`. The role retains existing templated policies.")
+	c.flags.StringVar(&c.replaceTemplatedPolicyFile, "replace-templated-policy-file", "", "Path to a file containing templated policies and variables. Works like `-replace-templated-policy`. Overwrites the role's existing templated policies.")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -111,6 +126,24 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	hasAppendTemplatedPolicies := len(c.appendTemplatedPolicy) > 0 || len(c.appendTemplatedPolicyFile) > 0
+	hasReplaceTemplatedPolicies := len(c.replaceTemplatedPolicy) > 0 || len(c.replaceTemplatedPolicyFile) > 0
+
+	if hasReplaceTemplatedPolicies && hasAppendTemplatedPolicies {
+		c.UI.Error("Cannot combine the use of append-templated-policy flags with replace-templated-policy. " +
+			"To set or overwrite existing templated policies, use -replace-templated-policy or -replace-templated-policy-file. " +
+			"To append to existing templated policies, use -append-templated-policy or -append-templated-policy-file.")
+		return 1
+	}
+	parsedTemplatedPolicies, err := acl.ExtractTemplatedPolicies(c.replaceTemplatedPolicy, c.replaceTemplatedPolicyFile, c.templatedPolicyVariables)
+	if hasAppendTemplatedPolicies {
+		parsedTemplatedPolicies, err = acl.ExtractTemplatedPolicies(c.appendTemplatedPolicy, c.appendTemplatedPolicyFile, c.templatedPolicyVariables)
+	}
+	if err != nil {
+		c.UI.Error(err.Error())
+		return 1
+	}
+
 	// Read the current role in both cases so we can fail better if not found.
 	currentRole, _, err := client.ACL().RoleRead(roleID, nil)
 	if err != nil {
@@ -129,6 +162,7 @@ func (c *cmd) Run(args []string) int {
 			Description:       c.description,
 			ServiceIdentities: parsedServiceIdents,
 			NodeIdentities:    parsedNodeIdents,
+			TemplatedPolicies: parsedTemplatedPolicies,
 		}
 
 		for _, policyName := range c.policyNames {
@@ -221,6 +255,12 @@ func (c *cmd) Run(args []string) int {
 				r.NodeIdentities = append(r.NodeIdentities, nodeid)
 			}
 		}
+
+		if hasReplaceTemplatedPolicies {
+			r.TemplatedPolicies = parsedTemplatedPolicies
+		} else {
+			r.TemplatedPolicies = append(r.TemplatedPolicies, parsedTemplatedPolicies...)
+		}
 	}
 
 	r, _, err = client.ACL().RoleUpdate(r, nil)
@@ -273,6 +313,8 @@ Usage: consul acl role update [options]
                                    -name "better-name" \
                                    -description "replication" \
                                    -policy-name "token-replication" \
-                                   -service-identity "web"
+                                   -service-identity "web" \
+                                   -templated-policy "builtin/service" \
+                                   -var "name:api"
 `
 )

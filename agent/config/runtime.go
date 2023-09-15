@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -1497,6 +1497,9 @@ type RuntimeConfig struct {
 	LocalProxyConfigResyncInterval time.Duration
 
 	Reporting ReportingConfig
+
+	// List of experiments to enable
+	Experiments []string
 
 	EnterpriseRuntimeConfig
 }

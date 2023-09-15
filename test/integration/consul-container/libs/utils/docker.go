@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package utils
 
@@ -9,11 +9,26 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strings"
+
+	"github.com/hashicorp/go-version"
 )
 
 // DockerExec simply shell out to the docker CLI binary on your host.
 func DockerExec(args []string, stdout io.Writer) error {
 	return cmdExec("docker", "docker", args, stdout, "")
+}
+
+// DockerImageVersion retrieves the value of the org.opencontainers.image.version label from the specified image.
+func DockerImageVersion(imageName string) (*version.Version, error) {
+	var b strings.Builder
+	err := cmdExec("docker", "docker", []string{"image", "inspect", "--format", `{{index .Config.Labels "org.opencontainers.image.version"}}`, imageName}, &b, "")
+	if err != nil {
+		return nil, err
+	}
+	output := b.String()
+
+	return version.NewVersion(strings.TrimSpace(output))
 }
 
 func cmdExec(name, binary string, args []string, stdout io.Writer, dir string) error {

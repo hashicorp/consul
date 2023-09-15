@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -1921,7 +1921,7 @@ func Test_Leader_PeeringSync_ServerAddressUpdates(t *testing.T) {
 			require.True(r, found)
 			// We assert for this error to be set which would indicate that we iterated
 			// through a bad address.
-			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing dial tcp: address bad: missing port in address")
+			require.Contains(r, status.LastSendErrorMessage, "transport: Error while dialing: dial tcp: address bad: missing port in address")
 			require.False(r, status.Connected)
 		})
 	})

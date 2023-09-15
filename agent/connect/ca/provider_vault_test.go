@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package ca
 
@@ -18,6 +18,7 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -60,6 +61,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
 		expConfig *structs.VaultCAProviderConfig
+		isPrimary bool
 		expError  string
 	}{
 		"no token and no auth method provided": {
@@ -70,15 +72,26 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test"},
+		"primary no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			isPrimary: true,
 			expError:  "must provide a valid path to a root PKI backend",
+		},
+		"secondary no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
+			isPrimary: false,
+			expConfig: &structs.VaultCAProviderConfig{
+				CommonCAProviderConfig: defaultCommonConfig(),
+				Token:                  "test",
+				IntermediatePKIPath:    "test/",
+			},
 		},
 		"no root intermediate path": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
+			isPrimary: true,
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
@@ -91,7 +104,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig)
+			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
 			} else {
@@ -408,7 +421,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
 				root, err := provider.GenerateCAChain()
-				return root.PEM, err
+				return root, err
 			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
@@ -485,9 +498,8 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			Service:    "foo",
 		}
 
-		root, err := provider.GenerateCAChain()
+		rootPEM, err := provider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 		assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
 		intPEM, err := provider.ActiveLeafSigningCert()
@@ -563,12 +575,6 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
 
-		if tc.SigningKeyType != tc.CSRKeyType {
-			// TODO: uncomment since the bug is closed
-			// See https://github.com/hashicorp/vault/issues/7709
-			t.Skip("Vault doesn't support cross-signing different key types yet.")
-		}
-
 		testVault1 := NewTestVaultServer(t)
 
 		attr1 := &VaultTokenAttributes{
@@ -588,9 +594,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "init", func(t *testing.T) {
-			root, err := provider1.GenerateCAChain()
+			rootPEM, err := provider1.GenerateCAChain()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
+			assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
 
 			intPEM, err := provider1.ActiveLeafSigningCert()
 			require.NoError(t, err)
@@ -616,9 +622,9 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "swap", func(t *testing.T) {
-			root, err := provider2.GenerateCAChain()
+			rootPEM, err := provider2.GenerateCAChain()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
+			assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
 
 			intPEM, err := provider2.ActiveLeafSigningCert()
 			require.NoError(t, err)
@@ -1135,14 +1141,14 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
 	// to ActiveLeafSigningCert return the same new cert.
-	new, err := provider.GenerateLeafSigningCert()
+	newLeaf, err := provider.GenerateLeafSigningCert()
 	require.NoError(t, err)
 
 	newActive, err := provider.ActiveLeafSigningCert()
 	require.NoError(t, err)
 
-	require.Equal(t, new, newActive)
-	require.NotEqual(t, orig, new)
+	require.Equal(t, newLeaf, newActive)
+	require.NotEqual(t, orig, newLeaf)
 }
 
 func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
@@ -1182,6 +1188,51 @@ func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
 	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
 	require.False(t, expIssSet)
 	require.Contains(t, errStr, "permission denied")
+}
+
+func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+	require.NoError(t, err)
+	// Why 2 issuers? There is always an initial issuer that
+	// gets created before we manage the lifecycle of issuers.
+	// Since we're asserting that the number doesn't grow
+	// this isn't too much of a concern.
+	//
+	// Note the key "keys" refers to the IDs of the resource based
+	// on the endpoint the response is from.
+	require.Len(t, res.Data["keys"], 2)
+
+	res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+	require.NoError(t, err)
+	require.Len(t, res.Data["keys"], 1)
+
+	for i := 0; i < 3; i++ {
+		_, err := provider.GenerateLeafSigningCert()
+		require.NoError(t, err)
+
+		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+		require.NoError(t, err)
+		require.Len(t, res.Data["keys"], 2)
+
+		res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+		require.NoError(t, err)
+		assert.Len(t, res.Data["keys"], 1)
+	}
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
@@ -1228,9 +1279,8 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateCAChain()
+		rootPEM, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
@@ -1249,9 +1299,8 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		root, err := primaryProvider.GenerateCAChain()
+		rootPEM, err := primaryProvider.GenerateCAChain()
 		require.NoError(t, err)
-		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))

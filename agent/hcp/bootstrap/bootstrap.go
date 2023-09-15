@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package bootstrap handles bootstrapping an agent's config from HCP. It must be a
 // separate package from other HCP components because it has a dependency on
@@ -23,7 +23,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-uuid"
@@ -65,7 +65,7 @@ type RawBootstrapConfig struct {
 // fetch from HCP servers if the local data is incomplete.
 // It must be passed a (CLI) UI implementation so it can deliver progress
 // updates to the user, for example if it is waiting to retry for a long period.
-func LoadConfig(ctx context.Context, client hcp.Client, dataDir string, loader ConfigLoader, ui UI) (ConfigLoader, error) {
+func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, loader ConfigLoader, ui UI) (ConfigLoader, error) {
 	ui.Output("Loading configuration from HCP")
 
 	// See if we have existing config on disk
@@ -181,14 +181,14 @@ func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *RawBootstrapConfig) {
 
 // fetchBootstrapConfig will fetch boostrap configuration from remote servers and persist it to disk.
 // It will retry until successful or a terminal error condition is found (e.g. permission denied).
-func fetchBootstrapConfig(ctx context.Context, client hcp.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
+func fetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
 	w := retry.Waiter{
 		MinWait: 1 * time.Second,
 		MaxWait: 5 * time.Minute,
 		Jitter:  retry.NewJitter(50),
 	}
 
-	var bsCfg *hcp.BootstrapConfig
+	var bsCfg *hcpclient.BootstrapConfig
 	for {
 		// Note we don't want to shadow `ctx` here since we need that for the Wait
 		// below.
@@ -225,7 +225,7 @@ func fetchBootstrapConfig(ctx context.Context, client hcp.Client, dataDir string
 // persistAndProcessConfig is called when we receive data from CCM.
 // We validate and persist everything that was received, then also update
 // the JSON config as needed.
-func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcp.BootstrapConfig) (string, error) {
+func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.BootstrapConfig) (string, error) {
 	if devMode {
 		// Agent in dev mode, we still need somewhere to persist the certs
 		// temporarily though to be able to start up at all since we don't support
@@ -298,21 +298,25 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcp.BootstrapC
 			return "", fmt.Errorf("failed to persist bootstrap config: %w", err)
 		}
 
-		if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("invalid management token: %w", err)
-		}
-		if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+		// HCP only returns the management token if it requires Consul to
+		// initialize it
+		if bsCfg.ManagementToken != "" {
+			if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("invalid management token: %w", err)
+			}
+			if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+			}
 		}
 
-		if err := persistSucessMarker(dir); err != nil {
+		if err := persistSuccessMarker(dir); err != nil {
 			return "", fmt.Errorf("failed to persist success marker: %w", err)
 		}
 	}
 	return cfgJSON, nil
 }
 
-func persistSucessMarker(dir string) error {
+func persistSuccessMarker(dir string) error {
 	name := filepath.Join(dir, successFileName)
 	return os.WriteFile(name, []byte(""), 0600)
 
@@ -352,12 +356,9 @@ func persistTLSCerts(dir string, serverCert, serverKey string, caCerts []string)
 	return nil
 }
 
-// Basic validation to ensure a UUID was loaded.
+// Basic validation to ensure a UUID was loaded and assumes the token is non-empty
 func validateManagementToken(token string) error {
-	if token == "" {
-		return errors.New("missing HCP management token")
-	}
-
+	// note: we assume that the token is not an empty string
 	if _, err := uuid.ParseUUID(token); err != nil {
 		return errors.New("management token is not a valid UUID")
 	}

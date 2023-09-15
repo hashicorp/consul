@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package state
 
@@ -1427,7 +1427,7 @@ func peersForServiceTxn(
 	)
 
 	// Ensure the metadata is defaulted since we make assertions against potentially empty values below.
-	// In OSS this is a no-op.
+	// In CE this is a no-op.
 	if entMeta == nil {
 		entMeta = acl.DefaultEnterpriseMeta()
 	}

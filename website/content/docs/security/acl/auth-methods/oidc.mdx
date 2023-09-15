@@ -202,7 +202,7 @@ be tricky to debug why things aren't working. Some tips for setting up OIDC:
   request to obtain a JWT that you can inspect. An example of how to decode the
   JWT (in this case located in the `access_token` field of a JSON response):
 
-      cat jwt.json | jq --raw-output .access_token | cut -d. -f2 | base64 --decode
+      jq --raw-output '.access_token / "." | .[1] | @base64d' jwt.json
 
 - The [`VerboseOIDCLogging`](#verboseoidclogging) option is available which
   will log the received OIDC token if debug level logging is enabled. This can

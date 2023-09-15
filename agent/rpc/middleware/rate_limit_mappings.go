@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package middleware
 
@@ -144,4 +144,9 @@ var rpcRateLimitSpecs = map[string]rate.OperationSpec{
 
 	"Txn.Apply": {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryTxn},
 	"Txn.Read":  {Type: rate.OperationTypeRead, Category: rate.OperationCategoryTxn},
+
+	"Namespace.Write":  {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryPartition},
+	"Namespace.Delete": {Type: rate.OperationTypeWrite, Category: rate.OperationCategoryPartition},
+	"Namespace.List":   {Type: rate.OperationTypeRead, Category: rate.OperationCategoryPartition},
+	"Namespace.Read":   {Type: rate.OperationTypeRead, Category: rate.OperationCategoryPartition},
 }
