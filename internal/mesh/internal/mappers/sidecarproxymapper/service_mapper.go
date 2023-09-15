@@ -5,6 +5,7 @@ package sidecarproxymapper
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -71,6 +72,8 @@ func (m *Mapper) mapServiceThroughDestinationsToProxyStateTemplates(
 }
 
 func (m *Mapper) listAllProxyStateTemplatesTemporarily(ctx context.Context, rt controller.Runtime, tenancy *pbresource.Tenancy) ([]*pbresource.ID, error) {
+	fmt.Println("******* listing all proxy state templates")
+	fmt.Println("******* tenancy", tenancy)
 	// todo (ishustava): this is a stub for now until we implement implicit destinations.
 	// For tproxy, we generate requests for all proxy states in the cluster.
 	// This will generate duplicate events for proxies already added above,
@@ -84,10 +87,14 @@ func (m *Mapper) listAllProxyStateTemplatesTemporarily(ctx context.Context, rt c
 		},
 	})
 	if err != nil {
+		fmt.Println("*********** errored listing all proxy state templates: ", err)
 		return nil, err
 	}
 
 	result := make([]*pbresource.ID, 0, len(rsp.Resources))
+	if len(rsp.Resources) == 0 {
+		fmt.Println("*********** got 0 proxy state templates: ")
+	}
 	for _, r := range rsp.Resources {
 		result = append(result, r.Id)
 	}

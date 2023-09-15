@@ -225,6 +225,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 
 	// If there are no mesh addresses, return. This should be impossible.
 	if len(meshAddresses) == 0 {
+		fmt.Println("***************** missing mesh addresses")
 		return &ListenerBuilder{
 			builder: b,
 		}
