@@ -680,6 +680,21 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 	require.NoError(t, <-errCh)
 }
 
+func TestWrite_NoData(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV1Concept("jazz")
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp.Resource.Version)
+	require.Equal(t, rsp.Resource.Id.Name, "jazz")
+}
+
 func TestWrite_Owner_Immutable(t *testing.T) {
 	// Use of proto.Equal(..) in implementation covers all permutations
 	// (nil -> non-nil, non-nil -> nil, owner1 -> owner2) so only the first one
