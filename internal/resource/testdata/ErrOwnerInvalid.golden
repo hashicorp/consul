@@ -1,1 +1,0 @@
-resources of type foo.v1.bar cannot be owned by resources with type other.v2.something

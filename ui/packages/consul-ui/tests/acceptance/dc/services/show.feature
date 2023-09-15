@@ -299,7 +299,6 @@ Feature: dc / services / show: Show Service
     # authorization requests are not blocking so we just wait until the next
     # service blocking query responds
     Then pause until I see the text "no longer have access" in "[data-notification]"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    And "[data-notification]" has the "error" class
     And I see status on the error like "403"
 

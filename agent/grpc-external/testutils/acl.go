@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package testutils
 
 import (
@@ -73,40 +70,6 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 					Policy: acl.PolicyRead,
 				},
 			},
-		},
-	}
-	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
-	require.NoError(t, err)
-
-	return resolver.Result{
-		Authorizer:  authz,
-		ACLIdentity: randomACLIdentity(t),
-	}
-}
-
-func ACLOperatorRead(t *testing.T) resolver.Result {
-	t.Helper()
-
-	aclRule := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Operator: acl.PolicyRead,
-		},
-	}
-	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
-	require.NoError(t, err)
-
-	return resolver.Result{
-		Authorizer:  authz,
-		ACLIdentity: randomACLIdentity(t),
-	}
-}
-
-func ACLOperatorWrite(t *testing.T) resolver.Result {
-	t.Helper()
-
-	aclRule := &acl.Policy{
-		PolicyRules: acl.PolicyRules{
-			Operator: acl.PolicyWrite,
 		},
 	}
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)

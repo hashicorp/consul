@@ -1,8 +1,9 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "bar:2001:db8::ff:9999",
       "address": {
         "socketAddress": {
           "address": "2001:db8::ff",
@@ -21,8 +22,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.bar.dc2"
+                "statPrefix": "mesh_gateway_remote.bar.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -38,8 +39,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.bar.dc4"
+                "statPrefix": "mesh_gateway_remote.bar.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -55,8 +56,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.bar.dc6"
+                "statPrefix": "mesh_gateway_remote.bar.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -73,8 +74,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "",
-                "statPrefix": "mesh_gateway_local.bar"
+                "statPrefix": "mesh_gateway_local.bar",
+                "cluster": ""
               }
             }
           ]
@@ -87,11 +88,11 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ],
-      "name": "bar:2001:db8::ff:9999"
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "baz:127.0.0.1:8765",
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
@@ -110,8 +111,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.baz.dc2"
+                "statPrefix": "mesh_gateway_remote.baz.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -127,8 +128,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.baz.dc4"
+                "statPrefix": "mesh_gateway_remote.baz.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -144,8 +145,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.baz.dc6"
+                "statPrefix": "mesh_gateway_remote.baz.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -162,8 +163,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "",
-                "statPrefix": "mesh_gateway_local.baz"
+                "statPrefix": "mesh_gateway_local.baz",
+                "cluster": ""
               }
             }
           ]
@@ -176,11 +177,11 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ],
-      "name": "baz:127.0.0.1:8765"
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "default:1.2.3.4:8443",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -199,8 +200,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.default.dc2"
+                "statPrefix": "mesh_gateway_remote.default.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -216,8 +217,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.default.dc4"
+                "statPrefix": "mesh_gateway_remote.default.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -233,8 +234,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.default.dc6"
+                "statPrefix": "mesh_gateway_remote.default.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -251,8 +252,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "",
-                "statPrefix": "mesh_gateway_local.default"
+                "statPrefix": "mesh_gateway_local.default",
+                "cluster": ""
               }
             }
           ]
@@ -265,11 +266,11 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ],
-      "name": "default:1.2.3.4:8443"
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "foo:198.17.2.3:8080",
       "address": {
         "socketAddress": {
           "address": "198.17.2.3",
@@ -288,8 +289,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.foo.dc2"
+                "statPrefix": "mesh_gateway_remote.foo.dc2",
+                "cluster": "dc2.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -305,8 +306,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.foo.dc4"
+                "statPrefix": "mesh_gateway_remote.foo.dc4",
+                "cluster": "dc4.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -322,8 +323,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "mesh_gateway_remote.foo.dc6"
+                "statPrefix": "mesh_gateway_remote.foo.dc6",
+                "cluster": "dc6.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -340,8 +341,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "",
-                "statPrefix": "mesh_gateway_local.foo"
+                "statPrefix": "mesh_gateway_local.foo",
+                "cluster": ""
               }
             }
           ]
@@ -354,10 +355,9 @@
             "@type": "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
           }
         }
-      ],
-      "name": "foo:198.17.2.3:8080"
+      ]
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

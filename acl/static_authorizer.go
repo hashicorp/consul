@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 var (
@@ -69,34 +66,6 @@ func (s *staticAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDeci
 }
 
 func (s *staticAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
-	if s.defaultAllow {
-		return Allow
-	}
-	return Deny
-}
-
-func (s *staticAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
-	if s.defaultAllow {
-		return Allow
-	}
-	return Deny
-}
-
-func (s *staticAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
-	if s.defaultAllow {
-		return Allow
-	}
-	return Deny
-}
-
-func (s *staticAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
-	if s.defaultAllow {
-		return Allow
-	}
-	return Deny
-}
-
-func (s *staticAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}

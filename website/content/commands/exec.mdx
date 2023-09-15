@@ -40,7 +40,7 @@ execute this command.
 | `key:write`     | `"_rexec"` prefix |
 | `event:write`   | `"_rexec"` prefix |
 
-In addition to the above, the policy associated with the [agent token](/consul/docs/security/acl/tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This policy permits agents to read the `exec` command and write its output back to the KV store.
+In addition to the above, the policy associated with the [agent token](/consul/docs/security/acl/acl-tokens#acl-agent-token) should have `write` on `"_rexec"` key prefix. This is for the agents to read the `exec` command and write its output back to the KV store.
 
 ## Usage
 

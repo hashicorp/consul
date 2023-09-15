@@ -1,13 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .topology-metrics-popover {
   > button {
     position: absolute;
     transform: translate(-50%, -50%);
-    background-color: var(--token-color-surface-primary);
+    background-color: rgb(var(--tone-gray-000));
     padding: 1px 1px;
     &:hover {
       cursor: pointer;
@@ -26,16 +21,16 @@
   &.deny > button::before,
   &.deny .tippy-arrow::after {
     @extend %with-cancel-square-fill-mask, %as-pseudo;
-    --icon-color: var(--token-color-foreground-critical);
+    --icon-color: rgb(var(--tone-red-500));
   }
   &.l7 > button::before,
   &.l7 .tippy-arrow::after {
     @extend %with-layers-mask, %as-pseudo;
-    --icon-color: var(--token-color-palette-neutral-300);
+    --icon-color: rgb(var(--tone-gray-300));
   }
   &.not-defined > button::before,
   &.not-defined .tippy-arrow::after {
     @extend %with-alert-triangle-mask, %as-pseudo;
-    --icon-color: var(--token-color-vault-brand);
+    --icon-color: rgb(var(--tone-yellow-500));
   }
 }

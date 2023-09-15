@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 (services => services({
   'component:consul/hcp/home': {
     class: 'consul-ui/components/consul/hcp/home',

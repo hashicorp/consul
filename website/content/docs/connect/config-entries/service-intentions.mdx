@@ -18,87 +18,74 @@ The following outline shows how to format the service intentions configuration e
 <Tab heading="HCL and JSON" group="hcl">
 
 - [`Kind`](#kind): string | required | must be set to `service-intentions`
-- [`Name`](#name): string | required
+- [`Name`](#name): string | required  
 - [`Namespace`](#namespace): string |  `default` | <EnterpriseAlert inline/>
 - [`Partition`](#partition): string |  `default` | <EnterpriseAlert inline />
-- [`Meta`](#meta): map
-- [`JWT`](#jwt): map
-  - [`Providers`](#jwt-providers): list of maps
-    - [`Name`](#jwt-providers-name): string
-    - [`VerifyClaims`](#jwt-provider-verifyclaims): list of maps
-      - [`Path`](#jwt-provider-verifyclaims-path): list of strings
-      - [`Value`](#jwt-provider-verifyclaims-value): string
+- [`Meta`](#meta): map | no default 
 - [`Sources`](#sources): list | no default
   - [`Name`](#sources-name): string | no default
   - [`Peer`](#sources-peer): string | no default
-  - [`Namespace`](#sources-namespace): string | no default | <EnterpriseAlert inline />
-  - [`Partition`](#sources-partition): string | no default | <EnterpriseAlert inline />
-  - [`SamenessGroup`](#sources-samenessgroup): string | no default | <EnterpriseAlert inline />
+  - [`Namespace`](#sources-namespace): string | no default  | <EnterpriseAlert inline />
+  - [`Partition`](#sources-partition): string | no default  | <EnterpriseAlert inline />
   - [`Action`](#sources-action): string | no default  | required for L4 intentions
   - [`Permissions`](#sources-permissions): list | no default
     - [`Action`](#sources-permissions-action): string | no default  | required
     - [`HTTP`](#sources-permissions-http): map | required
-      - [`PathExact`](#sources-permissions-http): string
-      - [`PathPrefix`](#sources-permissions-http): string
-      - [`PathRegex`](#sources-permissions-http): string
-      - [`Methods`](#sources-permissions-http): list
-      - [`Header`](#sources-permissions-http-header): list of maps
+      - [`PathExact`](#sources-permissions-http): string | no default 
+      - [`PathPrefix`](#sources-permissions-http): string | no default 
+      - [`PathRegex`](#sources-permissions-http): string | no default 
+      - [`Methods`](#sources-permissions-http): list | no default 
+      - [`Header`](#sources-permissions-http-header): list of maps |no default 
         - [`Name`](#sources-permissions-http-header): string | required
-        - [`Present`](#sources-permissions-http-header): boolean | `false`
-        - [`Exact`](#sources-permissions-http-header): string
-        - [`Prefix`](#sources-permissions-http-header): string
-        - [`Suffix`](#sources-permissions-http-header): string
-        - [`Regex`](#sources-permissions-http-header): string
-        - [`Invert`](#sources-permissions-http-header): boolean | `false`
-  - [`Precedence`](#sources-precedence): number
-  - [`Type`](#sources-type): string | `consul`
-  - [`Description`](#sources-description): string
-  - [`LegacyID`](#sources-legacyid): string
-  - [`LegacyMeta`](#sources-legacymeta): map
-  - [`LegacyCreateTime`](#sources-legacycreatetime): string
-  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string
+        - [`Present`](#sources-permissions-http-header): boolean | `false` 
+        - [`Exact`](#sources-permissions-http-header): string | no default
+        - [`Prefix`](#sources-permissions-http-header): string | no default
+        - [`Suffix`](#sources-permissions-http-header): string | no default
+        - [`Regex`](#sources-permissions-http-header): string | no default
+        - [`Invert`](#sources-permissions-http-header): boolean | `false` 
+  - [`Precedence`](#sources-precedence): number | no default | _read-only_   
+  - [`Type`](#sources-type): string | `consul` 
+  - [`Description`](#sources-description): string 
+  - [`LegacyID`](#sources-legacyid): string | no default | _read-only_ 
+  - [`LegacyMeta`](#sources-legacymeta): map | no default | _read-only_ 
+  - [`LegacyCreateTime`](#sources-legacycreatetime): string | no default | _read-only_
+  - [`LegacyUpdateTime`](#sources-legacyupdatetime): string | no default | _read-only_
 
 </Tab>
-<Tab heading= "YAML" group="yaml">
+<Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string | must be set to `ServiceIntentions`
-- [`metadata`](#metadata): map | required
-  - [`name`](#metadata-name): string | required
+- [`kind`](#kind): string | must be set to `ServiceIntentions` 
+- [`metadata`](#metadata): map | required 
+  - [`name`](#metadata-name): string | required  
   - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
-- [`spec`](#spec): map | no default
+- [`spec`](#spec): map | no default 
   - [`destination`](#spec-destination): map | no default
     - [`name`](#spec-destination-name): string | required
     - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
-  - [`jwt`](#spec-jwt): map
-    - [`providers`](#spec-jwt-providers): list of maps
-        - [`name`](#spec-jwt-providers-name): string
-        - [`verifyClaims`](#spec-jwt-provider-verifyclaims): list of maps
-            - [`path`](#spec-jwt-provider-verifyclaims-path): list of strings
-            - [`value`](#spec-jwt-provider-verifyclaims-value): string
   - [`sources`](#spec-sources): list | no default
     - [`name`](#spec-sources-name): string | no default
     - [`peer`](#spec-sources-peer): string | no default
     - [`namespace`](#spec-sources-namespace): string | no default  | <EnterpriseAlert inline />
     - [`partition`](#spec-sources-partition): string | no default  | <EnterpriseAlert inline />
-    - [`samenessGroup`](#spec-sources-samenessgroup): string | no default | <EnterpriseAlert inline />
     - [`action`](#spec-sources-action): string | no default  | required for L4 intentions
     - [`permissions`](#spec-sources-permissions): list | no default
       - [`action`](#spec-sources-permissions-action): string | no default  | required
       - [`http`](#spec-sources-permissions-http): map | required
-        - [`pathExact`](#spec-sources-permissions-http): string | no default
-        - [`pathPrefix`](#spec-sources-permissions-http): string | no default
-        - [`pathRegex`](#spec-sources-permissions-http): string | no default
-        - [`methods`](#spec-sources-permissions-http): list | no default
-          - [`header`](#spec-sources-permissions-http-header): list of maps |no default
+        - [`pathExact`](#spec-sources-permissions-http): string | no default 
+        - [`pathPrefix`](#spec-sources-permissions-http): string | no default 
+        - [`pathRegex`](#spec-sources-permissions-http): string | no default 
+        - [`methods`](#spec-sources-permissions-http): list | no default 
+          - [`header`](#spec-sources-permissions-http-header): list of maps |no default 
             - [`name`](#spec-sources-permissions-http-header): string | required
-            - [`present`](#spec-sources-permissions-http-header): boolean | `false`
+            - [`present`](#spec-sources-permissions-http-header): boolean | `false` 
             - [`exact`](#spec-sources-permissions-http-header): string | no default
             - [`prefix`](#spec-sources-permissions-http-header): string | no default
             - [`suffix`](#spec-sources-permissions-http-header): string | no default
             - [`regex`](#spec-sources-permissions-http-header): string | no default
-            - [`invert`](#spec-sources-permissions-http-header): boolean | `false`
-    - [`description`](#spec-sources-description): string
+            - [`invert`](#spec-sources-permissions-http-header): boolean | `false` 
+    - [`type`](#spec-sources-type): string | `consul` 
+    - [`description`](#spec-sources-description): string 
 
 </Tab>
 </Tabs>
@@ -113,42 +100,28 @@ When every field is defined, a service intentions configuration entry has the fo
 
 ```hcl
 Kind =  "service-intentions"
-Name = "<name of destination service>"
+Name = "<name of destination service>"  
 Namespace = "<destination namespace>"                    # string
 Partition = "<destination partition>"                    # string
 Meta = {
-  "<key-1>" = "<value-1>"
-  "<key-2>" = "<value-2>"
-  }
-JWT = {
-    Providers = [
-      {
-        Name = "<JWT-provider-name>"
-        VerifyClaims = [
-            {
-                Path = ["<claim>"]
-                Value = "<api.apps.organization.com>"
-            }
-        ]
-      }
-    ]
-}
+  "<key-1>" = "<value-1>"    
+  "<key-2>" = "<value-2>"    
+  } 
 Sources = [
   {
     Name =  "<name of service sending traffic>"            # string
     Peer =  "<name of cluster containing source service>"  # string
     Namespace = "<namespace containing source service>"    # string
     Partition = "<sources-partition>"                      # string
-    SamenessGroup = "<group-name>"                         # string
     Action = "allow" or "deny"                             # string for L4 intentions
-    Permissions = [
-      {
-        Action = "allow" or "deny"                   # string for L7 intentions
-        HTTP =  {
-          PathExact =  "<exact path to match>"       # string
-          PathPrefix = "<path prefix to match>"      # string
-          PathRegex = "<regex pattern to match>"     # string
-          Methods = [
+    Permissions = [                                        
+      {                                                  
+        Action = "allow" or "deny"                   # string for L7 intenions
+        HTTP =  {                                      
+          PathExact =  "<exact path to match>"       # string 
+          PathPrefix = "<path prefix to match>"      # string 
+          PathRegex = "<regex pattern to match>"     # string 
+          Methods = [                    
             "<fist http method to match>",           # string
             "<second http method to match>"
           ]
@@ -174,17 +147,17 @@ Sources = [
               Regex = "<regex pattern to match>"       # string
               Invert = <true or false>                 # boolean
             }
-         ]
+         ] 
         }
-      }
+      } 
     ]
-    Type = "consul"                                     # string
-    Description = "<description for API responses>"     # string
+    Type = "consul"                                     # string     
+    Description = "<description for API responses>"     # string 
     Precedence = <read-only>                            # number
-    LegacyID = <read-only>                              # string
+    LegacyID = <read-only>                              # string 
     LegacyMeta = <read-only>                            # string
     LegacyCreateTime = <read-only>                      # string
-    LegacyUpdateTime = <read-only>                      # string
+    LegacyUpdateTime = <read-only>                      # string            
   }
 ]
 ```
@@ -194,26 +167,20 @@ Sources = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceIntentions
+kind: service-intentions
 metadata:
   name: <name of destination service>
   namespace: <destination namespace>
 spec:
   destination:
-    name: <name of destination service>
-    namespace: <destination namespace>
-  jwt:
-    providers:
-      name: <JWT-provider-name>
-      verifyClaims:
-                path: [<aud>]
-                value: <api.apps.organization.com>
+    destination: 
+      name: <name of destination service>
+      namespace: <destination namespace>
   sources:
-  - name: <name of service sending traffic>
+    name: <name of service sending traffic>
     peer: <name of cluster containing source service>
     namespace: <namespace containing source service>
     partition: <sources-partition>
-    samenessGroup: <group-name>
     action: allow or deny
     permissions:
     - action: allow or deny
@@ -236,6 +203,7 @@ spec:
       - name: <http header name>
         regex: <regex pattern to match>
         invert: false
+  type: consul
   description: <description for API responses>
 ```
 </Tab>
@@ -252,26 +220,12 @@ spec:
       "key-1":"<value-1>",
       "key-2":"<value-2>"
    },
-   "JWT": {
-    "Providers": [
-      {
-        "Name": "<JWT-provider-name>",
-        "VerifyClaims": [
-            {
-                "Path": ["<aud>"],
-                "Value": "<api.apps.organization.com>"
-            }
-        ]
-      }
-    ]
-   },
    "Sources":[
       {
          "Name":"<name of service sending traffic>",
          "Peer":"<name of cluster containing source service>",
          "Namespace":"<namespace containing source service>",
          "Partition":"<sources-partition>",
-         "SamenessGroup":"<group-name>",
          "Action":"allow or deny",
          "Permissions":[
             {
@@ -346,7 +300,7 @@ Specifies the type of configuration entry to implement. Must be set to `service-
 
 ### `Name`
 
-Specifies a name of the destination service for all intentions defined in the configuration entry.
+Specifies a name of the destination service for all intentions defined in the configuration entry. 
 
 #### Values
 
@@ -354,22 +308,22 @@ Specifies a name of the destination service for all intentions defined in the co
 - This field is required.
 - Data type: String
 
-You can also specify a wildcard character (`*`) to match all services without intentions. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`Permissions`](#sources-permissions).
+You can also specify a wildcard character (`*`) to match all services without intentions. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`Permissions`](#sources-permissions). 
 
-### `Namespace` <EnterpriseAlert inline />
+### `Namespace` <EnterpriseAlert inline /> 
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Services in the namespace are the traffic destinations that the intentions allow or deny traffic to. 
 
 #### Values
 
 - Default: `default`
 - Data type: String
 
-You can also specify a wildcard character (`*`) to match all namespaces. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`Permissions`](#sources-permissions).
+You can also specify a wildcard character (`*`) to match all namespaces. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`Permissions`](#sources-permissions). 
 
-### `Partition` <EnterpriseAlert inline />
+### `Partition` <EnterpriseAlert inline /> 
 
-Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to.
+Specifies the [admin partition](/consul/docs/enterprise/admin-partitions) to apply the configuration entry. Services in the specified partition are the traffic destinations that the intentions allow or deny traffic to. 
 
 #### Values
 
@@ -387,63 +341,6 @@ Specifies key-value pairs to add to the KV store when the configuration entry is
   - keys: String
   - values: String, integer, or float
 
-### `JWT`
-
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
-
-#### Values
-
-- Default: None
-- Data type: Map that contains [`JWT{}.Providers`](#jwt-providers)
-
-### `JWT{}.Providers`
-
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
-
-#### Values
-
-- Default: None
-- Data type: List of maps
-
-### `JWT{}.Providers[].Name`
-
-Specifies the name of a JWT provider defined in the `Name` field of the [`jwt-provider` configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `JWT{}.Providers[].VerifyClaims`
-
-Specifies additional token information to verify beyond what is configured in the JWT provider configuration entry. This map takes the form of a JSON web token claim and a value to match for verification.
-
-#### Values
-
-- Default: None
-- Data type: List of maps that can contain the following parameters:
-
-  - [`Path`](#jwt-providers-verifyclaims-path)
-  - [`Value`](#jwt-providers-verifyclaims-value)
-
-### `JWT{}.Providers[].VerifyClaims[].Path`
-
-Specifies the path to the claim in the JSON web token. For more information about JWT claims, refer to the [IETF standards documentation](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1).
-
-#### Values
-
-- Default: None
-- Data type: List of strings
-
-### `JWT{}.Providers[].VerifyClaims.Value`
-
-Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
-
-#### Values
-
-- Default: None
-- Data type: String
-
 ### `Sources[]`
 
 List of configurations that define intention sources and the authorization granted to the sources. You can specify source configurations in any order, but Consul stores and evaluates them in order of reverse precedence at runtime. Refer to [`Precedence`](#sources-precedence) for additional information.
@@ -456,7 +353,6 @@ List of configurations that define intention sources and the authorization grant
   - `Peer`
   - `Namespace` <EnterpriseAlert inline/>
   - `Partition` <EnterpriseAlert inline/>
-  - `SamenessGroup` <EnterpriseAlert inline/>
   - `Action`
   - `Permissions`
   - `Precedence`
@@ -469,7 +365,7 @@ List of configurations that define intention sources and the authorization grant
 
 ### `Sources[].Name`
 
-Specifies the name of the source that the intention allows or denies traffic from. If [`Type`](#sources-type) is set to `consul`, then the value refers to the name of a Consul service. The source is not required to be registered into the Consul catalog.
+Specifies the name of the source that the intention allows or denies traffic from. If [`Type`](#sources-type) is set to `consul`, then the value refers to the name of a Consul service. The source is not required to be registered into the Consul catalog. 
 
 #### Values
 
@@ -479,53 +375,43 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `Sources[].Peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. 
 
-The `Peer` and `Partition` fields are mutually exclusive.
+The `Peer` and `Partition` fields are mutually exclusive. 
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `Sources[].Namespace` <EnterpriseAlert inline />
+### `Sources[].Namespace` <EnterpriseAlert inline /> 
 
-Specifies the traffic source namespace that the intention allows or denies traffic from.
+Specifies the traffic source namespace that the intention allows or denies traffic from. 
 
 #### Values
 
 - Default: If [`Peer`](#sources-peer) is unspecified, defaults to the destination [`Namespace`](#namespace).
 - Data type: String
 
-### `Sources[].Partition` <EnterpriseAlert inline />
+### `Sources[].Partition` <EnterpriseAlert inline /> 
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. 
 
-The `Peer` and `Partition` fields are mutually exclusive.
+The `Peer` and `Partition` fields are mutually exclusive. 
 
 #### Values
 
 - Default: If [`Peer`](#sources-peer) is unspecified, defaults to the destination [`Partition`](#partition).
 - Data type: string
 
-### `Sources[].SamenessGroup` <EnterpriseAlert inline />
-
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for additional information.
-
-#### Values
-
-- Default: None
-- Data type: string
-
-
 ### `Sources[].Action`
 
-Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field to apply L7 intentions to the same source. Configure the [`Permissions`](#sources-permissions) field instead.
+Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field to apply L7 intentions to the same source. Configure the [`Permissions`](#sources-permissions) field instead. 
 
 #### Values
 
 - Default: None
-- This field is required for L4 intentions.
+- This field is required for L4 intentions. 
 - Data type: String value set to either `allow` or `deny`
 
 Refer to the following examples for additional guidance:
@@ -537,13 +423,13 @@ Refer to the following examples for additional guidance:
 
 ### `Sources[].Permissions[]`
 
-Specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action.
+Specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. 
 
-Consul applies permissions in the order specified in the configuration. Beginning at the top of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
+Consul applies permissions in the order specified in the configuration. Beginning at the top of the list, Consul applies the first matching request and stops evaluating against the remaining configurations. 
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration. 
 
-Do not configure this field for L4 intentions. Use the [`Sources.Action`](#sources-action) parameter instead.
+Do not configure this field for L4 intentions. Use the [`Sources.Action`](#sources-action) parameter instead. 
 
 The `Permissions` only applies to services with a compatible protocol. `Permissions` are not supported when the [`Name`](#name) or [`Namespace`](#namespace) field is configured with a wildcard because service instances or services in a namespace may use different protocols.
 
@@ -563,12 +449,12 @@ Refer to the following examples for additional guidance:
 
 ### `Sources[].Permissions[].Action`
 
-Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`.
+Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. 
 
 #### Values
 
 - Default: None
-- This field is required.
+- This field is required. 
 - Data type: String value set to either `allow` or `deny`.
 
 ### `Sources[].Permissions[].HTTP`
@@ -579,7 +465,7 @@ Specifies a set of HTTP-specific match criteria. Consul applies the action defin
 
 - Default: None
 - This field is required.
-- Data type: Map
+- Data type: Map 
 
 The following table describes the parameters that the HTTP map may contain:
 
@@ -593,14 +479,14 @@ The following table describes the parameters that the HTTP map may contain:
 
 ### `Sources[].Permissions[].HTTP[].Header[]`
 
-Specifies a header name and matching criteria for HTTP request headers. The request header must match all specified criteria for the permission to apply.
+Specifies a header name and matching criteria for HTTP request headers. The request header must match all specified criteria for the permission to apply. 
 
 #### Values
 
 - Default: None
-- Data type: list of objects
+- Data type: list of objects 
 
-Each member of the `Header` list is a map that contains a `Name` field and at least one match criterion. The following table describes the parameters that each member of the `Header` list may contain:
+Each member of the `Header` list is a map that contains a `Name` field and at least one match criterion. The following table describes the parameters that each member of the `Header` list may contain: 
 
 | Parameter | Description | Data type | Required |
 | --- | --- | --- | --- |
@@ -612,13 +498,14 @@ Each member of the `Header` list is a map that contains a `Name` field and at le
 | `Regex` | Specifies a regular expression pattern as the value for the header key set in the `Name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `Regex` if `Present`, `Exact`, `Prefix`, or `Suffix` are configured in the same `Header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
 | `Invert` | Inverts the matching logic configured in the `Header`. Default is `false`. | boolean | optional |
 
+
 ### `Sources[].Precedence`
 
-The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-matching-order) for additional information.
+The `Precedence` field contains a read-only integer. Consul generates the value based on name configurations for the source and destination services. Refer to [Precedence and matching order](/consul/docs/connect/intentions/create-manage-intentions#precedence-and-matching-order) for additional information. 
 
 ### `Sources[].Type`
 
-Specifies the type of destination service that the configuration entry applies to. The only value supported is `consul`.
+Specifies the type of destination service that the configuration entry applies to. The only value supported is `consul`. 
 
 #### Values
 
@@ -627,7 +514,7 @@ Specifies the type of destination service that the configuration entry applies t
 
 ### `Sources[].Description`
 
-Specifies a description of the intention. Consul presents the description in API responses to assist other tools integrated into the network.
+Specifies a description of the intention. Consul presents the description in API responses to assist other tools integrated into the network. 
 
 #### Values
 
@@ -656,7 +543,7 @@ Read-only timestamp marking the most recent intention update. Consul exposes the
 
 ### `apiVersion`
 
-Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`.
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. 
 
 #### Values
 
@@ -676,7 +563,7 @@ Specifies the type of configuration entry to implement. Must be set to `ServiceI
 
 ### `metadata`
 
-Map that contains an arbitrary name for the configuration entry and the namespace it applies to.
+Map that contains an arbitrary name for the configuration entry and the namespace it applies to. 
 
 #### Values
 
@@ -687,7 +574,7 @@ Map that contains an arbitrary name for the configuration entry and the namespac
 
 Specifies an arbitrary name for the configuration entry. Note that in other configuration entries, the `metadata.name` field specifies the name of the service that the settings apply to. For service intentions, the service that accepts the configurations is the _destination_ and is specified in the [`spec.destination.name`](#spec-destination-name) field. Refer to the following topics for additional information:
 
-- [ServiceIntentions Special Case (OSS)](/consul/docs/k8s/crds#serviceintentions-special-case)
+- [ServiceIntentions Special Case (OSS)](/consul/docs/k8s/crds#serviceintentions-special-case) 
 - [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise)
 
 #### Values
@@ -695,7 +582,7 @@ Specifies an arbitrary name for the configuration entry. Note that in other conf
 - Default: None
 - Data type: String
 
-### `metadata.namespace` <EnterpriseAlert inline />
+### `metadata.namespace` <EnterpriseAlert inline /> 
 
 Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
 
@@ -705,96 +592,49 @@ Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configura
 - Data type: String
 
 ### `spec`
-
 Map that contains the details about the `ServiceIntentions` configuration entry. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: Map
+- Data type: Map 
 
 ### `spec.destination`
 
-Map that identifies the destination name and destination namespace that source services are allowed or denied access to.
+Map that identifies the destination name and destination namespace that source services are allowed or denied access to. 
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: Map
+- Data type: Map 
 
 ### `spec.destination.name`
 
 Specifies the name of the destination service in the mesh that the intentions apply to.
-You can also specify a wildcard character (`*`) to match all services that are missing intention settings. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`permissions`](#spec-sources-permissions).
+You can also specify a wildcard character (`*`) to match all services that are missing intention settings. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`permissions`](#spec-sources-permissions). 
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: String
+- Data type: String 
 
-### `spec.jwt`
+### `spec.metadata.namespace` <EnterpriseAlert inline /> 
 
-Specifies a JSON Web Token provider configured in a [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider), as well as additional configurations for verifying a service's JWT before authorizing communication between services
+Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. You can also specify a wildcard character (`*`) to match all namespaces. Intentions that are applied with a wildcard, however, are not supported when defining L7 [`permissions`](#spec-sources-permissions). 
 
-#### Values
-
-- Default: None
-- Data type: Map that contains [`spec.jwt.providers`](#spec-jwt-providers)
-
-### `spec.jwt.providers`
-
-Specifies the names of one or more previously configured [JWT provider configuration entries](/consul/docs/connect/config-entries/jwt-provider), which include the information necessary to validate a JSON web token.
+Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
 
 #### Values
 
-- Default: None
-- Data type: List of maps
-
-### `spec.jwt.providers[].name`
-
-Specifies the name of a JWT provider defined in the `metadata.name` field of the [JWT provider configuration entry](/consul/docs/connect/config-entries/jwt-provider). You must write the JWT Provider to Consul before referencing it in a service intention.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.jwt.providers[].verifyClaims`
-
-Specifies additional token information to verify beyond what is configured in the JWT provider configuration entry. This map takes the form of a JSON web token claim and a value to match for verification.
-
-#### Values
-
-- Default: None
-- Data type: List of maps that can contain the following parameters:
-
-  - [`path`](#spec-jwt-providers-verifyclaims-path)
-  - [`value`](#spec-jwt-providers-verifyclaims-value)
-
-### `spec.jwt.providers[].verifyClaims[].path`
-
-Specifies the path to the claim in the JSON web token. For more information about JWT claims, refer to the [IETF standards documentation](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1).
-
-#### Values
-
-- Default: None
-- Data type: List of strings
-
-### `spec.jwt.providers[].verifyClaims[].value`
-
-Specifies the value to match on when verifying the the claim designated in [`JWT{}.Providers[].VerifyClaims[].Path`](#jwt-providers-verifyclaims-path).
-
-#### Values
-
-- Default: None
+- Default: If not set, destination service namespace is inherited from the `connectInject.consulNamespaces` configuration. Refer to [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise) for details. 
 - Data type: String
 
 ### `spec.sources[]`
 
-List of configurations that define intention sources and the authorization granted to the sources. You can specify source configurations in any order, but Consul stores and evaluates them in order of reverse precedence at runtime.
+List of configurations that define intention sources and the authorization granted to the sources. You can specify source configurations in any order, but Consul stores and evaluates them in order of reverse precedence at runtime. 
 
 #### Values
 
@@ -804,15 +644,14 @@ List of configurations that define intention sources and the authorization grant
   - `peer`
   - `namespace` <EnterpriseAlert inline/>
   - `partition` <EnterpriseAlert inline/>
-  - `samenessGroup` <EnterpriseAlert inline/>
-  - `action`
+  - `Action`
   - `permissions`
   - `type`
   - `description`
 
 ### `spec.sources[].name`
 
-Specifies the name of the source that the intention allows or denies traffic from. If [`type`](#sources-type) is set to `consul`, then the value refers to the name of a Consul service. The source is not required to be registered into the Consul catalog.
+Specifies the name of the source that the intention allows or denies traffic from. If [`type`](#sources-type) is set to `consul`, then the value refers to the name of a Consul service. The source is not required to be registered into the Consul catalog. 
 
 #### Values
 
@@ -822,58 +661,49 @@ Specifies the name of the source that the intention allows or denies traffic fro
 
 ### `spec.sources[].peer`
 
-Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of a peered Consul cluster that the intention allows or denies traffic from. Refer to [Cluster peering overview](/consul/docs/connect/cluster-peering) for additional information about peers. The `peer` and `partition` fields are mutually exclusive. 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.sources[].namespace` <EnterpriseAlert inline />
+### `spec.sources[].namespace` <EnterpriseAlert inline /> 
 
-Specifies the traffic source namespace that the intention allows or denies traffic from.
+Specifies the traffic source namespace that the intention allows or denies traffic from. 
 
 #### Values
 
 - Default: If [`peer`](#spec-sources-peer) is unspecified, defaults to the namespace specified in the [`spec.destination.namespace`](#spec-destination-namespace) field.
 - Data type: String
 
-### `spec.sources[].partition` <EnterpriseAlert inline />
+### `spec.sources[].partition` <EnterpriseAlert inline /> 
 
-Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive.
+Specifies the name of an admin partition that the intention allows or denies traffic from. Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information about partitions. The `peer` and `partition` fields are mutually exclusive. 
 
 #### Values
 
 - Default: If [`peer`](#sources-peer) is unspecified, defaults to the partition specified in  [`spec.destination.partition`](#spec-destination-partition).
 - Data type: String
 
-### `spec.sources[].samenessGroup` <EnterpriseAlert inline />
-
-Specifies the name of a sameness group that the intention allows or denies traffic from. Refer to [create sameness groups](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for additional information.
-
-#### Values
-
-- Default: None
-- Data type: string
-
 ### `spec.sources[].action`
 
-Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field for L7 intentions. Configure the [`spec.sources.permissions`](#spec-sources-permissions) field instead.
+Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. Do not configure this field for L7 intentions. Configure the [`spec.sources.permissions`](#spec-sources-permissions) field instead. 
 
 #### Values
 
 - Default: None
-- This field is required for L4 intentions.
+- This field is required for L4 intentions. 
 - Data type: String value set to either `allow` or `deny`
 
 ### `spec.sources[].permissions[]`
 
-Specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action.
+Specifies a list of permissions for L7 traffic sources. The list contains one or more actions and a set of match criteria for each action. 
 
-Consul applies permissions in the order specified in the configuration. Starting at the beginning of the list, Consul applies the first matching request and stops evaluating against the remaining configurations.
+Consul applies permissions in the order specified in the configuration. Starting at the beginning of the list, Consul applies the first matching request and stops evaluating against the remaining configurations. 
 
-For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration.
+For requests that do not match any of the defined permissions, Consul applies the intention behavior defined in the [`acl_default_policy`](/consul/docs/agent/config/config-files#acl_default_policy) configuration. 
 
-Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#sources-action) parameter instead.
+Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#sources-action) parameter instead. 
 
 `permissions` configurations only apply to services with a compatible protocol. As a result, they are not supported when the [`spec.destination.name`](#spec-destination-name) or [`spec.destination.namespace`](#spec-destination-namespace) field is configured with a wildcard because service instances or services in a namespace may use different protocols.
 
@@ -886,12 +716,12 @@ Do not configure this field for L4 intentions. Use the [`spec.sources.action`](#
 
 ### `spec.sources[].permissions[].action`
 
-Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`.
+Specifies the action to take when the source sends traffic to the destination service. The value  is either `allow` or `deny`. 
 
 #### Values
 
 - Default: None
-- This field is required.
+- This field is required. 
 - Data type: String value set to either `allow` or `deny`
 
 ### `spec.sources[].permissions[].http`
@@ -902,7 +732,7 @@ Specifies a set of HTTP-specific match criteria. Consul applies the action defin
 
 - Default: None
 - This field is required.
-- Data type: Map
+- Data type: Map 
 
 The following table describes the parameters that the HTTP map may contain:
 
@@ -916,7 +746,7 @@ The following table describes the parameters that the HTTP map may contain:
 
 ### `spec.sources[].permissions[].http[].header`
 
-Specifies a set of criteria for matching HTTP request headers. The request header must match all specified criteria for the permission to apply.
+Specifies a set of criteria for matching HTTP request headers. The request header must match all specified criteria for the permission to apply. 
 
 #### Values
 
@@ -937,7 +767,7 @@ Each member of the `header` list is a map that contains a `name` field and at le
 
 ### `spec.sources[].type`
 
-Specifies the type of destination service that the configuration entry applies to. The only value supported is `consul`.
+Specifies the type of destination service that the configuration entry applies to. The only value supported is `consul`. 
 
 #### Values
 
@@ -946,7 +776,7 @@ Specifies the type of destination service that the configuration entry applies t
 
 ### `spec.sources[].description`
 
-Specifies a description of the intention. Consul presents the description in API responses to assist other tools integrated into the network.
+Specifies a description of the intention. Consul presents the description in API responses to assist other tools integrated into the network. 
 
 #### Values
 
@@ -964,9 +794,9 @@ The following examples demonstrate potential use-cases for the service intention
 
 ### L4 Intentions for specific sources and destinations
 
-The following example configuration entry specifies an L4 intention that denies traffic from `web` to `db` service instances, but allows traffic from `api` to `db`.
+The following example configuration entry specifies an L4 intention that denies traffic from `web` to `db` service instances, but allows traffic from `api` to `db`. 
 
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}> 
 
 ```hcl
 Kind = "service-intentions"
@@ -1019,7 +849,7 @@ spec:
 
 ### L4 intentions for all destinations
 
-In the following L4 example, the destination is configured with a `*` wildcard. As a result, traffic from `web` service instances is denied for any service in the datacenter.
+In the following L4 example, the destination is configured with a `*` wildcard. As a result, traffic from `web` service instances is denied for any service in the datacenter. 
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1064,7 +894,7 @@ spec:
 
 ### L4 intentions for all sources
 
-In the following L4 example, the source is configured with a `*` wildcard. As a result, traffic from any service is denied to `db` service instances.
+In the following L4 example, the source is configured with a `*` wildcard. As a result, traffic from any service is denied to `db` service instances. 
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1206,7 +1036,7 @@ spec:
 
 ### gRPC
 
-In the following example, Consul denies requests from `frontend-web` to the `IssueRefund` gRPC service.
+In the following example, Consul denies requests from `frontend-web` to the `IssueRefund` gRPC service. 
 Because gRPC method calls use the [HTTP/2 protocol](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md), you can apply an HTTP path-matching rule to control traffic:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -1457,111 +1287,3 @@ When using cluster peering connections, intentions secure your deployments with 
   ```
 
   </CodeTabs>
-
-### JWT validation with intentions
-
-The following example configures a service intention that evaluates requests when a service named `backend` receives a request from the `frontend` service. When the request is sent to the `/admin` HTTP path, a JSON Web Token provided by Okta is evaluated. In addition to the validation requirements in a separate JWT provider configuration entry, an additional check occurs to confirm that the token has either a `perms` or `role` claim with the `admin` value. If it does, the request is authorized.
-
-Because the intention allows requests that come from the `/` HTTP path, only requests on the `/admin` path are subject to token validation.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "service-intentions"
-Name = "backend"
-Sources = [
-  {
-    Name = "frontend"
-    Permissions = [
-      {
-        HTTP = {
-          PathExact = "/admin"
-        }
-        JWT = {
-          Providers = [
-            {
-              Name = "okta"
-              VerifyClaims = [
-                {
-                  Path = ["perms", "role"]
-                  Value = "admin"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        Action = "allow"
-        HTTP = {
-          PathPrefix = "/"
-        }
-      }
-    ]
-  }
-]
-```
-
-```yaml
-  apiVersion: consul.hashicorp.com/v1alpha1
-  kind: ServiceIntentions
-  metadata:
-    name: backend
-  spec:
-    sources:
-    - name: frontend
-      permissions:
-      - http:
-          pathExact: /admin
-        jwt:
-          providers:
-          - name: okta
-            verifyClaims:
-            - path:
-                - perms
-                - role
-              value: admin
-      action: allow
-      http:
-        pathPrefix: /
-```
-
-```json
-{
-"Kind": "service-intentions",
-"Name": "backend",
-"Sources": [
-  {
-    "Name": "frontend",
-    "Permissions": [
-      {
-        "HTTP": {
-          "PathExact": "/admin"
-        },
-        "JWT": {
-          "Providers": [
-            {
-              "Name": "okta",
-              "VerifyClaims": [
-                {
-                  "Path": ["perms", "role"],
-                  "Value": "admin"
-                }
-              ]
-            }
-          ]
-        }
-      },
-      {
-        "Action": "allow",
-        "HTTP": {
-          "PathPrefix": "/"
-        }
-      }
-    ]
-  }
-]
-}
-```
-
-</CodeTabs>

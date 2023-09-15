@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package xds
 
 import (
@@ -14,9 +11,8 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 // update allows golden files to be updated based on the current output.
@@ -125,8 +121,12 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 			return got
 		}
 
-		require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
-
+		// We use require.JSONEq to compare values and ObjectsAreEqualValues is used
+		// internally by that function to compare the string JSON values. This only
+		// writes updates the golden file when they actually change.
+		if !assert.ObjectsAreEqualValues(gotInterface, latestExpectedInterface) {
+			require.NoError(t, os.WriteFile(golden, []byte(got), 0644))
+		}
 		return got
 	}
 
@@ -141,5 +141,11 @@ func golden(t *testing.T, name, subname, latestSubname, got string) string {
 }
 
 func protoToJSON(t *testing.T, pb proto.Message) string {
-	return prototest.ProtoToJSON(t, pb)
+	t.Helper()
+	m := protojson.MarshalOptions{
+		Indent: "  ",
+	}
+	gotJSON, err := m.Marshal(pb)
+	require.NoError(t, err)
+	return string(gotJSON)
 }

@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 on:
   issues:
     types: [opened, closed, deleted, reopened]
@@ -16,7 +13,7 @@ jobs:
     name: Jira Community Issue sync
     steps:    
       - name: Login
-        uses: atlassian/gajira-login@ca13f8850ea309cf44a6e4e0c49d9aa48ac3ca4c # v3
+        uses: atlassian/gajira-login@v3.0.0
         env:
           JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
@@ -40,7 +37,7 @@ jobs:
 
       - name: Create ticket if an issue is filed, or if PR not by a team member is opened
         if: github.event.action == 'opened'
-        uses: tomhjp/gh-action-jira-create@3ed1789cad3521292e591a7cfa703215ec1348bf # v0.2.1
+        uses: tomhjp/gh-action-jira-create@v0.2.0
         with:
           project: NET
           issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
@@ -57,48 +54,31 @@ jobs:
           JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
 
-      # Education Jira
-      - name: Create ticket in Education board an issue is filed, or if PR not by a team member is opened
-        if: github.event.action == 'opened' && contains(github.event.issue.labels.*.name, 'type/docs')
-        uses: tomhjp/gh-action-jira-create@3ed1789cad3521292e591a7cfa703215ec1348bf # v0.2.1
-        with:
-          project: CE
-          issuetype: "${{ steps.set-ticket-type.outputs.TYPE }}"
-          summary: "${{ github.event.repository.name }} [${{ steps.set-ticket-type.outputs.TYPE }} #${{ github.event.issue.number }}]: ${{ github.event.issue.title }}"
-          description: "GitHub URL: ${{ github.event.issue.html_url || github.event.pull_request.html_url }}\n\n${{ github.event.issue.body || github.event.pull_request.body }}\n\n_Created in GitHub by ${{ github.actor }}._"
-          # customfield_10089 is "Issue Link", customfield_10371 is "Source" (use JIRA API to retrieve)
-          extraFields: '{ "components": [{ "name": "${{ github.event.repository.name }}" }] }'
-
-        env:
-          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
-          JIRA_USER_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-
       - name: Search
         if: github.event.action != 'opened'
         id: search
-        uses: tomhjp/gh-action-jira-search@04700b457f317c3e341ce90da5a3ff4ce058f2fa # v0.2.2
+        uses: tomhjp/gh-action-jira-search@v0.2.1
         with:
           # cf[10089] is Issue Link (use JIRA API to retrieve)
           jql: 'issuetype = "${{ steps.set-ticket-type.outputs.TYPE }}" and cf[10089] = "${{ github.event.issue.html_url || github.event.pull_request.html_url }}"'
 
       - name: Sync comment
         if: github.event.action == 'created' && steps.search.outputs.issue
-        uses: tomhjp/gh-action-jira-comment@6eb6b9ead70221916b6badd118c24535ed220bd9 # v0.2.0
+        uses: tomhjp/gh-action-jira-comment@v0.1.0
         with:
           issue: ${{ steps.search.outputs.issue }}
           comment: "${{ github.actor }} ${{ github.event.review.state || 'commented' }}:\n\n${{ github.event.comment.body || github.event.review.body }}\n\n${{ github.event.comment.html_url || github.event.review.html_url }}"
 
       - name: Close ticket
         if: ( github.event.action == 'closed' || github.event.action == 'deleted' ) && steps.search.outputs.issue
-        uses: atlassian/gajira-transition@4749176faf14633954d72af7a44d7f2af01cc92b # v3
+        uses: atlassian/gajira-transition@v2.0.1
         with:
           issue: ${{ steps.search.outputs.issue }}
           transition: "Closed"
 
       - name: Reopen ticket
         if: github.event.action == 'reopened' && steps.search.outputs.issue
-        uses: atlassian/gajira-transition@4749176faf14633954d72af7a44d7f2af01cc92b # v3
+        uses: atlassian/gajira-transition@v2.0.1
         with:
           issue: ${{ steps.search.outputs.issue }}
           transition: "To Do"

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package controller
 
 import (
@@ -10,15 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasicController(t *testing.T) {
@@ -38,8 +33,7 @@ func TestBasicController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	}).State()
 
 	for i := 0; i < 200; i++ {
@@ -95,8 +89,7 @@ func TestBasicController_Transform(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	}).State()
 
 	go New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
@@ -141,17 +134,16 @@ func TestBasicController_Retry(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	}).State()
 
-	queueInitialized := make(chan *countingWorkQueue[Request])
+	queueInitialized := make(chan *countingWorkQueue)
 	controller := New(publisher, reconciler).Subscribe(&stream.SubscribeRequest{
 		Topic:   state.EventTopicIngressGateway,
 		Subject: stream.SubjectWildcard,
 	}).WithWorkers(-1).WithBackoff(1*time.Millisecond, 1*time.Millisecond)
-	go controller.WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) queue.WorkQueue[Request] {
-		queue := newCountingWorkQueue(queue.RunWorkQueue[Request](ctx, baseBackoff, maxBackoff))
+	go controller.WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
+		queue := newCountingWorkQueue(RunWorkQueue(ctx, baseBackoff, maxBackoff))
 		queueInitialized <- queue
 		return queue
 	}).Run(ctx)
@@ -245,9 +237,9 @@ func TestBasicController_RunPanicAssertions(t *testing.T) {
 	started := make(chan struct{})
 	reconciler := newTestReconciler(false)
 	publisher := stream.NewEventPublisher(0)
-	controller := New(publisher, reconciler).WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) queue.WorkQueue[Request] {
+	controller := New(publisher, reconciler).WithQueueFactory(func(ctx context.Context, baseBackoff, maxBackoff time.Duration) WorkQueue {
 		close(started)
-		return queue.RunWorkQueue[Request](ctx, baseBackoff, maxBackoff)
+		return RunWorkQueue(ctx, baseBackoff, maxBackoff)
 	})
 	subscription := &stream.SubscribeRequest{
 		Topic:   state.EventTopicIngressGateway,
@@ -277,7 +269,7 @@ func TestBasicController_RunPanicAssertions(t *testing.T) {
 		controller.WithWorkers(1)
 	})
 	require.Panics(t, func() {
-		controller.WithQueueFactory(queue.RunWorkQueue[Request])
+		controller.WithQueueFactory(RunWorkQueue)
 	})
 }
 
@@ -387,8 +379,7 @@ func TestConfigEntrySubscriptions(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher:      publisher,
-				StorageBackend: fsm.NullStorageBackend,
+				Publisher: publisher,
 			}).State()
 
 			for i := 0; i < 200; i++ {
@@ -524,8 +515,7 @@ func TestDiscoveryChainController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	}).State()
 
 	controller := New(publisher, reconciler)

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (visitable, submitable, deletable, cancelable, clickable, tokenList) {
   return {
     visit: visitable(['/:dc/acls/policies/:policy', '/:dc/acls/policies/create']),

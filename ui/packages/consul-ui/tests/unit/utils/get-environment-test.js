@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import getEnvironment from 'consul-ui/utils/get-environment';
 import { module, test } from 'qunit';
 const getEntriesByType = function (type) {

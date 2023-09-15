@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 # This Dockerfile contains multiple targets.
 # Use 'docker build --target=<name> .' to build one.
 # e.g. `docker build --target=official .`
@@ -16,7 +13,7 @@
 # Official docker image that includes binaries from releases.hashicorp.com. This
 # downloads the release from releases.hashicorp.com and therefore requires that
 # the release is published before building the Docker image.
-FROM docker.mirror.hashicorp.services/alpine:3.18 as official
+FROM docker.mirror.hashicorp.services/alpine:3.17 as official
 
 # This is the release of Consul to pull in.
 ARG VERSION
@@ -112,7 +109,7 @@ CMD ["agent", "-dev", "-client", "0.0.0.0"]
 
 # Production docker image that uses CI built binaries.
 # Remember, this image cannot be built locally.
-FROM docker.mirror.hashicorp.services/alpine:3.18 as default
+FROM docker.mirror.hashicorp.services/alpine:3.17 as default
 
 ARG PRODUCT_VERSION
 ARG BIN_NAME

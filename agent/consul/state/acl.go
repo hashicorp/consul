@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -11,7 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbacl"
+	"github.com/hashicorp/consul/proto/pbacl"
 )
 
 // ACLTokens is used when saving a snapshot
@@ -526,8 +523,7 @@ func aclTokenSetTxn(tx WriteTxn, idx uint64, token *structs.ACLToken, opts ACLTo
 	}
 
 	if opts.ProhibitUnprivileged {
-		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 &&
-			len(token.NodeIdentities) == 0 && len(token.TemplatedPolicies) == 0 {
+		if numValidRoles == 0 && numValidPolicies == 0 && len(token.ServiceIdentities) == 0 && len(token.NodeIdentities) == 0 {
 			return ErrTokenHasNoPrivileges
 		}
 	}
@@ -1175,26 +1171,6 @@ func aclRoleSetTxn(tx WriteTxn, idx uint64, role *structs.ACLRole, allowMissing 
 		}
 		if nodeid.Datacenter == "" {
 			return fmt.Errorf("Encountered a Role with an empty node identity datacenter in the state store")
-		}
-	}
-
-	for _, templatedPolicy := range role.TemplatedPolicies {
-		if templatedPolicy.TemplateName == "" {
-			return fmt.Errorf("encountered a Role %s (%s) with an empty templated policy name in the state store", role.Name, role.ID)
-		}
-
-		baseTemplate, ok := structs.GetACLTemplatedPolicyBase(templatedPolicy.TemplateName)
-		if !ok {
-			return fmt.Errorf("encountered a Role %s (%s) with an invalid templated policy name %q", role.Name, role.ID, templatedPolicy.TemplateName)
-		}
-
-		if templatedPolicy.TemplateID == "" {
-			templatedPolicy.TemplateID = baseTemplate.TemplateID
-		}
-
-		err := templatedPolicy.ValidateTemplatedPolicy(baseTemplate.Schema)
-		if err != nil {
-			return fmt.Errorf("encountered a Role %s (%s) with an invalid templated policy: %w", role.Name, role.ID, err)
 		}
 	}
 

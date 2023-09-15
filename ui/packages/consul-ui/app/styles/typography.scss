@@ -1,77 +1,79 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 body,
 %form-element-text-input {
-  @extend %body-200-regular;
+  @extend %typo-body;
 }
 %radio-card header,
 fieldset > header,
+%main-nav-horizontal-action,
 %definition-table dt,
 %table caption,
 %tbody-th,
 %form-element > span {
-  @extend %display-100-semibold;
-}
-%main-nav-horizontal-action {
-  @extend %body-200-medium;
+  @extend %h400;
 }
 %definition-table dt {
-  line-height: var(--token-typography-body-300-line-height);
+  line-height: var(--typo-lead-700);
 }
 %internal-button,
 %breadcrumbs li > *,
 %tab-nav {
-  @extend %body-200-medium;
+  @extend %h500;
 }
-%table td p,
-%table td {
-  @extend %body-200-regular;
-}
-
 %healthcheck-output dt,
-%table td:first-child p,
-%table td:first-child,
+%table th,
+%table td strong,
 %sliding-toggle label span {
-  @extend %body-200-semibold;
+  @extend %h600;
 }
 
+pre code,
+%notice,
+%notice p,
+%flash-message p,
 %filter-bar input,
 %tab-section p {
-  @extend %body-200-regular;
+  @extend %p1;
 }
 %empty-state-anchor,
+.type-dialog,
+%table td p,
+%table td,
+%healthcheck-output dl > dd,
 %form-element-label,
 %stats-card header a span,
 %footer,
 %app-view h1 span.kind-proxy {
-  @extend %body-100-regular;
+  @extend %p2;
 }
 %empty-state-subheader,
 %empty-state p,
+%button,
 %main-content p,
 %form-element-note,
 %form-element-error > strong {
-  @extend %body-100-regular;
+  @extend %p3;
 }
 %main-content p code {
   @extend %inline-code;
 }
 
 %radio-group label {
-  line-height: var(--token-typography-body-100-line-height);
+  line-height: var(--typo-lead-200);
+}
+%tab-nav {
+  letter-spacing: 0.03em;
 }
 
+/*TODO: See if we can collapse these into a */
+/* strong %p3 */
 %form-element-label,
 %button {
-  @extend %body-100-semibold;
+  font-weight: var(--typo-weight-semibold);
 }
 %route-card section dt,
 %route-card header:not(.short) dd,
 %splitter-card > header {
-  @extend .hds-font-weight-bold;
+  font-weight: var(--typo-weight-bold);
 }
 /**/
 
@@ -81,8 +83,9 @@ fieldset > header,
 %pill,
 %form-element > strong,
 %tbody-th em,
+%app-view h1 em,
 %route-card header dt {
-  @extend .hds-font-weight-regular;
+  font-weight: var(--typo-weight-normal);
 }
 
 %form-element-note,
@@ -94,7 +97,8 @@ fieldset > header,
 
 /* composite row */
 %composite-row-header {
-  @extend %display-300-medium;
+  font-size: var(--typo-size-450);
+  font-weight: var(--typo-weight-medium);
 }
 %composite-row-header *:not(button) {
   font-size: inherit;
@@ -102,31 +106,14 @@ fieldset > header,
 }
 /**/
 
+/* TODO: We have nothing else with a 500 */
+/* either make this the biggest %p or don't use it */
 %app-view h1 em {
-  @extend %body-200-medium;
+  font-size: var(--typo-size-500);
 }
 /*TODO: This should go in reset, and probably needs select etc adding  */
 @media (max-width: 420px) and (-webkit-min-device-pixel-ratio: 0) {
   input {
-    font-size: var(--token-typography-body-300-font-size) !important;
+    font-size: 16px !important;
   }
-}
-%healthcheck-output dl > dd {
-  @extend %body-200-regular;
-}
-
-h1 {
-  @extend %display-500-bold;
-}
-
-%healthcheck-output pre code,
-pre code,
-pre,
-code {
-  @extend %code-200-regular;
-}
-
-dd code,
-dd pre code {
-  @extend %code-100-regular;
 }

@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { datacenters } from 'consul-ui/helpers/policy/datacenters';
 import { module, test } from 'qunit';
 

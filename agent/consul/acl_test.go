@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -21,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -615,6 +611,10 @@ func (d *ACLResolverTestDelegate) ACLDatacenter() string {
 	return d.datacenter
 }
 
+func (d *ACLResolverTestDelegate) UseLegacyACLs() bool {
+	return d.legacy
+}
+
 func (d *ACLResolverTestDelegate) ResolveIdentityFromToken(token string) (bool, structs.ACLIdentity, error) {
 	if !d.localTokens {
 		return false, nil, nil
@@ -727,6 +727,7 @@ func TestACLResolver_Disabled(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    false,
 		datacenter: "dc1",
+		legacy:     false,
 	}
 
 	r := newTestACLResolver(t, delegate, nil)
@@ -741,6 +742,7 @@ func TestACLResolver_ResolveRootACL(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:    true,
 		datacenter: "dc1",
+		legacy:     false,
 	}
 	r := newTestACLResolver(t, delegate, nil)
 
@@ -791,6 +793,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -818,6 +821,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -845,6 +849,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -880,6 +885,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -910,6 +916,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -960,6 +967,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -990,6 +998,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1025,6 +1034,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1056,6 +1066,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1102,6 +1113,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: false,
 			localRoles:    false,
@@ -1143,6 +1155,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1177,6 +1190,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			localRoles:    false,
@@ -1212,6 +1226,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: true,
 			localRoles:    true,
@@ -1257,6 +1272,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1320,6 +1336,7 @@ func TestACLResolver_DownPolicy(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1377,6 +1394,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1396,6 +1414,7 @@ func TestACLResolver_DatacenterScoping(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc2",
+			legacy:        false,
 			localTokens:   true,
 			localPolicies: true,
 			localRoles:    true,
@@ -1431,6 +1450,7 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(_ *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1521,6 +1541,7 @@ func TestACLResolver_Client(t *testing.T) {
 		delegate := &ACLResolverTestDelegate{
 			enabled:       true,
 			datacenter:    "dc1",
+			legacy:        false,
 			localTokens:   false,
 			localPolicies: false,
 			tokenReadFn: func(args *structs.ACLTokenGetRequest, reply *structs.ACLTokenResponse) error {
@@ -1583,6 +1604,7 @@ func TestACLResolver_Client_TokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   false,
 		localPolicies: false,
 		localRoles:    false,
@@ -1599,6 +1621,7 @@ func TestACLResolver_LocalTokensPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   true,
 		localPolicies: true,
 		localRoles:    true,
@@ -1614,6 +1637,7 @@ func TestACLResolver_LocalPoliciesAndRoles(t *testing.T) {
 	delegate := &ACLResolverTestDelegate{
 		enabled:       true,
 		datacenter:    "dc1",
+		legacy:        false,
 		localTokens:   false,
 		localPolicies: true,
 		localRoles:    true,
@@ -1951,48 +1975,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 					},
 				},
 			},
-			&structs.ACLToken{
-				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
-				SecretID:   "found-synthetic-policy-5",
-				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node1",
-						},
-						Datacenters: []string{"dc1"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node2",
-						},
-						// as the resolver is in dc1 this identity should be ignored
-						Datacenters: []string{"dc2"},
-					},
-				},
-			},
-			&structs.ACLToken{
-				AccessorID: "359b9927-25fd-46b9-84c2-3470f848ec65",
-				SecretID:   "found-synthetic-policy-6",
-				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node3",
-						},
-						Datacenters: []string{"dc1"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "templated-test-node4",
-						},
-						// as the resolver is in dc1 this identity should be ignored
-						Datacenters: []string{"dc2"},
-					},
-				},
-			},
 		})
 
 		// We resolve these tokens in the same cache session
@@ -2057,22 +2039,6 @@ func testACLResolver_variousTokens(t *testing.T, delegate *ACLResolverTestDelega
 			require.Equal(t, acl.Allow, authz.NodeWrite("test-node2", nil))
 			// ensure node identity for other DC is ignored
 			require.Equal(t, acl.Deny, authz.NodeWrite("test-node-dc2", nil))
-		})
-		t.Run("synthetic-policy-6", func(t *testing.T) { // templated policy
-			authz, err := r.ResolveToken("found-synthetic-policy-6")
-			require.NoError(t, err)
-			require.NotNil(t, authz)
-
-			// spot check some random perms
-			require.Equal(t, acl.Deny, authz.ACLRead(nil))
-			require.Equal(t, acl.Deny, authz.NodeWrite("foo", nil))
-			// ensure we didn't bleed over to the other synthetic policy
-			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node1", nil))
-			// check our own synthetic policy
-			require.Equal(t, acl.Allow, authz.ServiceRead("literally-anything", nil))
-			require.Equal(t, acl.Allow, authz.NodeWrite("templated-test-node3", nil))
-			// ensure template identity for other DC is ignored
-			require.Equal(t, acl.Deny, authz.NodeWrite("templated-test-node4", nil))
 		})
 	})
 

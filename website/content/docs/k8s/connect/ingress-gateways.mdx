@@ -7,14 +7,7 @@ description: >-
 
 # Configure Ingress Gateways for Consul on Kubernetes
 
-<Note>
-
-Ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported
-in this version but will be removed in a future release of Consul.
-
-Consul's API gateway is the recommended alternative to ingress gateway.
-
-</Note>
+-> 1.9.0+: This feature is available in Consul versions 1.9.0 and higher
 
 ~> This topic requires familiarity with [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway).
 
@@ -68,12 +61,6 @@ Please refer to the ingress gateway configuration [documentation](/consul/docs/k
 Ensure you have the latest consul-helm chart and install Consul via helm using the following
 [guide](/consul/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
 as previously discussed.
-
-The following example installs Consul 1.0.4 using the `values.yaml` configuration: 
-
-```shell-session
-$ helm install consul -f values.yaml hashicorp/consul --version 1.0.4 --wait --debug
-```
 
 ## Configuring the gateway
 

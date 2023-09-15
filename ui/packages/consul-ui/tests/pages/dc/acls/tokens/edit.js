@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (
   visitable,
   submitable,
@@ -18,7 +13,7 @@ export default function (
     ...cancelable({}, 'main form > div'),
     ...deletable({}, 'main form > div'),
     use: clickable('[data-test-use]'),
-    confirmUse: clickable('[data-test-confirm-use]'),
+    confirmUse: clickable('button.type-delete'),
     clone: clickable('[data-test-clone]'),
     policies: policySelector(),
     roles: roleSelector(),
