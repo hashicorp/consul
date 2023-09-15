@@ -187,15 +187,3 @@ func assertHTTPRequestToServiceAddress(t *testing.T, client *libservice.ConnectC
 		}
 	})
 }
-
-func createNamespace(t *testing.T, consulClient *api.Client, namespace string) {
-	t.Helper()
-
-	if namespace != "" {
-		t.Logf("creating the %s namespace in Consul", namespace)
-		_, _, err := consulClient.Namespaces().Create(&api.Namespace{
-			Name: namespace,
-		}, nil)
-		require.NoError(t, err)
-	}
-}
