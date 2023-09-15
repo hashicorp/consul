@@ -46,10 +46,6 @@ func TestWrite_InputValidation(t *testing.T) {
 			artist.Id.Name = ""
 			return artist
 		},
-		"no data": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Data = nil
-			return artist
-		},
 		"wrong data type": func(artist, _ *pbresource.Resource) *pbresource.Resource {
 			var err error
 			artist.Data, err = anypb.New(&pbdemov2.Album{})

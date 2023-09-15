@@ -59,7 +59,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// Check the user sent the correct type of data.
-	if !req.Resource.Data.MessageIs(reg.Proto) {
+	if req.Resource.Data != nil && !req.Resource.Data.MessageIs(reg.Proto) {
 		got := strings.TrimPrefix(req.Resource.Data.TypeUrl, "type.googleapis.com/")
 
 		return nil, status.Errorf(
@@ -272,8 +272,6 @@ func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.R
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Data == nil:
-		field = "resource.data"
 	}
 
 	if field != "" {
