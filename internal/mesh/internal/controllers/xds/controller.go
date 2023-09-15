@@ -5,7 +5,12 @@ package xds
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/cacheshim"
+	"github.com/hashicorp/consul/agent/leafcert"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
@@ -19,23 +24,35 @@ import (
 )
 
 const ControllerName = "consul.io/xds-controller"
+const defaultTenancy = "default"
 
-func Controller(mapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher) controller.Controller {
-	if mapper == nil || updater == nil || fetcher == nil {
-		panic("mapper, updater and fetcher are required")
+func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher, leafCertManager *leafcert.Manager, leafMapper *LeafMapper, leafCancels *LeafCancels, datacenter string) controller.Controller {
+	leafCertEvents := make(chan controller.Event, 1000)
+	if endpointsMapper == nil || fetcher == nil || leafCertManager == nil || leafMapper == nil || datacenter == "" {
+		panic("endpointsMapper, updater, fetcher, leafCertManager, leafMapper, and datacenter are required")
 	}
 
 	return controller.ForType(types.ProxyStateTemplateType).
-		WithWatch(catalog.ServiceEndpointsType, mapper.MapLink).
+		WithWatch(catalog.ServiceEndpointsType, endpointsMapper.MapLink).
 		WithCustomWatch(proxySource(updater), proxyMapper).
+		WithCustomWatch(&controller.Source{Source: leafCertEvents}, leafMapper.EventMapLink).
 		WithPlacement(controller.PlacementEachServer).
-		WithReconciler(&xdsReconciler{bimapper: mapper, updater: updater, fetchTrustBundle: fetcher})
+		WithReconciler(&xdsReconciler{endpointsMapper: endpointsMapper, updater: updater, fetchTrustBundle: fetcher, leafCertManager: leafCertManager, leafCancels: leafCancels, leafCertEvents: leafCertEvents, leafMapper: leafMapper, datacenter: datacenter})
 }
 
 type xdsReconciler struct {
-	bimapper         *bimapper.Mapper
-	updater          ProxyUpdater
+	// Fields for fetching and watching endpoints.
+	endpointsMapper *bimapper.Mapper
+	// Fields for proxy management.
+	updater ProxyUpdater
+	// Fields for fetching and watching trust bundles.
 	fetchTrustBundle TrustBundleFetcher
+	// Fields for fetching and watching leaf certificates.
+	leafCertManager *leafcert.Manager
+	leafMapper      *LeafMapper
+	leafCancels     *LeafCancels
+	leafCertEvents  chan controller.Event
+	datacenter      string
 }
 
 type TrustBundleFetcher func() (*pbproxystate.TrustBundle, error)
@@ -47,7 +64,7 @@ type ProxyUpdater interface {
 	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
 	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
 
 	// EventChannel returns a channel of events that are consumed by the Custom Watcher.
 	EventChannel() chan controller.Event
@@ -65,11 +82,25 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		return err
 	}
 
-	if proxyStateTemplate == nil || proxyStateTemplate.Template == nil || !r.updater.ProxyConnectedToServer(req.ID) {
+	token, proxyConnected := r.updater.ProxyConnectedToServer(req.ID)
+
+	if proxyStateTemplate == nil || proxyStateTemplate.Template == nil || !proxyConnected {
 		rt.Logger.Trace("proxy state template has been deleted or this controller is not responsible for this proxy state template", "id", req.ID)
 
-		// If the proxy state was deleted, we should remove references to it in the mapper.
-		r.bimapper.UntrackItem(req.ID)
+		// If the proxy state template (PST) was deleted, we should:
+		// 1. Remove references from endpoints mapper.
+		// 2. Remove references from leaf mapper.
+		// 3. Cancel all leaf watches.
+
+		// 1. Remove PST from endpoints mapper.
+		r.endpointsMapper.UntrackItem(req.ID)
+		// Grab the leafs related to this PST before untracking the PST so we know which ones to cancel.
+		leafLinks := r.leafMapper.LinkRefsForItem(req.ID)
+		// 2. Remove PST from leaf mapper.
+		r.leafMapper.UntrackItem(req.ID)
+
+		// 3. Cancel watches for leafs that were related to this PST as long as it's not referenced by any other PST.
+		r.cancelWatches(leafLinks)
 
 		return nil
 	}
@@ -80,7 +111,6 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	)
 	pstResource = proxyStateTemplate.Resource
 
-	// Initialize the ProxyState endpoints map.
 	if proxyStateTemplate.Template.ProxyState == nil {
 		rt.Logger.Error("proxy state was missing from proxy state template")
 		// Set the status.
@@ -100,6 +130,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 		return err
 	}
 
+	// Initialize ProxyState maps.
 	if proxyStateTemplate.Template.ProxyState.TrustBundles == nil {
 		proxyStateTemplate.Template.ProxyState.TrustBundles = make(map[string]*pbproxystate.TrustBundle)
 	}
@@ -108,6 +139,9 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 
 	if proxyStateTemplate.Template.ProxyState.Endpoints == nil {
 		proxyStateTemplate.Template.ProxyState.Endpoints = make(map[string]*pbproxystate.Endpoints)
+	}
+	if proxyStateTemplate.Template.ProxyState.LeafCertificates == nil {
+		proxyStateTemplate.Template.ProxyState.LeafCertificates = make(map[string]*pbproxystate.LeafCertificate)
 	}
 
 	// Iterate through the endpoint references.
@@ -156,8 +190,110 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	}
 
 	// Step 4: Track relationships between ProxyStateTemplates and ServiceEndpoints.
-	r.bimapper.TrackItem(req.ID, endpointsInProxyStateTemplate)
+	r.endpointsMapper.TrackItem(req.ID, endpointsInProxyStateTemplate)
 
+	// Iterate through leaf certificate references.
+	// For each leaf certificate reference, the controller should:
+	// 1. Setup a watch for the leaf certificate so that the leaf cert manager will generate and store a leaf
+	// certificate if it's not already in the leaf cert manager cache.
+	// 1a. Store a cancel function for that leaf certificate watch.
+	// 2. Get the leaf certificate from the leaf cert manager. (This should succeed if a watch has been set up).
+	// 3. Put the leaf certificate contents into the ProxyState leaf certificates map.
+	// 4. Track relationships between ProxyState and leaf certificates using a bimapper.
+	leafReferencesMap := proxyStateTemplate.Template.RequiredLeafCertificates
+	var leafsInProxyStateTemplate []resource.ReferenceOrID
+	for workloadIdentityName, leafRef := range leafReferencesMap {
+
+		// leafRef must include the namespace and partition
+		leafResourceReference := leafResourceRef(leafRef.Name, leafRef.Namespace, leafRef.Partition)
+		leafKey := keyFromReference(leafResourceReference)
+		leafRequest := &leafcert.ConnectCALeafRequest{
+			Token:            token,
+			WorkloadIdentity: leafRef.Name,
+			EnterpriseMeta:   acl.NewEnterpriseMetaWithPartition(leafRef.Partition, leafRef.Namespace),
+		}
+
+		// Step 1: Setup a watch for this leaf if one doesn't already exist.
+		if _, ok := r.leafCancels.Get(leafKey); !ok {
+			certWatchContext, cancel := context.WithCancel(ctx)
+			err = r.leafCertManager.NotifyCallback(certWatchContext, leafRequest, "", func(ctx context.Context, event cacheshim.UpdateEvent) {
+				cert, ok := event.Result.(*structs.IssuedCert)
+				if !ok {
+					panic("wrong type")
+				}
+				if cert == nil {
+					return
+				}
+				controllerEvent := controller.Event{
+					Obj: cert,
+				}
+				select {
+				// This callback function is running in its own goroutine, so blocking inside this goroutine to send the
+				// update event doesn't affect the controller or other leaf certificates. r.leafCertEvents is a buffered
+				// channel, which should constantly be consumed by the controller custom events queue. If the controller
+				// custom events consumer isn't clearing up the leafCertEvents channel, then that would be the main
+				// issue to address, as opposed to this goroutine blocking.
+				case r.leafCertEvents <- controllerEvent:
+				// This context is the certWatchContext, so we will reach this case if the watch is canceled, and exit
+				// the callback goroutine.
+				case <-ctx.Done():
+				}
+			})
+			if err != nil {
+				rt.Logger.Error("error creating leaf watch", "leafRef", leafResourceReference, "error", err)
+				// Set the status.
+				statusCondition = status.ConditionRejectedErrorCreatingLeafWatch(keyFromReference(leafResourceReference), err.Error())
+				status.WriteStatusIfChanged(ctx, rt, pstResource, statusCondition)
+
+				cancel()
+				return err
+			}
+			r.leafCancels.Set(leafKey, cancel)
+		}
+
+		// Step 2: Get the leaf certificate.
+		cert, _, err := r.leafCertManager.Get(ctx, leafRequest)
+		if err != nil {
+			rt.Logger.Error("error getting leaf", "leafRef", leafResourceReference, "error", err)
+			// Set the status.
+			statusCondition = status.ConditionRejectedErrorGettingLeaf(keyFromReference(leafResourceReference), err.Error())
+			status.WriteStatusIfChanged(ctx, rt, pstResource, statusCondition)
+
+			return err
+		}
+
+		// Create the pbproxystate.LeafCertificate out of the structs.IssuedCert returned from the manager.
+		psLeaf := generateProxyStateLeafCertificates(cert)
+		if psLeaf == nil {
+			rt.Logger.Error("error getting leaf certificate contents", "leafRef", leafResourceReference)
+
+			// Set the status.
+			statusCondition = status.ConditionRejectedErrorCreatingProxyStateLeaf(keyFromReference(leafResourceReference), err.Error())
+			status.WriteStatusIfChanged(ctx, rt, pstResource, statusCondition)
+
+			return err
+		}
+
+		// Step 3: Add the leaf certificate to ProxyState.
+		proxyStateTemplate.Template.ProxyState.LeafCertificates[workloadIdentityName] = psLeaf
+
+		// Track all the leaf certificates that are used by this ProxyStateTemplate, so we can use this for step 4.
+		leafsInProxyStateTemplate = append(leafsInProxyStateTemplate, leafResourceReference)
+
+	}
+	// Get the previously tracked leafs for this ProxyStateTemplate so we can use this to cancel watches in step 5.
+	prevWatchedLeafs := r.leafMapper.LinkRefsForItem(req.ID)
+
+	// Step 4: Track relationships between ProxyStateTemplates and leaf certificates for the current leafs referenced in
+	// ProxyStateTemplate.
+	r.leafMapper.TrackItem(req.ID, leafsInProxyStateTemplate)
+
+	// Step 5: Compute whether there are leafs that are no longer referenced by this proxy state template, and cancel
+	// watches for them if they aren't referenced anywhere.
+	watches := prevWatchesToCancel(prevWatchedLeafs, leafsInProxyStateTemplate)
+	r.cancelWatches(watches)
+
+	// Now that the references have been resolved, push the computed proxy state to the updater.
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
 	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
@@ -174,11 +310,93 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	return nil
 }
 
-func resourceIdToReference(id *pbresource.ID) *pbresource.Reference {
+// leafResourceRef translates a leaf certificate reference in ProxyState template to an internal resource reference. The
+// bimapper package uses resource references, so we use an internal type to create a leaf resource reference since leaf
+// certificates are not v2 resources.
+func leafResourceRef(workloadIdentity, namespace, partition string) *pbresource.Reference {
+	// Since leaf certificate references aren't resources in the resource API, we don't have the same guarantees that
+	// namespace and partition are set. So this is to ensure that we always do set values for tenancy.
+	if namespace == "" {
+		namespace = defaultTenancy
+	}
+	if partition == "" {
+		partition = defaultTenancy
+	}
 	ref := &pbresource.Reference{
-		Name:    id.GetName(),
-		Type:    id.GetType(),
-		Tenancy: id.GetTenancy(),
+		Name: workloadIdentity,
+		Type: InternalLeafType,
+		Tenancy: &pbresource.Tenancy{
+			Partition: partition,
+			Namespace: namespace,
+		},
 	}
 	return ref
+}
+
+// InternalLeafType sets up an internal resource type to use for leaf certificates, since they are not yet a v2
+// resource. It's exported because it's used by the mesh controller registration which needs to set up the bimapper for
+// leaf certificates.
+var InternalLeafType = &pbresource.Type{
+	Group:        "internal",
+	GroupVersion: "v1alpha1",
+	Kind:         "leaf",
+}
+
+// keyFromReference is used to create string keys from resource references.
+func keyFromReference(ref resource.ReferenceOrID) string {
+	return fmt.Sprintf("%s/%s/%s",
+		resource.ToGVK(ref.GetType()),
+		tenancyToString(ref.GetTenancy()),
+		ref.GetName())
+}
+
+func tenancyToString(tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("%s.%s", tenancy.Partition, tenancy.Namespace)
+}
+
+// generateProxyStateLeafCertificates translates a *structs.IssuedCert into a *pbproxystate.LeafCertificate.
+func generateProxyStateLeafCertificates(cert *structs.IssuedCert) *pbproxystate.LeafCertificate {
+	if cert.CertPEM == "" || cert.PrivateKeyPEM == "" {
+		return nil
+	}
+	return &pbproxystate.LeafCertificate{
+		Cert: cert.CertPEM,
+		Key:  cert.PrivateKeyPEM,
+	}
+}
+
+// cancelWatches cancels watches for leafs that no longer need to be watched, as long as it is referenced by zero ProxyStateTemplates.
+func (r *xdsReconciler) cancelWatches(leafResourceRefs []*pbresource.Reference) {
+	for _, leaf := range leafResourceRefs {
+		pstItems := r.leafMapper.ItemRefsForLink(leaf)
+		if len(pstItems) > 0 {
+			// Don't delete and cancel watches, since this leaf is referenced elsewhere.
+			continue
+		}
+		cancel, ok := r.leafCancels.Get(keyFromReference(leaf))
+		if ok {
+			cancel()
+			r.leafCancels.Delete(keyFromReference(leaf))
+		}
+	}
+}
+
+// prevWatchesToCancel computes if there are any items in prevWatchedLeafs that are not in currentLeafs, and returns a list of those items.
+func prevWatchesToCancel(prevWatchedLeafs []*pbresource.Reference, currentLeafs []resource.ReferenceOrID) []*pbresource.Reference {
+	var prevWatchedLeafsToCancel []*pbresource.Reference
+	for _, prevLeaf := range prevWatchedLeafs {
+		prevKey := keyFromReference(prevLeaf)
+		found := false
+		for _, newLeaf := range currentLeafs {
+			newKey := keyFromReference(newLeaf)
+			if prevKey == newKey {
+				found = true
+				break
+			}
+		}
+		if !found {
+			prevWatchedLeafsToCancel = append(prevWatchedLeafsToCancel, prevLeaf)
+		}
+	}
+	return prevWatchedLeafsToCancel
 }

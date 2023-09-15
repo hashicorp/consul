@@ -318,12 +318,44 @@ func serviceToCatalogRegistration(
 			Address: node.LocalAddress(),
 		},
 	}
+	if svc.IsMeshGateway {
+		reg.Service.Kind = api.ServiceKindMeshGateway
+		reg.Service.Proxy = &api.AgentServiceConnectProxyConfig{
+			Config: map[string]interface{}{
+				"envoy_gateway_no_default_bind":       true,
+				"envoy_gateway_bind_tagged_addresses": true,
+			},
+			MeshGateway: api.MeshGatewayConfig{
+				Mode: api.MeshGatewayModeLocal,
+			},
+		}
+	}
 	if node.HasPublicAddress() {
 		reg.TaggedAddresses = map[string]string{
 			"lan":      node.LocalAddress(),
 			"lan_ipv4": node.LocalAddress(),
 			"wan":      node.PublicAddress(),
 			"wan_ipv4": node.PublicAddress(),
+		}
+		// TODO: not sure what the difference is between these, but with just the
+		// top-level set, it appeared to not get set in either :/
+		reg.Service.TaggedAddresses = map[string]api.ServiceAddress{
+			"lan": {
+				Address: node.LocalAddress(),
+				Port:    svc.Port,
+			},
+			"lan_ipv4": {
+				Address: node.LocalAddress(),
+				Port:    svc.Port,
+			},
+			"wan": {
+				Address: node.PublicAddress(),
+				Port:    svc.Port,
+			},
+			"wan_ipv4": {
+				Address: node.PublicAddress(),
+				Port:    svc.Port,
+			},
 		}
 	}
 	if cluster.Enterprise {

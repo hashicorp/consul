@@ -9,6 +9,8 @@ type policyRulesMergeContext struct {
 	agentPrefixRules         map[string]*AgentRule
 	eventRules               map[string]*EventRule
 	eventPrefixRules         map[string]*EventRule
+	identityRules            map[string]*IdentityRule
+	identityPrefixRules      map[string]*IdentityRule
 	keyringRule              string
 	keyRules                 map[string]*KeyRule
 	keyPrefixRules           map[string]*KeyRule
@@ -33,6 +35,8 @@ func (p *policyRulesMergeContext) init() {
 	p.agentPrefixRules = make(map[string]*AgentRule)
 	p.eventRules = make(map[string]*EventRule)
 	p.eventPrefixRules = make(map[string]*EventRule)
+	p.identityRules = make(map[string]*IdentityRule)
+	p.identityPrefixRules = make(map[string]*IdentityRule)
 	p.keyringRule = ""
 	p.keyRules = make(map[string]*KeyRule)
 	p.keyPrefixRules = make(map[string]*KeyRule)
@@ -95,6 +99,42 @@ func (p *policyRulesMergeContext) merge(policy *PolicyRules) {
 
 		if update {
 			p.eventPrefixRules[ep.Event] = ep
+		}
+	}
+
+	for _, id := range policy.Identities {
+		existing, found := p.identityRules[id.Name]
+
+		if !found {
+			p.identityRules[id.Name] = id
+			continue
+		}
+
+		if takesPrecedenceOver(id.Policy, existing.Policy) {
+			existing.Policy = id.Policy
+			existing.EnterpriseRule = id.EnterpriseRule
+		}
+
+		if takesPrecedenceOver(id.Intentions, existing.Intentions) {
+			existing.Intentions = id.Intentions
+		}
+	}
+
+	for _, id := range policy.IdentityPrefixes {
+		existing, found := p.identityPrefixRules[id.Name]
+
+		if !found {
+			p.identityPrefixRules[id.Name] = id
+			continue
+		}
+
+		if takesPrecedenceOver(id.Policy, existing.Policy) {
+			existing.Policy = id.Policy
+			existing.EnterpriseRule = id.EnterpriseRule
+		}
+
+		if takesPrecedenceOver(id.Intentions, existing.Intentions) {
+			existing.Intentions = id.Intentions
 		}
 	}
 
@@ -267,6 +307,16 @@ func (p *policyRulesMergeContext) fill(merged *PolicyRules) {
 	merged.EventPrefixes = []*EventRule{}
 	for _, policy := range p.eventPrefixRules {
 		merged.EventPrefixes = append(merged.EventPrefixes, policy)
+	}
+
+	merged.Identities = []*IdentityRule{}
+	for _, policy := range p.identityRules {
+		merged.Identities = append(merged.Identities, policy)
+	}
+
+	merged.IdentityPrefixes = []*IdentityRule{}
+	for _, policy := range p.identityPrefixRules {
+		merged.IdentityPrefixes = append(merged.IdentityPrefixes, policy)
 	}
 
 	merged.Keys = []*KeyRule{}

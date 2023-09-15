@@ -251,12 +251,15 @@ func (pt *ProxyTracker) ShutdownChannel() chan struct{} {
 }
 
 // ProxyConnectedToServer returns whether this id is connected to this server.
-func (pt *ProxyTracker) ProxyConnectedToServer(proxyID *pbresource.ID) bool {
+func (pt *ProxyTracker) ProxyConnectedToServer(proxyID *pbresource.ID) (string, bool) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
 	proxyReferenceKey := resource.NewReferenceKey(proxyID)
-	_, ok := pt.proxies[proxyReferenceKey]
-	return ok
+	proxyData, ok := pt.proxies[proxyReferenceKey]
+	if ok {
+		return proxyData.token, ok
+	}
+	return "", ok
 }
 
 // Shutdown removes all state and close all channels.

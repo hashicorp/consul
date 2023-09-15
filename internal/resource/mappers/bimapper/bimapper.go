@@ -222,11 +222,11 @@ func (m *Mapper) ItemsForLink(link *pbresource.ID) []*pbresource.ID {
 }
 
 // ItemIDsForLink returns item ids for items related to the provided link.
-func (m *Mapper) ItemIDsForLink(link *pbresource.ID) []*pbresource.ID {
-	if !resource.EqualType(link.Type, m.linkType) {
+func (m *Mapper) ItemIDsForLink(link resource.ReferenceOrID) []*pbresource.ID {
+	if !resource.EqualType(link.GetType(), m.linkType) {
 		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
-			resource.TypeToString(link.Type),
+			resource.TypeToString(link.GetType()),
 		))
 	}
 
@@ -234,11 +234,11 @@ func (m *Mapper) ItemIDsForLink(link *pbresource.ID) []*pbresource.ID {
 }
 
 // ItemRefsForLink returns item references for items related to the provided link.
-func (m *Mapper) ItemRefsForLink(link *pbresource.ID) []*pbresource.Reference {
-	if !resource.EqualType(link.Type, m.linkType) {
+func (m *Mapper) ItemRefsForLink(link resource.ReferenceOrID) []*pbresource.Reference {
+	if !resource.EqualType(link.GetType(), m.linkType) {
 		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
-			resource.TypeToString(link.Type),
+			resource.TypeToString(link.GetType()),
 		))
 	}
 
@@ -272,6 +272,8 @@ func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresourc
 }
 
 func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
+	// a lock must be held both to read item from the map and to read the
+	// the returned items.
 	m.lock.Lock()
 	defer m.lock.Unlock()
 
@@ -288,6 +290,8 @@ func (m *Mapper) itemIDsByLink(link resource.ReferenceKey) []*pbresource.ID {
 }
 
 func (m *Mapper) itemRefsByLink(link resource.ReferenceKey) []*pbresource.Reference {
+	// a lock must be held both to read item from the map and to read the
+	// the returned items.
 	m.lock.Lock()
 	defer m.lock.Unlock()
 

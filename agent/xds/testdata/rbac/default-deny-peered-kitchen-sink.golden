@@ -15,9 +15,7 @@
               "authenticated": {
                 "principalName": {
                   "safeRegex": {
-                    "googleRe2": {
-
-                    },
+                    "googleRe2": {},
                     "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }
@@ -30,9 +28,7 @@
                     "authenticated": {
                       "principalName": {
                         "safeRegex": {
-                          "googleRe2": {
-
-                          },
+                          "googleRe2": {},
                           "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/[^/]+$"
                         }
                       }
@@ -43,9 +39,7 @@
                       "authenticated": {
                         "principalName": {
                           "safeRegex": {
-                            "googleRe2": {
-
-                            },
+                            "googleRe2": {},
                             "regex": "^spiffe://peer1.domain/ap/part1/ns/default/dc/[^/]+/svc/web$"
                           }
                         }
