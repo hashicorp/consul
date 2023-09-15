@@ -1,3 +1,3 @@
 ```release-note:improvement
-command: Add -since flag in consul debug command which internally calls hcdiag for debug information in the past.
+command: Adds -since flag in consul debug command which internally calls hcdiag for debug information in the past.
 ```
