@@ -8311,6 +8311,85 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 	require.NoError(t, s.DeleteNode(6, "foo", nil, ""))
 }
 
+func TestCatalog_cleanupGatewayWildcards_proxy(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "my-gateway-2-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}))
+
+	// Register two services that share a prefix, both will be covered by gateway wildcards above
+	api := structs.NodeService{
+		ID:             "api",
+		Service:        "api",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+	proxy := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "api-proxy",
+		Service: "api-proxy",
+		Address: "127.0.0.3",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "api",
+			DestinationServiceID:   "api",
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &proxy))
+
+	// make sure we have only one gateway service
+	_, services, err := s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the target service
+	require.NoError(t, s.DeleteService(6, "foo", "api", nil, ""))
+
+	// at this point we still have the gateway services because we have a connect proxy still
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the connect proxy
+	require.NoError(t, s.DeleteService(7, "foo", "api-proxy", nil, ""))
+
+	// make sure we no longer have any services
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 0)
+}
+
 func TestCatalog_DownstreamsForService(t *testing.T) {
 	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
 
