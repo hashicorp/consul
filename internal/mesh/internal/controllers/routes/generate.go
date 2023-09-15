@@ -314,6 +314,14 @@ func compile(
 		computedRoutes.PortedConfigs[port] = mc
 	}
 
+	if len(computedRoutes.PortedConfigs) == 0 {
+		// This service only exposes a "mesh" port, so it cannot be another service's upstream.
+		return &ComputedRoutesResult{
+			ID:   computedRoutesID,
+			Data: nil, // returning nil signals a delete is requested
+		}
+	}
+
 	return &ComputedRoutesResult{
 		ID:      computedRoutesID,
 		OwnerID: parentServiceID,
