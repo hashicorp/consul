@@ -4,7 +4,6 @@ Input variables:
 Example usage:
 	consul acl token create -templated-policy builtin/service -var name:api
 Schema:
-
 {
 	"type": "object",
 	"properties": {

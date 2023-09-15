@@ -1378,7 +1378,7 @@ func TestACL_HTTP(t *testing.T) {
 
 			require.Equal(t, api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,
-				Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+				Schema:       structs.ACLTemplatedPolicyServiceSchema,
 				Template:     structs.ACLTemplatedPolicyService,
 			}, list[api.ACLTemplatedPolicyServiceName])
 		})
