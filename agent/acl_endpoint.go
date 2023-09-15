@@ -1134,12 +1134,6 @@ func (s *HTTPHandlers) ACLAuthorize(resp http.ResponseWriter, req *http.Request)
 	return responses, nil
 }
 
-type ACLTemplatedPolicyResponse struct {
-	TemplateName string
-	Schema       string
-	Template     string
-}
-
 func (s *HTTPHandlers) ACLTemplatedPoliciesList(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	if s.checkACLDisabled() {
 		return nil, aclDisabled
@@ -1165,10 +1159,10 @@ func (s *HTTPHandlers) ACLTemplatedPoliciesList(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	templatedPolicies := make(map[string]ACLTemplatedPolicyResponse)
+	templatedPolicies := make(map[string]api.ACLTemplatedPolicyResponse)
 
 	for tp, tmpBase := range structs.GetACLTemplatedPolicyList() {
-		templatedPolicies[tp] = ACLTemplatedPolicyResponse{
+		templatedPolicies[tp] = api.ACLTemplatedPolicyResponse{
 			TemplateName: tmpBase.TemplateName,
 			Schema:       tmpBase.Schema,
 			Template:     tmpBase.Template,
@@ -1213,7 +1207,7 @@ func (s *HTTPHandlers) ACLTemplatedPolicyRead(resp http.ResponseWriter, req *htt
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid templated policy Name: %s", templateName)}
 	}
 
-	return ACLTemplatedPolicyResponse{
+	return api.ACLTemplatedPolicyResponse{
 		TemplateName: baseTemplate.TemplateName,
 		Schema:       baseTemplate.Schema,
 		Template:     baseTemplate.Template,

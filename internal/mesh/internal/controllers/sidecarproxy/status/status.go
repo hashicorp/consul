@@ -20,6 +20,12 @@ const (
 
 	StatusReasonDestinationServiceNotFound = "ServiceNotFound"
 	StatusReasonDestinationServiceFound    = "ServiceFound"
+
+	StatusReasonDestinationComputedRoutesNotFound = "ComputedRoutesNotFound"
+	StatusReasonDestinationComputedRoutesFound    = "ComputedRoutesFound"
+
+	StatusReasonDestinationComputedRoutesPortNotFound = "ComputedRoutesPortNotFound"
+	StatusReasonDestinationComputedRoutesPortFound    = "ComputedRoutesPortFound"
 )
 
 func ConditionMeshProtocolNotFound(serviceRef string) *pbresource.Condition {
@@ -73,5 +79,41 @@ func ConditionNonMeshProtocolDestinationPort(serviceRef, port string) *pbresourc
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonNonMeshProtocolDestinationPort,
 		Message: fmt.Sprintf("destination port %q for service %q has a non-mesh protocol", port, serviceRef),
+	}
+}
+
+func ConditionDestinationComputedRoutesNotFound(serviceRef string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionDestinationAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonDestinationComputedRoutesNotFound,
+		Message: fmt.Sprintf("computed routes %q does not exist.", serviceRef),
+	}
+}
+
+func ConditionDestinationComputedRoutesFound(serviceRef string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionDestinationAccepted,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  StatusReasonDestinationComputedRoutesNotFound,
+		Message: fmt.Sprintf("computed routes %q exists.", serviceRef),
+	}
+}
+
+func ConditionDestinationComputedRoutesPortNotFound(serviceRef, port string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionDestinationAccepted,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonDestinationComputedRoutesPortNotFound,
+		Message: fmt.Sprintf("computed routes %q does not exist for port %q.", serviceRef, port),
+	}
+}
+
+func ConditionDestinationComputedRoutesPortFound(serviceRef, port string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionDestinationAccepted,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  StatusReasonDestinationComputedRoutesPortNotFound,
+		Message: fmt.Sprintf("computed routes %q exists for port %q.", serviceRef, port),
 	}
 }

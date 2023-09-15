@@ -36,6 +36,10 @@ import (
 	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
 	aclrread "github.com/hashicorp/consul/command/acl/role/read"
 	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
+	acltp "github.com/hashicorp/consul/command/acl/templatedpolicy"
+	acltplist "github.com/hashicorp/consul/command/acl/templatedpolicy/list"
+	acltppreview "github.com/hashicorp/consul/command/acl/templatedpolicy/preview"
+	acltpread "github.com/hashicorp/consul/command/acl/templatedpolicy/read"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
@@ -178,6 +182,10 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil }},
 		entry{"acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil }},
 		entry{"acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil }},
+		entry{"acl templated-policy", func(cli.Ui) (cli.Command, error) { return acltp.New(), nil }},
+		entry{"acl templated-policy list", func(ui cli.Ui) (cli.Command, error) { return acltplist.New(ui), nil }},
+		entry{"acl templated-policy read", func(ui cli.Ui) (cli.Command, error) { return acltpread.New(ui), nil }},
+		entry{"acl templated-policy preview", func(ui cli.Ui) (cli.Command, error) { return acltppreview.New(ui), nil }},
 		entry{"agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil }},
 		entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
