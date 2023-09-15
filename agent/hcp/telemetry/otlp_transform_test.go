@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package telemetry
 
 import (
@@ -260,15 +257,15 @@ func TestTransformOTLP(t *testing.T) {
 	// MetricType Error Test Cases
 	_, err := metricTypeToPB(invalidHistTemporality)
 	require.Error(t, err)
-	require.ErrorIs(t, err, errTemporality)
+	require.ErrorIs(t, err, temporalityErr)
 
 	_, err = metricTypeToPB(invalidSumTemporality)
 	require.Error(t, err)
-	require.ErrorIs(t, err, errTemporality)
+	require.ErrorIs(t, err, temporalityErr)
 
 	_, err = metricTypeToPB(invalidSumAgg)
 	require.Error(t, err)
-	require.ErrorIs(t, err, errAggregaton)
+	require.ErrorIs(t, err, aggregationErr)
 
 	// Metrics Test Case
 	m := metricsToPB(inputMetrics)

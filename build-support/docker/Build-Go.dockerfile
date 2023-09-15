@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 ARG GOLANG_VERSION=1.20.8
 FROM golang:${GOLANG_VERSION}

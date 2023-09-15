@@ -1,18 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func createWorkloadResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
@@ -224,30 +223,6 @@ func TestValidateWorkload_InvalidPortName(t *testing.T) {
 		Wrapped: resource.ErrEmpty,
 	}
 	var actual resource.ErrInvalidMapKey
-	require.ErrorAs(t, err, &actual)
-	require.Equal(t, expected, actual)
-}
-
-func TestValidateWorkload_InvalidPortProtocol(t *testing.T) {
-	data := validWorkload()
-	data.Ports["foo"] = &pbcatalog.WorkloadPort{
-		Port:     42,
-		Protocol: 99,
-	}
-
-	res := createWorkloadResource(t, data)
-
-	err := ValidateWorkload(res)
-	require.Error(t, err)
-	expected := resource.ErrInvalidMapValue{
-		Map: "ports",
-		Key: "foo",
-		Wrapped: resource.ErrInvalidField{
-			Name:    "protocol",
-			Wrapped: resource.NewConstError("not a supported enum value: 99"),
-		},
-	}
-	var actual resource.ErrInvalidMapValue
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
 }

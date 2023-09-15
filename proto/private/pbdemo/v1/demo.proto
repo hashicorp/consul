@@ -1,16 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 syntax = "proto3";
 
 // This package contains fake resource types, which are useful for working on
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v1;
-
-message RecordLabel {
-  string name = 1;
-  string description = 2;
-}
 
 message Artist {
   string name = 1;
@@ -38,8 +33,6 @@ enum Genre {
 message Album {
   string name = 1;
   int32 year_of_release = 2;
-  bool critically_acclaimed = 3;
+  bool critically_aclaimed = 3;
   repeated string tracks = 4;
 }
-
-message Concept {}

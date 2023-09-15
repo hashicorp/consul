@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package transferleader
 
@@ -53,7 +53,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Fetch the current configuration.
-	result, err := raftTransferLeader(client, c.http.Stale(), c.id)
+	result, err := raftTransferLeader(client, c.http.Stale())
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error transfering leadership: %v", err))
 		return 1
@@ -63,11 +63,11 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func raftTransferLeader(client *api.Client, stale bool, id string) (string, error) {
+func raftTransferLeader(client *api.Client, stale bool) (string, error) {
 	q := &api.QueryOptions{
 		AllowStale: stale,
 	}
-	reply, err := client.Operator().RaftLeaderTransfer(id, q)
+	reply, err := client.Operator().RaftLeaderTransfer(q)
 	if err != nil {
 		return "", fmt.Errorf("Failed to transfer leadership %w", err)
 	}

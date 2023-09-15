@@ -1,14 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package endpoints
 
 import (
 	"context"
 	"testing"
-
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
@@ -21,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 var (
@@ -124,7 +120,6 @@ func TestWorkloadToEndpoint(t *testing.T) {
 			// the protocol is wrong here so it will not show up in the endpoints.
 			"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
 		},
-		Identity: "test-identity",
 	}
 
 	data := &workloadData{
@@ -148,7 +143,6 @@ func TestWorkloadToEndpoint(t *testing.T) {
 		// that we can properly determine the health status and the overall
 		// controller tests will prove that the integration works as expected.
 		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-		Identity:     workload.Identity,
 	}
 
 	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
@@ -183,51 +177,6 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 	}
 
 	require.Nil(t, workloadToEndpoint(service, data))
-}
-
-func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
-	// This test checks that when a workload is missing its protocol,
-	// we will default to service's protocol.
-
-	service := &pbcatalog.Service{
-		Ports: []*pbcatalog.ServicePort{
-			{TargetPort: "test-port", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-		},
-	}
-
-	workload := &pbcatalog.Workload{
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1"},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"test-port": {Port: 8080},
-		},
-	}
-
-	data := &workloadData{
-		resource: rtest.Resource(types.WorkloadType, "foo").
-			WithData(t, workload).
-			Build(),
-		workload: workload,
-	}
-
-	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1", Ports: []string{"test-port"}},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"test-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-		},
-		// The health is critical because we are not setting the workload's
-		// health status. The tests for determineWorkloadHealth will ensure
-		// that we can properly determine the health status and the overall
-		// controller tests will prove that the integration works as expected.
-		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-		Identity:     workload.Identity,
-	}
-
-	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
 }
 
 func TestServiceUnderManagement(t *testing.T) {
@@ -659,7 +608,6 @@ func (suite *controllerSuite) TestController() {
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 			Ports: map[string]*pbcatalog.WorkloadPort{
 				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 			},
 			Identity: "api",
 		}).
@@ -678,7 +626,6 @@ func (suite *controllerSuite) TestController() {
 			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 		},
 		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-		Identity:     "api",
 	})
 
 	// Update the health status of the workload
@@ -710,7 +657,6 @@ func (suite *controllerSuite) TestController() {
 			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 		},
 		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
-		Identity:     "api",
 	})
 
 	// rewrite the service to add more selection criteria. This should trigger
@@ -733,23 +679,6 @@ func (suite *controllerSuite) TestController() {
 
 	// Verify that the endpoints were not regenerated
 	suite.client.RequireVersionUnchanged(suite.T(), endpointsID, endpoints.Version)
-
-	// Update the service.
-	updatedService := rtest.Resource(types.ServiceType, "api").
-		WithData(suite.T(), &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{
-				Prefixes: []string{"api-"},
-			},
-			Ports: []*pbcatalog.ServicePort{
-				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				{TargetPort: "grpc", Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-			},
-		}).
-		Write(suite.T(), suite.client)
-
-	// Wait for the endpoints to be regenerated
-	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
-	rtest.RequireOwner(suite.T(), endpoints, updatedService.Id, false)
 
 	// Delete the endpoints. The controller should bring these back momentarily
 	suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: endpointsID})

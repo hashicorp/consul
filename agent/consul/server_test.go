@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -336,7 +336,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler())
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, nil)
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -1243,7 +1243,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1281,7 +1281,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1315,7 +1315,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1334,7 +1334,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")

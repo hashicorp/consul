@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package service
 
@@ -127,42 +127,6 @@ func (c exampleContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-// NewCustomService creates a new test service from a custom testcontainers.ContainerRequest.
-func NewCustomService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, request testcontainers.ContainerRequest) (Service, error) {
-	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
-	containerName := utils.RandName(namePrefix)
-
-	pod := node.GetPod()
-	if pod == nil {
-		return nil, fmt.Errorf("node Pod is required")
-	}
-
-	var (
-		httpPortStr = strconv.Itoa(httpPort)
-		grpcPortStr = strconv.Itoa(grpcPort)
-	)
-
-	request.Name = containerName
-
-	info, err := libcluster.LaunchContainerOnNode(ctx, node, request, []string{httpPortStr, grpcPortStr})
-	if err != nil {
-		return nil, err
-	}
-
-	out := &exampleContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		httpPort:    info.MappedPorts[httpPortStr].Int(),
-		grpcPort:    info.MappedPorts[grpcPortStr].Int(),
-		serviceName: name,
-	}
-
-	fmt.Printf("Custom service exposed http port %d, gRPC port %d\n", out.httpPort, out.grpcPort)
-
-	return out, nil
-}
-
 func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort int, node libcluster.Agent, containerArgs ...string) (Service, error) {
 	namePrefix := fmt.Sprintf("%s-service-example-%s", node.GetDatacenter(), name)
 	containerName := utils.RandName(namePrefix)
@@ -187,7 +151,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 	command = append(command, containerArgs...)
 
 	req := testcontainers.ContainerRequest{
-		Image:      HashicorpDockerProxy + "/fortio/fortio",
+		Image:      hashicorpDockerProxy + "/fortio/fortio",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
