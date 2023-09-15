@@ -159,15 +159,6 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			},
 		},
 	}
-	l.builder.proxyStateTemplate.RequiredLeafCertificates[workloadIdentity] = &pbproxystate.LeafCertificateRef{
-		Name:      workloadIdentity,
-		Namespace: l.builder.id.Tenancy.Namespace,
-		Partition: l.builder.id.Tenancy.Partition,
-	}
-
-	l.builder.proxyStateTemplate.RequiredTrustBundles["local"] = &pbproxystate.TrustBundleRef{
-		Peer: "local",
-	}
 
 	for i := range l.listener.Routers {
 		l.listener.Routers[i].InboundTls = inboundTLS
