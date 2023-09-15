@@ -4,8 +4,8 @@
 package intermediate
 
 import (
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -27,41 +27,11 @@ type CombinedDestinationRef struct {
 	ExplicitDestinationsID *pbresource.ID
 }
 
-type ServiceEndpoints struct {
-	Resource  *pbresource.Resource
-	Endpoints *pbcatalog.ServiceEndpoints
-}
-
-type Service struct {
-	Resource *pbresource.Resource
-	Service  *pbcatalog.Service
-}
-
-type Destinations struct {
-	Resource     *pbresource.Resource
-	Destinations *pbmesh.Upstreams
-}
-
-type Workload struct {
-	Resource *pbresource.Resource
-	Workload *pbcatalog.Workload
-}
-
-type ProxyStateTemplate struct {
-	Resource *pbresource.Resource
-	Tmpl     *pbmesh.ProxyStateTemplate
-}
-
-type ProxyConfiguration struct {
-	Resource *pbresource.Resource
-	Cfg      *pbmesh.ProxyConfiguration
-}
-
 type Destination struct {
-	Explicit         *pbmesh.Upstream
-	ServiceEndpoints *ServiceEndpoints
-	Identities       []*pbresource.Reference
-	VirtualIPs       []string
+	Explicit           *pbmesh.Upstream
+	Service            *types.DecodedService      // for the name of this destination
+	VirtualIPs         []string                   // for the name of this destination
+	ComputedPortRoutes *pbmesh.ComputedPortRoutes // for the name of this destination
 }
 
 type Status struct {

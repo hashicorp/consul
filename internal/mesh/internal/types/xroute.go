@@ -275,13 +275,6 @@ func validateHTTPRetries(retries *pbmesh.HTTPRouteRetries) []error {
 
 	var errs []error
 
-	if retries.Number < 0 {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "number",
-			Wrapped: fmt.Errorf("cannot be negative: %v", retries.Number),
-		})
-	}
-
 	for i, condition := range retries.OnConditions {
 		if !isValidRetryCondition(condition) {
 			errs = append(errs, resource.ErrInvalidListElement{

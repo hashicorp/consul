@@ -14,9 +14,8 @@ import (
 	"time"
 
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -1443,7 +1442,11 @@ func makeL4Destination(opts destinationOpts) (*pbproxystate.L4Destination, error
 
 	l4Dest := &pbproxystate.L4Destination{
 		//AccessLog:        accessLogs,
-		Name:       opts.cluster,
+		Destination: &pbproxystate.L4Destination_Cluster{
+			Cluster: &pbproxystate.DestinationCluster{
+				Name: opts.cluster,
+			},
+		},
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 	}
 	return l4Dest, nil
