@@ -64,7 +64,7 @@ type prettyFormatter struct {
 func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplatedPolicyResponse) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(fmt.Sprintf("Name:									%s\n", templatedPolicy.TemplateName))
+	buffer.WriteString(fmt.Sprintf("Name:            %s\n", templatedPolicy.TemplateName))
 
 	buffer.WriteString("Input variables:")
 	switch templatedPolicy.TemplateName {
@@ -77,7 +77,7 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 		buffer.WriteString("Example usage:\n")
 		buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy builtin/node -var name:node-1\n", WhitespaceIndent))
 	case api.ACLTemplatedPolicyDNSName:
-		buffer.WriteString("			None\n")
+		buffer.WriteString(" None\n")
 		buffer.WriteString("Example usage:\n")
 		buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy builtin/dns\n", WhitespaceIndent))
 	default:

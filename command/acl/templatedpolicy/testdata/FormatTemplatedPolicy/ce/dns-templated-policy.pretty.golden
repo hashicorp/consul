@@ -1,4 +1,4 @@
-Name:									builtin/dns
-Input variables:			None
+Name:            builtin/dns
+Input variables: None
 Example usage:
 	consul acl token create -templated-policy builtin/dns

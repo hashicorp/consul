@@ -1,4 +1,4 @@
-Name:									builtin/service
+Name:            builtin/service
 Input variables:
 	Name: String - Required - The name of the service.
 Example usage:
