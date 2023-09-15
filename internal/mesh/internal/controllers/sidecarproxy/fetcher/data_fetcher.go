@@ -334,7 +334,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 					if err != nil {
 						return nil, err
 					}
-					endpointsMap[seRK] = se
+					if se != nil {
+						endpointsMap[seRK] = se
+					}
 				}
 			}
 		}
