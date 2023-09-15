@@ -16,7 +16,8 @@ upgrade flow.
 
 ## Consul 1.17.x
 #### Audit Log naming changes (Enterprise)
-Audit log filename will have timestamp only on rotation.
+Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
+After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 ## Consul 1.16.x
 
