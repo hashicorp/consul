@@ -100,10 +100,12 @@ func TestDebugCommand_WithSinceFlag(t *testing.T) {
 		t.Skip("too slow for testing.Short")
 	}
 
-	server, err := testutil.NewTestServerConfigT(t, nil)
-	require.NoError(t, err)
+	a := agent.NewTestAgent(t, `
+		enable_debug = true
+	`)
 
-	server.WaitForLeader(t)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 	ui := cli.NewMockUi()
 	cmd := New(ui)
@@ -112,6 +114,8 @@ func TestDebugCommand_WithSinceFlag(t *testing.T) {
 	args := []string{
 		"-since=1m",
 	}
+
+	t.Setenv("CONSUL_HTTP_ADDR", a.HTTPAddr())
 
 	code := cmd.Run(args)
 	require.Equal(t, 0, code)
