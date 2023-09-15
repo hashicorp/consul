@@ -163,7 +163,13 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
 		LoadAssignment:       makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints),
 	}
-	err := addLocalAppHttpProtocolOptions(protocol, cluster)
+
+	var err error
+	if name == xdscommon.LocalAppClusterName {
+		err = addLocalAppHttpProtocolOptions(protocol, cluster)
+	} else {
+		err = addHttpProtocolOptions(protocol, cluster)
+	}
 	if err != nil {
 		return nil, err
 	}
