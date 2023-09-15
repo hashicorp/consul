@@ -87,21 +87,18 @@ func TestValidateUpstreams(t *testing.T) {
 			WithData(t, tc.data).
 			Build()
 
-		var got *DecodedDestinations
 		if !tc.skipMutate {
 			require.NoError(t, MutateUpstreams(res))
 
 			// Verify that mutate didn't actually change the object.
-			got = resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
+			got := resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
 			prototest.AssertDeepEqual(t, tc.data, got.Data)
-		} else {
-			got = resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
 		}
 
 		err := ValidateUpstreams(res)
 
 		// Verify that validate didn't actually change the object.
-		got = resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
+		got := resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
 		prototest.AssertDeepEqual(t, tc.data, got.Data)
 
 		if tc.expectErr == "" {
