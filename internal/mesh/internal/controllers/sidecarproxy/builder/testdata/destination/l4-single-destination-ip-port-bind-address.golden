@@ -28,7 +28,8 @@
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
-                  ]
+                  ],
+                  "trustBundlePeerNameKey": "local"
                 }
               }
             }
@@ -50,7 +51,9 @@
               "outboundMesh": {
                 "identityKey": "test-identity",
                 "sni": "api-2.default.dc1.internal.foo.consul",
-                "validationContext": {}
+                "validationContext": {
+                  "trustBundlePeerNameKey": "local"
+                }
               }
             }
           }

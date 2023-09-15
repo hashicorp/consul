@@ -242,6 +242,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 			Port: workload.Ports[meshPort].Port,
 		},
 	}
+	listener.Capabilities = append(listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 
 	return b.NewListenerBuilder(listener)
 }
@@ -270,7 +271,6 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 		}
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
-	l.listener.Capabilities = append(l.listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 	return l
 }
 
