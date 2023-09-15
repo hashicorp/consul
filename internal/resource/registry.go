@@ -1,16 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -18,34 +20,15 @@ var (
 	groupRegexp        = regexp.MustCompile(`^[a-z][a-z\d_]+$`)
 	groupVersionRegexp = regexp.MustCompile(`^v([a-z\d]+)?\d$`)
 	kindRegexp         = regexp.MustCompile(`^[A-Z][A-Za-z\d]+$`)
-)
-
-// Scope describes the tenancy scope of a resource.
-type Scope int
-
-const (
-	// There is no default scope, it must be set explicitly.
-	ScopeUndefined Scope = iota
-	// ScopeCluster describes a resource that is scoped to a cluster.
-	ScopeCluster
-	// ScopePartition describes a resource that is scoped to a partition.
-	ScopePartition
-	// ScopeNamespace applies to a resource that is scoped to a partition and namespace.
-	ScopeNamespace
-)
-
-func (s Scope) String() string {
-	switch s {
-	case ScopeUndefined:
-		return "undefined"
-	case ScopeCluster:
-		return "cluster"
-	case ScopePartition:
-		return "partition"
-	case ScopeNamespace:
-		return "namespace"
+	// Track resource types that are allowed to have an undefined scope. These are usually
+	// non-customer facing or internal types.
+	undefinedScopeAllowed = map[string]bool{
+		storage.UnversionedTypeFrom(TypeV1Tombstone).String(): true,
 	}
-	panic(fmt.Sprintf("string mapping missing for scope %v", int(s)))
+)
+
+func isUndefinedScopeAllowed(t *pbresource.Type) bool {
+	return undefinedScopeAllowed[storage.UnversionedTypeFrom(t).String()]
 }
 
 type Registry interface {
@@ -54,6 +37,8 @@ type Registry interface {
 
 	// Resolve the given resource type and its hooks.
 	Resolve(typ *pbresource.Type) (reg Registration, ok bool)
+
+	Types() []Registration
 }
 
 type Registration struct {
@@ -83,17 +68,17 @@ type ACLHooks struct {
 	// RPCs.
 	//
 	// If it is omitted, `operator:read` permission is assumed.
-	Read func(acl.Authorizer, *pbresource.ID) error
+	Read func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.ID) error
 
 	// Write is used to authorize Write and Delete RPCs.
 	//
 	// If it is omitted, `operator:write` permission is assumed.
-	Write func(acl.Authorizer, *pbresource.Resource) error
+	Write func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.Resource) error
 
 	// List is used to authorize List RPCs.
 	//
 	// If it is omitted, we only filter the results using Read.
-	List func(acl.Authorizer, *pbresource.Tenancy) error
+	List func(acl.Authorizer, *acl.AuthorizerContext) error
 }
 
 // Resource type registry
@@ -132,6 +117,14 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
 	}
 
+	if registration.Proto == nil {
+		panic("Proto field is required.")
+	}
+
+	if registration.Scope == ScopeUndefined && !isUndefinedScopeAllowed(typ) {
+		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
+	}
+
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -145,17 +138,17 @@ func (r *TypeRegistry) Register(registration Registration) {
 		registration.ACLs = &ACLHooks{}
 	}
 	if registration.ACLs.Read == nil {
-		registration.ACLs.Read = func(authz acl.Authorizer, id *pbresource.ID) error {
-			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
+		registration.ACLs.Read = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+			return authz.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
 		}
 	}
 	if registration.ACLs.Write == nil {
-		registration.ACLs.Write = func(authz acl.Authorizer, id *pbresource.Resource) error {
-			return authz.ToAllowAuthorizer().OperatorWriteAllowed(&acl.AuthorizerContext{})
+		registration.ACLs.Write = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.Resource) error {
+			return authz.ToAllowAuthorizer().OperatorWriteAllowed(authzContext)
 		}
 	}
 	if registration.ACLs.List == nil {
-		registration.ACLs.List = func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
+		registration.ACLs.List = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 			return authz.ToAllowAuthorizer().OperatorReadAllowed(&acl.AuthorizerContext{})
 		}
 	}
@@ -183,6 +176,29 @@ func (r *TypeRegistry) Resolve(typ *pbresource.Type) (reg Registration, ok bool)
 	return Registration{}, false
 }
 
+func (r *TypeRegistry) Types() []Registration {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	types := make([]Registration, 0, len(r.registrations))
+	for _, v := range r.registrations {
+		types = append(types, v)
+	}
+	return types
+}
+
 func ToGVK(resourceType *pbresource.Type) string {
 	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
+}
+
+func ParseGVK(gvk string) (*pbresource.Type, error) {
+	parts := strings.Split(gvk, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("GVK string must be in the form <Group>.<GroupVersion>.<Kind>, got: %s", gvk)
+	}
+	return &pbresource.Type{
+		Group:        parts[0],
+		GroupVersion: parts[1],
+		Kind:         parts[2],
+	}, nil
 }

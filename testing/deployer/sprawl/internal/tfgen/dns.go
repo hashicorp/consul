@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfgen
 
 import (
@@ -6,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
@@ -176,5 +178,3 @@ server IN A %s ; Consul server
 
 	return buf.Bytes()
 }
-
-var tfCorednsT = template.Must(template.ParseFS(content, "templates/container-coredns.tf.tmpl"))

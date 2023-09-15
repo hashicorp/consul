@@ -479,15 +479,19 @@
         ]
       },
       {
-        "title": "Supported Proxies",
+        "title": "Proxies",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/proxies"
           },
           {
-            "title": "Envoy",
-            "path": "connect/proxies/envoy"
+            "title": "Deploy service mesh proxies",
+            "path": "connect/proxies/deploy-service-mesh-proxies"
+          },
+          {
+            "title": "Deploy sidecar services",
+            "path": "connect/proxies/deploy-sidecar-services"
           },
           {
             "title": "Envoy Extensions",
@@ -512,6 +516,10 @@
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
                   },
                   {
+                    "title": "Send access logs to OpenTelemetry collector service",
+                    "path": "connect/proxies/envoy-extensions/usage/otel-access-logging"
+                  },
+                  {
                     "title": "Configure Envoy proxy properties",
                     "path": "connect/proxies/envoy-extensions/usage/property-override"
                   },
@@ -529,6 +537,10 @@
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
                   },
                   {
+                    "title": "OpenTelemetry Access Logging",
+                    "path": "connect/proxies/envoy-extensions/configuration/otel-access-logging"
+                  },
+                  {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
                   },
@@ -541,29 +553,24 @@
             ]
           },
           {
-            "title": "Built-in Proxy",
+            "title": "Proxy integration",
+            "path": "connect/proxies/integrate"
+          },
+          {
+            "title": "Proxy defaults configuration reference",
+            "href": "/consul/docs/connect/config-entries/proxy-defaults"
+          },
+          {
+            "title": "Envoy proxies reference",
+            "path": "connect/proxies/envoy"
+          },
+          {
+            "title": "Built-in proxy reference",
             "path": "connect/proxies/built-in"
           },
           {
-            "title": "Proxy Integration",
-            "path": "connect/proxies/integrate"
-          }
-        ]
-      },
-      {
-        "title": "Registering Proxies",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/registration"
-          },
-          {
-            "title": "Proxy Service Registration",
-            "path": "connect/registration/service-registration"
-          },
-          {
-            "title": "Sidecar Service Registration",
-            "path": "connect/registration/sidecar-service"
+            "title": "Service mesh proxy configuration reference",
+            "path": "connect/proxies/proxy-config-reference"
           }
         ]
       },

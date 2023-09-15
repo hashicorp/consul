@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 readonly HASHICORP_DOCKER_PROXY="docker.mirror.hashicorp.services"
 
@@ -7,7 +10,7 @@ VERSION=${VERSION:-"1.16.0"}
 export VERSION
 
 # Build Windows Envoy Version 1.23.1 / 1.21.5 / 1.20.7
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
 export ENVOY_VERSION
 
 echo "Building Images"

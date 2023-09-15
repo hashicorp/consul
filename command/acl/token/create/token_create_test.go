@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tokencreate
 
@@ -93,6 +93,27 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 			"-http-addr=" + a.HTTPAddr(),
 			"-token=root",
 			"-node-identity=" + a.Config.NodeName + ":" + a.Config.Datacenter,
+		})
+
+		conf := api.DefaultConfig()
+		conf.Address = a.HTTPAddr()
+		conf.Token = token.SecretID
+		client, err := api.NewClient(conf)
+		require.NoError(t, err)
+
+		nodes, _, err := client.Catalog().Nodes(nil)
+		require.NoError(t, err)
+		require.Len(t, nodes, 1)
+		require.Equal(t, a.Config.NodeName, nodes[0].Node)
+	})
+
+	// templated policy
+	t.Run("templated-policy", func(t *testing.T) {
+		token := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-templated-policy=builtin/node",
+			"-var=name:" + a.Config.NodeName,
 		})
 
 		conf := api.DefaultConfig()

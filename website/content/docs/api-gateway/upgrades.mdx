@@ -11,7 +11,7 @@ Since Consul v1.15, the Consul API gateway is a native feature within the Consul
 
 ## Introduction
 
-Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. Refer to the [release notes](/consul/docs/release-notes) for additional information. 
+Because Consul API gateway releases as part of Consul, it no longer has an independent version number. Instead, the API gateway inherits the same version number as the Consul binary. Refer to the [release notes](/consul/docs/release-notes) for additional information.
 
 To begin using the native API gateway, complete one of the following upgrade paths:
 
@@ -20,7 +20,7 @@ To begin using the native API gateway, complete one of the following upgrade pat
 1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
 
 ### Upgrade from v0.4.x - v0.5.x
- 
+
 1. Complete the [standard upgrade instructions](#standard-upgrade)
 1. Complete the instructions for [upgrading to the native Consul API gateway](#upgrade-to-native-consul-api-gateway).
 
@@ -53,11 +53,11 @@ You must begin the upgrade procedure with API gateway with Consul on Kubernetes 
 
 If you are able to tolerate downtime for your applications, you should delete previously installed CRDs and allow Consul to install and manage them for future updates. The amount of downtime depends on how quickly you are able to install the new version of Consul. If you are unable to tolerate any downtime, refer to [Self-managed CRDs](#self-managed-crds) for instructions on how to upgrade without downtime.
 
-1. Run the `kubectl delete` command and reference the `kustomize` directory to delete the existing CRDs. The following example deletes the CRDs that were installed with API gateway `v0.5.1`: 
+1. Run the `kubectl delete` command and reference the `kustomize` directory to delete the existing CRDs. The following example deletes the CRDs that were installed with API gateway `v0.5.1`:
 
   ```shell-session
   $ kubectl delete --kustomize="github.com/hashicorp/consul-api-gateway/config/crd?ref=v0.5.1"
-  ``` 
+  ```
 
 1. Issue the following command to use the API gateway packaged in Consul. Since Consul will not detected an external CRD, it will try to install the API gateway packaged with Consul.
 
@@ -69,7 +69,7 @@ If you are able to tolerate downtime for your applications, you should delete pr
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
-1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
+1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller.
 
   <CodeBlockConfig filename="values.yaml">
 
@@ -98,7 +98,7 @@ If you are able to tolerate downtime for your applications, you should delete pr
 
 </Note>
 
-If you are unable to tolerate any downtime, you can complete the following steps to upgrade to the native Consul API gateway. If you choose this upgrade option, you must continue to manually install the CRDs necessary for operating the API gateway. 
+If you are unable to tolerate any downtime, you can complete the following steps to upgrade to the native Consul API gateway. If you choose this upgrade option, you must continue to manually install the CRDs necessary for operating the API gateway.
 
 1. Create a Helm chart that installs the version of Consul API gateway that ships with Consul and disables externally-managed CRDs:
 
@@ -119,7 +119,7 @@ If you are unable to tolerate any downtime, you can complete the following steps
     ```
 
   </CodeBlockConfig>
-  
+
   You must set `connectInject.apiGateway.manageExternalCRDs` to `false`. If you have external CRDs with legacy installation and you do not set this, you will get an error when you try to upgrade because Helm will try to install CRDs that already exist.
 
 1. Issue the following command to install the new version of API gateway and disables externally-managed CRDs:
@@ -132,7 +132,7 @@ If you are unable to tolerate any downtime, you can complete the following steps
 
 1. Change any existing `Gateways` to reference the new `GatewayClass` `consul`. Refer to [gatewayClass](/consul/docs/api-gateway/configuration/gateway#gatewayclassname) for additional information.
 
-1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller. 
+1. After updating all of your `gateway` configurations to use the new controller, you can remove the `apiGateway` block from the Helm chart and upgrade your Consul cluster. This completely removes the old gateway controller.
 
   <CodeBlockConfig filename="values.yaml">
 
@@ -240,7 +240,7 @@ If you have any active `ReferencePolicy` resources, you will receive output simi
     from:
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
-      namespace: example-namesapce
+      namespace: example-namespace
     to:
     - group: ""
       kind: Service
@@ -418,7 +418,7 @@ Ensure that the following requirements are met prior to upgrading:
     "crossNamespaceSecrets": {
       "group": "",
       "kind": "Secret",
-      "name": "cexample-certificate",
+      "name": "example-certificate",
       "namespace": "certificate-namespace"
     }
   }

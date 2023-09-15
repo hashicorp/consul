@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"sort"
 	"testing"
+	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	"k8s.io/utils/pointer"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
@@ -25,6 +27,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
@@ -118,7 +121,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 					}
 				})
 
-				r, err := createResponse(typeUrl, "00000001", "00000001", items)
+				r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
 				require.NoError(t, err)
 
 				gotJSON := protoToJSON(t, r)
@@ -157,8 +160,10 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name:   "transparent-proxy",
-			create: proxycfg.TestConfigSnapshotTransparentProxy,
+			name: "transparent-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxy(t)
+			},
 		},
 		{
 			name:   "connect-proxy-with-peered-upstreams",
@@ -188,7 +193,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
-	tests = append(tests, getEnterpriseGoldenTestCases()...)
+	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
@@ -564,6 +569,90 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 										},
 										Remove: []string{"X-Header-Remove"},
 									},
+								},
+								RetryFilter: &structs.RetryFilter{
+									NumRetries:            pointer.Uint32(3),
+									RetryOn:               []string{"cancelled"},
+									RetryOnStatusCodes:    []uint32{500},
+									RetryOnConnectFailure: pointer.Bool(true),
+								},
+								TimeoutFilter: &structs.TimeoutFilter{
+									IdleTimeout:    time.Second * 30,
+									RequestTimeout: time.Second * 30,
+								},
+							},
+							Services: []structs.HTTPService{{
+								Name: "service",
+							}},
+						}},
+						Parents: []structs.ResourceReference{
+							{
+								Kind: structs.APIGateway,
+								Name: "api-gateway",
+							},
+						},
+					},
+				}, []structs.InlineCertificateConfigEntry{{
+					Kind:        structs.InlineCertificate,
+					Name:        "certificate",
+					PrivateKey:  gatewayTestPrivateKey,
+					Certificate: gatewayTestCertificate,
+				}}, []proxycfg.UpdateEvent{{
+					CorrelationID: "discovery-chain:" + serviceUID.String(),
+					Result: &structs.DiscoveryChainResponse{
+						Chain: serviceChain,
+					},
+				}, {
+					CorrelationID: "upstream-target:" + serviceChain.ID() + ":" + serviceUID.String(),
+					Result: &structs.IndexedCheckServiceNodes{
+						Nodes: proxycfg.TestUpstreamNodes(t, "service"),
+					},
+				}})
+			},
+		},
+		{
+			name: "api-gateway-with-http-route-timeoutfilter-one-set",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "listener",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener",
+							Certificates: []structs.ResourceReference{{
+								Kind: structs.InlineCertificate,
+								Name: "certificate",
+							}},
+							Routes: []structs.ResourceReference{{
+								Kind: structs.HTTPRoute,
+								Name: "route",
+							}},
+						},
+					}
+				}, []structs.BoundRoute{
+					&structs.HTTPRouteConfigEntry{
+						Kind: structs.HTTPRoute,
+						Name: "route",
+						Rules: []structs.HTTPRouteRule{{
+							Filters: structs.HTTPFilters{
+								Headers: []structs.HTTPHeaderFilter{
+									{
+										Add: map[string]string{
+											"X-Header-Add": "added",
+										},
+										Set: map[string]string{
+											"X-Header-Set": "set",
+										},
+										Remove: []string{"X-Header-Remove"},
+									},
+								},
+								TimeoutFilter: &structs.TimeoutFilter{
+									IdleTimeout: time.Second * 30,
 								},
 							},
 							Services: []structs.HTTPService{{

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -185,6 +185,8 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
 		},
 	})
+	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.
+	d.Deps.LeafCertManager = d.LeafCertManager
 
 	agentType := "client"
 	if cfg.ServerMode {
@@ -506,7 +508,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		consul.LeaderSummaries,
 		consul.PreparedQuerySummaries,
 		consul.RPCSummaries,
-		consul.SegmentOSSSummaries,
+		consul.SegmentCESummaries,
 		consul.SessionSummaries,
 		consul.SessionEndpointSummaries,
 		consul.TxnSummaries,

@@ -2,6 +2,12 @@ package retry
 
 import "time"
 
+// ThirtySeconds repeats an operation for thirty seconds and waits 500ms in between.
+// Best for known slower operations like waiting on eventually consistent state.
+func ThirtySeconds() *Timer {
+	return &Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}
+}
+
 // TwoSeconds repeats an operation for two seconds and waits 25ms in between.
 func TwoSeconds() *Timer {
 	return &Timer{Timeout: 2 * time.Second, Wait: 25 * time.Millisecond}

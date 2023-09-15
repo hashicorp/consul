@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configentry
 
@@ -116,6 +116,9 @@ func ComputeResolvedServiceConfig(
 		}
 		if serviceConf.Destination != nil {
 			thisReply.Destination = *serviceConf.Destination
+		}
+		if serviceConf.RateLimits != nil {
+			thisReply.RateLimits = *serviceConf.RateLimits
 		}
 
 		// Populate values for the proxy config map

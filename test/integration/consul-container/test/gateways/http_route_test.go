@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package gateways
 
@@ -268,7 +268,7 @@ func TestHTTPRouteFlattening(t *testing.T) {
 	}, checkOptions{debug: false, statusCode: serviceOneResponseCode, testName: "service1, v2 path with v2 hostname"})
 }
 
-func TestHTTPRoutePathRewrite(t *testing.T) {
+func TestHTTPRouteFilters(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -393,6 +393,12 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 						Path: fooPath,
 					},
 				},
+				ResponseFilters: api.HTTPResponseFilters{
+					Headers: []api.HTTPHeaderFilter{{
+						Add: map[string]string{"response-filters-add": "present"},
+						Set: map[string]string{"response-filters-set": "present"},
+					}},
+				},
 				Services: []api.HTTPService{
 					{
 						Name:      fooName,
@@ -478,13 +484,23 @@ func TestHTTPRoutePathRewrite(t *testing.T) {
 	debugExpectedStatusCode := 200
 
 	// hit foo, making sure path is being rewritten by hitting the debug page
-	checkRoute(t, gatewayPort, fooUnrewritten, map[string]string{
-		"Host": "test.foo",
-	}, checkOptions{debug: true, statusCode: debugExpectedStatusCode, testName: "foo service"})
+	// and that we get the expected response headers that we added modifiers for
+	checkRoute(
+		t, gatewayPort, fooUnrewritten, map[string]string{"Host": "test.foo"},
+		checkOptions{
+			debug:           true,
+			responseHeaders: map[string]string{"response-filters-add": "present", "response-filters-set": "present"},
+			statusCode:      debugExpectedStatusCode,
+			testName:        "foo service"})
 	// make sure foo is being sent to proper service
-	checkRoute(t, gatewayPort, fooUnrewritten+"/foo", map[string]string{
-		"Host": "test.foo",
-	}, checkOptions{debug: false, statusCode: fooStatusCode, testName: "foo service 2"})
+	// and that we get the expected response headers that we added modifiers for
+	checkRoute(
+		t, gatewayPort, fooUnrewritten+"/foo", map[string]string{"Host": "test.foo"},
+		checkOptions{
+			debug:           false,
+			responseHeaders: map[string]string{"response-filters-add": "present", "response-filters-set": "present"},
+			statusCode:      fooStatusCode,
+			testName:        "foo service 2"})
 
 	// hit bar, making sure its been rewritten
 	checkRoute(t, gatewayPort, barUnrewritten, map[string]string{

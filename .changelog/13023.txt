@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: the topology view now properly displays services with mixed connect and non-connect instances.
+```

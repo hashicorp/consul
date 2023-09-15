@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 syntax = "proto3";
 
@@ -171,6 +171,11 @@ message IssuedCert {
   // ServerURI is the URI value of a cert issued for a server agent.
   // The same URI is shared by all servers in a Consul datacenter.
   string ServerURI = 14;
+
+  // WorkloadIdentity is the name of the workload identity for which the cert was issued.
+  string WorkloadIdentity = 15;
+  // WorkloadIdentityURI is the cert URI value.
+  string WorkloadIdentityURI = 16;
 
   // ValidAfter and ValidBefore are the validity periods for the
   // certificate.

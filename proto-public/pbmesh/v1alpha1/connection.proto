@@ -5,11 +5,15 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1;
 
+import "google/protobuf/duration.proto";
+
+// Referenced by ProxyConfiguration
 message ConnectionConfig {
-  uint64 connect_timeout_ms = 2;
-  uint64 request_timeout_ms = 3;
+  google.protobuf.Duration connect_timeout = 1;
+  google.protobuf.Duration request_timeout = 2;
 }
 
+// Referenced by ProxyConfiguration
 message InboundConnectionsConfig {
   uint64 max_inbound_connections = 12;
   BalanceConnections balance_inbound_connections = 13;

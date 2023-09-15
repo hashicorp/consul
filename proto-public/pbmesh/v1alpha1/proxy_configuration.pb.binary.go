@@ -46,3 +46,23 @@ func (msg *BootstrapConfig) MarshalBinary() ([]byte, error) {
 func (msg *BootstrapConfig) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *AccessLogsConfig) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *AccessLogsConfig) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *EnvoyExtension) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *EnvoyExtension) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

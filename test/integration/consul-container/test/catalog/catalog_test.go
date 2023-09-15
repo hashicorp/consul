@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package catalog
 
 import (
@@ -9,7 +12,7 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
-	pbresource "github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestCatalog(t *testing.T) {

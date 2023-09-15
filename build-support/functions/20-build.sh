@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 function supported_osarch {
    # Arguments:
@@ -92,6 +92,7 @@ function build_ui {
       commit_year=$(git show -s --format=%cd --date=format:%Y HEAD)
    fi
 
+   # TODO(spatel): CE refactor
    local logo_type="${CONSUL_BINARY_TYPE}"
    if test "$logo_type" != "oss"
    then

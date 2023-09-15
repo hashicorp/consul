@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -1618,6 +1618,7 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
+		TCPUseTLS:                      boolVal(v.TCPUseTLS),
 		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),

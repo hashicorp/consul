@@ -10,7 +10,7 @@ This topic describes how to run Consul in permissive mTLS mode so that you can s
 
 ## Background
 
-When [transparent proxy mode](/consul/docs/k8s/transparent-proxy/) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This situation occurs because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
+When [transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy) is enabled, all service-to-service traffic is secured by mTLS. Until the services that you want to add to the network are fully onboarded, your network may have a mix of mTLS and non-mTLS traffic, which can result in broken service-to-service communication. This situation occurs because sidecar proxies for existing mesh services reject traffic from services that are not yet onboarded.
 
 You can enable the `permissive` mTLS mode to ensure existing non-mTLS service-to-service traffic is allowed during the onboarding phase. The `permissive` mTLS mode enables sidecar proxies to accept both mTLS and non-mTLS traffic to an application. Using this mode enables you to onboard without downtime and without being required to reconfigure or redeploy your application.
 
@@ -58,7 +58,8 @@ kind: Mesh
 metadata:
   name: mesh
 spec:
-  allowEnablingPermissiveMutualTLS: true
+  transparentProxy:
+    meshDestinationsOnly: true
 ```
 
 ```json

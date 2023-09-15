@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package topology
 
 import (
@@ -6,7 +9,7 @@ import (
 
 type Images struct {
 	Consul           string `json:",omitempty"`
-	ConsulOSS        string `json:",omitempty"`
+	ConsulCE         string `json:",omitempty"`
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
 	Dataplane        string
@@ -63,6 +66,7 @@ func (i Images) EnvoyConsulImage() string {
 	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
 }
 
+// TODO: what is this for and why do we need to do this and why is it named this?
 func (i Images) ChooseNode(kind NodeKind) Images {
 	switch kind {
 	case NodeKindServer:
@@ -82,10 +86,10 @@ func (i Images) ChooseConsul(enterprise bool) Images {
 	if enterprise {
 		i.Consul = i.ConsulEnterprise
 	} else {
-		i.Consul = i.ConsulOSS
+		i.Consul = i.ConsulCE
 	}
 	i.ConsulEnterprise = ""
-	i.ConsulOSS = ""
+	i.ConsulCE = ""
 	return i
 }
 
@@ -93,8 +97,8 @@ func (i Images) OverrideWith(i2 Images) Images {
 	if i2.Consul != "" {
 		i.Consul = i2.Consul
 	}
-	if i2.ConsulOSS != "" {
-		i.ConsulOSS = i2.ConsulOSS
+	if i2.ConsulCE != "" {
+		i.ConsulCE = i2.ConsulCE
 	}
 	if i2.ConsulEnterprise != "" {
 		i.ConsulEnterprise = i2.ConsulEnterprise
@@ -115,7 +119,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulOSS:        DefaultConsulImage,
+		ConsulCE:         DefaultConsulImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

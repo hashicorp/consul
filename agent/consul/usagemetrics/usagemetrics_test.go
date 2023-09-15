@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package usagemetrics
 
@@ -27,7 +27,7 @@ func assertEqualGaugeMaps(t *testing.T, expectedMap, foundMap map[string]metrics
 
 	for key := range foundMap {
 		if _, ok := expectedMap[key]; !ok {
-			t.Errorf("found unexpected gauge key:      %s", key)
+			t.Errorf("found unexpected gauge key: %s with value: %v", key, foundMap[key])
 		}
 	}
 

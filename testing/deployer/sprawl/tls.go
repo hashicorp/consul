@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package sprawl
 
 import (
@@ -85,7 +88,9 @@ fi
 			"-i",
 			"--net=none",
 			"-v", cluster.TLSVolumeName + ":/data",
-			"busybox:latest",
+			// TODO: latest busted?
+			// https://hashicorp.slack.com/archives/C03EUN3QF1C/p1691784078972959
+			"busybox:1.34",
 			"sh", "-c",
 			// Need this so the permissions stick; docker seems to treat unused volumes differently.
 			`touch /data/VOLUME_PLACEHOLDER && chown -R ` + consulUserArg + ` /data`,
