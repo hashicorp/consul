@@ -222,13 +222,25 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 	t.Parallel()
-	meta := map[string]string{"somekey": "somevalue", "synthetic-node": "true"}
-	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.NodeMeta = meta
-	})
+	c, s := makeClientWithConfig(t, nil, nil)
 	defer s.Stop()
 
 	// Register service and proxy instances to test against.
+	service0 := &AgentService{
+		ID:      "redis0",
+		Service: "redis0",
+		Port:    8001,
+		Connect: &AgentServiceConnect{Native: true},
+	}
+
+	reg0 := &CatalogRegistration{
+		Datacenter:     "dc1",
+		Node:           "foobar0",
+		Service:        service0,
+		SkipNodeUpdate: true,
+		NodeMeta:       map[string]string{"somekey": "somevalue", "synthetic-node": "true"},
+	}
+
 	service := &AgentService{
 		ID:      "redis1",
 		Service: "redis1",
@@ -276,9 +288,35 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 
 	proxyReg := testUnmanagedProxyRegistration(t)
 
+	proxyService := &AgentService{
+		ID:      proxyReg.Service.Proxy.DestinationServiceID,
+		Service: proxyReg.Service.Proxy.DestinationServiceName,
+		Port:    8000,
+	}
+
+	check := &AgentCheck{
+		Node:      "foobar",
+		CheckID:   "service:" + proxyService.ID,
+		Name:      "Redis health check",
+		Notes:     "Script based health check",
+		Status:    HealthPassing,
+		ServiceID: proxyService.ID,
+	}
+
+	proxyCatalogReg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "foobar",
+		Address:    "192.168.10.10",
+		Service:    proxyService,
+		Check:      check,
+	}
+
 	catalog := c.Catalog()
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
+		_, err := catalog.Register(proxyCatalogReg, nil)
+		r.Check(err)
+
+		_, err = catalog.Register(reg0, nil)
 		r.Check(err)
 
 		if _, err := catalog.Register(reg1, nil); err != nil {
@@ -295,16 +333,19 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 			r.Fatal(err)
 		}
 		delete(services, "consul")
+
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 2 {
+		if len(services) != 3 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
+		_, err := catalog.Register(proxyCatalogReg, nil)
+		r.Check(err)
+		_, err = catalog.Register(reg0, nil)
 		r.Check(err)
 
 		if _, err := catalog.Register(reg1, nil); err != nil {
@@ -325,12 +366,14 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 1 {
+		if len(services) != 2 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
+		_, err := catalog.Register(proxyCatalogReg, nil)
+		r.Check(err)
+		_, err = catalog.Register(reg0, nil)
 		r.Check(err)
 
 		if _, err := catalog.Register(reg1, nil); err != nil {
