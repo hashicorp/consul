@@ -225,7 +225,6 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 	meta := map[string]string{"somekey": "somevalue", "synthetic-node": "true"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
-		conf.NodeName = "foobar"
 	})
 	defer s.Stop()
 
@@ -242,6 +241,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		Node:           "foobar1",
 		Service:        service,
 		SkipNodeUpdate: true,
+		NodeMeta:       map[string]string{"key": "value"},
 	}
 
 	service2 := &AgentService{
@@ -271,7 +271,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		Node:       "foobar3",
 		Address:    "192.168.10.10",
 		Service:    service3,
-		NodeMeta:   map[string]string{"synthetic-node": "true"},
+		NodeMeta:   map[string]string{"synthetic-node": "true", "somekey": "somevalue"},
 	}
 
 	proxyReg := testUnmanagedProxyRegistration(t)
@@ -294,6 +294,33 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		if err != nil {
 			r.Fatal(err)
 		}
+		delete(services, "consul")
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) != 2 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+		_, err := catalog.Register(proxyReg, nil)
+		r.Check(err)
+
+		if _, err := catalog.Register(reg1, nil); err != nil {
+			r.Fatal(err)
+		}
+		if _, err := catalog.Register(reg2, nil); err != nil {
+			r.Fatal(err)
+		}
+		if _, err := catalog.Register(reg3, nil); err != nil {
+			r.Fatal(err)
+		}
+		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"synthetic-node": "true"}})
+		if err != nil {
+			r.Fatal(err)
+		}
+		delete(services, "consul")
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
@@ -315,7 +342,8 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		if _, err := catalog.Register(reg3, nil); err != nil {
 			r.Fatal(err)
 		}
-		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"synthetic-node": "true"}})
+		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"key": "value"}})
+		delete(services, "consul")
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -323,7 +351,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 2 {
+		if len(services) != 1 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
