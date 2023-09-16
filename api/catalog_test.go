@@ -220,6 +220,49 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+		conf.NodeName = "foobar"
+	})
+	defer s.Stop()
+
+	// Register service and proxy instances to test against.
+	service := &AgentService{
+		ID:      "redis1",
+		Service: "redis",
+		Port:    8000,
+		Connect: &AgentServiceConnect{Native: true},
+	}
+
+	reg := &CatalogRegistration{
+		Datacenter: "dc1",
+		Node:       "foobar",
+		Address:    "192.168.10.10",
+		Service:    service,
+	}
+
+	catalog := c.Catalog()
+	retry.Run(t, func(r *retry.R) {
+		if _, err := catalog.Register(reg, nil); err != nil {
+			r.Fatal(err)
+		}
+		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: meta})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) == 1 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+}
 func TestAPI_CatalogService(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
