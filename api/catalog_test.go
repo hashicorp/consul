@@ -309,6 +309,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		Address:    "192.168.10.10",
 		Service:    proxyService,
 		Check:      check,
+		NodeMeta:   map[string]string{"synthetic-node": "true"},
 	}
 
 	catalog := c.Catalog()
@@ -366,7 +367,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 2 {
+		if len(services) != 3 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
