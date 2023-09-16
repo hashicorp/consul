@@ -5,28 +5,20 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v1alpha1.pbproxystate;
 
-message L7TrafficPermissions {}
-
-message L4TrafficPermissions {
-  repeated L4Permission allow_permissions = 1;
-  repeated L4Permission deny_permissions = 2;
+message TrafficPermissions {
+  repeated Permission allow_permissions = 1;
+  repeated Permission deny_permissions = 2;
 }
 
-message L4Permission {
-  repeated L4Principal principals = 1;
+message Permission {
+  repeated Principal principals = 1;
 
-  // We don't need destination rules here because they either apply to L7 features or multi-ports.
+  // We don't need destination rules here yet because they either apply to L7 features or multi-ports.
   // In the case of multiple ports, the sidecar proxy controller is responsible for filtering
   // per-port permissions.
 }
 
-// L4Principal maps into Source. We first convert this to Source before generating Envoy resources.
-message L4Principal {
-  string spiffe_regex = 1;
-  repeated string exclude_spiffe_regexes = 2;
-}
-
-message L7Principal {
+message Principal {
   Spiffe spiffe = 1;
   repeated Spiffe exclude_spiffes = 2;
 }

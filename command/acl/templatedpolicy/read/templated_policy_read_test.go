@@ -128,7 +128,7 @@ func TestTemplatedPolicyReadCommand_JSON(t *testing.T) {
 		err := json.Unmarshal([]byte(output), &templatedPolicy)
 
 		assert.NoError(t, err)
-		assert.Equal(t, structs.ACLTemplatedPolicyIdentitiesSchema, templatedPolicy.Schema)
+		assert.Equal(t, structs.ACLTemplatedPolicyNodeSchema, templatedPolicy.Schema)
 		assert.Equal(t, api.ACLTemplatedPolicyNodeName, templatedPolicy.TemplateName)
 	})
 }

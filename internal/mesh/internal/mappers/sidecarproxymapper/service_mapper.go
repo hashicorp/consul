@@ -24,7 +24,7 @@ func (m *Mapper) MapServiceToProxyStateTemplate(ctx context.Context, rt controll
 	return controller.MakeRequests(types.ProxyStateTemplateType, ids), nil
 }
 
-// mapServiceThroughDestinationsToProxyStateTemplates takes and explicit
+// mapServiceThroughDestinationsToProxyStateTemplates takes an explicit
 // Service and traverses back through Destinations to Workloads to
 // ProxyStateTemplates.
 //

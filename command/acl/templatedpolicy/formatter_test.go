@@ -35,7 +35,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 		"node-templated-policy": {
 			templatedPolicy: api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyNodeName,
-				Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+				Schema:       structs.ACLTemplatedPolicyNodeSchema,
 				Template:     structs.ACLTemplatedPolicyNode,
 			},
 		},
@@ -49,7 +49,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 		"service-templated-policy": {
 			templatedPolicy: api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,
-				Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+				Schema:       structs.ACLTemplatedPolicyServiceSchema,
 				Template:     structs.ACLTemplatedPolicyService,
 			},
 		},
@@ -89,7 +89,7 @@ func testFormatTemplatedPolicyList(t *testing.T, dirPath string) {
 	policies := map[string]api.ACLTemplatedPolicyResponse{
 		"builtin/node": {
 			TemplateName: api.ACLTemplatedPolicyNodeName,
-			Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+			Schema:       structs.ACLTemplatedPolicyNodeSchema,
 			Template:     structs.ACLTemplatedPolicyNode,
 		},
 		"builtin/dns": {
@@ -99,7 +99,7 @@ func testFormatTemplatedPolicyList(t *testing.T, dirPath string) {
 		},
 		"builtin/service": {
 			TemplateName: api.ACLTemplatedPolicyServiceName,
-			Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+			Schema:       structs.ACLTemplatedPolicyServiceSchema,
 			Template:     structs.ACLTemplatedPolicyService,
 		},
 	}

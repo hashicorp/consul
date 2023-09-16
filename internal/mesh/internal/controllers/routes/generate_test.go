@@ -160,6 +160,24 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		run(t, related, expect, nil)
 	})
 
+	t.Run("aligned service in mesh but no actual ports", func(t *testing.T) {
+		related := loader.NewRelatedResources().
+			AddComputedRoutesIDs(apiComputedRoutesID).
+			AddResources(newService("api", &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Prefixes: []string{"api-"},
+				},
+				Ports: []*pbcatalog.ServicePort{
+					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			}))
+		expect := []*ComputedRoutesResult{{
+			ID:   apiComputedRoutesID,
+			Data: nil,
+		}}
+		run(t, related, expect, nil)
+	})
+
 	t.Run("tcp service with default route", func(t *testing.T) {
 		apiServiceData := &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{

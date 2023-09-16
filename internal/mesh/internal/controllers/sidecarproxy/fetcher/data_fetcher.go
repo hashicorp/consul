@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
@@ -19,6 +20,7 @@ import (
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -29,6 +31,7 @@ type Fetcher struct {
 	DestinationsCache   *sidecarproxycache.DestinationsCache
 	ProxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
 	ComputedRoutesCache *sidecarproxycache.ComputedRoutesCache
+	IdentitiesCache     *sidecarproxycache.IdentitiesCache
 }
 
 func New(
@@ -36,33 +39,48 @@ func New(
 	dCache *sidecarproxycache.DestinationsCache,
 	pcfgCache *sidecarproxycache.ProxyConfigurationCache,
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
+	iCache *sidecarproxycache.IdentitiesCache,
 ) *Fetcher {
 	return &Fetcher{
 		Client:              client,
 		DestinationsCache:   dCache,
 		ProxyCfgCache:       pcfgCache,
 		ComputedRoutesCache: computedRoutesCache,
+		IdentitiesCache:     iCache,
 	}
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.Client, id)
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
 		// We also need to make sure to delete the associated proxy from cache.
 		// We are ignoring errors from cache here as this deletion is best effort.
-		proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
 		f.DestinationsCache.DeleteSourceProxy(proxyID)
 		f.ProxyCfgCache.UntrackProxyID(proxyID)
+		f.IdentitiesCache.UntrackProxyID(proxyID)
 		return nil, nil
 	}
+
+	identityID := &pbresource.ID{
+		Name:    dec.Data.Identity,
+		Tenancy: dec.Resource.Id.Tenancy,
+		Type:    auth.WorkloadIdentityType,
+	}
+
+	f.IdentitiesCache.TrackPair(identityID, proxyID)
 
 	return dec, err
 }
 
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
 	return resource.GetDecodedResource[*pbmesh.ProxyStateTemplate](ctx, f.Client, id)
+}
+
+func (f *Fetcher) FetchComputedTrafficPermissions(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedTrafficPermissions, error) {
+	return resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, f.Client, id)
 }
 
 func (f *Fetcher) FetchServiceEndpoints(ctx context.Context, id *pbresource.ID) (*types.DecodedServiceEndpoints, error) {
