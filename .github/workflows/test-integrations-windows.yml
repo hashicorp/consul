@@ -4,8 +4,6 @@
 name: test-integrations-windows
 
 on:
-  push:
-    branches: 'fix-windows-integration-tests'
   schedule:
     # * is a special character in YAML so you have to quote this string
     # Run nightly at 12AM UTC/8PM EST/5PM PST.
