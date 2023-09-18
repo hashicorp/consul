@@ -47,11 +47,6 @@ func (c *cmd) Run(args []string) int {
 	var gvk *api.GVK
 	var opts *api.QueryOptions
 
-	if len(args) == 0 {
-		c.UI.Error("Please provide required arguments")
-		return 1
-	}
-
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
@@ -93,7 +88,7 @@ func (c *cmd) Run(args []string) int {
 		// extract resource type
 		gvk, err = getResourceType(c.flags.Args())
 		if err != nil {
-			c.UI.Error(fmt.Sprintf("Your argument format is incorrect: %v", err))
+			c.UI.Error(fmt.Sprintf("Incorrect argument format: %v", err))
 			return 1
 		}
 		// skip resource type to parse remaining args
@@ -104,7 +99,8 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		if c.filePath != "" {
-			c.UI.Warn(fmt.Sprintf("File argument is ignored when resource definition is provided with the command"))
+			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
+			return 1
 		}
 
 		opts = &api.QueryOptions{
@@ -141,6 +137,10 @@ func (c *cmd) Run(args []string) int {
 func getResourceType(args []string) (gvk *api.GVK, e error) {
 	if len(args) < 1 {
 		return nil, fmt.Errorf("Must include resource type argument")
+	}
+	// it should not have resource name
+	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
+		return nil, fmt.Errorf("Must include flag arguments after resource type")
 	}
 
 	s := strings.Split(args[0], ".")
