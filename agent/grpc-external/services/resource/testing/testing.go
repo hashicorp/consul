@@ -101,11 +101,11 @@ func RunResourceServiceWithACL(t *testing.T, aclResolver svc.ACLResolver, regist
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	svc.NewServer(svc.Config{
-		Backend:         backend,
-		Registry:        registry,
-		Logger:          testutil.Logger(t),
-		ACLResolver:     aclResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Backend:       backend,
+		Registry:      registry,
+		Logger:        testutil.Logger(t),
+		ACLResolver:   aclResolver,
+		TenancyBridge: mockTenancyBridge,
 	}).Register(server)
 
 	pipe := internal.NewPipeListener()
