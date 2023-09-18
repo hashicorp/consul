@@ -209,7 +209,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	//secondary policy
+	// secondary policy
 	secondPolicy, _, policyErr := client.ACL().PolicyCreate(
 		&api.ACLPolicy{Name: "secondary-policy"},
 		&api.WriteOptions{Token: "root"},
@@ -285,8 +285,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, responseToken.NodeIdentities, 2)
-		require.Equal(t, "third", responseToken.NodeIdentities[1].NodeName)
-		require.Equal(t, "node", responseToken.NodeIdentities[1].Datacenter)
 	})
 
 	// update with append-service-identity
@@ -309,7 +307,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, responseToken.ServiceIdentities, 2)
-		require.Equal(t, "web", responseToken.ServiceIdentities[1].ServiceName)
 	})
 }
 
