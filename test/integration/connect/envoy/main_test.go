@@ -50,7 +50,7 @@ func runCmd(t *testing.T, c string, env ...string) {
 	}
 }
 
-// Discover the cases so we pick up both oss and ent copies.
+// Discover the cases so we pick up both CE and ent copies.
 func discoverCases() ([]string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {

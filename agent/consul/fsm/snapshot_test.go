@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestFSM_SnapshotRestore_OSS(t *testing.T) {
+func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	t.Parallel()
 
 	logger := testutil.Logger(t)
@@ -85,8 +85,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
+		Description: structs.ACLPolicyGlobalManagementDesc,
+		Rules:       structs.ACLPolicyGlobalManagementRules,
 		Syntax:      acl.SyntaxCurrent,
 	}
 	policy.SetHash(true)
@@ -901,7 +901,7 @@ func convertACLTokenToLegacy(tok *structs.ACLToken) (*LegacyACL, error) {
 	return compat, nil
 }
 
-func TestFSM_BadRestore_OSS(t *testing.T) {
+func TestFSM_BadRestore_CE(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
 	logger := testutil.Logger(t)

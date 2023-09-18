@@ -8,3 +8,34 @@
 # release configuration
 /.release/                              @hashicorp/release-engineering @hashicorp/github-consul-core
 /.github/workflows/build.yml            @hashicorp/release-engineering @hashicorp/github-consul-core
+
+
+# Staff Engineer Review (protocol buffer definitions)
+/proto-public/   @hashicorp/consul-core-staff
+/proto/          @hashicorp/consul-core-staff
+
+# Staff Engineer Review (v1 architecture shared components)
+/agent/cache/                  @hashicorp/consul-core-staff
+/agent/consul/fsm/             @hashicorp/consul-core-staff
+/agent/consul/leader*.go       @hashicorp/consul-core-staff
+/agent/consul/server*.go       @hashicorp/consul-core-staff
+/agent/consul/state/           @hashicorp/consul-core-staff
+/agent/consul/stream/          @hashicorp/consul-core-staff
+/agent/submatview/             @hashicorp/consul-core-staff
+/agent/blockingquery/          @hashicorp/consul-core-staff
+
+# Staff Engineer Review (raft/autopilot)
+/agent/consul/autopilotevents/  @hashicorp/consul-core-staff
+/agent/consul/autopilot*.go     @hashicorp/consul-core-staff
+
+# Staff Engineer Review (v2 architecture shared components)
+/internal/controller/                   @hashicorp/consul-core-staff
+/internal/resource/                     @hashicorp/consul-core-staff
+/internal/storage/                      @hashicorp/consul-core-staff
+/agent/consul/controller/               @hashicorp/consul-core-staff
+/agent/grpc-external/services/resource/ @hashicorp/consul-core-staff
+
+# Staff Engineer Review (v1 security)
+/acl/                   @hashicorp/consul-core-staff
+/agent/xds/rbac*.go     @hashicorp/consul-core-staff
+/agent/xds/jwt*.go      @hashicorp/consul-core-staff
