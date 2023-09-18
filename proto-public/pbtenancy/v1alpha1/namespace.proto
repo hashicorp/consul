@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package hashicorp.consul.tenancy.v1alpha1;
+
+import "google/protobuf/timestamp.proto";
+
+// The name of the Namespace is in the outer Resource.ID.Name.
+// It must be unique within a partition and must be a
+// DNS hostname. There are also other reserved names that may not be used.
+message Namespace {
+  // Description is where the user puts any information they want
+  // about the namespace. It is not used internally.
+  string description = 1;
+  // ACLs is the configuration of ACLs for this namespace. It has its
+  // own struct so that we can add more to it in the future.
+  // This is nullable so that we can omit if empty when encoding in JSON
+  ACLConfig ACLs = 2;
+}
+
+// ACLConfig is the Namespace specific ACL configuration container.
+// This is a copy of NamespaceACLConfig from v1 protos.
+message ACLConfig {
+  // PolicyDefaults is the list of policies that should be used for
+  // the parent authorizer of all tokens in the associated namespace.
+  repeated ACLLink PolicyDefaults = 1;
+
+  // RoleDefaults is the list of roles that should be used for the
+  // parent authorizer of all tokens in the associated namespace.
+  repeated ACLLink RoleDefaults = 2;
+}
+
+// This is a copy of acl.ACLLink from v1 protos.
+message ACLLink {
+  string ID = 1;
+  // @gotags: hash:ignore-"
+  string Name = 2;
+}
