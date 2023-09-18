@@ -25,23 +25,35 @@ import (
 func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 	client := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	webWorkload1 := resourcetest.Resource(catalog.WorkloadType, "web-abc").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.1"}},
 			Ports:     map[string]*pbcatalog.WorkloadPort{"tcp": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP}},
 		}).
 		Write(t, client)
 	webWorkload2 := resourcetest.Resource(catalog.WorkloadType, "web-def").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.2"}},
 			Ports:     map[string]*pbcatalog.WorkloadPort{"tcp": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP}},
 		}).
 		Write(t, client)
 	webWorkload3 := resourcetest.Resource(catalog.WorkloadType, "non-prefix-web").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.3"}},
 			Ports:     map[string]*pbcatalog.WorkloadPort{"tcp": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP}},
 		}).
 		Write(t, client)
+
+	var (
+		api1ServiceRef = resourcetest.Resource(catalog.ServiceType, "api-1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				ReferenceNoSection()
+		api2ServiceRef = resourcetest.Resource(catalog.ServiceType, "api-2").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				ReferenceNoSection()
+	)
 
 	webDestinationsData := &pbmesh.Upstreams{
 		Workloads: &pbcatalog.WorkloadSelector{
@@ -50,21 +62,22 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 		},
 		Upstreams: []*pbmesh.Upstream{
 			{
-				DestinationRef:  resourcetest.Resource(catalog.ServiceType, "api-1").ReferenceNoSection(),
+				DestinationRef:  api1ServiceRef,
 				DestinationPort: "tcp",
 			},
 			{
-				DestinationRef:  resourcetest.Resource(catalog.ServiceType, "api-2").ReferenceNoSection(),
+				DestinationRef:  api2ServiceRef,
 				DestinationPort: "tcp1",
 			},
 			{
-				DestinationRef:  resourcetest.Resource(catalog.ServiceType, "api-2").ReferenceNoSection(),
+				DestinationRef:  api2ServiceRef,
 				DestinationPort: "tcp2",
 			},
 		},
 	}
 
 	webDestinations := resourcetest.Resource(types.UpstreamsType, "web-destinations").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, webDestinationsData).
 		Write(t, client)
 
@@ -81,10 +94,14 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 	require.NoError(t, err)
 	prototest.AssertElementsMatch(t, expRequests, requests)
 
-	//var expDestinations []*intermediate.CombinedDestinationRef
-	proxy1ID := resourcetest.Resource(types.ProxyStateTemplateType, webWorkload1.Id.Name).ID()
-	proxy2ID := resourcetest.Resource(types.ProxyStateTemplateType, webWorkload2.Id.Name).ID()
-	proxy3ID := resourcetest.Resource(types.ProxyStateTemplateType, webWorkload3.Id.Name).ID()
+	var (
+		proxy1ID = resourcetest.Resource(types.ProxyStateTemplateType, webWorkload1.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		proxy2ID = resourcetest.Resource(types.ProxyStateTemplateType, webWorkload2.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+		proxy3ID = resourcetest.Resource(types.ProxyStateTemplateType, webWorkload3.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	)
 	for _, u := range webDestinationsData.Upstreams {
 		expDestination := intermediate.CombinedDestinationRef{
 			ServiceRef:             u.DestinationRef,

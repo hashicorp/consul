@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type XRouteData interface {
@@ -28,6 +29,33 @@ type XRouteWithRefs interface {
 type portedRefKey struct {
 	Key  resource.ReferenceKey
 	Port string
+}
+
+func mutateParentRefs(xrouteTenancy *pbresource.Tenancy, parentRefs []*pbmesh.ParentReference) (changed bool) {
+	for _, parent := range parentRefs {
+		if parent.Ref == nil {
+			continue
+		}
+		changedThis := mutateXRouteRef(xrouteTenancy, parent.Ref)
+		if changedThis {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func mutateXRouteRef(xrouteTenancy *pbresource.Tenancy, ref *pbresource.Reference) (changed bool) {
+	if ref == nil {
+		return false
+	}
+	orig := proto.Clone(ref).(*pbresource.Reference)
+	resource.DefaultReferenceTenancy(
+		ref,
+		xrouteTenancy,
+		resource.DefaultNamespacedTenancy(), // All xRoutes are namespace scoped.
+	)
+
+	return !proto.Equal(orig, ref)
 }
 
 func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
@@ -51,46 +79,17 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				Wrapped: err,
 			}
 		}
-		if parent.Ref == nil {
-			merr = multierror.Append(merr, wrapErr(
-				resource.ErrInvalidField{
-					Name:    "ref",
-					Wrapped: resource.ErrMissing,
-				},
-			))
+
+		wrapRefErr := func(err error) error {
+			return wrapErr(resource.ErrInvalidField{
+				Name:    "ref",
+				Wrapped: err,
+			})
+		}
+
+		if err := catalog.ValidateLocalServiceRefNoSection(parent.Ref, wrapRefErr); err != nil {
+			merr = multierror.Append(merr, err)
 		} else {
-			if !IsServiceType(parent.Ref.Type) {
-				merr = multierror.Append(merr, wrapErr(
-					resource.ErrInvalidField{
-						Name: "ref",
-						Wrapped: resource.ErrInvalidReferenceType{
-							AllowedType: catalog.ServiceType,
-						},
-					},
-				))
-			}
-			if parent.Ref.Section != "" {
-				merr = multierror.Append(merr, wrapErr(
-					resource.ErrInvalidField{
-						Name: "ref",
-						Wrapped: resource.ErrInvalidField{
-							Name:    "section",
-							Wrapped: errors.New("section not supported for service parent refs"),
-						},
-					},
-				))
-			}
-
-			if parent.Ref.Name == "" {
-				merr = multierror.Append(merr, resource.ErrInvalidField{
-					Name: "ref",
-					Wrapped: resource.ErrInvalidField{
-						Name:    "name",
-						Wrapped: resource.ErrMissing,
-					},
-				})
-			}
-
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,
@@ -104,7 +103,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				if portExist { // check for duplicate wild
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for wildcard port exists twice",
 								resource.ReferenceToString(parent.Ref),
@@ -114,7 +113,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				} else if exactExists { // check for existing exact
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for ports %v covered by wildcard port already",
 								resource.ReferenceToString(parent.Ref),
@@ -134,7 +133,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				if portExist { // check for duplicate exact
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for port %q exists twice",
 								resource.ReferenceToString(parent.Ref),
@@ -145,7 +144,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				} else if wildExist { // check for existing wild
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for port %q covered by wildcard port already",
 								resource.ReferenceToString(parent.Ref),
@@ -164,55 +163,30 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 	return merr
 }
 
-func validateBackendRef(backendRef *pbmesh.BackendReference) []error {
-	var errs []error
+func validateBackendRef(backendRef *pbmesh.BackendReference, wrapErr func(error) error) error {
 	if backendRef == nil {
-		errs = append(errs, resource.ErrMissing)
-
-	} else if backendRef.Ref == nil {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "ref",
-			Wrapped: resource.ErrMissing,
-		})
-
-	} else {
-		if !IsServiceType(backendRef.Ref.Type) {
-			errs = append(errs, resource.ErrInvalidField{
-				Name: "ref",
-				Wrapped: resource.ErrInvalidReferenceType{
-					AllowedType: catalog.ServiceType,
-				},
-			})
-		}
-
-		if backendRef.Ref.Name == "" {
-			errs = append(errs, resource.ErrInvalidField{
-				Name: "ref",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "name",
-					Wrapped: resource.ErrMissing,
-				},
-			})
-		}
-
-		if backendRef.Ref.Section != "" {
-			errs = append(errs, resource.ErrInvalidField{
-				Name: "ref",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "section",
-					Wrapped: errors.New("section not supported for service backend refs"),
-				},
-			})
-		}
-
-		if backendRef.Datacenter != "" {
-			errs = append(errs, resource.ErrInvalidField{
-				Name:    "datacenter",
-				Wrapped: errors.New("datacenter is not yet supported on backend refs"),
-			})
-		}
+		return wrapErr(resource.ErrMissing)
 	}
-	return errs
+
+	var merr error
+
+	wrapRefErr := func(err error) error {
+		return wrapErr(resource.ErrInvalidField{
+			Name:    "ref",
+			Wrapped: err,
+		})
+	}
+	if err := catalog.ValidateLocalServiceRefNoSection(backendRef.Ref, wrapRefErr); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+	if backendRef.Datacenter != "" {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "datacenter",
+			Wrapped: errors.New("datacenter is not yet supported on backend refs"),
+		}))
+	}
+
+	return merr
 }
 
 func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
