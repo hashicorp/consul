@@ -677,6 +677,9 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
+							UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+								{UpgradeType: "websocket"},
+							},
 							Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
 						}),
 					},
@@ -705,6 +708,9 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
 							},
+							UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+								{UpgradeType: "websocket"},
+							},
 							Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
 						}),
 					},
@@ -732,6 +738,9 @@ func makeTestListener(t *testing.T, snap *proxycfg.ConfigSnapshot, fixtureName s
 							StatPrefix: "upstream.db.default.default.dc1",
 							Tracing: &envoy_http_v3.HttpConnectionManager_Tracing{
 								RandomSampling: &envoy_type_v3.Percent{Value: 0},
+							},
+							UpgradeConfigs: []*envoy_http_v3.HttpConnectionManager_UpgradeConfig{
+								{UpgradeType: "websocket"},
 							},
 							// HttpProtocolOptions: &envoy_core_v3.Http1ProtocolOptions{},
 						}),

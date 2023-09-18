@@ -16,4 +16,11 @@ module.exports = [
     destination: '/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs',
     permanent: true,
   },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    destination:
+      '/consul/docs/k8s/deployment-configurations/multi-cluster',
+    permanent: true,
+  }
 ]
