@@ -116,7 +116,7 @@ This section provides details about the fields you can configure for the `wasm` 
 
 ### `Protocol`
 
-Specifies the type of Wasm filter to apply. You can set either `tcp` or `http`. Set the `Protocol` to the protocol that the Wasm plugin implements when loaded by the filter. For Consul to apply the filter, the protocol must match the service’s protocol.
+Specifies the type of Wasm filter to apply. You can set either `tcp` or `http`. Set the `Protocol` to the protocol that the Wasm plugin implements when loaded by the filter. For Consul to apply the filter, the protocol must match the service's protocol.
 
 #### Values
 
@@ -360,7 +360,7 @@ Specifies the number of times Envoy retries to fetch plugin data if the initial 
 
 ### `PluginConfig{}.VmConfig{}.Configuration`
 
-Specifies the configuration Envoy encodes as bytes and passes to the plugin during VM startup. Refer to [`proxy_on_vm_start` in the Proxy Wasm ABI documentation](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT#proxy_on_vm_start) for additional information.
+Specifies the configuration Envoy encodes as bytes and passes to the plugin during VM startup. Refer to [`proxy_on_vm_start` in the Proxy Wasm ABI documentation](https://github.com/proxy-wasm/spec/tree/cefc2cbab70eaba2c187523dff0b38fce2f90771/abi-versions/vNEXT#proxy_on_vm_start) for additional information.
 
 #### Values
 
@@ -370,11 +370,11 @@ Specifies the configuration Envoy encodes as bytes and passes to the plugin duri
 
 ### `PluginConfig{}.VmConfig{}.EnvironmentVariables{}`
 
-Specifies environment variables for Envoy to inject into this VM so that they are available through WASI's `environ_get` and `environ_get_sizes` system calls.
+Specifies environment variables for Enovy to inject into this VM so that they are available through WASI's `environ_get` and `environ_get_sizes` system calls. 
 
-In most cases, WASI calls the functions implicitly in your language's standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms.
+In most cases, WASI calls the functions implicitly in your language's standard library. As a result, you do not need to call them directly. You can also access environment variables as you would on native platforms. 
 
-Envoy rejects the configuration if there’s conflict of key space.
+Envoy rejects the configuration if there is a key space conflict.
 
 The `EnvironmentVariables` field is a map containing parameters for setting the keys and values.
 
@@ -387,12 +387,12 @@ The following table describes the parameters contained in the `EnvironmentVariab
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
-| `HostEnvKeys` | Specifies a list of Envoy environment variable keys to expose to the VM. If a key exists in Envoy’s environment variables, then the key-value pair is injected. Envoy ignores `HostEnvKeys` that do not exist in its environment variables. | List | None |
+| `HostEnvKeys` | Specifies a list of Envoy environment variable keys to expose to the VM. If a key exists in Envoy's environment variables, then the key-value pair is injected. Envoy ignores `HostEnvKeys` that do not exist in its environment variables. | List | None |
 | `KeyValues` | Specifies a map of explicit key-value pairs to inject into the VM. | <nobr>Map of </nobr>string keys and values | None |
 
 ### `PluginConfig{}.Configuration`
 
-Specifies the configuration Consul encodes as bytes and passes to the plugin during plugin startup. Refer to [`proxy_on_configure` in the Envoy documentation](https://github.com/proxy-wasm/spec/tree/master/abi-versions/vNEXT#proxy_on_configure) for additional information.
+Specifies the configuration Consul encodes as bytes and passes to the plugin during plugin startup. Refer to [`proxy_on_configure` in the Envoy documentation](https://github.com/proxy-wasm/spec/tree/cefc2cbab70eaba2c187523dff0b38fce2f90771/abi-versions/vNEXT#proxy_on_configure) for additional information.
 
 #### Values
 

@@ -2065,6 +2065,12 @@ func (s *Store) deleteServiceTxn(tx WriteTxn, idx uint64, nodeName, serviceID st
 			if err := cleanupKindServiceName(tx, idx, sn, structs.ServiceKindConnectEnabled); err != nil {
 				return fmt.Errorf("failed to cleanup connect-enabled service name: %v", err)
 			}
+			// we need to do this if the proxy is deleted after the service itself
+			// as the guard after this might not be 1-1 between proxy and service
+			// names.
+			if err := cleanupGatewayWildcards(tx, idx, sn, false); err != nil {
+				return fmt.Errorf("failed to clean up gateway-service associations for %q: %v", psn.String(), err)
+			}
 		}
 	}
 

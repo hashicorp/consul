@@ -264,7 +264,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
     [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
-    use when making the outbound connection. If not port is provided the `server_port`
+    use when making the outbound connection. If no port is provided, the `server_port`
     will be used.
 
   - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
@@ -637,16 +637,16 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/registration/sidecar-service).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/registration/sidecar-service).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
     Default 21500. Set to `0` to disable automatic port assignment.
   - `expose_max_port` ((#expose_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
     Default 21755. Set to `0` to disable automatic port assignment.
 
 - `primary_datacenter` - This designates the datacenter
@@ -909,7 +909,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
     - `default` ((#acl_tokens_default)) - When provided, this agent will
       use this token by default when making requests to the Consul servers
-      instead of the [anonymous token](/consul/docs/security/acl/acl-tokens#anonymous-token).
+      instead of the [anonymous token](/consul/docs/security/acl/tokens#anonymous-token).
       Consul HTTP API requests can provide an alternate token in their authorization header
       to override the `default` or anonymous token on a per-request basis,
       as described in [HTTP API Authentication](/consul/api-docs/api-structure#authentication).
