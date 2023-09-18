@@ -2,14 +2,6 @@ module github.com/hashicorp/consul
 
 go 1.20
 
-replace (
-	github.com/hashicorp/consul/api => ./api
-	github.com/hashicorp/consul/envoyextensions => ./envoyextensions
-	github.com/hashicorp/consul/proto-public => ./proto-public
-	github.com/hashicorp/consul/sdk => ./sdk
-	github.com/hashicorp/consul/troubleshoot => ./troubleshoot
-)
-
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
@@ -25,7 +17,7 @@ require (
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.3.0
 	github.com/envoyproxy/go-control-plane v0.10.2-0.20220325020618-49ff273808a1
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.14.1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/go-openapi/runtime v0.25.0
 	github.com/go-openapi/strfmt v0.21.3
@@ -36,10 +28,10 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69
-	github.com/hashicorp/consul/api v1.21.0
+	github.com/hashicorp/consul/api v1.25.0
 	github.com/hashicorp/consul/envoyextensions v0.2.1
 	github.com/hashicorp/consul/proto-public v0.3.0
-	github.com/hashicorp/consul/sdk v0.13.1
+	github.com/hashicorp/consul/sdk v0.14.1
 	github.com/hashicorp/consul/troubleshoot v0.2.0
 	github.com/hashicorp/go-bexpr v0.1.2
 	github.com/hashicorp/go-checkpoint v0.5.0
@@ -55,7 +47,7 @@ require (
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
 	github.com/hashicorp/go-sockaddr v1.0.2
 	github.com/hashicorp/go-syslog v1.0.0
-	github.com/hashicorp/go-uuid v1.0.2
+	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.2.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
@@ -102,7 +94,7 @@ require (
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/net v0.13.0
 	golang.org/x/oauth2 v0.6.0
-	golang.org/x/sync v0.1.0
+	golang.org/x/sync v0.2.0
 	golang.org/x/sys v0.10.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef
@@ -195,8 +187,8 @@ require (
 	github.com/linode/linodego v0.10.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/mattn/go-runewidth v0.0.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
