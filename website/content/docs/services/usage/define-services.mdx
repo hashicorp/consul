@@ -110,26 +110,6 @@ service {
 }
 ```
 </CodeBlockConfig>
-<CodeBlockConfig heading="service.yaml">
-
-```yaml
-service:
-- id: redis
-  meta:
-  - custom_meta_key: custom_meta_value
-  name: redis
-  port: 80
-  tagged_addresses:
-  - lan:
-    - address: 192.168.0.55
-      port: 8000
-    wan:
-    - address: 198.18.0.23
-      port: 80
-  tags:
-  - primary
-```
-</CodeBlockConfig>
 </CodeTabs>
 
 ### Health checks
@@ -430,10 +410,12 @@ service {
 ```
 
 ```json
-"service": {
-  ## ...
-  "enable_tag_override": true,
-  ## ...
+{
+  "service": {
+    ## ...
+    "enable_tag_override": true,
+    ## ...
+  }
 }
 ```
 
