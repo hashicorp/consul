@@ -241,7 +241,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		NodeMeta:       map[string]string{"somekey": "somevalue", "synthetic-node": "true"},
 	}
 
-	service := &AgentService{
+	service1 := &AgentService{
 		ID:      "redis1",
 		Service: "redis1",
 		Port:    8000,
@@ -251,7 +251,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 	reg1 := &CatalogRegistration{
 		Datacenter:     "dc1",
 		Node:           "foobar1",
-		Service:        service,
+		Service:        service1,
 		SkipNodeUpdate: true,
 		NodeMeta:       map[string]string{"key": "value"},
 	}
