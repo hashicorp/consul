@@ -1280,12 +1280,12 @@ Forwarding = {
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: jwtProvider
+kind: JWTProvider
 metadata:
   name: okta
 spec:
   issuer: okta
-  jsonwebkeyset:
+  jsonWebKeySet:
     remote:
       uri: https://<org>.okta.com/oauth2/default/v1/keys
       cacheDuration: 30m
