@@ -22,6 +22,7 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  BRANCH: ${{ github.head_ref || github.ref_name }}
 
 # concurrency
 concurrency:
