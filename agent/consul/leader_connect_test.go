@@ -52,7 +52,9 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 			src := src
 			dst := dst
 			t.Run(fmt.Sprintf("%s-%d to %s-%d", src.keyType, src.keyBits, dst.keyType, dst.keyBits), func(t *testing.T) {
-				t.Parallel()
+				// TODO(flaky): making this test parallel seems to create performance problems
+				// in CI. Until we spend time optimizing this test, it's best to take the runtime hit.
+				// t.Parallel()
 
 				providerState := map[string]string{"foo": "dc1-value"}
 
@@ -60,14 +62,13 @@ func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {
 				_, srv := testServerWithConfig(t, func(c *Config) {
 					c.Datacenter = "dc1"
 					c.PrimaryDatacenter = "dc1"
-					c.Build = "1.6.0"
 					c.CAConfig.Config["PrivateKeyType"] = src.keyType
 					c.CAConfig.Config["PrivateKeyBits"] = src.keyBits
 					c.CAConfig.Config["test_state"] = providerState
 				})
 				codec := rpcClient(t, srv)
 
-				waitForLeaderEstablishment(t, srv)
+				testrpc.WaitForLeader(t, srv.RPC, "dc1")
 				testrpc.WaitForActiveCARoot(t, srv.RPC, "dc1", nil)
 
 				var (
@@ -557,23 +558,17 @@ func TestConnectCA_ConfigurationSet_RootRotation_Secondary(t *testing.T) {
 
 	t.Parallel()
 
-	dir1, s1 := testServerWithConfig(t, func(c *Config) {
-		c.Build = "1.6.0"
+	_, s1 := testServerWithConfig(t, func(c *Config) {
 		c.PrimaryDatacenter = "dc1"
 	})
-	defer os.RemoveAll(dir1)
-	defer s1.Shutdown()
 
 	testrpc.WaitForLeader(t, s1.RPC, "dc1")
 
 	// dc2 as a secondary DC
-	dir2, s2 := testServerWithConfig(t, func(c *Config) {
+	_, s2 := testServerWithConfig(t, func(c *Config) {
 		c.Datacenter = "dc2"
 		c.PrimaryDatacenter = "dc1"
-		c.Build = "1.6.0"
 	})
-	defer os.RemoveAll(dir2)
-	defer s2.Shutdown()
 
 	// Create the WAN link
 	joinWAN(t, s2, s1)
