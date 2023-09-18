@@ -174,13 +174,19 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapErr func(error) error) error {
 	var merr error
 
+	if config.SamenessGroup != "" {
+		// TODO(v2): handle other forms of failover
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "sameness_group",
+			Wrapped: fmt.Errorf("not supported in this release"),
+		}))
+	}
+	// TODO(peering/v2): remove this bypass when we know what to do with
+
 	if (len(config.Destinations) > 0) == (config.SamenessGroup != "") {
 		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name: "destinations",
-			// Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
-			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set: %v || %v",
-				(len(config.Destinations) > 0), (config.SamenessGroup != ""),
-			),
+			Name:    "destinations",
+			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
 		}))
 	}
 	for i, dest := range config.Destinations {

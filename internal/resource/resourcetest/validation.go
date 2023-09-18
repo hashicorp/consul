@@ -13,6 +13,7 @@ import (
 )
 
 func ValidateAndNormalize(t *testing.T, registry resource.Registry, res *pbresource.Resource) {
+	t.Helper()
 	typ := res.Id.Type
 
 	typeInfo, ok := registry.Resolve(typ)
@@ -21,10 +22,17 @@ func ValidateAndNormalize(t *testing.T, registry resource.Registry, res *pbresou
 	}
 
 	if typeInfo.Mutate != nil {
-		require.NoError(t, typeInfo.Mutate(res), "failed to apply type mutation to resource")
+		require.NoError(t, typeInfo.Mutate(res),
+			"failed to apply type mutation to resource: %s",
+			"failed to validate resource: %s",
+			resource.IDToString(res.Id),
+		)
 	}
 
 	if typeInfo.Validate != nil {
-		require.NoError(t, typeInfo.Validate(res), "failed to validate resource")
+		require.NoError(t, typeInfo.Validate(res),
+			"failed to validate resource: %s",
+			resource.IDToString(res.Id),
+		)
 	}
 }

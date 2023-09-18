@@ -126,3 +126,23 @@ func (msg *BackendTargetDetails) MarshalBinary() ([]byte, error) {
 func (msg *BackendTargetDetails) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ComputedFailoverConfig) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ComputedFailoverConfig) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *ComputedFailoverDestination) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *ComputedFailoverDestination) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
