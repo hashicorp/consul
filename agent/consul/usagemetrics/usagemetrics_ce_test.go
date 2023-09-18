@@ -4,6 +4,7 @@
 package usagemetrics
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version"
 )
 
 func newStateStore() (*state.Store, error) {
@@ -355,6 +357,15 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "exported-services"},
+				},
+			},
+			// --- version ---
+			fmt.Sprintf("consul.usage.test.version;version=%s;pre_release=%s", versionWithMetadata(), version.VersionPrerelease): {
+				Name:  "consul.usage.test.version",
+				Value: 1,
+				Labels: []metrics.Label{
+					{Name: "version", Value: versionWithMetadata()},
+					{Name: "pre_release", Value: version.VersionPrerelease},
 				},
 			},
 		},
@@ -702,6 +713,15 @@ var baseCases = map[string]testCase{
 				Labels: []metrics.Label{
 					{Name: "datacenter", Value: "dc1"},
 					{Name: "kind", Value: "exported-services"},
+				},
+			},
+			// --- version ---
+			fmt.Sprintf("consul.usage.test.version;version=%s;pre_release=%s", versionWithMetadata(), version.VersionPrerelease): {
+				Name:  "consul.usage.test.version",
+				Value: 1,
+				Labels: []metrics.Label{
+					{Name: "version", Value: versionWithMetadata()},
+					{Name: "pre_release", Value: version.VersionPrerelease},
 				},
 			},
 		},
