@@ -47,6 +47,9 @@ func MutateUpstreams(res *pbresource.Resource) error {
 	changed := false
 
 	for _, dest := range destinations.Upstreams {
+		if dest.DestinationRef == nil {
+			continue // skip; let the validation hook error out instead
+		}
 		if dest.DestinationRef.Tenancy != nil && !isLocalPeer(dest.DestinationRef.Tenancy.PeerName) {
 			// TODO(peering/v2): remove this bypass when we know what to do with
 			// non-local peer references.

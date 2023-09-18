@@ -48,6 +48,18 @@ func TestMutateUpstreams(t *testing.T) {
 			data:   &pbmesh.Upstreams{},
 			expect: &pbmesh.Upstreams{},
 		},
+		"invalid/nil dest ref": {
+			data: &pbmesh.Upstreams{
+				Upstreams: []*pbmesh.Upstream{
+					{DestinationRef: nil},
+				},
+			},
+			expect: &pbmesh.Upstreams{ // untouched
+				Upstreams: []*pbmesh.Upstream{
+					{DestinationRef: nil},
+				},
+			},
+		},
 		"dest ref tenancy defaulting": {
 			tenancy: newTestTenancy("foo.bar"),
 			data: &pbmesh.Upstreams{
