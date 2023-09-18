@@ -281,7 +281,6 @@ func (s *HTTPHandlers) CatalogServices(resp http.ResponseWriter, req *http.Reque
 	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
 		return nil, nil
 	}
-	args.Filter = args.QueryOptions.Filter
 	var out structs.IndexedServices
 	defer setMeta(resp, &out.QueryMeta)
 
