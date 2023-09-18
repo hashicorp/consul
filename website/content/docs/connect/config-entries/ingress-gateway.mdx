@@ -15,7 +15,7 @@ Consul's API gateway is the recommended alternative to ingress gateway.
 
 </Note>
 
-This topic provides configuration reference information for the ingress gateway configuration entry. An ingress gateway is a type of proxy you register as a service in Consul to enable network connectivity from external services to services inside of the service mesh. Refer to [Ingress gateways overview](/consul/docs/connect/gateways/ingress-gateway) for additional information. 
+This topic provides configuration reference information for the ingress gateway configuration entry. An ingress gateway is a type of proxy you register as a service in Consul to enable network connectivity from external services to services inside of the service mesh. Refer to [Ingress gateways overview](/consul/docs/connect/gateways/ingress-gateway) for additional information.
 
 ## Configuration model
 
@@ -27,121 +27,121 @@ The following list describes the configuration hierarchy, language-specific data
 - [`Kind`](#kind): string | must be `ingress-gateway` | required
 - [`Name`](#name): string | required
 - [`Namespace`](#namespace): string | `default` | <EnterpriseAlert inline/>
-- [`Meta`](#meta): map of strings 
+- [`Meta`](#meta): map of strings
 - [`Partition`](#partition): string | `default` | <EnterpriseAlert inline/>
-- [`TLS`](#tls): map 
+- [`TLS`](#tls): map
    - [`Enabled`](#tls-enabled): boolean | `false`
    - [`TLSMinVersion`](#tls-tlsminversion): string | `TLSv1_2`
-   - [`TLSMaxVersion`](#tls-tlsmaxversion): string 
-   - [`CipherSuites`](#tls-ciphersuites): list of strings 
-   - [`SDS`](#tls-sds): map of strings 
-      - [`ClusterName`](#tls-sds): string 
-      - [`CertResource`](#tls-sds): string 
-- [`Defaults`](#defaults): map 
-   - [`MaxConnections`](#defaults-maxconnections): number 
-   - [`MaxPendingRequests`](#defaults-maxpendingrequests): number 
-   - [`MaxConcurrentRequests`](#defaults-maxconcurrentrequests): number 
-   - [`PassiveHealthCheck`](#defaults-passivehealthcheck): map 
-      - [`interval`](#defaults-passivehealthcheck): number 
-      - [`max_failures`](#defaults-passivehealthcheck): number 
-      - [`enforcing_consecutive_5xx`](#defaults-passivehealthcheck): number 
-- [`Listeners`](#listeners): list of maps 
+   - [`TLSMaxVersion`](#tls-tlsmaxversion): string
+   - [`CipherSuites`](#tls-ciphersuites): list of strings
+   - [`SDS`](#tls-sds): map of strings
+      - [`ClusterName`](#tls-sds): string
+      - [`CertResource`](#tls-sds): string
+- [`Defaults`](#defaults): map
+   - [`MaxConnections`](#defaults-maxconnections): number
+   - [`MaxPendingRequests`](#defaults-maxpendingrequests): number
+   - [`MaxConcurrentRequests`](#defaults-maxconcurrentrequests): number
+   - [`PassiveHealthCheck`](#defaults-passivehealthcheck): map
+      - [`interval`](#defaults-passivehealthcheck): number
+      - [`max_failures`](#defaults-passivehealthcheck): number
+      - [`enforcing_consecutive_5xx`](#defaults-passivehealthcheck): number
+- [`Listeners`](#listeners): list of maps
    - [`Port`](#listeners-port): number | `0`
    - [`Protocol`](#listeners-protocol): number | `tcp`
-   - [`Services`](#listeners-services): list of objects 
-      - [`Name`](#listeners-services-name): string 
+   - [`Services`](#listeners-services): list of objects
+      - [`Name`](#listeners-services-name): string
       - [`Namespace`](#listeners-services-namespace): string | <EnterpriseAlert inline/>
       - [`Partition`](#listeners-services-partition): string | <EnterpriseAlert inline/>
       - [`Hosts`](#listeners-services-hosts): List of strings | `.ingress.*`
-      - [`RequestHeaders`](#listeners-services-requestheaders): map 
-         - [`Add`](#listeners-services-requestheaders): map of strings 
-         - [`Set`](#listeners-services-requestheaders): map of strings 
-         - [`Remove`](#listeners-services-requestheaders): list of strings 
-      - [`ResponseHeaders`](#listeners-services-responseheaders): map 
-         - [`Add`](#listeners-services-responseheaders): map of strings 
-         - [`Set`](#listeners-services-responseheaders): map of strings 
-         - [`Remove`](#listeners-services-responseheaders): list of strings 
-      - [`TLS`](#listeners-services-tls): map 
-         - [`SDS`](#listeners-services-tls-sds): map of strings 
-            - [`ClusterName`](#listeners-services-tls-sds): string 
-            - [`CertResource`](#listeners-services-tls-sds): string 
+      - [`RequestHeaders`](#listeners-services-requestheaders): map
+         - [`Add`](#listeners-services-requestheaders): map of strings
+         - [`Set`](#listeners-services-requestheaders): map of strings
+         - [`Remove`](#listeners-services-requestheaders): list of strings
+      - [`ResponseHeaders`](#listeners-services-responseheaders): map
+         - [`Add`](#listeners-services-responseheaders): map of strings
+         - [`Set`](#listeners-services-responseheaders): map of strings
+         - [`Remove`](#listeners-services-responseheaders): list of strings
+      - [`TLS`](#listeners-services-tls): map
+         - [`SDS`](#listeners-services-tls-sds): map of strings
+            - [`ClusterName`](#listeners-services-tls-sds): string
+            - [`CertResource`](#listeners-services-tls-sds): string
       - [`MaxConnections`](#listeners-services-maxconnections): number | `0`
       - [`MaxPendingRequests`](#listeners-services-maxconnections): number | `0`
       - [`MaxConcurrentRequests`](#listeners-services-maxconnections): number | `0`
-      - [`PassiveHealthCheck`](#listeners-services-passivehealthcheck): map 
-         - [`interval`](#listeners-services-passivehealthcheck): number 
-         - [`max_failures`](#listeners-services-passivehealthcheck): number 
-         - [`enforcing_consecutive_5xx`](#listeners-services-passivehealthcheck): number 
-   - [`TLS`](#listeners-tls): map 
+      - [`PassiveHealthCheck`](#listeners-services-passivehealthcheck): map
+         - [`interval`](#listeners-services-passivehealthcheck): number
+         - [`max_failures`](#listeners-services-passivehealthcheck): number
+         - [`enforcing_consecutive_5xx`](#listeners-services-passivehealthcheck): number
+   - [`TLS`](#listeners-tls): map
       - [`Enabled`](#listeners-tls-enabled): boolean | `false`
       - [`TLSMinVersion`](#listeners-tls-tlsminversion): string | `TLSv1_2`
-      - [`TLSMaxVersion`](#listeners-tls-tlsmaxversion): string 
-      - [`CipherSuites`](#listeners-tls-ciphersuites): list of strings 
-      - [`SDS`](#listeners-tls-sds): map of strings 
-         - [`ClusterName`](#listeners-tls-sds): string 
-         - [`CertResource`](#listeners-tls-sds): string 
+      - [`TLSMaxVersion`](#listeners-tls-tlsmaxversion): string
+      - [`CipherSuites`](#listeners-tls-ciphersuites): list of strings
+      - [`SDS`](#listeners-tls-sds): map of strings
+         - [`ClusterName`](#listeners-tls-sds): string
+         - [`CertResource`](#listeners-tls-sds): string
 
 </Tab>
 
 <Tab heading="Kubernetes YAML" group="yaml">
 
-- [ `apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1` | required 
+- [ `apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1` | required
 - [`kind`](#kind): string | must be `IngressGateway` | required
-- [`metadata`](#metadata): map of strings 
+- [`metadata`](#metadata): map of strings
    - [`name`](#metadata-name): string | required
    - [`namespace`](#metadata-namespace): string | `default` | <EnterpriseAlert inline/>
-- [`spec`](#spec): map 
-   - [`tls`](#spec-tls): map 
+- [`spec`](#spec): map
+   - [`tls`](#spec-tls): map
       - [`enabled`](#spec-tls-enabled): boolean | `false`
       - [`tlsMinVersion`](#spec-tls-tlsminversion): string | `TLSv1_2`
-      - [`tlsMaxVersion`](#spec-tls-tlsmaxversion): string 
-      - [`cipherSuites`](#spec-tls-ciphersuites): list of strings 
-      - [`sds`](#spec-tls-sds): map of strings 
-         - [`clusterName`](#spec-tls-sds): string 
-         - [`certResource`](#spec-tls-sds): string 
-   - [`defaults`](#spec-defaults): map 
-      - [`maxConnections`](#spec-defaults-maxconnections): number 
-      - [`maxPendingRequests`](#spec-defaults-maxpendingrequests): number 
-      - [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests): number 
-      - [`passiveHealthCheck`](#spec-defaults-passivehealthcheck): map 
+      - [`tlsMaxVersion`](#spec-tls-tlsmaxversion): string
+      - [`cipherSuites`](#spec-tls-ciphersuites): list of strings
+      - [`sds`](#spec-tls-sds): map of strings
+         - [`clusterName`](#spec-tls-sds): string
+         - [`certResource`](#spec-tls-sds): string
+   - [`defaults`](#spec-defaults): map
+      - [`maxConnections`](#spec-defaults-maxconnections): number
+      - [`maxPendingRequests`](#spec-defaults-maxpendingrequests): number
+      - [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests): number
+      - [`passiveHealthCheck`](#spec-defaults-passivehealthcheck): map
          - [`interval`](#spec-defaults-passivehealthcheck): number | no proxy's default value
          - [`max_failures`](#spec-defaults-passivehealthcheck): number | no proxy's default value
          - [`enforcing_consecutive_5xx`](#spec-defaults-passivehealthcheck): number | proxy's default value
-   - [`listeners`](#spec-listeners): list of maps 
+   - [`listeners`](#spec-listeners): list of maps
       - [`port`](#spec-listeners-port): number | `0`
       - [`protocol`](#spec-listeners-protocol): number | `tcp`
-      - [`services`](#spec-listeners-services): list of maps 
-         - [`name`](#spec-listeners-services-name): string 
+      - [`services`](#spec-listeners-services): list of maps
+         - [`name`](#spec-listeners-services-name): string
          - [`namespace`](#spec-listeners-services-namespace): string | current namespace | <EnterpriseAlert inline/>
          - [`partition`](#spec-listeners-services-partition): string | current partition | <EnterpriseAlert inline/>
          - [`hosts`](#spec-listeners-services-hosts): list of strings | `.ingress.*`
-         - [`requestHeaders`](#spec-listeners-services-requestheaders): map 
-            - [`add`](#spec-listeners-services-requestheaders): map of strings 
-            - [`set`](#spec-listeners-services-requestheaders): map of strings 
-            - [`remove`](#spec-listeners-services-requestheaders): list of strings 
-         - [`responseHeaders`](#spec-listeners-services-responseheaders): map 
-            - [`add`](#spec-listeners-services-responseheaders): map of strings 
-            - [`set`](#spec-listeners-services-responseheaders): map of strings 
-            - [`remove`](#spec-listeners-services-responseheaders): list of strings 
-         - [`tls`](#spec-listeners-services-tls): map 
-            - [`sds`](#spec-listeners-services-tls-sds): map of strings 
-               - [`clusterName`](#spec-listeners-services-tls-sds): string 
-               - [`certResource`](#spec-listeners-services-tls-sds): string 
+         - [`requestHeaders`](#spec-listeners-services-requestheaders): map
+            - [`add`](#spec-listeners-services-requestheaders): map of strings
+            - [`set`](#spec-listeners-services-requestheaders): map of strings
+            - [`remove`](#spec-listeners-services-requestheaders): list of strings
+         - [`responseHeaders`](#spec-listeners-services-responseheaders): map
+            - [`add`](#spec-listeners-services-responseheaders): map of strings
+            - [`set`](#spec-listeners-services-responseheaders): map of strings
+            - [`remove`](#spec-listeners-services-responseheaders): list of strings
+         - [`tls`](#spec-listeners-services-tls): map
+            - [`sds`](#spec-listeners-services-tls-sds): map of strings
+               - [`clusterName`](#spec-listeners-services-tls-sds): string
+               - [`certResource`](#spec-listeners-services-tls-sds): string
          - [`maxConnections`](#spec-listeners-services-maxconnections): number | `0`
          - [`maxPendingRequests`](#spec-listeners-services-maxconnections): number | `0`
          - [`maxConcurrentRequests`](#spec-listeners-services-maxconnections): number | `0`
-         - [`passiveHealthCheck`](#spec-listeners-services-passivehealthcheck): map 
-            - [`interval`](#spec-listeners-services-passivehealthcheck): number 
-            - [`max_failures`](#spec-listeners-services-passivehealthcheck): number 
-            - [`enforcing_consecutive_5xx`](#spec-listeners-services-passivehealthcheck): number 
-      - [`tls`](#spec-listeners-tls): map    
+         - [`passiveHealthCheck`](#spec-listeners-services-passivehealthcheck): map
+            - [`interval`](#spec-listeners-services-passivehealthcheck): number
+            - [`max_failures`](#spec-listeners-services-passivehealthcheck): number
+            - [`enforcing_consecutive_5xx`](#spec-listeners-services-passivehealthcheck): number
+      - [`tls`](#spec-listeners-tls): map
          - [`enabled`](#spec-listeners-tls-enabled): boolean | `false`
          - [`tlsMinVersion`](#spec-listeners-tls-tlsminversion): string | `TLSv1_2`
-         - [`tlsMaxVersion`](#spec-listeners-tls-tlsmaxversion): string 
-         - [`cipherSuites`](#spec-listeners-tls-ciphersuites): list of strings 
-         - [`sds`](#spec-listeners-tls-sds): map of strings 
-            - [`clusterName`](#spec-listeners-tls-sds): string 
-            - [`certResource`](#spec-listeners-tls-sds): string 
+         - [`tlsMaxVersion`](#spec-listeners-tls-tlsmaxversion): string
+         - [`cipherSuites`](#spec-listeners-tls-ciphersuites): list of strings
+         - [`sds`](#spec-listeners-tls-sds): map of strings
+            - [`clusterName`](#spec-listeners-tls-sds): string
+            - [`certResource`](#spec-listeners-tls-sds): string
 
 </Tab>
 
@@ -156,94 +156,94 @@ When every field is defined, an ingress gateway configuration entry has the foll
 <Tab heading="HCL" group="hcl">
 
 ```hcl
-Kind      = "ingress-gateway"          
-Name      = "<name of the gateway>"    
-Namespace = "<namespace to register the gateway>" 
-Partition = "<partition to register the gateway>" 
-Meta = {       
+Kind      = "ingress-gateway"
+Name      = "<name of the gateway>"
+Namespace = "<namespace to register the gateway>"
+Partition = "<partition to register the gateway>"
+Meta = {
   <key> = "<value>"
 }
-TLS = {        
-  Enabled       = false         
-  TLSMinVersion = "TLSv1_2"     
-  TLSMaxVersion = "<max version of TLS supported for this gateway>"  
-  CipherSuites = [   
+TLS = {
+  Enabled       = false
+  TLSMinVersion = "TLSv1_2"
+  TLSMaxVersion = "<max version of TLS supported for this gateway>"
+  CipherSuites = [
     "<cipher>"
   ]
-  SDS = {      
-    ClusterName  = "<name of SDS cluster>"   
-    CertResource = "<SDS resource name>"     
+  SDS = {
+    ClusterName  = "<name of SDS cluster>"
+    CertResource = "<SDS resource name>"
   }
 }
-Defaults = {         
-  MaxConnections        = 0      
-  MaxPendingRequests    = 0      
-  MaxConcurrentRequests = 0      
-  PassiveHealthCheck = {            
-    interval                  = 10  
-    max_failures              = 5   
-    enforcing_consecutive_5xx = 100 
+Defaults = {
+  MaxConnections        = 0
+  MaxPendingRequests    = 0
+  MaxConcurrentRequests = 0
+  PassiveHealthCheck = {
+    interval                  = 10
+    max_failures              = 5
+    enforcing_consecutive_5xx = 100
   }
 }
-Listeners = [           
-  {                     
-    Port     = 0        
-    Protocol = "tcp"    
-    Services = [        
-      {                 
-        Name      = "<name of external service>"                  
-        Namespace = "<namespace containing the external service>" 
-        Partition = "<partition containing the external service>" 
-        Hosts = [       
-          ".ingress.*"  
+Listeners = [
+  {
+    Port     = 0
+    Protocol = "tcp"
+    Services = [
+      {
+        Name      = "<name of external service>"
+        Namespace = "<namespace containing the external service>"
+        Partition = "<partition containing the external service>"
+        Hosts = [
+          ".ingress.*"
         ]
-        RequestHeaders = {    
-          Add = {             
-            RequestHeaderName = "<request header value to add>"  
+        RequestHeaders = {
+          Add = {
+            RequestHeaderName = "<request header value to add>"
           }
-          Set = {             
-            RequestHeaderName = "<request header value to set>" 
+          Set = {
+            RequestHeaderName = "<request header value to set>"
           }
-          Remove = [          
-            "<request header to remove>"    
+          Remove = [
+            "<request header to remove>"
           ]
         }
-        ResponseHeaders = {   
-          Add = {             
-            ResponseHeaderName = "<response header value to add>"  
+        ResponseHeaders = {
+          Add = {
+            ResponseHeaderName = "<response header value to add>"
           }
-          Set = {             
-            ResponseHeaderName = "<response header value to set>"  
+          Set = {
+            ResponseHeaderName = "<response header value to set>"
           }
-          Remove = [          
-            "<response header remove>"   
+          Remove = [
+            "<response header remove>"
           ]
         }
-        TLS = {            
-          SDS = {            
-            ClusterName  = "<name of SDS cluster>"   
-            CertResource = "<name of SDS source>"    
+        TLS = {
+          SDS = {
+            ClusterName  = "<name of SDS cluster>"
+            CertResource = "<name of SDS source>"
           }
         }
-        MaxConnections        = <number>      
-        MaxPendingRequests    = <number>      
-        MaxConcurrentRequests = <number>      
-        PassiveHealthCheck = {            
-          interval                  = 10  
-          max_failures              = 5   
-          enforcing_consecutive_5xx = 100 
+        MaxConnections        = <number>
+        MaxPendingRequests    = <number>
+        MaxConcurrentRequests = <number>
+        PassiveHealthCheck = {
+          interval                  = 10
+          max_failures              = 5
+          enforcing_consecutive_5xx = 100
         }
     }]
-    TLS = {                       
-      Enabled       = false      
-      TLSMinVersion = "TLSv1_2"  
-      TLSMaxVersion = "<max supported version for the listener>" 
-      CipherSuites = [     
-        "<ciphersuite>"    
+    TLS = {
+      Enabled       = false
+      TLSMinVersion = "TLSv1_2"
+      TLSMaxVersion = "<max supported version for the listener>"
+      CipherSuites = [
+        "<ciphersuite>"
       ]
-      SDS = {                    
-        ClusterName  = "<name of SDS cluster>" 
-        CertResource = "<SDS resource name>"   
+      SDS = {
+        ClusterName  = "<name of SDS cluster>"
+        CertResource = "<SDS resource name>"
       }
     }
   }
@@ -256,71 +256,71 @@ Listeners = [
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
-kind: IngressGateway          
+kind: IngressGateway
 metadata:
-  name: <name of the gateway>    
-  namespace: "<namespace to register the gateway>" 
-spec: 
-  tls:         
-    enabled: false         
-    tlsSMinVersion: TLSv1_2     
-    tlsMaxVersion: "<max version of TLS supported for this gateway>"  
-    cipherSuites:    
+  name: <name of the gateway>
+  namespace: "<namespace to register the gateway>"
+spec:
+  tls:
+    enabled: false
+    tlsSMinVersion: TLSv1_2
+    tlsMaxVersion: "<max version of TLS supported for this gateway>"
+    cipherSuites:
      - <cipher>
-    sds:      
-      clusterName: <name of SDS cluster>   
-      certResource: <SDS resource name>     
-  defaults:          
-    maxConnections: 0      
-    maxPendingRequests: 0      
-    maxConcurrentRequests: 0      
-    passiveHealthCheck:            
-      interval: 10  
-      max_failures: 5   
-      enforcing_consecutive_5xx: 100 
-  listeners:                     
-    - port: 0        
-      protocol: tcp    
-      services:         
-        - name: <name of external service>                  
-          namespace: <namespace containing the external service> 
+    sds:
+      clusterName: <name of SDS cluster>
+      certResource: <SDS resource name>
+  defaults:
+    maxConnections: 0
+    maxPendingRequests: 0
+    maxConcurrentRequests: 0
+    passiveHealthCheck:
+      interval: 10
+      max_failures: 5
+      enforcing_consecutive_5xx: 100
+  listeners:
+    - port: 0
+      protocol: tcp
+      services:
+        - name: <name of external service>
+          namespace: <namespace containing the external service>
           partition: <partition containing the external service>
-          hosts:       
-            - .ingress.*  
-          requestHeaders:     
-            add:             
+          hosts:
+            - .ingress.*
+          requestHeaders:
+            add:
               requestHeaderName: <request header value to add>
             set:
               requestHeaderName: <request header value to set>
-     remove:           
-              - <request header to remove>    
-          responseHeaders:  
-            add:             
-              responseHeaderName: <response header value to add>  
-            set:             
+     remove:
+              - <request header to remove>
+          responseHeaders:
+            add:
+              responseHeaderName: <response header value to add>
+            set:
               responseHeaderName: <response header value to set>
             remove:
-              - <response header remove>   
-          tls:            
-            sds:            
+              - <response header remove>
+          tls:
+            sds:
               clusterName: <name of SDS cluster>
-              certResource: <name of SDS source>    
-            maxConnections: <number>      
-            maxPendingRequests: <number>      
-            maxConcurrentRequests: <number>      
-            passiveHealthCheck:            
-              interval: 10  
-              max_failures: 5   
-              enforcing_consecutive_5xx: 100        
-      tls:                       
-        enabled: false      
-        tlsMinVersion: TLSv1_2  
-        tlsMaxVersion: <max supported version for the listener> 
-        cipherSuites:      
-          - <ciphersuite>    
-        sds:                    
-          clusterName: <name of SDS cluster> 
-          certResource: <SDS resource name>   
+              certResource: <name of SDS source>
+            maxConnections: <number>
+            maxPendingRequests: <number>
+            maxConcurrentRequests: <number>
+            passiveHealthCheck:
+              interval: 10
+              max_failures: 5
+              enforcing_consecutive_5xx: 100
+      tls:
+        enabled: false
+        tlsMinVersion: TLSv1_2
+        tlsMaxVersion: <max supported version for the listener>
+        cipherSuites:
+          - <ciphersuite>
+        sds:
+          clusterName: <name of SDS cluster>
+          certResource: <SDS resource name>
 ```
 
 </Tab>
@@ -329,100 +329,100 @@ spec:
 
 ```json
 {
-  "Kind" : "ingress-gateway",          
-  "Name" : "<name of the gateway>",    
-  "Namespace" : "<namespace to register the gateway>", 
-  "Partition" : "<partition to register the gateway>", 
-  "Meta": {       
+  "Kind" : "ingress-gateway",
+  "Name" : "<name of the gateway>",
+  "Namespace" : "<namespace to register the gateway>",
+  "Partition" : "<partition to register the gateway>",
+  "Meta": {
     "<key>" : "<value>"
   },
-  "TLS" : {        
-    "Enabled" : false,         
-    "TLSMinVersion" : "TLSv1_2",     
-    "TLSMaxVersion" : "<max version of TLS supported for this gateway>",  
-    "CipherSuites" : [   
+  "TLS" : {
+    "Enabled" : false,
+    "TLSMinVersion" : "TLSv1_2",
+    "TLSMaxVersion" : "<max version of TLS supported for this gateway>",
+    "CipherSuites" : [
       "<cipher>"
     ],
-    "SDS": {      
-      "ClusterName" : "<name of SDS cluster>",   
-      "CertResource" : "<SDS resource name>"     
+    "SDS": {
+      "ClusterName" : "<name of SDS cluster>",
+      "CertResource" : "<SDS resource name>"
     }
   },
-  "Defaults" : {         
-    "MaxConnections" : 0,      
-    "MaxPendingRequests" : 0,      
-    "MaxConcurrentRequests": 0,      
-    "PassiveHealthCheck" : {            
-      "interval" : 10,  
-      "max_failures" : 5,   
-      "enforcing_consecutive_5xx" : 100 
+  "Defaults" : {
+    "MaxConnections" : 0,
+    "MaxPendingRequests" : 0,
+    "MaxConcurrentRequests": 0,
+    "PassiveHealthCheck" : {
+      "interval" : 10,
+      "max_failures" : 5,
+      "enforcing_consecutive_5xx" : 100
     }
   },
-  "Listeners" : [           
-    {                     
-      "Port" : 0,        
-      "Protocol" : "tcp",    
-      "Services" : [        
-        {                 
-          "Name" : "<name of external service>",                  
-          "Namespace" : "<namespace containing the external service>", 
-          "Partition" : "<partition containing the external service>", 
-          "Hosts" :  [       
-            ".ingress.*"  
+  "Listeners" : [
+    {
+      "Port" : 0,
+      "Protocol" : "tcp",
+      "Services" : [
+        {
+          "Name" : "<name of external service>",
+          "Namespace" : "<namespace containing the external service>",
+          "Partition" : "<partition containing the external service>",
+          "Hosts" :  [
+            ".ingress.*"
           ],
-          "RequestHeaders" : {    
-            "Add" : {             
-              "RequestHeaderName" : "<request header value to add>"  
+          "RequestHeaders" : {
+            "Add" : {
+              "RequestHeaderName" : "<request header value to add>"
             },
-            "Set" : {             
-              "RequestHeaderName" : "<request header value to set>" 
+            "Set" : {
+              "RequestHeaderName" : "<request header value to set>"
             },
-            "Remove" : [          
-              "<request header to remove>"    
+            "Remove" : [
+              "<request header to remove>"
             ]
           },
-          "ResponseHeaders" : {   
-            "Add" : {             
-              "ResponseHeaderName" : "<response header value to add>"  
+          "ResponseHeaders" : {
+            "Add" : {
+              "ResponseHeaderName" : "<response header value to add>"
             },
-            "Set" : {             
-              "ResponseHeaderName" : "<response header value to set>"  
+            "Set" : {
+              "ResponseHeaderName" : "<response header value to set>"
             },
-            "Remove" : [          
-              "<response header remove>"   
+            "Remove" : [
+              "<response header remove>"
             ]
           },
-          "TLS" : {            
-            "SDS" : {            
-              "ClusterName" : "<name of SDS cluster>",   
-              "CertResource" : "<name of SDS source>"    
+          "TLS" : {
+            "SDS" : {
+              "ClusterName" : "<name of SDS cluster>",
+              "CertResource" : "<name of SDS source>"
             }
           },
-          "MaxConnections" : <number>,      
-          "MaxPendingRequests" : <number>,      
-          "MaxConcurrentRequests" : <number>,      
-          "PassiveHealthCheck" : {            
-            "interval" : 10,  
-            "max_failures" : 5,   
-            "enforcing_consecutive_5xx" : 100 
+          "MaxConnections" : <number>,
+          "MaxPendingRequests" : <number>,
+          "MaxConcurrentRequests" : <number>,
+          "PassiveHealthCheck" : {
+            "interval" : 10,
+            "max_failures" : 5,
+            "enforcing_consecutive_5xx" : 100
           }
         }
       ],
-      "TLS" : {                       
-        "Enabled" : false,      
-        "TLSMinVersion" : "TLSv1_2",  
-        "TLSMaxVersion" : "<max supported version for the listener>", 
-        "CipherSuites" : [     
-          "<ciphersuite>"    
+      "TLS" : {
+        "Enabled" : false,
+        "TLSMinVersion" : "TLSv1_2",
+        "TLSMaxVersion" : "<max supported version for the listener>",
+        "CipherSuites" : [
+          "<ciphersuite>"
         ],
-        "SDS" : {                    
-          "ClusterName" : "<name of SDS cluster>", 
-          "CertResource" : "<SDS resource name>"   
+        "SDS" : {
+          "ClusterName" : "<name of SDS cluster>",
+          "CertResource" : "<SDS resource name>"
         }
       }
     }
   ]
-}  
+}
 ```
 
 </Tab>
@@ -465,7 +465,7 @@ If unspecified, the ingress gateway is applied to the `default` namespace. You c
 
 #### Values
 
-- Default: `default`, 
+- Default: `default`,
 - Data type: String
 
 ### `Partition` <EnterpriseAlert inline/>
@@ -481,7 +481,7 @@ If unspecified, the ingress gateway is applied to the `default` partition. You c
 
 ### `Meta`
 
-Defines an arbitrary set of key-value pairs to store in the Consul KV. 
+Defines an arbitrary set of key-value pairs to store in the Consul KV.
 
 #### Values
 
@@ -492,7 +492,7 @@ Defines an arbitrary set of key-value pairs to store in the Consul KV.
 
 ### `TLS`
 
-Specifies the TLS configuration settings for the gateway. 
+Specifies the TLS configuration settings for the gateway.
 
 #### Values
 
@@ -502,18 +502,18 @@ Specifies the TLS configuration settings for the gateway.
   - [`TLSMinVersion`](#tls-tlsminversion)
   - [`TLSMaxVersion`](#tls-tlsmaxversion)
   - [`CipherSuites`](#tls-ciphersuites)
-  - [`SDS`](#tls-sds) 
+  - [`SDS`](#tls-sds)
 
 ### `TLS.Enabled`
 
 Enables and disables TLS for the configuration entry. Set to `true` to enable built-in TLS for every listener on the gateway. TLS is disabled by default.
 
-When enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN). 
+When enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN).
 
 #### Values
 
  - Default: `false`
- - Data type: boolean 
+ - Data type: boolean
 
 ### `TLS.TLSMinVersion`
 
@@ -523,7 +523,7 @@ Specifies the minimum TLS version supported for gateway listeners.
 
 - Default: Depends on the version of Envoy:
   - Envoy v1.22.0 and later: `TLSv1_2`
-  - Older versions: `TLSv1_0` 
+  - Older versions: `TLSv1_0`
 - Data type: String with one of the following values:
   - `TLS_AUTO`
   - `TLSv1_0`
@@ -558,21 +558,21 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 
 ### `TSL.SDS`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
 - [`Listeners.TLS.SDS`](#listeners-tls-sds): Configures SDS settings for all services in the listener.
-- [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds): Configures SDS settings for a specific service defined in the listener. 
+- [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds): Configures SDS settings for a specific service defined in the listener.
 
 #### Values
 
 - Default: None
-- Data type: Map containing the following fields: 
-  - `ClusterName` 
+- Data type: Map containing the following fields:
+  - `ClusterName`
   - `CertResource`
 
-The following table describes how to configure SDS parameters. 
+The following table describes how to configure SDS parameters.
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -588,13 +588,13 @@ Specifies default configurations for connecting upstream services.
 - Default: None
 - The data type is a map containing the following parameters:
 
-  - [`MaxConnnections`](#defaults-maxconnections)
+  - [`MaxConnections`](#defaults-maxconnections)
   - [`MaxPendingRequests`](#defaults-maxpendingrequests)
-  - [`MaxConcurrentRequests`](#defaults-maxconcurrentrequests)  
+  - [`MaxConcurrentRequests`](#defaults-maxconcurrentrequests)
 
 ### `Defaults.MaxConnections`
 
-Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream. 
+Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream.
 
 #### Values
 
@@ -603,7 +603,7 @@ Specifies the maximum number of HTTP/1.1 connections a service instance is allow
 
 ### `Defaults.MaxPendingRequests`
 
-Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol). 
+Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol).
 
 #### Values
 
@@ -612,7 +612,7 @@ Specifies the maximum number of requests that are allowed to queue while waiting
 
 ### `Defaults.MaxConcurrentRequests`
 
-Specifies the maximum number of concurrent HTTP/2 traffic requests that are allowed at a single point in time. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol). 
+Specifies the maximum number of concurrent HTTP/2 traffic requests that are allowed at a single point in time. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol).
 
 #### Values
 
@@ -621,7 +621,7 @@ Specifies the maximum number of concurrent HTTP/2 traffic requests that are allo
 
 ### `Defaults.PassiveHealthCheck`
 
-Defines a passive health check configuration. Passive health checks remove hosts from the upstream cluster when they are unreachable or return errors. 
+Defines a passive health check configuration. Passive health checks remove hosts from the upstream cluster when they are unreachable or return errors.
 
 #### Values
 
@@ -651,7 +651,7 @@ Specifies a list of listeners in the mesh for the gateway. Listeners are uniquel
 
 ### `Listeners[].Port`
 
-Specifies the port that the listener receives traffic on. The port is bound to the IP address specified in the [`-address`](/consul/commands/connect/envoy#address) flag when starting the gateway. The listener port must not conflict with the health check port. 
+Specifies the port that the listener receives traffic on. The port is bound to the IP address specified in the [`-address`](/consul/commands/connect/envoy#address) flag when starting the gateway. The listener port must not conflict with the health check port.
 
 #### Values
 
@@ -663,7 +663,7 @@ Specifies the port that the listener receives traffic on. The port is bound to t
 Specifies the protocol associated with the listener. To enable L7 network management capabilities, specify one of the following values:
 
 - `http`
-- `http2` 
+- `http2`
 - `grpc`
 
 #### Values
@@ -673,12 +673,12 @@ Specifies the protocol associated with the listener. To enable L7 network manage
 
   - `tcp`
   - `http`
-  - `http2` 
+  - `http2`
   - `grpc`
 
 ### `Listeners[].Services[]`
 
-Specifies a list of services that the listener exposes to services outside the mesh. Each service must have a unique name. The `Namespace` field is required for Consul Enterprise datacenters. If the [`Listeners.Protocol`] field is set to `tcp`, then Consul can only expose one service. You can expose multiple services if the listener uses any other supported protocol. 
+Specifies a list of services that the listener exposes to services outside the mesh. Each service must have a unique name. The `Namespace` field is required for Consul Enterprise datacenters. If the [`Listeners.Protocol`] field is set to `tcp`, then Consul can only expose one service. You can expose multiple services if the listener uses any other supported protocol.
 
 #### Values
 
@@ -711,7 +711,7 @@ Specifies the name of a service to expose to the listener. You can specify servi
 
 ### `Listeners[].Services[].Namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to use when resolving the location of the service. 
+Specifies the namespace to use when resolving the location of the service.
 
 #### Values
 
@@ -720,7 +720,7 @@ Specifies the namespace to use when resolving the location of the service.
 
 ### `Listeners[].Services[].Partition` <EnterpriseAlert inline/>
 
-Specifies the admin partition to use when resolving the location of the service. 
+Specifies the admin partition to use when resolving the location of the service.
 
 #### Values
 
@@ -729,18 +729,18 @@ Specifies the admin partition to use when resolving the location of the service.
 
 ### `Listeners[].Services[].Hosts[]`
 
-Specifies one or more hosts that the listening services can receive requests on. The ingress gateway proxies external traffic to the specified services when external requests include `host` headers that match a host specified in this field.  
+Specifies one or more hosts that the listening services can receive requests on. The ingress gateway proxies external traffic to the specified services when external requests include `host` headers that match a host specified in this field.
 
-If unspecified, Consul matches requests to services using the `<service>.ingress.*` domain. You cannot specify a host for listeners that communicate over TCP. You cannot specify a host when service names are specified with a `*` wildcard. Requests must include the correct host for Consul to proxy traffic to the service. 
+If unspecified, Consul matches requests to services using the `<service>.ingress.*` domain. You cannot specify a host for listeners that communicate over TCP. You cannot specify a host when service names are specified with a `*` wildcard. Requests must include the correct host for Consul to proxy traffic to the service.
 
-When TLS is disabled, you can use the `*` wildcard to match all hosts. Disabling TLS may be suitable for testing and learning purposes, but we recommend enabling TLS in production environments. 
+When TLS is disabled, you can use the `*` wildcard to match all hosts. Disabling TLS may be suitable for testing and learning purposes, but we recommend enabling TLS in production environments.
 
 You can use the wildcard in the left-most DNS label to match a set of hosts. For example, `*.example.com` is valid, but `example.*` and `*-suffix.example.com` are invalid.
 
 #### Values
 
 - Default: None
-- Data type: List of strings or `*` 
+- Data type: List of strings or `*`
 
 ### `Listeners[].Services[].RequestHeaders`
 
@@ -757,7 +757,7 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Data type | 
+| Rule | Description | Data type |
 | ---  | ---         | ---       |
 | `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
 | `Set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
@@ -782,7 +782,7 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Data type | 
+| Rule | Description | Data type |
 | ---  | ---         | ---       |
 | `Add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
 | `Set` | Defines a set of key-value pairs to add to the response header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
@@ -794,18 +794,18 @@ For `Add` and `Set`, if the service is configured to use Envoy as the proxy, the
 
 ### `Listeners[].Services[].TLS`
 
-Specifies a TLS configuration for a specific service. The settings in this configuration overrides the main [`TLS`](#tls) settings for the configuration entry. 
+Specifies a TLS configuration for a specific service. The settings in this configuration overrides the main [`TLS`](#tls) settings for the configuration entry.
 
 #### Values
 
 - Default: None
-- Data type: Map 
+- Data type: Map
 
 ### `Listeners[].Services[].TLS.SDS`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
-This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configuration entry. If unspecified, Consul applies the top-level [`TLS.SDS`](#tls-sds) settings. 
+This configuration overrides the main [`TLS.SDS`](#tls-sds) settings for configuration entry. If unspecified, Consul applies the top-level [`TLS.SDS`](#tls-sds) settings.
 
 #### Values
 
@@ -823,7 +823,7 @@ The following table describes how to configure SDS parameters. Refer to [Configu
 
 ### `Listeners[].Services[].MaxConnections`
 
-Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream. 
+Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream.
 
 When defined, this field overrides the [`Defaults.MaxConnections`](#defaults-maxconnections) configuration.
 
@@ -834,9 +834,9 @@ When defined, this field overrides the [`Defaults.MaxConnections`](#defaults-max
 
 ### `Listeners[].Services.MaxPendingRequests`
 
-Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. When defined, this field overrides the value specified in the [`Defaults.MaxPendingRequests`](#defaults-maxpendingrequests) field of the configuration entry.  
+Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. When defined, this field overrides the value specified in the [`Defaults.MaxPendingRequests`](#defaults-maxpendingrequests) field of the configuration entry.
 
-Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol) for more information. 
+Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol) for more information.
 
 #### Values
 
@@ -845,9 +845,9 @@ Listeners must use an L7 protocol for this configuration to take effect. Refer t
 
 ### `Listeners[].Services[].MaxConcurrentRequests`
 
-Specifies the maximum number of concurrent HTTP/2 traffic requests that the service is allowed at a single point in time. This field overrides the value set in the [`Defaults.MaxConcurrentRequests`](#defaults-maxconcurrentrequests) field of the configuration entry.  
+Specifies the maximum number of concurrent HTTP/2 traffic requests that the service is allowed at a single point in time. This field overrides the value set in the [`Defaults.MaxConcurrentRequests`](#defaults-maxconcurrentrequests) field of the configuration entry.
 
-Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol) for more information. 
+Listeners must use an L7 protocol for this configuration to take effect. Refer to [`Listeners.Protocol`](#listeners-protocol) for more information.
 
 #### Values
 
@@ -856,7 +856,7 @@ Listeners must use an L7 protocol for this configuration to take effect. Refer t
 
 ### `Listeners[].Services[].PassiveHealthCheck`
 
-Defines a passive health check configuration for the service. Passive health checks remove hosts from the upstream cluster when the service is unreachable or returns errors. This field overrides the value set in the [`Defaults.PassiveHealthCheck`](#defaults-passivehealthcheck) field of the configuration entry. 
+Defines a passive health check configuration for the service. Passive health checks remove hosts from the upstream cluster when the service is unreachable or returns errors. This field overrides the value set in the [`Defaults.PassiveHealthCheck`](#defaults-passivehealthcheck) field of the configuration entry.
 
 #### Values
 
@@ -873,7 +873,7 @@ The following table describes the configurations for passive health checks:
 
 ### `Listeners[].TLS`
 
-Specifies the TLS configuration for the listener. If unspecified, Consul applies any [service-specific TLS configurations](#listeners-services-tls). If neither the listener- nor service-specific TLS configurations are specified, Consul applies the main [`TLS`](#tls) settings for the configuration entry. 						
+Specifies the TLS configuration for the listener. If unspecified, Consul applies any [service-specific TLS configurations](#listeners-services-tls). If neither the listener- nor service-specific TLS configurations are specified, Consul applies the main [`TLS`](#tls) settings for the configuration entry.
 
 #### Values
 
@@ -887,12 +887,12 @@ Specifies the TLS configuration for the listener. If unspecified, Consul applies
 
 ### `Listeners[].TLS.Enabled`
 
-Set to `true` to enable built-in TLS for the listener. If enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN). 
+Set to `true` to enable built-in TLS for the listener. If enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN).
 
 #### Values
 
  - Default: `false`
- - Data type: boolean 
+ - Data type: boolean
 
 ### `Listeners[].TLS.TLSMinVersion`
 
@@ -902,7 +902,7 @@ Specifies the minimum TLS version supported for the listener.
 
 - Default: Depends on the version of Envoy:
   - Envoy v1.22.0 and later: `TLSv1_2`
-  - Older versions: `TLSv1_0` 
+  - Older versions: `TLSv1_0`
 - Data type: String with one of the following values:
   - `TLS_AUTO`
   - `TLSv1_0`
@@ -932,14 +932,14 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 #### Values
 
-- Default: None 
+- Default: None
 - Data type: List of string values. Refer to the [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169) for a list of supported ciphers.
 
 ### `Listeners[].TLS.SDS`
 
 Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
-Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `Listeners.TLS.SDS` configuration per service by configuring the  [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds) settings for each service. 
+Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `Listeners.TLS.SDS` configuration per service by configuring the  [`Listeners.Services.TLS.SDS`](#listeners-services-tls-sds) settings for each service.
 
 #### Values
 
@@ -963,7 +963,7 @@ Kubernetes-only parameter that specifies the version of the Consul API that the 
 
 ### `kind`
 
-Specifies the type of configuration entry to implement. Must be set to `IngressGatewa`.
+Specifies the type of configuration entry to implement. Must be set to `IngressGateway`.
 
 #### Values
 
@@ -973,7 +973,7 @@ Specifies the type of configuration entry to implement. Must be set to `IngressG
 
 ### `metadata`
 
-Specifies metadata for the gateway. 
+Specifies metadata for the gateway.
 
 #### Values
 
@@ -1001,7 +1001,7 @@ If unspecified, the ingress gateway is applied to the `default` namespace. You c
 
 #### Values
 
-- Default: `default`, 
+- Default: `default`,
 - Data type: String
 
 ### `spec`
@@ -1019,7 +1019,7 @@ Kubernetes-only field that contains all of the configurations for ingress gatewa
 
 ### `spec.tls`
 
-Specifies the TLS configuration settings for the gateway. 
+Specifies the TLS configuration settings for the gateway.
 
 #### Values
 
@@ -1029,18 +1029,18 @@ Specifies the TLS configuration settings for the gateway.
   - [`tlsMinVersion`](#spec-tls-tlsminversion)
   - [`tlsMaxVersion`](#spec-tls-tlsmaxversion)
   - [`cipherSuites`](#spec-tls-tlsciphersuites)
-  - [`sds`](#spec-tls-sds) 
+  - [`sds`](#spec-tls-sds)
 
 ### `spec.tls.enabled`
 
 Enables and disables TLS for the configuration entry. Set to `true` to enable built-in TLS for every listener on the gateway. TLS is disabled by default.
 
-When enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN). 
+When enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN).
 
 #### Values
 
  - Default: `false`
- - Data type: boolean 
+ - Data type: boolean
 
 ### `spec.tls.tlsMinVersion`
 
@@ -1050,7 +1050,7 @@ Specifies the minimum TLS version supported for gateway listeners.
 
 - Default: Depends on the version of Envoy:
   - Envoy v1.22.0 and later: `TLSv1_2`
-  - Older versions: `TLSv1_0` 
+  - Older versions: `TLSv1_0`
 - Data type: String with one of the following values:
   - `TLS_AUTO`
   - `TLSv1_0`
@@ -1085,21 +1085,21 @@ Specifies a list of cipher suites that gateway listeners support when negotiatin
 
 ### `spec.tls.sds`
 
-Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
+Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
 Consul applies the SDS configuration specified in this field as defaults for all listeners defined in the gateway. You can override the SDS settings for per listener or per service defined in the listener. Refer to the following configurations for additional information:
 
 - [`spec.listeners.tls.sds`](#spec-listeners-tls-sds): Configures SDS settings for all services in the listener.
-- [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds): Configures SDS settings for a specific service defined in the listener. 
+- [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds): Configures SDS settings for a specific service defined in the listener.
 
 #### Values
 
 - Default: None
-- Data type: Map containing the following fields: 
-  - [`clusterName`] 
+- Data type: Map containing the following fields:
+  - [`clusterName`]
   - [`certResource`]
 
-The following table describes how to configure SDS parameters. 
+The following table describes how to configure SDS parameters.
 
 | Parameter | Description | Data type |
 | ---       | ---         | ---       |
@@ -1115,9 +1115,9 @@ Specifies default configurations for upstream connections.
 - Default: None
 - The data type is a map containing the following parameters:
 
-  - [`maxConnnections`](#spec-defaults-maxconnections)
+  - [`maxConnections`](#spec-defaults-maxconnections)
   - [`maxPendingRequests`](#spec-defaults-maxpendingrequests)
-  - [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests)  
+  - [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests)
 
 ### `spec.defaults.maxConnections`
 
@@ -1130,7 +1130,7 @@ Specifies the maximum number of HTTP/1.1 connections a service instance is allow
 
 ### `spec.defaults.maxPendingRequests`
 
-Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.Protocol`](#spec-listeners-protocol). 
+Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.Protocol`](#spec-listeners-protocol).
 
 If unspecified, Consul uses Envoy's configuration. The default for Envoy is `1024`.
 
@@ -1141,7 +1141,7 @@ If unspecified, Consul uses Envoy's configuration. The default for Envoy is `102
 
 ### `spec.defaults.maxConcurrentRequests`
 
-Specifies the maximum number of concurrent HTTP/2 traffic requests that are allowed at a single point in time. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol). 
+Specifies the maximum number of concurrent HTTP/2 traffic requests that are allowed at a single point in time. Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol).
 
 If unspecified, Consul uses Envoy's configuration. The default for Envoy is `1024`.
 
@@ -1152,7 +1152,7 @@ If unspecified, Consul uses Envoy's configuration. The default for Envoy is `102
 
 ### `spec.defaults.passiveHealthCheck`
 
-Defines a passive health check configuration. Passive health checks remove hosts from the upstream cluster when they are unreachable or return errors. 
+Defines a passive health check configuration. Passive health checks remove hosts from the upstream cluster when they are unreachable or return errors.
 
 #### Values
 
@@ -1182,7 +1182,7 @@ Specifies a list of listeners in the mesh for the gateway. Listeners are uniquel
 
 ### `spec.listeners[].port`
 
-Specifies the port that the listener receives traffic on. The port is bound to the IP address specified in the [`-address`](/consul/commands/connect/envoy#address) flag when starting the gateway. The listener port must not conflict with the health check port. 
+Specifies the port that the listener receives traffic on. The port is bound to the IP address specified in the [`-address`](/consul/commands/connect/envoy#address) flag when starting the gateway. The listener port must not conflict with the health check port.
 
 #### Values
 
@@ -1194,7 +1194,7 @@ Specifies the port that the listener receives traffic on. The port is bound to t
 Specifies the protocol associated with the listener. To enable L7 network management capabilities, specify one of the following values:
 
 - `http`
-- `http2` 
+- `http2`
 - `grpc`
 
 #### Values
@@ -1204,12 +1204,12 @@ Specifies the protocol associated with the listener. To enable L7 network manage
 
   - `tcp`
   - `http`
-  - `http2` 
+  - `http2`
   - `grpc`
 
 ### `spec.listeners[].services[]`
 
-Specifies a list of services that the listener exposes to services outside the mesh. Each service must have a unique name. The `namespace` field is required for Consul Enterprise datacenters. If the listener's [`protocol`](#spec-listeners-protocol) field is set to `tcp`, then Consul can only expose one service. You can expose multiple services if the listener uses any other supported protocol. 
+Specifies a list of services that the listener exposes to services outside the mesh. Each service must have a unique name. The `namespace` field is required for Consul Enterprise datacenters. If the listener's [`protocol`](#spec-listeners-protocol) field is set to `tcp`, then Consul can only expose one service. You can expose multiple services if the listener uses any other supported protocol.
 
 #### Values
 
@@ -1232,7 +1232,7 @@ Specifies a list of services that the listener exposes to services outside the m
 Specifies the name of a service to expose to the listener. You can specify services in the following ways:
 
 - Provide the name of a service registered in the Consul catalog.
-- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/l7-traffic) for additional information. Refer to [HTTP listener with path-based routes](#http-listener-with-path-based-routes) for an example.  
+- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/l7-traffic) for additional information. Refer to [HTTP listener with path-based routes](#http-listener-with-path-based-routes) for an example.
 - Provide a `*` wildcard to expose all services in the datacenter. Wild cards are not supported for listeners configured for TCP. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for additional information.
 
 #### Values
@@ -1242,7 +1242,7 @@ Specifies the name of a service to expose to the listener. You can specify servi
 
 ### `spec.listeners[].services[].namespace` <EnterpriseAlert inline/>
 
-Specifies the namespace to use when resolving the location of the service. 
+Specifies the namespace to use when resolving the location of the service.
 
 #### Values
 
@@ -1251,7 +1251,7 @@ Specifies the namespace to use when resolving the location of the service.
 
 ### `spec.listeners[].services[].partition` <EnterpriseAlert inline/>
 
-Specifies the admin partition to use when resolving the location of the service. 
+Specifies the admin partition to use when resolving the location of the service.
 
 #### Values
 
@@ -1260,18 +1260,18 @@ Specifies the admin partition to use when resolving the location of the service.
 
 ### `spec.listeners[].services[].hosts[]`
 
-Specifies one or more hosts that the listening services can receive requests on. The ingress gateway proxies external traffic to the specified services when external requests include `host` headers that match a host specified in this field.  
+Specifies one or more hosts that the listening services can receive requests on. The ingress gateway proxies external traffic to the specified services when external requests include `host` headers that match a host specified in this field.
 
-If unspecified, Consul matches requests to services using the `<service>.ingress.*` domain. You cannot specify a host for listeners that communicate over TCP. You cannot specify a host when service names are specified with a `*` wildcard. Requests must include the correct host for Consul to proxy traffic to the service. 
+If unspecified, Consul matches requests to services using the `<service>.ingress.*` domain. You cannot specify a host for listeners that communicate over TCP. You cannot specify a host when service names are specified with a `*` wildcard. Requests must include the correct host for Consul to proxy traffic to the service.
 
-When TLS is disabled, you can use the `*` wildcard to match all hosts. Disabling TLS may be suitable for testing and learning purposes, but we recommend enabling TLS in production environments. 
+When TLS is disabled, you can use the `*` wildcard to match all hosts. Disabling TLS may be suitable for testing and learning purposes, but we recommend enabling TLS in production environments.
 
 You can use the wildcard in the left-most DNS label to match a set of hosts. For example, `*.example.com` is valid, but `example.*` and `*-suffix.example.com` are invalid.
 
 #### Values
 
 - Default: None
-- Data type: List of strings or `*` 
+- Data type: List of strings or `*`
 
 ### `spec.listeners[].services[].requestHeaders`
 
@@ -1288,7 +1288,7 @@ Specifies a set of HTTP-specific header modification rules applied to requests r
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Data type | 
+| Rule | Description | Data type |
 | ---  | ---         | ---       |
 | `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
@@ -1313,7 +1313,7 @@ Specifies a set of HTTP-specific header modification rules applied to responses 
 
 The following table describes how to configure values for request headers:
 
-| Rule | Description | Data type | 
+| Rule | Description | Data type |
 | ---  | ---         | ---       |
 | `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
@@ -1325,18 +1325,18 @@ For `add` and `set`, if the service is configured to use Envoy as the proxy, the
 
 ### `spec.listeners[].services[].tls`
 
-Specifies a TLS configuration for a specific service. The settings in this configuration overrides the main [`tls`](#spec.tls) settings for the configuration entry. 
+Specifies a TLS configuration for a specific service. The settings in this configuration overrides the main [`tls`](#spec.tls) settings for the configuration entry.
 
 #### Values
 
 - Default: None
-- Data type: Map 
+- Data type: Map
 
 ### `spec.listeners[].services[].tls.sds`
 
-Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information. 
+Specifies parameters that configure the listener to load TLS certificates from an external SDS. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
-If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured for the ingress gateway. If both are specified, this configuration overrides the settings for configuration entry. 
+If unspecified, Consul applies the [`sds`](#spec-tls-sds) settings configured for the ingress gateway. If both are specified, this configuration overrides the settings for configuration entry.
 
 #### Values
 
@@ -1355,7 +1355,7 @@ The following table describes how to configure SDS parameters. Refer to [Serve c
 
 ### `spec-listeners[].services[].maxConnections`
 
-Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream. 
+Specifies the maximum number of HTTP/1.1 connections a service instance is allowed to establish against the upstream.
 
 A value specified in this field overrides the [`maxConnections`](#spec-defaults-maxconnections) field specified in the `defaults` configuration.
 
@@ -1366,9 +1366,9 @@ A value specified in this field overrides the [`maxConnections`](#spec-defaults-
 
 ### `spec.listeners[].services.maxPendingRequests`
 
-Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. A value specified in this field overrides the [`maxPendingRequests`](#spec-defaults-maxpendingrequests) field specified in the `defaults` configuration.  
+Specifies the maximum number of requests that are allowed to queue while waiting to establish a connection. A value specified in this field overrides the [`maxPendingRequests`](#spec-defaults-maxpendingrequests) field specified in the `defaults` configuration.
 
-Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for more information. 
+Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for more information.
 
 #### Values
 
@@ -1377,9 +1377,9 @@ Listeners must use an L7 protocol for this configuration to take effect. Refer t
 
 ### `spec.listeners[].services[].maxConcurrentRequests`
 
-Specifies the maximum number of concurrent HTTP/2 traffic requests that the service is allowed at a single point in time. A value specified in this field overrides the [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests) field specified in the `defaults` configuration entry.  
+Specifies the maximum number of concurrent HTTP/2 traffic requests that the service is allowed at a single point in time. A value specified in this field overrides the [`maxConcurrentRequests`](#spec-defaults-maxconcurrentrequests) field specified in the `defaults` configuration entry.
 
-Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for more information. 
+Listeners must use an L7 protocol for this configuration to take effect. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for more information.
 
 #### Values
 
@@ -1388,7 +1388,7 @@ Listeners must use an L7 protocol for this configuration to take effect. Refer t
 
 ### `spec.listeners[].services[].passiveHealthCheck`
 
-Defines a passive health check configuration for the service. Passive health checks remove hosts from the upstream cluster when the service is unreachable or returns errors. Health checks specified for services override the health checks defined in the  [`spec.defaults.passiveHealthCheck`](#spec-defaults-passivehealthcheck) configuration. 
+Defines a passive health check configuration for the service. Passive health checks remove hosts from the upstream cluster when the service is unreachable or returns errors. Health checks specified for services override the health checks defined in the  [`spec.defaults.passiveHealthCheck`](#spec-defaults-passivehealthcheck) configuration.
 
 #### Values
 
@@ -1405,7 +1405,7 @@ The following table describes the configurations for passive health checks:
 
 ### `spec.listeners[].tls`
 
-Specifies the TLS configuration for the listener. If unspecified, Consul applies any [service-specific TLS configurations](#spec-listeners-services-tls). If neither the listener- nor service-specific TLS configurations are specified, Consul applies the main [`tls`](#tls) settings for the configuration entry. 						
+Specifies the TLS configuration for the listener. If unspecified, Consul applies any [service-specific TLS configurations](#spec-listeners-services-tls). If neither the listener- nor service-specific TLS configurations are specified, Consul applies the main [`tls`](#tls) settings for the configuration entry.
 
 #### Values
 
@@ -1419,12 +1419,12 @@ Specifies the TLS configuration for the listener. If unspecified, Consul applies
 
 ### `spec.listeners[].tls.enabled`
 
-Set to `true` to enable built-in TLS for the listener. If enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN). 
+Set to `true` to enable built-in TLS for the listener. If enabled, Consul adds each host defined in every service's `Hosts` field to the gateway's x509 certificate as a DNS subject alternative name (SAN).
 
 #### Values
 
  - Default: `false`
- - Data type: boolean 
+ - Data type: boolean
 
 ### `spec.listeners[].tls.tlsMinVersion`
 
@@ -1434,7 +1434,7 @@ Specifies the minimum TLS version supported for the listener.
 
 - Default: Depends on the version of Envoy:
   - Envoy v1.22.0 and later: `TLSv1_2`
-  - Older versions: `TLSv1_0` 
+  - Older versions: `TLSv1_0`
 - Data type: String with one of the following values:
   - `TLS_AUTO`
   - `TLSv1_0`
@@ -1464,20 +1464,20 @@ Specifies a list of cipher suites that the listener supports when negotiating co
 
 #### Values
 
-- Default: None 
+- Default: None
 - Data type: List of string values. Refer to the [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169) for a list of supported ciphers.
 
 ### `spec.listeners[].tls.sds`
 
 Specifies parameters for loading the TLS certificates from an external SDS service. Refer to [Serve custom TLS certificates from an external service](/consul/docs/connect/gateways/ingress-gateway/tls-external-service) for additional information.
 
-Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `spec.listeners[].tls.sds` configuration per service by configuring the  [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds) settings for each service. 
+Consul applies the SDS configuration specified in this field to all services in the listener. You can override the `spec.listeners[].tls.sds` configuration per service by configuring the  [`spec.listeners.services.tls.sds`](#spec-listeners-services-tls-sds) settings for each service.
 
 #### Values
 
 - Default: None
-- Data type: Map containing the following fields 
-  - `clusterName` 
+- Data type: Map containing the following fields
+  - `clusterName`
   - `certResource`
 
 The following table describes how to configure SDS parameters. Refer to [Configure static SDS clusters](/consul/docs/connect/gateways/ingress-gateway/tls-external-service#configure-static-sds-clusters) for usage information:
@@ -1493,9 +1493,9 @@ The following table describes how to configure SDS parameters. Refer to [Configu
 
 ## Examples
 
-Refer to the following examples for common ingress gateway configuration patterns:  
+Refer to the following examples for common ingress gateway configuration patterns:
 - [Define a TCP listener](#define-a-tcp-listener)
-- [Use wildcards to define listeners](#use-wilcards-to-define-an-http-listener)
+- [Use wildcards to define listeners](#use-wildcards-to-define-an-http-listener)
 - [HTTP listener with path-based routes](#http-listener-with-path-based-routes)
 
 ### Define a TCP listener

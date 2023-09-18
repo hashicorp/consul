@@ -87,7 +87,7 @@ func TestPeering_ControlPlaneMGW(t *testing.T) {
 		"upstream_cx_total", 1)
 	require.NoError(t, accepting.Gateway.Start())
 
-	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true, false)
+	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialingCluster.Servers()[0], libtopology.DialingPeerName, true, false, nil)
 	require.NoError(t, err)
 	_, port := clientSidecarService.GetAddr()
 	_, adminPort := clientSidecarService.GetAdminAddr()

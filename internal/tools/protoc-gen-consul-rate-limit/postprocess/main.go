@@ -56,16 +56,16 @@ func run(inputPaths []string, outputPath string) error {
 		return errors.New("-output path must end in .go")
 	}
 
-	oss, ent, err := collectSpecs(inputPaths)
+	ce, ent, err := collectSpecs(inputPaths)
 	if err != nil {
 		return err
 	}
 
-	ossSource, err := generateOSS(oss)
+	ceSource, err := generateCE(ce)
 	if err != nil {
 		return err
 	}
-	if err := os.WriteFile(outputPath, ossSource, 0666); err != nil {
+	if err := os.WriteFile(outputPath, ceSource, 0666); err != nil {
 		return fmt.Errorf("failed to write output file: %s - %w", outputPath, err)
 	}
 
@@ -181,19 +181,19 @@ func collectSpecs(inputPaths []string) ([]spec, []spec, error) {
 		return specs[a].MethodName < specs[b].MethodName
 	})
 
-	var oss, ent []spec
+	var ce, ent []spec
 	for _, spec := range specs {
 		if spec.Enterprise {
 			ent = append(ent, spec)
 		} else {
-			oss = append(oss, spec)
+			ce = append(ce, spec)
 		}
 	}
 
-	return oss, ent, nil
+	return ce, ent, nil
 }
 
-func generateOSS(specs []spec) ([]byte, error) {
+func generateCE(specs []spec) ([]byte, error) {
 	var output bytes.Buffer
 	output.WriteString(fileHeader)
 
@@ -206,7 +206,7 @@ func generateOSS(specs []spec) ([]byte, error) {
 
 	formatted, err := format.Source(output.Bytes())
 	if err != nil {
-		return nil, fmt.Errorf("failed to format source in oss: %w", err)
+		return nil, fmt.Errorf("failed to format source in ce: %w", err)
 	}
 	return formatted, nil
 }

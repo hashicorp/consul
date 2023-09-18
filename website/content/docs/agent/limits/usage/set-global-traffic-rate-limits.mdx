@@ -6,22 +6,22 @@ description: Use global rate limits to prevent excessive rates of requests to Co
 
 # Set a global limit on traffic rates
 
-This topic describes how to configure rate limits for RPC and gRPC traffic to the Consul server. 
+This topic describes how to configure rate limits for RPC and gRPC traffic to the Consul server.
 
-## Introduction 
+## Introduction
 
 Rate limits apply to each Consul server separately and limit the number of read requests or write requests to the server on the RPC and internal gRPC endpoints.
 
 Because all requests coming to a Consul server eventually perform an RPC or an internal gRPC request, global rate limits apply to Consul's user interfaces, such as the HTTP API interface, the CLI, and the external gRPC endpoint for services in the service mesh.
 
-Refer to [Initialize Rate Limit Settings](/consul/docs/agent/limits/init-rate-limits) for additional information about right-sizing your gRPC request configurations. 
+Refer to [Initialize Rate Limit Settings](/consul/docs/agent/limits/init-rate-limits) for additional information about right-sizing your gRPC request configurations.
 
-## Set a global rate limit for a Consul server   
+## Set a global rate limit for a Consul server
 
 Configure the following settings in your Consul server configuration to limit the RPC and gRPC traffic rates.
 
 - Set the rate limiter [`mode`](/consul/docs/agent/config/config-files#mode-1)
-- Set the [`read_rate`](/consul/docs/agent/config/config-files#read_rate) 
+- Set the [`read_rate`](/consul/docs/agent/config/config-files#read_rate)
 - Set the [`write_rate`](/consul/docs/agent/config/config-files#write_rate)
 
 In the following example, the Consul server is configured to prevent more than `500` read and `200` write RPC calls:
@@ -53,10 +53,10 @@ limits = {
 
 </CodeTabs>
 
-## Monitor request rate traffic 
+## Monitor request rate traffic
 
-You should continue to mmonitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits) for instructions about checking metrics and log entries, as well as troubleshooting informaiton.
+You should continue to monitor request traffic to ensure that request rates remain within the threshold you defined. Refer to [Monitor traffic rate limit data](/consul/docs/agent/limits/usage/monitor-rate-limits) for instructions about checking metrics and log entries, as well as troubleshooting information.
 
 ## Disable request rate limits
 
-Set the [limits.request_limits.mode](/consul/docs/agent/config/config-files#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specifed in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limits). Note that any other mode specified in the agent configuration only applies to global traffic rate limits. 
+Set the [`limits.request_limits.mode`](/consul/docs/agent/config/config-files#mode-1) to `disabled` to allow services to exceed the specified read and write requests limits, even limits specified in the [control plane request limits configuration entry](/consul/docs/connect/config-entries/control-plane-request-limit). Note that any other mode specified in the agent configuration only applies to global traffic rate limits. 
