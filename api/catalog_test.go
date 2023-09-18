@@ -222,7 +222,7 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 	t.Parallel()
-	meta := map[string]string{"somekey": "somevalue", "syntheticnode": "true"}
+	meta := map[string]string{"somekey": "somevalue", "synthetic": "true"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
 		conf.NodeName = "foobar"
@@ -231,7 +231,7 @@ func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 
 	catalog := c.Catalog()
 	retry.Run(t, func(r *retry.R) {
-		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true and NodeMeta.somekey == somevalue"})
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta[\"synthetic\"] == true and NodeMeta[\"somekey\"] == somevalue"})
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -244,7 +244,7 @@ func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
-		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true"})
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.synthetic == true"})
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -268,6 +268,20 @@ func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 		}
 
 		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.nope == nope"})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) != 0 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
