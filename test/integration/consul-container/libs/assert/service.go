@@ -216,7 +216,54 @@ func AssertFortioName(t *testing.T, urlbase string, name string, reqHost string)
 // client must be a custom http.Client
 func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHost string, client *http.Client) {
 	t.Helper()
-	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
+	foundName, err := FortioNameWithClient(t, urlbase, name, reqHost, client)
+	require.NoError(t, err)
+	t.Logf("got response from server name %q expect %q", foundName, name)
+	assert.Equal(t, name, foundName)
+}
+
+// WaitForFortioName is a convenience function for [WaitForFortioNameWithClient], using a [cleanhttp.DefaultClient()]
+func WaitForFortioName(t *testing.T, r retry.Retryer, urlbase string, name string, reqHost string) {
+	t.Helper()
+	client := cleanhttp.DefaultClient()
+	WaitForFortioNameWithClient(t, r, urlbase, name, reqHost, client)
+}
+
+// WaitForFortioNameWithClient enables waiting for FortioNameWithClient to return a specific
+// value. It uses the provided Retryer to wait for the expected name and only fails when
+// retries are exhausted.
+//
+// This is useful when performing failovers in tests and in other eventual consistency
+// scenarios that may take multiple seconds to resolve.
+//
+// Note that the underlying FortioNameWithClient has its own retry for successfully making
+// an HTTP request, which will be counted against the timeout of the provided Retryer if it
+// is a Timer, or incorporated into each attempt if it is a Counter.
+func WaitForFortioNameWithClient(t *testing.T, r retry.Retryer, urlbase string, name string, reqHost string, client *http.Client) {
+	t.Helper()
+	retry.RunWith(r, t, func(r *retry.R) {
+		actual, err := FortioNameWithClient(r, urlbase, name, reqHost, client)
+		require.NoError(r, err)
+		if name != actual {
+			r.Errorf("name %s did not match expected %s", name, actual)
+		}
+	})
+}
+
+// FortioNameWithClient returns the `FORTIO_NAME` returned by the fortio service at
+// urlbase/debug. This can be used to validate that the client is sending traffic to
+// the right envoy proxy.
+//
+// If reqHost is set, the Host field of the HTTP request will be set to its value.
+//
+// It retries with timeout defaultHTTPTimeout and wait defaultHTTPWait.
+//
+// client must be a custom http.Client
+func FortioNameWithClient(t retry.Failer, urlbase string, name string, reqHost string, client *http.Client) (string, error) {
+	t.Helper()
+	var fortioNameRE = regexp.MustCompile("\nFORTIO_NAME=(.+)\n")
+	var body []byte
+
 	retry.RunWith(&retry.Timer{Timeout: defaultHTTPTimeout, Wait: defaultHTTPWait}, t, func(r *retry.R) {
 		fullurl := fmt.Sprintf("%s/debug?env=dump", urlbase)
 		req, err := http.NewRequest("GET", fullurl, nil)
@@ -236,16 +283,17 @@ func AssertFortioNameWithClient(t *testing.T, urlbase string, name string, reqHo
 			r.Fatalf("could not make request to %q: status %d", fullurl, resp.StatusCode)
 		}
 
-		body, err := io.ReadAll(resp.Body)
+		body, err = io.ReadAll(resp.Body)
 		if err != nil {
 			r.Fatalf("failed to read response body from %q: %v", fullurl, err)
 		}
-
-		m := fortioNameRE.FindStringSubmatch(string(body))
-		require.GreaterOrEqual(r, len(m), 2)
-		t.Logf("got response from server name %q expect %q", m[1], name)
-		assert.Equal(r, name, m[1])
 	})
+
+	m := fortioNameRE.FindStringSubmatch(string(body))
+	if len(m) < 2 {
+		return "", fmt.Errorf("fortio name not found %s", name)
+	}
+	return m[1], nil
 }
 
 // AssertContainerState validates service container status

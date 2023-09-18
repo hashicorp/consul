@@ -11,7 +11,7 @@ through in your PR description**.
 
 Examples of special cases this doesn't cover are:
  - If the config needs special treatment like a different default in `-dev` mode
-   or differences between OSS and Enterprise.
+   or differences between CE and Enterprise.
  - If custom logic is needed to support backwards compatibility when changing
    syntax or semantics of anything
 

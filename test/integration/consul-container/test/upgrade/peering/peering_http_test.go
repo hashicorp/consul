@@ -7,10 +7,12 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
@@ -83,13 +85,13 @@ func TestPeering_HTTPRouter(t *testing.T) {
 	}
 	require.NoError(t, acceptingCluster.ConfigEntryWrite(routerConfigEntry))
 	_, appPort := dialing.Container.GetAddr()
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d/static-server-2", appPort), "static-server-2", "")
+	libassert.WaitForFortioName(t, retry.ThirtySeconds(), fmt.Sprintf("http://localhost:%d/static-server-2", appPort), "static-server-2", "")
 
 	peeringUpgrade(t, accepting, dialing, utils.TargetVersion)
 
 	peeringPostUpgradeValidation(t, dialing)
 	// TODO: restart static-server-2's sidecar
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d/static-server-2", appPort), "static-server-2", "")
+	libassert.WaitForFortioName(t, retry.ThirtySeconds(), fmt.Sprintf("http://localhost:%d/static-server-2", appPort), "static-server-2", "")
 }
 
 // Verify resolver and failover can direct traffic to server in peered cluster
@@ -171,11 +173,12 @@ func TestPeering_HTTPResolverAndFailover(t *testing.T) {
 
 	assertionAdditionalResources := func() {
 		// assert traffic can fail-over to static-server in peered cluster and restor to local static-server
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
+		// timeouts in this segment of the test reflect previously implicit retries in fortio name assertions for parity
+		libassert.WaitForFortioName(t, &retry.Timer{Timeout: 2 * time.Minute, Wait: 500 * time.Millisecond}, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 		require.NoError(t, serverConnectProxy.Stop())
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), libservice.StaticServerServiceName, "")
+		libassert.WaitForFortioName(t, &retry.Timer{Timeout: 2 * time.Minute, Wait: 500 * time.Millisecond}, fmt.Sprintf("http://localhost:%d", appPorts[0]), libservice.StaticServerServiceName, "")
 		require.NoError(t, serverConnectProxy.Start())
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
+		libassert.WaitForFortioName(t, &retry.Timer{Timeout: 2 * time.Minute, Wait: 500 * time.Millisecond}, fmt.Sprintf("http://localhost:%d", appPorts[0]), "static-server-dialing", "")
 
 		// assert peer-static-server resolves to static-server in peered cluster
 		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPorts[1]), libservice.StaticServerServiceName, "")
@@ -352,7 +355,7 @@ func peeringUpgrade(t *testing.T, accepting, dialing *libtopology.BuiltCluster, 
 func peeringPostUpgradeValidation(t *testing.T, dialing *libtopology.BuiltCluster) {
 	t.Helper()
 
-	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialing.Cluster.Servers()[0], libtopology.DialingPeerName, true, false)
+	clientSidecarService, err := libservice.CreateAndRegisterStaticClientSidecar(dialing.Cluster.Servers()[0], libtopology.DialingPeerName, true, false, nil)
 	require.NoError(t, err)
 	_, port := clientSidecarService.GetAddr()
 	_, adminPort := clientSidecarService.GetAdminAddr()
