@@ -39,6 +39,25 @@ func (w *Workload) GetNonExternalAddressesForPort(portName string) []*WorkloadAd
 	return addresses
 }
 
+func (w *Workload) GetFirstNonExternalMeshAddress() *WorkloadAddress {
+	// Find mesh port.
+	meshPort, ok := w.GetMeshPortName()
+	if !ok {
+		return nil
+	}
+
+	// Check if the workload has a specific address for the mesh port.
+	meshAddresses := w.GetNonExternalAddressesForPort(meshPort)
+
+	// If there are no mesh addresses, return. This should be impossible.
+	if len(meshAddresses) == 0 {
+		return nil
+	}
+
+	// If there are more than one mesh address, use the first one in the list.
+	return meshAddresses[0]
+}
+
 func (w *Workload) GetPortsByProtocol() map[Protocol][]string {
 	if w == nil {
 		return nil

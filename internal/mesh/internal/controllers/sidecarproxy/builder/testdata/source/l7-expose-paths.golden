@@ -1,0 +1,201 @@
+{
+  "proxyState": {
+    "clusters": {
+      "exposed_cluster_9090": {
+        "endpointGroup": {
+          "static": {}
+        },
+        "name": "exposed_cluster_9090"
+      },
+      "exposed_cluster_9091": {
+        "endpointGroup": {
+          "static": {}
+        },
+        "name": "exposed_cluster_9091"
+      },
+      "local_app:port1": {
+        "endpointGroup": {
+          "static": {}
+        },
+        "name": "local_app:port1"
+      }
+    },
+    "endpoints": {
+      "exposed_cluster_9090": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 9090
+            }
+          }
+        ]
+      },
+      "exposed_cluster_9091": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 9091
+            }
+          }
+        ]
+      },
+      "local_app:port1": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 8080
+            }
+          }
+        ]
+      }
+    },
+    "identity": {
+      "name": "test-identity",
+      "tenancy": {
+        "namespace": "default",
+        "partition": "default",
+        "peerName": "local"
+      }
+    },
+    "listeners": [
+      {
+        "capabilities": [
+          "CAPABILITY_L4_TLS_INSPECTION"
+        ],
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 20000
+        },
+        "name": "public_listener",
+        "routers": [
+          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
+            "l4": {
+              "cluster": {
+                "name": "local_app:port1"
+              },
+              "statPrefix": "public_listener",
+              "trafficPermissions": {}
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~port1"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 9090
+        },
+        "name": "exposed_path_health",
+        "routers": [
+          {
+            "l7": {
+              "name": "exposed_path_filter_health_1234",
+              "statPrefix": "exposed_path_filter_health_1234",
+              "staticRoute": true
+            }
+          }
+        ]
+      },
+      {
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 9091
+        },
+        "name": "exposed_path_GetHealth",
+        "routers": [
+          {
+            "l7": {
+              "name": "exposed_path_filter_GetHealth_1235",
+              "protocol": "L7_PROTOCOL_HTTP2",
+              "statPrefix": "exposed_path_filter_GetHealth_1235",
+              "staticRoute": true
+            }
+          }
+        ]
+      }
+    ],
+    "routes": {
+      "exposed_path_filter_GetHealth_1235": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "exposed_path_filter_GetHealth_1235",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "exposed_cluster_9091"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "exact": "GetHealth"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "exposed_path_filter_health_1234": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "exposed_path_filter_health_1234",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "exposed_cluster_9090"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "exact": "/health"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "trafficPermissionDefaultAllow": true
+  },
+  "requiredLeafCertificates": {
+    "test-identity": {
+      "name": "test-identity",
+      "namespace": "default",
+      "partition": "default"
+    }
+  },
+  "requiredTrustBundles": {
+    "local": {
+      "peer": "local"
+    }
+  }
+}
