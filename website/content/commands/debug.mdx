@@ -1,6 +1,8 @@
 ---
 layout: commands
 page_title: 'Commands: Debug'
+description: >-
+  The `consul debug` command monitors an agent to capture a record its actions according to defined durations and intervals.
 ---
 
 # Consul Debug
@@ -117,5 +119,13 @@ and `-duration` flags.
 
 ```shell-session
 $ consul debug -interval=15s -duration=1m
+...
+```
+
+To capture information since a particular time in past `-since` flag
+can be used.
+
+```shell-sesion
+$ consul debug -since 1h
 ...
 ```
