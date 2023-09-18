@@ -4,7 +4,7 @@
 //go:build !consulent
 // +build !consulent
 
-package consul
+package resource
 
 func (b *V2TenancyBridge) PartitionExists(partition string) (bool, error) {
 	if partition == "default" {
