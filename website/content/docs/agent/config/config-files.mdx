@@ -263,8 +263,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
-    use when making the outbound connection. If not port is provided the `server_port`
+    [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
+    use when making the outbound connection. If no port is provided, the `server_port`
     will be used.
 
   - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
