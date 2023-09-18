@@ -98,5 +98,5 @@ func TestTemplatedPolicyListCommand_JSON(t *testing.T) {
 	err := json.Unmarshal([]byte(output), &jsonOutput)
 	assert.NoError(t, err)
 	outputTemplate := jsonOutput[api.ACLTemplatedPolicyDNSName]
-	assert.Equal(t, structs.ACLTemplatedPolicyDNSSchema, outputTemplate.Schema)
+	assert.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, outputTemplate.Schema)
 }
