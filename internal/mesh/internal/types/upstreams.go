@@ -38,15 +38,15 @@ func RegisterUpstreams(r resource.Registry) {
 }
 
 func MutateUpstreams(res *pbresource.Resource) error {
-	var route pbmesh.Upstreams
+	var destinations pbmesh.Upstreams
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
+	if err := res.Data.UnmarshalTo(&destinations); err != nil {
+		return resource.NewErrDataParse(&destinations, err)
 	}
 
 	changed := false
 
-	for _, dest := range route.Upstreams {
+	for _, dest := range destinations.Upstreams {
 		if dest.DestinationRef.Tenancy != nil && !isLocalPeer(dest.DestinationRef.Tenancy.PeerName) {
 			// TODO(peering/v2): remove this bypass when we know what to do with
 			// non-local peer references.
@@ -68,7 +68,7 @@ func MutateUpstreams(res *pbresource.Resource) error {
 		return nil
 	}
 
-	return res.Data.MarshalFrom(&route)
+	return res.Data.MarshalFrom(&destinations)
 }
 
 func isLocalPeer(p string) bool {
@@ -76,15 +76,15 @@ func isLocalPeer(p string) bool {
 }
 
 func ValidateUpstreams(res *pbresource.Resource) error {
-	var route pbmesh.Upstreams
+	var destinations pbmesh.Upstreams
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
+	if err := res.Data.UnmarshalTo(&destinations); err != nil {
+		return resource.NewErrDataParse(&destinations, err)
 	}
 
 	var merr error
 
-	for i, dest := range route.Upstreams {
+	for i, dest := range destinations.Upstreams {
 		wrapDestErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "upstreams",
@@ -105,6 +105,7 @@ func ValidateUpstreams(res *pbresource.Resource) error {
 		}
 
 		// TODO(v2): validate port name using catalog validator
+		// TODO(v2): validate ListenAddr
 	}
 
 	// TODO(v2): validate workload selectors
