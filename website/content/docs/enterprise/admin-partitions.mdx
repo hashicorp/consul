@@ -53,7 +53,12 @@ Only resources in the `default` admin partition will be replicated to secondary 
 
 ### DNS Queries
 
-Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for the admin partition within the scope of the client.
+When queried, the DNS interface returns results for a single admin partition.
+The query may explicitly specify the admin partition to use in the lookup.
+If you do not specify an admin partition in the query,
+the lookup uses the admin partition of the Consul agent that received the query.
+Server agents always exist within the `default` admin partition.
+Client agents are configured to operate within a specific admin partition.
 
 ### Service Mesh Configurations
 
