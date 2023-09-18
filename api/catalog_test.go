@@ -4,6 +4,7 @@
 package api
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -220,7 +221,7 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
+func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 	t.Parallel()
 	c, s := makeClientWithConfig(t, nil, nil)
 	defer s.Stop()
@@ -238,7 +239,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		Node:           "foobar0",
 		Service:        service0,
 		SkipNodeUpdate: true,
-		NodeMeta:       map[string]string{"somekey": "somevalue", "synthetic-node": "true"},
+		NodeMeta:       map[string]string{"somekey": "somevalue", "syntheticnode": "true"},
 	}
 
 	service1 := &AgentService{
@@ -283,7 +284,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		Node:       "foobar3",
 		Address:    "192.168.10.10",
 		Service:    service3,
-		NodeMeta:   map[string]string{"synthetic-node": "true", "somekey": "somevalue"},
+		NodeMeta:   map[string]string{"syntheticnode": "true", "somekey": "somevalue"},
 	}
 
 	proxyReg := testUnmanagedProxyRegistration(t)
@@ -307,17 +308,18 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		if _, err := catalog.Register(reg3, nil); err != nil {
 			r.Fatal(err)
 		}
-		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"somekey": "somevalue"}})
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true and NodeMeta.somekey == somevalue"})
 		if err != nil {
 			r.Fatal(err)
 		}
 		delete(services, "consul")
+		fmt.Println(services)
 
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 3 {
+		if len(services) != 2 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
@@ -336,7 +338,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		if _, err := catalog.Register(reg3, nil); err != nil {
 			r.Fatal(err)
 		}
-		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"synthetic-node": "true"}})
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true"})
 		if err != nil {
 			r.Fatal(err)
 		}
@@ -364,7 +366,7 @@ func TestAPI_CatalogServices_NodeMetaFilterFix(t *testing.T) {
 		if _, err := catalog.Register(reg3, nil); err != nil {
 			r.Fatal(err)
 		}
-		services, meta, err := catalog.Services(&QueryOptions{NodeMeta: map[string]string{"key": "value"}})
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.key == value"})
 		delete(services, "consul")
 		if err != nil {
 			r.Fatal(err)
