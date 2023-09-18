@@ -1,4 +1,4 @@
 ```release-note:bug
-catalog api: fix a bug with catalog api where filter query parameter was not working correctly. endpoint fixed -
+catalog api: fixes a bug with catalog api where filter query parameter was not working correctly for the `/v1/catalog/services` endpoint
 /v1/catalog/services
 ```
