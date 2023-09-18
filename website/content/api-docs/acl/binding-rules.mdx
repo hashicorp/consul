@@ -62,37 +62,62 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
   - `BindType=service` - The computed bind name value is used as an
     `ACLServiceIdentity.ServiceName` field in the token that is created.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "ServiceIdentities": [
-            { "ServiceName": "<computed BindName>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "ServiceIdentities": [
+        {
+          "ServiceName": "<computed BindName>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
   - `BindType=node` - The computed bind name value is used as an
     `ACLNodeIdentity.NodeName` field in the token that is created.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "NodeIdentities": [
-            { "NodeName": "<computed BindName>", "Datacenter": "<local datacenter>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "NodeIdentities": [
+        {
+          "NodeName": "<computed BindName>",
+          "Datacenter": "<local datacenter>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
   - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
     role with the given name exists at login-time. If it does not then this
     rule is ignored.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "Roles": [
-            { "Name": "<computed BindName>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "Roles": [
+        {
+          "Name": "<computed BindName>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time. What it binds to can be adjusted with different values of the
@@ -250,37 +275,62 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
   - `BindType=service` - The computed bind name value is used as an
     `ACLServiceIdentity.ServiceName` field in the token that is created.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "ServiceIdentities": [
-            { "ServiceName": "<computed BindName>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "ServiceIdentities": [
+        {
+          "ServiceName": "<computed BindName>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
   - `BindType=node` - The computed bind name value is used as an
     `ACLNodeIdentity.NodeName` field in the token that is created.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "NodeIdentities": [
-            { "NodeName": "<computed BindName>", "Datacenter": "<local datacenter>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "NodeIdentities": [
+        {
+          "NodeName": "<computed BindName>",
+          "Datacenter": "<local datacenter>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
   - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
     role with the given name exists at login-time. If it does not then this
     rule is ignored.
 
+    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
+
     ```json
-    { ...other fields...
-        "Roles": [
-            { "Name": "<computed BindName>" }
-        ]
+    {
+      "AccessorID": "<token accessor ID>",
+      "SecretID": "<token secret ID>",
+      "Roles": [
+        {
+          "Name": "<computed BindName>"
+        }
+      ]
     }
     ```
+
+    </CodeBlockConfig>
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time. What it binds to can be adjusted with different values of the
