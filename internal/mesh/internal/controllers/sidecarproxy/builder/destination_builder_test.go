@@ -5,8 +5,11 @@ package builder
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
@@ -130,6 +133,19 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Tenancy: backup1Endpoints.Id.Tenancy,
 	}
 
+	api1DestPolicy := resourcetest.Resource(types.DestinationPolicyType, api1Service.Id.Name).
+		WithTenancy(api1Service.Id.GetTenancy()).
+		WithData(t, &pbmesh.DestinationPolicy{
+			PortConfigs: map[string]*pbmesh.DestinationConfig{
+				"http": {
+					ConnectTimeout: durationpb.New(55 * time.Second),
+					RequestTimeout: durationpb.New(77 * time.Second),
+					// LoadBalancer *LoadBalancer `protobuf:"bytes,3,opt,name=load_balancer,json=loadBalancer,proto3" json:"load_balancer,omitempty"`
+				},
+			},
+		}).
+		Build()
+
 	api1HTTPRoute := resourcetest.Resource(types.HTTPRouteType, "api-1-http-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbmesh.HTTPRoute{
@@ -137,28 +153,56 @@ func TestBuildExplicitDestinations(t *testing.T) {
 				Ref:  resource.Reference(api1Service.Id, ""),
 				Port: "http",
 			}},
-			Rules: []*pbmesh.HTTPRouteRule{{
-				BackendRefs: []*pbmesh.HTTPBackendRef{
-					{
-						BackendRef: &pbmesh.BackendReference{
-							Ref: resource.Reference(api2Service.Id, ""),
+			Rules: []*pbmesh.HTTPRouteRule{
+				{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/split",
 						},
-						Weight: 60,
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api2Service.Id, ""),
+							},
+							Weight: 60,
+						},
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api1Service.Id, ""),
+							},
+							Weight: 40,
+						},
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api3Service.Id, ""),
+							},
+							Weight: 10,
+						},
 					},
-					{
+				},
+				{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
 						BackendRef: &pbmesh.BackendReference{
 							Ref: resource.Reference(api1Service.Id, ""),
 						},
-						Weight: 40,
+					}},
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						Request: durationpb.New(606 * time.Second), // differnet than the 77s
 					},
-					{
-						BackendRef: &pbmesh.BackendReference{
-							Ref: resource.Reference(api3Service.Id, ""),
-						},
-						Weight: 10,
+					Retries: &pbmesh.HTTPRouteRetries{
+						Number:           wrapperspb.UInt32(4),
+						OnConnectFailure: true,
 					},
 				},
-			}},
+			},
 		}).
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1HTTPRoute)
@@ -249,6 +293,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
 		resourcetest.MustDecode[*pbcatalog.Service](t, backup1Service),
 		// notably we do NOT include api3Service here so we trigger a null route to be generated
+		resourcetest.MustDecode[*pbmesh.DestinationPolicy](t, api1DestPolicy),
 		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
 		resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),

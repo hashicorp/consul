@@ -111,6 +111,36 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 				))
 			}
 
+			if target.DestinationConfig == nil {
+				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
+					Name:    "destination_config",
+					Wrapped: resource.ErrMissing,
+				}))
+			} else {
+				wrapDestConfigErr := func(err error) error {
+					return wrapTargetErr(resource.ErrInvalidField{
+						Name:    "destination_config",
+						Wrapped: err,
+					})
+				}
+
+				destConfig := target.DestinationConfig
+				if destConfig.ConnectTimeout == nil {
+					merr = multierror.Append(merr, wrapDestConfigErr(resource.ErrInvalidField{
+						Name:    "connect_timeout",
+						Wrapped: resource.ErrMissing,
+					}))
+				} else {
+					connectTimeout := destConfig.ConnectTimeout.AsDuration()
+					if connectTimeout < 0 {
+						merr = multierror.Append(merr, wrapDestConfigErr(resource.ErrInvalidField{
+							Name:    "connect_timeout",
+							Wrapped: errTimeoutCannotBeNegative(connectTimeout),
+						}))
+					}
+				}
+			}
+
 			if target.MeshPort == "" {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
 					Name:    "mesh_port",

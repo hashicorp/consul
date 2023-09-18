@@ -733,6 +733,29 @@ func TestValidateHTTPRoute(t *testing.T) {
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid element at index 0 of list "filters": exactly one of request_header_modifier, response_header_modifier, or url_rewrite`,
 		},
+		"filter req+rewrite on two rules is not allowed": {
+			route: &pbmesh.HTTPRoute{
+				ParentRefs: []*pbmesh.ParentReference{
+					newParentRef(catalog.ServiceType, "web", ""),
+				},
+				Rules: []*pbmesh.HTTPRouteRule{{
+					Filters: []*pbmesh.HTTPRouteFilter{
+						{
+							RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
+						},
+						{
+							UrlRewrite: &pbmesh.HTTPURLRewriteFilter{
+								PathPrefix: "/blah",
+							},
+						},
+					},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+					}},
+				}},
+			},
+			expectErr: `invalid element at index 0 of list "rules": exactly one of request_header_modifier or url_rewrite can be set at a time`,
+		},
 		"filter req+resp+rewrite header mod is bad": {
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
@@ -1081,12 +1104,6 @@ func getXRouteTimeoutsTestCases() map[string]xRouteTimeoutsTestcase {
 			},
 			expectErr: `invalid element at index 0 of list "rules": invalid "timeouts" field: invalid "request" field: timeout cannot be negative: -1s`,
 		},
-		"bad backend request": {
-			timeouts: &pbmesh.HTTPRouteTimeouts{
-				BackendRequest: durationpb.New(-1 * time.Second),
-			},
-			expectErr: `invalid element at index 0 of list "rules": invalid "timeouts" field: invalid "backend_request" field: timeout cannot be negative: -1s`,
-		},
 		"bad idle": {
 			timeouts: &pbmesh.HTTPRouteTimeouts{
 				Idle: durationpb.New(-1 * time.Second),
@@ -1095,9 +1112,8 @@ func getXRouteTimeoutsTestCases() map[string]xRouteTimeoutsTestcase {
 		},
 		"good all": {
 			timeouts: &pbmesh.HTTPRouteTimeouts{
-				Request:        durationpb.New(1 * time.Second),
-				BackendRequest: durationpb.New(2 * time.Second),
-				Idle:           durationpb.New(3 * time.Second),
+				Request: durationpb.New(1 * time.Second),
+				Idle:    durationpb.New(3 * time.Second),
 			},
 		},
 	}

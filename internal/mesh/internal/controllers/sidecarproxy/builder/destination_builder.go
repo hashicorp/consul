@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
+	"github.com/hashicorp/consul/internal/protoutil"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
@@ -109,6 +109,8 @@ func (b *Builder) buildDestination(
 				}
 			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
+			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
 
 			dest := b.makeHTTPRouteDestination(
 				routeRule.BackendRefs,
@@ -117,17 +119,14 @@ func (b *Builder) buildDestination(
 				defaultDC,
 			)
 
-			// TODO(rb/v2): Filters     []*HTTPRouteFilter
-			// TODO(rb/v2): BackendRefs []*ComputedHTTPBackendRef
-
 			// Explode out by matches
 			for _, match := range routeRule.Matches {
 				routeMatch := makeHTTPRouteMatch(match)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
-					Match:       routeMatch,
-					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
-					// TODO: mutations
+					Match:           routeMatch,
+					Destination:     protoutil.Clone(dest),
+					HeaderMutations: protoutil.CloneSlice(headerMutations),
 				})
 			}
 		}
@@ -153,6 +152,8 @@ func (b *Builder) buildDestination(
 				}
 			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
+			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
 
 			// nolint:staticcheck
 			dest := b.makeGRPCRouteDestination(
@@ -162,16 +163,14 @@ func (b *Builder) buildDestination(
 				defaultDC,
 			)
 
-			// TODO(rb/v2): Filters     []*HTTPRouteFilter
-
 			// Explode out by matches
 			for _, match := range routeRule.Matches {
 				routeMatch := makeGRPCRouteMatch(match)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
-					Match:       routeMatch,
-					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
-					// TODO: mutations
+					Match:           routeMatch,
+					Destination:     protoutil.Clone(dest),
+					HeaderMutations: protoutil.CloneSlice(headerMutations),
 				})
 			}
 		}
@@ -267,7 +266,8 @@ func (b *Builder) buildDestination(
 			continue
 		}
 
-		connectTimeout := durationpb.New(5 * time.Second)
+		connectTimeout := details.DestinationConfig.ConnectTimeout
+		loadBalancer := details.DestinationConfig.LoadBalancer
 
 		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		dc := defaultDC(details.BackendRef.Datacenter)
@@ -280,7 +280,7 @@ func (b *Builder) buildDestination(
 		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
-		egBase := b.newClusterEndpointGroup("", sni, portName, details.IdentityRefs, connectTimeout)
+		egBase := b.newClusterEndpointGroup("", sni, portName, details.IdentityRefs, connectTimeout, loadBalancer)
 
 		var endpointGroups []*pbproxystate.EndpointGroup
 
@@ -301,6 +301,9 @@ func (b *Builder) buildDestination(
 					continue // not possible
 				}
 
+				destConnectTimeout := destDetails.DestinationConfig.ConnectTimeout
+				destLoadBalancer := destDetails.DestinationConfig.LoadBalancer
+
 				destDC := defaultDC(destDetails.BackendRef.Datacenter)
 				destPortName := destDetails.BackendRef.Port
 
@@ -311,7 +314,7 @@ func (b *Builder) buildDestination(
 				)
 				destClusterName := fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, i, clusterName)
 
-				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, connectTimeout)
+				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
 
 				endpointGroups = append(endpointGroups, egDest)
 				b.addEndpointsRef(destClusterName, destDetails.ServiceEndpointsId, destDetails.MeshPort)
@@ -389,7 +392,7 @@ func (b *ListenerBuilder) addL4RouterForSplit(
 				},
 			},
 			StatPrefix: statPrefix,
-			// TODO: can we use RDS for TCPRoute split?
+			// TODO(rb/v2): can we use RDS for TCPRoute split?
 		},
 	}
 
@@ -565,24 +568,71 @@ func (b *Builder) newClusterEndpointGroup(
 	portName string,
 	destinationIdentities []*pbresource.Reference,
 	connectTimeout *durationpb.Duration,
+	loadBalancer *pbmesh.LoadBalancer,
 ) *pbproxystate.EndpointGroup {
 	var spiffeIDs []string
 	for _, identity := range destinationIdentities {
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDFromIdentityRef(b.trustDomain, identity))
 	}
 
-	// TODO(v2): DestinationPolicy: connect timeout, lb policy, cluster discovery type, circuit breakers, outlier detection
+	// TODO(v2): DestinationPolicy: circuit breakers, outlier detection
 
 	// TODO(v2): if http2/grpc then set http2protocol options
+
+	degConfig := &pbproxystate.DynamicEndpointGroupConfig{
+		DisablePanicThreshold: true,
+		ConnectTimeout:        connectTimeout,
+	}
+
+	if loadBalancer != nil {
+		// enumcover:pbmesh.LoadBalancerPolicy
+		switch loadBalancer.Policy {
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RANDOM:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_Random{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_ROUND_ROBIN:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_RoundRobin{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_LEAST_REQUEST:
+			var choiceCount uint32
+			cfg, ok := loadBalancer.Config.(*pbmesh.LoadBalancer_LeastRequestConfig)
+			if ok {
+				choiceCount = cfg.LeastRequestConfig.GetChoiceCount()
+			}
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_LeastRequest{
+				LeastRequest: &pbproxystate.LBPolicyLeastRequest{
+					ChoiceCount: wrapperspb.UInt32(choiceCount),
+				},
+			}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_MAGLEV:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_Maglev{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RING_HASH:
+			policy := &pbproxystate.DynamicEndpointGroupConfig_RingHash{}
+
+			cfg, ok := loadBalancer.Config.(*pbmesh.LoadBalancer_RingHashConfig)
+			if ok {
+				policy.RingHash = &pbproxystate.LBPolicyRingHash{
+					MinimumRingSize: wrapperspb.UInt64(cfg.RingHashConfig.MinimumRingSize),
+					MaximumRingSize: wrapperspb.UInt64(cfg.RingHashConfig.MaximumRingSize),
+				}
+			}
+
+			degConfig.LbPolicy = policy
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_UNSPECIFIED:
+			// fallthrough to default
+		default:
+			// do nothing
+		}
+	}
 
 	return &pbproxystate.EndpointGroup{
 		Name: clusterName,
 		Group: &pbproxystate.EndpointGroup_Dynamic{
 			Dynamic: &pbproxystate.DynamicEndpointGroup{
-				Config: &pbproxystate.DynamicEndpointGroupConfig{
-					DisablePanicThreshold: true,
-					ConnectTimeout:        connectTimeout,
-				},
+				Config: degConfig,
 				OutboundTls: &pbproxystate.TransportSocket{
 					ConnectionTls: &pbproxystate.TransportSocket_OutboundMesh{
 						OutboundMesh: &pbproxystate.OutboundMeshMTLS{
