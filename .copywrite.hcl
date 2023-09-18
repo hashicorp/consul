@@ -27,6 +27,9 @@ project {
     "agent/grpc-middleware/rate_limit_mappings.gen.go",
     "agent/uiserver/dist/**",
 
+    # ignoring policy embedded files
+    "agent/structs/acltemplatedpolicy/policies/ce/**",
+
     # licensed under MPL - ignoring for now until the copywrite tool can support
     # multiple licenses per repo.
     "sdk/**",
