@@ -220,16 +220,16 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 	})
 }
 
-func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
+func TestAPI_CatalogServices_FilterExpr_NodeMeta(t *testing.T) {
 	t.Parallel()
 	meta := map[string]string{"somekey": "somevalue", "synthetic": "true"}
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
 		conf.NodeMeta = meta
-		conf.NodeName = "foobar"
 	})
 	defer s.Stop()
 
 	catalog := c.Catalog()
+	// Make sure we get the service back when filtering by filter expression
 	retry.Run(t, func(r *retry.R) {
 		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta[\"synthetic\"] == true and NodeMeta[\"somekey\"] == somevalue"})
 		if err != nil {
