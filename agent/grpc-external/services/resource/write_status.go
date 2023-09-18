@@ -36,7 +36,7 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 
 	// Check V1 tenancy exists for the V2 resource. Ignore "marked for deletion" since status updates
 	// should still work regardless.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -173,7 +173,7 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		req.Id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): Remove when peerTenancy introduced.
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 			PeerName: "local",
 		}
 	}

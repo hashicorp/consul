@@ -556,25 +556,25 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		}
 	)
 
-	makeL4Spiffe := func(name string, entMeta *acl.EnterpriseMeta) string {
+	makeSpiffe := func(name string, entMeta *acl.EnterpriseMeta) *pbproxystate.Spiffe {
 		em := *acl.DefaultEnterpriseMeta()
 		if entMeta != nil {
 			em = *entMeta
 		}
-		spiffe := makeSpiffePattern(rbacService{
+		regex := makeSpiffePattern(rbacService{
 			ServiceName: structs.ServiceName{
 				Name:           name,
 				EnterpriseMeta: em,
 			},
 			TrustDomain: testTrustDomain,
 		})
-		return spiffe
+		return &pbproxystate.Spiffe{Regex: regex}
 	}
 
 	tests := map[string]struct {
 		intentionDefaultAllow  bool
 		v1Intentions           structs.SimplifiedIntentions
-		v2L4TrafficPermissions *pbproxystate.L4TrafficPermissions
+		v2L4TrafficPermissions *pbproxystate.TrafficPermissions
 	}{
 		"default-deny-mixed-precedence": {
 			intentionDefaultAllow: false,
@@ -583,12 +583,12 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testIntention(t, "*", "api", structs.IntentionActionDeny),
 				testIntention(t, "web", "*", structs.IntentionActionDeny),
 			),
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 						},
 					},
@@ -600,12 +600,12 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("*", nil),
+								Spiffe: makeSpiffe("*", nil),
 							},
 						},
 					},
@@ -623,12 +623,12 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			v1Intentions: sorted(
 				testSourceIntention("web", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 						},
 					},
@@ -647,13 +647,13 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("web", structs.IntentionActionDeny),
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex:          makeL4Spiffe("*", nil),
-								ExcludeSpiffeRegexes: []string{makeL4Spiffe("web", nil)},
+								Spiffe:         makeSpiffe("*", nil),
+								ExcludeSpiffes: []*pbproxystate.Spiffe{makeSpiffe("web", nil)},
 							},
 						},
 					},
@@ -669,22 +669,22 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 				testSourceIntention("cron", structs.IntentionActionAllow),
 				testSourceIntention("*", structs.IntentionActionAllow),
 			),
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("cron", nil),
+								Spiffe: makeSpiffe("cron", nil),
 							},
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 							{
-								SpiffeRegex: makeL4Spiffe("*", nil),
-								ExcludeSpiffeRegexes: []string{
-									makeL4Spiffe("web", nil),
-									makeL4Spiffe("unsafe", nil),
-									makeL4Spiffe("cron", nil),
+								Spiffe: makeSpiffe("*", nil),
+								ExcludeSpiffes: []*pbproxystate.Spiffe{
+									makeSpiffe("web", nil),
+									makeSpiffe("unsafe", nil),
+									makeSpiffe("cron", nil),
 								},
 							},
 						},
@@ -694,37 +694,37 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 		"v2-kitchen-sink": {
 			intentionDefaultAllow: false,
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("api", nil),
+								Spiffe: makeSpiffe("api", nil),
 							},
 							{
-								SpiffeRegex: makeL4Spiffe("*", nil),
-								ExcludeSpiffeRegexes: []string{
-									makeL4Spiffe("unsafe", nil),
+								Spiffe: makeSpiffe("*", nil),
+								ExcludeSpiffes: []*pbproxystate.Spiffe{
+									makeSpiffe("unsafe", nil),
 								},
 							},
 						},
 					},
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 						},
 					},
 				},
-				DenyPermissions: []*pbproxystate.L4Permission{
+				DenyPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("db", nil),
+								Spiffe: makeSpiffe("db", nil),
 							},
 							{
-								SpiffeRegex: makeL4Spiffe("cron", nil),
+								Spiffe: makeSpiffe("cron", nil),
 							},
 						},
 					},
@@ -733,20 +733,20 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		},
 		"v2-default-deny": {
 			intentionDefaultAllow:  false,
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{},
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		"v2-default-allow": {
 			intentionDefaultAllow:  true,
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{},
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
 		"v2-default-allow-one-allow": {
 			intentionDefaultAllow: true,
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				AllowPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				AllowPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 						},
 					},
@@ -756,12 +756,12 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 		// In v2, having a single permission turns on default deny.
 		"v2-default-allow-one-deny": {
 			intentionDefaultAllow: true,
-			v2L4TrafficPermissions: &pbproxystate.L4TrafficPermissions{
-				DenyPermissions: []*pbproxystate.L4Permission{
+			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
+				DenyPermissions: []*pbproxystate.Permission{
 					{
-						Principals: []*pbproxystate.L4Principal{
+						Principals: []*pbproxystate.Principal{
 							{
-								SpiffeRegex: makeL4Spiffe("web", nil),
+								Spiffe: makeSpiffe("web", nil),
 							},
 						},
 					},

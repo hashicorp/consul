@@ -59,7 +59,7 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// Check the user sent the correct type of data.
-	if !req.Resource.Data.MessageIs(reg.Proto) {
+	if req.Resource.Data != nil && !req.Resource.Data.MessageIs(reg.Proto) {
 		got := strings.TrimPrefix(req.Resource.Data.TypeUrl, "type.googleapis.com/")
 
 		return nil, status.Errorf(
@@ -71,12 +71,12 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 
 	// Check V1 tenancy exists for the V2 resource
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
 	// Check V1 tenancy not marked for deletion.
-	if err = v1TenancyMarkedForDeletion(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+	if err = v1TenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
 		return nil, err
 	}
 
@@ -272,8 +272,6 @@ func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.R
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Data == nil:
-		field = "resource.data"
 	}
 
 	if field != "" {

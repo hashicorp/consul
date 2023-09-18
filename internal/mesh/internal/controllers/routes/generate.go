@@ -217,42 +217,53 @@ func compile(
 
 		// Inject catch-all rules to ensure stray requests will explicitly be blackholed.
 		if !top.Default {
-			if !types.IsTCPRouteType(top.RouteType) {
+			if types.IsTCPRouteType(top.RouteType) {
+				if len(top.TCPRules) == 0 {
+					// User requests traffic blackhole.
+					appendDefaultRouteNode(top, types.NullRouteBackend)
+				}
+			} else {
 				// There are no match criteria on a TCPRoute, so never a need
 				// to add a catch-all.
 				appendDefaultRouteNode(top, types.NullRouteBackend)
 			}
 		}
 
-		mc := &pbmesh.ComputedPortRoutes{
-			UsingDefaultConfig: top.Default,
-			Targets:            top.NewTargets,
-		}
 		parentRef := &pbmesh.ParentReference{
 			Ref:  parentServiceRef,
 			Port: port,
 		}
 
+		mc := &pbmesh.ComputedPortRoutes{
+			UsingDefaultConfig: top.Default,
+			ParentRef:          parentRef,
+			Protocol:           allowedPortProtocols[port],
+			Targets:            top.NewTargets,
+		}
+
 		switch {
 		case resource.EqualType(top.RouteType, types.HTTPRouteType):
+			if mc.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
+				// The rest are HTTP-like
+				mc.Protocol = pbcatalog.Protocol_PROTOCOL_HTTP
+			}
 			mc.Config = &pbmesh.ComputedPortRoutes_Http{
 				Http: &pbmesh.ComputedHTTPRoute{
-					ParentRef: parentRef,
-					Rules:     top.HTTPRules,
+					Rules: top.HTTPRules,
 				},
 			}
 		case resource.EqualType(top.RouteType, types.GRPCRouteType):
+			mc.Protocol = pbcatalog.Protocol_PROTOCOL_GRPC
 			mc.Config = &pbmesh.ComputedPortRoutes_Grpc{
 				Grpc: &pbmesh.ComputedGRPCRoute{
-					ParentRef: parentRef,
-					Rules:     top.GRPCRules,
+					Rules: top.GRPCRules,
 				},
 			}
 		case resource.EqualType(top.RouteType, types.TCPRouteType):
+			mc.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
 			mc.Config = &pbmesh.ComputedPortRoutes_Tcp{
 				Tcp: &pbmesh.ComputedTCPRoute{
-					ParentRef: parentRef,
-					Rules:     top.TCPRules,
+					Rules: top.TCPRules,
 				},
 			}
 		default:
@@ -266,25 +277,49 @@ func compile(
 
 			svc := related.GetService(svcRef)
 			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
-			destConfig := related.GetDestinationPolicyForService(svcRef)
+			destPolicy := related.GetDestinationPolicyForService(svcRef)
 
 			if svc == nil {
 				panic("impossible at this point; should already have been handled before getting here")
 			}
-			details.Service = svc.Data
+
+			// Find the destination proxy's port.
+			//
+			// Endpoints refs will need to route to mesh port instead of the
+			// destination port as that is the port of the destination's proxy.
+			//
+			// Note: we will always find a port here because we only add targets that have
+			// mesh ports above in shouldRouteTrafficToBackend().
+			for _, port := range svc.Data.Ports {
+				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+					details.MeshPort = port.TargetPort
+				}
+			}
 
 			if failoverPolicy != nil {
-				details.FailoverPolicy = catalog.SimplifyFailoverPolicy(
-					svc.Data,
-					failoverPolicy.Data,
-				)
+				simpleFailoverPolicy := catalog.SimplifyFailoverPolicy(svc.Data, failoverPolicy.Data)
+				portFailoverConfig, ok := simpleFailoverPolicy.PortConfigs[details.BackendRef.Port]
+				if ok {
+					details.FailoverConfig = portFailoverConfig
+				}
 			}
-			if destConfig != nil {
-				details.DestinationPolicy = destConfig.Data
+			if destPolicy != nil {
+				portDestConfig, ok := destPolicy.Data.PortConfigs[details.BackendRef.Port]
+				if ok {
+					details.DestinationConfig = portDestConfig
+				}
 			}
 		}
 
 		computedRoutes.PortedConfigs[port] = mc
+	}
+
+	if len(computedRoutes.PortedConfigs) == 0 {
+		// This service only exposes a "mesh" port, so it cannot be another service's upstream.
+		return &ComputedRoutesResult{
+			ID:   computedRoutesID,
+			Data: nil, // returning nil signals a delete is requested
+		}
 	}
 
 	return &ComputedRoutesResult{

@@ -14,9 +14,8 @@ import (
 	"time"
 
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -1052,7 +1051,7 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 			l4Dest.MaxInboundConnections = uint64(cfg.MaxInboundConnections)
 		}
 
-		l4Dest.TrafficPermissions = &pbproxystate.L4TrafficPermissions{}
+		l4Dest.TrafficPermissions = &pbproxystate.TrafficPermissions{}
 	}
 	l.Routers = append(l.Routers, localAppRouter)
 
@@ -1443,7 +1442,11 @@ func makeL4Destination(opts destinationOpts) (*pbproxystate.L4Destination, error
 
 	l4Dest := &pbproxystate.L4Destination{
 		//AccessLog:        accessLogs,
-		Name:       opts.cluster,
+		Destination: &pbproxystate.L4Destination_Cluster{
+			Cluster: &pbproxystate.DestinationCluster{
+				Name: opts.cluster,
+			},
+		},
 		StatPrefix: makeStatPrefix(opts.statPrefix, opts.filterName),
 	}
 	return l4Dest, nil
@@ -1573,7 +1576,7 @@ func (g *Converter) makeL7Destination(opts destinationOpts) (*pbproxystate.L7Des
 	// access and that every filter chain uses our TLS certs.
 	if len(opts.httpAuthzFilters) > 0 {
 		// TODO(proxystate) support intentions in the future
-		dest.TrafficPermissions = &pbproxystate.L7TrafficPermissions{}
+		dest.TrafficPermissions = &pbproxystate.TrafficPermissions{}
 		//cfg.HttpFilters = append(opts.httpAuthzFilters, cfg.HttpFilters...)
 	}
 

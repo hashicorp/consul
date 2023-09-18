@@ -76,7 +76,7 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
-				BuildLocalApp(c.workload).
+				BuildLocalApp(c.workload, nil).
 				Build()
 
 			// sort routers because of test flakes where order was flip flopping.

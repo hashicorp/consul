@@ -354,10 +354,10 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			a, err := New(bd)
+			require.NoError(t, err)
 			mockDelegate := delegateMock{}
 			mockDelegate.On("LicenseCheck").Return()
 			a.delegate = &mockDelegate
-			require.NoError(t, err)
 
 			a.startLicenseManager(testutil.TestContext(t))
 
@@ -392,6 +392,8 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				resp, err := client.Do(req.WithContext(ctx))
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
+				resp.Body.Close()
+				s.Shutdown(ctx)
 			}
 		})
 	}

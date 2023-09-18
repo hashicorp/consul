@@ -31,9 +31,9 @@ type Config struct {
 	// Backend is the storage backend that will be used for resource persistence.
 	Backend     Backend
 	ACLResolver ACLResolver
-	// V1TenancyBridge temporarily allows us to use V1 implementations of
+	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
-	V1TenancyBridge TenancyBridge
+	TenancyBridge TenancyBridge
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -147,7 +147,7 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): Remove when peerTenancy introduced.
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 			PeerName: "local",
 		}
 	}

@@ -36,3 +36,13 @@ func (msg *Album) MarshalBinary() ([]byte, error) {
 func (msg *Album) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *Concept) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *Concept) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}

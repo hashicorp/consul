@@ -48,8 +48,11 @@
               }
             },
             "l4": {
-              "name": "local_app:port1",
-              "statPrefix": "public_listener"
+              "cluster": {
+                "name": "local_app:port1"
+              },
+              "statPrefix": "public_listener",
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
