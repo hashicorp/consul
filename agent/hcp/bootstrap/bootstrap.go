@@ -295,21 +295,25 @@ func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.Boot
 			return "", fmt.Errorf("failed to persist bootstrap config: %w", err)
 		}
 
-		if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("invalid management token: %w", err)
-		}
-		if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
-			return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+		// HCP only returns the management token if it requires Consul to
+		// initialize it
+		if bsCfg.ManagementToken != "" {
+			if err := validateManagementToken(bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("invalid management token: %w", err)
+			}
+			if err := persistManagementToken(dir, bsCfg.ManagementToken); err != nil {
+				return "", fmt.Errorf("failed to persist HCP management token: %w", err)
+			}
 		}
 
-		if err := persistSucessMarker(dir); err != nil {
+		if err := persistSuccessMarker(dir); err != nil {
 			return "", fmt.Errorf("failed to persist success marker: %w", err)
 		}
 	}
 	return cfgJSON, nil
 }
 
-func persistSucessMarker(dir string) error {
+func persistSuccessMarker(dir string) error {
 	name := filepath.Join(dir, successFileName)
 	return os.WriteFile(name, []byte(""), 0600)
 
@@ -349,12 +353,9 @@ func persistTLSCerts(dir string, serverCert, serverKey string, caCerts []string)
 	return nil
 }
 
-// Basic validation to ensure a UUID was loaded.
+// Basic validation to ensure a UUID was loaded and assumes the token is non-empty
 func validateManagementToken(token string) error {
-	if token == "" {
-		return errors.New("missing HCP management token")
-	}
-
+	// note: we assume that the token is not an empty string
 	if _, err := uuid.ParseUUID(token); err != nil {
 		return errors.New("management token is not a valid UUID")
 	}

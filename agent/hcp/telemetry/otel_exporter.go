@@ -9,36 +9,49 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
-
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
 )
 
-// OTELExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
-// The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
-// This allows us to use a custom client - HCP authenticated MetricsClient.
-type OTELExporter struct {
-	client   hcpclient.MetricsClient
-	endpoint *url.URL
+// MetricsClient exports Consul metrics in OTLP format to the desired endpoint.
+type MetricsClient interface {
+	ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error
 }
 
-// NewOTELExporter returns a configured OTELExporter
-func NewOTELExporter(client hcpclient.MetricsClient, endpoint *url.URL) *OTELExporter {
-	return &OTELExporter{
-		client:   client,
-		endpoint: endpoint,
+// EndpointProvider provides the endpoint where metrics are exported to by the OTELExporter.
+// EndpointProvider exposes the GetEndpoint() interface method to fetch the endpoint.
+// This abstraction layer offers flexibility, in particular for dynamic configuration or changes to the endpoint.
+// The OTELExporter calls the Disabled interface to verify that it should actually export metrics.
+type EndpointProvider interface {
+	Disabled
+	GetEndpoint() *url.URL
+}
+
+// otelExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.
+// The exporter is used by a OTEL Metrics SDK PeriodicReader to export aggregated metrics.
+// This allows us to use a custom client - HCP authenticated MetricsClient.
+type otelExporter struct {
+	client           MetricsClient
+	endpointProvider EndpointProvider
+}
+
+// newOTELExporter returns a configured OTELExporter.
+func newOTELExporter(client MetricsClient, endpointProvider EndpointProvider) *otelExporter {
+	return &otelExporter{
+		client:           client,
+		endpointProvider: endpointProvider,
 	}
 }
 
 // Temporality returns the Cumulative temporality for metrics aggregation.
 // Telemetry Gateway stores metrics in Prometheus format, so use Cummulative aggregation as default.
-func (e *OTELExporter) Temporality(_ metric.InstrumentKind) metricdata.Temporality {
+func (e *otelExporter) Temporality(_ metric.InstrumentKind) metricdata.Temporality {
 	return metricdata.CumulativeTemporality
 }
 
 // Aggregation returns the Aggregation to use for an instrument kind.
 // The default implementation provided by the OTEL Metrics SDK library DefaultAggregationSelector panics.
 // This custom version replicates that logic, but removes the panic.
-func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggregation {
+func (e *otelExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggregation {
 	switch kind {
 	case metric.InstrumentKindObservableGauge:
 		return aggregation.LastValue{}
@@ -53,12 +66,22 @@ func (e *OTELExporter) Aggregation(kind metric.InstrumentKind) aggregation.Aggre
 }
 
 // Export serializes and transmits metric data to a receiver.
-func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
+func (e *otelExporter) Export(ctx context.Context, metrics *metricdata.ResourceMetrics) error {
+	if e.endpointProvider.IsDisabled() {
+		return nil
+	}
+
+	endpoint := e.endpointProvider.GetEndpoint()
+	if endpoint == nil {
+		return nil
+	}
+
 	otlpMetrics := transformOTLP(metrics)
 	if isEmpty(otlpMetrics) {
 		return nil
 	}
-	err := e.client.ExportMetrics(ctx, otlpMetrics, e.endpoint.String())
+
+	err := e.client.ExportMetrics(ctx, otlpMetrics, endpoint.String())
 	if err != nil {
 		goMetrics.IncrCounter(internalMetricExportFailure, 1)
 		return fmt.Errorf("failed to export metrics: %w", err)
@@ -69,13 +92,13 @@ func (e *OTELExporter) Export(ctx context.Context, metrics *metricdata.ResourceM
 }
 
 // ForceFlush is a no-op, as the MetricsClient client holds no state.
-func (e *OTELExporter) ForceFlush(ctx context.Context) error {
+func (e *otelExporter) ForceFlush(ctx context.Context) error {
 	goMetrics.IncrCounter(internalMetricExporterForceFlush, 1)
 	return ctx.Err()
 }
 
 // Shutdown is a no-op, as the MetricsClient is a HTTP client that requires no graceful shutdown.
-func (e *OTELExporter) Shutdown(ctx context.Context) error {
+func (e *otelExporter) Shutdown(ctx context.Context) error {
 	goMetrics.IncrCounter(internalMetricExporterShutdown, 1)
 	return ctx.Err()
 }

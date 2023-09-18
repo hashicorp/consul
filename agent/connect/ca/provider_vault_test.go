@@ -13,6 +13,7 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -1138,6 +1139,56 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 
 	require.Equal(t, new, newActive)
 	require.NotEqual(t, orig, new)
+}
+
+func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
+	SkipIfVaultNotPresent(t)
+	t.Parallel()
+
+	testVault := NewTestVaultServer(t)
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+	provider := createVaultProvider(t, true, testVault.Addr, token,
+		map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		})
+	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+	require.NoError(t, err)
+
+	if res == nil {
+		t.Skip("Vault version < 1.11 does not have multi issuers functionality")
+	}
+
+	// Why 2 issuers? There is always an initial issuer that
+	// gets created before we manage the lifecycle of issuers.
+	// Since we're asserting that the number doesn't grow
+	// this isn't too much of a concern.
+	//
+	// Note the key "keys" refers to the IDs of the resource based
+	// on the endpoint the response is from.
+	require.Len(t, res.Data["keys"], 2)
+
+	res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+	require.NoError(t, err)
+	require.Len(t, res.Data["keys"], 1)
+
+	for i := 0; i < 3; i++ {
+		_, err := provider.GenerateIntermediate()
+		require.NoError(t, err)
+
+		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
+		require.NoError(t, err)
+		require.Len(t, res.Data["keys"], 2)
+
+		res, err = testVault.Client().Logical().List("pki-intermediate/keys")
+		require.NoError(t, err)
+		assert.Len(t, res.Data["keys"], 1)
+	}
 }
 
 func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {

@@ -1428,7 +1428,7 @@ func peersForServiceTxn(
 	)
 
 	// Ensure the metadata is defaulted since we make assertions against potentially empty values below.
-	// In OSS this is a no-op.
+	// In CE this is a no-op.
 	if entMeta == nil {
 		entMeta = acl.DefaultEnterpriseMeta()
 	}

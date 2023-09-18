@@ -80,7 +80,7 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@f03ac48505955848960e80bbb68046aa35c7b9e7 # pin@v2.4.1
 
-    # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in OSS.
+    # NOTE: conditional specific logic as we store secrets in Vault in ENT and use GHA secrets in CE.
     - name: Login to Docker Hub
       uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a # pin@v2.1.0
       with:

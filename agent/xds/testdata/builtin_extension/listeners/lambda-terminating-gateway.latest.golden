@@ -214,6 +214,11 @@
                   "dns":  true,
                   "uri":  true
                 },
+                "upgradeConfigs":  [
+                  {
+                    "upgradeType":  "websocket"
+                  }
+                ],
                 "stripAnyHostPort":  true
               }
             }

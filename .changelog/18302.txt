@@ -1,0 +1,4 @@
+```release-note:bug
+snapshot: fix access denied and handle is invalid when we call snapshot save on windows - skip sync() for folders in windows in
+https://github.com/rboyer/safeio/pull/3
+```

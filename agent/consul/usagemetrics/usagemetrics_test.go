@@ -24,7 +24,7 @@ func assertEqualGaugeMaps(t *testing.T, expectedMap, foundMap map[string]metrics
 
 	for key := range foundMap {
 		if _, ok := expectedMap[key]; !ok {
-			t.Errorf("found unexpected gauge key:      %s", key)
+			t.Errorf("found unexpected gauge key: %s with value: %v", key, foundMap[key])
 		}
 	}
 

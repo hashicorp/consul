@@ -7068,6 +7068,45 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 	}
 }
 
+func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// this tests the DC name overlap with the consul domain/alt-domain
+	// we should get response when DC suffix is a prefix of consul alt-domain
+	t.Parallel()
+	a := NewTestAgent(t, `
+		datacenter = "dc-test"
+		node_name = "test-node"
+		alt_domain = "test.consul."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc-test")
+
+	questions := []string{
+		"test-node.node.dc-test.consul.",
+		"test-node.node.dc-test.test.consul.",
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		require.Len(t, in.Answer, 1)
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		require.True(t, ok)
+		require.Equal(t, aRec.A.To4().String(), "127.0.0.1")
+	}
+}
+
 func TestDNS_PreparedQuery_AllowStale(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

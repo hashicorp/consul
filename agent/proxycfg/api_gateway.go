@@ -51,12 +51,6 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	// Watch the bound-api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
-	if err != nil {
-		return snap, err
-	}
-
 	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
 	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
@@ -138,10 +132,12 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 	return nil
 }
 
-// handleGatewayConfigUpdate responds to changes in the watched config entry for a gateway.
-// In particular, we want to make sure that we're subscribing to any attached resources such
-// as routes and certificates. These additional subscriptions will enable us to update the
-// config snapshot appropriately for any route or certificate changes.
+// handleGatewayConfigUpdate responds to changes in the watched config entries for a gateway.
+// Once the base api-gateway config entry has been seen, we store the list of listeners and
+// then subscribe to the corresponding bound-api-gateway config entry. We use the bound-api-gateway
+// config entry to subscribe to any attached resources, including routes and certificates.
+// These additional subscriptions will enable us to update the config snapshot appropriately
+// for any route or certificate changes.
 func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot, correlationID string) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
@@ -239,6 +235,12 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		}
 
 		snap.APIGateway.GatewayConfigLoaded = true
+
+		// Watch the corresponding bound-api-gateway config entry
+		err := h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
+		if err != nil {
+			return err
+		}
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
