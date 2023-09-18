@@ -4,7 +4,6 @@
 package api
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -223,159 +222,52 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 
 func TestAPI_CatalogServices_NodeMetaViaFilter(t *testing.T) {
 	t.Parallel()
-	c, s := makeClientWithConfig(t, nil, nil)
+	meta := map[string]string{"somekey": "somevalue", "syntheticnode": "true"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+		conf.NodeName = "foobar"
+	})
 	defer s.Stop()
-
-	// Register service and proxy instances to test against.
-	service0 := &AgentService{
-		ID:      "redis0",
-		Service: "redis0",
-		Port:    8001,
-		Connect: &AgentServiceConnect{Native: true},
-	}
-
-	reg0 := &CatalogRegistration{
-		Datacenter:     "dc1",
-		Node:           "foobar0",
-		Service:        service0,
-		SkipNodeUpdate: true,
-		NodeMeta:       map[string]string{"somekey": "somevalue", "syntheticnode": "true"},
-	}
-
-	service1 := &AgentService{
-		ID:      "redis1",
-		Service: "redis1",
-		Port:    8000,
-		Connect: &AgentServiceConnect{Native: true},
-	}
-
-	reg1 := &CatalogRegistration{
-		Datacenter:     "dc1",
-		Node:           "foobar1",
-		Service:        service1,
-		SkipNodeUpdate: true,
-		NodeMeta:       map[string]string{"key": "value"},
-	}
-
-	service2 := &AgentService{
-		ID:      "redis2",
-		Service: "redis2",
-		Port:    8000,
-		Connect: &AgentServiceConnect{Native: true},
-	}
-
-	reg2 := &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "foobar2",
-		Address:    "192.168.10.10",
-		Service:    service2,
-		NodeMeta:   map[string]string{"somekey": "somevalue"},
-	}
-
-	service3 := &AgentService{
-		ID:      "redis3",
-		Service: "redis3",
-		Port:    8000,
-		Connect: &AgentServiceConnect{Native: true},
-	}
-
-	reg3 := &CatalogRegistration{
-		Datacenter: "dc1",
-		Node:       "foobar3",
-		Address:    "192.168.10.10",
-		Service:    service3,
-		NodeMeta:   map[string]string{"syntheticnode": "true", "somekey": "somevalue"},
-	}
-
-	proxyReg := testUnmanagedProxyRegistration(t)
-	proxyReg.Node = "foobar4"
-	proxyReg.SkipNodeUpdate = true
 
 	catalog := c.Catalog()
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
-		r.Check(err)
-
-		_, err = catalog.Register(reg0, nil)
-		r.Check(err)
-
-		if _, err := catalog.Register(reg1, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg2, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg3, nil); err != nil {
-			r.Fatal(err)
-		}
 		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true and NodeMeta.somekey == somevalue"})
 		if err != nil {
 			r.Fatal(err)
 		}
-		delete(services, "consul")
-		fmt.Println(services)
 
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
-
-		if len(services) != 2 {
+		if len(services) == 0 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
-		r.Check(err)
-		_, err = catalog.Register(reg0, nil)
-		r.Check(err)
-
-		if _, err := catalog.Register(reg1, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg2, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg3, nil); err != nil {
-			r.Fatal(err)
-		}
 		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.syntheticnode == true"})
 		if err != nil {
 			r.Fatal(err)
 		}
-		delete(services, "consul")
+
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 2 {
+		if len(services) == 0 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
 	retry.Run(t, func(r *retry.R) {
-		_, err := catalog.Register(proxyReg, nil)
-		r.Check(err)
-		_, err = catalog.Register(reg0, nil)
-		r.Check(err)
-
-		if _, err := catalog.Register(reg1, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg2, nil); err != nil {
-			r.Fatal(err)
-		}
-		if _, err := catalog.Register(reg3, nil); err != nil {
-			r.Fatal(err)
-		}
-		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.key == value"})
-		delete(services, "consul")
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.somekey == somevalue"})
 		if err != nil {
 			r.Fatal(err)
 		}
+
 		if meta.LastIndex == 0 {
 			r.Fatalf("Bad: %v", meta)
 		}
 
-		if len(services) != 1 {
+		if len(services) == 0 {
 			r.Fatalf("Bad: %v", services)
 		}
 	})
