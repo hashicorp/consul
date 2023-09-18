@@ -95,6 +95,16 @@ MeshGateway:
 Name: global
 ```
 
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "MeshGateway": {
+    "Mode": "local"
+  }
+}
+```
+
 </CodeTabs>
 
 ### Enabling Gateways Per Service
@@ -117,6 +127,17 @@ MeshGateway:
 - Mode: local
 Name: web
 ```
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "web",
+  "MeshGateway": {
+    "Mode": "local"
+  }
+}
+```
+
 </CodeTabs>
 
 ### Enabling Gateways for a Service Instance
@@ -124,7 +145,7 @@ Name: web
 The following [Proxy Service Registration](/consul/docs/connect/registration/service-registration)
 definition will enable gateways for `web` service instances in the `finance` partition.
 
-<CodeTabs heading="Example: Enabling gateways for a service instance.">
+<CodeTabs heading="Example: Enabling gateways for a service instance">
 
 ```hcl
 service {
@@ -149,21 +170,29 @@ service {
 }
 ```
 
-```yaml
-service:
-- kind: connect-proxy
-  name: web-sidecar-proxy
-  port: 8181
-  proxy:
-  - destination_service_name: web
-    mesh_gateway:
-    - mode: local
-    upstreams:
-    - destination_name: billing
-      destination_namespace: default
-      destination_partition: finance
-      destination_type: service
-      local_bind_port: 9090
+```json
+{
+  "service": {
+    "kind": "connect-proxy",
+    "name": "web-sidecar-proxy",
+    "port": 8181,
+    "proxy": {
+      "destination_service_name": "web",
+      "mesh_gateway": {
+        "mode": "local"
+      },
+      "upstreams": [
+        {
+          "destination_name": "billing",
+          "destination_namespace": "default",
+          "destination_partition": "finance",
+          "destination_type": "service",
+          "local_bind_port": 9090
+        }
+      ]
+    }
+  }
+}
 ```
 </CodeTabs>
 
@@ -171,7 +200,7 @@ service:
 
 The following service definition will enable gateways in `local` mode for three different partitions. Note that each service exists in the same namespace, but are separated by admin partition.
 
-<CodeTabs heading="Example: Enabling gateways for a proxy upstream.">
+<CodeTabs heading="Example: Enabling gateways for a proxy upstream">
 
 ```hcl
 service {
@@ -213,31 +242,45 @@ service {
 }
 ```
 
-```yaml
-service:
-- kind: connect-proxy
-  name: web-sidecar-proxy
-  port: 8181
-  proxy:
-  - destination_service_name: web
-    upstreams:
-    - destination_name: api
-      destination_namespace: dev
-      destination_partition: api
-      local_bind_port: 10000
-      mesh_gateway:
-      - mode: local
-    - destination_name: db
-      destination_namespace: dev
-      destination_partition: db
-      local_bind_port: 10001
-      mesh_gateway:
-      - mode: local
-    - destination_name: logging
-      destination_namespace: dev
-      destination_partition: logging
-      local_bind_port: 10002
-      mesh_gateway:
-      - mode: local
+```json
+{
+  "service": {
+    "kind": "connect-proxy",
+    "name": "web-sidecar-proxy",
+    "port": 8181,
+    "proxy": {
+      "destination_service_name": "web",
+      "upstreams": [
+        {
+          "destination_name": "api",
+          "destination_namespace": "dev",
+          "destination_partition": "api",
+          "local_bind_port": 10000,
+          "mesh_gateway": {
+            "mode": "local"
+          }
+        },
+        {
+          "destination_name": "db",
+          "destination_namespace": "dev",
+          "destination_partition": "db",
+          "local_bind_port": 10001,
+          "mesh_gateway": {
+            "mode": "local"
+          }
+        },
+        {
+          "destination_name": "logging",
+          "destination_namespace": "dev",
+          "destination_partition": "logging",
+          "local_bind_port": 10002,
+          "mesh_gateway": {
+            "mode": "local"
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 </CodeTabs>
