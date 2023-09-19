@@ -7,7 +7,7 @@ set -euo pipefail
 # Get the list of changed files
 files_to_check=$(git diff --name-only "$(git merge-base origin/$BRANCH HEAD~)"...HEAD $*)
 
-skipped_directories=("docs/" "ui/" "website/" "grafana/")
+skipped_directories=("docs/" "ui/" "website/" "grafana/" ".github/")
 
 all_files_in_skipped_dirs=true
 skip_ci=false
@@ -24,10 +24,12 @@ for file in "${files_to_check[@]}"; do
 done
 
 if [ "$all_files_in_skipped_dirs" = true ]; then
+    echo -e $files_to_check
     skip_ci=true
     echo "Only doc file(s) changed - skip-ci: $skip_ci"
     echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
 else
+    echo -e $files_to_check
     echo "Non doc file(s) changed - skip-ci: $skip_ci"
     echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
 fi
