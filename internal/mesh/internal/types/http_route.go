@@ -49,6 +49,10 @@ func MutateHTTPRoute(res *pbresource.Resource) error {
 
 	changed := false
 
+	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+		changed = true
+	}
+
 	for _, rule := range route.Rules {
 		for _, match := range rule.Matches {
 			if match.Method != "" {
@@ -59,9 +63,15 @@ func MutateHTTPRoute(res *pbresource.Resource) error {
 				}
 			}
 		}
+		for _, backend := range rule.BackendRefs {
+			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
+				continue
+			}
+			if mutateXRouteRef(res.Id.Tenancy, backend.BackendRef.Ref) {
+				changed = true
+			}
+		}
 	}
-
-	// TODO(rb): normalize parent/backend ref tenancies
 
 	if !changed {
 		return nil
@@ -264,14 +274,6 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 		}
 
 		if len(rule.BackendRefs) == 0 {
-			/*
-				BackendRefs (optional)¶
-
-				BackendRefs defines API objects where matching requests should be
-				sent. If unspecified, the rule performs no forwarding. If
-				unspecified and no filters are specified that would result in a
-				response being sent, a 404 error code is returned.
-			*/
 			merr = multierror.Append(merr, wrapRuleErr(
 				resource.ErrInvalidField{
 					Name:    "backend_refs",
@@ -288,13 +290,14 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 				})
 			}
 
-			for _, err := range validateBackendRef(hbref.BackendRef) {
-				merr = multierror.Append(merr, wrapBackendRefErr(
-					resource.ErrInvalidField{
-						Name:    "backend_ref",
-						Wrapped: err,
-					},
-				))
+			wrapBackendRefFieldErr := func(err error) error {
+				return wrapBackendRefErr(resource.ErrInvalidField{
+					Name:    "backend_ref",
+					Wrapped: err,
+				})
+			}
+			if err := validateBackendRef(hbref.BackendRef, wrapBackendRefFieldErr); err != nil {
+				merr = multierror.Append(merr, err)
 			}
 
 			if len(hbref.Filters) > 0 {

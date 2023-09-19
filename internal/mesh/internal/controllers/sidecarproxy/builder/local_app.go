@@ -25,16 +25,24 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 	// Note that the order of ports is non-deterministic here but the xds generation
 	// code should make sure to send it in the same order to Envoy to avoid unnecessary
 	// updates.
+	foundInboundNonMeshPorts := false
 	for portName, port := range workload.Ports {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
 
 		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
+			foundInboundNonMeshPorts = true
 			lb.addInboundRouter(clusterName, port, portName, trafficPermissions[portName]).
 				addInboundTLS()
 
 			b.addLocalAppCluster(clusterName).
 				addLocalAppStaticEndpoints(clusterName, port)
 		}
+	}
+
+	// If there are no inbound ports other than the mesh port, we black-hole all inbound traffic.
+	if !foundInboundNonMeshPorts {
+		lb.addBlackHoleRouter()
+		b.addBlackHoleCluster()
 	}
 
 	return b
@@ -265,6 +273,28 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 	return l
 }
 
+func (l *ListenerBuilder) addBlackHoleRouter() *ListenerBuilder {
+	if l.listener == nil {
+		return l
+	}
+
+	r := &pbproxystate.Router{
+		Destination: &pbproxystate.Router_L4{
+			L4: &pbproxystate.L4Destination{
+				Destination: &pbproxystate.L4Destination_Cluster{
+					Cluster: &pbproxystate.DestinationCluster{
+						Name: xdscommon.BlackHoleClusterName,
+					},
+				},
+				StatPrefix: l.listener.Name,
+			},
+		},
+	}
+	l.listener.Routers = append(l.listener.Routers, r)
+
+	return l
+}
+
 func getAlpnProtocolFromPortName(portName string) string {
 	return fmt.Sprintf("consul~%s", portName)
 }
@@ -272,6 +302,19 @@ func getAlpnProtocolFromPortName(portName string) string {
 func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
 	// Make cluster for this router destination.
 	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = &pbproxystate.Cluster{
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Static{
+					Static: &pbproxystate.StaticEndpointGroup{},
+				},
+			},
+		},
+	}
+	return b
+}
+
+func (b *Builder) addBlackHoleCluster() *Builder {
+	b.proxyStateTemplate.ProxyState.Clusters[xdscommon.BlackHoleClusterName] = &pbproxystate.Cluster{
 		Group: &pbproxystate.Cluster_EndpointGroup{
 			EndpointGroup: &pbproxystate.EndpointGroup{
 				Group: &pbproxystate.EndpointGroup_Static{
@@ -318,15 +361,6 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 				},
 			},
 		},
-	}
-	l.builder.proxyStateTemplate.RequiredLeafCertificates[workloadIdentity] = &pbproxystate.LeafCertificateRef{
-		Name:      workloadIdentity,
-		Namespace: l.builder.id.Tenancy.Namespace,
-		Partition: l.builder.id.Tenancy.Partition,
-	}
-
-	l.builder.proxyStateTemplate.RequiredTrustBundles[l.builder.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
-		Peer: l.builder.id.Tenancy.PeerName,
 	}
 
 	for i := range l.listener.Routers {

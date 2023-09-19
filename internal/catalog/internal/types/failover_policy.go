@@ -4,7 +4,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -53,10 +52,21 @@ func MutateFailoverPolicy(res *pbresource.Resource) error {
 		failover.Config = nil
 		changed = true
 	}
+
+	if failover.Config != nil {
+		if mutateFailoverConfig(res.Id.Tenancy, failover.Config) {
+			changed = true
+		}
+	}
+
 	for port, pc := range failover.PortConfigs {
 		if pc.IsEmpty() {
 			delete(failover.PortConfigs, port)
 			changed = true
+		} else {
+			if mutateFailoverConfig(res.Id.Tenancy, pc) {
+				changed = true
+			}
 		}
 	}
 	if len(failover.PortConfigs) == 0 {
@@ -64,13 +74,47 @@ func MutateFailoverPolicy(res *pbresource.Resource) error {
 		changed = true
 	}
 
-	// TODO(rb): normalize dest ref tenancies
-
 	if !changed {
 		return nil
 	}
 
 	return res.Data.MarshalFrom(&failover)
+}
+
+func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.FailoverConfig) (changed bool) {
+	if policyTenancy != nil && !isLocalPeer(policyTenancy.PeerName) {
+		// TODO(peering/v2): remove this bypass when we know what to do with
+		// non-local peer references.
+		return false
+	}
+
+	for _, dest := range config.Destinations {
+		if dest.Ref == nil {
+			continue
+		}
+		if dest.Ref.Tenancy != nil && !isLocalPeer(dest.Ref.Tenancy.PeerName) {
+			// TODO(peering/v2): remove this bypass when we know what to do with
+			// non-local peer references.
+			continue
+		}
+
+		orig := proto.Clone(dest.Ref).(*pbresource.Reference)
+		resource.DefaultReferenceTenancy(
+			dest.Ref,
+			policyTenancy,
+			resource.DefaultNamespacedTenancy(), // Services are all namespace scoped.
+		)
+
+		if !proto.Equal(orig, dest.Ref) {
+			changed = true
+		}
+	}
+
+	return changed
+}
+
+func isLocalPeer(p string) bool {
+	return p == "local" || p == ""
 }
 
 func ValidateFailoverPolicy(res *pbresource.Resource) error {
@@ -90,15 +134,25 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 	}
 
 	if failover.Config != nil {
-		for _, err := range validateFailoverConfig(failover.Config, false) {
-			merr = multierror.Append(merr, resource.ErrInvalidField{
+		wrapConfigErr := func(err error) error {
+			return resource.ErrInvalidField{
 				Name:    "config",
 				Wrapped: err,
-			})
+			}
+		}
+		if cfgErr := validateFailoverConfig(failover.Config, false, wrapConfigErr); cfgErr != nil {
+			merr = multierror.Append(merr, cfgErr)
 		}
 	}
 
 	for portName, pc := range failover.PortConfigs {
+		wrapConfigErr := func(err error) error {
+			return resource.ErrInvalidMapValue{
+				Map:     "port_configs",
+				Key:     portName,
+				Wrapped: err,
+			}
+		}
 		if portNameErr := validatePortName(portName); portNameErr != nil {
 			merr = multierror.Append(merr, resource.ErrInvalidMapKey{
 				Map:     "port_configs",
@@ -107,12 +161,8 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 			})
 		}
 
-		for _, err := range validateFailoverConfig(pc, true) {
-			merr = multierror.Append(merr, resource.ErrInvalidMapValue{
-				Map:     "port_configs",
-				Key:     portName,
-				Wrapped: err,
-			})
+		if cfgErr := validateFailoverConfig(pc, true, wrapConfigErr); cfgErr != nil {
+			merr = multierror.Append(merr, cfgErr)
 		}
 
 		// TODO: should sameness group be a ref once that's a resource?
@@ -121,22 +171,28 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 	return merr
 }
 
-func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool) []error {
-	var errs []error
+func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapErr func(error) error) error {
+	var merr error
 
 	if (len(config.Destinations) > 0) == (config.SamenessGroup != "") {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "destinations",
-			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
-		})
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name: "destinations",
+			// Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
+			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set: %v || %v",
+				(len(config.Destinations) > 0), (config.SamenessGroup != ""),
+			),
+		}))
 	}
 	for i, dest := range config.Destinations {
-		for _, err := range validateFailoverPolicyDestination(dest, ported) {
-			errs = append(errs, resource.ErrInvalidListElement{
+		wrapDestErr := func(err error) error {
+			return wrapErr(resource.ErrInvalidListElement{
 				Name:    "destinations",
 				Index:   i,
 				Wrapped: err,
 			})
+		}
+		if destErr := validateFailoverPolicyDestination(dest, ported, wrapDestErr); destErr != nil {
+			merr = multierror.Append(merr, destErr)
 		}
 	}
 
@@ -146,39 +202,29 @@ func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool) []err
 	case pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL:
 	case pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY:
 	default:
-		errs = append(errs, resource.ErrInvalidField{
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 			Name:    "mode",
 			Wrapped: fmt.Errorf("not a supported enum value: %v", config.Mode),
-		})
+		}))
 	}
 
 	// TODO: validate sameness group requirements
 
-	return errs
+	return merr
 }
 
-func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, ported bool) []error {
-	var errs []error
-	if dest.Ref == nil {
-		errs = append(errs, resource.ErrInvalidField{
+func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, ported bool, wrapErr func(error) error) error {
+	var merr error
+
+	wrapRefErr := func(err error) error {
+		return wrapErr(resource.ErrInvalidField{
 			Name:    "ref",
-			Wrapped: resource.ErrMissing,
+			Wrapped: err,
 		})
-	} else if !resource.EqualType(dest.Ref.Type, ServiceType) {
-		errs = append(errs, resource.ErrInvalidField{
-			Name: "ref",
-			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: ServiceType,
-			},
-		})
-	} else if dest.Ref.Section != "" {
-		errs = append(errs, resource.ErrInvalidField{
-			Name: "ref",
-			Wrapped: resource.ErrInvalidField{
-				Name:    "section",
-				Wrapped: errors.New("section not supported for failover policy dest refs"),
-			},
-		})
+	}
+
+	if refErr := ValidateLocalServiceRefNoSection(dest.Ref, wrapRefErr); refErr != nil {
+		merr = multierror.Append(merr, refErr)
 	}
 
 	// NOTE: Destinations here cannot define ports. Port equality is
@@ -186,32 +232,32 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 	if dest.Port != "" {
 		if ported {
 			if portNameErr := validatePortName(dest.Port); portNameErr != nil {
-				errs = append(errs, resource.ErrInvalidField{
+				merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 					Name:    "port",
 					Wrapped: portNameErr,
-				})
+				}))
 			}
 		} else {
-			errs = append(errs, resource.ErrInvalidField{
+			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 				Name:    "port",
 				Wrapped: fmt.Errorf("ports cannot be specified explicitly for the general failover section since it relies upon port alignment"),
-			})
+			}))
 		}
 	}
 
 	hasPeer := false
 	if dest.Ref != nil {
-		hasPeer = dest.Ref.Tenancy.PeerName != "local"
+		hasPeer = dest.Ref.Tenancy.PeerName != "" && dest.Ref.Tenancy.PeerName != "local"
 	}
 
 	if hasPeer && dest.Datacenter != "" {
-		errs = append(errs, resource.ErrInvalidField{
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 			Name:    "datacenter",
 			Wrapped: fmt.Errorf("ref.tenancy.peer_name and datacenter are mutually exclusive fields"),
-		})
+		}))
 	}
 
-	return errs
+	return merr
 }
 
 // SimplifyFailoverPolicy fully populates the PortConfigs map and clears the

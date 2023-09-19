@@ -86,11 +86,11 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:          testutil.Logger(t),
-		Registry:        resource.NewRegistry(),
-		Backend:         backend,
-		ACLResolver:     mockACLResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Logger:        testutil.Logger(t),
+		Registry:      resource.NewRegistry(),
+		Backend:       backend,
+		ACLResolver:   mockACLResolver,
+		TenancyBridge: mockTenancyBridge,
 	})
 }
 

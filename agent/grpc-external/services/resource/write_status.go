@@ -36,7 +36,7 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 
 	// Check V1 tenancy exists for the V2 resource. Ignore "marked for deletion" since status updates
 	// should still work regardless.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 

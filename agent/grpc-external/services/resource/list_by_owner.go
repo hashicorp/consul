@@ -43,7 +43,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 	}
 
 	// Check v1 tenancy exists for the v2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 

@@ -42,7 +42,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 		"dns-templated-policy": {
 			templatedPolicy: api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyDNSName,
-				Schema:       structs.ACLTemplatedPolicyDNSSchema,
+				Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
 				Template:     structs.ACLTemplatedPolicyDNS,
 			},
 		},
@@ -94,7 +94,7 @@ func testFormatTemplatedPolicyList(t *testing.T, dirPath string) {
 		},
 		"builtin/dns": {
 			TemplateName: api.ACLTemplatedPolicyDNSName,
-			Schema:       structs.ACLTemplatedPolicyDNSSchema,
+			Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     structs.ACLTemplatedPolicyDNS,
 		},
 		"builtin/service": {
