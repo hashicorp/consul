@@ -58,7 +58,8 @@ kind: Mesh
 metadata:
   name: mesh
 spec:
-  allowEnablingPermissiveMutualTLS: true
+  transparentProxy:
+    meshDestinationsOnly: true
 ```
 
 ```json
