@@ -2,13 +2,13 @@ module github.com/hashicorp/consul
 
 go 1.20
 
-replace github.com/hashicorp/consul/api => ./api
+//replace github.com/hashicorp/consul/api => ./api
 
-replace github.com/hashicorp/consul/sdk => ./sdk
+// replace github.com/hashicorp/consul/sdk => ./sdk
 
-replace github.com/hashicorp/consul/proto-public => ./proto-public
+// replace github.com/hashicorp/consul/proto-public => ./proto-public
 
-replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
+// replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
@@ -31,7 +31,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.0.1-0.20190118093823-f849b5445de4
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706
 	github.com/hashicorp/consul-net-rpc v0.0.0-20220307172752-3602954411b4
-	github.com/hashicorp/consul/api v1.18.0
+	github.com/hashicorp/consul/api v1.18.1
 	github.com/hashicorp/consul/proto-public v0.2.1
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/go-bexpr v0.1.2
