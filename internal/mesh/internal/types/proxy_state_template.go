@@ -34,7 +34,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 		Type:     ProxyStateTemplateV1Alpha1Type,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    resource.ScopeNamespace,
-		Validate: nil,
+		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
 				// Check service:read and operator:read permissions.
@@ -103,11 +103,6 @@ func ValidateProxyStateTemplate(res *pbresource.Resource) error {
 				})
 			}
 
-			if cluster == nil {
-				merr = multierror.Append(merr, wrapClusterErr(resource.ErrMissing))
-				continue
-			}
-
 			if name != cluster.Name {
 				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
 					Name:    "name",
@@ -122,79 +117,82 @@ func ValidateProxyStateTemplate(res *pbresource.Resource) error {
 				})
 			}
 
-			switch x := cluster.Group.(type) {
-			case *pbproxystate.Cluster_EndpointGroup:
-				wrapInnerGroupErr := func(err error) error {
-					return wrapGroupErr(resource.ErrInvalidField{
-						Name:    "endpoint_group",
-						Wrapped: err,
-					})
-				}
-
-				if x.EndpointGroup == nil {
-					merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrMissing))
-					continue
-				}
-
-				// The inner name field is optional, but if specified it has to
-				// match the enclosing cluster.
-
-				if x.EndpointGroup.Name != "" && x.EndpointGroup.Name != cluster.Name {
-					merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrInvalidField{
-						Name: "name",
-						Wrapped: fmt.Errorf("optional but %q does not match enclosing cluster name %q",
-							x.EndpointGroup.Name, cluster.Name),
-					}))
-				}
-
-			case *pbproxystate.Cluster_FailoverGroup:
-				wrapInnerGroupErr := func(err error) error {
-					return wrapGroupErr(resource.ErrInvalidField{
-						Name:    "failover_group",
-						Wrapped: err,
-					})
-				}
-
-				if x.FailoverGroup == nil {
-					merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrMissing))
-					continue
-				}
-
-				if len(x.FailoverGroup.EndpointGroups) == 0 {
-					merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrInvalidField{
-						Name:    "endpoint_groups",
-						Wrapped: resource.ErrEmpty,
-					}))
-				}
-
-				for i, eg := range x.FailoverGroup.EndpointGroups {
-					wrapFailoverEndpointGroupErr := func(err error) error {
-						return wrapInnerGroupErr(resource.ErrInvalidListElement{
-							Name:    "endpoint_groups",
-							Index:   i,
+			if cluster.Group == nil {
+				merr = multierror.Append(merr, wrapGroupErr(resource.ErrMissing))
+			} else {
+				switch x := cluster.Group.(type) {
+				case *pbproxystate.Cluster_EndpointGroup:
+					wrapInnerGroupErr := func(err error) error {
+						return wrapGroupErr(resource.ErrInvalidField{
+							Name:    "endpoint_group",
 							Wrapped: err,
 						})
 					}
-					// The inner name field is required and cannot match the enclosing cluster.
-					switch {
-					case eg.Name == "":
-						merr = multierror.Append(merr, wrapFailoverEndpointGroupErr(resource.ErrInvalidField{
-							Name:    "name",
-							Wrapped: resource.ErrEmpty,
-						}))
-					case eg.Name == cluster.Name:
-						merr = multierror.Append(merr, wrapFailoverEndpointGroupErr(resource.ErrInvalidField{
+
+					if x.EndpointGroup == nil {
+						merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrMissing))
+						continue
+					}
+
+					// The inner name field is optional, but if specified it has to
+					// match the enclosing cluster.
+
+					if x.EndpointGroup.Name != "" && x.EndpointGroup.Name != cluster.Name {
+						merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrInvalidField{
 							Name: "name",
-							Wrapped: fmt.Errorf(
-								"name cannot be the same as the enclosing cluster %q",
-								eg.Name,
-							),
+							Wrapped: fmt.Errorf("optional but %q does not match enclosing cluster name %q",
+								x.EndpointGroup.Name, cluster.Name),
 						}))
 					}
-				}
 
-			default:
-				merr = multierror.Append(merr, wrapGroupErr(fmt.Errorf("unknown type: %T", cluster.Group)))
+				case *pbproxystate.Cluster_FailoverGroup:
+					wrapInnerGroupErr := func(err error) error {
+						return wrapGroupErr(resource.ErrInvalidField{
+							Name:    "failover_group",
+							Wrapped: err,
+						})
+					}
+
+					if x.FailoverGroup == nil {
+						merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrMissing))
+						continue
+					}
+
+					if len(x.FailoverGroup.EndpointGroups) == 0 {
+						merr = multierror.Append(merr, wrapInnerGroupErr(resource.ErrInvalidField{
+							Name:    "endpoint_groups",
+							Wrapped: resource.ErrEmpty,
+						}))
+					}
+
+					for i, eg := range x.FailoverGroup.EndpointGroups {
+						wrapFailoverEndpointGroupErr := func(err error) error {
+							return wrapInnerGroupErr(resource.ErrInvalidListElement{
+								Name:    "endpoint_groups",
+								Index:   i,
+								Wrapped: err,
+							})
+						}
+						// The inner name field is required and cannot match the enclosing cluster.
+						switch {
+						case eg.Name == "":
+							merr = multierror.Append(merr, wrapFailoverEndpointGroupErr(resource.ErrInvalidField{
+								Name:    "name",
+								Wrapped: resource.ErrEmpty,
+							}))
+						case eg.Name == cluster.Name:
+							merr = multierror.Append(merr, wrapFailoverEndpointGroupErr(resource.ErrInvalidField{
+								Name: "name",
+								Wrapped: fmt.Errorf(
+									"name cannot be the same as the enclosing cluster %q",
+									eg.Name,
+								),
+							}))
+						}
+					}
+				default:
+					merr = multierror.Append(merr, wrapGroupErr(fmt.Errorf("unknown type: %T", cluster.Group)))
+				}
 			}
 		}
 	}
