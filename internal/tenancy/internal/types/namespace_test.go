@@ -4,6 +4,8 @@
 package types
 
 import (
+	"errors"
+	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -81,18 +83,46 @@ func TestMutateNamespace(t *testing.T) {
 		name          string
 		namespaceName string
 		expectedName  string
+		err           error
 	}{
-		{"lower", "lower", "lower"},
-		{"mixed", "MiXeD", "mixed"},
-		{"upper", "UPPER", "upper"},
+		{"lower", "lower", "lower", nil},
+		{"mixed", "MiXeD", "mixed", nil},
+		{"upper", "UPPER", "upper", nil},
+		{"system", "System", "upper", fmt.Errorf("namespace name system is not a valid DNS hostname")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			res := &pbresource.Resource{Id: &pbresource.ID{Name: tt.namespaceName}}
-			if err := MutateNamespace(res); err != nil {
+			if err := MutateNamespace(res); !errors.Is(err, tt.err) {
 				t.Errorf("MutateNamespace() error = %v", err)
 			}
 			require.Equal(t, res.Id.Name, tt.expectedName)
+		})
+	}
+}
+
+func TestValidateNamespace(t *testing.T) {
+	tests := []struct {
+		name          string
+		namespaceName string
+		err           string
+	}{
+		{"system", "System", "namespace \"System\" is reserved for future internal use"},
+		{"invalid", "-inval", "namespace name \"-inval\" is not a valid DNS hostname"},
+		{"valid", "ns1", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, err := anypb.New(&tenancyv1alpha1.Namespace{})
+			require.NoError(t, err)
+			res := &pbresource.Resource{Id: &pbresource.ID{Name: tt.namespaceName}, Data: a}
+			err = ValidateNamespace(res)
+			if tt.err == "" {
+				require.NoError(t, err)
+			} else {
+				require.Equal(t, err.Error(), tt.err)
+			}
+
 		})
 	}
 }

@@ -4,7 +4,8 @@
 package types
 
 import (
-	"github.com/go-openapi/strfmt"
+	"fmt"
+	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	tenancyv1alpha1 "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
@@ -50,12 +51,19 @@ func ValidateNamespace(res *pbresource.Resource) error {
 		return errInvalidName
 	}
 
-	if res.Id.Name == resource.DefaultNamespacedTenancy().Namespace {
+	if res.Id.Name == resource.DefaultNamespaceName {
 		return errInvalidName
 	}
 
-	if ok := strfmt.IsHostname(res.Id.Name); !ok {
-		return errInvalidName
+	if !dns.IsValidLabel(res.Id.Name) {
+		return fmt.Errorf("namespace name %q is not a valid DNS hostname", res.Id.Name)
 	}
-	return nil
+
+	switch strings.ToLower(res.Id.Name) {
+	case "system", "universal", "operator", "root":
+		return fmt.Errorf("namespace %q is reserved for future internal use", res.Id.Name)
+	default:
+
+		return nil
+	}
 }
