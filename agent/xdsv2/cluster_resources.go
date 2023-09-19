@@ -164,7 +164,13 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 	if ok {
 		cluster.LoadAssignment = makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints)
 	}
-	err := addHttpProtocolOptions(protocol, cluster)
+
+	var err error
+	if name == xdscommon.LocalAppClusterName {
+		err = addLocalAppHttpProtocolOptions(protocol, cluster)
+	} else {
+		err = addHttpProtocolOptions(protocol, cluster)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -241,6 +247,30 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 		clusters = append(clusters, c)
 	}
 	return clusters, nil
+}
+
+func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == "http2" || protocol == "grpc") {
+		// do not error.  returning nil means it won't get set.
+		return nil
+	}
+	cfg := &envoy_upstreams_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
+			UseDownstreamProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
+				HttpProtocolOptions:  &envoy_core_v3.Http1ProtocolOptions{},
+				Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+			},
+		},
+	}
+	any, err := anypb.New(cfg)
+	if err != nil {
+		return err
+	}
+	c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": any,
+	}
+
+	return nil
 }
 
 func addHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {

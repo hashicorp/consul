@@ -1096,8 +1096,14 @@ func (s *ResourceGenerator) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, nam
 		protocol = cfg.Protocol
 	}
 	if protocol == "http2" || protocol == "grpc" {
-		if err := s.setHttp2ProtocolOptions(c); err != nil {
-			return c, err
+		if name == xdscommon.LocalAppClusterName {
+			if err := s.setLocalAppHttpProtocolOptions(c); err != nil {
+				return c, err
+			}
+		} else {
+			if err := s.setHttp2ProtocolOptions(c); err != nil {
+				return c, err
+			}
 		}
 	}
 	if cfg.MaxInboundConnections > 0 {
@@ -2002,6 +2008,29 @@ func (s *ResourceGenerator) setHttp2ProtocolOptions(c *envoy_cluster_v3.Cluster)
 				ProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_ExplicitHttpConfig_Http2ProtocolOptions{
 					Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
 				},
+			},
+		},
+	}
+	any, err := anypb.New(cfg)
+	if err != nil {
+		return err
+	}
+	c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": any,
+	}
+
+	return nil
+}
+
+// Allows forwarding either HTTP/1.1 or HTTP/2 traffic to the local application.
+// The protocol used depends on the protocol received from the downstream service
+// on the public listener.
+func (s *ResourceGenerator) setLocalAppHttpProtocolOptions(c *envoy_cluster_v3.Cluster) error {
+	cfg := &envoy_upstreams_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
+			UseDownstreamProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
+				HttpProtocolOptions:  &envoy_core_v3.Http1ProtocolOptions{},
+				Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
 			},
 		},
 	}
