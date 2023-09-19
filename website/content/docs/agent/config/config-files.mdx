@@ -7,7 +7,7 @@ description: >-
 
 # Agents Configuration File Reference ((#configuration_files))
 
-This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent). 
+This topic describes the parameters for configuring Consul agents. For information about how to start Consul agents, refer to [Starting the Consul Agent](/consul/docs/agent#starting-the-consul-agent).
 
 ## Overview
 
@@ -63,25 +63,25 @@ telemetry {
 
 </CodeTabs>
 
-### Time-to-live values 
+### Time-to-live values
 
 Consul uses the Go `time` package to parse all time-to-live (TTL) values used in Consul agent configuration files. Specify integer and float values as a string and include one or more of the following units of time:
 
 - `ns`
-- `us` 
-- `µs` 
+- `us`
+- `µs`
 - `ms`
-- `s` 
+- `s`
 - `m`
 - `h`
 
-Examples: 
+Examples:
 
-- `'300ms'` 
-- `'1.5h'` 
+- `'300ms'`
+- `'1.5h'`
 - `'2h45m'`
 
-Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information. 
+Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDuration) for additional information.
 
 ## General parameters
 
@@ -263,9 +263,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
-    [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
-    use when making the outbound connection. If no port is provided, the `server_port`
-    will be used.
+    [Cloud Auto-Joining](/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
+    use when making the outbound connection. If not port is provided the `server_port`
 
   - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
     client agent's TLS certificate. The `localhost` DNS SAN is always requested.
@@ -920,7 +919,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       [`acl.tokens.agent_recovery`](#acl_tokens_agent_recovery).**
 
     - `config_file_service_registration` ((#acl_tokens_config_file_service_registration)) - Specifies the ACL
-      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions 
+      token the agent uses to register services and checks from [service](/consul/docs/services/usage/define-services) and [check](/consul/docs/services/usage/checks) definitions
       specified in configuration files or fragments passed to the agent using the `-hcl`
       flag.
 
