@@ -20,11 +20,7 @@ func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbre
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type: NamespaceV1Alpha1Type,
-			Tenancy: &pbresource.Tenancy{
-				Partition: "default",
-				Namespace: "",
-				PeerName:  "local",
-			},
+			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name: "ns1234",
 		},
 	}
@@ -50,7 +46,7 @@ func TestValidateNamespace_Ok(t *testing.T) {
 
 func TestValidateNamespace_defaultNamespace(t *testing.T) {
 	res := createNamespaceResource(t, validNamespace())
-	res.Id.Name = resource.DefaultNamespacedTenancy().Namespace
+	res.Id.Name = resource.DefaultNamespaceName
 
 	err := ValidateNamespace(res)
 	require.Error(t, err)
@@ -67,7 +63,7 @@ func TestValidateNamespace_InvalidName(t *testing.T) {
 }
 
 func TestValidateNamespace_ParseError(t *testing.T) {
-	// Any type other than the Workload type would work
+	// Any type other than the Namespace type would work
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 

@@ -22,8 +22,7 @@ var (
 		GroupVersion: VersionV1Alpha1,
 		Kind:         NamespaceKind,
 	}
-
-	TrafficPermissionsType = NamespaceV1Alpha1Type
+	NamespaceType = NamespaceV1Alpha1Type
 )
 
 func RegisterNamespace(r resource.Registry) {

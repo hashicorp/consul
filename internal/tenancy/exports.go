@@ -21,7 +21,7 @@ var (
 	NamespaceV1Alpha1Type = types.NamespaceV1Alpha1Type
 )
 
-// RegisterTypes adds all resource types within the "catalog" API group
+// RegisterTypes adds all resource types within the "tenancy" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
