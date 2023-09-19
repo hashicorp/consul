@@ -16,83 +16,103 @@ import (
 )
 
 type TrafficPermissionsMapper struct {
-	lock                     sync.Mutex
-	mapper                   *bimapper.Mapper
-	workloadIdentityToCTPMap map[string]*pbresource.ID
+	lock     sync.Mutex
+	mapper   *bimapper.Mapper
+	liveCTPs map[string]*pbresource.ID
 }
 
 func New() *TrafficPermissionsMapper {
 	return &TrafficPermissionsMapper{
-		lock:                     sync.Mutex{},
-		mapper:                   bimapper.New(types.ComputedTrafficPermissionsType, types.TrafficPermissionsType),
-		workloadIdentityToCTPMap: make(map[string]*pbresource.ID, 0),
+		lock:     sync.Mutex{},
+		mapper:   bimapper.New(types.ComputedTrafficPermissionsType, types.TrafficPermissionsType),
+		liveCTPs: make(map[string]*pbresource.ID, 0),
 	}
 }
 
 //  TrafficPermissionsMapper functions
 
-func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	mappedWIs := make([]controller.Request, 0)
-	// get already associated WorkloadIdentities/CTPs for reconcile requests:
-	associatedWIs := tm.mapper.ItemIDsForLink(res.Id)
-	for _, w := range associatedWIs {
-		mappedWIs = append(mappedWIs, controller.Request{ID: w})
+func (tm *TrafficPermissionsMapper) getCTPForWorkloadIdentity(destination string) *pbresource.ID {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	return tm.liveCTPs[destination]
+}
+
+func (tm *TrafficPermissionsMapper) trackTPForWorkloadIdentity(tp *pbresource.ID, wi *pbresource.ID) {
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+	newTPsForWI := []resource.ReferenceOrID{tp}
+	for _, mtp := range tm.mapper.LinkIDsForItem(wi) {
+		newTPsForWI = append(newTPsForWI, mtp)
 	}
+	tm.mapper.TrackItem(wi, newTPsForWI)
+}
+
+func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	var tp pbauth.TrafficPermissions
 	err := res.Data.UnmarshalTo(&tp)
 	if err != nil {
 		return nil, resource.NewErrDataParse(&tp, err)
 	}
 	// get new CTP associations based on destination
-	if len(tp.Destination.IdentityName) > 0 {
-		// Does the identity exist in our mappings?
-		ctp := tm.GetCTPForWorkloadIdentity(tp.Destination.IdentityName)
-		if ctp != nil {
-			tm.mapper.AddLinksForItem(ctp, []resource.ReferenceOrID{res.Id}, false)
-			mappedWIs = append(mappedWIs, controller.Request{ID: ctp})
-		} else {
-			// if not, make a new ID and track it
-			ctp = &pbresource.ID{
-				Name:    tp.Destination.IdentityName,
-				Type:    types.ComputedTrafficPermissionsType,
-				Tenancy: res.Id.Tenancy,
-			}
-			tm.mapper.AddLinksForItem(ctp, []resource.ReferenceOrID{res.Id}, false)
-			return nil, nil
-		}
-	} else {
+	if len(tp.Destination.IdentityName) == 0 {
 		// this error should never happen if validation is working
 		return nil, types.ErrWildcardNotSupported
 	}
-	return mappedWIs, nil
+	// Does the identity exist in our mappings?
+	ctp := tm.getCTPForWorkloadIdentity(tp.Destination.IdentityName)
+	if ctp == nil {
+		// if not, make a new ID and track it
+		ctp = &pbresource.ID{
+			Name:    tp.Destination.IdentityName,
+			Type:    types.ComputedTrafficPermissionsType,
+			Tenancy: res.Id.Tenancy,
+		}
+		tm.trackTPForWorkloadIdentity(res.Id, ctp)
+		return nil, nil
+	}
+	tm.trackTPForWorkloadIdentity(res.Id, ctp)
+	requests := []controller.Request{{ID: ctp}}
+	// add already associated WorkloadIdentities/CTPs for reconcile requests:
+	for _, mappedWI := range tm.mapper.ItemIDsForLink(res.Id) {
+		if mappedWI.Name != ctp.Name {
+			requests = append(requests, controller.Request{ID: mappedWI})
+		}
+	}
+	return requests, nil
 }
 
 func (tm *TrafficPermissionsMapper) UntrackTrafficPermissions(tp *pbresource.ID) {
 	tm.mapper.UntrackLink(tp)
 }
 
-func (tm *TrafficPermissionsMapper) UntrackWorkloadIdentity(ctp *pbresource.ID) {
+func (tm *TrafficPermissionsMapper) UntrackWorkloadIdentity(ctx context.Context, rt controller.Runtime, ctp *pbresource.ID) error {
 	// check if there are any remaining TPs for the WI, and remove it from the map if there are none
-	tps := tm.mapper.LinkRefsForItem(ctp)
-	if len(tps) == 0 {
+	tps := tm.mapper.LinkIDsForItem(ctp)
+	// prune any dead TPs
+	pruned := 0
+	for _, tp := range tps {
+		res, err := resource.GetDecodedResource[*pbauth.TrafficPermissions](ctx, rt.Client, tp)
+		if err != nil {
+			return err
+		}
+		if res == nil {
+			tm.UntrackTrafficPermissions(tp)
+			pruned += 1
+		}
+	}
+	if len(tps) == 0 || pruned == len(tps) {
 		// remove from bimapper
 		tm.mapper.UntrackItem(ctp)
 	}
 	// remove from tracked WIs
-	delete(tm.workloadIdentityToCTPMap, ctp.Name)
-	return
+	delete(tm.liveCTPs, ctp.Name)
+	return nil
 }
 
 func (tm *TrafficPermissionsMapper) TrackCTPForWorkloadIdentity(ctp *pbresource.ID, wi *pbresource.ID) {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
-	tm.workloadIdentityToCTPMap[wi.Name] = ctp
-}
-
-func (tm *TrafficPermissionsMapper) GetCTPForWorkloadIdentity(destination string) *pbresource.ID {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
-	return tm.workloadIdentityToCTPMap[destination]
+	tm.liveCTPs[wi.Name] = ctp
 }
 
 func (tm *TrafficPermissionsMapper) GetTrafficPermissionsForCTP(ctp *pbresource.ID) []*pbresource.Reference {

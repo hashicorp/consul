@@ -9,7 +9,7 @@ import (
 )
 
 type Dependencies struct {
-	WorkloadIdentityMapper trafficpermissions.ComputedTrafficPermissionsMapper
+	WorkloadIdentityMapper trafficpermissions.TrafficPermissionsMapper
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {

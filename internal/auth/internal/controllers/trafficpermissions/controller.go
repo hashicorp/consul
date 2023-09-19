@@ -18,10 +18,10 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// ComputedTrafficPermissionsMapper is used to map a watch event for a TrafficPermissions resource and translate
+// TrafficPermissionsMapper is used to map a watch event for a TrafficPermissions resource and translate
 // it to a ComputedTrafficPermissions resource which contains the effective permissions
 // from all referencing TrafficPermissions resources.
-type ComputedTrafficPermissionsMapper interface {
+type TrafficPermissionsMapper interface {
 	// MapTrafficPermissions will take a TrafficPermission resource and return controller requests for all
 	// ComputedTrafficPermissions associated with that TrafficPermission.
 	MapTrafficPermissions(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
@@ -32,7 +32,7 @@ type ComputedTrafficPermissionsMapper interface {
 
 	// UntrackWorkloadIdentity instructs the Mapper to forget about the WorkloadIdentity and associated
 	// ComputedTrafficPermission.
-	UntrackWorkloadIdentity(*pbresource.ID)
+	UntrackWorkloadIdentity(context.Context, controller.Runtime, *pbresource.ID) error
 
 	// UntrackTrafficPermissions instructs the Mapper to forget about the TrafficPermission.
 	UntrackTrafficPermissions(*pbresource.ID)
@@ -43,9 +43,9 @@ type ComputedTrafficPermissionsMapper interface {
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
-func Controller(mapper ComputedTrafficPermissionsMapper) controller.Controller {
+func Controller(mapper TrafficPermissionsMapper) controller.Controller {
 	if mapper == nil {
-		panic("No ComputedTrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
+		panic("No TrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
 	}
 
 	return controller.ForType(types.ComputedTrafficPermissionsType).
@@ -55,7 +55,7 @@ func Controller(mapper ComputedTrafficPermissionsMapper) controller.Controller {
 }
 
 type reconciler struct {
-	mapper ComputedTrafficPermissionsMapper
+	mapper TrafficPermissionsMapper
 }
 
 // Reconcile will reconcile one ComputedTrafficPermission (CTP) in response to some event.
@@ -87,7 +87,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("workload identity has been deleted")
 		// The workload identity was deleted, so we need to update the mapper to tell it to
 		// stop tracking this workload identity, and clean up the associated CTP
-		r.mapper.UntrackWorkloadIdentity(ctpID)
+		if err := r.mapper.UntrackWorkloadIdentity(ctx, rt, ctpID); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -148,7 +150,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 }
 
 // computeNewTrafficPermissions will use all associated Traffic Permissions to create new ComputedTrafficPermissions data
-func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm ComputedTrafficPermissionsMapper, ctpID *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
+func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm TrafficPermissionsMapper, ctpID *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
 	// Part 1: Get all TPs that apply to workload identity
 	// Get already associated WorkloadIdentities/CTPs for reconcile requests:
 	trackedTPs := wm.GetTrafficPermissionsForCTP(ctpID)

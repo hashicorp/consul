@@ -111,13 +111,6 @@ func (m *Mapper) untrackItem(item resource.ReferenceKey) {
 // TrackItem adds tracking for the provided item. The item and link types MUST
 // match the types configured for the items and links.
 func (m *Mapper) TrackItem(item resource.ReferenceOrID, links []resource.ReferenceOrID) {
-	m.AddLinksForItem(item, links, true)
-}
-
-// AddLinksForItem adds links and ensures tracking for the provided item. If overwrite is true,
-// it replaces any previous links with the ones provided. If overwrite is false, it adds the provided
-// links to the existing ones. The item and link types MUST match the types configured for the items and links.
-func (m *Mapper) AddLinksForItem(item resource.ReferenceOrID, links []resource.ReferenceOrID, overwrite bool) {
 	if !resource.EqualType(item.GetType(), m.itemType) {
 		panic(fmt.Sprintf("expected item type %q got %q",
 			resource.TypeToString(m.itemType),
@@ -136,13 +129,7 @@ func (m *Mapper) AddLinksForItem(item resource.ReferenceOrID, links []resource.R
 		linksAsKeys = append(linksAsKeys, resource.NewReferenceKey(link))
 	}
 
-	if overwrite {
-		m.trackItem(resource.NewReferenceKey(item), linksAsKeys)
-	} else {
-		m.lock.Lock()
-		defer m.lock.Unlock()
-		m.addItemLocked(resource.NewReferenceKey(item), linksAsKeys)
-	}
+	m.trackItem(resource.NewReferenceKey(item), linksAsKeys)
 }
 
 func (m *Mapper) trackItem(item resource.ReferenceKey, links []resource.ReferenceKey) {
