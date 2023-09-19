@@ -29,7 +29,7 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 		destCache = sidecarproxycache.NewDestinationsCache()
 		// proxyCfgCache = sidecarproxycache.NewProxyConfigurationCache()
 		routesCache = sidecarproxycache.NewComputedRoutesCache()
-		mapper      = New(destCache, nil, routesCache)
+		mapper      = New(destCache, nil, routesCache, nil)
 
 		client = svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	)

@@ -19,17 +19,20 @@ type Mapper struct {
 	destinationsCache   *sidecarproxycache.DestinationsCache
 	proxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache
+	identitiesCache     *sidecarproxycache.IdentitiesCache
 }
 
 func New(
 	destinationsCache *sidecarproxycache.DestinationsCache,
 	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
+	identitiesCache *sidecarproxycache.IdentitiesCache,
 ) *Mapper {
 	return &Mapper{
 		destinationsCache:   destinationsCache,
 		proxyCfgCache:       proxyCfgCache,
 		computedRoutesCache: computedRoutesCache,
+		identitiesCache:     identitiesCache,
 	}
 }
 

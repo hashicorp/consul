@@ -8,52 +8,32 @@ import (
 )
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L7TrafficPermissions) MarshalBinary() ([]byte, error) {
+func (msg *TrafficPermissions) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L7TrafficPermissions) UnmarshalBinary(b []byte) error {
+func (msg *TrafficPermissions) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L4TrafficPermissions) MarshalBinary() ([]byte, error) {
+func (msg *Permission) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L4TrafficPermissions) UnmarshalBinary(b []byte) error {
+func (msg *Permission) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L4Permission) MarshalBinary() ([]byte, error) {
+func (msg *Principal) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L4Permission) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L4Principal) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L4Principal) UnmarshalBinary(b []byte) error {
-	return proto.Unmarshal(b, msg)
-}
-
-// MarshalBinary implements encoding.BinaryMarshaler
-func (msg *L7Principal) MarshalBinary() ([]byte, error) {
-	return proto.Marshal(msg)
-}
-
-// UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *L7Principal) UnmarshalBinary(b []byte) error {
+func (msg *Principal) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
 

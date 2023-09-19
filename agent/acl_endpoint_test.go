@@ -1378,7 +1378,7 @@ func TestACL_HTTP(t *testing.T) {
 
 			require.Equal(t, api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,
-				Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+				Schema:       structs.ACLTemplatedPolicyServiceSchema,
 				Template:     structs.ACLTemplatedPolicyService,
 			}, list[api.ACLTemplatedPolicyServiceName])
 		})
@@ -1401,7 +1401,7 @@ func TestACL_HTTP(t *testing.T) {
 
 				var templatedPolicy api.ACLTemplatedPolicyResponse
 				require.NoError(t, json.NewDecoder(resp.Body).Decode(&templatedPolicy))
-				require.Equal(t, structs.ACLTemplatedPolicyDNSSchema, templatedPolicy.Schema)
+				require.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, templatedPolicy.Schema)
 				require.Equal(t, api.ACLTemplatedPolicyDNSName, templatedPolicy.TemplateName)
 				require.Equal(t, structs.ACLTemplatedPolicyDNS, templatedPolicy.Template)
 			})

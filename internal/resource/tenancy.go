@@ -12,10 +12,26 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type TenancyBridge interface {
+	PartitionExists(partition string) (bool, error)
+	IsPartitionMarkedForDeletion(partition string) (bool, error)
+	NamespaceExists(partition, namespace string) (bool, error)
+	IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error)
+}
+
 const (
 	DefaultPartitionName = "default"
 	DefaultNamespaceName = "default"
 )
+
+// V2TenancyBridge is used by the resource service to access V2 implementations of
+// partitions and namespaces.
+type V2TenancyBridge struct {
+}
+
+func NewV2TenancyBridge() TenancyBridge {
+	return &V2TenancyBridge{}
+}
 
 // Scope describes the tenancy scope of a resource.
 type Scope int
@@ -52,12 +68,17 @@ func Normalize(tenancy *pbresource.Tenancy) {
 	}
 	tenancy.Partition = strings.ToLower(tenancy.Partition)
 	tenancy.Namespace = strings.ToLower(tenancy.Namespace)
+
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = "local"
+	}
 }
 
 // DefaultClusteredTenancy returns the default tenancy for a cluster scoped resource.
 func DefaultClusteredTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }
@@ -66,7 +87,7 @@ func DefaultClusteredTenancy() *pbresource.Tenancy {
 func DefaultPartitionedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }
@@ -76,7 +97,7 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
 		Namespace: DefaultNamespaceName,
-		// TODO(spatel): Remove as part of "peer is not part of tenancy" ADR
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		PeerName: "local",
 	}
 }

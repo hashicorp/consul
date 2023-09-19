@@ -45,6 +45,17 @@ func New(
 }
 
 func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
+	workloadIdentity := b.proxyStateTemplate.ProxyState.Identity.Name
+	b.proxyStateTemplate.RequiredLeafCertificates[workloadIdentity] = &pbproxystate.LeafCertificateRef{
+		Name:      workloadIdentity,
+		Namespace: b.id.Tenancy.Namespace,
+		Partition: b.id.Tenancy.Partition,
+	}
+
+	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
+		Peer: b.id.Tenancy.PeerName,
+	}
+
 	return b.proxyStateTemplate
 }
 

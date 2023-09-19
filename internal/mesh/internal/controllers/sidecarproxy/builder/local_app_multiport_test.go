@@ -4,9 +4,10 @@
 package builder
 
 import (
-	"github.com/hashicorp/consul/internal/testing/golden"
 	"sort"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/testing/golden"
 
 	"github.com/stretchr/testify/require"
 
@@ -71,12 +72,24 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 				},
 			},
 		},
+		"source/multiport-l4-workload-with-only-mesh-port": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
-				BuildLocalApp(c.workload).
+				BuildLocalApp(c.workload, nil).
 				Build()
 
 			// sort routers because of test flakes where order was flip flopping.

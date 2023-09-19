@@ -29,12 +29,43 @@ var (
 
 func RegisterTCPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  TCPRouteV1Alpha1Type,
-		Proto: &pbmesh.TCPRoute{},
-		Scope: resource.ScopeNamespace,
-		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook
+		Type:     TCPRouteV1Alpha1Type,
+		Proto:    &pbmesh.TCPRoute{},
+		Scope:    resource.ScopeNamespace,
+		Mutate:   MutateTCPRoute,
 		Validate: ValidateTCPRoute,
 	})
+}
+
+func MutateTCPRoute(res *pbresource.Resource) error {
+	var route pbmesh.TCPRoute
+
+	if err := res.Data.UnmarshalTo(&route); err != nil {
+		return resource.NewErrDataParse(&route, err)
+	}
+
+	changed := false
+
+	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+		changed = true
+	}
+
+	for _, rule := range route.Rules {
+		for _, backend := range rule.BackendRefs {
+			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
+				continue
+			}
+			if mutateXRouteRef(res.Id.Tenancy, backend.BackendRef.Ref) {
+				changed = true
+			}
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return res.Data.MarshalFrom(&route)
 }
 
 func ValidateTCPRoute(res *pbresource.Resource) error {
@@ -67,14 +98,6 @@ func ValidateTCPRoute(res *pbresource.Resource) error {
 		}
 
 		if len(rule.BackendRefs) == 0 {
-			/*
-				BackendRefs (optional)¶
-
-				BackendRefs defines API objects where matching requests should be
-				sent. If unspecified, the rule performs no forwarding. If
-				unspecified and no filters are specified that would result in a
-				response being sent, a 404 error code is returned.
-			*/
 			merr = multierror.Append(merr, wrapRuleErr(
 				resource.ErrInvalidField{
 					Name:    "backend_refs",
@@ -90,13 +113,15 @@ func ValidateTCPRoute(res *pbresource.Resource) error {
 					Wrapped: err,
 				})
 			}
-			for _, err := range validateBackendRef(hbref.BackendRef) {
-				merr = multierror.Append(merr, wrapBackendRefErr(
-					resource.ErrInvalidField{
-						Name:    "backend_ref",
-						Wrapped: err,
-					},
-				))
+
+			wrapBackendRefFieldErr := func(err error) error {
+				return wrapBackendRefErr(resource.ErrInvalidField{
+					Name:    "backend_ref",
+					Wrapped: err,
+				})
+			}
+			if err := validateBackendRef(hbref.BackendRef, wrapBackendRefFieldErr); err != nil {
+				merr = multierror.Append(merr, err)
 			}
 		}
 	}

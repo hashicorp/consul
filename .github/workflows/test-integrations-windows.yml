@@ -76,6 +76,11 @@ jobs:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ${{ github.workspace }}
 
+      - name: Create dist folder and copy binary
+        run: |
+          mkdir dist
+          cp ${{ github.workspace }}\consul.exe dist\
+
       - name: Restore mode+x
         run: icacls ${{ github.workspace }}\consul.exe /grant:rx Everyone:RX
 

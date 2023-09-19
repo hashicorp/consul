@@ -41,3 +41,5 @@ message Album {
   bool critically_acclaimed = 3;
   repeated string tracks = 4;
 }
+
+message Concept {}

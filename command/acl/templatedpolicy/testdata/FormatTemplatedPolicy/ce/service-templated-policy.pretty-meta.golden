@@ -1,10 +1,9 @@
-Name:									builtin/service
+Name:            builtin/service
 Input variables:
 	Name: String - Required - The name of the service.
 Example usage:
 	consul acl token create -templated-policy builtin/service -var name:api
 Schema:
-
 {
 	"type": "object",
 	"properties": {

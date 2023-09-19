@@ -46,10 +46,6 @@ func TestWrite_InputValidation(t *testing.T) {
 			artist.Id.Name = ""
 			return artist
 		},
-		"no data": func(artist, _ *pbresource.Resource) *pbresource.Resource {
-			artist.Data = nil
-			return artist
-		},
 		"wrong data type": func(artist, _ *pbresource.Resource) *pbresource.Resource {
 			var err error
 			artist.Data, err = anypb.New(&pbdemov2.Album{})
@@ -256,6 +252,14 @@ func TestWrite_Create_Success(t *testing.T) {
 			},
 			expectedTenancy: resource.DefaultNamespacedTenancy(),
 		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced resource defaults peername to local when empty": {
+			modFn: func(artist, _ *pbresource.Resource) *pbresource.Resource {
+				artist.Id.Tenancy.PeerName = ""
+				return artist
+			},
+			expectedTenancy: resource.DefaultNamespacedTenancy(),
+		},
 		"partitioned resource provides nonempty partition": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				return recordLabel
@@ -279,6 +283,14 @@ func TestWrite_Create_Success(t *testing.T) {
 		"partitioned resource inherits tokens partition when tenancy nil": {
 			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
 				recordLabel.Id.Tenancy = nil
+				return recordLabel
+			},
+			expectedTenancy: resource.DefaultPartitionedTenancy(),
+		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"partitioned resource defaults peername to local when empty": {
+			modFn: func(_, recordLabel *pbresource.Resource) *pbresource.Resource {
+				recordLabel.Id.Tenancy.PeerName = ""
 				return recordLabel
 			},
 			expectedTenancy: resource.DefaultPartitionedTenancy(),
@@ -404,7 +416,7 @@ func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
 			mockTenancyBridge := &MockTenancyBridge{}
 			mockTenancyBridge.On("PartitionExists", "part1").Return(true, nil)
 			mockTenancyBridge.On("NamespaceExists", "part1", "ns1").Return(true, nil)
-			server.V1TenancyBridge = mockTenancyBridge
+			server.TenancyBridge = mockTenancyBridge
 
 			_, err = client.Write(testContext(t), &pbresource.WriteRequest{Resource: tc.modFn(artist, recordLabel, mockTenancyBridge)})
 			require.Error(t, err)
@@ -666,6 +678,21 @@ func TestWrite_NonCASUpdate_Retry(t *testing.T) {
 
 	// Check that the write succeeded anyway because of a retry.
 	require.NoError(t, <-errCh)
+}
+
+func TestWrite_NoData(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+
+	demo.RegisterTypes(server.Registry)
+
+	res, err := demo.GenerateV1Concept("jazz")
+	require.NoError(t, err)
+
+	rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	require.NotEmpty(t, rsp.Resource.Version)
+	require.Equal(t, rsp.Resource.Id.Name, "jazz")
 }
 
 func TestWrite_Owner_Immutable(t *testing.T) {
