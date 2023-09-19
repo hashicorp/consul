@@ -1,0 +1,3 @@
+```release-note:improvement
+command: Adds -since flag in consul debug command which internally calls hcdiag for debug information in the past.
+```
