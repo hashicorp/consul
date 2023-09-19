@@ -6,5 +6,6 @@ package types
 import "errors"
 
 var (
-	errInvalidName = errors.New("invalid name provided")
+	errInvalidName   = errors.New("invalid namespace name provided")
+	errOwnerNonEmpty = errors.New("namespace should not have an owner")
 )

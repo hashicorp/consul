@@ -23,7 +23,7 @@ func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbre
 				Namespace: "",
 				PeerName:  "local",
 			},
-			Name: "ns-1234",
+			Name: "ns1234",
 		},
 	}
 
@@ -55,6 +55,15 @@ func TestValidateNamespace_defaultNamespace(t *testing.T) {
 	require.ErrorAs(t, err, &errInvalidName)
 }
 
+func TestValidateNamespace_InvalidName(t *testing.T) {
+	res := createNamespaceResource(t, validNamespace())
+	res.Id.Name = "-invalid"
+
+	err := ValidateNamespace(res)
+	require.Error(t, err)
+	require.ErrorAs(t, err, &errInvalidName)
+}
+
 func TestValidateNamespace_ParseError(t *testing.T) {
 	// Any type other than the Workload type would work
 	// to cause the error we are expecting
@@ -65,4 +74,25 @@ func TestValidateNamespace_ParseError(t *testing.T) {
 	err := ValidateNamespace(res)
 	require.Error(t, err)
 	require.ErrorAs(t, err, &resource.ErrDataParse{})
+}
+
+func TestMutateNamespace(t *testing.T) {
+	tests := []struct {
+		name          string
+		namespaceName string
+		expectedName  string
+	}{
+		{"lower", "lower", "lower"},
+		{"mixed", "MiXeD", "mixed"},
+		{"upper", "UPPER", "upper"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := &pbresource.Resource{Id: &pbresource.ID{Name: tt.namespaceName}}
+			if err := MutateNamespace(res); err != nil {
+				t.Errorf("MutateNamespace() error = %v", err)
+			}
+			require.Equal(t, res.Id.Name, tt.expectedName)
+		})
+	}
 }

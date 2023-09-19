@@ -4,9 +4,11 @@
 package types
 
 import (
+	"github.com/go-openapi/strfmt"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	tenancyv1alpha1 "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	"strings"
 )
 
 const (
@@ -29,7 +31,13 @@ func RegisterNamespace(r resource.Registry) {
 		Proto:    &tenancyv1alpha1.Namespace{},
 		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
+		Mutate:   MutateNamespace,
 	})
+}
+
+func MutateNamespace(res *pbresource.Resource) error {
+	res.Id.Name = strings.ToLower(res.Id.Name)
+	return nil
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
@@ -38,7 +46,15 @@ func ValidateNamespace(res *pbresource.Resource) error {
 	if err := res.Data.UnmarshalTo(&ns); err != nil {
 		return resource.NewErrDataParse(&ns, err)
 	}
+	if res.Owner != nil {
+		return errInvalidName
+	}
+
 	if res.Id.Name == resource.DefaultNamespacedTenancy().Namespace {
+		return errInvalidName
+	}
+
+	if ok := strfmt.IsHostname(res.Id.Name); !ok {
 		return errInvalidName
 	}
 	return nil
