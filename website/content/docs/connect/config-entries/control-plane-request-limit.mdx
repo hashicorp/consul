@@ -41,30 +41,34 @@ When every field is defined, a control plane request limit configuration entry h
 
 ```hcl
 kind = "control-plane-request-limit"
-mode = "permissive"
 name = "<name-for-the-entry>"
+
+mode = "permissive"
+
 read_rate =  100
 write_rate = 100
+
 kv = {
   read_rate =  100
   write_rate = 100
-  }
+}
+
 acl = {
   read_rate =  100
   write_rate = 100
-mode = "permissive"
-  }
+}
+
 catalog = {
   read_rate =  100
   write_rate = 100
-  }
+}
 ```
 
 ```json
 {
   "kind": "control-plane-request-limit",
-  "mode": "permissive",
   "name": "<name-for-the-entry>",
+  "mode": "permissive",
   "read_rate":  100,
   "write_rate": 100,
   "kv": {
@@ -75,7 +79,7 @@ catalog = {
     "read_rate": 100,
     "write_rate": 100
     },
-  "catalog: {
+  "catalog": {
     "read_rate": 100,
     "write_rate": 100
   }
