@@ -47,7 +47,7 @@ func ValidateNamespace(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&ns, err)
 	}
 	if res.Owner != nil {
-		return errInvalidName
+		return errOwnerNonEmpty
 	}
 
 	if res.Id.Name == resource.DefaultNamespaceName {

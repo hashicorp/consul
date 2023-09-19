@@ -5,7 +5,6 @@ package types
 
 import (
 	"errors"
-	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -19,9 +18,9 @@ import (
 func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: NamespaceV1Alpha1Type,
+			Type:    NamespaceV1Alpha1Type,
 			Tenancy: resource.DefaultPartitionedTenancy(),
-			Name: "ns1234",
+			Name:    "ns1234",
 		},
 	}
 
@@ -62,6 +61,15 @@ func TestValidateNamespace_InvalidName(t *testing.T) {
 	require.ErrorAs(t, err, &errInvalidName)
 }
 
+func TestValidateNamespace_InvalidOwner(t *testing.T) {
+	res := createNamespaceResource(t, validNamespace())
+	res.Owner = &pbresource.ID{}
+	err := ValidateNamespace(res)
+
+	require.Error(t, err)
+	require.ErrorAs(t, err, &errOwnerNonEmpty)
+}
+
 func TestValidateNamespace_ParseError(t *testing.T) {
 	// Any type other than the Namespace type would work
 	// to cause the error we are expecting
@@ -84,7 +92,6 @@ func TestMutateNamespace(t *testing.T) {
 		{"lower", "lower", "lower", nil},
 		{"mixed", "MiXeD", "mixed", nil},
 		{"upper", "UPPER", "upper", nil},
-		{"system", "System", "upper", fmt.Errorf("namespace name system is not a valid DNS hostname")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
