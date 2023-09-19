@@ -17,7 +17,8 @@ var (
 
 	// Resource Kind Names.
 
-	WorkloadKind = types.NamespaceKind
+	NamespaceKind         = types.NamespaceKind
+	NamespaceV1Alpha1Type = types.NamespaceV1Alpha1Type
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group
