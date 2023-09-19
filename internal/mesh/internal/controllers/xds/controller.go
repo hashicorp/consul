@@ -156,6 +156,7 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	endpointReferencesMap := proxyStateTemplate.Template.RequiredEndpoints
 	var endpointsInProxyStateTemplate []resource.ReferenceOrID
 	for xdsClusterName, endpointRef := range endpointReferencesMap {
+
 		// Step 1: Resolve the reference by looking up the ServiceEndpoints.
 		// serviceEndpoints will not be nil unless there is an error.
 		//

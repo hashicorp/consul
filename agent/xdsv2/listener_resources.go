@@ -540,10 +540,6 @@ func (pr *ProxyResources) makeEnvoyTLSParameters(defaultParams *pbproxystate.TLS
 }
 
 func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSocket) (*envoy_core_v3.TransportSocket, error) {
-	// TODO(JM): did this just make tests pass.  Figure out whether proxyState.Tls will always be available.
-	//if pr.proxyState.Tls == nil {
-	//	return nil, nil
-	//}
 	if ts == nil {
 		return nil, nil
 	}
@@ -673,10 +669,6 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		}
 		// For outbound mesh, we need to insert the mesh identity certificate
 		// and the validation context for the mesh depending on the provided trust bundle names.
-		if pr.proxyState.Tls == nil {
-			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
-			//return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
-		}
 		om := ts.GetOutboundMesh()
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
 		if !ok {
