@@ -15,13 +15,13 @@ Datacenters can reside in different clouds or runtime environments where general
 Mesh gateways can be used with any of the following Consul configurations for managing separate datacenters or partitions.
 
 1. WAN Federation
-  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
-  * [Mesh gateways can be used to route all WAN traffic, including from Consul servers](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
+    * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
+    * [Mesh gateways can be used to route all WAN traffic, including from Consul servers](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
 2. Cluster Peering
-  * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
-  * [Mesh gateways can be used to route control-plane traffic from Consul servers](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
+    * [Mesh gateways can be used to route service-to-service traffic between datacenters](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering)
+    * [Mesh gateways can be used to route control-plane traffic from Consul servers](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways)
 3. Admin Partitions
-  * [Mesh gateways can be used to route service-to-service traffic between admin partitions in the same Consul datacenter](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
+    * [Mesh gateways can be used to route service-to-service traffic between admin partitions in the same Consul datacenter](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-partitions)
 
 ### Consul
 
@@ -84,21 +84,24 @@ Use the following example configurations to help you understand some of the comm
 
 The following `proxy-defaults` configuration will enable gateways for all mesh services in the `local` mode.
 
-<CodeTabs heading="Example: Enabling gateways globally.">
+<CodeTabs heading="Example: Enabling gateways globally">
 
 ```hcl
 Kind = "proxy-defaults"
 Name = "global"
 MeshGateway {
-   Mode = "local"
+  Mode = "local"
 }
 ```
 
 ```yaml
-Kind: proxy-defaults
-MeshGateway:
-- Mode: local
-Name: global
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  meshGateway:
+    mode: local
 ```
 </CodeTabs>
 
@@ -112,15 +115,18 @@ The following `service-defaults` configuration will enable gateways for all mesh
 Kind = "service-defaults"
 Name = "web"
 MeshGateway {
-   Mode = "local"
+  Mode = "local"
 }
 ```
 
 ```yaml
-Kind: service-defaults
-MeshGateway:
-- Mode: local
-Name: web
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: web
+spec:
+  meshGateway:
+    mode: local
 ```
 
 </CodeTabs>
@@ -134,22 +140,22 @@ The following [proxy service configuration](/consul/docs/connect/proxies/deploy-
 
 ```hcl
 service {
-   name = "web-sidecar-proxy"
-   kind = "connect-proxy"
-   port = 8181
-   proxy {
-      destination_service_name = "web"
-      mesh_gateway {
-         mode = "remote"
+  name = "web-sidecar-proxy"
+  kind = "connect-proxy"
+  port = 8181
+  proxy {
+    destination_service_name = "web"
+    mesh_gateway {
+      mode = "remote"
+    }
+    upstreams = [
+      {
+        destination_name = "api"
+        datacenter = "secondary"
+        local_bind_port = 10000
       }
-      upstreams = [
-         {
-            destination_name = "api"
-            datacenter = "secondary"
-            local_bind_port = 10000
-         }
-      ]
-   }
+    ]
+  }
 }
 
 # Or alternatively inline with the service definition:
@@ -201,38 +207,38 @@ The following service definition will enable gateways in the `local` mode for on
 
 ```hcl
 service {
-   name = "web-sidecar-proxy"
-   kind = "connect-proxy"
-   port = 8181
-   proxy {
-      destination_service_name = "web"
-      upstreams = [
-         {
-            destination_name = "api"
-            destination_peer = "cluster-01"
-            local_bind_port = 10000
-            mesh_gateway {
-               mode = "remote"
-            }
-         },
-         {
-            destination_name = "db"
-            datacenter = "secondary"
-            local_bind_port = 10001
-            mesh_gateway {
-               mode = "local"
-            }
-         },
-         {
-            destination_name = "logging"
-            datacenter = "secondary"
-            local_bind_port = 10002
-            mesh_gateway {
-               mode = "none"
-            }
-         },
-      ]
-   }
+  name = "web-sidecar-proxy"
+  kind = "connect-proxy"
+  port = 8181
+  proxy {
+    destination_service_name = "web"
+    upstreams = [
+      {
+        destination_name = "api"
+        destination_peer = "cluster-01"
+        local_bind_port = 10000
+        mesh_gateway {
+          mode = "remote"
+        }
+      },
+      {
+        destination_name = "db"
+        datacenter = "secondary"
+        local_bind_port = 10001
+        mesh_gateway {
+          mode = "local"
+        }
+      },
+      {
+        destination_name = "logging"
+        datacenter = "secondary"
+        local_bind_port = 10002
+        mesh_gateway {
+          mode = "none"
+        }
+      },
+    ]
+  }
 }
 ```
 ```yaml
