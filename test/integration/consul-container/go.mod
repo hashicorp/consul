@@ -6,7 +6,7 @@ require (
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/hashicorp/consul v1.14.1
-	github.com/hashicorp/consul/api v1.18.0
+	github.com/hashicorp/consul/api v1.18.1
 	github.com/hashicorp/consul/sdk v0.13.0
 	github.com/hashicorp/serf v0.10.1
 	github.com/itchyny/gojq v0.12.9
