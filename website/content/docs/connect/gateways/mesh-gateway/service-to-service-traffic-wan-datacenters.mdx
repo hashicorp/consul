@@ -113,6 +113,16 @@ spec:
   meshGateway:
     mode: local
 ```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "MeshGateway": {
+    "Mode": "local"
+  }
+}
+```
 </CodeTabs>
 
 ### Enabling Gateways Per Service
@@ -138,6 +148,15 @@ spec:
   meshGateway:
     mode: local
 ```
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "web",
+  "MeshGateway": {
+    "Mode": "local"
+  }
+}
 
 </CodeTabs>
 
@@ -192,19 +211,27 @@ service {
 }
 ```
 
-```yaml
-service:
-- kind: connect-proxy
-  name: web-sidecar-proxy
-  port: 8181
-  proxy:
-  - destination_service_name: web
-    mesh_gateway:
-    - mode: remote
-    upstreams:
-    - datacenter: secondary
-      destination_name: api
-      local_bind_port: 100
+```json
+{
+  "service": {
+    "kind": "connect-proxy",
+    "name": "web-sidecar-proxy",
+    "port": 8181,
+    "proxy": {
+      "destination_service_name": "web",
+      "mesh_gateway": {
+        "mode": "remote"
+      },
+      "upstreams": [
+        {
+          "destination_name": "api",
+          "datacenter": "secondary",
+          "local_bind_port": 10000
+        }
+      ]
+    }
+  }
+}
 ```
 
 </CodeTabs>
@@ -248,25 +275,39 @@ service {
    }
 }
 ```
-```yaml
-service:
-- kind: connect-proxy
-  name: web-sidecar-proxy
-  port: 8181
-  proxy:
-  - destination_service_name: web
-    upstreams:
-    - destination_name: api
-      local_bind_port: 10000
-      mesh_gateway:
-      - mode: remote
-    - destination_name: db
-      local_bind_port: 10001
-      mesh_gateway:
-      - mode: local
-    - destination_name: logging
-      local_bind_port: 10002
-      mesh_gateway:
-      - mode: none
-  ```
-  </CodeTabs>
+```json
+{
+  "service": {
+    "kind": "connect-proxy",
+    "name": "web-sidecar-proxy",
+    "port": 8181,
+    "proxy": {
+      "destination_service_name": "web",
+      "upstreams": [
+        {
+          "destination_name": "api",
+          "local_bind_port": 10000,
+          "mesh_gateway": {
+            "mode": "remote"
+          }
+        },
+        {
+          "destination_name": "db",
+          "local_bind_port": 10001,
+          "mesh_gateway": {
+            "mode": "local"
+          }
+        },
+        {
+          "destination_name": "logging",
+          "local_bind_port": 10002,
+          "mesh_gateway": {
+            "mode": "none"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+</CodeTabs>
