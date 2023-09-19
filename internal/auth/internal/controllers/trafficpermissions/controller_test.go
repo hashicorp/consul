@@ -183,9 +183,8 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencing
 	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
 
-	// traffic permissions should still be mapped to the WI name
+	// there should not be any traffic permissions to compute
 	tps := suite.mapper.GetTrafficPermissionsForCTP(id)
-	require.NotNil(suite.T(), tps)
 	require.Len(suite.T(), tps, 0)
 }
 

@@ -41,11 +41,6 @@ type ComputedTrafficPermissionsMapper interface {
 	GetTrafficPermissionsForCTP(id *pbresource.ID) []*pbresource.Reference
 }
 
-type ctpData struct {
-	resource *pbresource.Resource
-	ctp      *pbauth.ComputedTrafficPermissions
-}
-
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
 func Controller(mapper ComputedTrafficPermissionsMapper) controller.Controller {
@@ -78,12 +73,17 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	 * If it is missing, that means it was deleted.
 	 */
 	ctpID := req.ID
-	workloadIdentity, err := lookupWorkloadIdentityByName(ctx, rt, ctpID, ctpID.Name)
+	wi := &pbresource.ID{
+		Type:    types.WorkloadIdentityType,
+		Tenancy: ctpID.Tenancy,
+		Name:    ctpID.Name,
+	}
+	workloadIdentity, err := resource.GetDecodedResource[*pbauth.WorkloadIdentity](ctx, rt.Client, wi)
 	if err != nil {
 		rt.Logger.Error("error retrieving corresponding Workload Identity", "error", err)
 		return err
 	}
-	if workloadIdentity == nil {
+	if workloadIdentity == nil || workloadIdentity.Resource == nil {
 		rt.Logger.Trace("workload identity has been deleted")
 		// The workload identity was deleted, so we need to update the mapper to tell it to
 		// stop tracking this workload identity, and clean up the associated CTP
@@ -92,7 +92,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Check if CTP exists:
-	oldCTPData, err := getCTPData(ctx, rt, ctpID)
+	oldCTPData, err := resource.GetDecodedResource[*pbauth.ComputedTrafficPermissions](ctx, rt.Client, ctpID)
 	if err != nil {
 		rt.Logger.Error("error retrieving computed permissions", "error", err)
 		return err
@@ -100,21 +100,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	if oldCTPData == nil {
 		// CTP does not yet exist, so we need to make a new one
 		rt.Logger.Trace("creating new computed traffic permissions for new workload identity")
-		// Write the new CTP.
-		_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
-			Resource: &pbresource.Resource{
-				Id:    ctpID,
-				Data:  nil,
-				Owner: workloadIdentity.Id,
-			},
-		})
-		if err != nil {
-			rt.Logger.Error("error writing new computed traffic permissions", "error", err)
-			return err
-		} else {
-			rt.Logger.Trace("new computed traffic permissions were successfully written")
-		}
-		r.mapper.TrackCTPForWorkloadIdentity(ctpID, workloadIdentity.Id)
+		r.mapper.TrackCTPForWorkloadIdentity(ctpID, workloadIdentity.Resource.Id)
 	}
 
 	// Part 2: Recompute a CTP from TP create / modify / delete, or create a new CTP from existing TPs:
@@ -124,7 +110,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	if oldCTPData != nil && proto.Equal(oldCTPData.ctp, latestTrafficPermissions) {
+	if oldCTPData != nil && proto.Equal(oldCTPData.Data, latestTrafficPermissions) {
 		// there are no changes to the computed traffic permissions, and we can return early
 		return nil
 	}
@@ -138,7 +124,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Resource: &pbresource.Resource{
 			Id:    req.ID,
 			Data:  newCTPData,
-			Owner: workloadIdentity.Id,
+			Owner: workloadIdentity.Resource.Id,
 		},
 	})
 	if err != nil || rsp.Resource == nil {
@@ -159,52 +145,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Status: newStatus,
 	})
 	return err
-}
-
-// getCTPData will read the computed traffic permissions with the given
-// ID and unmarshal the Data field. The return value is a struct that
-// contains the retrieved resource as well as the unmarshalled form.
-// If the resource doesn't  exist, nil will be returned. Any other error
-// either with retrieving the resource or unmarshalling it will cause the
-// error to be returned to the caller.
-func getCTPData(ctx context.Context, rt controller.Runtime, id *pbresource.ID) (*ctpData, error) {
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: id})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		return nil, nil
-	case err != nil:
-		return nil, err
-	}
-
-	var ctp pbauth.ComputedTrafficPermissions
-	err = rsp.Resource.Data.UnmarshalTo(&ctp)
-	if err != nil {
-		return nil, resource.NewErrDataParse(&ctp, err)
-	}
-
-	return &ctpData{resource: rsp.Resource, ctp: &ctp}, nil
-}
-
-// lookupWorkloadIdentityByName finds a workload identity with a specified name in the same tenancy as
-// the provided resource. If no workload identity is found, it returns nil.
-func lookupWorkloadIdentityByName(ctx context.Context, rt controller.Runtime, r *pbresource.ID, name string) (*pbresource.Resource, error) {
-	wi := &pbresource.ID{
-		Type:    types.WorkloadIdentityType,
-		Tenancy: r.Tenancy,
-		Name:    name,
-	}
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: wi})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		rt.Logger.Trace("no WorkloadIdentity found for resource", "resource-type", r.Type, "resource-name", r.Name, "workload-identity-name", name)
-		return nil, nil
-	case err != nil:
-		rt.Logger.Error("error retrieving Workload Identity for TrafficPermission", "error", err)
-		return nil, err
-	}
-	activeWI := rsp.Resource
-	rt.Logger.Trace("got active WorkloadIdentity associated with resource", "resource-type", r.Type, "resource-name", r.Name, "workload-identity-name", activeWI.Id.Name)
-	return activeWI, nil
 }
 
 // computeNewTrafficPermissions will use all associated Traffic Permissions to create new ComputedTrafficPermissions data
