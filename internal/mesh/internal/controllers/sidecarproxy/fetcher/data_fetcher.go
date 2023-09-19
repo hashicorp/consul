@@ -444,6 +444,12 @@ func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbre
 		proto.Merge(result.DynamicConfig, proxyCfg.DynamicConfig)
 	}
 
+	// Default the outbound listener port. If we don't do the nil check here, then BuildDestinations will panic creating
+	// the outbound listener.
+	if result.DynamicConfig.TransparentProxy == nil {
+		result.DynamicConfig.TransparentProxy = &pbmesh.TransparentProxy{OutboundListenerPort: 15001}
+	}
+
 	return result, nil
 }
 

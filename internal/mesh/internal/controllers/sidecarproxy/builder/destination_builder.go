@@ -26,12 +26,7 @@ import (
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	var lb *ListenerBuilder
 	if b.proxyCfg.IsTransparentProxy() {
-		if b.proxyCfg.DynamicConfig.TransparentProxy == nil {
-			// TODO: should this be defaulted elsewhere?
-			lb = b.addTransparentProxyOutboundListener(15001)
-		} else {
-			lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
-		}
+		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
 	for _, destination := range destinations {
