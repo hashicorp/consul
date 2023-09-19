@@ -45,6 +45,7 @@ type Agent interface {
 	Exec(ctx context.Context, cmd []string) (string, error)
 	DataDir() string
 	GetGRPCConn() *grpc.ClientConn
+	GetAPIClientConfig() api.Config
 }
 
 // Config is a set of configurations required to create a Agent
