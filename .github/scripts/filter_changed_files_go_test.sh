@@ -7,29 +7,31 @@ set -euo pipefail
 # Get the list of changed files
 files_to_check=$(git diff --name-only "$(git merge-base origin/$BRANCH HEAD~)"...HEAD $*)
 
+# Define the directories to check
 skipped_directories=("docs/" "ui/" "website/" "grafana/" ".github/")
 
-all_files_in_skipped_dirs=true
+# Initialize a variable to track directories outside the skipped ones
 skip_ci=false
 
-# Loop through the files to check
-for file in "${files_to_check[@]}"; do
-    file_directory="$(dirname "$file")"
-
-    # Check if the file is not in the list of skipped directories
-    if [[ ! " ${skipped_directories[@]} " =~ " ${file_directory} " ]]; then
-        all_files_in_skipped_dirs=false
-        break
-    fi
+# Loop through the changed files and find directories/files outside the skipped ones
+for file_to_check in $files_to_check; do
+	file_is_skipped=false
+	for dir in "${skipped_directories[@]}"; do
+    echo "Checking... $file_to_check"
+		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
+			file_is_skipped=true
+			break
+		fi
+	done
+	if [ "$file_is_skipped" = "false" ]; then
+		echo -e $file_to_check
+		echo "Non doc file(s) changed - skip-ci: $skip_ci"
+		echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
+		exit 0 ## if file is outside of the skipped_directory exit script
+	fi
 done
 
-if [ "$all_files_in_skipped_dirs" = true ]; then
-    echo -e $files_to_check
-    skip_ci=true
-    echo "Only doc file(s) changed - skip-ci: $skip_ci"
-    echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
-else
-    echo -e $files_to_check
-    echo "Non doc file(s) changed - skip-ci: $skip_ci"
-    echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
-fi
+skip_ci=true
+echo -e "$files_to_check"
+echo "Only doc file(s) changed - skip-ci: $skip_ci"
+echo "skip-ci=$skip_ci" >>"$GITHUB_OUTPUT"
