@@ -84,7 +84,7 @@ func TestDefaultTenancy(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		got := proto.Clone(tc.ref).(*pbresource.Tenancy)
 
-		defaultTenancy(got, tc.parent, tc.scope)
+		DefaultTenancy(got, tc.parent, tc.scope)
 		prototest.AssertDeepEqual(t, tc.expect, got)
 	}
 
