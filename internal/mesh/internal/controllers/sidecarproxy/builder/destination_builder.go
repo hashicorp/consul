@@ -25,13 +25,16 @@ import (
 // and adds them to the proxyState.
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	var lb *ListenerBuilder
-	if b.proxyCfg.GetDynamicConfig() != nil &&
-		b.proxyCfg.DynamicConfig.Mode == pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT {
+	if b.proxyCfg.IsTransparentProxy() {
 		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
 	}
 
 	for _, destination := range destinations {
 		b.buildDestination(lb, destination)
+	}
+
+	if b.proxyCfg.IsTransparentProxy() {
+		lb.buildListener()
 	}
 
 	return b
@@ -248,7 +251,10 @@ func (b *Builder) buildDestination(
 		}
 	}
 
-	lb.buildListener()
+	// Build outbound listener if the destination is explicit.
+	if destination.Explicit != nil {
+		lb.buildListener()
+	}
 
 	if needsNullRouteCluster {
 		b.addNullRouteCluster()

@@ -154,14 +154,15 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 }
 
 func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
-	endpointList, ok := pr.proxyState.Endpoints[name]
-	if !ok || endpointList == nil {
-		return nil, fmt.Errorf("static cluster %q is missing endpoints", name)
-	}
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
-		LoadAssignment:       makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints),
+	}
+
+	// todo (ishustava/v2): we need to be able to handle the case when empty endpoints are allowed on a cluster.
+	endpointList, ok := pr.proxyState.Endpoints[name]
+	if ok {
+		cluster.LoadAssignment = makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints)
 	}
 	err := addHttpProtocolOptions(protocol, cluster)
 	if err != nil {
