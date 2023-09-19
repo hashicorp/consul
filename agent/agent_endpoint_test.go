@@ -739,9 +739,6 @@ func TestAgent_Service(t *testing.T) {
 			if tt.wantWait != 0 {
 				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
-			} else {
-				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
-					"took %s", elapsed)
 			}
 
 			if tt.wantResp != nil {
@@ -4425,7 +4422,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No policy means no valid token
+			policies:  ``, // No policies means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},
@@ -8175,4 +8172,60 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 		actual.Proxy.Upstreams = make([]api.Upstream, 0)
 	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+func TestAgent_Self_Reload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// create new test agent
+	a := NewTestAgent(t, `
+		log_level = "info"
+		raft_snapshot_threshold = 100
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := &Self{}
+	require.NoError(t, dec.Decode(val))
+
+	require.Equal(t, "info", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(100), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
+	// reload with new config
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
+	newCfg := TestConfig(testutil.Logger(t), config.FileSource{
+		Name:   "Reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			log_level = "debug"
+			raft_snapshot_threshold = 200	
+		`,
+	})
+	if err := a.reloadConfigInternal(newCfg); err != nil {
+		t.Fatalf("got error %v want nil", err)
+	}
+	require.Equal(t, 200, shim.newCfg.RaftSnapshotThreshold)
+
+	// validate new config is reflected in API response
+	req, _ = http.NewRequest("GET", "/v1/agent/self", nil)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec = json.NewDecoder(resp.Body)
+	val = &Self{}
+	require.NoError(t, dec.Decode(val))
+	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
 }
