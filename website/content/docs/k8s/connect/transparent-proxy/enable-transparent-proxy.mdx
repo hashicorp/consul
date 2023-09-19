@@ -43,8 +43,8 @@ connectInject:
 
 Apply the `consul.hashicorp.com/transparent-proxy=true` label to enable transparent proxy for a Kubernetes namespace. The label overrides the `connectInject.transparentProxy.defaultEnabled` Helm value and defines the default behavior of Pods in the namespace. The following example enables transparent proxy for Pods in the `my-app` namespace:
 
-```bash
-kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
+```shell-session
+$ kubectl label namespaces my-app "consul.hashicorp.com/transparent-proxy=true"
 ```
 ### Individual service
 
