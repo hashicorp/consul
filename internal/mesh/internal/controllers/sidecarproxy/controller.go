@@ -35,6 +35,7 @@ func Controller(
 	mapper *sidecarproxymapper.Mapper,
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
+	defaultAllow bool,
 ) controller.Controller {
 	if destinationsCache == nil || proxyCfgCache == nil || computedRoutesCache == nil || identitiesCache == nil || mapper == nil || trustDomainFetcher == nil {
 		panic("destinations cache, proxy configuration cache, computed routes cache, identities cache, mapper, and trust domain fetcher are required")
@@ -99,6 +100,7 @@ func Controller(
 			identitiesCache:     identitiesCache,
 			getTrustDomain:      trustDomainFetcher,
 			dc:                  dc,
+			defaultAllow:        defaultAllow,
 		})
 }
 
@@ -108,6 +110,7 @@ type reconciler struct {
 	computedRoutesCache *sidecarproxycache.ComputedRoutesCache
 	identitiesCache     *sidecarproxycache.IdentitiesCache
 	getTrustDomain      TrustDomainFetcher
+	defaultAllow        bool
 	dc                  string
 }
 
@@ -194,7 +197,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		ctp = trafficPermissions.Data
 	}
 
-	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, proxyCfg).
+	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, r.defaultAllow, proxyCfg).
 		BuildLocalApp(workload.Data, ctp)
 
 	// Get all destinationsData.

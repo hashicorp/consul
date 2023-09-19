@@ -210,7 +210,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), trustDomain, datacenter, proxyCfg).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), trustDomain, datacenter, false, proxyCfg).
 				BuildDestinations(c.getDestinations()).
 				Build()
 
