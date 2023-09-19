@@ -1,10 +1,3 @@
-extensions:
-  memory_ballast:
-    size_mib: 512
-  zpages:
-    endpoint: 0.0.0.0:55679
-  health_check:
-
 receivers:
   otlp:
     protocols:
@@ -13,12 +6,6 @@ receivers:
 
 processors:
   batch:
-  memory_limiter:
-    # 75% of maximum memory up to 4G
-    limit_mib: 1536
-    # 25% of limit up to 2G
-    spike_limit_mib: 512
-    check_interval: 5s
 
 exporters:
   logging:
@@ -28,16 +15,13 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [batch]
       exporters: [logging]
     metrics:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [batch]
       exporters: [logging]
     logs:
       receivers: [otlp]
-      processors: [memory_limiter, batch]
+      processors: [batch]
       exporters: [logging]
-
-
-  extensions: [memory_ballast, zpages, health_check]

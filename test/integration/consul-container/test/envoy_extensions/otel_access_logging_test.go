@@ -24,7 +24,7 @@ import (
 
 // TestOTELAccessLogging Summary
 // This verifies that the OpenTelemetry access logging Envoy extension works as expected.
-// A simulated client (a direct HTTP call) talks to it's upstream proxy through the mesh.
+// A simulated client (a direct HTTP call) talks to its upstream proxy through the mesh.
 // The upstream (static-server) is configured with a `builtin/otel-access-logging` extension that
 // sends Envoy access logs to an OpenTelemetry collector for incoming HTTP requests.
 // The OpenTelemetry collector is deployed as a container named `otel-collector` on the local network,
