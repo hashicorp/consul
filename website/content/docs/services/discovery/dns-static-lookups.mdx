@@ -234,7 +234,7 @@ _redis._tcp.service.phx1.peer.consul. 0 IN SRV 1 1 29142 0a010d56.addr.consul.
 If a service registered with Consul is configured with an explicit IP address or addresses in the  [`address`](/consul/docs/services/configuration/services-configuration-reference#address) or [`tagged_address`](/consul/docs/services/configuration/services-configuration-reference#tagged_address) parameter, then Consul returns the hostname in the target field of the answer section for the DNS SRV query according to the following format:
 
 ```text
-<hexadecimal-encoded IP>.addr.<datacenter>.consul`.
+<hexadecimal-encoded IP>.addr.<datacenter>.consul.
 ```
 
 In the following example, the `rabbitmq` service is registered with an explicit IPv4 address of `192.0.2.10`.
