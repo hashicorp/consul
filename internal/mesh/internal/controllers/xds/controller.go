@@ -156,7 +156,6 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	endpointReferencesMap := proxyStateTemplate.Template.RequiredEndpoints
 	var endpointsInProxyStateTemplate []resource.ReferenceOrID
 	for xdsClusterName, endpointRef := range endpointReferencesMap {
-		fmt.Println("*********** xds controller: generating endpoints for", xdsClusterName, endpointRef)
 		// Step 1: Resolve the reference by looking up the ServiceEndpoints.
 		// serviceEndpoints will not be nil unless there is an error.
 		//
@@ -310,7 +309,6 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 	// Now that the references have been resolved, push the computed proxy state to the updater.
 	computedProxyState := proxyStateTemplate.Template.ProxyState
 
-	fmt.Println("******** generated proxy state", proxyStateTemplate.Template.ProxyState)
 	err = r.updater.PushChange(req.ID, &proxytracker.ProxyState{ProxyState: computedProxyState})
 	if err != nil {
 		// Set the status.
@@ -343,7 +341,6 @@ func leafResourceRef(workloadIdentity, namespace, partition string) *pbresource.
 		Tenancy: &pbresource.Tenancy{
 			Partition: partition,
 			Namespace: namespace,
-			PeerName:  "local",
 		},
 	}
 	return ref

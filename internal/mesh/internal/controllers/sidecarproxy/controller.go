@@ -203,7 +203,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// Get all destinationsData.
 	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
 	if len(destinationsRefs) > 0 {
-		rt.Logger.Trace("found destinations", "destination_refs", destinationsRefs)
+		rt.Logger.Trace("found destinations for this proxy", "id", req.ID, "destination_refs", destinationsRefs)
 	} else {
 		rt.Logger.Trace("did not find any destinations for this proxy", "id", req.ID)
 	}

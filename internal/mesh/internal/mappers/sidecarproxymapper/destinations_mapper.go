@@ -5,7 +5,6 @@ package sidecarproxymapper
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
@@ -19,7 +18,6 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("******** observed upstreams", "id", res.Id)
 
 	// Look up workloads for this destinations.
 	sourceProxyIDs := make(map[resource.ReferenceKey]struct{})

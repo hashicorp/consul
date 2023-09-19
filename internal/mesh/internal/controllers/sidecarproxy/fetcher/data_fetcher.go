@@ -352,6 +352,9 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 					if err != nil {
 						return nil, err
 					}
+					// We only add the endpoint to the map if it's not nil. If it's missing on lookup now, the
+					// controller should get triggered when the endpoint exists again since it watches service
+					// endpoints.
 					if se != nil {
 						endpointsMap[seRK] = se
 					}

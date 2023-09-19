@@ -21,7 +21,6 @@ func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, portNam
 	}
 	eps := serviceEndpoints.Endpoints.GetEndpoints()
 
-	fmt.Println("*********** xds controller: generating endpoints", psEndpoints)
 	for _, ep := range eps {
 		for _, addr := range ep.Addresses {
 			// Check if the address is using the portName name this proxy state endpoints is for. If it does, create the
@@ -43,8 +42,6 @@ func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, portNam
 			}
 		}
 	}
-
-	fmt.Println("*********** xds controller: computed endpoints", psEndpoints)
 
 	return &pbproxystate.Endpoints{Endpoints: psEndpoints}, nil
 }
