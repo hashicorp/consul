@@ -8,7 +8,7 @@ set -euo pipefail
 files_to_check=$(git diff --name-only "$(git merge-base origin/$BRANCH HEAD~)"...HEAD $*)
 
 # Define the directories to check
-skipped_directories=("docs/" "ui/" "website/" "grafana/" ".github/")
+skipped_directories=("docs/" "ui/" "website/" "grafana/")
 
 # Initialize a variable to track directories outside the skipped ones
 skip_ci=false
@@ -17,7 +17,6 @@ skip_ci=false
 for file_to_check in $files_to_check; do
 	file_is_skipped=false
 	for dir in "${skipped_directories[@]}"; do
-    echo "Checking... $file_to_check"
 		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
 			file_is_skipped=true
 			break
