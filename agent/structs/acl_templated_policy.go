@@ -31,7 +31,8 @@ const (
 	ACLTemplatedPolicyServiceID = "00000000-0000-0000-0000-000000000003"
 	ACLTemplatedPolicyNodeID    = "00000000-0000-0000-0000-000000000004"
 	ACLTemplatedPolicyDNSID     = "00000000-0000-0000-0000-000000000005"
-	ACLTemplatedPolicyDNSSchema = "" // empty schema as it does not require variables
+
+	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
 
 // ACLTemplatedPolicyBase contains basic information about builtin templated policies
@@ -63,7 +64,7 @@ var (
 		api.ACLTemplatedPolicyDNSName: {
 			TemplateID:   ACLTemplatedPolicyDNSID,
 			TemplateName: api.ACLTemplatedPolicyDNSName,
-			Schema:       ACLTemplatedPolicyDNSSchema,
+			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyDNS,
 		},
 	}

@@ -5,40 +5,16 @@
 
 package structs
 
-const (
-	ACLTemplatedPolicyService = `
-service "{{.Name}}" {
-	policy = "write"
-}
-service "{{.Name}}-sidecar-proxy" {
-	policy = "write"
-}
-service_prefix "" {
-	policy = "read"
-}
-node_prefix "" {
-	policy = "read"
-}`
+import _ "embed"
 
-	ACLTemplatedPolicyNode = `
-node "{{.Name}}" {
-	policy = "write"
-}
-service_prefix "" {
-	policy = "read"
-}`
+//go:embed acltemplatedpolicy/policies/ce/service.hcl
+var ACLTemplatedPolicyService string
 
-	ACLTemplatedPolicyDNS = `
-node_prefix "" {
-	policy = "read"
-}
-service_prefix "" {
-	policy = "read"
-}
-query_prefix "" {
-	policy = "read"
-}`
-)
+//go:embed acltemplatedpolicy/policies/ce/node.hcl
+var ACLTemplatedPolicyNode string
+
+//go:embed acltemplatedpolicy/policies/ce/dns.hcl
+var ACLTemplatedPolicyDNS string
 
 func (t *ACLToken) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	if len(t.TemplatedPolicies) == 0 {

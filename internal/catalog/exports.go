@@ -126,3 +126,17 @@ type FailoverPolicyMapper interface {
 func NewFailoverPolicyMapper() FailoverPolicyMapper {
 	return failovermapper.New()
 }
+
+// ValidateLocalServiceRefNoSection ensures the following:
+//
+// - ref is non-nil
+// - type is ServiceType
+// - section is empty
+// - tenancy is set and partition/namespace are both non-empty
+// - peer_name must be "local"
+//
+// Each possible validation error is wrapped in the wrapErr function before
+// being collected in a multierror.Error.
+func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
+	return types.ValidateLocalServiceRefNoSection(ref, wrapErr)
+}

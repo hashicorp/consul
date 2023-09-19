@@ -1201,6 +1201,7 @@ func TestHealthServiceNodes_NodeMetaFilter(t *testing.T) {
 				require.NoError(t, err)
 
 				assertIndex(t, resp)
+				assert.Equal(t, "MISS", resp.Header().Get("X-Cache"))
 
 				// Should be a non-nil empty list for checks
 				nodes := obj.(structs.CheckServiceNodes)

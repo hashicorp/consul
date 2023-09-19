@@ -284,5 +284,17 @@
       },
       "port": "mesh"
     }
+  },
+  "requiredLeafCertificates": {
+    "test-identity": {
+      "name": "test-identity",
+      "namespace": "default",
+      "partition": "default"
+    }
+  },
+  "requiredTrustBundles": {
+    "local": {
+      "peer": "local"
+    }
   }
 }
