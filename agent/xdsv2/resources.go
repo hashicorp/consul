@@ -46,7 +46,6 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxySta
 }
 
 func (pr *ProxyResources) generateXDSResources() error {
-	fmt.Println("*********** PROXYSTATE: ", pr.proxyState)
 	listeners, err := pr.makeXDSListeners()
 	if err != nil {
 		return err

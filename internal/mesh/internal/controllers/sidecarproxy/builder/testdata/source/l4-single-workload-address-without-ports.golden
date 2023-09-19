@@ -30,7 +30,7 @@
     "listeners": [
       {
         "capabilities": [
-         "CAPABILITY_L4_TLS_INSPECTION"
+          "CAPABILITY_L4_TLS_INSPECTION"
         ],
         "direction": "DIRECTION_INBOUND",
         "hostPort": {

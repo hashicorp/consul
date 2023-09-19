@@ -225,7 +225,6 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 
 	// If there are no mesh addresses, return. This should be impossible.
 	if len(meshAddresses) == 0 {
-		fmt.Println("***************** missing mesh addresses")
 		return &ListenerBuilder{
 			builder: b,
 		}
@@ -243,6 +242,8 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 			Port: workload.Ports[meshPort].Port,
 		},
 	}
+
+	// Add TLS inspection capability to be able to parse ALPN and/or SNI information from inbound connections.
 	listener.Capabilities = append(listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 
 	return b.NewListenerBuilder(listener)
@@ -359,7 +360,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 			InboundMesh: &pbproxystate.InboundMeshMTLS{
 				IdentityKey: workloadIdentity,
 				ValidationContext: &pbproxystate.MeshInboundValidationContext{
-					TrustBundlePeerNameKeys: []string{"local"},
+					TrustBundlePeerNameKeys: []string{l.builder.id.Tenancy.PeerName},
 				},
 			},
 		},

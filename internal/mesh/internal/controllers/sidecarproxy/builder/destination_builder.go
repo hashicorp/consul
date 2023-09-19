@@ -26,8 +26,8 @@ import (
 func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *Builder {
 	var lb *ListenerBuilder
 	if b.proxyCfg.IsTransparentProxy() {
-		// TODO: when debugging k8s acceptance, TransparentProxy was nil so this wasn't getting set
 		if b.proxyCfg.DynamicConfig.TransparentProxy == nil {
+			// TODO: should this be defaulted elsewhere?
 			lb = b.addTransparentProxyOutboundListener(15001)
 		} else {
 			lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
@@ -514,7 +514,7 @@ func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdent
 									IdentityKey: b.proxyStateTemplate.ProxyState.Identity.Name,
 									ValidationContext: &pbproxystate.MeshOutboundValidationContext{
 										SpiffeIds:              spiffeIDs,
-										TrustBundlePeerNameKey: "local",
+										TrustBundlePeerNameKey: b.id.Tenancy.PeerName,
 									},
 									Sni: sni,
 								},
