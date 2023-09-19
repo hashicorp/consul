@@ -167,6 +167,12 @@ upstream. This is analogous to the standard Kubernetes service environment varia
 point instead to the correct local proxy port to establish connections via
 service mesh.
 
+<Note>
+
+If the upstream annotation contains a dot (for example, `static-server.svc:8080`), you may not be able to reference the auto-generated environment variables (`<NAME>_CONNECT_SERVICE_HOST` and `<NAME>_CONNECT_SERVICE_PORT`) since the environment variables will also contain the dot.
+
+</Note>
+
 You can verify access to the static text server using `kubectl exec`.
 Because transparent proxy is enabled by default,
 use Kubernetes DNS to connect to your desired upstream.
