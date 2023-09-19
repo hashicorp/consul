@@ -21,9 +21,10 @@ const (
 	ACLManagementType = "management"
 
 	// ACLTemplatedPolicy names
-	ACLTemplatedPolicyServiceName = "builtin/service"
-	ACLTemplatedPolicyNodeName    = "builtin/node"
-	ACLTemplatedPolicyDNSName     = "builtin/dns"
+	ACLTemplatedPolicyServiceName     = "builtin/service"
+	ACLTemplatedPolicyNodeName        = "builtin/node"
+	ACLTemplatedPolicyDNSName         = "builtin/dns"
+	ACLTemplatedPolicyNomadServerName = "builtin/nomad-server"
 )
 
 type ACLLink struct {
