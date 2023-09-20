@@ -238,23 +238,38 @@ func (l *loader) loadUpstreamService(
 				}
 				if failService != nil {
 					l.out.AddService(failService)
+
+					if err := l.loadDestConfig(ctx, logger, failService.Resource.Id); err != nil {
+						return err
+					}
 				}
 			}
 		} else {
 			l.mapper.UntrackFailoverPolicy(failoverPolicyID)
 		}
 
-		destPolicyID := changeResourceType(svcID, types.DestinationPolicyType)
-		destPolicy, err := l.mem.GetDestinationPolicy(ctx, destPolicyID)
-		if err != nil {
-			logger.Error("error retrieving the destination config", "destPolicyID", destPolicyID, "error", err)
+		if err := l.loadDestConfig(ctx, logger, svcID); err != nil {
 			return err
-		}
-		if destPolicy != nil {
-			l.out.AddDestinationPolicy(destPolicy)
 		}
 	}
 
+	return nil
+}
+
+func (l *loader) loadDestConfig(
+	ctx context.Context,
+	logger hclog.Logger,
+	svcID *pbresource.ID,
+) error {
+	destPolicyID := changeResourceType(svcID, types.DestinationPolicyType)
+	destPolicy, err := l.mem.GetDestinationPolicy(ctx, destPolicyID)
+	if err != nil {
+		logger.Error("error retrieving the destination config", "destPolicyID", destPolicyID, "error", err)
+		return err
+	}
+	if destPolicy != nil {
+		l.out.AddDestinationPolicy(destPolicy)
+	}
 	return nil
 }
 

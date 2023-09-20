@@ -210,10 +210,9 @@ func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol stri
 func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string, fg *pbproxystate.FailoverGroup) ([]*envoy_cluster_v3.Cluster, error) {
 	var clusters []*envoy_cluster_v3.Cluster
 	if fg != nil {
-
 		var egNames []string
 		for _, eg := range fg.EndpointGroups {
-			cluster, err := pr.makeEnvoyCluster(name, protocol, eg)
+			cluster, err := pr.makeEnvoyCluster(eg.Name, protocol, eg)
 			if err != nil {
 				return nil, err
 			}
@@ -230,7 +229,6 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 
 		c := &envoy_cluster_v3.Cluster{
 			Name:           name,
-			AltStatName:    name,
 			ConnectTimeout: fg.Config.ConnectTimeout,
 			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
@@ -239,6 +237,9 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 					TypedConfig: aggregateClusterConfig,
 				},
 			},
+		}
+		if fg.Config.UseAltStatName {
+			c.AltStatName = name
 		}
 		err = addHttpProtocolOptions(protocol, c)
 		if err != nil {

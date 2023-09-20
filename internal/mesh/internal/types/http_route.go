@@ -124,6 +124,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 						Wrapped: err,
 					})
 				}
+				// enumcover:pbmesh.PathMatchType
 				switch match.Path.Type {
 				case pbmesh.PathMatchType_PATH_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchPathErr(
@@ -147,6 +148,15 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 							resource.ErrInvalidField{
 								Name:    "value",
 								Wrapped: fmt.Errorf("prefix patch value does not start with '/': %q", match.Path.Value),
+							},
+						))
+					}
+				case pbmesh.PathMatchType_PATH_MATCH_TYPE_REGEX:
+					if match.Path.Value == "" {
+						merr = multierror.Append(merr, wrapMatchPathErr(
+							resource.ErrInvalidField{
+								Name:    "value",
+								Wrapped: resource.ErrEmpty,
 							},
 						))
 					}
@@ -197,6 +207,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 					})
 				}
 
+				// enumcover:pbmesh.QueryParamMatchType
 				switch qm.Type {
 				case pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchParamErr(

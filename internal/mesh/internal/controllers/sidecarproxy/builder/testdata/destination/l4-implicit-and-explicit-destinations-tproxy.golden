@@ -6,6 +6,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -32,6 +33,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -100,7 +102,7 @@
               "statPrefix": "upstream.tcp.api-2.default.default.dc1"
             },
             "match": {
-              "destinationPort": 8080,
+              "destinationPort": 7070,
               "prefixRanges": [
                 {
                   "addressPrefix": "2.2.2.2",

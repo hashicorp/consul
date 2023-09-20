@@ -354,6 +354,13 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			},
 		},
 	})
+	adminDestPolicy := writeDestPolicy("admin", &pbmesh.DestinationPolicy{
+		PortConfigs: map[string]*pbmesh.DestinationConfig{
+			"http": {
+				ConnectTimeout: durationpb.New(222 * time.Second),
+			},
+		},
+	})
 
 	testutil.RunStep(t, "add a dest policy", func(t *testing.T) {
 		out, err := LoadResourcesForComputedRoutes(ctx, loggerFor, rt.Client, mapper, apiRoutesID)
@@ -367,6 +374,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			route2,
 			barFailover,
 			fooDestPolicy,
+			adminDestPolicy, // adminDestPolicy shows up indirectly via a FailoverPolicy
 		).AddComputedRoutesIDs(apiRoutesID), out)
 		require.Equal(t, doubleMap(t,
 			apiSvc, route2,
