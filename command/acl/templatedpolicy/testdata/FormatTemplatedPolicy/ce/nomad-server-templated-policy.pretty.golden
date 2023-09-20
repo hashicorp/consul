@@ -1,0 +1,4 @@
+Name:            builtin/nomad-server
+Input variables: None
+Example usage:
+	consul acl token create -templated-policy builtin/nomad-server

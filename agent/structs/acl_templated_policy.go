@@ -28,9 +28,10 @@ var ACLTemplatedPolicyServiceSchema string
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
-	ACLTemplatedPolicyServiceID = "00000000-0000-0000-0000-000000000003"
-	ACLTemplatedPolicyNodeID    = "00000000-0000-0000-0000-000000000004"
-	ACLTemplatedPolicyDNSID     = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyServiceID     = "00000000-0000-0000-0000-000000000003"
+	ACLTemplatedPolicyNodeID        = "00000000-0000-0000-0000-000000000004"
+	ACLTemplatedPolicyDNSID         = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyNomadServerID = "00000000-0000-0000-0000-000000000006"
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -45,7 +46,6 @@ type ACLTemplatedPolicyBase struct {
 }
 
 var (
-	// This supports: node, service and dns templates
 	// Note: when adding a new builtin template, ensure you update `command/acl/templatedpolicy/formatter.go`
 	// to handle the new templates required variables and schema.
 	aclTemplatedPoliciesList = map[string]*ACLTemplatedPolicyBase{
@@ -66,6 +66,12 @@ var (
 			TemplateName: api.ACLTemplatedPolicyDNSName,
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyDNS,
+		},
+		api.ACLTemplatedPolicyNomadServerName: {
+			TemplateID:   ACLTemplatedPolicyNomadServerID,
+			TemplateName: api.ACLTemplatedPolicyNomadServerName,
+			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
+			Template:     ACLTemplatedPolicyNomadServer,
 		},
 	}
 )
