@@ -2,13 +2,13 @@ module github.com/hashicorp/consul
 
 go 1.20
 
-//replace github.com/hashicorp/consul/api => ./api
+replace github.com/hashicorp/consul/api => ./api
 
-// replace github.com/hashicorp/consul/sdk => ./sdk
+replace github.com/hashicorp/consul/sdk => ./sdk
 
-// replace github.com/hashicorp/consul/proto-public => ./proto-public
+replace github.com/hashicorp/consul/proto-public => ./proto-public
 
-// replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
+replace launchpad.net/gocheck => github.com/go-check/check v0.0.0-20140225173054-eb6ee6f84d0a
 
 require (
 	github.com/NYTimes/gziphandler v1.0.1
