@@ -80,7 +80,7 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
 	}

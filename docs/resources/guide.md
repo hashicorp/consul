@@ -187,7 +187,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 }
 
-func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID,  _ *pbresource.Resource) error {
 	return authz.ToAllowAuthorizer().
 		BarReadAllowed(id.Name, authzContext)
 }

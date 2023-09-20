@@ -36,7 +36,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
-			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 				// Check service:read and operator:read permissions.
 				// If service:read is not allowed, check operator:read. We want to allow both as this
 				// resource is mostly useful for debuggability and we want to cover

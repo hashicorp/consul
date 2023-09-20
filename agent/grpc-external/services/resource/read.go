@@ -45,8 +45,11 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
 	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
-	err = reg.ACLs.Read(authz, authzContext, req.Id)
+	authzNeedsData := false
+	err = reg.ACLs.Read(authz, authzContext, req.Id, nil)
 	switch {
+	case errors.Is(err, resource.ErrNeedData):
+		authzNeedsData = true
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
@@ -60,15 +63,25 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
 	switch {
-	case err == nil:
-		return &pbresource.ReadResponse{Resource: resource}, nil
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, status.Error(codes.NotFound, err.Error())
 	case errors.As(err, &storage.GroupVersionMismatchError{}):
 		return nil, status.Error(codes.InvalidArgument, err.Error())
-	default:
+	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
+
+	if authzNeedsData {
+		err = reg.ACLs.Read(authz, authzContext, req.Id, resource)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
+		}
+	}
+
+	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
 func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
