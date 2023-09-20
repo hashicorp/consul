@@ -200,3 +200,33 @@ func TestValidateTCPRoute(t *testing.T) {
 		})
 	}
 }
+
+func TestTCPRouteACLs(t *testing.T) {
+	testXRouteACLs[*pbmesh.TCPRoute](t, func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		data := &pbmesh.TCPRoute{
+			ParentRefs: nil,
+		}
+		for _, ref := range parentRefs {
+			data.ParentRefs = append(data.ParentRefs, &pbmesh.ParentReference{
+				Ref: ref,
+			})
+		}
+
+		var ruleRefs []*pbmesh.TCPBackendRef
+		for _, ref := range backendRefs {
+			ruleRefs = append(ruleRefs, &pbmesh.TCPBackendRef{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: ref,
+				},
+			})
+		}
+		data.Rules = []*pbmesh.TCPRouteRule{
+			{BackendRefs: ruleRefs},
+		}
+
+		return resourcetest.Resource(TCPRouteType, "api-tcp-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, data).
+			Build()
+	})
+}
