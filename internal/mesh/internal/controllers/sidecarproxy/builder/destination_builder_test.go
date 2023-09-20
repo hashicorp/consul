@@ -6,6 +6,8 @@ package builder
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/sdk/testutil"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
@@ -29,6 +31,7 @@ var (
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"tcp":  {Port: 7070, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"tcp2": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
@@ -41,6 +44,11 @@ var (
 			{
 				TargetPort:  "tcp",
 				VirtualPort: 7070,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+			},
+			{
+				TargetPort:  "tcp2",
+				VirtualPort: 8081,
 				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 			},
 			{
@@ -205,6 +213,38 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1TCPRoute)
 
+	api1TCP2Route := resourcetest.Resource(types.TCPRouteType, "api-1-tcp2-route").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, &pbmesh.TCPRoute{
+			ParentRefs: []*pbmesh.ParentReference{{
+				Ref:  resource.Reference(api1Service.Id, ""),
+				Port: "tcp2",
+			}},
+			Rules: []*pbmesh.TCPRouteRule{{
+				BackendRefs: []*pbmesh.TCPBackendRef{
+					{
+						BackendRef: &pbmesh.BackendReference{
+							Ref: resource.Reference(api2Service.Id, ""),
+						},
+						Weight: 60,
+					},
+					{
+						BackendRef: &pbmesh.BackendReference{
+							Ref: resource.Reference(api1Service.Id, ""),
+						},
+						Weight: 40,
+					},
+					{
+						BackendRef: &pbmesh.BackendReference{
+							Ref: resource.Reference(api3Service.Id, ""),
+						},
+						Weight: 10,
+					},
+				},
+			}},
+		}).
+		Build()
+
 	api1ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, api1Service.Id)
 	api1ComputedRoutes := routestest.BuildComputedRoutes(t, api1ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
@@ -214,6 +254,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
 		resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
+		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCP2Route),
 	)
 	require.NotNil(t, api1ComputedRoutes)
 
@@ -247,6 +288,23 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}),
 	}
 
+	destinationIpPort2 := &intermediate.Destination{
+		Explicit: &pbmesh.Upstream{
+			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+			DestinationPort: "tcp2",
+			Datacenter:      "dc1",
+			ListenAddr: &pbmesh.Upstream_IpPort{
+				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 2345},
+			},
+		},
+		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
+		ComputedPortRoutes: routestest.MutateTarget(t, api1ComputedRoutes.Data.PortedConfigs["tcp2"], api1Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
+			details.ServiceEndpointsId = api1Endpoints.Id
+			details.ServiceEndpoints = endpointsData
+			details.IdentityRefs = []*pbresource.Reference{api1Identity}
+		}),
+	}
+
 	destinationUnix := &intermediate.Destination{
 		Explicit: &pbmesh.Upstream{
 			DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
@@ -267,6 +325,22 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}),
 	}
 
+	destinationUnix2 := &intermediate.Destination{
+		Explicit: &pbmesh.Upstream{
+			DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
+			DestinationPort: "tcp2",
+			Datacenter:      "dc1",
+			ListenAddr: &pbmesh.Upstream_Unix{
+				Unix: &pbmesh.UnixSocketAddress{Path: "/path/to/socket", Mode: "0666"},
+			},
+		},
+		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
+		ComputedPortRoutes: routestest.MutateTarget(t, api2ComputedRoutes.Data.PortedConfigs["tcp2"], api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
+			details.ServiceEndpointsId = api2Endpoints.Id
+			details.ServiceEndpoints = endpointsData
+			details.IdentityRefs = []*pbresource.Reference{api2Identity}
+		}),
+	}
 	destinationIpPortHTTP := &intermediate.Destination{
 		Explicit: &pbmesh.Upstream{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
@@ -306,7 +380,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			destinations: []*intermediate.Destination{destinationUnix},
 		},
 		"destination/l4-multi-destination": {
-			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix},
+			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationIpPort2, destinationUnix2},
 		},
 		"destination/mixed-multi-destination": {
 			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationIpPortHTTP},
@@ -315,7 +389,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, nil).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, nil, testutil.Logger(t)).
 				BuildDestinations(c.destinations).
 				Build()
 
@@ -441,7 +515,7 @@ func TestBuildImplicitDestinations(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, proxyCfg).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, proxyCfg, testutil.Logger(t)).
 				BuildDestinations(c.destinations).
 				Build()
 
