@@ -666,6 +666,10 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 }
 
 func TestFailoverPolicyACLs(t *testing.T) {
+	// Wire up a registry to generically invoke hooks
+	registry := resource.NewRegistry()
+	Register(registry)
+
 	type testcase struct {
 		rules   string
 		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
@@ -697,6 +701,9 @@ func TestFailoverPolicyACLs(t *testing.T) {
 		}
 	}
 
+	reg, ok := registry.Resolve(FailoverPolicyType)
+	require.True(t, ok)
+
 	run := func(t *testing.T, tc testcase) {
 		failoverData := &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
@@ -709,11 +716,7 @@ func TestFailoverPolicyACLs(t *testing.T) {
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, failoverData).
 			Build()
-
-		err := MutateFailoverPolicy(res)
-		require.NoError(t, err)
-		err = ValidateFailoverPolicy(res)
-		require.NoError(t, err)
+		resourcetest.ValidateAndNormalize(t, registry, res)
 
 		config := acl.Config{
 			WildcardName: structs.WildcardSpecifier,
@@ -723,15 +726,15 @@ func TestFailoverPolicyACLs(t *testing.T) {
 		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
 
 		t.Run("read", func(t *testing.T) {
-			err := aclReadHookFailoverPolicy(authz, &acl.AuthorizerContext{}, res.Id)
+			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id)
 			checkF(t, tc.readOK, err)
 		})
 		t.Run("write", func(t *testing.T) {
-			err := aclWriteHookFailoverPolicy(authz, &acl.AuthorizerContext{}, res)
+			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
 			checkF(t, tc.writeOK, err)
 		})
 		t.Run("list", func(t *testing.T) {
-			err := aclListHookFailoverPolicy(authz, &acl.AuthorizerContext{})
+			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
 			checkF(t, tc.listOK, err)
 		})
 	}
