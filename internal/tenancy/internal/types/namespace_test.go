@@ -52,6 +52,15 @@ func TestValidateNamespace_defaultNamespace(t *testing.T) {
 	require.ErrorAs(t, err, &errInvalidName)
 }
 
+func TestValidateNamespace_defaultNamespaceNonDefaultPartition(t *testing.T) {
+	res := createNamespaceResource(t, validNamespace())
+	res.Id.Name = resource.DefaultNamespaceName
+	res.Id.Tenancy.Partition = "foo"
+
+	err := ValidateNamespace(res)
+	require.NoError(t, err)
+}
+
 func TestValidateNamespace_InvalidName(t *testing.T) {
 	res := createNamespaceResource(t, validNamespace())
 	res.Id.Name = "-invalid"

@@ -50,7 +50,8 @@ func ValidateNamespace(res *pbresource.Resource) error {
 		return errOwnerNonEmpty
 	}
 
-	if res.Id.Name == resource.DefaultNamespaceName {
+	// it's not allowed to create default/default tenancy
+	if res.Id.Name == resource.DefaultNamespaceName && res.Id.Tenancy.Partition == resource.DefaultPartitionName {
 		return errInvalidName
 	}
 
