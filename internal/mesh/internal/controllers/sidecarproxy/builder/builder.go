@@ -16,6 +16,7 @@ type Builder struct {
 	proxyCfg           *pbmesh.ProxyConfiguration
 	trustDomain        string
 	localDatacenter    string
+	defaultAllow       bool
 }
 
 func New(
@@ -23,12 +24,14 @@ func New(
 	identity *pbresource.Reference,
 	trustDomain string,
 	dc string,
+	defaultAllow bool,
 	proxyCfg *pbmesh.ProxyConfiguration,
 ) *Builder {
 	return &Builder{
 		id:              id,
 		trustDomain:     trustDomain,
 		localDatacenter: dc,
+		defaultAllow:    defaultAllow,
 		proxyCfg:        proxyCfg,
 		proxyStateTemplate: &pbmesh.ProxyStateTemplate{
 			ProxyState: &pbmesh.ProxyState{
@@ -55,6 +58,7 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
 		Peer: b.id.Tenancy.PeerName,
 	}
+	b.proxyStateTemplate.ProxyState.TrafficPermissionDefaultAllow = b.defaultAllow
 
 	return b.proxyStateTemplate
 }

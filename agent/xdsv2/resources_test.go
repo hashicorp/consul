@@ -4,17 +4,19 @@
 package xdsv2
 
 import (
+	"os"
+	"path/filepath"
+	"sort"
+	"testing"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	meshv1alpha1 "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"os"
-	"path/filepath"
-	"sort"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"

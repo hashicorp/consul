@@ -21,8 +21,9 @@ import (
 
 func TestBuildLocalApp(t *testing.T) {
 	cases := map[string]struct {
-		workload *pbcatalog.Workload
-		ctp      *pbauth.ComputedTrafficPermissions
+		workload     *pbcatalog.Workload
+		ctp          *pbauth.ComputedTrafficPermissions
+		defaultAllow bool
 	}{
 		"source/l4-single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
@@ -83,12 +84,13 @@ func TestBuildLocalApp(t *testing.T) {
 					},
 				},
 			},
+			defaultAllow: true,
 		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", c.defaultAllow, nil).
 				BuildLocalApp(c.workload, c.ctp).
 				Build()
 			actual := protoToJSON(t, proxyTmpl)

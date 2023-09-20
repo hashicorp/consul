@@ -352,7 +352,12 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 					if err != nil {
 						return nil, err
 					}
-					endpointsMap[seRK] = se
+					// We only add the endpoint to the map if it's not nil. If it's missing on lookup now, the
+					// controller should get triggered when the endpoint exists again since it watches service
+					// endpoints.
+					if se != nil {
+						endpointsMap[seRK] = se
+					}
 				}
 			}
 		}
@@ -437,6 +442,12 @@ func (f *Fetcher) FetchAndMergeProxyConfigurations(ctx context.Context, id *pbre
 		// will not be updated dynamically by this controller.
 		// todo (ishustava): do sorting etc.
 		proto.Merge(result.DynamicConfig, proxyCfg.DynamicConfig)
+	}
+
+	// Default the outbound listener port. If we don't do the nil check here, then BuildDestinations will panic creating
+	// the outbound listener.
+	if result.DynamicConfig.TransparentProxy == nil {
+		result.DynamicConfig.TransparentProxy = &pbmesh.TransparentProxy{OutboundListenerPort: 15001}
 	}
 
 	return result, nil

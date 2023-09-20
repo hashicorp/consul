@@ -59,7 +59,6 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Tenancy: &pbresource.Tenancy{
 				Namespace: req.Namespace,
 				Partition: req.Partition,
-				PeerName:  "local",
 			},
 			Type: catalog.WorkloadType,
 		}
@@ -69,6 +68,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		if err != nil {
 			// This error should already include the gRPC status code and so we don't need to wrap it
 			// in status.Error.
+			logger.Error("Error looking up workload", "error", err)
 			return nil, err
 		}
 		var workload pbcatalog.Workload
@@ -93,6 +93,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Type:    mesh.ProxyConfigurationType,
 		})
 		if err != nil {
+			logger.Error("Error looking up proxyConfiguration", "error", err)
 			return nil, err
 		}
 
