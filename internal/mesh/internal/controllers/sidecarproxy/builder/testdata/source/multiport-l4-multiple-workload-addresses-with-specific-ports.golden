@@ -4,12 +4,14 @@
       "local_app:admin-port": {
         "endpointGroup": {
           "static": {}
-        }
+        },
+        "name": "local_app:admin-port"
       },
       "local_app:api-port": {
         "endpointGroup": {
           "static": {}
-        }
+        },
+        "name": "local_app:api-port"
       }
     },
     "endpoints": {
