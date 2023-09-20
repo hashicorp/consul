@@ -225,6 +225,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	newProxyTemplate := b.Build()
 
+	_ = types.MutateProxyStateTemplateData(newProxyTemplate)
+
 	if proxyStateTemplate == nil || !proto.Equal(proxyStateTemplate.Data, newProxyTemplate) {
 		if proxyStateTemplate == nil {
 			req.ID.Uid = ""

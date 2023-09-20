@@ -75,6 +75,16 @@ func MutateProxyStateTemplate(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&pst, err)
 	}
 
+	changed := MutateProxyStateTemplateData(&pst)
+
+	if !changed {
+		return nil
+	}
+
+	return res.Data.MarshalFrom(&pst)
+}
+
+func MutateProxyStateTemplateData(pst *pbmesh.ProxyStateTemplate) bool {
 	changed := false
 
 	if pst.ProxyState != nil {
@@ -86,11 +96,7 @@ func MutateProxyStateTemplate(res *pbresource.Resource) error {
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&pst)
+	return changed
 }
 
 func ValidateProxyStateTemplate(res *pbresource.Resource) error {
