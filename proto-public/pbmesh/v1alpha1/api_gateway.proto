@@ -20,12 +20,11 @@ message APIGateway {
 message Listener {
   string name = 1;
   string hostname = 2;
-  // TODO Consider using string if we ever need to reference something other than ServicePort.virtual_port
-  int32 port = 3;
+  uint32 port = 3;
   ListenerProtocol protocol = 4;
   ListenerTLSConfiguration tls = 5;
 
-  // TODO Policy overrides + defaults
+  // TODO Policy overrides + defaults recently introduced for JWT
 }
 
 enum ListenerProtocol {
