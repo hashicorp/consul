@@ -504,6 +504,10 @@
                 "title": "Usage",
                 "routes": [
                   {
+                    "title": "Delegate authorization to Apigee",
+                    "path": "connect/proxies/envoy-extensions/usage/apigee-ext-authz"
+                  },
+                  {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
                   },
