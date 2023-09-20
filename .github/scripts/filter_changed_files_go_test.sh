@@ -21,7 +21,6 @@ skipped_directories=("docs/" "ui/" "website/" "grafana/")
 # Loop through the changed files and find directories/files outside the skipped ones
 for file_to_check in "${files_to_check[@]}"; do
 	file_is_skipped=false
-	echo $file_to_check
 	for dir in "${skipped_directories[@]}"; do
 		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
 			file_is_skipped=true
