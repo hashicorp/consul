@@ -7,85 +7,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
-
-func TestMutateProxyStateTemplate(t *testing.T) {
-	type testcase struct {
-		pst       *pbmesh.ProxyStateTemplate
-		expect    *pbmesh.ProxyStateTemplate
-		expectErr string
-	}
-
-	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(ProxyStateTemplateType, "api").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, tc.pst).
-			Build()
-
-		err := MutateProxyStateTemplate(res)
-
-		got := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, res)
-
-		if tc.expectErr == "" {
-			require.NoError(t, err)
-
-			if tc.expect == nil {
-				tc.expect = proto.Clone(tc.pst).(*pbmesh.ProxyStateTemplate)
-			}
-
-			prototest.AssertDeepEqual(t, tc.expect, got.Data)
-		} else {
-			testutil.RequireErrorContains(t, err, tc.expectErr)
-		}
-	}
-
-	pstForCluster := func(mapKey, clusterName string) *pbmesh.ProxyStateTemplate {
-		return &pbmesh.ProxyStateTemplate{
-			ProxyState: &pbmesh.ProxyState{
-				Clusters: map[string]*pbproxystate.Cluster{
-					mapKey: {
-						Name: clusterName,
-						Group: &pbproxystate.Cluster_EndpointGroup{
-							EndpointGroup: &pbproxystate.EndpointGroup{
-								Name: "",
-								Group: &pbproxystate.EndpointGroup_Dynamic{
-									Dynamic: &pbproxystate.DynamicEndpointGroup{},
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-	}
-
-	cases := map[string]testcase{
-		"empty": {
-			pst: &pbmesh.ProxyStateTemplate{},
-		},
-		"cluster with non-empty name": {
-			pst: pstForCluster("api-cluster", "api-cluster"),
-		},
-		"cluster with empty name": {
-			pst:    pstForCluster("api-cluster", ""),
-			expect: pstForCluster("api-cluster", "api-cluster"),
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
 
 func TestValidateProxyStateTemplate(t *testing.T) {
 	type testcase struct {

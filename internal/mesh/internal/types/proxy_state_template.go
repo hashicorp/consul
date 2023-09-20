@@ -34,7 +34,6 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 		Type:     ProxyStateTemplateV1Alpha1Type,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    resource.ScopeNamespace,
-		Mutate:   MutateProxyStateTemplate,
 		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
@@ -66,37 +65,6 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 			},
 		},
 	})
-}
-
-func MutateProxyStateTemplate(res *pbresource.Resource) error {
-	var pst pbmesh.ProxyStateTemplate
-
-	if err := res.Data.UnmarshalTo(&pst); err != nil {
-		return resource.NewErrDataParse(&pst, err)
-	}
-
-	changed := MutateProxyStateTemplateData(&pst)
-
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&pst)
-}
-
-func MutateProxyStateTemplateData(pst *pbmesh.ProxyStateTemplate) bool {
-	changed := false
-
-	if pst.ProxyState != nil {
-		for name, cluster := range pst.ProxyState.Clusters {
-			if cluster.Name == "" && name != "" {
-				cluster.Name = name
-				changed = true
-			}
-		}
-	}
-
-	return changed
 }
 
 func ValidateProxyStateTemplate(res *pbresource.Resource) error {
