@@ -4,7 +4,6 @@
 package types
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -728,8 +727,6 @@ func TestFailoverPolicyACLs(t *testing.T) {
 			checkF(t, tc.readOK, err)
 		})
 		t.Run("write", func(t *testing.T) {
-			fmt.Printf("write start\n")
-			defer fmt.Printf("write end\n")
 			err := aclWriteHookFailoverPolicy(authz, &acl.AuthorizerContext{}, res)
 			checkF(t, tc.writeOK, err)
 		})
