@@ -113,6 +113,8 @@ func TestValidateNamespace(t *testing.T) {
 		{"system", "System", "namespace \"System\" is reserved for future internal use"},
 		{"invalid", "-inval", "namespace name \"-inval\" is not a valid DNS hostname"},
 		{"valid", "ns1", ""},
+		{"space prefix", " foo", "namespace name \" foo\" is not a valid DNS hostname"},
+		{"space suffix", "bar ", "namespace name \"bar \" is not a valid DNS hostname"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
