@@ -1530,7 +1530,7 @@ Refer to the following examples for common ingress gateway configuration pattern
 
 The following example sets up a TCP listener on an ingress gateway named `us-east-ingress` that proxies traffic to the `db` service. For Consul Enterprise, the `db` service can only listen for traffic in the `default` namespace inside the `team-frontend` admin partition:
 
-#### Consul OSS
+#### Consul CE
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1657,7 +1657,7 @@ The Consul Enterprise version implements the following additional configurations
 - The ingress gateway is set up in the `default` [namespace](/consul/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
 - The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/enterprise/admin-partitions):
 
-#### Consul OSS
+#### Consul CE
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 

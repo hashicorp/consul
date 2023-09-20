@@ -19,7 +19,7 @@ Core ACL functionality is available in all versions of Consul.
 
 @include 'create-token-requirements.mdx'
 
-## View catalog in Consul OSS
+## View catalog in Consul CE
 
 This section describes how to create a token that grants read-only access to the catalog. This token allows users to view the catalog without the ability to make changes. To create the ACL token, define a policy, create the policy, and then link the policy to a token.
 
@@ -276,7 +276,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 </Tabs>
 
-## View all resources in Consul OSS
+## View all resources in Consul CE
 
 This section describes how to create a token with read-only access to all resources in the Consul UI. This token allows users to view any resources without the ability to make changes. To create the ACL token, define a policy, create the policy, and then link the policy to a token.
 
