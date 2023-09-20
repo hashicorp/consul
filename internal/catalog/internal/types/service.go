@@ -1,16 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -31,34 +30,8 @@ func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     ServiceV1Alpha1Type,
 		Proto:    &pbcatalog.Service{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
-		Mutate:   MutateService,
 	})
-}
-
-func MutateService(res *pbresource.Resource) error {
-	var service pbcatalog.Service
-
-	if err := res.Data.UnmarshalTo(&service); err != nil {
-		return err
-	}
-
-	changed := false
-
-	// Default service port protocols.
-	for _, port := range service.Ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
-			port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
-			changed = true
-		}
-	}
-
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&service)
 }
 
 func ValidateService(res *pbresource.Resource) error {
@@ -110,17 +83,6 @@ func ValidateService(res *pbresource.Resource) error {
 				Wrapped: resource.ErrInvalidField{
 					Name:    "target_port",
 					Wrapped: nameErr,
-				},
-			})
-		}
-
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
-				Name:  "ports",
-				Index: idx,
-				Wrapped: resource.ErrInvalidField{
-					Name:    "protocol",
-					Wrapped: protoErr,
 				},
 			})
 		}

@@ -300,8 +300,6 @@ spec:
         interval: "0s"
         maxFailures: 0
         enforcingConsecutive5xx: 100
-        maxEjectionPercent: 10
-        baseEjectionTime: "30s"
     defaults:
       protocol: <default protocol for the upstream listener>
       connectTimeoutMs: 5000
@@ -313,11 +311,9 @@ spec:
         maxPendingRequests: 0
         maxConcurrentRequests: 0
       passiveHealthCheck:
-        interval: "0s"
+        interval: 0s
         maxFailures: 0
         enforcingConsecutive5xx: 100
-        maxEjectionPercent: 10
-        baseEjectionTime: "30s"
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false

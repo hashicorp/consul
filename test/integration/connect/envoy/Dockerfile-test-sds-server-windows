@@ -1,8 +1,0 @@
-FROM docker.mirror.hashicorp.services/windows/golang:1809
-
-WORKDIR /go/src
-COPY ./ .
-
-RUN go build -v -o test-sds-server.exe sds.go
-
-CMD ["test-sds-server.exe"]

@@ -496,7 +496,7 @@ The following table describes the parameters you can define in the `AccessLogs` 
 
 <Tab heading="YAML" group="yaml">
 
-### apiVersion
+### `apiVersion`
 
 Specifies the verion of the Consul API to use to apply the configuration entry. This must be set to `consul.hashicorp.com/v1alpha1`.
 
@@ -724,10 +724,10 @@ The following table describes the parameters you can define in the `accessLogs` 
 | `jsonFormat` | Specifies a JSON-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `textFormat` field concurrently. | String | [Default log format](/consul/docs/connect/observability/access-logs#default-log-format) |
 | `textFormat` | Specifies a  text-formatted string that represents the format for each emitted access log. You can use [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to customize the emitted data. You can also nest data. You cannot set this field and the `jsonFormat` field concurrently. | String | None |
 
+
 </Tab>
 
 </Tabs>
-
 
 ## Examples
 

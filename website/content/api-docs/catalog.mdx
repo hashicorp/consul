@@ -55,7 +55,7 @@ The table below shows this endpoint's support for
 - `NodeMeta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
   pairs for filtering purposes.
 
-- `Service` `(Service: nil)` - Contains an object the specifies the service to register. The `Service.Service` field is required. If `Service.ID` is not provided, the default is the `Service.Service`.
+- `Service` `(Service: nil)` - Contains an object the specifies the service to register. The the `Service.Service` field is required. If `Service.ID` is not provided, the default is the `Service.Service`.
   You can only specify one service with a given `ID` per node. We recommend using
   valid DNS labels for service definition names. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for additional information.
   The following fields are optional: 

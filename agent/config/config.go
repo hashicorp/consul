@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package config
 
@@ -778,7 +778,6 @@ type Tokens struct {
 	Default                *string `mapstructure:"default"`
 	Agent                  *string `mapstructure:"agent"`
 	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
-	DNS                    *string `mapstructure:"dns"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`

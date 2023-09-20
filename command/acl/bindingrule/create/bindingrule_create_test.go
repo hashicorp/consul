@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package bindingrulecreate
 
@@ -106,24 +106,6 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "Missing required '-bind-name' flag")
 	})
 
-	t.Run("bind vars specified when by bindtype is not templated-policy", func(t *testing.T) {
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-token=root",
-			"-method=test",
-			"-bind-name=web",
-			"-bind-type=service",
-			"-bind-vars", "name=test",
-		}
-
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 1)
-		require.Contains(t, ui.ErrorWriter.String(), "Cannot specify -bind-vars when -bind-type is not templated-policy")
-	})
-
 	t.Run("must use roughly valid selector", func(t *testing.T) {
 		args := []string{
 			"-http-addr=" + a.HTTPAddr(),
@@ -193,41 +175,6 @@ func TestBindingRuleCreateCommand(t *testing.T) {
 		code := cmd.Run(args)
 		require.Equal(t, code, 0)
 		require.Empty(t, ui.ErrorWriter.String())
-	})
-
-	t.Run("create it with type templated policy", func(t *testing.T) {
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-token=root",
-			"-method=test",
-			"-bind-type=templated-policy",
-			"-bind-name=builtin/service",
-			"-bind-vars", "name=api",
-		}
-
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 0)
-		require.Empty(t, ui.ErrorWriter.String())
-	})
-
-	t.Run("cannot create when missing bind-vars", func(t *testing.T) {
-		args := []string{
-			"-http-addr=" + a.HTTPAddr(),
-			"-token=root",
-			"-method=test",
-			"-bind-type=templated-policy",
-			"-bind-name=builtin/service",
-		}
-
-		ui := cli.NewMockUi()
-		cmd := New(ui)
-
-		code := cmd.Run(args)
-		require.Equal(t, code, 1)
-		require.Contains(t, ui.ErrorWriter.String(), "templated policy failed validation")
 	})
 }
 

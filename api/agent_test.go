@@ -165,21 +165,6 @@ func TestAPI_AgentMembersOpts(t *testing.T) {
 	}
 
 	require.Equal(t, 1, len(members))
-
-	members, err = agent.MembersOpts(MembersOpts{
-		WAN:    true,
-		Filter: `Tags["dc"] == "not-Exist"`,
-	})
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	require.Equal(t, 0, len(members))
-
-	_, err = agent.MembersOpts(MembersOpts{
-		WAN:    true,
-		Filter: `Tags["dc"] == invalid-bexpr-value`,
-	})
-	require.ErrorContains(t, err, "Failed to create boolean expression evaluator")
 }
 
 func TestAPI_AgentMembers(t *testing.T) {
@@ -1635,10 +1620,6 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if _, err := agent.UpdateDNSToken("root", nil); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-
 	})
 
 	t.Run("new with fallback", func(t *testing.T) {
@@ -1726,9 +1707,6 @@ func TestAPI_AgentUpdateToken(t *testing.T) {
 		require.Error(t, err)
 
 		_, err = agent.UpdateConfigFileRegistrationToken("root", nil)
-		require.Error(t, err)
-
-		_, err = agent.UpdateDNSToken("root", nil)
 		require.Error(t, err)
 	})
 }

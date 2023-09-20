@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package auth
 
@@ -258,12 +258,11 @@ func TestBinder_NodeIdentities_NameValidation(t *testing.T) {
 	require.Contains(t, err.Error(), "bind name for bind target is invalid")
 }
 
-func Test_IsValidBindNameOrBindVars(t *testing.T) {
+func Test_IsValidBindName(t *testing.T) {
 	type testcase struct {
 		name     string
 		bindType string
 		bindName string
-		bindVars *structs.ACLTemplatedPolicyVariables
 		fields   string
 		valid    bool // valid HIL, invalid contents
 		err      bool // invalid HIL
@@ -271,72 +270,59 @@ func Test_IsValidBindNameOrBindVars(t *testing.T) {
 
 	for _, test := range []testcase{
 		{"no bind type",
-			"", "", nil, "", false, false},
+			"", "", "", false, false},
 		{"bad bind type",
-			"invalid", "blah", nil, "", false, true},
+			"invalid", "blah", "", false, true},
 		// valid HIL, invalid name
 		{"empty",
-			"both", "", nil, "", false, false},
+			"both", "", "", false, false},
 		{"just end",
-			"both", "}", nil, "", false, false},
+			"both", "}", "", false, false},
 		{"var without start",
-			"both", " item }", nil, "item", false, false},
+			"both", " item }", "item", false, false},
 		{"two vars missing second start",
-			"both", "before-${ item }after--more }", nil, "item,more", false, false},
+			"both", "before-${ item }after--more }", "item,more", false, false},
 		// names for the two types are validated differently
 		{"@ is disallowed",
-			"both", "bad@name", nil, "", false, false},
+			"both", "bad@name", "", false, false},
 		{"leading dash",
-			"role", "-name", nil, "", true, false},
+			"role", "-name", "", true, false},
 		{"leading dash",
-			"service", "-name", nil, "", false, false},
+			"service", "-name", "", false, false},
 		{"trailing dash",
-			"role", "name-", nil, "", true, false},
+			"role", "name-", "", true, false},
 		{"trailing dash",
-			"service", "name-", nil, "", false, false},
+			"service", "name-", "", false, false},
 		{"inner dash",
-			"both", "name-end", nil, "", true, false},
+			"both", "name-end", "", true, false},
 		{"upper case",
-			"role", "NAME", nil, "", true, false},
+			"role", "NAME", "", true, false},
 		{"upper case",
-			"service", "NAME", nil, "", false, false},
+			"service", "NAME", "", false, false},
 		// valid HIL, valid name
 		{"no vars",
-			"both", "nothing", nil, "", true, false},
+			"both", "nothing", "", true, false},
 		{"just var",
-			"both", "${item}", nil, "item", true, false},
+			"both", "${item}", "item", true, false},
 		{"var in middle",
-			"both", "before-${item}after", nil, "item", true, false},
+			"both", "before-${item}after", "item", true, false},
 		{"two vars",
-			"both", "before-${item}after-${more}", nil, "item,more", true, false},
+			"both", "before-${item}after-${more}", "item,more", true, false},
 		// bad
 		{"no bind name",
-			"both", "", nil, "", false, false},
+			"both", "", "", false, false},
 		{"just start",
-			"both", "${", nil, "", false, true},
+			"both", "${", "", false, true},
 		{"backwards",
-			"both", "}${", nil, "", false, true},
+			"both", "}${", "", false, true},
 		{"no varname",
-			"both", "${}", nil, "", false, true},
+			"both", "${}", "", false, true},
 		{"missing map key",
-			"both", "${item}", nil, "", false, true},
+			"both", "${item}", "", false, true},
 		{"var without end",
-			"both", "${ item ", nil, "item", false, true},
+			"both", "${ item ", "item", false, true},
 		{"two vars missing first end",
-			"both", "before-${ item after-${ more }", nil, "item,more", false, true},
-
-		// bind type: templated policy - bad input
-		{"templated-policy missing bindvars", "templated-policy", "builtin/service", nil, "", false, true},
-		{"templated-policy with unknown templated policy name",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${item}after-${more}"}, "", false, true},
-		{"templated-policy with correct bindvars and unknown vars",
-			"templated-policy", "builtin/fake", &structs.ACLTemplatedPolicyVariables{Name: "test"}, "", false, true},
-		{"templated-policy with correct bindvars but incorrect HIL",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${ item }after--more }"}, "", false, true},
-
-		// bind type: templated policy - good input
-		{"templated-policy with appropriate bindvars",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${item}after-${more}"}, "item,more", true, false},
+			"both", "before-${ item after-${ more }", "item,more", false, true},
 	} {
 		var cases []testcase
 		if test.bindType == "both" {
@@ -353,10 +339,9 @@ func Test_IsValidBindNameOrBindVars(t *testing.T) {
 			test := test
 			t.Run(test.bindType+"--"+test.name, func(t *testing.T) {
 				t.Parallel()
-				valid, err := IsValidBindNameOrBindVars(
+				valid, err := IsValidBindName(
 					test.bindType,
 					test.bindName,
-					test.bindVars,
 					strings.Split(test.fields, ","),
 				)
 				if test.err {

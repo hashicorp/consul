@@ -68,14 +68,9 @@ func (op *Operator) RaftGetConfiguration(q *QueryOptions) (*RaftConfiguration, e
 }
 
 // RaftLeaderTransfer is used to transfer the current raft leader to another node
-// Optionally accepts a non-empty id of another node to transfer leadership to.
-func (op *Operator) RaftLeaderTransfer(id string, q *QueryOptions) (*TransferLeaderResponse, error) {
+func (op *Operator) RaftLeaderTransfer(q *QueryOptions) (*TransferLeaderResponse, error) {
 	r := op.c.newRequest("POST", "/v1/operator/raft/transfer-leader")
 	r.setQueryOptions(q)
-
-	if id != "" {
-		r.params.Set("id", id)
-	}
 	_, resp, err := op.c.doRequest(r)
 	if err != nil {
 		return nil, err

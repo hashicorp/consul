@@ -125,33 +125,30 @@ EOF
 <CodeBlockConfig filename="wasm-extension-serve-waf.yaml">
 
 ```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceDefaults
-metadata:
-  name: api
-spec:
-  protocol: http
-  envoyExtensions:
-    - name: builtin/wasm
-      required: true
-      arguments:
-        protocol: http
-        listenerType: inbound
-        pluginConfig:
-          VmConfig:
-            Code:
-              Remote:
-                HttpURI:
-                  Service:
-                    Name: file-server
-                    URI: https://file-server/waf.wasm
-          Configuration:
-            rules:
-            - Include @demo-conf
-            - Include @crs-setup-demo-conf
-            - SecDebugLogLevel 9
-            - SecRuleEngine On
-            - Include @owasp_crs/*.conf
+kind: service-defaults
+name: api
+protocol: http
+envoyExtensions:
+  - name: builtin/wasm
+    required: true
+    arguments:
+      protocol: http
+      listenerType: inbound
+      pluginConfig:
+        VmConfig:
+          Code:
+            Remote:
+              HttpURI:
+                Service:
+                  Name: file-server
+                  URI: https://file-server/waf.wasm
+         Configuration:
+           rules:
+           - Include @demo-conf
+           - Include @crs-setup-demo-conf
+           - SecDebugLogLevel 9
+           - SecRuleEngine On
+           - Include @owasp_crs/*.conf
 ```
 
 </CodeBlockConfig>

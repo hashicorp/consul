@@ -1,8 +1,9 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "api-a?peer=peer-a:127.0.0.1:9090",
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
@@ -16,18 +17,18 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-                "statPrefix": "upstream_peered.api-a.default.peer-a"
+                "statPrefix": "upstream_peered.api-a.default.peer-a",
+                "cluster": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
         }
       ],
-      "name": "api-a?peer=peer-a:127.0.0.1:9090",
       "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "no-endpoints?peer=peer-a:127.0.0.1:1234",
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
@@ -41,35 +42,23 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-                "statPrefix": "upstream_peered.no-endpoints.default.peer-a"
+                "statPrefix": "upstream_peered.no-endpoints.default.peer-a",
+                "cluster": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
         }
       ],
-      "name": "no-endpoints?peer=peer-a:127.0.0.1:1234",
       "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "outbound_listener:127.0.0.1:15001",
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
           "portValue": 15001
         }
-      },
-      "defaultFilterChain": {
-        "filters": [
-          {
-            "name": "envoy.filters.network.tcp_proxy",
-            "typedConfig": {
-              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-              "cluster": "original-destination",
-              "statPrefix": "upstream.original-destination"
-            }
-          }
-        ]
       },
       "filterChains": [
         {
@@ -90,13 +79,25 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
-                "statPrefix": "upstream_peered.db.default.peer-a"
+                "statPrefix": "upstream_peered.db.default.peer-a",
+                "cluster": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
               }
             }
           ]
         }
       ],
+      "defaultFilterChain": {
+        "filters": [
+          {
+            "name": "envoy.filters.network.tcp_proxy",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+              "statPrefix": "upstream.original-destination",
+              "cluster": "original-destination"
+            }
+          }
+        ]
+      },
       "listenerFilters": [
         {
           "name": "envoy.filters.listener.original_dst",
@@ -105,11 +106,11 @@
           }
         }
       ],
-      "name": "outbound_listener:127.0.0.1:15001",
       "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "public_listener:0.0.0.0:9999",
       "address": {
         "socketAddress": {
           "address": "0.0.0.0",
@@ -123,7 +124,9 @@
               "name": "envoy.filters.network.rbac",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules": {},
+                "rules": {
+
+                },
                 "statPrefix": "connect_authz"
               }
             },
@@ -131,8 +134,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "local_app",
-                "statPrefix": "public_listener"
+                "statPrefix": "public_listener",
+                "cluster": "local_app"
               }
             }
           ],
@@ -141,6 +144,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -151,7 +157,6 @@
                     }
                   }
                 ],
-                "tlsParams": {},
                 "validationContext": {
                   "trustedCa": {
                     "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
@@ -163,10 +168,9 @@
           }
         }
       ],
-      "name": "public_listener:0.0.0.0:9999",
       "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

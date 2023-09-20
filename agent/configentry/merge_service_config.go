@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package configentry
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
@@ -139,10 +139,6 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			}
 		}
 		ns.Proxy.EnvoyExtensions = nsExtensions
-	}
-
-	if ratelimit := defaults.RateLimits.ToEnvoyExtension(); ratelimit != nil {
-		ns.Proxy.EnvoyExtensions = append(ns.Proxy.EnvoyExtensions, *ratelimit)
 	}
 
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {

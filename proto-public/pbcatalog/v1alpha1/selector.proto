@@ -9,5 +9,4 @@ package hashicorp.consul.catalog.v1alpha1;
 message WorkloadSelector {
   repeated string prefixes = 1;
   repeated string names = 2;
-  string filter = 3;
 }
