@@ -22,4 +22,9 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(workloadhealth.WorkloadHealthController(deps.WorkloadHealthNodeMapper))
 	mgr.Register(endpoints.ServiceEndpointsController(deps.EndpointsWorkloadMapper))
 	mgr.Register(failover.FailoverPolicyController(deps.FailoverMapper))
+
+	// TODO(nathancoleman) Enable once mappers are defined
+	// mgr.Register(gateways.APIGatewayController(deps.GatewayRoutesMapper))
+	// mgr.Register(gateways.MeshGatewayController())
+	// mgr.Register(gateways.TerminatingGatewayController())
 }

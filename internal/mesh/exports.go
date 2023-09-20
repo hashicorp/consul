@@ -32,9 +32,6 @@ var (
 	DestinationPolicyKind      = types.DestinationPolicyKind
 	ComputedRoutesKind         = types.ComputedRoutesKind
 	ProxyStateTemplateKind     = types.ProxyStateTemplateKind
-	APIGatewayKind             = types.APIGatewayKind
-	MeshGatewayKind            = types.MeshGatewayKind
-	TerminatingGatewayKind     = types.TerminatingGatewayKind
 
 	// Resource Types for the v1alpha1 version.
 
@@ -47,9 +44,6 @@ var (
 	DestinationPolicyV1Alpha1Type      = types.DestinationPolicyV1Alpha1Type
 	ComputedRoutesV1Alpha1Type         = types.ComputedRoutesV1Alpha1Type
 	ProxyStateTemplateV1AlphaType      = types.ProxyStateTemplateV1Alpha1Type
-	APIGatewayV1Alpha1Type             = types.APIGatewayV1Alpha1Type
-	MeshGatewayV1Alpha1Type            = types.MeshGatewayV1Alpha1Type
-	TerminatingGatewayV1Alpha1Type     = types.TerminatingGatewayV1Alpha1Type
 
 	// Resource Types for the latest version.
 
@@ -63,9 +57,6 @@ var (
 	TCPRouteType                        = types.TCPRouteType
 	DestinationPolicyType               = types.DestinationPolicyType
 	ComputedRoutesType                  = types.ComputedRoutesType
-	APIGatewayType                      = types.APIGatewayType
-	MeshGatewayType                     = types.MeshGatewayType
-	TerminatingGatewayType              = types.TerminatingGatewayType
 
 	// Controller statuses.
 

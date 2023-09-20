@@ -12,16 +12,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func IsGatewayType(typ *pbresource.Type) bool {
-	switch {
-	case resource.EqualType(typ, APIGatewayType),
-		resource.EqualType(typ, MeshGatewayType),
-		resource.EqualType(typ, TerminatingGatewayType):
-		return true
-	}
-	return false
-}
-
 func IsRouteType(typ *pbresource.Type) bool {
 	return IsHTTPRouteType(typ) ||
 		IsGRPCRouteType(typ) ||
