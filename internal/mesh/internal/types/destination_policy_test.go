@@ -10,8 +10,12 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -499,6 +503,103 @@ func TestValidateDestinationPolicy(t *testing.T) {
 				},
 			},
 			expectErr: `invalid value of key "http" within port_configs: invalid "locality_prioritization" field: invalid "mode" field: not a supported enum value: 99`,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestDestinationPolicyACLs(t *testing.T) {
+	type testcase struct {
+		rules   string
+		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
+		readOK  string
+		writeOK string
+		listOK  string
+	}
+
+	const (
+		DENY    = "deny"
+		ALLOW   = "allow"
+		DEFAULT = "default"
+	)
+
+	checkF := func(t *testing.T, expect string, got error) {
+		switch expect {
+		case ALLOW:
+			if acl.IsErrPermissionDenied(got) {
+				t.Fatal("should be allowed")
+			}
+		case DENY:
+			if !acl.IsErrPermissionDenied(got) {
+				t.Fatal("should be denied")
+			}
+		case DEFAULT:
+			require.Nil(t, got, "expected fallthrough decision")
+		default:
+			t.Fatalf("unexpected expectation: %q", expect)
+		}
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		destData := &pbmesh.DestinationPolicy{
+			PortConfigs: map[string]*pbmesh.DestinationConfig{
+				"http": {
+					ConnectTimeout: durationpb.New(55 * time.Second),
+				},
+			},
+		}
+		res := resourcetest.Resource(DestinationPolicyType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, destData).
+			Build()
+
+		err := ValidateDestinationPolicy(res)
+		require.NoError(t, err)
+
+		config := acl.Config{
+			WildcardName: structs.WildcardSpecifier,
+		}
+		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
+		require.NoError(t, err)
+		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
+
+		t.Run("read", func(t *testing.T) {
+			err := aclReadHookDestinationPolicy(authz, &acl.AuthorizerContext{}, res.Id)
+			checkF(t, tc.readOK, err)
+		})
+		t.Run("write", func(t *testing.T) {
+			err := aclWriteHookDestinationPolicy(authz, &acl.AuthorizerContext{}, res)
+			checkF(t, tc.writeOK, err)
+		})
+		t.Run("list", func(t *testing.T) {
+			err := aclListHookDestinationPolicy(authz, &acl.AuthorizerContext{})
+			checkF(t, tc.listOK, err)
+		})
+	}
+
+	cases := map[string]testcase{
+		"no rules": {
+			rules:   ``,
+			readOK:  DENY,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"service api read": {
+			rules:   `service "api" { policy = "read" }`,
+			readOK:  ALLOW,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"service api write": {
+			rules:   `service "api" { policy = "write" }`,
+			readOK:  ALLOW,
+			writeOK: ALLOW,
+			listOK:  DEFAULT,
 		},
 	}
 

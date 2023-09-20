@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -34,6 +35,11 @@ func RegisterDestinationPolicy(r resource.Registry) {
 		Proto:    &pbmesh.DestinationPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookDestinationPolicy,
+			Write: aclWriteHookDestinationPolicy,
+			List:  aclListHookDestinationPolicy,
+		},
 	})
 }
 
@@ -224,4 +230,26 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 	}
 
 	return merr
+}
+
+func aclReadHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+	// DestinationPolicy is name-aligned with Service
+	serviceName := id.Name
+
+	// Check service:read permissions.
+	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext)
+}
+
+func aclWriteHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	// DestinationPolicy is name-aligned with Service
+	serviceName := res.Id.Name
+
+	// Check service:write permissions on the service this is controlling.
+	return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext)
+}
+
+func aclListHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement.
+	return nil
 }
