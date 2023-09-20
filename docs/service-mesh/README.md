@@ -37,7 +37,7 @@ The core of the built-in proxy is implemented in the [connect/proxy](https://git
 The high-level flow of configuring Envoy is:
 1. The initial "bootstrap" configuration is generated for an Envoy proxy by a consul-dataplane instance or a Consul client agent.
 2. Envoy dials the xDS server, requesting configuration to act as a particular proxy or gateway instance. The xDS server will either be a Consul server or a Consul client agent.
-3. Consul initializes internal watches for the snapshot of data necessary to configure Envoy. This snapshot will contain data as collected from Consul's state.
+3. Consul in initializes internal watches for the snapshot of data necessary to configure Envoy. This snapshot will contain data as collected from Consul's state.
 4. As these snapshots are generated and updated, Consul will generate and push Envoy configuration for the various xDS resource types if there were changes.
 
 ### Bootstrapping Envoy proxies

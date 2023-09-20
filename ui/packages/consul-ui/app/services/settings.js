@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service from '@ember/service';
 import getStorage from 'consul-ui/utils/storage/local-storage';
 const SCHEME = 'consul';

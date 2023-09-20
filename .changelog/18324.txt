@@ -1,3 +1,0 @@
-```release-note:feature
-api-gateway: add retry and timeout filters
-```

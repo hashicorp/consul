@@ -184,60 +184,6 @@ spec:
 
 </CodeTabs>
 </Tab>
-
-
-<Tab heading="Consul Enterprise (Sameness Group)">
-<CodeTabs heading="Exported services configuration syntax" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Partition = "<partition containing services to export>"
-Name = "<partition containing services to export>"
-Services = [
-  {
-    Name = "<name of service to export>"
-    Namespace = "<namespace in the partition containing the service to export>"
-    Consumers = [
-      {
-        SamenessGroup = "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ExportedServices
-metadata:
-  name: <partition containing services to export>
-spec:
-  services:
-    - name: <name of service to export>
-      namespace: <namespace in the partition containing the service to export>
-      consumers:
-        - samenessGroup: <name of the sameness group that dials the exported service>
-```
-
-```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "SamenessGroup": "<name of the sameness group that dials the exported service>"
-      }
-    ]
-  }
-]
-```
-
-</CodeTabs>
-</Tab>
 </Tabs>
 
 ### Configuration Parameters
@@ -269,9 +215,6 @@ an exported service. Each item in the `Consumers` list must contain exactly one 
 A asterisk wildcard (`*`) cannot be specified as the `Peer`. Added in Consul 1.13.0.
 - `Partition`: <EnterpriseAlert inline /> Specifies an admin partition in the datacenter to export the service to.
 A asterisk wildcard (`*`) cannot be specified as the `Partition`.
-- `SamenessGroup`: <EnterpriseAlert inline /> Specifies as sameness group to export the service to.
-A asterisk wildcard (`*`) cannot be specified as the `SamenessGroup`.
-
 
 ## Examples
 
@@ -509,57 +452,6 @@ spec:
 </CodeTabs>
 </Tab>
 </Tabs>
-
-### Exporting a service to a sameness group
-
-The following example configures Consul to export a service named `api` to a defined group of partitions that belong to a separately defined [sameness group](/consul/docs/connect/config-entries/sameness-group) named `monitoring`.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "exported-services"
-Name = "default"
-
-Services = [
-  {
-    Name      = "api"
-    Consumers = [
-        {
-            SamenessGroup  = "monitoring"
-        }
-    ]
-  }
-]
-```
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-Kind: ExportedServices
-metadata:
-  name: default
-spec:
-  services:
-    - name: api
-      consumers:
-        - samenessGroup: monitoring
-```
-
-```json
-"Kind": "exported-services",
-  "Name": "default",
-  "Services": [
-    {
-      "Name": "api",
-      "Consumers": [
-        {
-          "SamenessGroup": "monitoring"
-        }
-      ]
-    }
-  ]
-```
-
-</CodeTabs>
 
 ### Exporting all services
 

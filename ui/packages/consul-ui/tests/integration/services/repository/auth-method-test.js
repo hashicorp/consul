@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { setupTest } from 'ember-qunit';
 import repo from 'consul-ui/tests/helpers/repo';
 import { module, skip, test } from 'qunit';

@@ -1,3 +1,0 @@
-```release-note:bug
-api: Fix client deserialization errors by marking new Enterprise-only prepared query fields as omit empty
-```

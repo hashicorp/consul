@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -21,10 +18,9 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 func TestPeerTrustBundles(t testing.T) *pbpeering.TrustBundleListByServiceResponse {
@@ -142,8 +138,8 @@ func TestMeshGatewayLeafForCA(t testing.T, ca *structs.CARoot) *structs.IssuedCe
 
 // TestIntentions returns a sample intentions match result useful to
 // mocking service discovery cache results.
-func TestIntentions() structs.SimplifiedIntentions {
-	return structs.SimplifiedIntentions{
+func TestIntentions() structs.Intentions {
+	return structs.Intentions{
 		{
 			ID:              "foo",
 			SourceNS:        "default",
@@ -167,7 +163,7 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(service),
+			Service: structs.TestNodeServiceWithName(t, service),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -177,47 +173,7 @@ func TestUpstreamNodes(t testing.T, service string) structs.CheckServiceNodes {
 				Datacenter: "dc1",
 				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
 			},
-			Service: structs.TestNodeServiceWithName(service),
-		},
-	}
-}
-
-// TestUpstreamNodesWithServiceSubset returns a sample service discovery result with one instance tagged v1
-// and the other tagged v2
-func TestUpstreamNodesWithServiceSubset(t testing.T, service string) structs.CheckServiceNodes {
-	return structs.CheckServiceNodes{
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:         "test1",
-				Node:       "test1",
-				Address:    "10.10.1.3",
-				Datacenter: "dc1",
-				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-			},
-			Service: &structs.NodeService{
-				Kind:    structs.ServiceKindTypical,
-				Service: service,
-				Port:    8080,
-				Meta:    map[string]string{"Version": "1"},
-				Weights: &structs.Weights{
-					Passing: 300, // Check that this gets normalized to 128
-				},
-			},
-		},
-		structs.CheckServiceNode{
-			Node: &structs.Node{
-				ID:         "test2",
-				Node:       "test2",
-				Address:    "10.10.1.4",
-				Datacenter: "dc1",
-				Partition:  structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty(),
-			},
-			Service: &structs.NodeService{
-				Kind:    structs.ServiceKindTypical,
-				Service: service,
-				Port:    8080,
-				Meta:    map[string]string{"Version": "2"},
-			},
+			Service: structs.TestNodeServiceWithName(t, service),
 		},
 	}
 }
@@ -271,7 +227,7 @@ func TestUpstreamNodesInStatus(t testing.T, status string) structs.CheckServiceN
 				Address:    "10.10.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test1",
@@ -288,7 +244,7 @@ func TestUpstreamNodesInStatus(t testing.T, status string) structs.CheckServiceN
 				Address:    "10.10.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test2",
@@ -310,7 +266,7 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.1",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -319,7 +275,7 @@ func TestUpstreamNodesDC2(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.2",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 		},
 	}
 }
@@ -333,7 +289,7 @@ func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServi
 				Address:    "10.20.1.1",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test1",
@@ -350,7 +306,7 @@ func TestUpstreamNodesInStatusDC2(t testing.T, status string) structs.CheckServi
 				Address:    "10.20.1.2",
 				Datacenter: "dc2",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 			Checks: structs.HealthChecks{
 				&structs.HealthCheck{
 					Node:        "test2",
@@ -372,7 +328,7 @@ func TestUpstreamNodesAlternate(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.1",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 		},
 		structs.CheckServiceNode{
 			Node: &structs.Node{
@@ -381,7 +337,7 @@ func TestUpstreamNodesAlternate(t testing.T) structs.CheckServiceNodes {
 				Address:    "10.20.1.2",
 				Datacenter: "dc1",
 			},
-			Service: structs.TestNodeService(),
+			Service: structs.TestNodeService(t),
 		},
 	}
 }
@@ -790,7 +746,7 @@ func testConfigSnapshotFixture(
 			IntentionUpstreams:              &noopDataSource[*structs.ServiceSpecificRequest]{},
 			IntentionUpstreamsDestination:   &noopDataSource[*structs.ServiceSpecificRequest]{},
 			InternalServiceDump:             &noopDataSource[*structs.ServiceDumpRequest]{},
-			LeafCertificate:                 &noopDataSource[*leafcert.ConnectCALeafRequest]{},
+			LeafCertificate:                 &noopDataSource[*cachetype.ConnectCALeafRequest]{},
 			PeeringList:                     &noopDataSource[*cachetype.PeeringListRequest]{},
 			PeeredUpstreams:                 &noopDataSource[*structs.PartitionSpecificRequest]{},
 			PreparedQuery:                   &noopDataSource[*structs.PreparedQueryExecuteRequest]{},
@@ -991,11 +947,11 @@ func NewTestDataSources() *TestDataSources {
 		GatewayServices:                 NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedGatewayServices](),
 		Health:                          NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes](),
 		HTTPChecks:                      NewTestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType](),
-		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.SimplifiedIntentions](),
+		Intentions:                      NewTestDataSource[*structs.ServiceSpecificRequest, structs.Intentions](),
 		IntentionUpstreams:              NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		IntentionUpstreamsDestination:   NewTestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList](),
 		InternalServiceDump:             NewTestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes](),
-		LeafCertificate:                 NewTestDataSource[*leafcert.ConnectCALeafRequest, *structs.IssuedCert](),
+		LeafCertificate:                 NewTestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert](),
 		PeeringList:                     NewTestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse](),
 		PreparedQuery:                   NewTestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse](),
 		ResolvedServiceConfig:           NewTestDataSource[*structs.ServiceConfigRequest, *structs.ServiceConfigResponse](),
@@ -1018,11 +974,11 @@ type TestDataSources struct {
 	ServiceGateways                 *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceNodes]
 	Health                          *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedCheckServiceNodes]
 	HTTPChecks                      *TestDataSource[*cachetype.ServiceHTTPChecksRequest, []structs.CheckType]
-	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.SimplifiedIntentions]
+	Intentions                      *TestDataSource[*structs.ServiceSpecificRequest, structs.Intentions]
 	IntentionUpstreams              *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	IntentionUpstreamsDestination   *TestDataSource[*structs.ServiceSpecificRequest, *structs.IndexedServiceList]
 	InternalServiceDump             *TestDataSource[*structs.ServiceDumpRequest, *structs.IndexedCheckServiceNodes]
-	LeafCertificate                 *TestDataSource[*leafcert.ConnectCALeafRequest, *structs.IssuedCert]
+	LeafCertificate                 *TestDataSource[*cachetype.ConnectCALeafRequest, *structs.IssuedCert]
 	PeeringList                     *TestDataSource[*cachetype.PeeringListRequest, *pbpeering.PeeringListResponse]
 	PeeredUpstreams                 *TestDataSource[*structs.PartitionSpecificRequest, *structs.IndexedPeeredServiceList]
 	PreparedQuery                   *TestDataSource[*structs.PreparedQueryExecuteRequest, *structs.PreparedQueryExecuteResponse]

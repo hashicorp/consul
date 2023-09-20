@@ -1,3 +1,0 @@
-```release-note:improvement
-command: Adds ACL enabled to status output on agent startup.
-```

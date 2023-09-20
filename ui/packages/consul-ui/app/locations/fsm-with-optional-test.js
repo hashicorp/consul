@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import FSMWithOptionalLocation from './fsm-with-optional';
 import { FSM, Location } from './fsm';
 

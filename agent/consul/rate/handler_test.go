@@ -1,23 +1,36 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package rate
 
 import (
 	"bytes"
-	"github.com/hashicorp/consul/agent/metrics"
-	"github.com/stretchr/testify/require"
+	"context"
 	"net"
 	"net/netip"
 	"testing"
 
-	"golang.org/x/time/rate"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/mock"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
+	"github.com/hashicorp/consul/agent/metrics"
 )
+
+//
+// Revisit test when handler.go:189 TODO implemented
+//
+// func TestHandler_Allow_PanicsWhenLeaderStatusProviderNotRegistered(t *testing.T) {
+// 	defer func() {
+// 		err := recover()
+// 		if err == nil {
+// 			t.Fatal("Run should panic")
+// 		}
+// 	}()
+
+// 	handler := NewHandler(HandlerConfig{}, hclog.NewNullLogger())
+// 	handler.Allow(Operation{})
+// 	// intentionally skip handler.Register(...)
+// }
 
 func TestHandler(t *testing.T) {
 	var (
@@ -34,7 +47,6 @@ func TestHandler(t *testing.T) {
 		globalMode        Mode
 		checks            []limitCheck
 		isLeader          bool
-		isServer          bool
 		expectErr         error
 		expectLog         bool
 		expectMetric      bool
@@ -209,15 +221,14 @@ func TestHandler(t *testing.T) {
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			sink := metrics.TestSetupMetrics(t, "")
-			limiter := multilimiter.NewMockRateLimiter(t)
+			limiter := newMockLimiter(t)
 			limiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			for _, c := range tc.checks {
-				limiter.On("Allow", mock.Anything).Return(c.allow)
+				limiter.On("Allow", c.limit).Return(c.allow)
 			}
 
-			serversStatusProvider := NewMockServersStatusProvider(t)
-			serversStatusProvider.On("IsLeader").Return(tc.isLeader).Maybe()
-			serversStatusProvider.On("IsServer", mock.Anything).Return(tc.isServer).Maybe()
+			leaderStatusProvider := NewMockLeaderStatusProvider(t)
+			leaderStatusProvider.On("IsLeader").Return(tc.isLeader).Maybe()
 
 			var output bytes.Buffer
 			logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -227,18 +238,12 @@ func TestHandler(t *testing.T) {
 
 			handler := NewHandlerWithLimiter(
 				HandlerConfig{
-					GlobalLimitConfig: GlobalLimitConfig{
-						Mode: tc.globalMode,
-						ReadWriteConfig: ReadWriteConfig{
-							ReadConfig:  multilimiter.LimiterConfig{},
-							WriteConfig: multilimiter.LimiterConfig{},
-						},
-					},
+					GlobalMode: tc.globalMode,
 				},
 				limiter,
 				logger,
 			)
-			handler.Register(serversStatusProvider)
+			handler.Register(leaderStatusProvider)
 
 			require.Equal(t, tc.expectErr, handler.Allow(tc.op))
 
@@ -261,24 +266,13 @@ func TestNewHandlerWithLimiter_CallsUpdateConfig(t *testing.T) {
 	readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
 	writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
 	cfg := &HandlerConfig{
-		GlobalLimitConfig: GlobalLimitConfig{
-			Mode: ModeEnforcing,
-			ReadWriteConfig: ReadWriteConfig{
-				ReadConfig:  readCfg,
-				WriteConfig: writeCfg,
-			},
-		},
+		GlobalReadConfig:  readCfg,
+		GlobalWriteConfig: writeCfg,
+		GlobalMode:        ModeEnforcing,
 	}
 	logger := hclog.NewNullLogger()
 	NewHandlerWithLimiter(*cfg, mockRateLimiter, logger)
 	mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 2)
-}
-
-func infReadRateConfig() ReadWriteConfig {
-	return ReadWriteConfig{
-		ReadConfig:  multilimiter.LimiterConfig{Rate: rate.Inf},
-		WriteConfig: multilimiter.LimiterConfig{Rate: rate.Inf},
-	}
 }
 
 func TestUpdateConfig(t *testing.T) {
@@ -298,29 +292,27 @@ func TestUpdateConfig(t *testing.T) {
 		{
 			description: "RateLimiter gets updated when GlobalReadConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				rc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig = rc
+				cfg.GlobalReadConfig.Burst++
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.ReadConfig, []byte("global.read"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalReadConfig, []byte("global.read"))
 			},
 		},
 		{
 			description: "RateLimiter gets updated when GlobalWriteConfig changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				wc := multilimiter.LimiterConfig{Rate: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Rate, Burst: cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig.Burst + 1}
-				cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig = wc
+				cfg.GlobalWriteConfig.Burst++
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 1)
-				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalLimitConfig.ReadWriteConfig.WriteConfig, []byte("global.write"))
+				mockRateLimiter.AssertCalled(t, "UpdateConfig", cfg.GlobalWriteConfig, []byte("global.write"))
 			},
 		},
 		{
 			description: "RateLimiter does not get updated when GlobalMode changes.",
 			configModFunc: func(cfg *HandlerConfig) {
-				cfg.GlobalLimitConfig.Mode = ModePermissive
+				cfg.GlobalMode = ModePermissive
 			},
 			assertFunc: func(mockRateLimiter *multilimiter.MockRateLimiter, cfg *HandlerConfig) {
 				mockRateLimiter.AssertNumberOfCalls(t, "UpdateConfig", 0)
@@ -333,13 +325,9 @@ func TestUpdateConfig(t *testing.T) {
 			readCfg := multilimiter.LimiterConfig{Rate: 100, Burst: 100}
 			writeCfg := multilimiter.LimiterConfig{Rate: 99, Burst: 99}
 			cfg := &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeEnforcing,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeEnforcing,
 			}
 			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
@@ -360,67 +348,75 @@ func TestAllow(t *testing.T) {
 	type testCase struct {
 		description        string
 		cfg                *HandlerConfig
-		expectedAllowCalls bool
+		expectedAllowCalls int
 	}
 	testCases := []testCase{
 		{
 			description: "RateLimiter does not get called when mode is disabled.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeDisabled,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeDisabled,
 			},
-			expectedAllowCalls: false,
+			expectedAllowCalls: 0,
 		},
 		{
 			description: "RateLimiter gets called when mode is permissive.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModePermissive,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModePermissive,
 			},
-			expectedAllowCalls: true,
+			expectedAllowCalls: 1,
 		},
 		{
 			description: "RateLimiter gets called when mode is enforcing.",
 			cfg: &HandlerConfig{
-				GlobalLimitConfig: GlobalLimitConfig{
-					Mode: ModeEnforcing,
-					ReadWriteConfig: ReadWriteConfig{
-						ReadConfig:  readCfg,
-						WriteConfig: writeCfg,
-					},
-				},
+				GlobalReadConfig:  readCfg,
+				GlobalWriteConfig: writeCfg,
+				GlobalMode:        ModeEnforcing,
 			},
-			expectedAllowCalls: true,
+			expectedAllowCalls: 1,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			mockRateLimiter := multilimiter.NewMockRateLimiter(t)
-			if tc.expectedAllowCalls {
+			if tc.expectedAllowCalls > 0 {
 				mockRateLimiter.On("Allow", mock.Anything).Return(func(entity multilimiter.LimitedEntity) bool { return true })
 			}
 			mockRateLimiter.On("UpdateConfig", mock.Anything, mock.Anything).Return()
 			logger := hclog.NewNullLogger()
-			delegate := NewMockServersStatusProvider(t)
+			delegate := NewMockLeaderStatusProvider(t)
 			delegate.On("IsLeader").Return(true).Maybe()
-			delegate.On("IsServer", mock.Anything).Return(false).Maybe()
 			handler := NewHandlerWithLimiter(*tc.cfg, mockRateLimiter, logger)
 			handler.Register(delegate)
 			addr := net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.0.1:1234"))
 			mockRateLimiter.Calls = nil
 			handler.Allow(Operation{Name: "test", SourceAddr: addr})
-			mockRateLimiter.AssertExpectations(t)
+			mockRateLimiter.AssertNumberOfCalls(t, "Allow", tc.expectedAllowCalls)
 		})
 	}
+}
+
+var _ multilimiter.RateLimiter = (*mockLimiter)(nil)
+
+func newMockLimiter(t *testing.T) *mockLimiter {
+	l := &mockLimiter{}
+	l.Mock.Test(t)
+
+	t.Cleanup(func() { l.AssertExpectations(t) })
+
+	return l
+}
+
+type mockLimiter struct {
+	mock.Mock
+}
+
+func (m *mockLimiter) Allow(v multilimiter.LimitedEntity) bool { return m.Called(v).Bool(0) }
+func (m *mockLimiter) Run(ctx context.Context)                 { m.Called(ctx) }
+func (m *mockLimiter) UpdateConfig(cfg multilimiter.LimiterConfig, prefix []byte) {
+	m.Called(cfg, prefix)
 }

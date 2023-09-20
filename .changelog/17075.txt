@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: remove agent cache dependency from service mesh leaf certificate management
-```

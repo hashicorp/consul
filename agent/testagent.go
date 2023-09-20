@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -529,7 +526,6 @@ type TestACLConfigParams struct {
 	DefaultToken           string
 	AgentRecoveryToken     string
 	ReplicationToken       string
-	DNSToken               string
 	EnableTokenReplication bool
 }
 
@@ -548,8 +544,7 @@ func (p *TestACLConfigParams) HasConfiguredTokens() bool {
 		p.AgentToken != "" ||
 		p.DefaultToken != "" ||
 		p.AgentRecoveryToken != "" ||
-		p.ReplicationToken != "" ||
-		p.DNSToken != ""
+		p.ReplicationToken != ""
 }
 
 func TestACLConfigNew() string {
@@ -559,7 +554,6 @@ func TestACLConfigNew() string {
 		InitialManagementToken: "root",
 		AgentToken:             "root",
 		AgentRecoveryToken:     "towel",
-		DNSToken:               "dns",
 	})
 }
 

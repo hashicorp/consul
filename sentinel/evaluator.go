@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package sentinel
 
 // Evaluator wraps the Sentinel evaluator from the HashiCorp Sentinel policy

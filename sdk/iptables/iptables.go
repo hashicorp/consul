@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package iptables
 
 import (
@@ -149,7 +146,7 @@ func Setup(cfg Config) error {
 		// Redirect remaining outbound traffic to Envoy.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-j", ProxyOutputRedirectChain)
 
-		// We are using "insert" (-I) instead of "append" (-A) so the provided rules take precedence over default ones.
+		// We are using "insert" (-I) instead of "append" (-A) so the the provided rules take precedence over default ones.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-p", "tcp", "--dport", outboundPort, "-j", "RETURN")
 		}

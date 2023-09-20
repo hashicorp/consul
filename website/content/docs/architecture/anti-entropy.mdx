@@ -117,7 +117,7 @@ the source of truth for tag information. For example, the Redis
 database and its monitoring service Redis Sentinel have this kind of
 relationship. Redis instances are responsible for much of their
 configuration, but Sentinels determine whether the Redis instance is a
-primary or a secondary. Enable the
+primary or a secondary. Enable the 
 [`enable_tag_override`](/consul/docs/services/configuration/services-configuration-reference#enable_tag_override) parameter in your service definition file to tell the Consul agent where the Redis database is running to bypass
-tags during anti-entropy synchronization. Refer to
-[Modify anti-entropy synchronization](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional information.
+tags during anti-entropy synchronization. Refer to 
+[Modify anti-entropy synchronozation](/consul/docs/services/usage/define-services#modify-anti-entropy-synchronization) for additional information.

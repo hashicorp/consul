@@ -1,16 +1,16 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 {{#if (eq @type 'remove')}}
-  <Hds::Toast
-    @color='success'
+  <Notice
+    class="notification-delete"
+    @type="success"
     ...attributes
-    as |T|>
-    <T.Title>Success!</T.Title>
-    <T.Description>
-      Your Peer has been marked for deletion.
-    </T.Description>
-  </Hds::Toast>
+  as |notice|>
+    <notice.Header>
+      <strong>Success!</strong>
+    </notice.Header>
+    <notice.Body>
+      <p>
+        Your Peer has been marked for deletion.
+      </p>
+    </notice.Body>
+  </Notice>
 {{/if}}

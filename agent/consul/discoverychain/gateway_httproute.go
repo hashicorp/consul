@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package discoverychain
 
 import (
@@ -79,8 +76,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 	var defaults []*structs.ServiceConfigEntry
 
 	for idx, rule := range route.Rules {
-		requestModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
-		responseModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.ResponseFilters.Headers)
+		modifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
 		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
 
 		var destination structs.ServiceRouteDestination
@@ -91,29 +87,16 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			if service.Filters.URLRewrite == nil {
 				servicePrefixRewrite = prefixRewrite
 			}
-
-			// Merge service request header modifier(s) onto route rule modifiers
-			// Note: Removals for the same header may exist on the rule + the service and
-			//   will result in idempotent duplicate values in the modifier w/ service coming last
-			serviceRequestModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
-			requestModifier.Add = mergeMaps(requestModifier.Add, serviceRequestModifier.Add)
-			requestModifier.Set = mergeMaps(requestModifier.Set, serviceRequestModifier.Set)
-			requestModifier.Remove = append(requestModifier.Remove, serviceRequestModifier.Remove...)
-
-			// Merge service response header modifier(s) onto route rule modifiers
-			// Note: Removals for the same header may exist on the rule + the service and
-			//   will result in idempotent duplicate values in the modifier w/ service coming last
-			serviceResponseModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.ResponseFilters.Headers)
-			responseModifier.Add = mergeMaps(responseModifier.Add, serviceResponseModifier.Add)
-			responseModifier.Set = mergeMaps(responseModifier.Set, serviceResponseModifier.Set)
-			responseModifier.Remove = append(responseModifier.Remove, serviceResponseModifier.Remove...)
+			serviceModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
+			modifier.Add = mergeMaps(modifier.Add, serviceModifier.Add)
+			modifier.Set = mergeMaps(modifier.Set, serviceModifier.Set)
+			modifier.Remove = append(modifier.Remove, serviceModifier.Remove...)
 
 			destination.Service = service.Name
 			destination.Namespace = service.NamespaceOrDefault()
 			destination.Partition = service.PartitionOrDefault()
 			destination.PrefixRewrite = servicePrefixRewrite
-			destination.RequestHeaders = requestModifier
-			destination.ResponseHeaders = responseModifier
+			destination.RequestHeaders = modifier
 
 			// since we have already validated the protocol elsewhere, we
 			// create a new service defaults here to make sure we pass validation
@@ -129,8 +112,7 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			destination.Namespace = route.NamespaceOrDefault()
 			destination.Partition = route.PartitionOrDefault()
 			destination.PrefixRewrite = prefixRewrite
-			destination.RequestHeaders = requestModifier
-			destination.ResponseHeaders = responseModifier
+			destination.RequestHeaders = modifier
 
 			splitter := &structs.ServiceSplitterConfigEntry{
 				Kind:           structs.ServiceSplitter,
@@ -176,28 +158,6 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 			}
 		}
 
-		if rule.Filters.RetryFilter != nil {
-			if rule.Filters.RetryFilter.NumRetries != nil {
-				destination.NumRetries = *rule.Filters.RetryFilter.NumRetries
-			}
-			if rule.Filters.RetryFilter.RetryOnConnectFailure != nil {
-				destination.RetryOnConnectFailure = *rule.Filters.RetryFilter.RetryOnConnectFailure
-			}
-
-			if len(rule.Filters.RetryFilter.RetryOn) > 0 {
-				destination.RetryOn = rule.Filters.RetryFilter.RetryOn
-			}
-
-			if len(rule.Filters.RetryFilter.RetryOnStatusCodes) > 0 {
-				destination.RetryOnStatusCodes = rule.Filters.RetryFilter.RetryOnStatusCodes
-			}
-		}
-
-		if rule.Filters.TimeoutFilter != nil {
-			destination.IdleTimeout = rule.Filters.TimeoutFilter.IdleTimeout
-			destination.RequestTimeout = rule.Filters.TimeoutFilter.RequestTimeout
-		}
-
 		// for each match rule a ServiceRoute is created for the service-router
 		// if there are no rules a single route with the destination is set
 		if len(rule.Matches) == 0 {
@@ -210,7 +170,6 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				Destination: &destination,
 			})
 		}
-
 	}
 
 	return router, splitters, defaults

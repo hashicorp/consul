@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (source, DefaultEventSource, P = Promise) {
   return function (sources) {
     return function (cb, configuration) {

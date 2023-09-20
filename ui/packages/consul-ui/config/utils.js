@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 const read = require('fs').readFileSync;
 const exec = require('child_process').execSync;
 

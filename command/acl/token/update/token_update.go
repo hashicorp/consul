@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package tokenupdate
 
 import (
@@ -28,27 +25,22 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	tokenAccessorID            string
-	policyIDs                  []string
-	appendPolicyIDs            []string
-	policyNames                []string
-	appendPolicyNames          []string
-	roleIDs                    []string
-	appendRoleIDs              []string
-	roleNames                  []string
-	appendRoleNames            []string
-	serviceIdents              []string
-	nodeIdents                 []string
-	appendNodeIdents           []string
-	appendServiceIdents        []string
-	appendTemplatedPolicy      string
-	replaceTemplatedPolicy     string
-	appendTemplatedPolicyFile  string
-	replaceTemplatedPolicyFile string
-	templatedPolicyVariables   []string
-	description                string
-	showMeta                   bool
-	format                     string
+	tokenAccessorID     string
+	policyIDs           []string
+	appendPolicyIDs     []string
+	policyNames         []string
+	appendPolicyNames   []string
+	roleIDs             []string
+	appendRoleIDs       []string
+	roleNames           []string
+	appendRoleNames     []string
+	serviceIdents       []string
+	nodeIdents          []string
+	appendNodeIdents    []string
+	appendServiceIdents []string
+	description         string
+	showMeta            bool
+	format              string
 
 	// DEPRECATED
 	mergeServiceIdents bool
@@ -94,19 +86,6 @@ func (c *cmd) init() {
 	c.flags.Var((*flags.AppendSliceValue)(&c.appendNodeIdents), "append-node-identity", "Name of a "+
 		"node identity to use for this token. This token retains existing node identities. May be "+
 		"specified multiple times. Format is NODENAME:DATACENTER")
-	c.flags.Var((*flags.AppendSliceValue)(&c.templatedPolicyVariables), "var", "Templated policy variables."+
-		" Must be used in combination with -replace-templated-policy or -append-templated-policy flags to specify required variables."+
-		" May be specified multiple times with different variables."+
-		" Format is VariableName:Value")
-	c.flags.StringVar(&c.appendTemplatedPolicy, "append-templated-policy", "", "The templated policy name to attach to the token's existing templated policies."+
-		"Use -var flag to specify variables when required. Token retains existing templated policies.")
-	c.flags.StringVar(&c.replaceTemplatedPolicy, "replace-templated-policy", "", "The templated policy name to use replace token's existing templated policies."+
-		" Use -var flag to specify variables when required. Overwrites token's existing templated policies.")
-	c.flags.StringVar(&c.appendTemplatedPolicyFile, "append-templated-policy-file", "", "Path to a file containing templated policy names and variables."+
-		" Works similarly to `-append-templated-policy`. The token retains existing templated policies.")
-	c.flags.StringVar(&c.replaceTemplatedPolicyFile, "replace-templated-policy-file", "", "Path to a file containing templated policy names and variables."+
-		" Works similarly to `-replace-templated-policy`. Overwrites the token's existing templated policies.")
-
 	c.flags.StringVar(
 		&c.format,
 		"format",
@@ -207,24 +186,6 @@ func (c *cmd) Run(args []string) int {
 	parsedNodeIdents, err := acl.ExtractNodeIdentities(c.nodeIdents)
 	if hasAppendNodeFields {
 		parsedNodeIdents, err = acl.ExtractNodeIdentities(c.appendNodeIdents)
-	}
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-
-	hasAppendTemplatedPolicies := len(c.appendTemplatedPolicy) > 0 || len(c.appendTemplatedPolicyFile) > 0
-	hasReplaceTemplatedPolicies := len(c.replaceTemplatedPolicy) > 0 || len(c.replaceTemplatedPolicyFile) > 0
-
-	if hasReplaceTemplatedPolicies && hasAppendTemplatedPolicies {
-		c.UI.Error("Cannot combine the use of -append-templated-policy flags with replace-templated-policy. " +
-			"To set or overwrite existing templated policies, use -replace-templated-policy or -replace-templated-policy-file. " +
-			"To append to existing templated policies, use -append-templated-policy or -append-templated-policy-file.")
-		return 1
-	}
-	parsedTemplatedPolicies, err := acl.ExtractTemplatedPolicies(c.replaceTemplatedPolicy, c.replaceTemplatedPolicyFile, c.templatedPolicyVariables)
-	if hasAppendTemplatedPolicies {
-		parsedTemplatedPolicies, err = acl.ExtractTemplatedPolicies(c.appendTemplatedPolicy, c.appendTemplatedPolicyFile, c.templatedPolicyVariables)
 	}
 	if err != nil {
 		c.UI.Error(err.Error())
@@ -420,12 +381,6 @@ func (c *cmd) Run(args []string) int {
 		t.NodeIdentities = parsedNodeIdents
 	}
 
-	if hasReplaceTemplatedPolicies {
-		t.TemplatedPolicies = parsedTemplatedPolicies
-	} else {
-		t.TemplatedPolicies = append(t.TemplatedPolicies, parsedTemplatedPolicies...)
-	}
-
 	t, _, err = client.ACL().TokenUpdate(t, nil)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Failed to update token %s: %v", tok, err))
@@ -474,8 +429,6 @@ Usage: consul acl token update [options]
         $ consul acl token update -accessor-id abcd \
                                   -description "replication" \
                                   -policy-name "token-replication" \
-                                  -role-name "db-updater" \
-                                  -templated-policy "builtin/service" \
-                                  -var "name:web"
+                                  -role-name "db-updater"
 `
 )

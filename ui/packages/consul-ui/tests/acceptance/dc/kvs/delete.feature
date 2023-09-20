@@ -13,10 +13,10 @@ Feature: dc / kvs / deleting: Deleting items with confirmations, success and err
     ---
     And I click actions on the kvs
     And I click delete on the kvs
-    And I click confirmInlineDelete on the kvs
+    And I click confirmDelete on the kvs
     Then a DELETE request was made to "/v1/kv/key-name?dc=datacenter&ns=@!namespace"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Scenario: Deleting an kv from the kv detail page
     When I visit the kv page for yaml
     ---
@@ -26,8 +26,8 @@ Feature: dc / kvs / deleting: Deleting items with confirmations, success and err
     And I click delete
     And I click confirmDelete
     Then a DELETE request was made to "/v1/kv/key-name?dc=datacenter&ns=@!namespace"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Scenario: Deleting an kv from the kv detail page and getting an error
     When I visit the kv page for yaml
     ---
@@ -37,6 +37,6 @@ Feature: dc / kvs / deleting: Deleting items with confirmations, success and err
     Given the url "/v1/kv/key-name?dc=datacenter&ns=@!namespace" responds with a 500 status
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
 
