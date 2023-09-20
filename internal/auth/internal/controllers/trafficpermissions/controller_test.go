@@ -51,6 +51,9 @@ func (suite *controllerSuite) requireTrafficPermissionsTracking(tp *pbresource.R
 	for _, id := range ids {
 		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
 	}
+	for _, req := range reqs {
+		prototest.AssertContainsElement(suite.T(), ids, req.ID)
+	}
 }
 
 func (suite *controllerSuite) requireCTP(resource *pbresource.Resource, allowExpected []*pbauth.Permission, denyExpected []*pbauth.Permission) {
@@ -86,7 +89,12 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 		Action:      pbauth.Action_ACTION_DENY,
 		Permissions: []*pbauth.Permission{p1},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp1)
+	wi1ID := &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: tp1.Id.Tenancy,
+	}
+	suite.requireTrafficPermissionsTracking(tp1, wi1ID)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
 			{
@@ -100,7 +108,7 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 		Action:      pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{p2},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp2)
+	suite.requireTrafficPermissionsTracking(tp2, wi1ID)
 
 	// create the workload identity that they reference
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
@@ -124,7 +132,12 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 		Action:      pbauth.Action_ACTION_DENY,
 		Permissions: []*pbauth.Permission{p1},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp1)
+	wi1ID := &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: tp1.Id.Tenancy,
+	}
+	suite.requireTrafficPermissionsTracking(tp1, wi1ID)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
 			{
@@ -138,7 +151,7 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 		Action:      pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{p2},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp2)
+	suite.requireTrafficPermissionsTracking(tp2, wi1ID)
 
 	// create the workload identity that they reference
 	wi := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
@@ -153,19 +166,6 @@ func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTr
 	// re-reconcile: should untrack the CTP
 	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
-
-	// traffic permissions should not be mapped to CTP requests
-	reqs1, err := suite.mapper.MapTrafficPermissions(suite.ctx, suite.rt, tp1)
-	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), reqs1)
-	reqs2, err := suite.mapper.MapTrafficPermissions(suite.ctx, suite.rt, tp2)
-	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), reqs2)
-
-	// traffic permissions should still be mapped to the WI name
-	tps := suite.mapper.GetTrafficPermissionsForCTP(id)
-	require.NotNil(suite.T(), tps)
-	require.Len(suite.T(), tps, 2)
 }
 
 func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_NoReferencingTrafficPermissionsExist() {
@@ -320,7 +320,12 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		Action:      pbauth.Action_ACTION_DENY,
 		Permissions: []*pbauth.Permission{p1},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp1)
+	wi1ID := &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: tp1.Id.Tenancy,
+	}
+	suite.requireTrafficPermissionsTracking(tp1, wi1ID)
 	p2 := &pbauth.Permission{
 		Sources: []*pbauth.Source{
 			{
@@ -334,7 +339,7 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 		Action:      pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{p2},
 	}).Write(suite.T(), suite.client)
-	suite.requireTrafficPermissionsTracking(tp2)
+	suite.requireTrafficPermissionsTracking(tp2, wi1ID)
 
 	// Delete TP2
 	suite.client.MustDelete(suite.T(), tp2.Id)
@@ -346,14 +351,242 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 	})
 	require.NoError(suite.T(), err)
 	require.Empty(suite.T(), rsp.Resources)
-
-	// Ensure TP2 is untracked
-	reqs, err := suite.mapper.MapTrafficPermissions(suite.ctx, suite.rt, tp2)
-	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), reqs)
 }
 
-func (suite *controllerSuite) TestController() {}
+func (suite *controllerSuite) TestControllerBasic() {
+	// In this test we check basic operations for a workload identity and referencing traffic permission
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr.Register(Controller(suite.mapper))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	// Add a workload identity
+	workloadIdentity := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
+
+	// Wait for the controller to record that the CTP has been computed
+	res := suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: workloadIdentity.Id.Tenancy,
+	}, StatusKey)
+	// Check that the status was updated
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
+
+	// Check that the CTP resource exists and contains no permissions
+	ctpID := rtest.Resource(types.ComputedTrafficPermissionsType, "wi1").ID()
+	ctpObject := suite.client.RequireResourceExists(suite.T(), ctpID)
+	suite.requireCTP(ctpObject, nil, nil)
+
+	// add a traffic permission that references wi1
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{{
+			IdentityName: "wi2",
+		}},
+		DestinationRules: nil,
+	}
+	tp1 := rtest.Resource(types.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p1},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp1.Id)
+	// Wait for the controller to record that the CTP has been re-computed
+	res = suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: workloadIdentity.Id.Tenancy,
+	}, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
+	// Check that the ctp has been regenerated
+	ctpObject = suite.client.WaitForNewVersion(suite.T(), ctpID, ctpObject.Version)
+	// check wi1
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1}, nil)
+
+	// add a traffic permission that references wi2
+	p2 := &pbauth.Permission{
+		Sources: []*pbauth.Source{{
+			IdentityName: "wi1",
+		}},
+		DestinationRules: nil,
+	}
+	tp2 := rtest.Resource(types.TrafficPermissionsType, "tp2").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi2"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p2},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp2.Id)
+	// check wi1 is the same
+	ctpObject = suite.client.RequireResourceExists(suite.T(), ctpID)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1}, nil)
+	// check no ctp2
+	ctpID2 := rtest.Resource(types.ComputedTrafficPermissionsType, "wi2").ID()
+	suite.client.RequireResourceNotFound(suite.T(), ctpID2)
+
+	// delete tp1
+	suite.client.MustDelete(suite.T(), tp1.Id)
+	suite.client.WaitForDeletion(suite.T(), tp1.Id)
+	// check wi1 has no permissions
+	ctpObject = suite.client.WaitForNewVersion(suite.T(), ctpID, ctpObject.Version)
+	suite.requireCTP(ctpObject, nil, nil)
+
+	// edit tp2 to point to wi1
+	rtest.Resource(types.TrafficPermissionsType, "tp2").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p2},
+	}).Write(suite.T(), suite.client)
+	// check wi1 has tp2's permissions
+	ctpObject = suite.client.WaitForNewVersion(suite.T(), ctpID, ctpObject.Version)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p2}, nil)
+	// check no ctp2
+	ctpID2 = rtest.Resource(types.ComputedTrafficPermissionsType, "wi2").ID()
+	suite.client.RequireResourceNotFound(suite.T(), ctpID2)
+}
+
+func (suite *controllerSuite) TestControllerMultipleTrafficPermissions() {
+	// In this test we check operations for a workload identity and multiple referencing traffic permissions
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr.Register(Controller(suite.mapper))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	wi1ID := &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
+	// add tp1 and tp2
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{{
+			IdentityName: "wi2",
+		}},
+		DestinationRules: nil,
+	}
+	tp1 := rtest.Resource(types.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p1},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp1.Id)
+	suite.requireTrafficPermissionsTracking(tp1, wi1ID)
+	p2 := &pbauth.Permission{
+		Sources: []*pbauth.Source{{
+			IdentityName: "wi3",
+		}},
+		DestinationRules: nil,
+	}
+	tp2 := rtest.Resource(types.TrafficPermissionsType, "tp2").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p2},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp2.Id)
+	suite.requireTrafficPermissionsTracking(tp1, wi1ID)
+
+	// Add a workload identity
+	workloadIdentity := rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
+	ctpID := &pbresource.ID{
+		Name:    "wi1",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: workloadIdentity.Id.Tenancy,
+	}
+	// Wait for the controller to record that the CTP has been computed
+	res := suite.client.WaitForReconciliation(suite.T(), ctpID, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
+	// check ctp1 has tp1 and tp2
+	ctpObject := suite.client.RequireResourceExists(suite.T(), res.Id)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1, p2}, nil)
+
+	// add tp3
+	p3 := &pbauth.Permission{
+		Sources: []*pbauth.Source{{
+			IdentityName: "wi4",
+		}},
+		DestinationRules: nil,
+	}
+	tp3 := rtest.Resource(types.TrafficPermissionsType, "tp3").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi1"},
+		Action:      pbauth.Action_ACTION_DENY,
+		Permissions: []*pbauth.Permission{p3},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp3.Id)
+	// check ctp1 has tp3
+	ctpObject = suite.client.WaitForNewVersion(suite.T(), ctpObject.Id, ctpObject.Version)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{p3})
+
+	// delete ctp
+	suite.client.MustDelete(suite.T(), ctpObject.Id)
+	suite.client.WaitForDeletion(suite.T(), ctpObject.Id)
+	// check ctp regenerated, has all permissions
+	res = suite.client.WaitForReconciliation(suite.T(), ctpID, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
+	ctpObject = suite.client.RequireResourceExists(suite.T(), res.Id)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{p3})
+
+	// delete wi1
+	suite.client.MustDelete(suite.T(), workloadIdentity.Id)
+	suite.client.WaitForDeletion(suite.T(), workloadIdentity.Id)
+
+	// recreate wi1
+	rtest.Resource(types.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
+	// check ctp regenerated, has all permissions
+	res = suite.client.WaitForReconciliation(suite.T(), ctpID, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
+	ctpObject = suite.client.RequireResourceExists(suite.T(), res.Id)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{p3})
+
+	// delete tp3
+	suite.client.MustDelete(suite.T(), tp3.Id)
+	suite.client.WaitForDeletion(suite.T(), tp3.Id)
+	suite.client.RequireResourceNotFound(suite.T(), tp3.Id)
+	// check ctp1 has tp1 and tp2, and not tp3
+	ctpObject = suite.client.WaitForNewVersion(suite.T(), res.Id, ctpObject.Version)
+	suite.requireCTP(ctpObject, []*pbauth.Permission{p1, p2}, nil)
+
+	// add wi2
+	workloadIdentity2 := rtest.Resource(types.WorkloadIdentityType, "wi2").Write(suite.T(), suite.client)
+	// Wait for the controller to record that the CTP has been computed
+	res2 := suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
+		Name:    "wi2",
+		Type:    types.ComputedTrafficPermissionsType,
+		Tenancy: workloadIdentity2.Id.Tenancy,
+	}, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res2, StatusKey, ConditionComputed("wi2"))
+	// check ctp2 has no permissions
+	ctpObject2 := suite.client.RequireResourceExists(suite.T(), res2.Id)
+	suite.requireCTP(ctpObject2, nil, nil)
+
+	// edit all traffic permissions to point to wi2
+	tp1 = rtest.Resource(types.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi2"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p1},
+	}).Write(suite.T(), suite.client)
+	tp2 = rtest.Resource(types.TrafficPermissionsType, "tp2").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi2"},
+		Action:      pbauth.Action_ACTION_ALLOW,
+		Permissions: []*pbauth.Permission{p2},
+	}).Write(suite.T(), suite.client)
+	tp3 = rtest.Resource(types.TrafficPermissionsType, "tp3").WithData(suite.T(), &pbauth.TrafficPermissions{
+		Destination: &pbauth.Destination{IdentityName: "wi2"},
+		Action:      pbauth.Action_ACTION_DENY,
+		Permissions: []*pbauth.Permission{p3},
+	}).Write(suite.T(), suite.client)
+	suite.client.RequireResourceExists(suite.T(), tp1.Id)
+	suite.client.RequireResourceExists(suite.T(), tp2.Id)
+	suite.client.RequireResourceExists(suite.T(), tp3.Id)
+
+	// check wi2 has updated with all permissions after reconciles
+	res2 = suite.client.WaitForReconciliation(suite.T(), ctpObject2.Id, StatusKey)
+	suite.client.WaitForResourceState(suite.T(), res2.Id, func(t rtest.T, res *pbresource.Resource) {
+		suite.requireCTP(res, []*pbauth.Permission{p1, p2}, []*pbauth.Permission{p3})
+	})
+	// check wi1 has no permissions
+	res = suite.client.WaitForReconciliation(suite.T(), ctpObject.Id, StatusKey)
+	suite.client.WaitForResourceState(suite.T(), res.Id, func(t rtest.T, res *pbresource.Resource) {
+		suite.requireCTP(res, nil, nil)
+	})
+}
 
 func TestController(t *testing.T) {
 	suite.Run(t, new(controllerSuite))

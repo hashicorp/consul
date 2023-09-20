@@ -39,8 +39,9 @@ var (
 
 	// Controller statuses
 
-	StatusKey                           = trafficpermissions.StatusKey
-	TrafficPermissionsConditionComputed = trafficpermissions.ConditionComputed
+	StatusKey                                  = trafficpermissions.StatusKey
+	TrafficPermissionsConditionComputed        = trafficpermissions.ConditionComputed
+	TrafficPermissionsConditionFailedToCompute = trafficpermissions.ConditionFailedToCompute
 )
 
 // RegisterTypes adds all resource types within the "catalog" API group
@@ -53,7 +54,7 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		WorkloadIdentityMapper: trafficpermissionsmapper.New(),
+		TrafficPermissionsMapper: trafficpermissionsmapper.New(),
 	}
 }
 

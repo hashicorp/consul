@@ -9,9 +9,9 @@ import (
 )
 
 type Dependencies struct {
-	WorkloadIdentityMapper trafficpermissions.TrafficPermissionsMapper
+	TrafficPermissionsMapper trafficpermissions.TrafficPermissionsMapper
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	mgr.Register(trafficpermissions.Controller(deps.WorkloadIdentityMapper))
+	mgr.Register(trafficpermissions.Controller(deps.TrafficPermissionsMapper))
 }
