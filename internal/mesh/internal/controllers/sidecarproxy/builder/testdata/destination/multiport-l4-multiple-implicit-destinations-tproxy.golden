@@ -114,6 +114,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -140,6 +141,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {

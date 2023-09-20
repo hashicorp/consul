@@ -6,8 +6,6 @@ package builder
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/catalog"
@@ -298,10 +296,17 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			},
 		},
 		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
-		ComputedPortRoutes: routestest.MutateTarget(t, api1ComputedRoutes.Data.PortedConfigs["tcp2"], api1Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
-			details.ServiceEndpointsId = api1Endpoints.Id
-			details.ServiceEndpoints = endpointsData
-			details.IdentityRefs = []*pbresource.Reference{api1Identity}
+		ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+			switch {
+			case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
+				details.ServiceEndpointsId = api1Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{api1Identity}
+			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
+				details.ServiceEndpointsId = api2Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{api2Identity}
+			}
 		}),
 	}
 
@@ -335,10 +340,13 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			},
 		},
 		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
-		ComputedPortRoutes: routestest.MutateTarget(t, api2ComputedRoutes.Data.PortedConfigs["tcp2"], api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
-			details.ServiceEndpointsId = api2Endpoints.Id
-			details.ServiceEndpoints = endpointsData
-			details.IdentityRefs = []*pbresource.Reference{api2Identity}
+		ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+			switch {
+			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
+				details.ServiceEndpointsId = api2Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{api2Identity}
+			}
 		}),
 	}
 	destinationIpPortHTTP := &intermediate.Destination{
