@@ -2205,7 +2205,7 @@ func TestStateStore_Services(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	ns1Dogs := testRegisterService(t, s, 3, "node1", "dogs")
-	ns1Dogs.Tags = []string{}
+	ns1Dogs.Tags = nil
 	ns1Dogs.Meta = map[string]string{}
 	ns1Dogs.EnterpriseMeta.Normalize()
 
