@@ -1,0 +1,16 @@
+Name:            builtin/nomad-server
+Input variables: None
+Example usage:
+	consul acl token create -templated-policy builtin/nomad-server
+Raw Template:
+
+acl = "write"
+agent_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
+service_prefix "" {
+  policy = "write"
+}

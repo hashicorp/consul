@@ -16,6 +16,9 @@ var ACLTemplatedPolicyNode string
 //go:embed acltemplatedpolicy/policies/ce/dns.hcl
 var ACLTemplatedPolicyDNS string
 
+//go:embed acltemplatedpolicy/policies/ce/nomad-server.hcl
+var ACLTemplatedPolicyNomadServer string
+
 func (t *ACLToken) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	if len(t.TemplatedPolicies) == 0 {
 		return nil
