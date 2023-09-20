@@ -1,6 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
-package resource_http
+package resource
 
 import (
 	"testing"
@@ -8,53 +8,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
-type config struct {
-	gvk          api.GVK
-	resourceName string
-	queryOptions api.QueryOptions
-	payload      api.WriteRequest
-}
-type operation struct {
-	action           func(client *api.Client, config config) error
-	expectedErrorMsg string
-}
-type testCase struct {
-	description string
-	operations  []operation
-	config      []config
-}
-
-var clusterConfig = &libtopology.ClusterConfig{
-	NumServers:  1,
-	NumClients:  0,
-	LogConsumer: &libtopology.TestLogConsumer{},
-	BuildOpts: &libcluster.BuildOptions{
-		Datacenter:             "dc1",
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-	},
-	ApplyDefaultProxySettings: false,
-}
-var applyResource = func(client *api.Client, config config) error {
-	_, _, err := client.Resource().Apply(&config.gvk, config.resourceName, &config.queryOptions, &config.payload)
-	return err
-}
-var readResource = func(client *api.Client, config config) error {
-	_, err := client.Resource().Read(&config.gvk, config.resourceName, &config.queryOptions)
-	return err
-}
-var deleteResource = func(client *api.Client, config config) error {
-	err := client.Resource().Delete(&config.gvk, config.resourceName, &config.queryOptions)
-	return err
-}
-var listResource = func(client *api.Client, config config) error {
-	_, err := client.Resource().List(&config.gvk, &config.queryOptions)
-	return err
-}
+var clusterConfig = makeClusterConfig(1, 1, false)
 
 func TestWriteEndpoint(t *testing.T) {
 	testCases := []testCase{
@@ -68,10 +24,10 @@ func TestWriteEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 			},
 		},
@@ -85,9 +41,9 @@ func TestWriteEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
+					queryOptions: defaultTenancyQueryOptions,
 					payload:      api.WriteRequest{},
 				},
 			},
@@ -130,15 +86,15 @@ func TestReadEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
+					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
 		},
@@ -156,15 +112,15 @@ func TestReadEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "fake-korn",
-					queryOptions: commonQueryOptions,
+					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
 		},
@@ -206,15 +162,15 @@ func TestDeleteEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
+					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
 		},
@@ -232,15 +188,15 @@ func TestDeleteEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "fake-korn",
-					queryOptions: commonQueryOptions,
+					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
 		},
@@ -282,14 +238,14 @@ func TestListEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
-					queryOptions: commonQueryOptions,
+					gvk:          demoGVK,
+					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
 		},
@@ -307,14 +263,14 @@ func TestListEndpoint(t *testing.T) {
 			},
 			config: []config{
 				{
-					gvk:          commonGVK,
+					gvk:          demoGVK,
 					resourceName: "korn",
-					queryOptions: commonQueryOptions,
-					payload:      commonPayload,
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
 				},
 				{
-					gvk:          commonGVK,
-					queryOptions: fakeQueryOptions,
+					gvk:          demoGVK,
+					queryOptions: fakeTenancyQueryOptions,
 				},
 			},
 		},

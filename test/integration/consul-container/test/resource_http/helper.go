@@ -1,6 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
-package resource_http
+
+package resource
 
 import (
 	"testing"
@@ -12,22 +13,42 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
-var commonGVK = api.GVK{
+type config struct {
+	gvk          api.GVK
+	resourceName string
+	queryOptions api.QueryOptions
+	payload      api.WriteRequest
+}
+type operation struct {
+	action           func(client *api.Client, config config) error
+	expectedErrorMsg string
+	includeToken     bool
+}
+type testCase struct {
+	description string
+	operations  []operation
+	config      []config
+}
+
+var demoGVK = api.GVK{
 	Group:   "demo",
 	Version: "v2",
 	Kind:    "Artist",
 }
-var commonQueryOptions = api.QueryOptions{
+
+var defaultTenancyQueryOptions = api.QueryOptions{
 	Namespace: "default",
 	Partition: "default",
 	Peer:      "local",
 }
-var fakeQueryOptions = api.QueryOptions{
+
+var fakeTenancyQueryOptions = api.QueryOptions{
 	Namespace: "fake-default",
 	Partition: "fake-default",
 	Peer:      "fake-local",
 }
-var commonPayload = api.WriteRequest{
+
+var demoPayload = api.WriteRequest{
 	Metadata: map[string]string{
 		"foo": "bar",
 	},
@@ -36,8 +57,40 @@ var commonPayload = api.WriteRequest{
 	},
 }
 
-func SetupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isServer bool) (*libcluster.Cluster, *api.Client) {
-	cluster, _, _ := libtopology.NewCluster(t, config)
+var applyResource = func(client *api.Client, config config) error {
+	_, _, err := client.Resource().Apply(&config.gvk, config.resourceName, &config.queryOptions, &config.payload)
+	return err
+}
+var readResource = func(client *api.Client, config config) error {
+	_, err := client.Resource().Read(&config.gvk, config.resourceName, &config.queryOptions)
+	return err
+}
+var deleteResource = func(client *api.Client, config config) error {
+	err := client.Resource().Delete(&config.gvk, config.resourceName, &config.queryOptions)
+	return err
+}
+var listResource = func(client *api.Client, config config) error {
+	_, err := client.Resource().List(&config.gvk, &config.queryOptions)
+	return err
+}
+
+func makeClusterConfig(numOfServers int, numOfClients int, aclEnabled bool) *libtopology.ClusterConfig {
+	return &libtopology.ClusterConfig{
+		NumServers:  numOfServers,
+		NumClients:  numOfClients,
+		LogConsumer: &libtopology.TestLogConsumer{},
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			ACLEnabled:             aclEnabled,
+		},
+		ApplyDefaultProxySettings: false,
+	}
+}
+
+func SetupClusterAndClient(t *testing.T, clusterConfig *libtopology.ClusterConfig, isServer bool) (*libcluster.Cluster, *api.Client) {
+	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 
 	client, err := cluster.GetClient(nil, isServer)
 	require.NoError(t, err)
