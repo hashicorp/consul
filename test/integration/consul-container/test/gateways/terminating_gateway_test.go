@@ -46,9 +46,7 @@ func TestTerminatingGatewayBasic(t *testing.T) {
 		NumServers: 1,
 		NumClients: 1,
 		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:      "dc1",
-			ConsulImageName: utils.LatestImageName,
-			ConsulVersion:   utils.LatestVersion,
+			Datacenter: "dc1",
 		},
 		ApplyDefaultProxySettings: true,
 	})
