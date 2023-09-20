@@ -2178,7 +2178,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, services, err := s.Services(ws, &acl.EnterpriseMeta{}, "")
+	idx, services, err := s.Services(ws, &acl.EnterpriseMeta{}, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2229,7 +2229,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Pull all the services.
 	ws = memdb.NewWatchSet()
-	idx, services, err = s.Services(ws, &acl.EnterpriseMeta{}, "")
+	idx, services, err = s.Services(ws, &acl.EnterpriseMeta{}, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
