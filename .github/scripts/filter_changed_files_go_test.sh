@@ -9,7 +9,7 @@ set -euo pipefail
 #For example, given the commits:
 #
 # A---B---C---D---W---X---Y---Z # origin/main
-#             \---E---F         # our feature branch
+#             \---E---F         # feature/branch
 #
 # ... `git merge-base origin/$SKIP_CHECK_BRANCH HEAD` would return commit `D`
 # `...HEAD` specifies from the common ancestor to the latest commit on the current branch (HEAD)..
@@ -29,7 +29,7 @@ for file_to_check in $files_to_check; do
 	done
 	if [ "$file_is_skipped" != "true" ]; then
 		echo -e $file_to_check
-        SKIP_CI=false # Set the SKIP_CI variable to false by default
+        SKIP_CI=false
 		echo "Changes detected in non-documentation files - skip-ci: $SKIP_CI"
         export $SKIP_CI
 		exit 0 ## if file is outside of the skipped_directory exit script

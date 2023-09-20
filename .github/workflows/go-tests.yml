@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  conditional-skip: #test-delete-me
+  conditional-skip:
     runs-on: ubuntu-latest 
     name: Get files changed and conditionally skip CI
     outputs:
