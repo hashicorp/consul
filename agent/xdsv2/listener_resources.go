@@ -540,14 +540,13 @@ func (pr *ProxyResources) makeEnvoyTLSParameters(defaultParams *pbproxystate.TLS
 }
 
 func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSocket) (*envoy_core_v3.TransportSocket, error) {
-	// TODO(JM): did this just make tests pass.  Figure out whether proxyState.Tls will always be available.
-	if pr.proxyState.Tls == nil {
-		return nil, nil
-	}
 	if ts == nil {
 		return nil, nil
 	}
 	commonTLSContext := &envoy_tls_v3.CommonTlsContext{}
+	if ts.AlpnProtocols != nil {
+		commonTLSContext.AlpnProtocols = ts.AlpnProtocols
+	}
 
 	// Create connection TLS. Listeners should only look at inbound TLS.
 	switch ts.ConnectionTls.(type) {
@@ -555,16 +554,16 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 		downstreamContext := &envoy_tls_v3.DownstreamTlsContext{}
 		downstreamContext.CommonTlsContext = commonTLSContext
 		// Set TLS Parameters.
-		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
-		commonTLSContext.TlsParams = tlsParams
+		if pr.proxyState.Tls != nil {
+			tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
+			commonTLSContext.TlsParams = tlsParams
+		} else {
+			commonTLSContext.TlsParams = &envoy_tls_v3.TlsParameters{}
+		}
 
 		// Set the certificate config on the tls context.
 		// For inbound mesh, we need to add the identity certificate
 		// and the validation context for the mesh depending on the provided trust bundle names.
-		if pr.proxyState.Tls == nil {
-			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
-			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
-		}
 		im := ts.ConnectionTls.(*pbproxystate.TransportSocket_InboundMesh).InboundMesh
 		leaf, ok := pr.proxyState.LeafCertificates[im.IdentityKey]
 		if !ok {
@@ -640,9 +639,13 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 	case *pbproxystate.TransportSocket_InboundNonMesh:
 		downstreamContext := &envoy_tls_v3.DownstreamTlsContext{}
 		downstreamContext.CommonTlsContext = commonTLSContext
-		// Set TLS Parameters
-		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
-		commonTLSContext.TlsParams = tlsParams
+		// Set TLS Parameters.
+		if pr.proxyState.Tls != nil {
+			tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.InboundTlsParameters, ts.TlsParameters)
+			commonTLSContext.TlsParams = tlsParams
+		} else {
+			commonTLSContext.TlsParams = &envoy_tls_v3.TlsParameters{}
+		}
 		// For non-mesh, we don't care about validation context as currently we don't support mTLS for non-mesh connections.
 		nonMeshTLS := ts.ConnectionTls.(*pbproxystate.TransportSocket_InboundNonMesh).InboundNonMesh
 		err := pr.addNonMeshCertConfig(commonTLSContext, nonMeshTLS)
@@ -657,15 +660,15 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 	case *pbproxystate.TransportSocket_OutboundMesh:
 		upstreamContext := &envoy_tls_v3.UpstreamTlsContext{}
 		upstreamContext.CommonTlsContext = commonTLSContext
-		// Set TLS Parameters
-		tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.OutboundTlsParameters, ts.TlsParameters)
-		commonTLSContext.TlsParams = tlsParams
+		// Set TLS Parameters.
+		if pr.proxyState.Tls != nil {
+			tlsParams := pr.makeEnvoyTLSParameters(pr.proxyState.Tls.OutboundTlsParameters, ts.TlsParameters)
+			commonTLSContext.TlsParams = tlsParams
+		} else {
+			commonTLSContext.TlsParams = &envoy_tls_v3.TlsParameters{}
+		}
 		// For outbound mesh, we need to insert the mesh identity certificate
 		// and the validation context for the mesh depending on the provided trust bundle names.
-		if pr.proxyState.Tls == nil {
-			// if tls is nil but connection tls is provided, then the proxy state is misconfigured
-			return nil, fmt.Errorf("proxyState.Tls is required to generate router's transport socket")
-		}
 		om := ts.GetOutboundMesh()
 		leaf, ok := pr.proxyState.LeafCertificates[om.IdentityKey]
 		if !ok {

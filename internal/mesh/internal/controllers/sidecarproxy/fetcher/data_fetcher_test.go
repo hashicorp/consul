@@ -1029,6 +1029,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchAndMergeProxyConfigurations() {
 		DynamicConfig: &pbmesh.DynamicConfig{
 			Mode:          pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
 			MutualTlsMode: pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT,
+			TransparentProxy: &pbmesh.TransparentProxy{
+				OutboundListenerPort: 15001,
+			},
 		},
 	}
 

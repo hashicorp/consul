@@ -376,6 +376,8 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 }
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
+// Currently, we do not traverse the listener -> endpoint paths and instead just generate each resource by iterating
+// through its top level map. In the future we want to traverse these paths to ensure each listener has a cluster, etc.
 func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
 	return nil
 }
