@@ -56,7 +56,7 @@ func TestTerminatingGatewayBasic(t *testing.T) {
 
 	// Creates an external server that is not part of consul (no proxy)
 	t.Logf("creating external server: %s", externalServerName)
-	externalServerPort := 8080
+	externalServerPort := 8083
 	externalServerGRPCPort := 8079
 	externalServer, err := libservice.NewExampleService(context.Background(), externalServerName, externalServerPort, externalServerGRPCPort, node)
 	require.NoError(t, err)
@@ -65,8 +65,9 @@ func TestTerminatingGatewayBasic(t *testing.T) {
 	})
 
 	// Register the external service in the default namespace. Tell consul it is located on an 'external node' and
-	// not part of the service mesh.
-	registerExternalService(t, client, externalServerName, "", "")
+	// not part of the service mesh. Because of the way that containers are created, the terminating gateway can
+	// make a call to the address `localhost:<externalServerPort` and reach the external service.
+	registerExternalService(t, client, externalServerName, "", "", "localhost", externalServerPort)
 
 	// Create the config entry for the external service that associates it with the terminating gateway
 	createTerminatingGatewayConfigEntry(t, client, "", "", externalServerName)
@@ -83,24 +84,24 @@ func TestTerminatingGatewayBasic(t *testing.T) {
 
 	// Creates a static client that is part of the mesh
 	t.Logf("creating static client proxy")
-	staticClient, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true, nil)
+	staticClient, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false, nil)
 	require.NoError(t, err)
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
 
 	// Verify that the static client can reach the external service by going through the terminating gateway
-	assertHTTPRequestToServiceAddress(t, staticClient, externalServerName, externalServerPort, true)
+	// The `static-server` upstream is listening on port 5000 by default.
+	assertHTTPRequestToServiceAddress(t, staticClient, externalServerName, libcluster.ServiceUpstreamLocalBindPort, true)
 }
 
 // registerExternalService registers a service on an external node so that Consul knows
 // that the service is not being managed by an agent.
-func registerExternalService(t *testing.T, consulClient *api.Client, name, namespace, partition string) {
+func registerExternalService(t *testing.T, consulClient *api.Client, name, namespace, partition, address string, port int) {
 	t.Helper()
 
-	address := name
 	service := &api.AgentService{
 		ID:      name,
 		Service: name,
-		Port:    80,
+		Port:    port,
 	}
 
 	part := "default"
@@ -109,7 +110,6 @@ func registerExternalService(t *testing.T, consulClient *api.Client, name, names
 	}
 
 	if namespace != "" {
-		address = fmt.Sprintf("%s.%s.%s", name, namespace, part)
 		service.Namespace = namespace
 
 		t.Logf("creating the %s namespace in Consul", namespace)
