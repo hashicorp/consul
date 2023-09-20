@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	ComputedTrafficPermissionsKind = "ComputedTrafficPermission"
+	ComputedTrafficPermissionsKind = "ComputedTrafficPermissions"
 )
 
 var (

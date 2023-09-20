@@ -1134,6 +1134,15 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
+		// Allow override of this check for development/testing purposes. Should not be used in production
+		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
+		if err != nil || !override {
+			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
+		}
+	}
+
 	if rt.UIConfig.MetricsProvider == "prometheus" {
 		// Handle defaulting for the built-in version of prometheus.
 		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {
@@ -2550,7 +2559,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	// Node id might get overriden in setup.go:142
+	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
 	val.NodeName = b.nodeName(v.NodeName)

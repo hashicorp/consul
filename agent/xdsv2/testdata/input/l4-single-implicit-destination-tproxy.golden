@@ -53,7 +53,8 @@
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
-                  ]
+                  ],
+                  "trustBundlePeerNameKey": "local"
                 },
                 "sni": "api-1.default.dc1.internal.foo.consul"
               },
@@ -64,7 +65,19 @@
           }
         }
       }
+    },
+  "leafCertificates": {
+    "test-identity": {
+        "cert": "cert1",
+        "key": "key1"
     }
+  },
+  "trustBundles": {
+    "local": {
+        "trustDomain": "foo.consul",
+        "roots": ["root1"]
+    }
+  }
   },
   "requiredEndpoints": {
     "api-1.default.dc1.internal.foo.consul": {

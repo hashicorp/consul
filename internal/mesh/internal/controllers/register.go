@@ -21,6 +21,7 @@ import (
 type Dependencies struct {
 	TrustDomainFetcher sidecarproxy.TrustDomainFetcher
 	LocalDatacenter    string
+	DefaultAllow       bool
 	TrustBundleFetcher xds.TrustBundleFetcher
 	ProxyUpdater       xds.ProxyUpdater
 	LeafCertManager    *leafcert.Manager
@@ -44,7 +45,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache)
 	)
 	mgr.Register(
-		sidecarproxy.Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter),
+		sidecarproxy.Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, deps.TrustDomainFetcher, deps.LocalDatacenter, deps.DefaultAllow),
 	)
 
 	mgr.Register(routes.Controller())

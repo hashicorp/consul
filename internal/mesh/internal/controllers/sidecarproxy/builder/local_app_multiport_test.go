@@ -88,7 +88,7 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", nil).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, nil).
 				BuildLocalApp(c.workload, nil).
 				Build()
 

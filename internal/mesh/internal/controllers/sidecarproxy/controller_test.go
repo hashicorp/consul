@@ -226,7 +226,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		Tenancy: suite.apiWorkloadID.Tenancy,
 	}
 
-	suite.proxyStateTemplate = builder.New(suite.apiWorkloadID, identityRef, "test.consul", "dc1", nil).
+	suite.proxyStateTemplate = builder.New(suite.apiWorkloadID, identityRef, "test.consul", "dc1", false, nil).
 		BuildLocalApp(suite.apiWorkload, suite.computedTrafficPermissionsData).
 		Build()
 }
@@ -357,7 +357,7 @@ func (suite *meshControllerTestSuite) TestController() {
 	)
 	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
 
-	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, trustDomainFetcher, "dc1"))
+	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, trustDomainFetcher, "dc1", false))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -554,7 +554,10 @@ func (suite *meshControllerTestSuite) TestController() {
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
 	})
 
-	testutil.RunStep(suite.T(), "computed traffic permissions force regeneration", func(t *testing.T) {
+	testutil.RunStep(suite.T(), "traffic permissions", func(t *testing.T) {
+		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, apiProxyStateTemplate)
+		require.False(t, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
+
 		suite.runtime.Logger.Trace("deleting computed traffic permissions")
 		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.computedTrafficPermissions.Id})
 		require.NoError(t, err)
@@ -619,6 +622,37 @@ func (suite *meshControllerTestSuite) TestController() {
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
+	})
+}
+
+func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
+	// Run the controller manager
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+
+	// Initialize controller dependencies.
+	var (
+		destinationsCache   = sidecarproxycache.NewDestinationsCache()
+		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
+		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
+		identitiesCache     = sidecarproxycache.NewIdentitiesCache()
+		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache)
+	)
+	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
+
+	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, trustDomainFetcher, "dc1", true))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	var (
+		// Create proxy state template IDs to check against in this test.
+		webProxyStateTemplateID = resourcetest.Resource(types.ProxyStateTemplateType, "web-def").ID()
+	)
+
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+		webProxyStateTemplate := suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](r, webProxyStateTemplate)
+		require.True(r, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
 	})
 }
 

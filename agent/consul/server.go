@@ -844,7 +844,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		s.insecureResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerControllers(flat, proxyUpdater)
+	if err := s.registerControllers(flat, proxyUpdater); err != nil {
+		return nil, err
+	}
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -895,9 +897,15 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
 	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+
+		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
+		if err != nil {
+			return err
+		}
+
 		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
 			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
 				var bundle pbproxystate.TrustBundle
@@ -923,6 +931,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 			LeafCertManager: deps.LeafCertManager,
 			LocalDatacenter: s.config.Datacenter,
+			DefaultAllow:    defaultAllow,
 			ProxyUpdater:    proxyUpdater,
 		})
 	}
@@ -932,6 +941,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 	if s.config.DevMode {
 		demo.RegisterControllers(s.controllerManager)
 	}
+
+	return nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
