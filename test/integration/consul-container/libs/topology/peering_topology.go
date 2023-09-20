@@ -43,7 +43,7 @@ type PeeringClusterSize struct {
 //
 //   - an accepting cluster with 3 servers and 1 client agent. The client should be used to
 //     host a service for export: staticServerSvc.
-//   - an dialing cluster with 1 server and 1 client. The client should be used to host a
+//   - a dialing cluster with 1 server and 1 client. The client should be used to host a
 //     service connecting to staticServerSvc.
 //   - Create the peering, export the service from accepting cluster, and verify service
 //     connectivity.
@@ -120,7 +120,7 @@ func BasicPeeringTwoClustersSetup(
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
 	// libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
 
-	// Register an static-server service in acceptingCluster and export to dialing cluster
+	// Register a static-server service in acceptingCluster and export to dialing cluster
 	var serverService, serverSidecarService libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
@@ -144,7 +144,7 @@ func BasicPeeringTwoClustersSetup(
 		require.NoError(t, serverService.Export("default", AcceptingPeerName, acceptingClient))
 	}
 
-	// Register an static-client service in dialing cluster and set upstream to static-server service
+	// Register a static-client service in dialing cluster and set upstream to static-server service
 	var clientSidecarService *libservice.ConnectContainer
 	{
 		clientNode := dialingCluster.Clients()[0]
@@ -268,11 +268,11 @@ func NewClusterWithConfig(
 	}
 
 	// Add numClients static clients to register the service
-	configbuiilder := libcluster.NewConfigBuilder(ctx).
+	configBuilder := libcluster.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
 		RetryJoin(retryJoin...)
-	clientConf := configbuiilder.ToAgentConfig(t)
+	clientConf := configBuilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 	if clientHclConfig != "" {
 		clientConf.MutatebyAgentConfig(clientHclConfig)
