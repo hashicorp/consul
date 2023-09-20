@@ -596,7 +596,8 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName,
+					strings.Contains(strings.ToLower(args.Filter), "nodemeta"))
 			}
 			if err != nil {
 				return err

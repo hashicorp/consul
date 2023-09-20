@@ -1218,7 +1218,7 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceNodes, error) {
+func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1236,11 +1236,14 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 	for service := services.Next(); service != nil; service = services.Next() {
 		result = append(result, service.(*structs.ServiceNode))
 	}
-	parsedResult, err := parseServiceNodes(tx, ws, result, entMeta, peerName)
-	if err != nil {
-		return 0, nil, fmt.Errorf("failed querying and parsing services :%s", err)
+	if joinServiceNodes {
+		parsedResult, err := parseServiceNodes(tx, ws, result, entMeta, peerName)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed querying and parsing services :%s", err)
+		}
+		return idx, parsedResult, nil
 	}
-	return idx, parsedResult, nil
+	return idx, result, nil
 }
 
 func (s *Store) ServiceList(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, structs.ServiceList, error) {
