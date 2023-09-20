@@ -4,9 +4,10 @@
 package builder
 
 import (
-	"github.com/hashicorp/consul/internal/testing/golden"
 	"sort"
 	"testing"
+
+	"github.com/hashicorp/consul/internal/testing/golden"
 
 	"github.com/stretchr/testify/require"
 
@@ -68,6 +69,18 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+		"source/multiport-l4-workload-with-only-mesh-port": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},

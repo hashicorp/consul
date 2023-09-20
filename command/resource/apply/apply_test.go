@@ -78,7 +78,7 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		"missing required flag": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Flag -f is required"),
+			expectedErr:  errors.New("Incorrect argument format: Flag -f with file path argument is required"),
 		},
 		"file parsing failure": {
 			args:         []string{"-f=../testdata/invalid.hcl"},
