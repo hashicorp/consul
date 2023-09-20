@@ -1530,7 +1530,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		portFailoverConfig := &pbmesh.ComputedFailoverConfig{
 			Destinations: []*pbmesh.ComputedFailoverDestination{
 				{BackendTarget: backendName("bar", "http")},
-				{BackendTarget: types.NullRouteBackend},
+				// we skip the dead route
 			},
 		}
 

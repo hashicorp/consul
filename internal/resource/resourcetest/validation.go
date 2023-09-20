@@ -22,17 +22,10 @@ func ValidateAndNormalize(t *testing.T, registry resource.Registry, res *pbresou
 	}
 
 	if typeInfo.Mutate != nil {
-		require.NoError(t, typeInfo.Mutate(res),
-			"failed to apply type mutation to resource: %s",
-			"failed to validate resource: %s",
-			resource.IDToString(res.Id),
-		)
+		require.NoError(t, typeInfo.Mutate(res), "failed to apply type mutation to resource")
 	}
 
 	if typeInfo.Validate != nil {
-		require.NoError(t, typeInfo.Validate(res),
-			"failed to validate resource: %s",
-			resource.IDToString(res.Id),
-		)
+		require.NoError(t, typeInfo.Validate(res), "failed to validate resource")
 	}
 }
