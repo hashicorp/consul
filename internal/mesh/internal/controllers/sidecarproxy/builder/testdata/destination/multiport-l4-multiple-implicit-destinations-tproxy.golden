@@ -108,6 +108,58 @@
           }
         },
         "name": "tcp.api-app2.default.dc1.internal.foo.consul"
+      },
+      "tcp2.api-app.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp2.api-app.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp2"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "tcp2.api-app.default.dc1.internal.foo.consul"
+      },
+      "tcp2.api-app2.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp2.api-app2.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp2"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "tcp2.api-app2.default.dc1.internal.foo.consul"
       }
     },
     "identity": {
@@ -156,6 +208,44 @@
             },
             "match": {
               "destinationPort": 7070,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          },
+          {
+            "l4": {
+              "cluster": {
+                "name": "tcp2.api-app.default.dc1.internal.foo.consul"
+              },
+              "statPrefix": "upstream.tcp2.api-app.default.default.dc1"
+            },
+            "match": {
+              "destinationPort": 8081,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "1.1.1.1",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          },
+          {
+            "l4": {
+              "cluster": {
+                "name": "tcp2.api-app2.default.dc1.internal.foo.consul"
+              },
+              "statPrefix": "upstream.tcp2.api-app2.default.default.dc1"
+            },
+            "match": {
+              "destinationPort": 8081,
               "prefixRanges": [
                 {
                   "addressPrefix": "2.2.2.2",
@@ -276,7 +366,39 @@
       },
       "port": "mesh"
     },
+    "tcp2.api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
     "tcp.api-app2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "tcp2.api-app2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
