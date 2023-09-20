@@ -1640,6 +1640,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		peerTrustBundles := cfgSnap.TerminatingGateway.InboundPeerTrustBundles[svc]
 
 		cfg, err := config.ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
@@ -1653,10 +1654,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		}
 
 		opts := terminatingGatewayFilterChainOpts{
-			cluster:    clusterName,
-			service:    svc,
-			intentions: intentions,
-			protocol:   cfg.Protocol,
+			cluster:          clusterName,
+			service:          svc,
+			intentions:       intentions,
+			protocol:         cfg.Protocol,
+			peerTrustBundles: peerTrustBundles,
 		}
 
 		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
@@ -1760,12 +1762,13 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 }
 
 type terminatingGatewayFilterChainOpts struct {
-	cluster    string
-	service    structs.ServiceName
-	intentions structs.SimplifiedIntentions
-	protocol   string
-	address    string // only valid for destination listeners
-	port       int    // only valid for destination listeners
+	cluster          string
+	service          structs.ServiceName
+	intentions       structs.SimplifiedIntentions
+	protocol         string
+	address          string // only valid for destination listeners
+	port             int    // only valid for destination listeners
+	peerTrustBundles []*pbpeering.PeeringTrustBundle
 }
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -1801,7 +1804,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 				datacenter:  cfgSnap.Datacenter,
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
-			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
+			tgtwyOpts.peerTrustBundles,
 		)
 		if err != nil {
 			return nil, err
@@ -1847,7 +1850,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 				datacenter:  cfgSnap.Datacenter,
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
-			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
+			tgtwyOpts.peerTrustBundles,
 			cfgSnap.JWTProviders,
 		)
 		if err != nil {
