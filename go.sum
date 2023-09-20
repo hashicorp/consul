@@ -476,16 +476,6 @@ github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706 h1:1ZEjnv
 github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706/go.mod h1:1Cs8FlmD1BfSQXJGcFLSV5FuIx1AbJP+EJGdxosoS2g=
 github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69 h1:wzWurXrxfSyG1PHskIZlfuXlTSCj1Tsyatp9DtaasuY=
 github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69/go.mod h1:svUZZDvotY8zTODknUePc6mZ9pX8nN0ViGwWcUSOBEA=
-github.com/hashicorp/consul/api v1.21.1 h1:gtRiRHuH1CZuQFlhvSjRiih3Yjufb99nbq1hOY/kaug=
-github.com/hashicorp/consul/api v1.21.1/go.mod h1:5LfOMDAWm5h53/5RBneTJBopM25YBL9+ihyDHYJJhNg=
-github.com/hashicorp/consul/envoyextensions v0.2.1 h1:aK7H2uaEI/uBwUfp87XPPykj5GHhfd7ZtvEzTehzPFI=
-github.com/hashicorp/consul/envoyextensions v0.2.1/go.mod h1:s4G12eZgb/RXrKrf0egBQZuD5fXhfuhLkLf4USLwIug=
-github.com/hashicorp/consul/proto-public v0.3.0 h1:i0nhbMCQQkGy5Z8HeZrCsIsFTgvU89WndZjQY7ymSzg=
-github.com/hashicorp/consul/proto-public v0.3.0/go.mod h1:nqHrHu4+lT2/nkfYaXQ4H2eXNVrJOoGJkyxfXlMILmA=
-github.com/hashicorp/consul/sdk v0.14.1 h1:ZiwE2bKb+zro68sWzZ1SgHF3kRMBZ94TwOCFRF4ylPs=
-github.com/hashicorp/consul/sdk v0.14.1/go.mod h1:vFt03juSzocLRFo59NkeQHHmQa6+g7oU0pfzdI1mUhg=
-github.com/hashicorp/consul/troubleshoot v0.2.0 h1:jS4KG8E3qg3JgfAcx9JfRQ3f+VBAtCKK2ht1V6HBa4U=
-github.com/hashicorp/consul/troubleshoot v0.2.0/go.mod h1:GZ49GM7O0vUkC/EEnGQ7hQYHyOdc7PbpGUO/vWR9qfk=
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/errwrap v1.1.0 h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=
 github.com/hashicorp/errwrap v1.1.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
@@ -848,8 +838,8 @@ github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6L
 github.com/rogpeppe/go-internal v1.1.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
+github.com/rogpeppe/go-internal v1.6.1 h1:/FiVV8dS/e+YqF2JvO3yXRFbBLTIuSDkuC7aBOAvL+k=
 github.com/rogpeppe/go-internal v1.6.1/go.mod h1:xXDCJY+GAPziupqXw64V24skbSoqbTEfhy4qGm1nDQc=
-github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
 github.com/rs/zerolog v1.4.0/go.mod h1:YbFCdg8HfsridGWAh22vktObvhZbQsZXe4/zB0OKkWU=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/ryanuber/columnize v0.0.0-20160712163229-9b3edd62028f/go.mod h1:sm1tb6uqfes/u+d4ooFouqFdy9/2g9QGwK3SQygK0Ts=
