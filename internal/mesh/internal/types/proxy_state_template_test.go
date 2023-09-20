@@ -51,7 +51,7 @@ func TestMutateProxyStateTemplate(t *testing.T) {
 		return &pbmesh.ProxyStateTemplate{
 			ProxyState: &pbmesh.ProxyState{
 				Clusters: map[string]*pbproxystate.Cluster{
-					mapKey: &pbproxystate.Cluster{
+					mapKey: {
 						Name: clusterName,
 						Group: &pbproxystate.Cluster_EndpointGroup{
 							EndpointGroup: &pbproxystate.EndpointGroup{
