@@ -2,7 +2,8 @@ module github.com/hashicorp/consul/api
 
 go 1.19
 
-replace github.com/hashicorp/consul/sdk => ../sdk
+// replace github.com/hashicorp/consul/sdk => ../sdk
+retract v1.19.2
 
 require (
 	github.com/google/go-cmp v0.5.7
