@@ -13,6 +13,7 @@ import (
 )
 
 func ValidateAndNormalize(t *testing.T, registry resource.Registry, res *pbresource.Resource) {
+	t.Helper()
 	typ := res.Id.Type
 
 	typeInfo, ok := registry.Resolve(typ)

@@ -143,15 +143,15 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				continue
 			}
 
-			portConfig, ok := computedRoutes.Data.PortedConfigs[portName]
-			require.True(t, ok, "port %q not found in port configs", portName)
-
 			dest := &intermediate.Destination{
 				Service: svcDec,
-				ComputedPortRoutes: routestest.MutateTarget(t, portConfig, svc.Id, portName, func(details *pbmesh.BackendTargetDetails) {
-					details.ServiceEndpointsId = endpoints.Id
-					details.ServiceEndpoints = seDec.Data
-					details.IdentityRefs = identities
+				ComputedPortRoutes: routestest.MutateTargets(t, computedRoutes.Data, portName, func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(svc.Id, details.BackendRef.Ref) && details.BackendRef.Port == portName:
+						details.ServiceEndpointsId = endpoints.Id
+						details.ServiceEndpoints = seDec.Data
+						details.IdentityRefs = identities
+					}
 				}),
 				VirtualIPs: virtualIPs,
 			}

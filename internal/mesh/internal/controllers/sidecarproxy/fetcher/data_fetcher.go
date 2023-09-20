@@ -227,6 +227,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 			continue // the cache is out of sync
 		}
 
+		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		for _, routeTarget := range d.ComputedPortRoutes.Targets {
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
@@ -339,6 +340,8 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// Fetch the resources that may show up duplicated.
+		//
+		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		endpointsMap := make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
 		for _, portConfig := range computedRoutes.Data.PortedConfigs {
 			for _, routeTarget := range portConfig.Targets {

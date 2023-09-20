@@ -163,6 +163,9 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		}
 	})
 
+	require.NoError(t, err)
+	require.NotNil(t, rsp)
+
 	if !b.dontCleanup {
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""

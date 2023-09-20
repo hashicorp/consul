@@ -4,6 +4,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -82,6 +83,34 @@ func ValidateComputedRoutes(res *pbresource.Resource) error {
 					Wrapped: err,
 				})
 			}
+
+			switch target.Type {
+			case pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED:
+				merr = multierror.Append(merr, wrapTargetErr(
+					resource.ErrInvalidField{
+						Name:    "type",
+						Wrapped: resource.ErrMissing,
+					}),
+				)
+			case pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT:
+			case pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_INDIRECT:
+				if target.FailoverConfig != nil {
+					merr = multierror.Append(merr, wrapTargetErr(
+						resource.ErrInvalidField{
+							Name:    "failover_config",
+							Wrapped: errors.New("failover_config not supported for type = INDIRECT"),
+						}),
+					)
+				}
+			default:
+				merr = multierror.Append(merr, wrapTargetErr(
+					resource.ErrInvalidField{
+						Name:    "type",
+						Wrapped: fmt.Errorf("not a supported enum value: %v", target.Type),
+					},
+				))
+			}
+
 			if target.MeshPort == "" {
 				merr = multierror.Append(merr, wrapTargetErr(resource.ErrInvalidField{
 					Name:    "mesh_port",

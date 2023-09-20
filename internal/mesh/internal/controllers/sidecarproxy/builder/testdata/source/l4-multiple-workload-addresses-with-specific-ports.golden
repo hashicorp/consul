@@ -4,7 +4,8 @@
       "local_app:port1": {
         "endpointGroup": {
           "static": {}
-        }
+        },
+        "name": "local_app:port1"
       }
     },
     "endpoints": {
