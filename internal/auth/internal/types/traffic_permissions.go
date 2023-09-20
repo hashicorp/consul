@@ -5,7 +5,6 @@ package types
 
 import (
 	"github.com/hashicorp/go-multierror"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
@@ -43,7 +42,7 @@ func MutateTrafficPermissions(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&tp, err)
 	}
 
-	changed := false
+	var changed bool
 
 	for _, p := range tp.Permissions {
 		for _, s := range p.Sources {
@@ -66,6 +65,7 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 	if t, c := defaultedSourceTenancy(src, parentTenancy); c {
 		src.Partition = t.Partition
 		src.Peer = t.PeerName
+		src.Namespace = t.Namespace
 		changed = true
 	}
 
@@ -73,6 +73,7 @@ func normalizedTenancyForSource(src *pbauth.Source, parentTenancy *pbresource.Te
 		if t, c := defaultedSourceTenancy(e, parentTenancy); c {
 			e.Partition = t.Partition
 			e.Peer = t.PeerName
+			e.Namespace = t.Namespace
 			changed = true
 		}
 	}
@@ -86,16 +87,35 @@ func defaultedSourceTenancy(s pbauth.SourceToSpiffe, parentTenancy *pbresource.T
 	}
 
 	tenancy := pbauth.SourceToTenancy(s)
-	origTenancy := proto.Clone(tenancy).(*pbresource.Tenancy)
-	// This uses partition tenancy and traffic permissions use namespace tenancy. This is because namespace  can be empty.
-	resource.DefaultTenancy(tenancy, parentTenancy, resource.DefaultPartitionedTenancy())
 
-	var changed bool
-	if !proto.Equal(tenancy, origTenancy) {
-		changed = true
+	var peerChanged bool
+	tenancy.PeerName, peerChanged = firstNonEmptyString(tenancy.PeerName, parentTenancy.PeerName, resource.DefaultPeerName)
+
+	var partitionChanged bool
+	tenancy.Partition, partitionChanged = firstNonEmptyString(tenancy.Partition, parentTenancy.Partition, resource.DefaultPartitionName)
+
+	var namespaceChanged bool
+	if s.GetIdentityName() != "" {
+		if tenancy.Partition == parentTenancy.Partition {
+			tenancy.Namespace, namespaceChanged = firstNonEmptyString(tenancy.Namespace, parentTenancy.Namespace, resource.DefaultNamespaceName)
+		} else {
+			tenancy.Namespace, namespaceChanged = firstNonEmptyString(tenancy.Namespace, resource.DefaultNamespaceName, resource.DefaultNamespaceName)
+		}
 	}
 
-	return tenancy, changed
+	return tenancy, peerChanged || partitionChanged || namespaceChanged
+}
+
+func firstNonEmptyString(a, b, c string) (string, bool) {
+	if a != "" {
+		return a, false
+	}
+
+	if b != "" {
+		return b, true
+	}
+
+	return c, true
 }
 
 func ValidateTrafficPermissions(res *pbresource.Resource) error {
@@ -107,12 +127,19 @@ func ValidateTrafficPermissions(res *pbresource.Resource) error {
 
 	var merr error
 
-	if tp.Action == pbauth.Action_ACTION_UNSPECIFIED {
+	// enumcover:pbauth.Action
+	switch tp.Action {
+	case pbauth.Action_ACTION_ALLOW:
+	case pbauth.Action_ACTION_DENY:
+	case pbauth.Action_ACTION_UNSPECIFIED:
+		fallthrough
+	default:
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "data.action",
 			Wrapped: errInvalidAction,
 		})
 	}
+
 	if tp.Destination == nil || (len(tp.Destination.IdentityName) == 0) {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "data.destination",
@@ -155,10 +182,19 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 		}
 
 		if src.Namespace == "" && src.IdentityName != "" {
-			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidListElement{
+			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidField{
 				Name:    "source",
 				Wrapped: errSourceWildcards,
 			}))
+		}
+
+		// Excludes are only valid for wildcard sources.
+		if src.IdentityName != "" && len(src.Exclude) > 0 {
+			merr = multierror.Append(merr, wrapSrcErr(resource.ErrInvalidField{
+				Name:    "exclude_sources",
+				Wrapped: errSourceExcludes,
+			}))
+			continue
 		}
 
 		for e, d := range src.Exclude {
@@ -170,14 +206,14 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 				})
 			}
 			if sourceHasIncompatibleTenancies(d) {
-				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidListElement{
+				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
 					Name:    "exclude_source",
 					Wrapped: errSourcesTenancy,
 				}))
 			}
 
 			if d.Namespace == "" && d.IdentityName != "" {
-				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidListElement{
+				merr = multierror.Append(merr, wrapExclSrcErr(resource.ErrInvalidField{
 					Name:    "source",
 					Wrapped: errSourceWildcards,
 				}))

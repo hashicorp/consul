@@ -121,10 +121,10 @@ func DefaultReferenceTenancy(ref *pbresource.Reference, parentTenancy, scopeTena
 		parentTenancy = dup
 	}
 
-	DefaultTenancy(ref.Tenancy, parentTenancy, scopeTenancy)
+	defaultTenancy(ref.Tenancy, parentTenancy, scopeTenancy)
 }
 
-func DefaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy) {
+func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy) {
 	if itemTenancy == nil {
 		panic("item tenancy is required")
 	}
@@ -139,7 +139,7 @@ func DefaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 
 	if parentTenancy != nil {
 		// Recursively normalize this tenancy as well.
-		DefaultTenancy(parentTenancy, nil, scopeTenancy)
+		defaultTenancy(parentTenancy, nil, scopeTenancy)
 	}
 
 	// use scope defaults for parent

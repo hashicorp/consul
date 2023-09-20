@@ -39,7 +39,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				Action:      pbauth.Action_ACTION_ALLOW,
 			},
 		},
-		"unsupported-action": {
+		"unspecified-action": {
 			// Any type other than the TrafficPermissions type would work
 			// to cause the error we are expecting
 			tp: &pbauth.TrafficPermissions{
@@ -47,6 +47,16 @@ func TestValidateTrafficPermissions(t *testing.T) {
 					IdentityName: "wi1",
 				},
 				Action:      pbauth.Action_ACTION_UNSPECIFIED,
+				Permissions: nil,
+			},
+			expectErr: `invalid "data.action" field: action must be either allow or deny`,
+		},
+		"invalid-action": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "wi1",
+				},
+				Action:      pbauth.Action(50),
 				Permissions: nil,
 			},
 			expectErr: `invalid "data.action" field: action must be either allow or deny`,
@@ -155,6 +165,21 @@ func permissionsTestCases() map[string]permissionTestCase {
 				},
 			},
 		},
+		"explicit source with excludes": {
+			p: &pbauth.Permission{
+				Sources: []*pbauth.Source{
+					{
+						IdentityName: "i1",
+						Exclude: []*pbauth.ExcludeSource{
+							{
+								IdentityName: "i1",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid "exclude_sources" field: must be defined on wildcard sources`,
+		},
 		"source-partition-and-peer": {
 			p: &pbauth.Permission{
 				Sources: []*pbauth.Source{
@@ -261,6 +286,7 @@ func TestValidateTrafficPermissions_Permissions(t *testing.T) {
 			}
 
 			res := resourcetest.Resource(TrafficPermissionsType, "tp").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, tp).
 				Build()
 
@@ -286,8 +312,12 @@ func TestMutateTrafficPermissions(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
+		tenancy := tc.policyTenancy
+		if tenancy == nil {
+			tenancy = resource.DefaultNamespacedTenancy()
+		}
 		res := resourcetest.Resource(TrafficPermissionsType, "api").
-			WithTenancy(tc.policyTenancy).
+			WithTenancy(tenancy).
 			WithData(t, tc.tp).
 			Build()
 
@@ -367,10 +397,79 @@ func TestMutateTrafficPermissions(t *testing.T) {
 				},
 			},
 		},
+		"kitchen-sink-excludes-default-partition": {
+			tp: &pbauth.TrafficPermissions{
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Exclude: []*pbauth.ExcludeSource{
+									{},
+									{
+										Peer: "not-default",
+									},
+									{
+										Namespace: "ns1",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "ap1",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Peer:         "local",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: &pbauth.TrafficPermissions{
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition: "default",
+								Peer:      "local",
+								Exclude: []*pbauth.ExcludeSource{
+									{
+										Partition: "default",
+										Peer:      "local",
+									},
+									{
+										Peer: "not-default",
+									},
+									{
+										Namespace: "ns1",
+										Partition: "default",
+										Peer:      "local",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "ap1",
+										Peer:         "local",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "default",
+										Peer:         "local",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 		"kitchen-sink-non-default-partition": {
 			policyTenancy: &pbresource.Tenancy{
 				Partition: "ap1",
-				Namespace: "ns1",
+				Namespace: "ns3",
 				PeerName:  "local",
 			},
 			tp: &pbauth.TrafficPermissions{
@@ -394,6 +493,13 @@ func TestMutateTrafficPermissions(t *testing.T) {
 								Namespace:    "ns1",
 								Peer:         "local",
 							},
+							{
+								IdentityName: "i2",
+							},
+							{
+								IdentityName: "i2",
+								Partition:    "non-default",
+							},
 						},
 					},
 				},
@@ -404,6 +510,7 @@ func TestMutateTrafficPermissions(t *testing.T) {
 						Sources: []*pbauth.Source{
 							{
 								Partition: "ap1",
+								Namespace: "",
 								Peer:      "local",
 							},
 							{
@@ -425,6 +532,102 @@ func TestMutateTrafficPermissions(t *testing.T) {
 								Namespace:    "ns1",
 								Partition:    "ap1",
 								Peer:         "local",
+							},
+							{
+								IdentityName: "i2",
+								Namespace:    "ns3",
+								Partition:    "ap1",
+								Peer:         "local",
+							},
+							{
+								IdentityName: "i2",
+								Namespace:    "default",
+								Partition:    "non-default",
+								Peer:         "local",
+							},
+						},
+					},
+				},
+			},
+		},
+		"kitchen-sink-excludes-non-default-partition": {
+			policyTenancy: &pbresource.Tenancy{
+				Partition: "ap1",
+				Namespace: "ns3",
+				PeerName:  "local",
+			},
+			tp: &pbauth.TrafficPermissions{
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Exclude: []*pbauth.ExcludeSource{
+									{},
+									{
+										Peer: "not-default",
+									},
+									{
+										Namespace: "ns1",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "ap5",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Peer:         "local",
+									},
+									{
+										IdentityName: "i2",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: &pbauth.TrafficPermissions{
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition: "ap1",
+								Peer:      "local",
+								Exclude: []*pbauth.ExcludeSource{
+									{
+										Partition: "ap1",
+										Namespace: "",
+										Peer:      "local",
+									},
+									{
+										Peer: "not-default",
+									},
+									{
+										Namespace: "ns1",
+										Partition: "ap1",
+										Peer:      "local",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "ap5",
+										Peer:         "local",
+									},
+									{
+										IdentityName: "i1",
+										Namespace:    "ns1",
+										Partition:    "ap1",
+										Peer:         "local",
+									},
+									{
+										IdentityName: "i2",
+										Namespace:    "ns3",
+										Partition:    "ap1",
+										Peer:         "local",
+									},
+								},
 							},
 						},
 					},
