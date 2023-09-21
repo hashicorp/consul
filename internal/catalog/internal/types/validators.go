@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -255,11 +254,11 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 		return wrapErr(resource.ErrMissing)
 	}
 
-	if !resource.EqualType(ref.Type, catalogapi.ServiceType) {
+	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
 		return wrapErr(resource.ErrInvalidField{
 			Name: "type",
 			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: catalogapi.ServiceType,
+				AllowedType: pbcatalog.ServiceType,
 			},
 		})
 	}

@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -16,7 +15,7 @@ import (
 
 func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     catalogapi.ServiceV2Beta1Type,
+		Type:     pbcatalog.ServiceType,
 		Proto:    &pbcatalog.Service{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,

@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -51,9 +50,9 @@ func WorkloadHealthController(nodeMap NodeMapper) controller.Controller {
 		panic("No NodeMapper was provided to the WorkloadHealthController constructor")
 	}
 
-	return controller.ForType(catalogapi.WorkloadType).
-		WithWatch(catalogapi.HealthStatusType, controller.MapOwnerFiltered(catalogapi.WorkloadType)).
-		WithWatch(catalogapi.NodeType, nodeMap.MapNodeToWorkloads).
+	return controller.ForType(pbcatalog.WorkloadType).
+		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.WorkloadType)).
+		WithWatch(pbcatalog.NodeType, nodeMap.MapNodeToWorkloads).
 		WithReconciler(&workloadHealthReconciler{nodeMap: nodeMap})
 }
 
@@ -211,7 +210,7 @@ func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *
 	workloadHealth := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, catalogapi.HealthStatusType) {
+		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
 			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible and will not be executing in tests. The resource type

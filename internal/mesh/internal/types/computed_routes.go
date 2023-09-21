@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -24,7 +23,7 @@ const (
 
 func RegisterComputedRoutes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     meshapi.ComputedRoutesV2Beta1Type,
+		Type:     pbmesh.ComputedRoutesType,
 		Proto:    &pbmesh.ComputedRoutes{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedRoutes,

@@ -4,11 +4,11 @@
 package sidecarproxycache
 
 import (
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -18,7 +18,7 @@ type ComputedRoutesCache struct {
 
 func NewComputedRoutesCache() *ComputedRoutesCache {
 	return &ComputedRoutesCache{
-		mapper: bimapper.New(meshapi.ComputedRoutesType, catalogapi.ServiceType),
+		mapper: bimapper.New(pbmesh.ComputedRoutesType, pbcatalog.ServiceType),
 	}
 }
 

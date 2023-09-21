@@ -6,9 +6,8 @@ package types
 import (
 	"fmt"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -21,7 +20,7 @@ func IsRouteType(typ *pbresource.Type) bool {
 
 func IsHTTPRouteType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, meshapi.HTTPRouteType):
+	case resource.EqualType(typ, pbmesh.HTTPRouteType):
 		return true
 	}
 	return false
@@ -29,7 +28,7 @@ func IsHTTPRouteType(typ *pbresource.Type) bool {
 
 func IsGRPCRouteType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, meshapi.GRPCRouteType):
+	case resource.EqualType(typ, pbmesh.GRPCRouteType):
 		return true
 	}
 	return false
@@ -37,7 +36,7 @@ func IsGRPCRouteType(typ *pbresource.Type) bool {
 
 func IsTCPRouteType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, meshapi.TCPRouteType):
+	case resource.EqualType(typ, pbmesh.TCPRouteType):
 		return true
 	}
 	return false
@@ -45,7 +44,7 @@ func IsTCPRouteType(typ *pbresource.Type) bool {
 
 func IsFailoverPolicyType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, catalogapi.FailoverPolicyType):
+	case resource.EqualType(typ, pbcatalog.FailoverPolicyType):
 		return true
 	}
 	return false
@@ -53,7 +52,7 @@ func IsFailoverPolicyType(typ *pbresource.Type) bool {
 
 func IsDestinationPolicyType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, meshapi.DestinationPolicyType):
+	case resource.EqualType(typ, pbmesh.DestinationPolicyType):
 		return true
 	}
 	return false
@@ -61,7 +60,7 @@ func IsDestinationPolicyType(typ *pbresource.Type) bool {
 
 func IsServiceType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, catalogapi.ServiceType):
+	case resource.EqualType(typ, pbcatalog.ServiceType):
 		return true
 	}
 	return false
@@ -69,7 +68,7 @@ func IsServiceType(typ *pbresource.Type) bool {
 
 func IsComputedRoutesType(typ *pbresource.Type) bool {
 	switch {
-	case resource.EqualType(typ, meshapi.ComputedRoutesType):
+	case resource.EqualType(typ, pbmesh.ComputedRoutesType):
 		return true
 	}
 	return false

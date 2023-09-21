@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -44,9 +43,9 @@ func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controlle
 		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
 	}
 
-	return controller.ForType(catalogapi.ServiceEndpointsType).
-		WithWatch(catalogapi.ServiceType, controller.ReplaceType(catalogapi.ServiceEndpointsType)).
-		WithWatch(catalogapi.WorkloadType, workloadMap.MapWorkload).
+	return controller.ForType(pbcatalog.ServiceEndpointsType).
+		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbcatalog.ServiceEndpointsType)).
+		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
 		WithReconciler(newServiceEndpointsReconciler(workloadMap))
 }
 
@@ -70,7 +69,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 	endpointsID := req.ID
 	serviceID := &pbresource.ID{
-		Type:    catalogapi.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: endpointsID.Tenancy,
 		Name:    endpointsID.Name,
 	}

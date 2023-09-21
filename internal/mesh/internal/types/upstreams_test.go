@@ -8,10 +8,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -27,7 +26,7 @@ func TestMutateUpstreams(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.UpstreamsType, "api").
+		res := resourcetest.Resource(pbmesh.UpstreamsType, "api").
 			WithTenancy(tc.tenancy).
 			WithData(t, tc.data).
 			Build()
@@ -65,16 +64,16 @@ func TestMutateUpstreams(t *testing.T) {
 			tenancy: newTestTenancy("foo.bar"),
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy(""), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy(".zim"), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("gir.zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(""), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(".zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},
 				},
 			},
 			expect: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("foo.bar"), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("foo.zim"), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("gir.zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.bar"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},
 				},
 			},
 		},
@@ -95,7 +94,7 @@ func TestValidateUpstreams(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.UpstreamsType, "api").
+		res := resourcetest.Resource(pbmesh.UpstreamsType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.data).
 			Build()
@@ -139,7 +138,7 @@ func TestValidateUpstreams(t *testing.T) {
 			skipMutate: true,
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.WorkloadType, nil, "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.WorkloadType, nil, "api")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
@@ -148,7 +147,7 @@ func TestValidateUpstreams(t *testing.T) {
 			skipMutate: true,
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: &pbresource.Reference{Type: catalogapi.ServiceType, Name: "api"}},
+					{DestinationRef: &pbresource.Reference{Type: pbcatalog.ServiceType, Name: "api"}},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "tenancy" field: missing required field`,
@@ -157,7 +156,7 @@ func TestValidateUpstreams(t *testing.T) {
 			skipMutate: true,
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy(".bar"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(".bar"), "api")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "tenancy" field: invalid "partition" field: cannot be empty`,
@@ -166,7 +165,7 @@ func TestValidateUpstreams(t *testing.T) {
 			skipMutate: true,
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("foo"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo"), "api")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "tenancy" field: invalid "namespace" field: cannot be empty`,
@@ -175,7 +174,7 @@ func TestValidateUpstreams(t *testing.T) {
 			skipMutate: true,
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, &pbresource.Tenancy{Partition: "foo", Namespace: "bar"}, "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, &pbresource.Tenancy{Partition: "foo", Namespace: "bar"}, "api")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "tenancy" field: invalid "peer_name" field: must be set to "local"`,
@@ -183,9 +182,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"normal": {
 			data: &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("foo.bar"), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("foo.zim"), "api")},
-					{DestinationRef: newRefWithTenancy(catalogapi.ServiceType, newTestTenancy("gir.zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.bar"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.zim"), "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},
 				},
 			},
 		},

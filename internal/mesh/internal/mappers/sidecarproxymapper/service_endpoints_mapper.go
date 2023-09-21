@@ -6,11 +6,10 @@ package sidecarproxymapper
 import (
 	"context"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -45,7 +44,7 @@ func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(ctx context.Context, rt
 		// associated workloads.
 		if endpoint.TargetRef != nil {
 			result = append(result, controller.Request{
-				ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, endpoint.TargetRef),
+				ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, endpoint.TargetRef),
 			})
 		}
 	}
@@ -53,7 +52,7 @@ func (m *Mapper) MapServiceEndpointsToProxyStateTemplate(ctx context.Context, rt
 	// (2) Now walk the mesh configuration information backwards.
 
 	// ServiceEndpoints -> Service
-	targetServiceRef := resource.ReplaceType(catalogapi.ServiceType, res.Id)
+	targetServiceRef := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
 
 	// Find all ComputedRoutes that reference this service.
 	routeIDs := m.computedRoutesCache.ComputedRoutesByService(targetServiceRef)

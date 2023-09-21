@@ -12,8 +12,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	"github.com/hashicorp/consul/internal/catalog"
@@ -28,7 +26,7 @@ import (
 )
 
 func TestMapper_HTTPRoute_Tracking(t *testing.T) {
-	testMapper_Tracking(t, meshapi.HTTPRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
+	testMapper_Tracking(t, pbmesh.HTTPRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
 		route := &pbmesh.HTTPRoute{
 			ParentRefs: parentRefs,
 		}
@@ -44,7 +42,7 @@ func TestMapper_HTTPRoute_Tracking(t *testing.T) {
 }
 
 func TestMapper_GRPCRoute_Tracking(t *testing.T) {
-	testMapper_Tracking(t, meshapi.GRPCRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
+	testMapper_Tracking(t, pbmesh.GRPCRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
 		route := &pbmesh.GRPCRoute{
 			ParentRefs: parentRefs,
 		}
@@ -60,7 +58,7 @@ func TestMapper_GRPCRoute_Tracking(t *testing.T) {
 }
 
 func TestMapper_TCPRoute_Tracking(t *testing.T) {
-	testMapper_Tracking(t, meshapi.TCPRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
+	testMapper_Tracking(t, pbmesh.TCPRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
 		route := &pbmesh.TCPRoute{
 			ParentRefs: parentRefs,
 		}
@@ -81,7 +79,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	catalog.RegisterTypes(registry)
 
 	newService := func(name string) *pbresource.Resource {
-		svc := rtest.Resource(catalogapi.ServiceType, name).
+		svc := rtest.Resource(pbcatalog.ServiceType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, &pbcatalog.Service{}).
 			Build()
@@ -90,7 +88,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	}
 
 	newDestPolicy := func(name string, dur time.Duration) *pbresource.Resource {
-		policy := rtest.Resource(meshapi.DestinationPolicyType, name).
+		policy := rtest.Resource(pbmesh.DestinationPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, &pbmesh.DestinationPolicy{
 				PortConfigs: map[string]*pbmesh.DestinationConfig{
@@ -110,7 +108,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 				Ref: ref,
 			})
 		}
-		policy := rtest.Resource(catalogapi.FailoverPolicyType, name).
+		policy := rtest.Resource(pbcatalog.FailoverPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
@@ -121,12 +119,12 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		return policy
 	}
 
-	apiComputedRoutes := newID(meshapi.ComputedRoutesType, "api")
-	wwwComputedRoutes := newID(meshapi.ComputedRoutesType, "www")
-	barComputedRoutes := newID(meshapi.ComputedRoutesType, "bar")
-	fooComputedRoutes := newID(meshapi.ComputedRoutesType, "foo")
-	zimComputedRoutes := newID(meshapi.ComputedRoutesType, "zim")
-	girComputedRoutes := newID(meshapi.ComputedRoutesType, "gir")
+	apiComputedRoutes := newID(pbmesh.ComputedRoutesType, "api")
+	wwwComputedRoutes := newID(pbmesh.ComputedRoutesType, "www")
+	barComputedRoutes := newID(pbmesh.ComputedRoutesType, "bar")
+	fooComputedRoutes := newID(pbmesh.ComputedRoutesType, "foo")
+	zimComputedRoutes := newID(pbmesh.ComputedRoutesType, "zim")
+	girComputedRoutes := newID(pbmesh.ComputedRoutesType, "gir")
 
 	m := New()
 
@@ -149,9 +147,9 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		wwwDest = newDestPolicy("www", 123*time.Second)
 
 		// Start out easy and don't have failover policies that reference other services.
-		apiFail = newFailPolicy("api", newRef(catalogapi.ServiceType, "api"))
-		wwwFail = newFailPolicy("www", newRef(catalogapi.ServiceType, "www"))
-		barFail = newFailPolicy("bar", newRef(catalogapi.ServiceType, "bar"))
+		apiFail = newFailPolicy("api", newRef(pbcatalog.ServiceType, "api"))
+		wwwFail = newFailPolicy("www", newRef(pbcatalog.ServiceType, "www"))
+		barFail = newFailPolicy("bar", newRef(pbcatalog.ServiceType, "bar"))
 	)
 
 	testutil.RunStep(t, "only name aligned defaults", func(t *testing.T) {
@@ -186,7 +184,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, newRoute(t,
 				[]*pbmesh.ParentReference{
-					{Ref: newRef(catalogapi.ServiceType, "api")},
+					{Ref: newRef(pbcatalog.ServiceType, "api")},
 				},
 				[]*pbmesh.BackendReference{
 					newBackendRef("api"),
@@ -229,7 +227,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, newRoute(t,
 				[]*pbmesh.ParentReference{
-					{Ref: newRef(catalogapi.ServiceType, "api")},
+					{Ref: newRef(pbcatalog.ServiceType, "api")},
 				},
 				[]*pbmesh.BackendReference{
 					newBackendRef("www"),
@@ -279,8 +277,8 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, newRoute(t,
 				[]*pbmesh.ParentReference{
-					{Ref: newRef(catalogapi.ServiceType, "api")},
-					{Ref: newRef(catalogapi.ServiceType, "foo")},
+					{Ref: newRef(pbcatalog.ServiceType, "api")},
+					{Ref: newRef(pbcatalog.ServiceType, "foo")},
 				},
 				[]*pbmesh.BackendReference{
 					newBackendRef("bar"),
@@ -337,8 +335,8 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 
 	testutil.RunStep(t, "update the failover policy to cross services", func(t *testing.T) {
 		apiFail = newFailPolicy("api",
-			newRef(catalogapi.ServiceType, "foo"),
-			newRef(catalogapi.ServiceType, "zim"))
+			newRef(pbcatalog.ServiceType, "foo"),
+			newRef(pbcatalog.ServiceType, "zim"))
 		requireTracking(t, m, apiFail, apiComputedRoutes)
 
 		requireTracking(t, m, apiSvc, apiComputedRoutes)
@@ -387,7 +385,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 
 	testutil.RunStep(t, "set a new failover policy for a service in route2", func(t *testing.T) {
 		barFail = newFailPolicy("bar",
-			newRef(catalogapi.ServiceType, "gir"))
+			newRef(pbcatalog.ServiceType, "gir"))
 		requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
 		requireTracking(t, m, apiSvc, apiComputedRoutes)
@@ -542,8 +540,8 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, newRoute(t,
 				[]*pbmesh.ParentReference{
-					{Ref: newRef(catalog.ServiceType, "bar")},
-					{Ref: newRef(catalog.ServiceType, "foo")},
+					{Ref: newRef(pbcatalog.ServiceType, "bar")},
+					{Ref: newRef(pbcatalog.ServiceType, "foo")},
 				},
 				[]*pbmesh.BackendReference{
 					newBackendRef("api"),
@@ -587,7 +585,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, newRoute(t,
 				[]*pbmesh.ParentReference{
-					{Ref: newRef(catalog.ServiceType, "foo")},
+					{Ref: newRef(pbcatalog.ServiceType, "foo")},
 				},
 				[]*pbmesh.BackendReference{
 					newBackendRef("api"),
@@ -629,17 +627,17 @@ func requireTracking(
 		err  error
 	)
 	switch {
-	case resource.EqualType(meshapi.HTTPRouteType, res.Id.Type):
+	case resource.EqualType(pbmesh.HTTPRouteType, res.Id.Type):
 		reqs, err = mapper.MapHTTPRoute(context.Background(), controller.Runtime{}, res)
-	case resource.EqualType(meshapi.GRPCRouteType, res.Id.Type):
+	case resource.EqualType(pbmesh.GRPCRouteType, res.Id.Type):
 		reqs, err = mapper.MapGRPCRoute(context.Background(), controller.Runtime{}, res)
-	case resource.EqualType(meshapi.TCPRouteType, res.Id.Type):
+	case resource.EqualType(pbmesh.TCPRouteType, res.Id.Type):
 		reqs, err = mapper.MapTCPRoute(context.Background(), controller.Runtime{}, res)
-	case resource.EqualType(meshapi.DestinationPolicyType, res.Id.Type):
+	case resource.EqualType(pbmesh.DestinationPolicyType, res.Id.Type):
 		reqs, err = mapper.MapDestinationPolicy(context.Background(), controller.Runtime{}, res)
-	case resource.EqualType(catalogapi.FailoverPolicyType, res.Id.Type):
+	case resource.EqualType(pbcatalog.FailoverPolicyType, res.Id.Type):
 		reqs, err = mapper.MapFailoverPolicy(context.Background(), controller.Runtime{}, res)
-	case resource.EqualType(catalogapi.ServiceType, res.Id.Type):
+	case resource.EqualType(pbcatalog.ServiceType, res.Id.Type):
 		reqs, err = mapper.MapService(context.Background(), controller.Runtime{}, res)
 	default:
 		t.Fatalf("unhandled resource type: %s", resource.TypeToString(res.Id.Type))
@@ -656,7 +654,7 @@ func requireTracking(
 
 func newBackendRef(name string) *pbmesh.BackendReference {
 	return &pbmesh.BackendReference{
-		Ref: newRef(catalogapi.ServiceType, name),
+		Ref: newRef(pbcatalog.ServiceType, name),
 	}
 }
 

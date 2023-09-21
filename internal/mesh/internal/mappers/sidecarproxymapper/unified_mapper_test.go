@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -61,27 +59,27 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 	}
 
 	// The thing we link through Destinations.
-	destService := resourcetest.Resource(catalogapi.ServiceType, "web").
+	destService := resourcetest.Resource(pbcatalog.ServiceType, "web").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, anyServiceData).
 		Build()
 	destServiceRef := resource.Reference(destService.Id, "")
 
 	// The thing we reach through the mesh config.
-	targetService := resourcetest.Resource(catalogapi.ServiceType, "db").
+	targetService := resourcetest.Resource(pbcatalog.ServiceType, "db").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, anyServiceData).
 		Build()
 	targetServiceRef := resource.Reference(targetService.Id, "")
 
-	backupTargetService := resourcetest.Resource(catalogapi.ServiceType, "db-backup").
+	backupTargetService := resourcetest.Resource(pbcatalog.ServiceType, "db-backup").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, anyServiceData).
 		Build()
 	backupTargetServiceRef := resource.Reference(backupTargetService.Id, "")
 
 	// The way we make 'web' actually route traffic to 'db'.
-	tcpRoute := resourcetest.Resource(meshapi.TCPRouteType, "tcp-route").
+	tcpRoute := resourcetest.Resource(pbmesh.TCPRouteType, "tcp-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
@@ -96,7 +94,7 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 			}},
 		}).
 		Build()
-	failoverPolicy := resourcetest.ResourceID(resource.ReplaceType(catalogapi.FailoverPolicyType, targetService.Id)).
+	failoverPolicy := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.FailoverPolicyType, targetService.Id)).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
@@ -106,7 +104,7 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 			},
 		}).
 		Build()
-	webRoutes := routestest.BuildComputedRoutes(t, resource.ReplaceType(meshapi.ComputedRoutesType, destService.Id),
+	webRoutes := routestest.BuildComputedRoutes(t, resource.ReplaceType(pbmesh.ComputedRoutesType, destService.Id),
 		resourcetest.MustDecode[*pbcatalog.Service](t, destService),
 		resourcetest.MustDecode[*pbcatalog.Service](t, targetService),
 		resourcetest.MustDecode[*pbcatalog.Service](t, backupTargetService),
@@ -115,15 +113,15 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 	)
 
 	var (
-		destWorkload1 = newID(catalogapi.WorkloadType, "dest-workload-1")
-		destWorkload2 = newID(catalogapi.WorkloadType, "dest-workload-2")
+		destWorkload1 = newID(pbcatalog.WorkloadType, "dest-workload-1")
+		destWorkload2 = newID(pbcatalog.WorkloadType, "dest-workload-2")
 
-		destProxy1 = resource.ReplaceType(meshapi.ProxyStateTemplateType, destWorkload1)
-		destProxy2 = resource.ReplaceType(meshapi.ProxyStateTemplateType, destWorkload2)
+		destProxy1 = resource.ReplaceType(pbmesh.ProxyStateTemplateType, destWorkload1)
+		destProxy2 = resource.ReplaceType(pbmesh.ProxyStateTemplateType, destWorkload2)
 	)
 
 	// Endpoints for original destination
-	destEndpoints := resourcetest.ResourceID(resource.ReplaceType(catalogapi.ServiceEndpointsType, destService.Id)).
+	destEndpoints := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.ServiceEndpointsType, destService.Id)).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
@@ -140,23 +138,23 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 		Build()
 
 	var (
-		targetWorkload1       = newID(catalogapi.WorkloadType, "target-workload-1")
-		targetWorkload2       = newID(catalogapi.WorkloadType, "target-workload-2")
-		targetWorkload3       = newID(catalogapi.WorkloadType, "target-workload-3")
-		backupTargetWorkload1 = newID(catalogapi.WorkloadType, "backup-target-workload-1")
-		backupTargetWorkload2 = newID(catalogapi.WorkloadType, "backup-target-workload-2")
-		backupTargetWorkload3 = newID(catalogapi.WorkloadType, "backup-target-workload-3")
+		targetWorkload1       = newID(pbcatalog.WorkloadType, "target-workload-1")
+		targetWorkload2       = newID(pbcatalog.WorkloadType, "target-workload-2")
+		targetWorkload3       = newID(pbcatalog.WorkloadType, "target-workload-3")
+		backupTargetWorkload1 = newID(pbcatalog.WorkloadType, "backup-target-workload-1")
+		backupTargetWorkload2 = newID(pbcatalog.WorkloadType, "backup-target-workload-2")
+		backupTargetWorkload3 = newID(pbcatalog.WorkloadType, "backup-target-workload-3")
 
-		targetProxy1       = resource.ReplaceType(meshapi.ProxyStateTemplateType, targetWorkload1)
-		targetProxy2       = resource.ReplaceType(meshapi.ProxyStateTemplateType, targetWorkload2)
-		targetProxy3       = resource.ReplaceType(meshapi.ProxyStateTemplateType, targetWorkload3)
-		backupTargetProxy1 = resource.ReplaceType(meshapi.ProxyStateTemplateType, backupTargetWorkload1)
-		backupTargetProxy2 = resource.ReplaceType(meshapi.ProxyStateTemplateType, backupTargetWorkload2)
-		backupTargetProxy3 = resource.ReplaceType(meshapi.ProxyStateTemplateType, backupTargetWorkload3)
+		targetProxy1       = resource.ReplaceType(pbmesh.ProxyStateTemplateType, targetWorkload1)
+		targetProxy2       = resource.ReplaceType(pbmesh.ProxyStateTemplateType, targetWorkload2)
+		targetProxy3       = resource.ReplaceType(pbmesh.ProxyStateTemplateType, targetWorkload3)
+		backupTargetProxy1 = resource.ReplaceType(pbmesh.ProxyStateTemplateType, backupTargetWorkload1)
+		backupTargetProxy2 = resource.ReplaceType(pbmesh.ProxyStateTemplateType, backupTargetWorkload2)
+		backupTargetProxy3 = resource.ReplaceType(pbmesh.ProxyStateTemplateType, backupTargetWorkload3)
 	)
 
 	// Endpoints for actual destination
-	targetEndpoints := resourcetest.ResourceID(resource.ReplaceType(catalogapi.ServiceEndpointsType, targetService.Id)).
+	targetEndpoints := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetService.Id)).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
@@ -175,7 +173,7 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 			},
 		}).
 		Build()
-	backupTargetEndpoints := resourcetest.ResourceID(resource.ReplaceType(catalogapi.ServiceEndpointsType, backupTargetService.Id)).
+	backupTargetEndpoints := resourcetest.ResourceID(resource.ReplaceType(pbcatalog.ServiceEndpointsType, backupTargetService.Id)).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.ServiceEndpoints{
 			Endpoints: []*pbcatalog.Endpoint{
@@ -196,12 +194,12 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 		Build()
 
 	var (
-		sourceProxy1 = newID(meshapi.ProxyStateTemplateType, "src-workload-1")
-		sourceProxy2 = newID(meshapi.ProxyStateTemplateType, "src-workload-2")
-		sourceProxy3 = newID(meshapi.ProxyStateTemplateType, "src-workload-3")
-		sourceProxy4 = newID(meshapi.ProxyStateTemplateType, "src-workload-4")
-		sourceProxy5 = newID(meshapi.ProxyStateTemplateType, "src-workload-5")
-		sourceProxy6 = newID(meshapi.ProxyStateTemplateType, "src-workload-6")
+		sourceProxy1 = newID(pbmesh.ProxyStateTemplateType, "src-workload-1")
+		sourceProxy2 = newID(pbmesh.ProxyStateTemplateType, "src-workload-2")
+		sourceProxy3 = newID(pbmesh.ProxyStateTemplateType, "src-workload-3")
+		sourceProxy4 = newID(pbmesh.ProxyStateTemplateType, "src-workload-4")
+		sourceProxy5 = newID(pbmesh.ProxyStateTemplateType, "src-workload-5")
+		sourceProxy6 = newID(pbmesh.ProxyStateTemplateType, "src-workload-6")
 	)
 
 	destination1 := intermediate.CombinedDestinationRef{

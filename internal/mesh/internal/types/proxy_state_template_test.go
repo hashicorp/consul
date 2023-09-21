@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
@@ -23,7 +22,7 @@ func TestValidateProxyStateTemplate(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.ProxyStateTemplateType, "api").
+		res := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api").
 			WithData(t, tc.pst).
 			Build()
 

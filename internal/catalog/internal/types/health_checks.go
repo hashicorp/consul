@@ -6,7 +6,6 @@ package types
 import (
 	"github.com/hashicorp/go-multierror"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -14,7 +13,7 @@ import (
 
 func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     catalogapi.HealthChecksV2Beta1Type,
+		Type:     pbcatalog.HealthChecksType,
 		Proto:    &pbcatalog.HealthChecks{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,

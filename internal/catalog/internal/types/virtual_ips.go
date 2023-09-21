@@ -14,7 +14,7 @@ import (
 func RegisterVirtualIPs(r resource.Registry) {
 	// todo (ishustava): uncomment when we implement it
 	//r.Register(resource.Registration{
-	//	Type:     catalogapi.VirtualIPsV2Beta1Type,
+	//	Type:     pbcatalog.VirtualIPsV2Beta1Type,
 	//	Proto:    &pbcatalog.VirtualIPs{},
 	//	Scope:    resource.ScopeNamespace,
 	//	Validate: ValidateVirtualIPs,

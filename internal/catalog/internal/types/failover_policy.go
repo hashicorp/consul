@@ -10,7 +10,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,7 +17,7 @@ import (
 
 func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     catalogapi.FailoverPolicyV2Beta1Type,
+		Type:     pbcatalog.FailoverPolicyType,
 		Proto:    &pbcatalog.FailoverPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateFailoverPolicy,

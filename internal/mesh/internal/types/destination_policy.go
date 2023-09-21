@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,7 +17,7 @@ import (
 
 func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     meshapi.DestinationPolicyV2Beta1Type,
+		Type:     pbmesh.DestinationPolicyType,
 		Proto:    &pbmesh.DestinationPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,

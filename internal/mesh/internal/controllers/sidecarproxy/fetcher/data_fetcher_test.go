@@ -13,9 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
@@ -25,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -159,7 +157,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 			{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 		},
 	}
-	suite.api1Service = resourcetest.Resource(catalogapi.ServiceType, "api-1").
+	suite.api1Service = resourcetest.Resource(pbcatalog.ServiceType, "api-1").
 		WithData(suite.T(), suite.api1ServiceData).
 		Write(suite.T(), suite.client)
 
@@ -175,7 +173,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 			},
 		},
 	}
-	suite.api1ServiceEndpoints = resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-1").
+	suite.api1ServiceEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-1").
 		WithData(suite.T(), suite.api1ServiceEndpointsData).
 		Write(suite.T(), suite.client)
 
@@ -186,7 +184,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 			{TargetPort: "mesh", VirtualPort: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 		},
 	}
-	suite.api2Service = resourcetest.Resource(catalogapi.ServiceType, "api-2").
+	suite.api2Service = resourcetest.Resource(pbcatalog.ServiceType, "api-2").
 		WithData(suite.T(), suite.api2ServiceData).
 		Write(suite.T(), suite.client)
 
@@ -203,7 +201,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 			},
 		},
 	}
-	suite.api2ServiceEndpoints = resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-2").
+	suite.api2ServiceEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-2").
 		WithData(suite.T(), suite.api2ServiceEndpointsData).
 		Write(suite.T(), suite.client)
 
@@ -224,15 +222,15 @@ func (suite *dataFetcherSuite) SetupTest() {
 		},
 	}
 
-	suite.webDestinations = resourcetest.Resource(meshapi.UpstreamsType, "web-destinations").
+	suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
 		WithData(suite.T(), suite.webDestinationsData).
 		Write(suite.T(), suite.client)
 
-	suite.webProxy = resourcetest.Resource(meshapi.ProxyStateTemplateType, "web-abc").
+	suite.webProxy = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "web-abc").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{}).
 		Write(suite.T(), suite.client)
 
-	suite.webWorkload = resourcetest.Resource(catalogapi.WorkloadType, "web-abc").
+	suite.webWorkload = resourcetest.Resource(pbcatalog.WorkloadType, "web-abc").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.2"}},
 			Ports:     map[string]*pbcatalog.WorkloadPort{"tcp": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP}},
@@ -241,10 +239,10 @@ func (suite *dataFetcherSuite) SetupTest() {
 }
 
 func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
-	proxyID := resourcetest.Resource(meshapi.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		ID()
-	identityID := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-abc").ID()
+	identityID := resourcetest.Resource(pbauth.WorkloadIdentityType, "workload-identity-abc").ID()
 
 	// Create cache and pre-populate it.
 	var (
@@ -264,17 +262,17 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 
 	// Prepopulate the cache.
 	dest1 := intermediate.CombinedDestinationRef{
-		ServiceRef:             resourcetest.Resource(catalogapi.ServiceType, "test-service-1").ReferenceNoSection(),
+		ServiceRef:             resourcetest.Resource(pbcatalog.ServiceType, "test-service-1").ReferenceNoSection(),
 		Port:                   "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(meshapi.UpstreamsType, "test-servicedestinations-1").ID(),
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "test-servicedestinations-1").ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
 		},
 	}
 	dest2 := intermediate.CombinedDestinationRef{
-		ServiceRef:             resourcetest.Resource(catalogapi.ServiceType, "test-service-2").ReferenceNoSection(),
+		ServiceRef:             resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").ReferenceNoSection(),
 		Port:                   "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(meshapi.UpstreamsType, "test-servicedestinations-2").ID(),
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "test-servicedestinations-2").ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
 		},
@@ -284,7 +282,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	destCache.WriteDestination(dest2)
 	suite.syncDestinations(dest1, dest2)
 
-	workload := resourcetest.Resource(catalogapi.WorkloadType, "service-workload-abc").
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), &pbcatalog.Workload{
 			Identity: identityID.Name,
@@ -307,7 +305,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	require.Nil(suite.T(), proxyCfgCache.ProxyConfigurationsByProxyID(proxyID))
 	require.Equal(suite.T(), []*pbresource.ID{proxyID}, identitiesCache.ProxyIDsByWorkloadIdentity(identityID))
 
-	proxyCfgID := resourcetest.Resource(meshapi.ProxyConfigurationType, "proxy-config").ID()
+	proxyCfgID := resourcetest.Resource(pbmesh.ProxyConfigurationType, "proxy-config").ID()
 	proxyCfgCache.TrackProxyConfiguration(proxyCfgID, []resource.ReferenceOrID{proxyID})
 
 	_, err = f.FetchWorkload(context.Background(), proxyID)
@@ -332,28 +330,28 @@ func (suite *dataFetcherSuite) TestFetcher_NotFound() {
 		fetchFunc func(id *pbresource.ID) error
 	}{
 		"proxy state template": {
-			typ: meshapi.ProxyStateTemplateType,
+			typ: pbmesh.ProxyStateTemplateType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchProxyStateTemplate(context.Background(), id)
 				return err
 			},
 		},
 		"service endpoints": {
-			typ: catalogapi.ServiceEndpointsType,
+			typ: pbcatalog.ServiceEndpointsType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchServiceEndpoints(context.Background(), id)
 				return err
 			},
 		},
 		"destinations": {
-			typ: meshapi.UpstreamsType,
+			typ: pbmesh.UpstreamsType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchDestinations(context.Background(), id)
 				return err
 			},
 		},
 		"service": {
-			typ: catalogapi.ServiceType,
+			typ: pbcatalog.ServiceType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchService(context.Background(), id)
 				return err
@@ -429,13 +427,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 
 		suite.T().Run(name+"-unmarshal", func(t *testing.T) {
 			// Create a dummy health checks type as it won't be any of the types mesh controller cares about
-			resourcetest.Resource(catalogapi.HealthChecksType, c.name).
+			resourcetest.Resource(pbcatalog.HealthChecksType, c.name).
 				WithData(suite.T(), &pbcatalog.HealthChecks{
 					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-abc"}},
 				}).
 				Write(suite.T(), suite.client)
 
-			err := c.fetchFunc(resourcetest.Resource(catalogapi.HealthChecksType, c.name).ID())
+			err := c.fetchFunc(resourcetest.Resource(pbcatalog.HealthChecksType, c.name).ID())
 			require.Error(t, err)
 			var parseErr resource.ErrDataParse
 			require.ErrorAs(t, err, &parseErr)
@@ -452,7 +450,7 @@ func (suite *dataFetcherSuite) syncDestinations(destinations ...intermediate.Com
 		})
 	}
 
-	suite.webDestinations = resourcetest.Resource(meshapi.UpstreamsType, "web-destinations").
+	suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
 		WithData(suite.T(), data).
 		Write(suite.T(), suite.client)
 }
@@ -484,7 +482,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		destinationRefNoDestinations := intermediate.CombinedDestinationRef{
 			ServiceRef:             api1ServiceRef,
 			Port:                   "tcp",
-			ExplicitDestinationsID: resourcetest.Resource(meshapi.UpstreamsType, "not-found").ID(),
+			ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "not-found").ID(),
 			SourceProxies: map[resource.ReferenceKey]struct{}{
 				resource.NewReferenceKey(suite.webProxy.Id): {},
 			},
@@ -501,7 +499,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 	})
 
 	testutil.RunStep(suite.T(), "invalid destinations: service not found", func(t *testing.T) {
-		notFoundServiceRef := resourcetest.Resource(catalogapi.ServiceType, "not-found").
+		notFoundServiceRef := resourcetest.Resource(pbcatalog.ServiceType, "not-found").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			ReferenceNoSection()
 		destinationNoServiceEndpoints := intermediate.CombinedDestinationRef{
@@ -517,11 +515,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		t.Cleanup(func() {
 			// Restore this for the next test step.
-			suite.webDestinations = resourcetest.Resource(meshapi.UpstreamsType, "web-destinations").
+			suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
 				WithData(suite.T(), suite.webDestinationsData).
 				Write(suite.T(), suite.client)
 		})
-		suite.webDestinations = resourcetest.Resource(meshapi.UpstreamsType, "web-destinations").
+		suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
 			WithData(suite.T(), &pbmesh.Upstreams{
 				Upstreams: []*pbmesh.Upstream{{
 					DestinationRef:  notFoundServiceRef,
@@ -711,7 +709,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			WithData(suite.T(), apiNonTCPServiceData).
 			Build()
 
-		api1ComputedRoutesID := resource.ReplaceType(meshapi.ComputedRoutesType, suite.api1Service.Id)
+		api1ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, suite.api1Service.Id)
 		api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), apiNonTCPService),
 		)
@@ -808,8 +806,8 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		// Write a default ComputedRoutes for api1 and api2.
 		var (
-			api1ComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, suite.api1Service.Id)
-			api2ComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, suite.api2Service.Id)
+			api1ComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.api1Service.Id)
+			api2ComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.api2Service.Id)
 		)
 		api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
@@ -897,7 +895,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 	// Create a few other services to be implicit upstreams.
-	api3Service := resourcetest.Resource(catalogapi.ServiceType, "api-3").
+	api3Service := resourcetest.Resource(pbcatalog.ServiceType, "api-3").
 		WithData(suite.T(), &pbcatalog.Service{
 			VirtualIps: []string{"192.1.1.1"},
 			Ports: []*pbcatalog.ServicePort{
@@ -913,7 +911,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 				TargetRef: &pbresource.ID{
 					Name:    "api-3-abc",
 					Tenancy: api3Service.Id.Tenancy,
-					Type:    catalogapi.WorkloadType,
+					Type:    pbcatalog.WorkloadType,
 				},
 				Addresses: []*pbcatalog.WorkloadAddress{{Host: "10.0.0.1"}},
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -924,15 +922,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 			},
 		},
 	}
-	api3ServiceEndpoints := resourcetest.Resource(catalogapi.ServiceEndpointsType, "api-3").
+	api3ServiceEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-3").
 		WithData(suite.T(), api3ServiceEndpointsData).
 		Write(suite.T(), suite.client)
 
 	// Write a default ComputedRoutes for api1, api2, and api3.
 	var (
-		api1ComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, suite.api1Service.Id)
-		api2ComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, suite.api2Service.Id)
-		api3ComputedRoutesID = resource.ReplaceType(meshapi.ComputedRoutesType, api3Service.Id)
+		api1ComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.api1Service.Id)
+		api2ComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.api2Service.Id)
+		api3ComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, api3Service.Id)
 	)
 	api1ComputedRoutes := routestest.ReconcileComputedRoutes(suite.T(), suite.client, api1ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
@@ -1039,11 +1037,11 @@ func (suite *dataFetcherSuite) TestFetcher_FetchAndMergeProxyConfigurations() {
 		},
 	}
 
-	proxyCfg1 := resourcetest.Resource(meshapi.ProxyConfigurationType, "config-1").
+	proxyCfg1 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "config-1").
 		WithData(suite.T(), proxyCfg1Data).
 		Write(suite.T(), suite.client)
 
-	proxyCfg2 := resourcetest.Resource(meshapi.ProxyConfigurationType, "config-2").
+	proxyCfg2 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "config-2").
 		WithData(suite.T(), proxyCfg2Data).
 		Write(suite.T(), suite.client)
 

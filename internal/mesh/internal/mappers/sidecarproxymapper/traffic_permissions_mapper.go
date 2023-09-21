@@ -6,11 +6,10 @@ package sidecarproxymapper
 import (
 	"context"
 
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -21,13 +20,13 @@ func (m *Mapper) MapComputedTrafficPermissionsToProxyStateTemplate(_ context.Con
 		return nil, err
 	}
 
-	pid := resource.ReplaceType(auth.WorkloadIdentityType, res.Id)
+	pid := resource.ReplaceType(pbauth.WorkloadIdentityType, res.Id)
 	ids := m.identitiesCache.ProxyIDsByWorkloadIdentity(pid)
 
 	requests := make([]controller.Request, 0, len(ids))
 	for _, id := range ids {
 		requests = append(requests, controller.Request{
-			ID: resource.ReplaceType(meshapi.ProxyStateTemplateType, id)},
+			ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, id)},
 		)
 	}
 

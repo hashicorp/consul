@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -567,7 +566,7 @@ func TestValidateReference(t *testing.T) {
 		PeerName:  "local",
 	}
 
-	allowedType := catalogapi.WorkloadType
+	allowedType := pbcatalog.WorkloadType
 
 	type testCase struct {
 		check *pbresource.ID
@@ -584,7 +583,7 @@ func TestValidateReference(t *testing.T) {
 		},
 		"type-err": {
 			check: &pbresource.ID{
-				Type:    catalogapi.NodeType,
+				Type:    pbcatalog.NodeType,
 				Tenancy: allowedTenancy,
 				Name:    "foo",
 			},

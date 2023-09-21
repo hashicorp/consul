@@ -10,8 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
@@ -57,22 +55,22 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			},
 		},
 	}
-	apiAppService := resourcetest.Resource(catalogapi.ServiceType, apiApp).
+	apiAppService := resourcetest.Resource(pbcatalog.ServiceType, apiApp).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	apiApp2Service := resourcetest.Resource(catalogapi.ServiceType, apiApp2).
+	apiApp2Service := resourcetest.Resource(pbcatalog.ServiceType, apiApp2).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	apiAppEndpoints := resourcetest.Resource(catalogapi.ServiceEndpointsType, apiApp).
+	apiAppEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp).
 		WithOwner(apiAppService.Id).
 		WithData(t, multiportEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
-	apiApp2Endpoints := resourcetest.Resource(catalogapi.ServiceEndpointsType, apiApp2).
+	apiApp2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp2).
 		WithOwner(apiApp2Service.Id).
 		WithData(t, multiportEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
@@ -101,7 +99,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			},
 		},
 	}
-	mwEndpoints := resourcetest.Resource(catalogapi.ServiceEndpointsType, apiApp).
+	mwEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp).
 		WithOwner(apiAppService.Id).
 		WithData(t, mwEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
@@ -116,13 +114,13 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		Tenancy: apiApp2Endpoints.Id.Tenancy,
 	}
 
-	apiAppComputedRoutesID := resource.ReplaceType(meshapi.ComputedRoutesType, apiAppService.Id)
+	apiAppComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, apiAppService.Id)
 	apiAppComputedRoutes := routestest.BuildComputedRoutes(t, apiAppComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, apiAppService),
 	)
 	require.NotNil(t, apiAppComputedRoutes)
 
-	apiApp2ComputedRoutesID := resource.ReplaceType(meshapi.ComputedRoutesType, apiApp2Service.Id)
+	apiApp2ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, apiApp2Service.Id)
 	apiApp2ComputedRoutes := routestest.BuildComputedRoutes(t, apiApp2ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, apiApp2Service),
 	)

@@ -12,8 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	"github.com/hashicorp/consul/internal/catalog"
@@ -60,7 +58,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	newService := func(name string, data *pbcatalog.Service) *types.DecodedService {
-		svc := rtest.Resource(catalogapi.ServiceType, name).
+		svc := rtest.Resource(pbcatalog.ServiceType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
@@ -68,21 +66,21 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	newHTTPRoute := func(name string, data *pbmesh.HTTPRoute) *types.DecodedHTTPRoute {
-		svc := rtest.Resource(meshapi.HTTPRouteType, name).
+		svc := rtest.Resource(pbmesh.HTTPRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbmesh.HTTPRoute](t, svc)
 	}
 	newGRPCRoute := func(name string, data *pbmesh.GRPCRoute) *types.DecodedGRPCRoute {
-		svc := rtest.Resource(meshapi.GRPCRouteType, name).
+		svc := rtest.Resource(pbmesh.GRPCRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
 		return rtest.MustDecode[*pbmesh.GRPCRoute](t, svc)
 	}
 	newTCPRoute := func(name string, data *pbmesh.TCPRoute) *types.DecodedTCPRoute {
-		svc := rtest.Resource(meshapi.TCPRouteType, name).
+		svc := rtest.Resource(pbmesh.TCPRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
@@ -90,7 +88,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	newDestPolicy := func(name string, data *pbmesh.DestinationPolicy) *types.DecodedDestinationPolicy {
-		policy := rtest.Resource(meshapi.DestinationPolicyType, name).
+		policy := rtest.Resource(pbmesh.DestinationPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, policy)
@@ -98,7 +96,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	newFailPolicy := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
-		policy := rtest.Resource(catalogapi.FailoverPolicyType, name).
+		policy := rtest.Resource(pbcatalog.FailoverPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).Build()
 		rtest.ValidateAndNormalize(t, registry, policy)
@@ -110,25 +108,25 @@ func TestGenerateComputedRoutes(t *testing.T) {
 	}
 
 	var (
-		apiServiceID = rtest.Resource(catalogapi.ServiceType, "api").
+		apiServiceID = rtest.Resource(pbcatalog.ServiceType, "api").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				ID()
 		apiServiceRef       = resource.Reference(apiServiceID, "")
-		apiComputedRoutesID = rtest.Resource(meshapi.ComputedRoutesType, "api").
+		apiComputedRoutesID = rtest.Resource(pbmesh.ComputedRoutesType, "api").
 					WithTenancy(resource.DefaultNamespacedTenancy()).
 					ID()
 
-		fooServiceID = rtest.Resource(catalogapi.ServiceType, "foo").
+		fooServiceID = rtest.Resource(pbcatalog.ServiceType, "foo").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				ID()
 		fooServiceRef = resource.Reference(fooServiceID, "")
 
-		barServiceID = rtest.Resource(catalogapi.ServiceType, "bar").
+		barServiceID = rtest.Resource(pbcatalog.ServiceType, "bar").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				ID()
 		barServiceRef = resource.Reference(barServiceID, "")
 
-		deadServiceID = rtest.Resource(catalogapi.ServiceType, "dead").
+		deadServiceID = rtest.Resource(pbcatalog.ServiceType, "dead").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				ID()
 		deadServiceRef = resource.Reference(deadServiceID, "")
@@ -380,7 +378,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		tcpRoute1 := &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "tcp"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp"),
 			},
 			Rules: []*pbmesh.TCPRouteRule{{
 				BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -391,8 +389,8 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http2"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http2"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -403,7 +401,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		grpcRoute1 := &pbmesh.GRPCRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "grpc"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc"),
 			},
 			Rules: []*pbmesh.GRPCRouteRule{{
 				BackendRefs: []*pbmesh.GRPCBackendRef{{
@@ -429,9 +427,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				BoundReferences: []*pbresource.Reference{
 					apiServiceRef,
 					fooServiceRef,
-					newRef(types.GRPCRouteType, "api-grpc-route1"),
-					newRef(types.HTTPRouteType, "api-http-route1"),
-					newRef(types.TCPRouteType, "api-tcp-route1"),
+					newRef(pbmesh.GRPCRouteType, "api-grpc-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.TCPRouteType, "api-tcp-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"tcp": {
@@ -580,7 +578,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -637,7 +635,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				BoundReferences: []*pbresource.Reference{
 					apiServiceRef,
 					fooServiceRef,
-					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					// note: tcp has been upgraded to http in the presence of an HTTPRoute
@@ -674,7 +672,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -694,7 +692,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		// Update this after the fact, but don't update the inner indexing in
 		// the 'related' struct.
 		{
-			httpRoute1.ParentRefs[0] = newParentRef(newRef(catalogapi.ServiceType, "foo"), "")
+			httpRoute1.ParentRefs[0] = newParentRef(newRef(pbcatalog.ServiceType, "foo"), "")
 			apiHTTPRoute1.Data = httpRoute1
 
 			anyData, err := anypb.New(httpRoute1)
@@ -768,7 +766,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
 				// Using bad parent port (www).
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "www"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "www"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -851,7 +849,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		httpRouteData := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
 				// Using bad parent port (www).
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -864,7 +862,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 		tcpRouteData := &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
 				// Using bad parent port (www).
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.TCPRouteRule{{
 				BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -941,7 +939,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ConditionConflictNotBoundToParentRef(
 					apiServiceRef,
 					"http",
-					meshapi.HTTPRouteType,
+					pbmesh.HTTPRouteType,
 				),
 			},
 		}
@@ -982,7 +980,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				Matches: []*pbmesh.HTTPRouteMatch{{
@@ -999,7 +997,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute2 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				Matches: []*pbmesh.HTTPRouteMatch{{
@@ -1032,8 +1030,8 @@ func TestGenerateComputedRoutes(t *testing.T) {
 					apiServiceRef,
 					barServiceRef,
 					fooServiceRef,
-					newRef(types.HTTPRouteType, "api-http-route1"),
-					newRef(types.HTTPRouteType, "api-http-route2"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route2"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
@@ -1117,7 +1115,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				Matches: []*pbmesh.HTTPRouteMatch{{
@@ -1144,7 +1142,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				BoundReferences: []*pbresource.Reference{
 					apiServiceRef,
 					fooServiceRef,
-					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
@@ -1197,7 +1195,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 			httpRoute1 := &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+					newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 				},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -1219,7 +1217,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				Data: &pbmesh.ComputedRoutes{
 					BoundReferences: []*pbresource.Reference{
 						apiServiceRef,
-						newRef(types.HTTPRouteType, "api-http-route1"),
+						newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"http": {
@@ -1262,7 +1260,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 			grpcRoute1 := &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(newRef(catalogapi.ServiceType, "api"), "grpc"),
+					newParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc"),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
@@ -1284,7 +1282,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				Data: &pbmesh.ComputedRoutes{
 					BoundReferences: []*pbresource.Reference{
 						apiServiceRef,
-						newRef(types.GRPCRouteType, "api-grpc-route1"),
+						newRef(pbmesh.GRPCRouteType, "api-grpc-route1"),
 					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"grpc": {
@@ -1327,7 +1325,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 			tcpRoute1 := &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(newRef(catalogapi.ServiceType, "api"), "tcp"),
+					newParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp"),
 				},
 				Rules: []*pbmesh.TCPRouteRule{{
 					BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -1349,7 +1347,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				Data: &pbmesh.ComputedRoutes{
 					BoundReferences: []*pbresource.Reference{
 						apiServiceRef,
-						newRef(types.TCPRouteType, "api-tcp-route1"),
+						newRef(pbmesh.TCPRouteType, "api-tcp-route1"),
 					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"tcp": {
@@ -1396,7 +1394,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -1420,7 +1418,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				BoundReferences: []*pbresource.Reference{
 					apiServiceRef,
 					fooServiceRef,
-					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
@@ -1474,7 +1472,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				Matches: []*pbmesh.HTTPRouteMatch{{
@@ -1516,8 +1514,8 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				BoundReferences: []*pbresource.Reference{
 					apiServiceRef,
 					fooServiceRef,
-					newRef(types.DestinationPolicyType, "foo"),
-					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.DestinationPolicyType, "foo"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
@@ -1589,7 +1587,7 @@ func TestGenerateComputedRoutes(t *testing.T) {
 
 		httpRoute1 := &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{
-				newParentRef(newRef(catalogapi.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			},
 			Rules: []*pbmesh.HTTPRouteRule{{
 				Matches: []*pbmesh.HTTPRouteMatch{{
@@ -1634,11 +1632,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
 				BoundReferences: []*pbresource.Reference{
-					newRef(catalog.FailoverPolicyType, "foo"),
+					newRef(pbcatalog.FailoverPolicyType, "foo"),
 					apiServiceRef,
 					barServiceRef,
 					fooServiceRef,
-					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(pbmesh.HTTPRouteType, "api-http-route1"),
 				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {

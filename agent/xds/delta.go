@@ -31,12 +31,12 @@ import (
 	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/consul/agent/xds/extensionruntime"
 	"github.com/hashicorp/consul/agent/xdsv2"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/logging"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/version"
 )
@@ -435,7 +435,7 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 			Namespace: entMeta.NamespaceOrDefault(),
 			Partition: entMeta.PartitionOrDefault(),
 		},
-		Type: meshapi.ProxyStateTemplateType,
+		Type: pbmesh.ProxyStateTemplateType,
 	}
 }
 

@@ -19,7 +19,7 @@ import (
 func TestValidateTrafficPermissions_ParseError(t *testing.T) {
 	data := &pbauth.ComputedTrafficPermissions{AllowPermissions: nil}
 
-	res := resourcetest.Resource(TrafficPermissionsType, "tp").
+	res := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
 		WithData(t, data).
 		Build()
 
@@ -102,7 +102,7 @@ func TestValidateTrafficPermissions(t *testing.T) {
 
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
-			res := resourcetest.Resource(TrafficPermissionsType, "tp").
+			res := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
 				WithData(t, tc.tp).
 				Build()
 
@@ -285,7 +285,7 @@ func TestValidateTrafficPermissions_Permissions(t *testing.T) {
 				Permissions: []*pbauth.Permission{tc.p},
 			}
 
-			res := resourcetest.Resource(TrafficPermissionsType, "tp").
+			res := resourcetest.Resource(pbauth.TrafficPermissionsType, "tp").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, tp).
 				Build()
@@ -316,7 +316,7 @@ func TestMutateTrafficPermissions(t *testing.T) {
 		if tenancy == nil {
 			tenancy = resource.DefaultNamespacedTenancy()
 		}
-		res := resourcetest.Resource(TrafficPermissionsType, "api").
+		res := resourcetest.Resource(pbauth.TrafficPermissionsType, "api").
 			WithTenancy(tenancy).
 			WithData(t, tc.tp).
 			Build()

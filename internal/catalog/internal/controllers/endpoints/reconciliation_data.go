@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -124,7 +123,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 	// workloads selected by name if they are also matched by a prefix.
 	for _, prefix := range sel.GetPrefixes() {
 		rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
-			Type:       catalogapi.WorkloadType,
+			Type:       pbcatalog.WorkloadType,
 			Tenancy:    svc.resource.Id.Tenancy,
 			NamePrefix: prefix,
 		})
@@ -150,7 +149,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 		}
 
 		workloadID := &pbresource.ID{
-			Type:    catalogapi.WorkloadType,
+			Type:    pbcatalog.WorkloadType,
 			Tenancy: svc.resource.Id.Tenancy,
 			Name:    name,
 		}

@@ -6,7 +6,6 @@ package types
 import (
 	"github.com/hashicorp/go-multierror"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -14,7 +13,7 @@ import (
 
 func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     catalogapi.HealthStatusV2Beta1Type,
+		Type:     pbcatalog.HealthStatusType,
 		Proto:    &pbcatalog.HealthStatus{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthStatus,
@@ -61,7 +60,7 @@ func ValidateHealthStatus(res *pbresource.Resource) error {
 			Name:    "owner",
 			Wrapped: resource.ErrMissing,
 		})
-	} else if !resource.EqualType(res.Owner.Type, catalogapi.WorkloadType) && !resource.EqualType(res.Owner.Type, catalogapi.NodeType) {
+	} else if !resource.EqualType(res.Owner.Type, pbcatalog.WorkloadType) && !resource.EqualType(res.Owner.Type, pbcatalog.NodeType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 

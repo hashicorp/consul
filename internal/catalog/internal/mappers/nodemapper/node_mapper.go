@@ -7,7 +7,6 @@ import (
 	"context"
 	"sync"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -31,7 +30,7 @@ func New() *NodeMapper {
 // the workload and with the name populated from the workloads NodeName field.
 func (m *NodeMapper) NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID {
 	return &pbresource.ID{
-		Type:    catalogapi.NodeType,
+		Type:    pbcatalog.NodeType,
 		Tenancy: workload.Id.Tenancy,
 		Name:    workloadData.NodeName,
 	}

@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -18,8 +17,8 @@ import (
 )
 
 func NodeHealthController() controller.Controller {
-	return controller.ForType(catalogapi.NodeType).
-		WithWatch(catalogapi.HealthStatusType, controller.MapOwnerFiltered(catalogapi.NodeType)).
+	return controller.ForType(pbcatalog.NodeType).
+		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 
@@ -90,7 +89,7 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 	health := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, catalogapi.HealthStatusType) {
+		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
 			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible as the resource service + type validations the

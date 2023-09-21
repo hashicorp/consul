@@ -9,11 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -61,7 +59,7 @@ func TestMutateGRPCRoute(t *testing.T) {
 			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{
 					{BackendRefs: refs},
@@ -69,7 +67,7 @@ func TestMutateGRPCRoute(t *testing.T) {
 			},
 			expect: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{
 					{BackendRefs: expect},
@@ -79,7 +77,7 @@ func TestMutateGRPCRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.GRPCRouteType, "api").
+		res := resourcetest.Resource(pbmesh.GRPCRouteType, "api").
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
@@ -110,7 +108,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.GRPCRouteType, "api").
+		res := resourcetest.Resource(pbmesh.GRPCRouteType, "api").
 			WithData(t, tc.route).
 			Build()
 
@@ -139,7 +137,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"hostnames not supported for services": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Hostnames: []string{"foo.local"},
 			},
@@ -148,18 +146,18 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"no rules": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 			},
 		},
 		"rules with no matches": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -167,14 +165,14 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"rules with matches that are empty": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
 						// none
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -182,7 +180,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match with no type is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -191,7 +189,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -200,7 +198,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match with unknown type is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -210,7 +208,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -219,7 +217,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match with no service nor method is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -228,7 +226,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -237,7 +235,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match is good (1)": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -247,7 +245,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -255,7 +253,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match is good (2)": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -265,7 +263,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -273,7 +271,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"method match is good (3)": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -284,7 +282,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -292,7 +290,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"header match with no type is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -301,7 +299,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -310,7 +308,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"header match with unknown type is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -320,7 +318,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -329,7 +327,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"header match with no name is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -338,7 +336,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -347,7 +345,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"header match is good": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Matches: []*pbmesh.GRPCRouteMatch{{
@@ -357,7 +355,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						}},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -365,14 +363,14 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter empty is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
 						// none
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -381,14 +379,14 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter req header mod is ok": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
 						RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -396,14 +394,14 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter resp header mod is ok": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
 						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -411,14 +409,14 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter rewrite header mod missing path prefix": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
 						UrlRewrite: &pbmesh.HTTPURLRewriteFilter{},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -427,7 +425,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter rewrite header mod is ok": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
@@ -436,7 +434,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -444,7 +442,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter req+resp header mod is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
@@ -452,7 +450,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						ResponseHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -461,7 +459,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter req+rewrite header mod is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
@@ -471,7 +469,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -480,7 +478,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter resp+rewrite header mod is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
@@ -490,7 +488,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -499,7 +497,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"filter req+resp+rewrite header mod is bad": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Filters: []*pbmesh.GRPCRouteFilter{{
@@ -510,7 +508,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 						},
 					}},
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -519,11 +517,11 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"backend ref with filters is unsupported": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 						Filters: []*pbmesh.GRPCRouteFilter{{
 							RequestHeaderModifier: &pbmesh.HTTPHeaderFilter{},
 						}},
@@ -535,7 +533,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		"nil backend ref": {
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					BackendRefs: []*pbmesh.GRPCBackendRef{nil},
@@ -550,12 +548,12 @@ func TestValidateGRPCRoute(t *testing.T) {
 		cases["timeouts: "+name] = testcase{
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Timeouts: timeoutsTC.timeouts,
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -568,12 +566,12 @@ func TestValidateGRPCRoute(t *testing.T) {
 		cases["retries: "+name] = testcase{
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{{
 					Retries: retriesTC.retries,
 					BackendRefs: []*pbmesh.GRPCBackendRef{{
-						BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+						BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 					}},
 				}},
 			},
@@ -601,7 +599,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 		cases["backend-ref: "+name] = testcase{
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.GRPCRouteRule{
 					{BackendRefs: refs},
@@ -641,7 +639,7 @@ func TestGRPCRouteACLs(t *testing.T) {
 			{BackendRefs: ruleRefs},
 		}
 
-		return resourcetest.Resource(GRPCRouteType, "api-grpc-route").
+		return resourcetest.Resource(pbmesh.GRPCRouteType, "api-grpc-route").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Build()

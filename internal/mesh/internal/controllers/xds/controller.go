@@ -12,8 +12,6 @@ import (
 	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
@@ -21,6 +19,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/lib"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -35,8 +35,8 @@ func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher 
 		panic("endpointsMapper, updater, fetcher, leafCertManager, leafMapper, and datacenter are required")
 	}
 
-	return controller.ForType(meshapi.ProxyStateTemplateType).
-		WithWatch(catalogapi.ServiceEndpointsType, endpointsMapper.MapLink).
+	return controller.ForType(pbmesh.ProxyStateTemplateType).
+		WithWatch(pbcatalog.ServiceEndpointsType, endpointsMapper.MapLink).
 		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithCustomWatch(&controller.Source{Source: leafCertEvents}, leafMapper.EventMapLink).
 		WithPlacement(controller.PlacementEachServer).

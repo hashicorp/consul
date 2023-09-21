@@ -11,9 +11,9 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -62,38 +62,38 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 
 	resOneParentOneBackend := newRoute(t,
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "api1"),
+			newRef(pbcatalog.ServiceType, "api1"),
 		},
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "backend1"),
+			newRef(pbcatalog.ServiceType, "backend1"),
 		},
 	)
 	resTwoParentsOneBackend := newRoute(t,
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "api1"),
-			newRef(catalog.ServiceType, "api2"),
+			newRef(pbcatalog.ServiceType, "api1"),
+			newRef(pbcatalog.ServiceType, "api2"),
 		},
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "backend1"),
+			newRef(pbcatalog.ServiceType, "backend1"),
 		},
 	)
 	resOneParentTwoBackends := newRoute(t,
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "api1"),
+			newRef(pbcatalog.ServiceType, "api1"),
 		},
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "backend1"),
-			newRef(catalog.ServiceType, "backend2"),
+			newRef(pbcatalog.ServiceType, "backend1"),
+			newRef(pbcatalog.ServiceType, "backend2"),
 		},
 	)
 	resTwoParentsTwoBackends := newRoute(t,
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "api1"),
-			newRef(catalog.ServiceType, "api2"),
+			newRef(pbcatalog.ServiceType, "api1"),
+			newRef(pbcatalog.ServiceType, "api2"),
 		},
 		[]*pbresource.Reference{
-			newRef(catalog.ServiceType, "backend1"),
-			newRef(catalog.ServiceType, "backend2"),
+			newRef(pbcatalog.ServiceType, "backend1"),
+			newRef(pbcatalog.ServiceType, "backend2"),
 		},
 	)
 

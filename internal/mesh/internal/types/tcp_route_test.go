@@ -9,10 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -60,7 +59,7 @@ func TestMutateTCPRoute(t *testing.T) {
 			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: refs},
@@ -68,7 +67,7 @@ func TestMutateTCPRoute(t *testing.T) {
 			},
 			expect: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: expect},
@@ -78,7 +77,7 @@ func TestMutateTCPRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.TCPRouteType, "api").
+		res := resourcetest.Resource(pbmesh.TCPRouteType, "api").
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
@@ -109,7 +108,7 @@ func TestValidateTCPRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.TCPRouteType, "api").
+		res := resourcetest.Resource(pbmesh.TCPRouteType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.route).
 			Build()
@@ -139,24 +138,24 @@ func TestValidateTCPRoute(t *testing.T) {
 		"no rules": {
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 			},
 		},
 		"more than one rule": {
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{
 						BackendRefs: []*pbmesh.TCPBackendRef{{
-							BackendRef: newBackendRef(catalogapi.ServiceType, "api", ""),
+							BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 						}},
 					},
 					{
 						BackendRefs: []*pbmesh.TCPBackendRef{{
-							BackendRef: newBackendRef(catalogapi.ServiceType, "db", ""),
+							BackendRef: newBackendRef(pbcatalog.ServiceType, "db", ""),
 						}},
 					},
 				},
@@ -185,7 +184,7 @@ func TestValidateTCPRoute(t *testing.T) {
 		cases["backend-ref: "+name] = testcase{
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalogapi.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: refs},
@@ -225,7 +224,7 @@ func TestTCPRouteACLs(t *testing.T) {
 			{BackendRefs: ruleRefs},
 		}
 
-		return resourcetest.Resource(TCPRouteType, "api-tcp-route").
+		return resourcetest.Resource(pbmesh.TCPRouteType, "api-tcp-route").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Build()

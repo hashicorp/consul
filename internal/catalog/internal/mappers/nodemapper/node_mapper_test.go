@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -25,12 +24,12 @@ func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
 		// the other fields should be irrelevant
 	}
 
-	workload := resourcetest.Resource(catalogapi.WorkloadType, "test-workload").
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(t, data).Build()
 
 	actual := mapper.NodeIDFromWorkload(workload, data)
 	expected := &pbresource.ID{
-		Type:    catalogapi.NodeType,
+		Type:    pbcatalog.NodeType,
 		Tenancy: workload.Id.Tenancy,
 		Name:    "test-node",
 	}
@@ -55,11 +54,11 @@ func requireWorkloadsTracked(t *testing.T, mapper *NodeMapper, node *pbresource.
 func TestNodeMapper_WorkloadTracking(t *testing.T) {
 	mapper := New()
 
-	node1 := resourcetest.Resource(catalogapi.NodeType, "node1").
+	node1 := resourcetest.Resource(pbcatalog.NodeType, "node1").
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.1"}}}).
 		Build()
 
-	node2 := resourcetest.Resource(catalogapi.NodeType, "node2").
+	node2 := resourcetest.Resource(pbcatalog.NodeType, "node2").
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.2"}}}).
 		Build()
 
@@ -69,11 +68,11 @@ func TestNodeMapper_WorkloadTracking(t *testing.T) {
 		PeerName:  "local",
 	}
 
-	workload1 := &pbresource.ID{Type: catalogapi.WorkloadType, Tenancy: tenant, Name: "workload1"}
-	workload2 := &pbresource.ID{Type: catalogapi.WorkloadType, Tenancy: tenant, Name: "workload2"}
-	workload3 := &pbresource.ID{Type: catalogapi.WorkloadType, Tenancy: tenant, Name: "workload3"}
-	workload4 := &pbresource.ID{Type: catalogapi.WorkloadType, Tenancy: tenant, Name: "workload4"}
-	workload5 := &pbresource.ID{Type: catalogapi.WorkloadType, Tenancy: tenant, Name: "workload5"}
+	workload1 := &pbresource.ID{Type: pbcatalog.WorkloadType, Tenancy: tenant, Name: "workload1"}
+	workload2 := &pbresource.ID{Type: pbcatalog.WorkloadType, Tenancy: tenant, Name: "workload2"}
+	workload3 := &pbresource.ID{Type: pbcatalog.WorkloadType, Tenancy: tenant, Name: "workload3"}
+	workload4 := &pbresource.ID{Type: pbcatalog.WorkloadType, Tenancy: tenant, Name: "workload4"}
+	workload5 := &pbresource.ID{Type: pbcatalog.WorkloadType, Tenancy: tenant, Name: "workload5"}
 
 	// No Workloads have been tracked so the mapper should return empty lists
 	requireWorkloadsTracked(t, mapper, node1)

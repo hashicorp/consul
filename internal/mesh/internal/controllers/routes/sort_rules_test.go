@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -50,7 +49,7 @@ func TestGammaInitialSortWrappedRoutes(t *testing.T) {
 	// newNode will only populate the fields that the sorting function cares
 	// about.
 	newNode := func(tenancy *pbresource.Tenancy, name string, gen string) *inputRouteNode {
-		id := rtest.Resource(meshapi.HTTPRouteType, name).
+		id := rtest.Resource(pbmesh.HTTPRouteType, name).
 			WithTenancy(tenancy).
 			ID()
 

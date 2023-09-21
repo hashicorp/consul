@@ -11,9 +11,12 @@ import "pbcatalog/v2beta1/protocol.proto";
 import "pbcatalog/v2beta1/selector.proto";
 import "pbmesh/v2beta1/connection.proto";
 import "pbmesh/v2beta1/routing.proto";
+import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message UpstreamsConfiguration {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   // Selection of workloads these upstreams should apply to.
   // These can be prefixes or specific workload names.
   hashicorp.consul.catalog.v2beta1.WorkloadSelector workloads = 1;

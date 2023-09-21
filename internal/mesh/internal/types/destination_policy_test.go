@@ -10,6 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -25,7 +28,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(meshapi.DestinationPolicyType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
 			WithData(t, tc.policy).
 			Build()
 
@@ -546,7 +549,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(DestinationPolicyType)
+	reg, ok := registry.Resolve(pbmesh.DestinationPolicyType)
 	require.True(t, ok)
 
 	run := func(t *testing.T, tc testcase) {
@@ -557,7 +560,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 				},
 			},
 		}
-		res := resourcetest.Resource(DestinationPolicyType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, destData).
 			Build()

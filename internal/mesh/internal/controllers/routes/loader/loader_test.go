@@ -11,8 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -56,7 +54,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	}
 
 	writeHTTP := func(name string, data *pbmesh.HTTPRoute) *types.DecodedHTTPRoute {
-		res := rtest.Resource(meshapi.HTTPRouteType, name).
+		res := rtest.Resource(pbmesh.HTTPRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -67,7 +65,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	}
 
 	writeGRPC := func(name string, data *pbmesh.GRPCRoute) *types.DecodedGRPCRoute {
-		res := rtest.Resource(meshapi.GRPCRouteType, name).
+		res := rtest.Resource(pbmesh.GRPCRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -79,7 +77,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	_ = writeGRPC // TODO
 
 	writeTCP := func(name string, data *pbmesh.TCPRoute) *types.DecodedTCPRoute {
-		res := rtest.Resource(meshapi.TCPRouteType, name).
+		res := rtest.Resource(pbmesh.TCPRouteType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -91,7 +89,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	_ = writeTCP // TODO
 
 	writeDestPolicy := func(name string, data *pbmesh.DestinationPolicy) *types.DecodedDestinationPolicy {
-		res := rtest.Resource(meshapi.DestinationPolicyType, name).
+		res := rtest.Resource(pbmesh.DestinationPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -101,7 +99,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	}
 
 	writeFailover := func(name string, data *pbcatalog.FailoverPolicy) *types.DecodedFailoverPolicy {
-		res := rtest.Resource(catalogapi.FailoverPolicyType, name).
+		res := rtest.Resource(pbcatalog.FailoverPolicyType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -111,7 +109,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	}
 
 	writeService := func(name string, data *pbcatalog.Service) *types.DecodedService {
-		res := rtest.Resource(catalogapi.ServiceType, name).
+		res := rtest.Resource(pbcatalog.ServiceType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, data).
 			Write(t, client)
@@ -153,12 +151,12 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	})
 
 	apiRoutesID := &pbresource.ID{
-		Type:    meshapi.ComputedRoutesType,
+		Type:    pbmesh.ComputedRoutesType,
 		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "api",
 	}
 	adminRoutesID := &pbresource.ID{
-		Type:    meshapi.ComputedRoutesType,
+		Type:    pbmesh.ComputedRoutesType,
 		Tenancy: resource.DefaultNamespacedTenancy(),
 		Name:    "admin",
 	}
@@ -176,7 +174,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	// Write one silly http route
 	route1 := writeHTTP("api-route1", &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: newRef(catalogapi.ServiceType, "api"),
+			Ref: newRef(pbcatalog.ServiceType, "api"),
 			// all ports
 		}},
 	})
@@ -197,20 +195,20 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	// add a second route that is more interesting and is TCP
 	route2 := writeTCP("api-route2", &pbmesh.TCPRoute{
 		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: newRef(catalogapi.ServiceType, "api"),
+			Ref: newRef(pbcatalog.ServiceType, "api"),
 			// all ports
 		}},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{
 				{
 					BackendRef: &pbmesh.BackendReference{
-						Ref: newRef(catalogapi.ServiceType, "foo"),
+						Ref: newRef(pbcatalog.ServiceType, "foo"),
 					},
 					Weight: 30,
 				},
 				{
 					BackendRef: &pbmesh.BackendReference{
-						Ref: newRef(catalogapi.ServiceType, "bar"),
+						Ref: newRef(pbcatalog.ServiceType, "bar"),
 					},
 					Weight: 70,
 				},
@@ -239,11 +237,11 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	route1 = writeHTTP("api-route1", &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
 			{
-				Ref: newRef(catalogapi.ServiceType, "api"),
+				Ref: newRef(pbcatalog.ServiceType, "api"),
 				// all ports
 			},
 			{
-				Ref: newRef(catalogapi.ServiceType, "admin"),
+				Ref: newRef(pbcatalog.ServiceType, "admin"),
 				// all ports
 			},
 		},
@@ -273,11 +271,11 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	route3 := writeGRPC("api-route3", &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
 			{
-				Ref: newRef(catalogapi.ServiceType, "api"),
+				Ref: newRef(pbcatalog.ServiceType, "api"),
 				// all ports
 			},
 			{
-				Ref: newRef(catalogapi.ServiceType, "admin"),
+				Ref: newRef(pbcatalog.ServiceType, "admin"),
 				// all ports
 			},
 		},
@@ -328,7 +326,7 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	barFailover := writeFailover("bar", &pbcatalog.FailoverPolicy{
 		Config: &pbcatalog.FailoverConfig{
 			Destinations: []*pbcatalog.FailoverDestination{{
-				Ref: newRef(catalogapi.ServiceType, "admin"),
+				Ref: newRef(pbcatalog.ServiceType, "admin"),
 			}},
 		},
 	})

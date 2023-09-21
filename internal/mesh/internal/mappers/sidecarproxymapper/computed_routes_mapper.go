@@ -6,10 +6,9 @@ package sidecarproxymapper
 import (
 	"context"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -32,7 +31,7 @@ func (m *Mapper) MapComputedRoutesToProxyStateTemplate(ctx context.Context, rt c
 
 func (m *Mapper) mapComputedRoutesToProxyStateTemplate(ctx context.Context, rt controller.Runtime, computedRoutesID *pbresource.ID) ([]controller.Request, error) {
 	// Each Destination gets a single ComputedRoutes.
-	serviceID := resource.ReplaceType(catalogapi.ServiceType, computedRoutesID)
+	serviceID := resource.ReplaceType(pbcatalog.ServiceType, computedRoutesID)
 	serviceRef := resource.Reference(serviceID, "")
 
 	ids, err := m.mapServiceThroughDestinationsToProxyStateTemplates(ctx, rt, serviceRef)
@@ -40,5 +39,5 @@ func (m *Mapper) mapComputedRoutesToProxyStateTemplate(ctx context.Context, rt c
 		return nil, err
 	}
 
-	return controller.MakeRequests(meshapi.ProxyStateTemplateType, ids), nil
+	return controller.MakeRequests(pbmesh.ProxyStateTemplateType, ids), nil
 }

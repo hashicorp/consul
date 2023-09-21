@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -38,9 +37,9 @@ var (
 func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 	tree := radix.New[[]controller.Request]()
 
-	toRemove := rtest.Resource(catalogapi.ServiceEndpointsType, "blah").ID()
-	other1 := rtest.Resource(catalogapi.ServiceEndpointsType, "other1").ID()
-	other2 := rtest.Resource(catalogapi.ServiceEndpointsType, "other1").ID()
+	toRemove := rtest.Resource(pbcatalog.ServiceEndpointsType, "blah").ID()
+	other1 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
+	other2 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
 
 	// we are trying to create a tree such that removal of the toRemove id causes a
 	// few things to happen.
@@ -129,10 +128,10 @@ type selectionTrackerSuite struct {
 func (suite *selectionTrackerSuite) SetupTest() {
 	suite.tracker = New()
 
-	suite.workloadAPI1 = rtest.Resource(catalogapi.WorkloadType, "api-1").WithData(suite.T(), workloadData).Build()
-	suite.workloadWeb1 = rtest.Resource(catalogapi.WorkloadType, "web-1").WithData(suite.T(), workloadData).Build()
-	suite.endpointsFoo = rtest.Resource(catalogapi.ServiceEndpointsType, "foo").ID()
-	suite.endpointsBar = rtest.Resource(catalogapi.ServiceEndpointsType, "bar").ID()
+	suite.workloadAPI1 = rtest.Resource(pbcatalog.WorkloadType, "api-1").WithData(suite.T(), workloadData).Build()
+	suite.workloadWeb1 = rtest.Resource(pbcatalog.WorkloadType, "web-1").WithData(suite.T(), workloadData).Build()
+	suite.endpointsFoo = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").ID()
+	suite.endpointsBar = rtest.Resource(pbcatalog.ServiceEndpointsType, "bar").ID()
 }
 
 func (suite *selectionTrackerSuite) requireMappedIDs(workload *pbresource.Resource, ids ...*pbresource.ID) {

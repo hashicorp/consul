@@ -8,12 +8,12 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -102,7 +102,7 @@ func TestBuildLocalApp(t *testing.T) {
 }
 
 func testProxyStateTemplateID() *pbresource.ID {
-	return resourcetest.Resource(meshapi.ProxyStateTemplateType, "test").
+	return resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		ID()
 }

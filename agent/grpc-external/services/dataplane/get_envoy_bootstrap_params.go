@@ -15,8 +15,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	catalogapi "github.com/hashicorp/consul/api/catalog/v2beta1"
-	meshapi "github.com/hashicorp/consul/api/mesh/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -60,7 +58,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 				Namespace: req.Namespace,
 				Partition: req.Partition,
 			},
-			Type: catalogapi.WorkloadType,
+			Type: pbcatalog.WorkloadType,
 		}
 		workloadRsp, err := s.ResourceAPIClient.Read(ctx, &pbresource.ReadRequest{
 			Id: workloadId,
@@ -90,7 +88,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 
 		proxyCfgList, err := s.ResourceAPIClient.List(ctx, &pbresource.ListRequest{
 			Tenancy: workloadRsp.Resource.Id.GetTenancy(),
-			Type:    meshapi.ProxyConfigurationType,
+			Type:    pbmesh.ProxyConfigurationType,
 		})
 		if err != nil {
 			logger.Error("Error looking up proxyConfiguration", "error", err)

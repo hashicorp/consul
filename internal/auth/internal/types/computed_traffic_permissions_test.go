@@ -31,7 +31,7 @@ func TestValidateComputedTrafficPermissions_Permissions(t *testing.T) {
 			}
 
 			for _, ctp := range []*pbauth.ComputedTrafficPermissions{allowCTP, denyCTP} {
-				res := resourcetest.Resource(ComputedTrafficPermissionsType, "tp").
+				res := resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, "tp").
 					WithData(t, ctp).
 					Build()
 
