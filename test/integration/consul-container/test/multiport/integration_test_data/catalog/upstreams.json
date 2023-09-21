@@ -1,0 +1,45 @@
+{
+  "id": {
+    "type": {
+      "group": "mesh",
+      "group_version": "v1alpha1",
+      "kind": "Upstreams"
+    },
+    "tenancy": {
+      "partition": "default",
+      "namespace": "default",
+      "peerName": "local"
+    },
+    "name": "static-client-upstreams"
+  },
+  "data": {
+    "@type": "hashicorp.consul.mesh.v1alpha1.Upstreams",
+    "workloads": {
+      "prefixes": [
+        "static-client"
+      ]
+    },
+    "upstreams": [
+      {
+        "destination_ref": {
+          "type": {
+            "group": "catalog",
+            "group_version": "v1alpha1",
+            "kind": "Service"
+          },
+          "name": "static-server-service",
+          "tenancy": {
+            "partition": "default",
+            "namespace": "default",
+            "peerName": "local"
+          }
+        },
+        "destination_port": "tcp",
+        "ip_port": {
+          "ip": "127.0.0.1",
+          "port": 1234
+        }
+      }
+    ]
+  }
+}

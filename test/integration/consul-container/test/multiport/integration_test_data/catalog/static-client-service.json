@@ -1,0 +1,33 @@
+{
+  "id": {
+    "type": {
+      "group": "catalog",
+      "group_version": "v1alpha1",
+      "kind": "Service"
+    },
+    "tenancy": {
+      "partition": "default",
+      "namespace": "default",
+      "peerName": "local"
+    },
+    "name": "static-client-service"
+  },
+  "data": {
+    "@type": "hashicorp.consul.catalog.v1alpha1.Service",
+    "workloads": {
+      "prefixes": [
+        "static-client"
+      ]
+    },
+    "ports": [
+      {
+        "target_port": "tcp",
+        "protocol": "PROTOCOL_TCP"
+      },
+      {
+        "target_port": "mesh",
+        "protocol": "PROTOCOL_MESH"
+      }
+    ]
+  }
+}
