@@ -369,9 +369,9 @@ spec:
     "MaxPendingRequests" : <number>,
     "MaxConcurrentRequests": <number>,
     "PassiveHealthCheck" : {
-      "interval": <the time between checks>",
+      "interval": "<the time between checks>",
       "maxFailures": <number>,
-      "enforcingConsecutive5xx":<number>,
+      "enforcingConsecutive5xx": <number>,
       "maxEjectionPercent": <number>,
       "baseEjectionTime": "<the base time that a host is ejected for>"
     }
@@ -420,11 +420,12 @@ spec:
           "MaxPendingRequests" : <number>,
           "MaxConcurrentRequests" : <number>,
           "PassiveHealthCheck" : {
-            "interval": <the time between checks>",
+            "interval": "<the time between checks>",
             "maxFailures": <number>,
             "enforcingConsecutive5xx":<number>,
             "maxEjectionPercent": <number>,
             "baseEjectionTime": "<the base time that a host is ejected for>"
+          }
         }
       ],
       "TLS" : {
