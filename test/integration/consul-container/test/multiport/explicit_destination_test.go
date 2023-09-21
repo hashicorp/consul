@@ -70,7 +70,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.Consu
 		//client := node.GetClient()
 
 		// Create a service and dataplane
-		_, err := createServiceAndDataplane(t, node, "static-server-workload", "static-server", 8080, 8079)
+		_, err := createServiceAndDataplane(t, node, "static-server-workload", "static-server", 8080, 8079, []int{8080})
 		require.NoError(t, err)
 
 		//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
@@ -80,7 +80,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.Consu
 	{
 		node := cluster.Agents[2]
 		// Create a service and dataplane
-		clientDataplane, err := createServiceAndDataplane(t, node, "static-client-workload", "static-client", 8080, 8079)
+		clientDataplane, err := createServiceAndDataplane(t, node, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
 		require.NoError(t, err)
 
 		//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
@@ -88,7 +88,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.Consu
 	}
 }
 
-func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, serviceName string, httpPort, grpcPort int) (*libcluster.ConsulDataplaneContainer, error) {
+func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, serviceName string, httpPort, grpcPort int, serviceBindPorts []int) (*libcluster.ConsulDataplaneContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -104,7 +104,7 @@ func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, ser
 	})
 
 	// Create Consul Dataplane
-	dp, err := libcluster.NewConsulDataplane(context.Background(), proxyID, "0.0.0.0", 8502, node)
+	dp, err := libcluster.NewConsulDataplane(context.Background(), proxyID, "0.0.0.0", 8502, serviceBindPorts, node)
 	require.NoError(t, err)
 	deferClean.Add(func() {
 		_ = dp.Terminate()
