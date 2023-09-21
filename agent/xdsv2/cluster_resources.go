@@ -125,7 +125,7 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 			cluster.AltStatName = name
 		}
 		cluster.ConnectTimeout = dynamic.Config.ConnectTimeout
-		if !dynamic.Config.DisablePanicThreshold {
+		if dynamic.Config.DisablePanicThreshold {
 			cluster.CommonLbConfig = &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
 					Value: 0, // disable panic threshold
