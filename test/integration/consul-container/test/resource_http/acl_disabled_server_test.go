@@ -19,6 +19,12 @@ func TestWriteEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           applyResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
@@ -29,6 +35,12 @@ func TestWriteEndpoint(t *testing.T) {
 					queryOptions: defaultTenancyQueryOptions,
 					payload:      demoPayload,
 				},
+				{
+					gvk:          demoGVK,
+					resourceName: "korn-client",
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
+				},
 			},
 		},
 		{
@@ -36,6 +48,7 @@ func TestWriteEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "Unexpected response code: 400 (Request body didn't follow the resource schema)",
 				},
 			},
@@ -54,10 +67,13 @@ func TestWriteEndpoint(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
-			cluster, client := SetupClusterAndClient(t, clusterConfig, true)
+			cluster, server, client := SetupClusterAndClient(t, clusterConfig)
 			defer Terminate(t, cluster)
 
 			for i, op := range tc.operations {
+				if op.isServerOp {
+					client = server
+				}
 				err := op.action(client, tc.config[i])
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
@@ -77,10 +93,17 @@ func TestReadEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           readResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           readResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
@@ -96,6 +119,11 @@ func TestReadEndpoint(t *testing.T) {
 					resourceName: "korn",
 					queryOptions: defaultTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					resourceName: "korn",
+					queryOptions: defaultTenancyQueryOptions,
+				},
 			},
 		},
 		{
@@ -103,10 +131,17 @@ func TestReadEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           readResource,
+					isServerOp:       true,
+					expectedErrorMsg: "Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)",
+				},
+				{
+					action:           readResource,
+					isServerOp:       false,
 					expectedErrorMsg: "Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)",
 				},
 			},
@@ -122,6 +157,11 @@ func TestReadEndpoint(t *testing.T) {
 					resourceName: "fake-korn",
 					queryOptions: defaultTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					resourceName: "fake-korn",
+					queryOptions: defaultTenancyQueryOptions,
+				},
 			},
 		},
 	}
@@ -130,10 +170,13 @@ func TestReadEndpoint(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
-			cluster, client := SetupClusterAndClient(t, clusterConfig, true)
+			cluster, server, client := SetupClusterAndClient(t, clusterConfig)
 			defer Terminate(t, cluster)
 
 			for i, op := range tc.operations {
+				if op.isServerOp {
+					client = server
+				}
 				err := op.action(client, tc.config[i])
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
@@ -153,14 +196,37 @@ func TestDeleteEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           deleteResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           applyResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           deleteResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
 			config: []config{
+				{
+					gvk:          demoGVK,
+					resourceName: "korn",
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
+				},
+				{
+					gvk:          demoGVK,
+					resourceName: "korn",
+					queryOptions: defaultTenancyQueryOptions,
+				},
 				{
 					gvk:          demoGVK,
 					resourceName: "korn",
@@ -179,10 +245,17 @@ func TestDeleteEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           deleteResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           deleteResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
@@ -198,6 +271,11 @@ func TestDeleteEndpoint(t *testing.T) {
 					resourceName: "fake-korn",
 					queryOptions: defaultTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					resourceName: "fake-korn",
+					queryOptions: defaultTenancyQueryOptions,
+				},
 			},
 		},
 	}
@@ -206,10 +284,13 @@ func TestDeleteEndpoint(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
-			cluster, client := SetupClusterAndClient(t, clusterConfig, true)
+			cluster, server, client := SetupClusterAndClient(t, clusterConfig)
 			defer Terminate(t, cluster)
 
 			for i, op := range tc.operations {
+				if op.isServerOp {
+					client = server
+				}
 				err := op.action(client, tc.config[i])
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)
@@ -229,10 +310,17 @@ func TestListEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           listResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           listResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
@@ -247,6 +335,10 @@ func TestListEndpoint(t *testing.T) {
 					gvk:          demoGVK,
 					queryOptions: defaultTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					queryOptions: defaultTenancyQueryOptions,
+				},
 			},
 		},
 		{
@@ -254,10 +346,17 @@ func TestListEndpoint(t *testing.T) {
 			operations: []operation{
 				{
 					action:           applyResource,
+					isServerOp:       true,
 					expectedErrorMsg: "",
 				},
 				{
 					action:           listResource,
+					isServerOp:       true,
+					expectedErrorMsg: "",
+				},
+				{
+					action:           listResource,
+					isServerOp:       false,
 					expectedErrorMsg: "",
 				},
 			},
@@ -272,6 +371,10 @@ func TestListEndpoint(t *testing.T) {
 					gvk:          demoGVK,
 					queryOptions: fakeTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					queryOptions: fakeTenancyQueryOptions,
+				},
 			},
 		},
 	}
@@ -280,10 +383,13 @@ func TestListEndpoint(t *testing.T) {
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
-			cluster, client := SetupClusterAndClient(t, clusterConfig, true)
+			cluster, server, client := SetupClusterAndClient(t, clusterConfig)
 			defer Terminate(t, cluster)
 
 			for i, op := range tc.operations {
+				if op.isServerOp {
+					client = server
+				}
 				err := op.action(client, tc.config[i])
 				if len(op.expectedErrorMsg) > 0 {
 					require.Error(t, err)

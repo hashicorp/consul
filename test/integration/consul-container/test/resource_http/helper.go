@@ -21,6 +21,7 @@ type config struct {
 }
 type operation struct {
 	action           func(client *api.Client, config config) error
+	isServerOp       bool
 	expectedErrorMsg string
 	includeToken     bool
 }
@@ -89,13 +90,15 @@ func makeClusterConfig(numOfServers int, numOfClients int, aclEnabled bool) *lib
 	}
 }
 
-func SetupClusterAndClient(t *testing.T, clusterConfig *libtopology.ClusterConfig, isServer bool) (*libcluster.Cluster, *api.Client) {
-	cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
+func SetupClusterAndClient(t *testing.T, clusterConfig *libtopology.ClusterConfig) (cluster *libcluster.Cluster, s *api.Client, c *api.Client) {
+	cluster, _, _ = libtopology.NewCluster(t, clusterConfig)
 
-	client, err := cluster.GetClient(nil, isServer)
+	s, err := cluster.GetClient(nil, true)
+	require.NoError(t, err)
+	c, err = cluster.GetClient(nil, false)
 	require.NoError(t, err)
 
-	return cluster, client
+	return
 }
 
 func Terminate(t *testing.T, cluster *libcluster.Cluster) {
