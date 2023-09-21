@@ -29,6 +29,8 @@ import (
 // the data causing the event to notice something has been deleted and to
 // untrack it here.
 type Mapper struct {
+	boundRefMapper *bimapper.Mapper
+
 	httpRouteParentMapper *bimapper.Mapper
 	grpcRouteParentMapper *bimapper.Mapper
 	tcpRouteParentMapper  *bimapper.Mapper
@@ -43,6 +45,8 @@ type Mapper struct {
 // New creates a new Mapper.
 func New() *Mapper {
 	return &Mapper{
+		boundRefMapper: bimapper.NewWithWildcardLinkType(types.ComputedRoutesType),
+
 		httpRouteParentMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
 		grpcRouteParentMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
 		tcpRouteParentMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
@@ -86,6 +90,17 @@ func (m *Mapper) walkRouteBackendBiMappers(fn func(bm *bimapper.Mapper)) {
 	} {
 		fn(bm)
 	}
+}
+
+func (m *Mapper) TrackComputedRoutes(cr *types.DecodedComputedRoutes) {
+	if cr != nil {
+		refs := refSliceToRefSlice(cr.Data.BoundReferences)
+		m.boundRefMapper.TrackItem(cr.Resource.Id, refs)
+	}
+}
+
+func (m *Mapper) UntrackComputedRoutes(id *pbresource.ID) {
+	m.boundRefMapper.UntrackItem(id)
 }
 
 // TrackXRoute indexes the xRoute->parentRefService and
@@ -180,10 +195,16 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 
 	m.TrackXRoute(res.Id, route)
 
-	return controller.MakeRequests(
-		types.ComputedRoutesType,
-		parentRefSliceToRefSlice(route.GetParentRefs()),
-	), nil
+	refs := parentRefSliceToRefSlice(route.GetParentRefs())
+
+	// Augment with any bound refs to cover the case where an xRoute used to
+	// have a parentRef to a service and now no longer does.
+	prevRefs := m.boundRefMapper.ItemRefsForLink(dec.Resource.Id)
+	for _, ref := range prevRefs {
+		refs = append(refs, ref)
+	}
+
+	return controller.MakeRequests(types.ComputedRoutesType, refs), nil
 }
 
 func (m *Mapper) MapFailoverPolicy(
@@ -205,6 +226,8 @@ func (m *Mapper) MapFailoverPolicy(
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+
+	// TODO: use bound refs here?
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -231,6 +254,8 @@ func (m *Mapper) MapDestinationPolicy(
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+
+	// TODO: use bound refs here?
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -262,6 +287,7 @@ func (m *Mapper) MapService(
 		reqs = append(reqs, got...)
 	}
 
+	// TODO: use bound refs here?
 	return reqs, nil
 }
 

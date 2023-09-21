@@ -203,6 +203,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"tcp": {
 						Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -254,6 +257,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ID:      apiComputedRoutesID,
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						apiServiceRef,
+					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						protoName: {
 							Config: &pbmesh.ComputedPortRoutes_Http{
@@ -308,6 +314,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"grpc": {
 						Config: &pbmesh.ComputedPortRoutes_Grpc{
@@ -412,6 +421,13 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					newRef(types.GRPCRouteType, "api-grpc-route1"),
+					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(types.TCPRouteType, "api-tcp-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"tcp": {
 						Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -608,6 +624,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					newRef(types.HTTPRouteType, "api-http-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					// note: tcp has been upgraded to http in the presence of an HTTPRoute
 					"tcp":   chunk("tcp", pbcatalog.Protocol_PROTOCOL_HTTP),
@@ -675,6 +696,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -754,6 +778,9 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -853,6 +880,12 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					resource.Reference(httpRoute.Resource.Id, ""),
+					resource.Reference(tcpRoute.Resource.Id, ""),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -982,6 +1015,13 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					barServiceRef,
+					fooServiceRef,
+					newRef(types.HTTPRouteType, "api-http-route1"),
+					newRef(types.HTTPRouteType, "api-http-route2"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -1086,6 +1126,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					newRef(types.HTTPRouteType, "api-http-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -1156,6 +1201,10 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ID:      apiComputedRoutesID,
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						apiServiceRef,
+						newRef(types.HTTPRouteType, "api-http-route1"),
+					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"http": {
 							ParentRef: newParentRef(apiServiceRef, "http"),
@@ -1217,6 +1266,10 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ID:      apiComputedRoutesID,
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						apiServiceRef,
+						newRef(types.GRPCRouteType, "api-grpc-route1"),
+					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"grpc": {
 							ParentRef: newParentRef(apiServiceRef, "grpc"),
@@ -1278,6 +1331,10 @@ func TestGenerateComputedRoutes(t *testing.T) {
 				ID:      apiComputedRoutesID,
 				OwnerID: apiServiceID,
 				Data: &pbmesh.ComputedRoutes{
+					BoundReferences: []*pbresource.Reference{
+						apiServiceRef,
+						newRef(types.TCPRouteType, "api-tcp-route1"),
+					},
 					PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 						"tcp": {
 							ParentRef: newParentRef(apiServiceRef, "tcp"),
@@ -1344,6 +1401,11 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					newRef(types.HTTPRouteType, "api-http-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						ParentRef: newParentRef(apiServiceRef, "http"),
@@ -1435,6 +1497,12 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiServiceRef,
+					fooServiceRef,
+					newRef(types.DestinationPolicyType, "foo"),
+					newRef(types.HTTPRouteType, "api-http-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{
@@ -1549,6 +1617,13 @@ func TestGenerateComputedRoutes(t *testing.T) {
 			ID:      apiComputedRoutesID,
 			OwnerID: apiServiceID,
 			Data: &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					newRef(catalog.FailoverPolicyType, "foo"),
+					apiServiceRef,
+					barServiceRef,
+					fooServiceRef,
+					newRef(types.HTTPRouteType, "api-http-route1"),
+				},
 				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 					"http": {
 						Config: &pbmesh.ComputedPortRoutes_Http{

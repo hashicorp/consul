@@ -93,6 +93,9 @@ func (suite *controllerSuite) TestController() {
 	testutil.RunStep(suite.T(), "default tcp route", func(t *testing.T) {
 		// Check that the computed routes resource exists and it has one port that is the default.
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					UsingDefaultConfig: true,
@@ -162,6 +165,9 @@ func (suite *controllerSuite) TestController() {
 
 	testutil.RunStep(suite.T(), "default other routes", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					UsingDefaultConfig: true,
@@ -319,6 +325,13 @@ func (suite *controllerSuite) TestController() {
 
 	testutil.RunStep(suite.T(), "one of each", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				fooServiceRef,
+				resource.Reference(grpcRoute1ID, ""),
+				resource.Reference(httpRoute1ID, ""),
+				resource.Reference(tcpRoute1ID, ""),
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -503,6 +516,16 @@ func (suite *controllerSuite) TestController() {
 
 	testutil.RunStep(suite.T(), "one good one bad route", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				fooServiceRef,
+				resource.Reference(grpcRoute1ID, ""),
+				resource.Reference(grpcRoute2ID, ""),
+				resource.Reference(httpRoute1ID, ""),
+				resource.Reference(httpRoute2ID, ""),
+				resource.Reference(tcpRoute1ID, ""),
+				resource.Reference(tcpRoute2ID, ""),
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -738,6 +761,16 @@ func (suite *controllerSuite) TestController() {
 
 	testutil.RunStep(suite.T(), "overlapping xRoutes generate conflicts", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				fooServiceRef,
+				resource.Reference(grpcRoute1ID, ""),
+				resource.Reference(grpcRoute2ID, ""),
+				resource.Reference(httpRoute1ID, ""),
+				resource.Reference(httpRoute2ID, ""),
+				resource.Reference(tcpRoute1ID, ""),
+				resource.Reference(tcpRoute2ID, ""),
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -897,6 +930,13 @@ func (suite *controllerSuite) TestController() {
 
 	testutil.RunStep(suite.T(), "overlapping xRoutes due to port wildcarding", func(t *testing.T) {
 		expect := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				fooServiceRef,
+				resource.Reference(grpcRoute1ID, ""),
+				resource.Reference(httpRoute1ID, ""),
+				resource.Reference(tcpRoute1ID, ""),
+			},
 			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
 				"tcp": {
 					Config: &pbmesh.ComputedPortRoutes_Tcp{
@@ -1048,6 +1088,190 @@ func (suite *controllerSuite) TestController() {
 			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
 		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
 			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+	})
+
+	// Get down to just 2 ports for all relevant services.
+	for _, name := range []string{"foo", "bar", "api"} {
+		_ = rtest.Resource(catalog.ServiceType, name).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(suite.T(), &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Prefixes: []string{name + "-"},
+				},
+				Ports: []*pbcatalog.ServicePort{
+					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				},
+			}).
+			Write(suite.T(), suite.client)
+	}
+
+	httpRoute1 = &pbmesh.HTTPRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(fooServiceRef, "http"),
+			newParentRef(barServiceRef, "http"),
+		},
+		Rules: []*pbmesh.HTTPRouteRule{{
+			BackendRefs: []*pbmesh.HTTPBackendRef{{
+				BackendRef: newBackendRef(apiServiceRef, "", ""),
+			}},
+		}},
+	}
+	httpRoute1ID = rtest.Resource(types.HTTPRouteType, "route1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(suite.T(), httpRoute1).
+		Write(suite.T(), suite.client).
+		Id
+
+	var (
+		fooLastVersion string
+		barLastVersion string
+
+		fooComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "foo").
+					WithTenancy(resource.DefaultNamespacedTenancy()).
+					ID()
+		barComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "bar").
+					WithTenancy(resource.DefaultNamespacedTenancy()).
+					ID()
+	)
+
+	testutil.RunStep(suite.T(), "create a route linked to two parents", func(t *testing.T) {
+		expectFoo := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				fooServiceRef,
+				resource.Reference(httpRoute1ID, ""),
+			},
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"http": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.ComputedHTTPRoute{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+										BackendTarget: backendName("api", "http"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					ParentRef: newParentRef(fooServiceRef, "http"),
+					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("api", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+							MeshPort:   "mesh",
+							BackendRef: newBackendRef(apiServiceRef, "http", ""),
+						},
+					},
+				},
+			},
+		}
+		expectBar := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				apiServiceRef,
+				barServiceRef,
+				resource.Reference(httpRoute1ID, ""),
+			},
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"http": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.ComputedHTTPRoute{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+										BackendTarget: backendName("api", "http"),
+									}},
+								},
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+										BackendTarget: types.NullRouteBackend,
+									}},
+								},
+							},
+						},
+					},
+					ParentRef: newParentRef(barServiceRef, "http"),
+					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("api", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+							MeshPort:   "mesh",
+							BackendRef: newBackendRef(apiServiceRef, "http", ""),
+						},
+					},
+				},
+			},
+		}
+
+		fooLastVersion = requireNewComputedRoutesVersion(t, suite.client, fooComputedRoutesID, fooLastVersion, expectFoo)
+		barLastVersion = requireNewComputedRoutesVersion(t, suite.client, barComputedRoutesID, barLastVersion, expectBar)
+
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
+	})
+
+	// Remove bar parent
+	httpRoute1 = &pbmesh.HTTPRoute{
+		ParentRefs: []*pbmesh.ParentReference{
+			newParentRef(fooServiceRef, "http"),
+		},
+		Rules: []*pbmesh.HTTPRouteRule{{
+			BackendRefs: []*pbmesh.HTTPBackendRef{{
+				BackendRef: newBackendRef(apiServiceRef, "", ""),
+			}},
+		}},
+	}
+	httpRoute1ID = rtest.Resource(types.HTTPRouteType, "route1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(suite.T(), httpRoute1).
+		Write(suite.T(), suite.client).
+		Id
+
+	testutil.RunStep(suite.T(), "remove a parent ref and show that the old computed routes is reconciled one more time", func(t *testing.T) {
+		expectBar := &pbmesh.ComputedRoutes{
+			BoundReferences: []*pbresource.Reference{
+				barServiceRef,
+			},
+			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+				"http": {
+					Config: &pbmesh.ComputedPortRoutes_Http{
+						Http: &pbmesh.ComputedHTTPRoute{
+							Rules: []*pbmesh.ComputedHTTPRouteRule{
+								{
+									Matches: defaultHTTPRouteMatches(),
+									BackendRefs: []*pbmesh.ComputedHTTPBackendRef{{
+										BackendTarget: backendName("bar", "http"),
+									}},
+								},
+							},
+						},
+					},
+					UsingDefaultConfig: true,
+					ParentRef:          newParentRef(barServiceRef, "http"),
+					Protocol:           pbcatalog.Protocol_PROTOCOL_HTTP,
+					Targets: map[string]*pbmesh.BackendTargetDetails{
+						backendName("bar", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
+							MeshPort:   "mesh",
+							BackendRef: newBackendRef(barServiceRef, "http", ""),
+						},
+					},
+				},
+			},
+		}
+
+		barLastVersion = requireNewComputedRoutesVersion(t, suite.client, barComputedRoutesID, barLastVersion, expectBar)
+
+		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey, ConditionXRouteOK)
 	})
 }
 

@@ -59,6 +59,8 @@ func compile(
 
 	parentServiceRef := resource.Reference(parentServiceID, "")
 
+	boundRefCollector := NewBoundReferenceCollector()
+
 	parentServiceDec := related.GetService(parentServiceID)
 	if parentServiceDec == nil {
 		return &ComputedRoutesResult{
@@ -67,6 +69,8 @@ func compile(
 		}
 	}
 	parentServiceID = parentServiceDec.Resource.Id // get ULID out of it
+
+	boundRefCollector.AddRefOrID(parentServiceRef)
 
 	var (
 		inMesh               = false
@@ -127,6 +131,7 @@ func compile(
 		if len(ports) == 0 {
 			return // not relevant to this computed routes
 		}
+		boundRefCollector.AddRefOrID(res.Id)
 
 		for _, port := range ports {
 			if port == "" {
@@ -136,11 +141,11 @@ func compile(
 			var node *inputRouteNode
 			switch route := xroute.(type) {
 			case *pbmesh.HTTPRoute:
-				node = compileHTTPRouteNode(port, res, route, related)
+				node = compileHTTPRouteNode(port, res, route, related, boundRefCollector)
 			case *pbmesh.GRPCRoute:
-				node = compileGRPCRouteNode(port, res, route, related)
+				node = compileGRPCRouteNode(port, res, route, related, boundRefCollector)
 			case *pbmesh.TCPRoute:
-				node = compileTCPRouteNode(port, res, route, related)
+				node = compileTCPRouteNode(port, res, route, related, boundRefCollector)
 			default:
 				panic(fmt.Sprintf("unexpected xroute type: %T", xroute))
 			}
@@ -282,16 +287,20 @@ func compile(
 			if svc == nil {
 				panic("impossible at this point; should already have been handled before getting here")
 			}
+			boundRefCollector.AddRefOrID(svcRef)
 
 			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
 			if failoverPolicy != nil {
 				simpleFailoverPolicy := catalog.SimplifyFailoverPolicy(svc.Data, failoverPolicy.Data)
 				portFailoverConfig, ok := simpleFailoverPolicy.PortConfigs[details.BackendRef.Port]
 				if ok {
+					boundRefCollector.AddRefOrID(failoverPolicy.Resource.Id)
+
 					details.FailoverConfig = compileFailoverConfig(
 						related,
 						portFailoverConfig,
 						mc.Targets,
+						boundRefCollector,
 					)
 				}
 			}
@@ -305,6 +314,7 @@ func compile(
 			if destPolicy != nil {
 				portDestConfig, ok := destPolicy.Data.PortConfigs[details.BackendRef.Port]
 				if ok {
+					boundRefCollector.AddRefOrID(destPolicy.Resource.Id)
 					details.DestinationConfig = portDestConfig
 				}
 			}
@@ -321,6 +331,8 @@ func compile(
 		}
 	}
 
+	computedRoutes.BoundReferences = boundRefCollector.List()
+
 	return &ComputedRoutesResult{
 		ID:      computedRoutesID,
 		OwnerID: parentServiceID,
@@ -332,6 +344,7 @@ func compileFailoverConfig(
 	related *loader.RelatedResources,
 	failoverConfig *pbcatalog.FailoverConfig,
 	targets map[string]*pbmesh.BackendTargetDetails,
+	brc *BoundReferenceCollector,
 ) *pbmesh.ComputedFailoverConfig {
 	if failoverConfig == nil {
 		return nil
@@ -354,6 +367,9 @@ func compileFailoverConfig(
 		destSvcRef := dest.Ref
 
 		svc := related.GetService(destSvcRef)
+		if svc != nil {
+			brc.AddRefOrID(svc.Resource.Id)
+		}
 
 		var backendTargetName string
 		ok, meshPort := shouldRouteTrafficToBackend(svc, backendRef)
@@ -385,6 +401,7 @@ func compileHTTPRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.HTTPRoute,
 	serviceGetter serviceGetter,
+	brc *BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 	node := newInputRouteNode(port)
@@ -427,6 +444,9 @@ func compileHTTPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
+			if backendSvc != nil {
+				brc.AddRefOrID(backendSvc.Resource.Id)
+			}
 			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
 					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
@@ -456,6 +476,7 @@ func compileGRPCRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.GRPCRoute,
 	serviceGetter serviceGetter,
+	brc *BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 
@@ -490,6 +511,9 @@ func compileGRPCRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
+			if backendSvc != nil {
+				brc.AddRefOrID(backendSvc.Resource.Id)
+			}
 			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
 					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
@@ -520,6 +544,7 @@ func compileTCPRouteNode(
 	res *pbresource.Resource,
 	route *pbmesh.TCPRoute,
 	serviceGetter serviceGetter,
+	brc *BoundReferenceCollector,
 ) *inputRouteNode {
 	route = protoClone(route)
 
@@ -545,6 +570,9 @@ func compileTCPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
+			if backendSvc != nil {
+				brc.AddRefOrID(backendSvc.Resource.Id)
+			}
 			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
 					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,

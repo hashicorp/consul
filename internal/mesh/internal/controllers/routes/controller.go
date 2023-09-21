@@ -79,6 +79,12 @@ func (r *routesReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 			return err
 		}
 
+		if prev != nil {
+			r.mapper.TrackComputedRoutes(prev)
+		} else {
+			r.mapper.UntrackComputedRoutes(computedRoutesID)
+		}
+
 		if err := ensureComputedRoutesIsSynced(ctx, logger, rt.Client, result, prev); err != nil {
 			return err
 		}

@@ -22,6 +22,10 @@ message ComputedRoutes {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
   map<string, ComputedPortRoutes> ported_configs = 1;
+
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 2;
 }
 
 message ComputedPortRoutes {

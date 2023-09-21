@@ -604,6 +604,7 @@ func (suite *meshControllerTestSuite) TestController() {
 			}},
 		}
 		route := resourcetest.Resource(types.HTTPRouteType, "db-http-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, routeData).
 			Build()
 		require.NoError(t, types.MutateHTTPRoute(route))

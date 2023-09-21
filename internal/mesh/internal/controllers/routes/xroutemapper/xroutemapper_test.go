@@ -534,6 +534,82 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			require.Empty(t, m.RouteIDsByParentServiceRef(ref))
 		}
 	})
+
+	testutil.RunStep(t, "removal of a parent still triggers for old computed routes until the bound reference is cleared", func(t *testing.T) {
+		route1 = rtest.Resource(typ, "route-1").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, newRoute(t,
+				[]*pbmesh.ParentReference{
+					{Ref: newRef(catalog.ServiceType, "bar")},
+					{Ref: newRef(catalog.ServiceType, "foo")},
+				},
+				[]*pbmesh.BackendReference{
+					newBackendRef("api"),
+				},
+			)).Build()
+		rtest.ValidateAndNormalize(t, registry, route1)
+
+		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+
+		// Simulate a Reconcile that would update the mapper.
+		//
+		// NOTE: we do not ValidateAndNormalize these since the mapper doesn't use the data.
+		fooCR := rtest.ResourceID(fooComputedRoutes).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiSvcRef,
+					fooSvcRef,
+					resource.Reference(route1.Id, ""),
+				},
+			}).Build()
+		m.TrackComputedRoutes(rtest.MustDecode[*pbmesh.ComputedRoutes](t, fooCR))
+
+		barCR := rtest.ResourceID(barComputedRoutes).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiSvcRef,
+					barSvcRef,
+					resource.Reference(route1.Id, ""),
+				},
+			}).Build()
+		m.TrackComputedRoutes(rtest.MustDecode[*pbmesh.ComputedRoutes](t, barCR))
+
+		// Still has the same tracking.
+		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+
+		// Now change the route to remove "bar"
+
+		route1 = rtest.Resource(typ, "route-1").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, newRoute(t,
+				[]*pbmesh.ParentReference{
+					{Ref: newRef(catalog.ServiceType, "foo")},
+				},
+				[]*pbmesh.BackendReference{
+					newBackendRef("api"),
+				},
+			)).Build()
+		rtest.ValidateAndNormalize(t, registry, route1)
+
+		// Now we see that it still emits the event for bar, so we get a chance to update it.
+		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+
+		// Update the bound references on 'bar' to remove the route
+		barCR = rtest.ResourceID(barComputedRoutes).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, &pbmesh.ComputedRoutes{
+				BoundReferences: []*pbresource.Reference{
+					apiSvcRef,
+					barSvcRef,
+				},
+			}).Build()
+		m.TrackComputedRoutes(rtest.MustDecode[*pbmesh.ComputedRoutes](t, barCR))
+
+		// Now 'bar' no longer has a link to the route.
+		requireTracking(t, m, route1, fooComputedRoutes)
+	})
 }
 
 func requireTracking(
