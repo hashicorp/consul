@@ -283,7 +283,6 @@ func TestRead_ACLs(t *testing.T) {
 				} else {
 					require.Error(t, err)
 				}
-				require.Error(t, err)
 				require.Equal(t, tc.codeNotExist.String(), status.Code(err).String(), "%v", err)
 			})
 
