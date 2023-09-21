@@ -62,18 +62,20 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Name": "default",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Name": "default",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -113,20 +115,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Peer": "<name of the peered cluster that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Peer": "<name of the peered cluster that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -166,20 +170,22 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
-"Partition": "<partition containing services to export>",
-"Name": "<partition containing services to export>",
-"Services": [
-  {
-    "Name": "<name of service to export>",
-    "Namespace": "<namespace in the partition containing the service to export>"
-    "Consumers": [
-      {
-        "Partition": "<name of partition that dials the exported service>"
-      }
-    ]
-  }
-]
+{
+  "Kind": "exported-services",
+  "Partition": "<partition containing services to export>",
+  "Name": "<partition containing services to export>",
+  "Services": [
+    {
+      "Name": "<name of service to export>",
+      "Namespace": "<namespace in the partition containing the service to export>",
+      "Consumers": [
+        {
+          "Partition": "<name of partition that dials the exported service>"
+        }
+      ]
+    }
+  ]
+}
 ```
 
 </CodeTabs>
@@ -269,7 +275,8 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
@@ -277,8 +284,8 @@ spec:
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -289,6 +296,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -345,18 +353,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Peer": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -368,6 +377,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -391,7 +401,7 @@ Services = [
     Consumers = [
         {
             Partition  = "web-shop"
-        },
+        }
     ]
   },
   {
@@ -424,18 +434,19 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "payments",
-      "Namespace": "billing"
+      "Namespace": "billing",
       "Consumers": [
         {
           "Partition": "web-shop"
-        },
-      ],
+        }
+      ]
     },
     {
       "Name": "refunds",
@@ -447,6 +458,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -495,12 +507,13 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Name": "default",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -511,6 +524,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -558,13 +572,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Peer": "monitoring"
@@ -575,6 +590,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -622,13 +638,14 @@ spec:
 ```
 
 ```json
-"Kind": "exported-services",
+{
+  "Kind": "exported-services",
   "Partition": "finance",
   "Name": "finance",
   "Services": [
     {
       "Name": "*",
-      "Namespace": "*"
+      "Namespace": "*",
       "Consumers": [
         {
           "Partition": "monitoring"
@@ -639,6 +656,7 @@ spec:
       ]
     }
   ]
+}
 ```
 
 </CodeTabs>
@@ -705,7 +723,6 @@ node_prefix "" {
     }
   }
 }
-
 ```
 
 </CodeTabs>
@@ -757,29 +774,30 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
+
 
 ## OR
 
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -789,9 +807,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```
@@ -845,17 +863,17 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service": {
+          "service": {
             "web": {
-			  "policy": "write"
+              "policy": "write"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 
@@ -864,10 +882,10 @@ partition "frontend" {
 {
   "partition": {
     "frontend": {
-	  "namespace": {
+      "namespace": {
         ## The following could be any namespace
         "dev": {
-		  "service_prefix": {
+          "service_prefix": {
             "": {
               "policy": "read"
             }
@@ -877,9 +895,9 @@ partition "frontend" {
               "policy": "read"
             }
           }
-		}
+        }
       }
-	}
+    }
   }
 }
 ```
