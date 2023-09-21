@@ -31,7 +31,7 @@ for file_to_check in "${files_to_check[@]}"; do
 		echo -e $file_to_check
         SKIP_CI=false
 		echo "Changes detected in non-documentation files - skip-ci: $SKIP_CI"
-        export $SKIP_CI
+        echo "skip-ci=$SKIP_CI" >> "$GITHUB_OUTPUT"
 		exit 0 ## if file is outside of the skipped_directory exit script
 	fi
 done
@@ -39,4 +39,4 @@ done
 echo -e "$files_to_check"
 SKIP_CI=true
 echo "Changes detected in only documentation files - skip-ci: $SKIP_CI"
-export $SKIP_CI
+echo "skip-ci=$SKIP_CI" >> "$GITHUB_OUTPUT"
