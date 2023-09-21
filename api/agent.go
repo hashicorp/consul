@@ -991,7 +991,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 // CheckRegister is used to register a new check with
 // the local agent
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
+	return a.CheckRegisterOpts(check, nil)
+}
+
+// CheckRegisterOpts is used to register a new check with
+// the local agent using query options
+func (a *Agent) CheckRegisterOpts(check *AgentCheckRegistration, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
+	r.setQueryOptions(q)
 	r.obj = check
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
