@@ -44,10 +44,14 @@ func TestMultiportService_Explicit(t *testing.T) {
 	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())
 	resourceClient := rtest.NewClient(client)
 
-	serverService := createServerServicesAndWorkloads(t, resourceClient)
-	createClientServicesAndWorkloads(t, resourceClient, serverService)
+	serverIP := cluster.Agents[1].GetIP()
+	clientIP := cluster.Agents[2].GetIP()
 
-	clientDataplane := createServices(t, cluster)
+	serverService := createServerServicesAndWorkloads(t, resourceClient, serverIP)
+	createClientServicesAndWorkloads(t, resourceClient, serverService, clientIP)
+
+	_, clientDataplane := createServices(t, cluster)
+
 	//_, adminPort := clientDataplane.GetAdminAddr()
 	_, port := clientDataplane.GetAddr()
 
@@ -64,28 +68,24 @@ func TestMultiportService_Explicit(t *testing.T) {
 
 // createServices creates the static-client and static-server services with
 // transparent proxy enabled. It returns a Service for the static-client.
-func createServices(t *testing.T, cluster *libcluster.Cluster) *libcluster.ConsulDataplaneContainer {
-	{
-		node := cluster.Agents[1]
-		//client := node.GetClient()
+func createServices(t *testing.T, cluster *libcluster.Cluster) (*libcluster.ConsulDataplaneContainer, *libcluster.ConsulDataplaneContainer) {
+	node := cluster.Agents[1]
+	//client := node.GetClient()
 
-		// Create a service and dataplane
-		_, err := createServiceAndDataplane(t, node, "static-server-workload", "static-server", 8080, 8079, []int{8080})
-		require.NoError(t, err)
+	// Create a service and dataplane
+	serverDataplane, err := createServiceAndDataplane(t, node, "static-server-workload", "static-server", 8080, 8079, []int{8080})
+	require.NoError(t, err)
 
-		//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
-		//libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
-	}
+	//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
+	//libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
-	{
-		node := cluster.Agents[2]
-		// Create a service and dataplane
-		clientDataplane, err := createServiceAndDataplane(t, node, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
-		require.NoError(t, err)
+	node = cluster.Agents[2]
+	// Create a service and dataplane
+	clientDataplane, err := createServiceAndDataplane(t, node, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
+	require.NoError(t, err)
 
-		//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
-		return clientDataplane
-	}
+	//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
+	return serverDataplane, clientDataplane
 }
 
 func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, serviceName string, httpPort, grpcPort int, serviceBindPorts []int) (*libcluster.ConsulDataplaneContainer, error) {
@@ -116,7 +116,7 @@ func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, ser
 	return dp, nil
 }
 
-func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client) *pbresource.Resource {
+func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, ipAddress string) *pbresource.Resource {
 	serverService := rtest.ResourceID(&pbresource.ID{
 		Name:    "static-server-service",
 		Type:    catalog.ServiceType,
@@ -134,7 +134,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 		Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 	}
 	workloadPortMap["mesh"] = &pbcatalog.WorkloadPort{
-		Port: 20001, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+		Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 	}
 
 	rtest.ResourceID(&pbresource.ID{
@@ -144,7 +144,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
-				{Host: "127.0.0.1"},
+				{Host: ipAddress},
 			},
 			Ports:    workloadPortMap,
 			Identity: "static-server-identity",
@@ -153,7 +153,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	return serverService
 }
 
-func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource) {
+func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, ipAddress string) {
 	rtest.ResourceID(&pbresource.ID{
 		Name:    "static-client-service",
 		Type:    catalog.ServiceType,
@@ -171,7 +171,7 @@ func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 		Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 	}
 	workloadPortMap["mesh"] = &pbcatalog.WorkloadPort{
-		Port: 20001, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+		Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 	}
 
 	rtest.ResourceID(&pbresource.ID{
@@ -181,7 +181,7 @@ func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
-				{Host: "127.0.0.1"},
+				{Host: ipAddress},
 			},
 			Ports:    workloadPortMap,
 			Identity: "static-client-identity",

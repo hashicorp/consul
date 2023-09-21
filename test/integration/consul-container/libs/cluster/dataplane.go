@@ -79,6 +79,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		//"-envoy-concurrency=2",
 		"-tls-disabled",
 		//"-consul-dns-bind-port=8601",
+		//fmt.Sprintf("-xds-bind-port=%d", xdsBindPort),
 		fmt.Sprintf("-envoy-admin-bind-port=%d", internalAdminPort),
 	}
 
@@ -100,7 +101,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 	out := &ConsulDataplaneContainer{
 		ctx:               ctx,
 		container:         info.Container,
-		ip:                info.IP,
+		ip:                node.GetIP(),
 		serviceName:       containerName,
 		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
 		internalAdminPort: internalAdminPort,
