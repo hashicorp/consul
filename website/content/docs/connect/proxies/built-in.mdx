@@ -22,7 +22,7 @@ for the built-in proxy.
 ```json
 {
   "service": {
-    ...
+    "name": "example-service",
     "connect": {
       "proxy": {
         "config": {
@@ -31,11 +31,11 @@ for the built-in proxy.
           "local_service_address": "127.0.0.1:1234",
           "local_connect_timeout_ms": 1000,
           "handshake_timeout_ms": 10000,
-          "upstreams": [...]
+          "upstreams": []
         },
         "upstreams": [
           {
-            ...
+            "destination_name": "example-upstream",
             "config": {
               "connect_timeout_ms": 1000
             }

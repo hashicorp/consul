@@ -111,7 +111,7 @@ The registrator also requires the following IAM permissions to access the parame
             "Effect": "Allow",
             "Action": ["ssm:PutParameter","ssm:DeleteParameter"],
             "Resource": "arn:aws:ssm:us-east-2:123456789012:parameter/${var.consul_extension_data_prefix}/*"
-        },
+        }
     ]
 }
 ```
