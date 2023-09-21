@@ -2,7 +2,6 @@ package multiport
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
@@ -24,8 +23,6 @@ import (
 )
 
 var (
-	//go:embed integration_test_data
-	testData          embed.FS
 	requestRetryTimer = &retry.Timer{Timeout: 120 * time.Second, Wait: 500 * time.Millisecond}
 )
 
