@@ -7,9 +7,12 @@ package hashicorp.consul.mesh.v1alpha1;
 
 import "pbcatalog/v1alpha1/selector.proto";
 import "pbmesh/v1alpha1/upstreams_configuration.proto";
+import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message Upstreams {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   // Selection of workloads these upstreams should apply to.
   // These can be prefixes or specific workload names.
   hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;

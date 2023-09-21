@@ -5,10 +5,13 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v1alpha1;
 
+import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 // This is a Resource type.
 message FailoverPolicy {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   // Config defines failover for any named port not present in PortConfigs.
   FailoverConfig config = 1;
 
