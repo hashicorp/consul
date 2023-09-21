@@ -353,9 +353,11 @@ spec:
     "MaxPendingRequests" : 0,
     "MaxConcurrentRequests": 0,
     "PassiveHealthCheck" : {
-      "interval" : 10,
-      "max_failures" : 5,
-      "enforcing_consecutive_5xx" : 100
+      "interval": "<the time between checks>",
+      "maxFailures": <number>,
+      "enforcingConsecutive5xx": <number>,
+      "maxEjectionPercent": <number>,
+      "baseEjectionTime": "<the base time that a host is ejected for>"
     }
   },
   "Listeners" : [
@@ -402,9 +404,11 @@ spec:
           "MaxPendingRequests" : <number>,
           "MaxConcurrentRequests" : <number>,
           "PassiveHealthCheck" : {
-            "interval" : 10,
-            "max_failures" : 5,
-            "enforcing_consecutive_5xx" : 100
+            "interval": "<the time between checks>",
+            "maxFailures": <number>,
+            "enforcingConsecutive5xx":<number>,
+            "maxEjectionPercent": <number>,
+            "baseEjectionTime": "<the base time that a host is ejected for>"
           }
         }
       ],
