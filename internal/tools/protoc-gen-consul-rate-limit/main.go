@@ -93,7 +93,7 @@ func main() {
 			}
 
 			if len(specs) == 0 {
-				return nil
+				continue
 			}
 
 			outputPath := filepath.Join(filepath.Dir(path), outputFileName)

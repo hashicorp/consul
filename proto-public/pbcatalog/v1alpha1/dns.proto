@@ -6,8 +6,11 @@ syntax = "proto3";
 package hashicorp.consul.catalog.v1alpha1;
 
 import "pbcatalog/v1alpha1/selector.proto";
+import "pbresource/annotations.proto";
 
 message DNSPolicy {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   WorkloadSelector workloads = 1;
   Weights weights = 2;
 }
