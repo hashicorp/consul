@@ -224,10 +224,7 @@ func TestRead_ACLs(t *testing.T) {
 		codeExists   codes.Code
 	}
 
-	artist1, err := demo.GenerateV2Artist()
-	require.NoError(t, err)
-
-	artist2, err := demo.GenerateV2Artist()
+	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
 	label, err := demo.GenerateV1RecordLabel("blink1982")
@@ -235,13 +232,13 @@ func TestRead_ACLs(t *testing.T) {
 
 	testcases := map[string]testCase{
 		"artist-v1/read hook denied": {
-			res:          artist1,
+			res:          artist,
 			authz:        AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
 			codeNotExist: codes.PermissionDenied,
 			codeExists:   codes.PermissionDenied,
 		},
 		"artist-v2/read hook allowed": {
-			res:          artist2,
+			res:          artist,
 			authz:        AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
 			codeNotExist: codes.NotFound,
 			codeExists:   codes.OK,
