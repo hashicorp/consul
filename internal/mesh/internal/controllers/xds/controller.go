@@ -397,18 +397,13 @@ func (r *xdsReconciler) cancelWatches(leafResourceRefs []*pbresource.Reference) 
 
 // prevWatchesToCancel computes if there are any items in prevWatchedLeafs that are not in currentLeafs, and returns a list of those items.
 func prevWatchesToCancel(prevWatchedLeafs []*pbresource.Reference, currentLeafs []resource.ReferenceOrID) []*pbresource.Reference {
-	var prevWatchedLeafsToCancel []*pbresource.Reference
+	prevWatchedLeafsToCancel := make([]*pbresource.Reference, 0, len(prevWatchedLeafs))
+	newLeafs := make(map[string]struct{})
+	for _, newLeaf := range currentLeafs {
+		newLeafs[keyFromReference(newLeaf)] = struct{}{}
+	}
 	for _, prevLeaf := range prevWatchedLeafs {
-		prevKey := keyFromReference(prevLeaf)
-		found := false
-		for _, newLeaf := range currentLeafs {
-			newKey := keyFromReference(newLeaf)
-			if prevKey == newKey {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if _, ok := newLeafs[keyFromReference(prevLeaf)]; !ok {
 			prevWatchedLeafsToCancel = append(prevWatchedLeafsToCancel, prevLeaf)
 		}
 	}
