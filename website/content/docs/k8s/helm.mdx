@@ -133,6 +133,10 @@ Use these links to navigate to a particular top-level stanza.
 
     - `vault` ((#v-global-secretsbackend-vault))
 
+      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace`
+        agent annotation and [Vault Connect CA namespace](https://developer.hashicorp.com/consul/docs/connect/ca/vault#namespace).
+        To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
+
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
@@ -239,7 +243,6 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "namespace": "my-vault-ns",
                      "leaf_cert_ttl": "36h"
                   }]
               }]
@@ -485,6 +488,14 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
+  - `argocd` ((#v-global-argocd)) - If argocd.enabled is set to true, following annotations are added to
+    job - server-acl-init-job
+    annotations -
+      argocd.argoproj.io/hook: Sync
+      argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
+    - `enabled` ((#v-global-argocd-enabled)) (`boolean: false`)
+
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
@@ -504,7 +515,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of
       `meshGateway.enabled` or `externalServers.enabled` to be true.
       Requires Consul 1.8+.
 
@@ -528,7 +539,7 @@ Use these links to navigate to a particular top-level stanza.
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/kubernetes).
 
-      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
@@ -1101,7 +1112,7 @@ Use these links to navigate to a particular top-level stanza.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/kubernetes).
 
-    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:
@@ -1847,7 +1858,7 @@ Use these links to navigate to a particular top-level stanza.
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: null`) - The Docker image for Consul to use when performing Connect injection.
     Defaults to global.image.
 
-  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Override global log verbosity level. One of "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Sets the `logLevel` for the `consul-dataplane` sidecar and the `consul-connect-inject-init` container. When set, this value overrides the global log verbosity level. One of "debug", "info", "warn", or "error".
 
   - `serviceAccount` ((#v-connectinject-serviceaccount))
 
@@ -2349,8 +2360,9 @@ Use these links to navigate to a particular top-level stanza.
 
   - `gateways` ((#v-ingressgateways-gateways)) (`array<map>`) - Gateways is a list of gateway objects. The only required field for
     each is `name`, though they can also contain any of the fields in
-    `defaults`. Values defined here override the defaults except in the
-    case of annotations where both will be applied.
+    `defaults`. You must provide a unique name for each ingress gateway. These names
+    must be unique across different namespaces.
+    Values defined here override the defaults, except in the case of annotations where both will be applied.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
