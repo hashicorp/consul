@@ -44,12 +44,15 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
-	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
+	// ACL check usually comes before tenancy existence checks to not leak
+	// tenancy "existence", unless the ACL check requires the data payload
+	// to function.
 	authzNeedsData := false
 	err = reg.ACLs.Read(authz, authzContext, req.Id, nil)
 	switch {
 	case errors.Is(err, resource.ErrNeedData):
 		authzNeedsData = true
+		err = nil
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
