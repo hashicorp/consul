@@ -32,7 +32,7 @@ The default ACLs that the Consul Helm chart configures are suitable for most cas
 
 Specify the target failover in the [`spec.failover.targets`](/consul/docs/connect/config-entries/service-resolver#failover-targets-service) field in the service resolver configuration entry. In the following example, the `api-beta` service is configured to failover to the `api` service in any service subset:
 
-<CodeBlockConfig heading="api-beta-failover.yaml">
+<CodeBlockConfig filename="api-beta-failover.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1
@@ -61,7 +61,7 @@ $ kubectl apply -f api-beta-failover.yaml
 If intentions are not already defined, create and apply intentions that allow the appropriate downstream to access the target service and the failover service. In the following examples, the `frontend` service is allowed to send messages to the `api` service, which is allowed to send messages to the `api-beta` failover service.
 
 
-<CodeBlockConfig heading="frontend-api-api-beta-allow.yaml">
+<CodeBlockConfig filename="frontend-api-api-beta-allow.yaml">
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1
