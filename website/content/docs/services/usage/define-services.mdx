@@ -380,8 +380,7 @@ services {
           "timeout": "60s"
         }
       ]
-    },
-    ...
+    }
   ]
 }
 ```
@@ -397,24 +396,31 @@ Add the `enable_tag_override` option to the `service` block and set the value to
 
 <CodeTabs tabs={[ "HCL","JSON" ]}>
 
+<CodeBlockConfig highlight="4">
 
 ```hcl
 service {
-  ## ...
+  name = "redis"
+  port = 6379
   enable_tag_override = true
-  ## ...
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="5">
 
 ```json
 {
   "service": {
-    ## ...
-    "enable_tag_override": true,
-    ## ...
+    "name": "redis",
+    "port": 6379,
+    "enable_tag_override": true
   }
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
