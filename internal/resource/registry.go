@@ -4,6 +4,7 @@
 package resource
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -67,12 +68,18 @@ type Registration struct {
 	Scope Scope
 }
 
+var ErrNeedData = errors.New("authorization check requires resource data")
+
 type ACLHooks struct {
 	// Read is used to authorize Read RPCs and to filter results in List
 	// RPCs.
 	//
+	// It can be called an ID and possibly a Resource. The check will first
+	// attempt to use the ID and if the hook returns ErrNeedData, then the
+	// check will be deferred until the data is fetched from the storage layer.
+	//
 	// If it is omitted, `operator:read` permission is assumed.
-	Read func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.ID) error
+	Read func(acl.Authorizer, *acl.AuthorizerContext, *pbresource.ID, *pbresource.Resource) error
 
 	// Write is used to authorize Write and Delete RPCs.
 	//
@@ -142,7 +149,7 @@ func (r *TypeRegistry) Register(registration Registration) {
 		registration.ACLs = &ACLHooks{}
 	}
 	if registration.ACLs.Read == nil {
-		registration.ACLs.Read = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+		registration.ACLs.Read = func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 			return authz.ToAllowAuthorizer().OperatorReadAllowed(authzContext)
 		}
 	}

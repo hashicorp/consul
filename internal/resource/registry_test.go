@@ -6,17 +6,17 @@ package resource_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	demov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/proto"
 )
 
 func TestRegister(t *testing.T) {
@@ -56,8 +56,8 @@ func TestRegister_Defaults(t *testing.T) {
 	require.True(t, ok)
 
 	// verify default read hook requires operator:read
-	require.NoError(t, reg.ACLs.Read(testutils.ACLOperatorRead(t), nil, artist.Id))
-	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Read(testutils.ACLNoPermissions(t), nil, artist.Id)))
+	require.NoError(t, reg.ACLs.Read(testutils.ACLOperatorRead(t), nil, artist.Id, nil))
+	require.True(t, acl.IsErrPermissionDenied(reg.ACLs.Read(testutils.ACLNoPermissions(t), nil, artist.Id, nil)))
 
 	// verify default write hook requires operator:write
 	require.NoError(t, reg.ACLs.Write(testutils.ACLOperatorWrite(t), nil, artist))
