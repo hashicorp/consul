@@ -101,7 +101,7 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 	out := &ConsulDataplaneContainer{
 		ctx:               ctx,
 		container:         info.Container,
-		ip:                node.GetIP(),
+		ip:                info.IP,
 		serviceName:       containerName,
 		externalAdminPort: info.MappedPorts[adminPortStr].Int(),
 		internalAdminPort: internalAdminPort,

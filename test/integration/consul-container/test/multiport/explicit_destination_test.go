@@ -38,7 +38,7 @@ var (
 func TestMultiportService_Explicit(t *testing.T) {
 	t.Parallel()
 
-	cluster := createCluster(t) // 2 client agent pods
+	cluster := createCluster(t)
 	followers, err := cluster.Followers()
 	require.NoError(t, err)
 	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())
@@ -48,40 +48,33 @@ func TestMultiportService_Explicit(t *testing.T) {
 	clientIP := cluster.Agents[2].GetIP()
 
 	serverService := createServerServicesAndWorkloads(t, resourceClient, serverIP)
-	createClientServicesAndWorkloads(t, resourceClient, serverService, clientIP)
+	createClientResources(t, resourceClient, serverService, clientIP)
 
 	_, clientDataplane := createServices(t, cluster)
 
-	//_, adminPort := clientDataplane.GetAdminAddr()
 	_, port := clientDataplane.GetAddr()
-
-	createClientUpstreams(t, resourceClient, serverService, port)
-
-	//libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
-	//libassert.GetEnvoyListenerTCPFilters(t, adminPort)
 
 	assertDataplaneContainerState(t, clientDataplane, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server-service", "")
-
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 }
 
 // createServices creates the static-client and static-server services with
 // transparent proxy enabled. It returns a Service for the static-client.
 func createServices(t *testing.T, cluster *libcluster.Cluster) (*libcluster.ConsulDataplaneContainer, *libcluster.ConsulDataplaneContainer) {
-	node := cluster.Agents[1]
+	n1 := cluster.Agents[1]
 	//client := node.GetClient()
 
 	// Create a service and dataplane
-	serverDataplane, err := createServiceAndDataplane(t, node, "static-server-workload", "static-server", 8080, 8079, []int{8080})
+	serverDataplane, err := createServiceAndDataplane(t, n1, "static-server-workload", "static-server", 8080, 8079, []int{})
 	require.NoError(t, err)
 
 	//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
 	//libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
-	node = cluster.Agents[2]
+	n2 := cluster.Agents[2]
 	// Create a service and dataplane
-	clientDataplane, err := createServiceAndDataplane(t, node, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
+	clientDataplane, err := createServiceAndDataplane(t, n2, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
 	require.NoError(t, err)
 
 	//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
@@ -129,12 +122,13 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 		},
 	}).Write(t, resourceClient)
 
-	workloadPortMap := make(map[string]*pbcatalog.WorkloadPort, 2)
-	workloadPortMap["tcp"] = &pbcatalog.WorkloadPort{
-		Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-	}
-	workloadPortMap["mesh"] = &pbcatalog.WorkloadPort{
-		Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+	workloadPortMap := map[string]*pbcatalog.WorkloadPort{
+		"tcp": &pbcatalog.WorkloadPort{
+			Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+		},
+		"mesh": &pbcatalog.WorkloadPort{
+			Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+		},
 	}
 
 	rtest.ResourceID(&pbresource.ID{
@@ -153,7 +147,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	return serverService
 }
 
-func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, ipAddress string) {
+func createClientResources(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, ipAddress string) {
 	rtest.ResourceID(&pbresource.ID{
 		Name:    "static-client-service",
 		Type:    catalog.ServiceType,
@@ -166,12 +160,13 @@ func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 		},
 	}).Write(t, resourceClient)
 
-	workloadPortMap := make(map[string]*pbcatalog.WorkloadPort, 2)
-	workloadPortMap["tcp"] = &pbcatalog.WorkloadPort{
-		Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
-	}
-	workloadPortMap["mesh"] = &pbcatalog.WorkloadPort{
-		Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+	workloadPortMap := map[string]*pbcatalog.WorkloadPort{
+		"tcp": {
+			Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+		},
+		"mesh": {
+			Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+		},
 	}
 
 	rtest.ResourceID(&pbresource.ID{
@@ -200,34 +195,8 @@ func createClientServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 					DestinationPort: "tcp",
 					ListenAddr: &pbmesh.Upstream_IpPort{
 						IpPort: &pbmesh.IPPortAddress{
-							Ip:   "127.0.0.1",
-							Port: 1234,
-						},
-					},
-				},
-			},
-			Workloads: &pbcatalog.WorkloadSelector{
-				Prefixes: []string{"static-client"},
-			},
-		}).
-		Write(t, resourceClient)
-}
-
-func createClientUpstreams(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, portNumber int) {
-	rtest.ResourceID(&pbresource.ID{
-		Name:    "static-client-upstreams",
-		Type:    mesh.UpstreamsType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
-	}).
-		WithData(t, &pbmesh.Upstreams{
-			Upstreams: []*pbmesh.Upstream{
-				{
-					DestinationRef:  resource.Reference(staticServerRef.GetId(), ""),
-					DestinationPort: "tcp",
-					ListenAddr: &pbmesh.Upstream_IpPort{
-						IpPort: &pbmesh.IPPortAddress{
-							Ip:   "127.0.0.1",
-							Port: uint32(portNumber),
+							Ip:   "0.0.0.0",
+							Port: libcluster.ServiceUpstreamLocalBindPort,
 						},
 					},
 				},
@@ -259,28 +228,4 @@ func assertDataplaneContainerState(t *testing.T, dataplane *libcluster.ConsulDat
 	containerStatus, err := dataplane.GetStatus()
 	require.NoError(t, err)
 	require.Equal(t, containerStatus, state, fmt.Sprintf("Expected: %s. Got %s", state, containerStatus))
-}
-
-// assertHTTPRequestToServiceAddress checks the result of a request from the
-// given `client` container to the given `server` container. If expSuccess is
-// true, this checks for a successful request and otherwise it checks for the
-// error we expect when traffic is rejected by mTLS.
-//
-// This assumes the destination service is running Fortio. It makes the request
-// to `<serverIP>:8080/debug?env=dump` and checks for `FORTIO_NAME=<expServiceName>`
-// in the response.
-func assertHTTPRequestToServiceAddress(t *testing.T, client, server libcluster.Agent, expServiceName string, expSuccess bool) {
-	upstreamURL := fmt.Sprintf("http://%s:8080/debug?env=dump", server.GetIP())
-	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
-		out, err := client.Exec(context.Background(), []string{"curl", "-s", upstreamURL})
-		t.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
-
-		if expSuccess {
-			require.NoError(r, err)
-			require.Contains(r, out, fmt.Sprintf("FORTIO_NAME=%s", expServiceName))
-		} else {
-			require.Error(r, err)
-			require.Contains(r, err.Error(), "exit code 52")
-		}
-	})
 }
