@@ -4,17 +4,14 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
-	"strings"
 	"text/template"
 
 	"google.golang.org/protobuf/compiler/protogen"
-	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func Generate(gp *protogen.Plugin) error {
+func Generate(gp *protogen.Plugin, prefix string) error {
 	g := newGenerator()
 
 	for _, file := range gp.Files {
@@ -24,7 +21,7 @@ func Generate(gp *protogen.Plugin) error {
 		}
 	}
 
-	return g.generateTypes(gp)
+	return g.generateTypes(gp, prefix)
 }
 
 type apiGroupVersion struct {
@@ -44,6 +41,7 @@ type groupInfo struct {
 
 type kind struct {
 	Name     string
+	Scope    string
 	Comments protogen.CommentSet
 }
 
@@ -63,13 +61,10 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 	}
 
 	for _, m := range f.Messages {
-		ext := proto.GetExtension(m.Desc.Options(), pbresource.E_Spec).(*pbresource.ResourceTypeSpec)
-		if ext == nil {
+		spec, annotated, err := pbresource.GetResourceSpec(m.Desc)
+		if !annotated {
 			continue
 		}
-
-		gvkString := strings.TrimPrefix(string(m.Desc.FullName()), "hashicorp.consul.")
-		rtype, err := resource.ParseGVK(gvkString)
 		if err != nil {
 			return err
 		}
@@ -77,8 +72,8 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 		apiGroupDir := filepath.Dir(f.Proto.GetName())
 
 		gv := apiGroupVersion{
-			Group:   rtype.Group,
-			Version: rtype.GroupVersion,
+			Group:   spec.Type.Group,
+			Version: spec.Type.GroupVersion,
 		}
 
 		grp, err := g.ensureAPIGroup(gv, f.GoImportPath, f.GoPackageName, apiGroupDir)
@@ -86,7 +81,7 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 			return err
 		}
 
-		grp.Kinds = append(grp.Kinds, kind{Name: rtype.Kind, Comments: m.Comments})
+		grp.Kinds = append(grp.Kinds, kind{Name: spec.Type.Kind, Comments: m.Comments, Scope: pbresource.Scope_name[int32(spec.Scope)]})
 	}
 
 	return nil
@@ -105,15 +100,15 @@ func (g *generator) ensureAPIGroup(gv apiGroupVersion, importPath protogen.GoImp
 		}
 		g.resources[gv] = grp
 	} else if grp.ImportPath != importPath {
-		return nil, fmt.Errorf("resources from the same api group must share the same import path")
+		return nil, fmt.Errorf("resources from the same api group must share the same import path - group: %s, version: %s, original import path: %s, new import path: %s", gv.Group, gv.Version, grp.ImportPath, importPath)
 	}
 
 	return grp, nil
 }
 
-func (g *generator) generateTypes(gp *protogen.Plugin) error {
+func (g *generator) generateTypes(gp *protogen.Plugin, prefix string) error {
 	for _, info := range g.resources {
-		f := gp.NewGeneratedFile(filepath.Join(info.Directory, "resource_types.gen.go"), info.ImportPath)
+		f := gp.NewGeneratedFile(filepath.Join(info.Directory, fmt.Sprintf("%s.go", prefix)), info.ImportPath)
 
 		sort.Slice(info.Kinds, func(a, b int) bool {
 			return info.Kinds[a].Name < info.Kinds[b].Name
@@ -132,27 +127,36 @@ var (
 
 package {{.PackageName}}
 
+{{if ne .PackageName "pbresource" -}}
 import (	
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+{{- end}}
 
 const (
 	GroupName = "{{.Name}}"
 	Version = "{{.Version}}"
+)
 
 {{range $kind := .Kinds}}
-	{{$kind.Name}}Kind = "{{$kind.Name}}"
+// {{$.Name}}.{{$.Version}}.{{$kind.Name}} resource type utilities and constants
+
+const {{$kind.Name}}Kind = "{{$kind.Name}}"
+const {{$kind.Name}}Scope = {{if ne $.PackageName "pbresource"}}pbresource.{{end}}Scope_{{$kind.Scope}}
+
+var {{$kind.Name}}Type = &{{if ne $.PackageName "pbresource"}}pbresource.{{end}}Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         {{$kind.Name}}Kind,
+}
+
+func (_ *{{$kind.Name}}) GetResourceType() *{{if ne $.PackageName "pbresource"}}pbresource.{{end}}Type {
+	return {{$kind.Name}}Type
+}
+
+func (_ *{{$kind.Name}}) GetResourceScope() {{if ne $.PackageName "pbresource"}}pbresource.{{end}}Scope {
+	return {{$kind.Name}}Scope
+}
 {{- end}}
-)
-
-var (
-{{range $kind := .Kinds}}
-	{{$kind.Name}}Type = &pbresource.Type{
- 		Group:        GroupName,
- 		GroupVersion: Version,
- 		Kind:         {{$kind.Name}}Kind,
- 	}
-{{end}}	
-)
 `))
 )

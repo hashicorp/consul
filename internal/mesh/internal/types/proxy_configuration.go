@@ -25,9 +25,7 @@ var (
 
 func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  ProxyConfigurationV2Beta1Type,
 		Proto: &pbmesh.ProxyConfiguration{},
-		Scope: resource.ScopeNamespace,
 		// TODO(rb): add validation for proxy configuration
 		Validate: nil,
 	})

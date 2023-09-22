@@ -6,18 +6,43 @@ syntax = "proto3";
 package hashicorp.consul.resource;
 
 import "google/protobuf/descriptor.proto";
+import "pbresource/resource.proto";
 
 enum Scope {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+
+  // SCOPE_UNDEFINED represents a resource type that reside within more than 1
+  // scope. The resource type registry restricts which types may use this scope
+  // and generally usage should be avoided.
+  //
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   SCOPE_UNDEFINED = 0;
+
+  // SCOPE_CLUSTER should be used to represent a resource that doesn't reside
+  // within a partition but applies to the whole cluster.
   SCOPE_CLUSTER = 1;
+
+  // SCOPE_PARTITION should be used to represent a resource that resides within
+  // a partition but is not namespaced.
   SCOPE_PARTITION = 2;
+
+  // SCOPE_NAMESPACE represents a resource which is namespaced and partitioned.
   SCOPE_NAMESPACE = 3;
 }
 
 message ResourceTypeSpec {
+  // Scope is what tenancy scope this resource type resides within.
   Scope scope = 1;
+
+  // DontMapHttp marks the resource to not be exposed in the HTTP APIs. Generally
+  // speaking there shouldn't be much of a need to do this except for truley internal
+  // resources such as the Tombstone.
   bool dont_map_http = 2;
+
+  // Type is the pbresource.Type to be used for this message. If not present, the type
+  // will be inferred from the protobuf messages full name which must be of the form:
+  // hashicorp.consul.<api group>.<group version>.<kind>
+  Type type = 3;
 }
 
 extend google.protobuf.MessageOptions {

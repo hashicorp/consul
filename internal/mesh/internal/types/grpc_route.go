@@ -30,9 +30,7 @@ var (
 
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     GRPCRouteV2Beta1Type,
 		Proto:    &pbmesh.GRPCRoute{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),

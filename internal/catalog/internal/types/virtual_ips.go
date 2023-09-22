@@ -27,9 +27,7 @@ var (
 
 func RegisterVirtualIPs(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     VirtualIPsV2Beta1Type,
 		Proto:    &pbcatalog.VirtualIPs{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateVirtualIPs,
 	})
 }

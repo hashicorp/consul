@@ -42,12 +42,15 @@ type Registry interface {
 	Types() []Registration
 }
 
-type Registration struct {
-	// Type is the GVK of the resource type.
-	Type *pbresource.Type
+type ResourceProtoType interface {
+	GetResourceType() *pbresource.Type
+	GetResourceScope() pbresource.Scope
+	proto.Message
+}
 
+type Registration struct {
 	// Proto is the resource's protobuf message type.
-	Proto proto.Message
+	Proto ResourceProtoType
 
 	// ACLs are hooks called to perform authorization on RPCs.
 	// The hooks can assume that Validate has been called.
@@ -63,9 +66,14 @@ type Registration struct {
 	// Resource.ID is populated and has non-empty tenancy fields. This does
 	// not mean those tenancy fields actually exist.
 	Mutate func(*pbresource.Resource) error
+}
 
-	// Scope describes the tenancy scope of a resource.
-	Scope Scope
+func (r *Registration) GetType() *pbresource.Type {
+	return r.Proto.GetResourceType()
+}
+
+func (r *Registration) GetScope() pbresource.Scope {
+	return r.Proto.GetResourceScope()
 }
 
 var ErrNeedData = errors.New("authorization check requires resource data")
@@ -107,14 +115,17 @@ func NewRegistry() Registry {
 	// does not get routed through the resource service and bypasses ACLs
 	// as part of the Delete endpoint.
 	registry.Register(Registration{
-		Type:  TypeV1Tombstone,
 		Proto: &pbresource.Tombstone{},
 	})
 	return registry
 }
 
 func (r *TypeRegistry) Register(registration Registration) {
-	typ := registration.Type
+	if registration.Proto == nil {
+		panic("Proto field is required.")
+	}
+
+	typ := registration.Proto.GetResourceType()
 	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
 		panic("type field(s) cannot be empty")
 	}
@@ -128,18 +139,16 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
 	}
 
-	if registration.Proto == nil {
-		panic("Proto field is required.")
-	}
+	scope := registration.Proto.GetResourceScope()
 
-	if registration.Scope == ScopeUndefined && !isUndefinedScopeAllowed(typ) {
-		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
+	if scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(typ) {
+		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, scope))
 	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	key := ToGVK(registration.Type)
+	key := ToGVK(typ)
 	if _, ok := r.registrations[key]; ok {
 		panic(fmt.Sprintf("resource type %s already registered", key))
 	}

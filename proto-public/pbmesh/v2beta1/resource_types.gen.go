@@ -9,49 +9,175 @@ import (
 const (
 	GroupName = "mesh"
 	Version   = "v2beta1"
-
-	ComputedRoutesKind     = "ComputedRoutes"
-	DestinationPolicyKind  = "DestinationPolicy"
-	GRPCRouteKind          = "GRPCRoute"
-	ProxyStateTemplateKind = "ProxyStateTemplate"
-	TCPRouteKind           = "TCPRoute"
-	UpstreamsKind          = "Upstreams"
 )
 
-var (
-	ComputedRoutesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedRoutesKind,
-	}
+// mesh.v2beta1.ComputedRoutes resource type utilities and constants
 
-	DestinationPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         DestinationPolicyKind,
-	}
+const ComputedRoutesKind = "ComputedRoutes"
+const ComputedRoutesScope = pbresource.Scope_SCOPE_NAMESPACE
 
-	GRPCRouteType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         GRPCRouteKind,
-	}
+var ComputedRoutesType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ComputedRoutesKind,
+}
 
-	ProxyStateTemplateType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ProxyStateTemplateKind,
-	}
+func (_ *ComputedRoutes) GetResourceType() *pbresource.Type {
+	return ComputedRoutesType
+}
 
-	TCPRouteType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         TCPRouteKind,
-	}
+func (_ *ComputedRoutes) GetResourceScope() pbresource.Scope {
+	return ComputedRoutesScope
+}
 
-	UpstreamsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         UpstreamsKind,
-	}
-)
+// mesh.v2beta1.DestinationPolicy resource type utilities and constants
+
+const DestinationPolicyKind = "DestinationPolicy"
+const DestinationPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var DestinationPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         DestinationPolicyKind,
+}
+
+func (_ *DestinationPolicy) GetResourceType() *pbresource.Type {
+	return DestinationPolicyType
+}
+
+func (_ *DestinationPolicy) GetResourceScope() pbresource.Scope {
+	return DestinationPolicyScope
+}
+
+// mesh.v2beta1.GRPCRoute resource type utilities and constants
+
+const GRPCRouteKind = "GRPCRoute"
+const GRPCRouteScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var GRPCRouteType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         GRPCRouteKind,
+}
+
+func (_ *GRPCRoute) GetResourceType() *pbresource.Type {
+	return GRPCRouteType
+}
+
+func (_ *GRPCRoute) GetResourceScope() pbresource.Scope {
+	return GRPCRouteScope
+}
+
+// mesh.v2beta1.HTTPRoute resource type utilities and constants
+
+const HTTPRouteKind = "HTTPRoute"
+const HTTPRouteScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var HTTPRouteType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         HTTPRouteKind,
+}
+
+func (_ *HTTPRoute) GetResourceType() *pbresource.Type {
+	return HTTPRouteType
+}
+
+func (_ *HTTPRoute) GetResourceScope() pbresource.Scope {
+	return HTTPRouteScope
+}
+
+// mesh.v2beta1.ProxyConfiguration resource type utilities and constants
+
+const ProxyConfigurationKind = "ProxyConfiguration"
+const ProxyConfigurationScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var ProxyConfigurationType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ProxyConfigurationKind,
+}
+
+func (_ *ProxyConfiguration) GetResourceType() *pbresource.Type {
+	return ProxyConfigurationType
+}
+
+func (_ *ProxyConfiguration) GetResourceScope() pbresource.Scope {
+	return ProxyConfigurationScope
+}
+
+// mesh.v2beta1.ProxyStateTemplate resource type utilities and constants
+
+const ProxyStateTemplateKind = "ProxyStateTemplate"
+const ProxyStateTemplateScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var ProxyStateTemplateType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ProxyStateTemplateKind,
+}
+
+func (_ *ProxyStateTemplate) GetResourceType() *pbresource.Type {
+	return ProxyStateTemplateType
+}
+
+func (_ *ProxyStateTemplate) GetResourceScope() pbresource.Scope {
+	return ProxyStateTemplateScope
+}
+
+// mesh.v2beta1.TCPRoute resource type utilities and constants
+
+const TCPRouteKind = "TCPRoute"
+const TCPRouteScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var TCPRouteType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         TCPRouteKind,
+}
+
+func (_ *TCPRoute) GetResourceType() *pbresource.Type {
+	return TCPRouteType
+}
+
+func (_ *TCPRoute) GetResourceScope() pbresource.Scope {
+	return TCPRouteScope
+}
+
+// mesh.v2beta1.Upstreams resource type utilities and constants
+
+const UpstreamsKind = "Upstreams"
+const UpstreamsScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var UpstreamsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         UpstreamsKind,
+}
+
+func (_ *Upstreams) GetResourceType() *pbresource.Type {
+	return UpstreamsType
+}
+
+func (_ *Upstreams) GetResourceScope() pbresource.Scope {
+	return UpstreamsScope
+}
+
+// mesh.v2beta1.UpstreamsConfiguration resource type utilities and constants
+
+const UpstreamsConfigurationKind = "UpstreamsConfiguration"
+const UpstreamsConfigurationScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var UpstreamsConfigurationType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         UpstreamsConfigurationKind,
+}
+
+func (_ *UpstreamsConfiguration) GetResourceType() *pbresource.Type {
+	return UpstreamsConfigurationType
+}
+
+func (_ *UpstreamsConfiguration) GetResourceScope() pbresource.Scope {
+	return UpstreamsConfigurationScope
+}

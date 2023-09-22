@@ -9,70 +9,175 @@ import (
 const (
 	GroupName = "catalog"
 	Version   = "v2beta1"
-
-	DNSPolicyKind        = "DNSPolicy"
-	FailoverPolicyKind   = "FailoverPolicy"
-	HealthChecksKind     = "HealthChecks"
-	HealthStatusKind     = "HealthStatus"
-	NodeKind             = "Node"
-	ServiceKind          = "Service"
-	ServiceEndpointsKind = "ServiceEndpoints"
-	VirtualIPsKind       = "VirtualIPs"
-	WorkloadKind         = "Workload"
 )
 
-var (
-	DNSPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         DNSPolicyKind,
-	}
+// catalog.v2beta1.DNSPolicy resource type utilities and constants
 
-	FailoverPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         FailoverPolicyKind,
-	}
+const DNSPolicyKind = "DNSPolicy"
+const DNSPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
 
-	HealthChecksType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         HealthChecksKind,
-	}
+var DNSPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         DNSPolicyKind,
+}
 
-	HealthStatusType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         HealthStatusKind,
-	}
+func (_ *DNSPolicy) GetResourceType() *pbresource.Type {
+	return DNSPolicyType
+}
 
-	NodeType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NodeKind,
-	}
+func (_ *DNSPolicy) GetResourceScope() pbresource.Scope {
+	return DNSPolicyScope
+}
 
-	ServiceType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ServiceKind,
-	}
+// catalog.v2beta1.FailoverPolicy resource type utilities and constants
 
-	ServiceEndpointsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ServiceEndpointsKind,
-	}
+const FailoverPolicyKind = "FailoverPolicy"
+const FailoverPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
 
-	VirtualIPsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         VirtualIPsKind,
-	}
+var FailoverPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         FailoverPolicyKind,
+}
 
-	WorkloadType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         WorkloadKind,
-	}
-)
+func (_ *FailoverPolicy) GetResourceType() *pbresource.Type {
+	return FailoverPolicyType
+}
+
+func (_ *FailoverPolicy) GetResourceScope() pbresource.Scope {
+	return FailoverPolicyScope
+}
+
+// catalog.v2beta1.HealthChecks resource type utilities and constants
+
+const HealthChecksKind = "HealthChecks"
+const HealthChecksScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var HealthChecksType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         HealthChecksKind,
+}
+
+func (_ *HealthChecks) GetResourceType() *pbresource.Type {
+	return HealthChecksType
+}
+
+func (_ *HealthChecks) GetResourceScope() pbresource.Scope {
+	return HealthChecksScope
+}
+
+// catalog.v2beta1.HealthStatus resource type utilities and constants
+
+const HealthStatusKind = "HealthStatus"
+const HealthStatusScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var HealthStatusType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         HealthStatusKind,
+}
+
+func (_ *HealthStatus) GetResourceType() *pbresource.Type {
+	return HealthStatusType
+}
+
+func (_ *HealthStatus) GetResourceScope() pbresource.Scope {
+	return HealthStatusScope
+}
+
+// catalog.v2beta1.Node resource type utilities and constants
+
+const NodeKind = "Node"
+const NodeScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var NodeType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NodeKind,
+}
+
+func (_ *Node) GetResourceType() *pbresource.Type {
+	return NodeType
+}
+
+func (_ *Node) GetResourceScope() pbresource.Scope {
+	return NodeScope
+}
+
+// catalog.v2beta1.Service resource type utilities and constants
+
+const ServiceKind = "Service"
+const ServiceScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var ServiceType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ServiceKind,
+}
+
+func (_ *Service) GetResourceType() *pbresource.Type {
+	return ServiceType
+}
+
+func (_ *Service) GetResourceScope() pbresource.Scope {
+	return ServiceScope
+}
+
+// catalog.v2beta1.ServiceEndpoints resource type utilities and constants
+
+const ServiceEndpointsKind = "ServiceEndpoints"
+const ServiceEndpointsScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var ServiceEndpointsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ServiceEndpointsKind,
+}
+
+func (_ *ServiceEndpoints) GetResourceType() *pbresource.Type {
+	return ServiceEndpointsType
+}
+
+func (_ *ServiceEndpoints) GetResourceScope() pbresource.Scope {
+	return ServiceEndpointsScope
+}
+
+// catalog.v2beta1.VirtualIPs resource type utilities and constants
+
+const VirtualIPsKind = "VirtualIPs"
+const VirtualIPsScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var VirtualIPsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         VirtualIPsKind,
+}
+
+func (_ *VirtualIPs) GetResourceType() *pbresource.Type {
+	return VirtualIPsType
+}
+
+func (_ *VirtualIPs) GetResourceScope() pbresource.Scope {
+	return VirtualIPsScope
+}
+
+// catalog.v2beta1.Workload resource type utilities and constants
+
+const WorkloadKind = "Workload"
+const WorkloadScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var WorkloadType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         WorkloadKind,
+}
+
+func (_ *Workload) GetResourceType() *pbresource.Type {
+	return WorkloadType
+}
+
+func (_ *Workload) GetResourceScope() pbresource.Scope {
+	return WorkloadScope
+}

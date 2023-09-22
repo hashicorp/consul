@@ -29,9 +29,7 @@ var (
 
 func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     UpstreamsV2Beta1Type,
 		Proto:    &pbmesh.Upstreams{},
-		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateUpstreams,
 		Validate: ValidateUpstreams,
 	})

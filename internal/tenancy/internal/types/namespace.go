@@ -27,9 +27,7 @@ var (
 
 func RegisterNamespace(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     NamespaceV1Alpha1Type,
 		Proto:    &tenancyv1alpha1.Namespace{},
-		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
 		Mutate:   MutateNamespace,
 	})

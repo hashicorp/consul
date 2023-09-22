@@ -140,9 +140,7 @@ func RegisterTypes(r resource.Registry) {
 	}
 
 	r.Register(resource.Registration{
-		Type:  TypeV1RecordLabel,
 		Proto: &pbdemov1.RecordLabel{},
-		Scope: resource.ScopePartition,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -151,9 +149,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -163,9 +159,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -174,9 +168,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV1Concept,
 		Proto: &pbdemov1.Concept{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -185,9 +177,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -198,9 +188,7 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,

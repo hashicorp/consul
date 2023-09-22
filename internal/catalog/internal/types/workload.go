@@ -30,9 +30,7 @@ var (
 
 func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     WorkloadV2Beta1Type,
 		Proto:    &pbcatalog.Workload{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateWorkload,
 	})
 }

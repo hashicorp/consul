@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: pbresource/resource.proto
+// source: pbresource/service.proto
 
 package pbresource
 
@@ -499,5 +499,5 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "pbresource/resource.proto",
+	Metadata: "pbresource/service.proto",
 }

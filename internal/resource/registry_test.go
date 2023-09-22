@@ -24,14 +24,12 @@ func TestRegister(t *testing.T) {
 
 	// register success
 	reg := resource.Registration{
-		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: resource.ScopeNamespace,
 	}
 	r.Register(reg)
 	actual, ok := r.Resolve(demo.TypeV2Artist)
 	require.True(t, ok)
-	require.True(t, proto.Equal(demo.TypeV2Artist, actual.Type))
+	require.True(t, proto.Equal(demo.TypeV2Artist, actual.GetType()))
 
 	// register existing should panic
 	require.PanicsWithValue(t, "resource type demo.v2.Artist already registered", func() {
@@ -45,9 +43,7 @@ func TestRegister(t *testing.T) {
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
 	r.Register(resource.Registration{
-		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: resource.ScopeNamespace,
 	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -91,13 +87,20 @@ func TestResolve(t *testing.T) {
 
 	// found
 	r.Register(resource.Registration{
-		Type:  demo.TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: resource.ScopeNamespace,
 	})
 	registration, ok := r.Resolve(demo.TypeV1Album)
 	assert.True(t, ok)
-	assert.Equal(t, registration.Type, demo.TypeV1Album)
+	assert.Equal(t, registration.GetType(), demo.TypeV1Album)
+}
+
+type resourceTypeOverride struct {
+	rtype *pbresource.Type
+	resource.ResourceProtoType
+}
+
+func (r resourceTypeOverride) GetResourceType() *pbresource.Type {
+	return r.rtype
 }
 
 func TestRegister_TypeValidation(t *testing.T) {
@@ -164,6 +167,7 @@ func TestRegister_TypeValidation(t *testing.T) {
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			reg := func() {
+
 				typ := &pbresource.Type{
 					Group:        "foo",
 					GroupVersion: "v1",
@@ -173,11 +177,11 @@ func TestRegister_TypeValidation(t *testing.T) {
 					tc.fn(typ)
 				}
 				registry.Register(resource.Registration{
-					Type: typ,
 					// Just pass anything since proto is a required field.
-					Proto: &pbdemov1.Artist{},
-					// Scope is also required
-					Scope: resource.ScopeNamespace,
+					Proto: &resourceTypeOverride{
+						rtype:             typ,
+						ResourceProtoType: &pbdemov1.Artist{},
+					},
 				})
 			}
 

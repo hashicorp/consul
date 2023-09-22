@@ -9,7 +9,11 @@ import "pbresource/annotations.proto";
 
 message Node {
   option (hashicorp.consul.resource.spec) = {
-    // TODO: This should eventually be SCOPE_PARTITION but that will require further changes to code
+    // TODO: A node should be partition scoped. However its HealthStatus which is
+    // namespace scoped has Node as an owner. We do not support ownership between resources
+    // of differing scope at this time. HealthStatus will probably be split out into two different
+    // types, one for namespace scoped owners and the other for partition scoped owners.
+    // Until that time, Node will remain namespace scoped.
     scope: SCOPE_NAMESPACE,
   };
 

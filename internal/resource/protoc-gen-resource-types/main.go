@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	file = flag.String("file", "-", "where to load data from")
+	prefix = flag.String("prefix", "resource_types.gen", "filename prefix to use. '.go' will be appended to this to create the full filename")
 )
 
 func main() {
@@ -22,6 +22,6 @@ func main() {
 		ParamFunc: flag.CommandLine.Set,
 	}.Run(func(gp *protogen.Plugin) error {
 		gp.SupportedFeatures = uint64(plugin.CodeGeneratorResponse_FEATURE_PROTO3_OPTIONAL)
-		return generate.Generate(gp)
+		return generate.Generate(gp, *prefix)
 	})
 }

@@ -25,9 +25,7 @@ var (
 
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     WorkloadIdentityV2Beta1Type,
 		Proto:    &pbauth.WorkloadIdentity{},
-		Scope:    resource.ScopeNamespace,
 		Validate: nil,
 	})
 }

@@ -29,6 +29,14 @@ message Bar {
 }
 ```
 
+The `hashicorp.consul.resource.spec` option is required for protobuf message
+types that will be made available in the Resource type registry. The fields
+available in the option are defined in [`pbresource/annotations.proto`](../../proto-public/pbresource/annotations.proto).
+
+Note that Scope reference the scope of the new resource, `SCOPE_PARTITION` mean that 
+resource will be at the partition level and have no namespace, while `SCOPE_NAMESPACE`
+mean it will have both a namespace and a partition. 
+
 ```shell
 $ make proto
 ```
@@ -52,15 +60,10 @@ import (
 
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType, 
-		Scope: resource.ScopePartition,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
-Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
-mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
-and a partition.
 
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
 package's type registration method:
@@ -140,9 +143,7 @@ using a validation hook provided in the type registration:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbv1alpha1.BarType,
 		Proto:    &pbv1alpha1.Bar{}, 
-		Scope:    resource.ScopeNamespace,
 		Validate: validateBar,
 	})
 }
@@ -173,9 +174,7 @@ a set of ACL hooks:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType,
 		Proto: &pbv1alpha1.Bar{}, 
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -212,9 +211,7 @@ by providing a mutation hook:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:   pbv1alpha1.BarType,
 		Proto:  &pbv1alpha1.Bar{}, 
-		Scope:  resource.ScopeNamespace,
 		Mutate: mutateBar,
 	})
 }

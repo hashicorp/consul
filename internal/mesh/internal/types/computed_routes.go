@@ -35,9 +35,7 @@ var (
 
 func RegisterComputedRoutes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedRoutesV2Beta1Type,
 		Proto:    &pbmesh.ComputedRoutes{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedRoutes,
 	})
 }

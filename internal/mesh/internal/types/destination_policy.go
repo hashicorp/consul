@@ -31,9 +31,7 @@ var (
 
 func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DestinationPolicyV2Beta1Type,
 		Proto:    &pbmesh.DestinationPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookDestinationPolicy,

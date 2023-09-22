@@ -27,9 +27,7 @@ var (
 
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedTrafficPermissionsV2Beta1Type,
 		Proto:    &pbauth.ComputedTrafficPermissions{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedTrafficPermissions,
 	})
 }

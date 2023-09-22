@@ -9,14 +9,23 @@ import (
 const (
 	GroupName = "tenancy"
 	Version   = "v1alpha1"
-
-	NamespaceKind = "Namespace"
 )
 
-var (
-	NamespaceType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceKind,
-	}
-)
+// tenancy.v1alpha1.Namespace resource type utilities and constants
+
+const NamespaceKind = "Namespace"
+const NamespaceScope = pbresource.Scope_SCOPE_PARTITION
+
+var NamespaceType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceKind,
+}
+
+func (_ *Namespace) GetResourceType() *pbresource.Type {
+	return NamespaceType
+}
+
+func (_ *Namespace) GetResourceScope() pbresource.Scope {
+	return NamespaceScope
+}

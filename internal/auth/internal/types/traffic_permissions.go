@@ -27,9 +27,7 @@ var (
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     TrafficPermissionsV2Beta1Type,
 		Proto:    &pbauth.TrafficPermissions{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateTrafficPermissions,
 		Mutate:   MutateTrafficPermissions,
 	})

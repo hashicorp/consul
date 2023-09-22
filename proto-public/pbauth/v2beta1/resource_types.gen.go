@@ -9,42 +9,99 @@ import (
 const (
 	GroupName = "auth"
 	Version   = "v2beta1"
-
-	ComputedTrafficPermissionsKind  = "ComputedTrafficPermissions"
-	NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
-	PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
-	TrafficPermissionsKind          = "TrafficPermissions"
-	WorkloadIdentityKind            = "WorkloadIdentity"
 )
 
-var (
-	ComputedTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedTrafficPermissionsKind,
-	}
+// auth.v2beta1.ComputedTrafficPermissions resource type utilities and constants
 
-	NamespaceTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceTrafficPermissionsKind,
-	}
+const ComputedTrafficPermissionsKind = "ComputedTrafficPermissions"
+const ComputedTrafficPermissionsScope = pbresource.Scope_SCOPE_NAMESPACE
 
-	PartitionTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         PartitionTrafficPermissionsKind,
-	}
+var ComputedTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ComputedTrafficPermissionsKind,
+}
 
-	TrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         TrafficPermissionsKind,
-	}
+func (_ *ComputedTrafficPermissions) GetResourceType() *pbresource.Type {
+	return ComputedTrafficPermissionsType
+}
 
-	WorkloadIdentityType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         WorkloadIdentityKind,
-	}
-)
+func (_ *ComputedTrafficPermissions) GetResourceScope() pbresource.Scope {
+	return ComputedTrafficPermissionsScope
+}
+
+// auth.v2beta1.NamespaceTrafficPermissions resource type utilities and constants
+
+const NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
+const NamespaceTrafficPermissionsScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var NamespaceTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceTrafficPermissionsKind,
+}
+
+func (_ *NamespaceTrafficPermissions) GetResourceType() *pbresource.Type {
+	return NamespaceTrafficPermissionsType
+}
+
+func (_ *NamespaceTrafficPermissions) GetResourceScope() pbresource.Scope {
+	return NamespaceTrafficPermissionsScope
+}
+
+// auth.v2beta1.PartitionTrafficPermissions resource type utilities and constants
+
+const PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
+const PartitionTrafficPermissionsScope = pbresource.Scope_SCOPE_PARTITION
+
+var PartitionTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         PartitionTrafficPermissionsKind,
+}
+
+func (_ *PartitionTrafficPermissions) GetResourceType() *pbresource.Type {
+	return PartitionTrafficPermissionsType
+}
+
+func (_ *PartitionTrafficPermissions) GetResourceScope() pbresource.Scope {
+	return PartitionTrafficPermissionsScope
+}
+
+// auth.v2beta1.TrafficPermissions resource type utilities and constants
+
+const TrafficPermissionsKind = "TrafficPermissions"
+const TrafficPermissionsScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var TrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         TrafficPermissionsKind,
+}
+
+func (_ *TrafficPermissions) GetResourceType() *pbresource.Type {
+	return TrafficPermissionsType
+}
+
+func (_ *TrafficPermissions) GetResourceScope() pbresource.Scope {
+	return TrafficPermissionsScope
+}
+
+// auth.v2beta1.WorkloadIdentity resource type utilities and constants
+
+const WorkloadIdentityKind = "WorkloadIdentity"
+const WorkloadIdentityScope = pbresource.Scope_SCOPE_NAMESPACE
+
+var WorkloadIdentityType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         WorkloadIdentityKind,
+}
+
+func (_ *WorkloadIdentity) GetResourceType() *pbresource.Type {
+	return WorkloadIdentityType
+}
+
+func (_ *WorkloadIdentity) GetResourceScope() pbresource.Scope {
+	return WorkloadIdentityScope
+}

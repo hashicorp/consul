@@ -29,9 +29,7 @@ var (
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ServiceEndpointsV2Beta1Type,
 		Proto:    &pbcatalog.ServiceEndpoints{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
 	})

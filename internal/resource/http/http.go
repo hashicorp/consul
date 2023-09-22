@@ -36,7 +36,8 @@ func NewHandler(
 	mux := http.NewServeMux()
 	for _, t := range registry.Types() {
 		// List Endpoint
-		base := strings.ToLower(fmt.Sprintf("/%s/%s/%s", t.Type.Group, t.Type.GroupVersion, t.Type.Kind))
+		rtype := t.GetType()
+		base := strings.ToLower(fmt.Sprintf("/%s/%s/%s", rtype.Group, rtype.GroupVersion, rtype.Kind))
 		mux.Handle(base, http.StripPrefix(base, &listHandler{t, client, parseToken, logger}))
 
 		// Individual Resource Endpoints
@@ -108,7 +109,7 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	rsp, err := h.client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
-				Type:    h.reg.Type,
+				Type:    h.reg.GetType(),
 				Tenancy: tenancyInfo,
 				Name:    params["resourceName"],
 			},
@@ -140,7 +141,7 @@ func (h *resourceHandler) handleRead(w http.ResponseWriter, r *http.Request, ctx
 
 	rsp, err := h.client.Read(ctx, &pbresource.ReadRequest{
 		Id: &pbresource.ID{
-			Type:    h.reg.Type,
+			Type:    h.reg.GetType(),
 			Tenancy: tenancyInfo,
 			Name:    params["resourceName"],
 		},
@@ -164,7 +165,7 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 	tenancyInfo, params := parseParams(r)
 	_, err := h.client.Delete(ctx, &pbresource.DeleteRequest{
 		Id: &pbresource.ID{
-			Type:    h.reg.Type,
+			Type:    h.reg.GetType(),
 			Tenancy: tenancyInfo,
 			Name:    params["resourceName"],
 		},
@@ -277,7 +278,7 @@ func (h *listHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rsp, err := h.client.List(ctx, &pbresource.ListRequest{
-		Type:       h.reg.Type,
+		Type:       h.reg.GetType(),
 		Tenancy:    tenancyInfo,
 		NamePrefix: params["namePrefix"],
 	})
