@@ -20,13 +20,12 @@ import (
 )
 
 type OuterResource struct {
-	ID         ID             `json:"id"`
-	Owner      ID             `json:"owner"`
+	ID         *ID            `json:"id"`
+	Owner      *ID            `json:"owner"`
 	Generation string         `json:"generation"`
 	Version    string         `json:"version"`
 	Metadata   map[string]any `json:"metadata"`
 	Data       map[string]any `json:"data"`
-	Status     map[string]any `json:"status"`
 }
 
 type Tenancy struct {
@@ -50,16 +49,20 @@ func parseJson(js string) (*pbresource.Resource, error) {
 
 	parsedResource := new(pbresource.Resource)
 
-	var stuff OuterResource
+	var outerResource OuterResource
 
-	if err := json.Unmarshal([]byte(js), &stuff); err != nil {
+	if err := json.Unmarshal([]byte(js), &outerResource); err != nil {
 		return nil, err
 	}
 
+	if outerResource.ID == nil {
+		return nil, fmt.Errorf("\"id\" field need to be provided")
+	}
+
 	typ := pbresource.Type{
-		Kind:         stuff.ID.Type.Kind,
-		Group:        stuff.ID.Type.Group,
-		GroupVersion: stuff.ID.Type.GroupVersion,
+		Kind:         outerResource.ID.Type.Kind,
+		Group:        outerResource.ID.Type.Group,
+		GroupVersion: outerResource.ID.Type.GroupVersion,
 	}
 
 	reg, ok := consul.NewTypeRegistry().Resolve(&typ)
@@ -72,9 +75,9 @@ func parseJson(js string) (*pbresource.Resource, error) {
 		return nil, err
 	}
 
-	stuff.Data["@type"] = anyProtoMsg.TypeUrl
+	outerResource.Data["@type"] = anyProtoMsg.TypeUrl
 
-	marshal, err := json.Marshal(stuff)
+	marshal, err := json.Marshal(outerResource)
 	if err != nil {
 		return nil, err
 	}
