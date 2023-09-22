@@ -430,7 +430,7 @@ information.
   is appended. For example, setting `log-file` to `/var/log/` would result in a log
   file path of `/var/log/consul.log`. `log-file` can be combined with
   [`-log-rotate-bytes`](#_log_rotate_bytes) and [-log-rotate-duration](#_log_rotate_duration)
-  for a fine-grained log rotation experience. After rotation file name will be like
+  for a fine-grained log rotation experience. After rotation, the path and filename take the following form: 
   `/var/log/consul-{timestamp}.log`
 
 - `-log-rotate-bytes` ((#\_log_rotate_bytes)) - to specify the number of
