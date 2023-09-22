@@ -232,7 +232,7 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 	return merr
 }
 
-func aclReadHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+func aclReadHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 	// DestinationPolicy is name-aligned with Service
 	serviceName := id.Name
 

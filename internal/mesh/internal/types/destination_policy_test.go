@@ -574,7 +574,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
 
 		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id)
+			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
 			checkF(t, tc.readOK, err)
 		})
 		t.Run("write", func(t *testing.T) {
