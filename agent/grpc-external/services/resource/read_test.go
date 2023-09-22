@@ -260,6 +260,7 @@ func TestRead_ACLs(t *testing.T) {
 		// change the behavior each call.
 		token := fmt.Sprintf("token-%d", idx)
 		idx++
+		//nolint:staticcheck
 		return context.WithValue(testContext(t), "x-consul-token", token)
 	}
 
