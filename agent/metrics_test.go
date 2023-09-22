@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -35,8 +32,9 @@ func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRec
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
 
-	a.srv.h.ServeHTTP(respRec, req)
-	require.Equalf(t, 200, respRec.Code, "expected 200, got %d, body: %s", respRec.Code, respRec.Body.String())
+	_, err = a.srv.AgentMetrics(respRec, req)
+	require.NoError(t, err, "Failed to serve agent metrics")
+
 }
 
 func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {

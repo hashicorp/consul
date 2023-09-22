@@ -46,8 +46,8 @@ Feature: dc / acls / roles / as-many / add-new: Add new
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: Add Role that has an existing Policy
     And I click "#new-role .ember-power-select-trigger"
     And I click ".ember-power-select-option:first-child"
@@ -71,8 +71,8 @@ Feature: dc / acls / roles / as-many / add-new: Add new
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: Add Role and add a new Policy
     And I click roles.form.policies.create
     Then I fill in the roles.form.policies.form with yaml
@@ -111,8 +111,8 @@ Feature: dc / acls / roles / as-many / add-new: Add new
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Scenario: Add Role and add a new Service Identity
     And I click roles.form.policies.create
     Then I fill in the roles.form.policies.form with yaml
@@ -141,8 +141,8 @@ Feature: dc / acls / roles / as-many / add-new: Add new
             ID: ee52203d-989f-4f7a-ab5a-2bef004164ca-1
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
 @ignore:
   Scenario: Click the cancel form
     Then ok

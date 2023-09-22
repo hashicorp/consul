@@ -1,11 +1,11 @@
 ---
 layout: docs
-page_title: Automate Lambda function registration
+page_title: Automate Lambda Function Registeration
 description: >-
   Register AWS Lambda functions with Consul service mesh using the Consul Lambda registrator. The Consul Lambda registrator automates Lambda function registration.
 ---
 
-# Automate Lambda function registration
+# Automate Lambda Function Registeration
 
 This topic describes how to automate Lambda function registration using Consul's Lambda registrator module for Terraform.
 
@@ -111,7 +111,7 @@ The registrator also requires the following IAM permissions to access the parame
             "Effect": "Allow",
             "Action": ["ssm:PutParameter","ssm:DeleteParameter"],
             "Resource": "arn:aws:ssm:us-east-2:123456789012:parameter/${var.consul_extension_data_prefix}/*"
-        },
+        }
     ]
 }
 ```
@@ -140,10 +140,10 @@ The registrator also requires the following IAM permissions to access the parame
       source  = "hashicorp/consul-lambda/consul-lambda-registrator"
       version = "x.y.z"
       name = "consul-lambda-registrator"
-      consul_http_addr = “https://aecfe39d629774e348a9844439f5e3c1-1471365273.us-east-1.elb.amazonaws.com:8501”
+      consul_http_addr = "https://aecfe39d629774e348a9844439f5e3c1-1471365273.us-east-1.elb.amazonaws.com:8501"
       ca_cert_path = aws_ssm_parameter.ca-cert.name
       http_token_path = aws_ssm_parameter.acl-token.name
-      consul_extension_data_prefix = “/lambda_extension_data”
+      consul_extension_data_prefix = "/lambda_extension_data"
    }
    ```
 

@@ -1,7 +1,0 @@
-```release-note:feature
-acl: Add BindRule support for templated policies. Add new BindType: templated-policy and BindVar field for templated policy variables.
-```
-
-```release-note:feature
-cli: Add `bind-var` flag to `consul acl binding-rule` for templated policy variables.
-```

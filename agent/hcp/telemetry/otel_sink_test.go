@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package telemetry
 
 import (
@@ -334,7 +331,7 @@ func TestLabelsToAttributes(t *testing.T) {
 			sink, err := NewOTELSink(ctx, opts)
 			require.NoError(t, err)
 
-			require.ElementsMatch(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
 		})
 	}
 }

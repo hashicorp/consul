@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package auth
 
 import (
@@ -309,12 +306,6 @@ func (w *TokenWriter) write(token, existing *structs.ACLToken, fromLogin bool) (
 	}
 	token.NodeIdentities = nodeIdentities
 
-	templatedPolicies, err := w.normalizeTemplatedPolicies(token.TemplatedPolicies)
-	if err != nil {
-		return nil, err
-	}
-	token.TemplatedPolicies = templatedPolicies
-
 	if err := w.enterpriseValidation(token, existing); err != nil {
 		return nil, err
 	}
@@ -447,33 +438,4 @@ func (w *TokenWriter) normalizeNodeIdentities(nodeIDs structs.ACLNodeIdentities)
 		}
 	}
 	return nodeIDs.Deduplicate(), nil
-}
-
-func (w *TokenWriter) normalizeTemplatedPolicies(templatedPolicies structs.ACLTemplatedPolicies) (structs.ACLTemplatedPolicies, error) {
-	if len(templatedPolicies) == 0 {
-		return templatedPolicies, nil
-	}
-
-	finalPolicies := make(structs.ACLTemplatedPolicies, 0, len(templatedPolicies))
-	for _, templatedPolicy := range templatedPolicies {
-		if templatedPolicy.TemplateName == "" {
-			return nil, errors.New("templated policy is missing the template name field on this token")
-		}
-
-		tmp, ok := structs.GetACLTemplatedPolicyBase(templatedPolicy.TemplateName)
-		if !ok {
-			return nil, fmt.Errorf("no such ACL templated policy with Name %q", templatedPolicy.TemplateName)
-		}
-
-		out := templatedPolicy.Clone()
-		out.TemplateID = tmp.TemplateID
-
-		err := templatedPolicy.ValidateTemplatedPolicy(tmp.Schema)
-		if err != nil {
-			return nil, fmt.Errorf("validation error for templated policy %q: %w", templatedPolicy.TemplateName, err)
-		}
-		finalPolicies = append(finalPolicies, out)
-	}
-
-	return finalPolicies.Deduplicate(), nil
 }

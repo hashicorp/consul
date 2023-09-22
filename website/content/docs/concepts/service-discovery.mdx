@@ -25,11 +25,11 @@ Service discovery provides benefits for all organizations, ranging from simplifi
 
 Service discovery uses a service's identity instead of traditional access information (IP address and port). This allows you to dynamically map services and track any changes within a service catalog. Service consumers (users or other services) then use DNS to dynamically retrieve other service's access information from the service catalog. The lifecycle of a service may look like the following:
 
-A service consumer communicates with the “Web” service via a unique Consul DNS entry provided by the service catalog.
+A service consumer communicates with the "Web" service via a unique Consul DNS entry provided by the service catalog.
 
 ![Example diagram of how service consumers query for services](/img/what_is_service_discovery\_1.png)
 
-A new instance of the “Web” service registers itself to the service catalog with its IP address and port. As new instances of your services are registered to the service catalog, they will participate in the load balancing pool for handling service consumer requests.
+A new instance of the "Web" service registers itself to the service catalog with its IP address and port. As new instances of your services are registered to the service catalog, they will participate in the load balancing pool for handling service consumer requests.
 
 ![Example diagram of how a service is registered to the service catalog](/img/what_is_service_discovery\_2.png)
 

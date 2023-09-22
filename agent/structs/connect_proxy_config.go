@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
@@ -11,7 +8,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
 )
 
 const (
@@ -181,39 +177,6 @@ type AccessLogsConfig struct {
 	TextFormat string `json:",omitempty" alias:"text_format"`
 }
 
-func (c *AccessLogsConfig) GetEnabled() bool {
-	return c.Enabled
-}
-
-func (c *AccessLogsConfig) GetDisableListenerLogs() bool {
-	return c.DisableListenerLogs
-}
-
-func (c *AccessLogsConfig) GetType() pbmesh.LogSinkType {
-	switch c.Type {
-	case FileLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_FILE
-	case StdErrLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_STDERR
-	case StdOutLogSinkType:
-		return pbmesh.LogSinkType_LOG_SINK_TYPE_STDOUT
-	}
-
-	return pbmesh.LogSinkType_LOG_SINK_TYPE_DEFAULT
-}
-
-func (c *AccessLogsConfig) GetPath() string {
-	return c.Path
-}
-
-func (c *AccessLogsConfig) GetJsonFormat() string {
-	return c.JSONFormat
-}
-
-func (c *AccessLogsConfig) GetTextFormat() string {
-	return c.TextFormat
-}
-
 func (c *AccessLogsConfig) IsZero() bool {
 	if c == nil {
 		return true
@@ -322,9 +285,6 @@ type ConnectProxyConfig struct {
 	// TransparentProxy defines configuration for when the proxy is in
 	// transparent mode.
 	TransparentProxy TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-
-	// MutualTLSMode allows configuring the proxy to allow non-mTLS traffic.
-	MutualTLSMode MutualTLSMode `json:"-" bexpr:"-"`
 
 	// AccessLogs configures the output and format of Envoy access logs
 	AccessLogs AccessLogsConfig `json:",omitempty" alias:"access_logs"`
@@ -838,13 +798,4 @@ func (e *ExposeConfig) Finalize() {
 			path.Protocol = defaultExposeProtocol
 		}
 	}
-}
-
-type AccessLogs interface {
-	GetEnabled() bool
-	GetDisableListenerLogs() bool
-	GetType() pbmesh.LogSinkType
-	GetPath() string
-	GetJsonFormat() string
-	GetTextFormat() string
 }

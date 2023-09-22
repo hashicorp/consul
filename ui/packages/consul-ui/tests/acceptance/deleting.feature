@@ -18,8 +18,8 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And I click delete on the [Listing]
     And I click confirmDelete on the [Listing]
     Then a [Method] request was made to "[URL]"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Where:
     --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     | Edit     | Listing     | Method | URL                                                                             | Data                                                                 |
@@ -34,8 +34,8 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     And I click delete
     And I click confirmDelete
     Then a [Method] request was made to "[URL]"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "success" class
   Where:
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
     | Model     | Method | URL                                                                              | Slug                                            |
@@ -50,8 +50,8 @@ Feature: deleting: Deleting items with confirmations, success and error notifica
     Given the url "[URL]" responds with a 500 status
     And I click delete
     And I click confirmDelete
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    And "[data-notification]" has the "notification-delete" class
+    And "[data-notification]" has the "error" class
   Where:
     -----------------------------------------------------------------------------------------------------------------------------------------------------------
     | Model     | Method | URL                                                                              | Slug                                            |

@@ -22,7 +22,7 @@ for the built-in proxy.
 ```json
 {
   "service": {
-    ...
+    "name": "example-service",
     "connect": {
       "proxy": {
         "config": {
@@ -31,11 +31,11 @@ for the built-in proxy.
           "local_service_address": "127.0.0.1:1234",
           "local_connect_timeout_ms": 1000,
           "handshake_timeout_ms": 10000,
-          "upstreams": [...]
+          "upstreams": []
         },
         "upstreams": [
           {
-            ...
+            "destination_name": "example-upstream",
             "config": {
               "connect_timeout_ms": 1000
             }
@@ -77,7 +77,7 @@ All fields are optional with a reasonable default.
 - `upstreams`- **Deprecated** Upstreams are now specified
   in the `connect.proxy` definition. Upstreams specified in the opaque config map
   here will continue to work for compatibility but it's strongly recommended that
-  you move to using the higher level [upstream configuration](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference).
+  you move to using the higher level [upstream configuration](/consul/docs/connect/registration/service-registration#upstream-configuration-reference).
 
 ## Proxy Upstream Config Key Reference
 

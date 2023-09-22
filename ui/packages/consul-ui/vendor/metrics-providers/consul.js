@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 (function(global) {
   // Current interface is these three methods.
   const requiredMethods = [

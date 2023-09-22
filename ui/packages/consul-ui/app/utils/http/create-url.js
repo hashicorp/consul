@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 // const METHOD_PARSING = 0;
 const PATH_PARSING = 1;
 const QUERY_PARSING = 2;

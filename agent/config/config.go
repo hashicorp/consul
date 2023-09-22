@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -183,14 +180,12 @@ type Config struct {
 	EncryptKey                       *string             `mapstructure:"encrypt" json:"encrypt,omitempty"`
 	EncryptVerifyIncoming            *bool               `mapstructure:"encrypt_verify_incoming" json:"encrypt_verify_incoming,omitempty"`
 	EncryptVerifyOutgoing            *bool               `mapstructure:"encrypt_verify_outgoing" json:"encrypt_verify_outgoing,omitempty"`
-	Experiments                      []string            `mapstructure:"experiments" json:"experiments,omitempty"`
 	GossipLAN                        GossipLANConfig     `mapstructure:"gossip_lan" json:"-"`
 	GossipWAN                        GossipWANConfig     `mapstructure:"gossip_wan" json:"-"`
 	HTTPConfig                       HTTPConfig          `mapstructure:"http_config" json:"-"`
 	LeaveOnTerm                      *bool               `mapstructure:"leave_on_terminate" json:"leave_on_terminate,omitempty"`
 	LicensePath                      *string             `mapstructure:"license_path" json:"license_path,omitempty"`
 	Limits                           Limits              `mapstructure:"limits" json:"-"`
-	Locality                         *Locality           `mapstructure:"locality" json:"-"`
 	LogLevel                         *string             `mapstructure:"log_level" json:"log_level,omitempty"`
 	LogJSON                          *bool               `mapstructure:"log_json" json:"log_json,omitempty"`
 	LogFile                          *string             `mapstructure:"log_file" json:"log_file,omitempty"`
@@ -320,15 +315,6 @@ type GossipWANConfig struct {
 	RetransmitMult *int    `mapstructure:"retransmit_mult"`
 }
 
-// Locality identifies where a given entity is running.
-type Locality struct {
-	// Region is region the zone belongs to.
-	Region *string `mapstructure:"region"`
-
-	// Zone is the zone the entity is running in.
-	Zone *string `mapstructure:"zone"`
-}
-
 type Consul struct {
 	Coordinate struct {
 		UpdateBatchSize  *int    `mapstructure:"update_batch_size"`
@@ -423,7 +409,6 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
-	TCPUseTLS                      *bool               `mapstructure:"tcp_use_tls"`
 	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
@@ -809,9 +794,8 @@ type ConfigEntries struct {
 
 // Audit allows us to enable and define destinations for auditing
 type Audit struct {
-	Enabled    *bool                `mapstructure:"enabled"`
-	Sinks      map[string]AuditSink `mapstructure:"sink"`
-	RPCEnabled *bool                `mapstructure:"rpc_enabled"`
+	Enabled *bool                `mapstructure:"enabled"`
+	Sinks   map[string]AuditSink `mapstructure:"sink"`
 }
 
 // AuditSink can be provided multiple times to define pipelines for auditing

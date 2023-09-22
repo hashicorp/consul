@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: Improve transparent proxy support for virtual services and failovers.
-```

@@ -1,18 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package list
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIntentionListCommand_noTabs(t *testing.T) {

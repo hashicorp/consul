@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package auth
 
 import (
@@ -46,7 +43,6 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		ExpirationTTL:     authMethod.MaxTokenTTL,
 		ServiceIdentities: bindings.ServiceIdentities,
 		NodeIdentities:    bindings.NodeIdentities,
-		TemplatedPolicies: bindings.TemplatedPolicies,
 		Roles:             bindings.Roles,
 		EnterpriseMeta:    bindings.EnterpriseMeta,
 	}

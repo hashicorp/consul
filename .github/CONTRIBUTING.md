@@ -161,7 +161,8 @@ When you're ready to submit a pull request:
    | --- | --- |
    | `pr/no-changelog` | This PR does not have an intended changelog entry |
    | `pr/no-metrics-test` | This PR does not require any testing for metrics |
-   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. Website documentation merged to the latest release branch is deployed immediately |
+   | `backport/stable-website` | This PR contains documentation changes that are ready to be deployed immediately. Changes will also automatically get backported to the latest release branch |
+   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. |
    Other labels may automatically be added by the Github Action CI.
 7. After you submit, the Consul maintainers team needs time to carefully review your
    contribution and ensure it is production-ready, considering factors such as: security,

@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
 readonly SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
@@ -149,30 +146,14 @@ function lint_install {
 }
 
 function codegen_install {
-  deepcopy_install
-  copywrite_install
-}
-
-function deepcopy_install {
-  local deep_copy_version
-      deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
-
-      install_versioned_tool \
-          'deep-copy' \
-          'github.com/globusdigital/deep-copy' \
-          "${deep_copy_version}" \
-          'github.com/globusdigital/deep-copy'
-}
-
-function copywrite_install {
-    local copywrite_version
-    copywrite_version="$(make --no-print-directory print-COPYWRITE_TOOL_VERSION)"
+    local deep_copy_version
+    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
 
     install_versioned_tool \
-        'copywrite' \
-        'github.com/hashicorp/copywrite' \
-        "${copywrite_version}" \
-        'github.com/hashicorp/copywrite'
+        'deep-copy' \
+        'github.com/globusdigital/deep-copy' \
+        "${deep_copy_version}" \
+        'github.com/globusdigital/deep-copy'
 }
 
 function tools_install {
@@ -180,7 +161,6 @@ function tools_install {
     lint_install
     proto_tools_install
     codegen_install
-    copywrite_install
 
     return 0
 }
