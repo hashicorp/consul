@@ -226,7 +226,7 @@ Listeners = [
             ResponseHeaderName = "<response header value to set>"
           }
           Remove = [
-            "<response header remove>"
+            "<response header to remove>"
           ]
         }
         TLS = {
@@ -289,7 +289,7 @@ spec:
     passiveHealthCheck:
       interval: "<the time between checks>"
       maxFailures: <number>
-      enforcingConsecutive5xx:<number>
+      enforcingConsecutive5xx: <number>
       maxEjectionPercent: <number>
       baseEjectionTime: "<the base time that a host is ejected for>"
   listeners:
@@ -306,7 +306,7 @@ spec:
               requestHeaderName: <request header value to add>
             set:
               requestHeaderName: <request header value to set>
-      remove:
+            remove:
               - <request header to remove>
           responseHeaders:
             add:
@@ -314,7 +314,7 @@ spec:
             set:
               responseHeaderName: <response header value to set>
             remove:
-              - <response header remove>
+              - <response header to remove>
           tls:
             sds:
               clusterName: <name of SDS cluster>
@@ -407,7 +407,7 @@ spec:
               "ResponseHeaderName" : "<response header value to set>"
             },
             "Remove" : [
-              "<response header remove>"
+              "<response header to remove>"
             ]
           },
           "TLS" : {
