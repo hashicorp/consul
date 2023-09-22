@@ -2,6 +2,8 @@ module github.com/hashicorp/consul/test/integration/consul-container
 
 go 1.20
 
+replace github.com/hashicorp/consul/proto-public => ../../../proto-public
+
 require (
 	fortio.org/fortio v1.54.0
 	github.com/avast/retry-go v3.0.0+incompatible
