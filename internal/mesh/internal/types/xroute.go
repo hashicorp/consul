@@ -6,6 +6,7 @@ package types
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
@@ -206,6 +207,10 @@ func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
 	return nil
 }
 
+func errTimeoutCannotBeNegative(d time.Duration) error {
+	return fmt.Errorf("timeout cannot be negative: %v", d)
+}
+
 func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 	if timeouts == nil {
 		return nil
@@ -218,16 +223,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
-			})
-		}
-	}
-	if timeouts.BackendRequest != nil {
-		val := timeouts.BackendRequest.AsDuration()
-		if val < 0 {
-			errs = append(errs, resource.ErrInvalidField{
-				Name:    "backend_request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}
@@ -236,7 +232,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "idle",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}

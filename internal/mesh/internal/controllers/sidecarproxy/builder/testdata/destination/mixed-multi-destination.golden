@@ -5,14 +5,14 @@
         "altStatName": "http.api-1.default.dc1.internal.foo.consul",
         "failoverGroup": {
           "config": {
-            "connectTimeout": "5s",
+            "connectTimeout": "55s",
             "useAltStatName": true
           },
           "endpointGroups": [
             {
               "dynamic": {
                 "config": {
-                  "connectTimeout": "5s",
+                  "connectTimeout": "55s",
                   "disablePanicThreshold": true
                 },
                 "outboundTls": {
@@ -235,6 +235,11 @@
             "routeRules": [
               {
                 "destination": {
+                  "destinationConfiguration": {
+                    "timeoutConfig": {
+                      "timeout": "77s"
+                    }
+                  },
                   "weightedClusters": {
                     "clusters": [
                       {
@@ -250,6 +255,27 @@
                         "weight": 10
                       }
                     ]
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/split"
+                  }
+                }
+              },
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "http.api-1.default.dc1.internal.foo.consul"
+                  },
+                  "destinationConfiguration": {
+                    "retryPolicy": {
+                      "numRetries": 4,
+                      "retryOn": "connect-failure"
+                    },
+                    "timeoutConfig": {
+                      "timeout": "606s"
+                    }
                   }
                 },
                 "match": {

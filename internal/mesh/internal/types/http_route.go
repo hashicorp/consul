@@ -249,6 +249,10 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			}
 		}
 
+		var (
+			hasReqMod     bool
+			hasUrlRewrite bool
+		)
 		for j, filter := range rule.Filters {
 			wrapFilterErr := func(err error) error {
 				return wrapRuleErr(resource.ErrInvalidListElement{
@@ -260,12 +264,14 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			set := 0
 			if filter.RequestHeaderModifier != nil {
 				set++
+				hasReqMod = true
 			}
 			if filter.ResponseHeaderModifier != nil {
 				set++
 			}
 			if filter.UrlRewrite != nil {
 				set++
+				hasUrlRewrite = true
 				if filter.UrlRewrite.PathPrefix == "" {
 					merr = multierror.Append(merr, wrapFilterErr(
 						resource.ErrInvalidField{
@@ -283,6 +289,12 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 					errors.New("exactly one of request_header_modifier, response_header_modifier, or url_rewrite is required"),
 				))
 			}
+		}
+
+		if hasReqMod && hasUrlRewrite {
+			merr = multierror.Append(merr, wrapRuleErr(
+				errors.New("exactly one of request_header_modifier or url_rewrite can be set at a time"),
+			))
 		}
 
 		if len(rule.BackendRefs) == 0 {

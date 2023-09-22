@@ -5,6 +5,10 @@ package routes
 
 import (
 	"fmt"
+	"time"
+
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
@@ -334,6 +338,72 @@ func compile(
 					details.DestinationConfig = portDestConfig
 				}
 			}
+			details.DestinationConfig = fillInDefaultDestConfig(details.DestinationConfig)
+		}
+
+		// Pull target information up to the level of the rules.
+		switch x := mc.Config.(type) {
+		case *pbmesh.ComputedPortRoutes_Http:
+			route := x.Http
+			for _, rule := range route.Rules {
+				// If there are multiple legs (split) then choose the first actually set value.
+				var requestTimeoutFallback *durationpb.Duration
+				for _, backendRef := range rule.BackendRefs {
+					if backendRef.BackendTarget == types.NullRouteBackend {
+						continue
+					}
+					details, ok := mc.Targets[backendRef.BackendTarget]
+					if !ok {
+						continue
+					}
+					if details.DestinationConfig.RequestTimeout != nil {
+						requestTimeoutFallback = details.DestinationConfig.RequestTimeout
+						break
+					}
+				}
+
+				if requestTimeoutFallback == nil {
+					continue // nothing to do
+				}
+
+				if rule.Timeouts == nil {
+					rule.Timeouts = &pbmesh.HTTPRouteTimeouts{}
+				}
+				if rule.Timeouts.Request == nil {
+					rule.Timeouts.Request = requestTimeoutFallback
+				}
+			}
+		case *pbmesh.ComputedPortRoutes_Grpc:
+			route := x.Grpc
+			for _, rule := range route.Rules {
+				// If there are multiple legs (split) then choose the first actually set value.
+				var requestTimeoutFallback *durationpb.Duration
+				for _, backendRef := range rule.BackendRefs {
+					if backendRef.BackendTarget == types.NullRouteBackend {
+						continue
+					}
+					details, ok := mc.Targets[backendRef.BackendTarget]
+					if !ok {
+						continue
+					}
+					if details.DestinationConfig.RequestTimeout != nil {
+						requestTimeoutFallback = details.DestinationConfig.RequestTimeout
+						break
+					}
+				}
+
+				if requestTimeoutFallback == nil {
+					continue // nothing to do
+				}
+
+				if rule.Timeouts == nil {
+					rule.Timeouts = &pbmesh.HTTPRouteTimeouts{}
+				}
+				if rule.Timeouts.Request == nil {
+					rule.Timeouts.Request = requestTimeoutFallback
+				}
+			}
+		case *pbmesh.ComputedPortRoutes_Tcp:
 		}
 
 		computedRoutes.PortedConfigs[port] = mc
@@ -410,6 +480,28 @@ func compileFailoverConfig(
 		})
 	}
 	return cfc
+}
+
+func fillInDefaultDestConfig(target *pbmesh.DestinationConfig) *pbmesh.DestinationConfig {
+	base := defaultDestConfig()
+
+	if target == nil {
+		return proto.Clone(base).(*pbmesh.DestinationConfig)
+	}
+
+	out := proto.Clone(target).(*pbmesh.DestinationConfig)
+
+	if out.ConnectTimeout == nil {
+		out.ConnectTimeout = base.GetConnectTimeout()
+	}
+
+	return out
+}
+
+func defaultDestConfig() *pbmesh.DestinationConfig {
+	return &pbmesh.DestinationConfig{
+		ConnectTimeout: durationpb.New(5 * time.Second),
+	}
 }
 
 func compileHTTPRouteNode(

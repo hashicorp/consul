@@ -5,19 +5,16 @@ package routes
 
 import (
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/internal/protoutil"
 )
 
+// Deprecated: see protoutil.Clone
 func protoClone[T proto.Message](v T) T {
-	return proto.Clone(v).(T)
+	return protoutil.Clone(v)
 }
 
+// Deprecated: see protoutil.CloneSlice
 func protoSliceClone[T proto.Message](in []T) []T {
-	if in == nil {
-		return nil
-	}
-	out := make([]T, 0, len(in))
-	for _, v := range in {
-		out = append(out, protoClone[T](v))
-	}
-	return out
+	return protoutil.CloneSlice(in)
 }
