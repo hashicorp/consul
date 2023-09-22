@@ -7,9 +7,12 @@ package hashicorp.consul.catalog.v1alpha1;
 
 import "pbcatalog/v1alpha1/health.proto";
 import "pbcatalog/v1alpha1/workload.proto";
+import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message ServiceEndpoints {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   repeated Endpoint endpoints = 1;
 }
 

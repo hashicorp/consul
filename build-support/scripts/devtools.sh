@@ -124,7 +124,9 @@ function proto_tools_install {
         "${mog_version}" \
         'github.com/hashicorp/mog'
 
-    install_protoc_gen_consul_rate_limit
+    install_local_protoc_generator "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit"
+    
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-resource-types"
 
     return 0
 }
@@ -265,9 +267,10 @@ function install_versioned_tool {
     return 0
 }
 
-function install_protoc_gen_consul_rate_limit {
-    echo "installing tool protoc-gen-consul-rate-limit from local source"
-    pushd -- "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit" > /dev/null
+function install_local_protoc_generator {
+    local src=$1
+    echo "installing tool $(basename $src) from local source"
+    pushd -- "$src" > /dev/null
     go install
     popd > /dev/null
 }

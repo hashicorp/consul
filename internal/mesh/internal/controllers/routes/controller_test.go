@@ -108,6 +108,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("api", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(apiServiceRef, "tcp", ""),
 						},
@@ -176,6 +177,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("api", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(apiServiceRef, "tcp", ""),
 						},
@@ -202,6 +204,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("api", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(apiServiceRef, "http", ""),
 						},
@@ -228,6 +231,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("api", "http2"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(apiServiceRef, "http2", ""),
 						},
@@ -249,6 +253,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("api", "grpc"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(apiServiceRef, "grpc", ""),
 						},
@@ -328,6 +333,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
 						},
@@ -356,6 +362,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http", ""),
 						},
@@ -384,6 +391,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "grpc"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
 						},
@@ -412,6 +420,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http2"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
 						},
@@ -515,6 +524,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
 						},
@@ -554,6 +564,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http", ""),
 						},
@@ -594,6 +605,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "grpc"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
 						},
@@ -633,6 +645,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http2"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
 						},
@@ -739,6 +752,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
 						},
@@ -767,6 +781,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http", ""),
 						},
@@ -795,6 +810,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "grpc"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
 						},
@@ -823,6 +839,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http2"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
 						},
@@ -894,6 +911,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_TCP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "tcp"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "tcp", ""),
 						},
@@ -922,6 +940,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http", ""),
 						},
@@ -950,6 +969,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_GRPC,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "grpc"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "grpc", ""),
 						},
@@ -978,6 +998,7 @@ func (suite *controllerSuite) TestController() {
 					Protocol:  pbcatalog.Protocol_PROTOCOL_HTTP2,
 					Targets: map[string]*pbmesh.BackendTargetDetails{
 						backendName("foo", "http2"): {
+							Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 							MeshPort:   "mesh",
 							BackendRef: newBackendRef(fooServiceRef, "http2", ""),
 						},

@@ -1379,6 +1379,10 @@ func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions)
 	return a.updateToken("config_file_service_registration", token, q)
 }
 
+func (a *Agent) UpdateDNSToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("dns", token, q)
+}
+
 // updateToken can be used to update one of an agent's ACL tokens after the agent has
 // started. The tokens are may not be persisted, so will need to be updated again if
 // the agent is restarted unless the agent is configured to persist them.

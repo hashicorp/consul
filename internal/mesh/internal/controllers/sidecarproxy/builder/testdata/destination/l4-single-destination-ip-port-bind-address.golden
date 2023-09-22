@@ -16,6 +16,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -42,6 +43,7 @@
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -52,6 +54,9 @@
                 "identityKey": "test-identity",
                 "sni": "api-2.default.dc1.internal.foo.consul",
                 "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
+                  ],
                   "trustBundlePeerNameKey": "local"
                 }
               }
@@ -121,6 +126,19 @@
       "port": "mesh"
     },
     "tcp.api-2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v1alpha1",
+          "kind": "ServiceEndpoints"
+        }
+      },
       "port": "mesh"
     }
   },

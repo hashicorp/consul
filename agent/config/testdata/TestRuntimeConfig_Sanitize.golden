@@ -17,6 +17,7 @@
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
         "ACLConfigFileRegistrationToken": "hidden",
+        "ACLDNSToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
         "DataDir": "",

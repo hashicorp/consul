@@ -27,11 +27,6 @@ func (c *ComputedRoutesCache) TrackComputedRoutes(computedRoutes *types.DecodedC
 	for _, pcr := range computedRoutes.Data.PortedConfigs {
 		for _, details := range pcr.Targets {
 			serviceRefs = append(serviceRefs, details.BackendRef.Ref)
-			if details.FailoverConfig != nil {
-				for _, dest := range details.FailoverConfig.Destinations {
-					serviceRefs = append(serviceRefs, dest.Ref)
-				}
-			}
 		}
 	}
 

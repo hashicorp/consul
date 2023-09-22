@@ -34,7 +34,7 @@ The default ACLs that the Consul Helm chart configures are suitable for most cas
 
 Specify the target failover in the [`spec.redirect.service`](/consul/docs/connect/config-entries/service-resolver#spec-redirect-service) field in the service resolver configuration entry. In the following example, the `virtual-api` service is configured to redirect to the `real-api`:
 
-<CodeBlockConfig heading="virtual-api-redirect.yaml">
+<CodeBlockConfig filename="virtual-api-redirect.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1
@@ -61,7 +61,7 @@ $ kubectl apply -f virtual-api-redirect.yaml
 If intentions are not already defined, create and apply intentions that allow the appropriate downstream to access the real service and the target redirect service. In the following examples, the `frontend` service is allowed to send messages to the `virtual-api` and `real-api` services:
 
 
-<CodeBlockConfig heading="frontend-api-api-beta-allow.yaml">
+<CodeBlockConfig filename="frontend-api-api-beta-allow.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1

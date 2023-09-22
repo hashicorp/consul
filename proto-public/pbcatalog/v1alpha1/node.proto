@@ -5,7 +5,14 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v1alpha1;
 
+import "pbresource/annotations.proto";
+
 message Node {
+  option (hashicorp.consul.resource.spec) = {
+    // TODO: This should eventually be SCOPE_PARTITION but that will require further changes to code
+    scope: SCOPE_NAMESPACE,
+  };
+
   repeated NodeAddress addresses = 1;
 }
 

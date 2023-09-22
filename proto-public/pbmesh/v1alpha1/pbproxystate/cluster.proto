@@ -38,6 +38,8 @@ message FailoverGroupConfig {
 }
 
 message EndpointGroup {
+  // name is used to name the cluster created. This is only required when used inside of a FailoverGroup.
+  string name = 5;
   oneof group {
     // dynamic endpoint group is used to reach mesh destinations that are dynamically configured from Consul's catalog.
     DynamicEndpointGroup dynamic = 1;

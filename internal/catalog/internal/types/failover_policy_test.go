@@ -233,7 +233,9 @@ func TestValidateFailoverPolicy(t *testing.T) {
 				},
 				SamenessGroup: "blah",
 			},
-			expectErr: `invalid "destinations" field: exactly one of destinations or sameness_group should be set`,
+			// TODO(v2): uncomment after this is supported
+			// expectErr: `invalid "destinations" field: exactly one of destinations or sameness_group should be set`,
+			expectErr: `invalid "sameness_group" field: not supported in this release`,
 		},
 		"dest without sameness": {
 			config: &pbcatalog.FailoverConfig{
@@ -246,6 +248,8 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			config: &pbcatalog.FailoverConfig{
 				SamenessGroup: "blah",
 			},
+			// TODO(v2): remove after this is supported
+			expectErr: `invalid "sameness_group" field: not supported in this release`,
 		},
 		"mode: invalid": {
 			config: &pbcatalog.FailoverConfig{
@@ -597,9 +601,20 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 					PortConfigs: map[string]*pbcatalog.FailoverConfig{
 						"rest": {
-							Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
-							Regions:       []string{"us", "eu"},
-							SamenessGroup: "sameweb",
+							// TODO(v2): uncomment when this works
+							// Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
+							// Regions:       []string{"us", "eu"},
+							// SamenessGroup: "sameweb",
+							Destinations: []*pbcatalog.FailoverDestination{
+								{
+									Ref:  newRef(ServiceType, "api-backup"),
+									Port: "rest",
+								},
+								{
+									Ref:  newRef(ServiceType, "api-double-backup"),
+									Port: "rest",
+								},
+							},
 						},
 					},
 				}).
@@ -620,9 +635,20 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 							},
 						},
 						"rest": {
-							Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
-							Regions:       []string{"us", "eu"},
-							SamenessGroup: "sameweb",
+							// TODO(v2): uncomment when this works
+							// Mode:          pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY,
+							// Regions:       []string{"us", "eu"},
+							// SamenessGroup: "sameweb",
+							Destinations: []*pbcatalog.FailoverDestination{
+								{
+									Ref:  newRef(ServiceType, "api-backup"),
+									Port: "rest",
+								},
+								{
+									Ref:  newRef(ServiceType, "api-double-backup"),
+									Port: "rest",
+								},
+							},
 						},
 					},
 				}).

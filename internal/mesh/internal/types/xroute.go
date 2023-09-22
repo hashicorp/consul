@@ -190,6 +190,7 @@ func validateBackendRef(backendRef *pbmesh.BackendReference, wrapErr func(error)
 }
 
 func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
+	// enumcover:pbmesh.HeaderMatchType
 	switch typ {
 	case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED:
 		return resource.ErrMissing

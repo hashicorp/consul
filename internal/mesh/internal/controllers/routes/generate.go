@@ -70,11 +70,13 @@ func compile(
 
 	var (
 		inMesh               = false
+		parentMeshPort       string
 		allowedPortProtocols = make(map[string]pbcatalog.Protocol)
 	)
 	for _, port := range parentServiceDec.Data.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 			inMesh = true
+			parentMeshPort = port.TargetPort
 			continue // skip
 		}
 		allowedPortProtocols[port.TargetPort] = port.Protocol
@@ -170,7 +172,7 @@ func compile(
 				continue // not possible
 			}
 
-			routeNode := createDefaultRouteNode(parentServiceRef, port, typ)
+			routeNode := createDefaultRouteNode(parentServiceRef, parentMeshPort, port, typ)
 
 			routeNodesByPort[port] = append(routeNodesByPort[port], routeNode)
 		}
@@ -272,37 +274,34 @@ func compile(
 
 		computedRoutes.PortedConfigs[port] = mc
 
+		// The first pass collects the failover policies and generates additional targets.
 		for _, details := range mc.Targets {
 			svcRef := details.BackendRef.Ref
 
 			svc := related.GetService(svcRef)
-			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
-			destPolicy := related.GetDestinationPolicyForService(svcRef)
-
 			if svc == nil {
 				panic("impossible at this point; should already have been handled before getting here")
 			}
 
-			// Find the destination proxy's port.
-			//
-			// Endpoints refs will need to route to mesh port instead of the
-			// destination port as that is the port of the destination's proxy.
-			//
-			// Note: we will always find a port here because we only add targets that have
-			// mesh ports above in shouldRouteTrafficToBackend().
-			for _, port := range svc.Data.Ports {
-				if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
-					details.MeshPort = port.TargetPort
-				}
-			}
-
+			failoverPolicy := related.GetFailoverPolicyForService(svcRef)
 			if failoverPolicy != nil {
 				simpleFailoverPolicy := catalog.SimplifyFailoverPolicy(svc.Data, failoverPolicy.Data)
 				portFailoverConfig, ok := simpleFailoverPolicy.PortConfigs[details.BackendRef.Port]
 				if ok {
-					details.FailoverConfig = portFailoverConfig
+					details.FailoverConfig = compileFailoverConfig(
+						related,
+						portFailoverConfig,
+						mc.Targets,
+					)
 				}
 			}
+		}
+
+		// Do a second pass to handle shared things after we've dumped the
+		// failover legs into here.
+		for _, details := range mc.Targets {
+			svcRef := details.BackendRef.Ref
+			destPolicy := related.GetDestinationPolicyForService(svcRef)
 			if destPolicy != nil {
 				portDestConfig, ok := destPolicy.Data.PortConfigs[details.BackendRef.Port]
 				if ok {
@@ -327,6 +326,58 @@ func compile(
 		OwnerID: parentServiceID,
 		Data:    computedRoutes,
 	}
+}
+
+func compileFailoverConfig(
+	related *loader.RelatedResources,
+	failoverConfig *pbcatalog.FailoverConfig,
+	targets map[string]*pbmesh.BackendTargetDetails,
+) *pbmesh.ComputedFailoverConfig {
+	if failoverConfig == nil {
+		return nil
+	}
+
+	cfc := &pbmesh.ComputedFailoverConfig{
+		Destinations:  make([]*pbmesh.ComputedFailoverDestination, 0, len(failoverConfig.Destinations)),
+		Mode:          failoverConfig.Mode,
+		Regions:       failoverConfig.Regions,
+		SamenessGroup: failoverConfig.SamenessGroup,
+	}
+
+	for _, dest := range failoverConfig.Destinations {
+		backendRef := &pbmesh.BackendReference{
+			Ref:        dest.Ref,
+			Port:       dest.Port,
+			Datacenter: dest.Datacenter,
+		}
+
+		destSvcRef := dest.Ref
+
+		svc := related.GetService(destSvcRef)
+
+		var backendTargetName string
+		ok, meshPort := shouldRouteTrafficToBackend(svc, backendRef)
+		if !ok {
+			continue // skip this leg of failover for now
+		}
+
+		destTargetName := types.BackendRefToComputedRoutesTarget(backendRef)
+
+		if _, exists := targets[destTargetName]; !exists {
+			// Add to output as an indirect target.
+			targets[destTargetName] = &pbmesh.BackendTargetDetails{
+				Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_INDIRECT,
+				BackendRef: backendRef,
+				MeshPort:   meshPort,
+			}
+		}
+		backendTargetName = destTargetName
+
+		cfc.Destinations = append(cfc.Destinations, &pbmesh.ComputedFailoverDestination{
+			BackendTarget: backendTargetName,
+		})
+	}
+	return cfc
 }
 
 func compileHTTPRouteNode(
@@ -376,9 +427,11 @@ func compileHTTPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
+					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 					BackendRef: backendRef.BackendRef,
+					MeshPort:   meshPort,
 				}
 				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
@@ -437,9 +490,11 @@ func compileGRPCRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
+					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 					BackendRef: backendRef.BackendRef,
+					MeshPort:   meshPort,
 				}
 				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
@@ -490,9 +545,11 @@ func compileTCPRouteNode(
 				backendTarget string
 				backendSvc    = serviceGetter.GetService(backendRef.BackendRef.Ref)
 			)
-			if shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef) {
+			if ok, meshPort := shouldRouteTrafficToBackend(backendSvc, backendRef.BackendRef); ok {
 				details := &pbmesh.BackendTargetDetails{
+					Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 					BackendRef: backendRef.BackendRef,
+					MeshPort:   meshPort,
 				}
 				backendTarget = node.AddTarget(backendRef.BackendRef, details)
 			} else {
@@ -512,18 +569,20 @@ func compileTCPRouteNode(
 	return node
 }
 
-func shouldRouteTrafficToBackend(backendSvc *types.DecodedService, backendRef *pbmesh.BackendReference) bool {
+func shouldRouteTrafficToBackend(backendSvc *types.DecodedService, backendRef *pbmesh.BackendReference) (bool, string) {
 	if backendSvc == nil {
-		return false
+		return false, ""
 	}
 
 	var (
-		found  = false
-		inMesh = false
+		found    = false
+		inMesh   = false
+		meshPort string
 	)
 	for _, port := range backendSvc.Data.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 			inMesh = true
+			meshPort = port.TargetPort
 			continue
 		}
 		if port.TargetPort == backendRef.Port {
@@ -531,11 +590,12 @@ func shouldRouteTrafficToBackend(backendSvc *types.DecodedService, backendRef *p
 		}
 	}
 
-	return inMesh && found
+	return inMesh && found, meshPort
 }
 
 func createDefaultRouteNode(
 	parentServiceRef *pbresource.Reference,
+	parentMeshPort string,
 	port string,
 	typ *pbresource.Type,
 ) *inputRouteNode {
@@ -548,7 +608,9 @@ func createDefaultRouteNode(
 	routeNode := newInputRouteNode(port)
 
 	defaultBackendTarget := routeNode.AddTarget(defaultBackendRef, &pbmesh.BackendTargetDetails{
+		Type:       pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT,
 		BackendRef: defaultBackendRef,
+		MeshPort:   parentMeshPort,
 	})
 	switch {
 	case resource.EqualType(types.HTTPRouteType, typ):

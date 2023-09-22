@@ -243,7 +243,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 						{
 							Principals: []*pbproxystate.Principal{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
 									},
@@ -273,7 +273,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 						{
 							Principals: []*pbproxystate.Principal{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
 									},
@@ -288,7 +288,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/foo$"},
 								},
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/bar$"},
 									},

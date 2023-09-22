@@ -930,6 +930,68 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 	suite.expectedBarProxyStateEndpoints = expectedBarProxyStateEndpoints
 }
 
+func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
+	makeRef := func(names ...string) []*pbresource.Reference {
+		out := make([]*pbresource.Reference, len(names))
+		for i, name := range names {
+			out[i] = &pbresource.Reference{
+				Name: name,
+				Type: &pbresource.Type{
+					Group:        "g",
+					GroupVersion: "v",
+					Kind:         "k",
+				},
+				Tenancy: &pbresource.Tenancy{},
+			}
+		}
+		return out
+	}
+	convert := func(input []*pbresource.Reference) []resource.ReferenceOrID {
+		asInterface := make([]resource.ReferenceOrID, len(input))
+		for i := range input {
+			asInterface[i] = input[i]
+		}
+		return asInterface
+	}
+
+	cases := []struct {
+		old    []*pbresource.Reference
+		new    []*pbresource.Reference
+		expect []*pbresource.Reference
+	}{
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "c"),
+			expect: makeRef("b"),
+		},
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "b", "c"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef("a", "b"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef("a", "b"),
+			new:    makeRef(),
+			expect: makeRef("a", "b"),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef(),
+			expect: makeRef(),
+		},
+	}
+
+	for _, tc := range cases {
+		toCancel := prevWatchesToCancel(tc.old, convert(tc.new))
+		require.ElementsMatch(suite.T(), toCancel, tc.expect)
+	}
+}
+
 func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
 }

@@ -14,10 +14,13 @@ import "pbmesh/v1alpha1/grpc_route.proto";
 import "pbmesh/v1alpha1/http_route.proto";
 import "pbmesh/v1alpha1/http_route_retries.proto";
 import "pbmesh/v1alpha1/http_route_timeouts.proto";
+import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 // This is a Resource type.
 message ComputedRoutes {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   map<string, ComputedPortRoutes> ported_configs = 1;
 }
 
@@ -114,14 +117,14 @@ message ComputedTCPBackendRef {
 }
 
 message BackendTargetDetails {
-  // identity info
-  BackendReference backend_ref = 1;
+  BackendTargetDetailsType type = 1;
+  BackendReference backend_ref = 2;
 
-  string mesh_port = 2;
-  hashicorp.consul.catalog.v1alpha1.FailoverConfig failover_config = 3;
-  DestinationConfig destination_config = 4;
+  string mesh_port = 3;
+  ComputedFailoverConfig failover_config = 4;
+  DestinationConfig destination_config = 5;
 
-  reserved 5 to 20; // leaving a gap between computed and retroactively added fields.
+  reserved 6 to 20; // leaving a gap between computed and retroactively added fields.
 
   // ServiceEndpointsID is not populated naturally and the field exists only for
   // downstream consumers.
@@ -134,4 +137,31 @@ message BackendTargetDetails {
   // IdentityRefs are not populated naturally and the field exists only for
   // downstream consumers.
   repeated hashicorp.consul.resource.Reference identity_refs = 23;
+}
+
+enum BackendTargetDetailsType {
+  BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED = 0;
+
+  // Direct means that the target is directly routable from a route. This does
+  // not mean that the target is not also indirect though.
+  BACKEND_TARGET_DETAILS_TYPE_DIRECT = 1;
+
+  // Indirect means that the target is not directly routable from a route.
+  //
+  // One example would be for a FailoverPolicy destination.
+  BACKEND_TARGET_DETAILS_TYPE_INDIRECT = 2;
+}
+
+message ComputedFailoverConfig {
+  repeated ComputedFailoverDestination destinations = 1;
+  hashicorp.consul.catalog.v1alpha1.FailoverMode mode = 2;
+  repeated string regions = 3;
+
+  // SamenessGroup specifies the sameness group to failover to.
+  string sameness_group = 4;
+}
+
+message ComputedFailoverDestination {
+  // This must be a Service.
+  string backend_target = 1;
 }

@@ -781,14 +781,17 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			{
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
-				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-					details.ServiceEndpointsId = se.Resource.Id
-					details.ServiceEndpoints = se.Data
-					details.IdentityRefs = []*pbresource.Reference{{
-						Name:    "api-1-identity",
-						Tenancy: suite.api1Service.Id.Tenancy,
-					}}
+				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
+						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
+						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpoints = se.Data
+						details.IdentityRefs = []*pbresource.Reference{{
+							Name:    "api-1-identity",
+							Tenancy: suite.api1Service.Id.Tenancy,
+						}}
+					}
 				}),
 			},
 		}
@@ -820,40 +823,49 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			{
 				Explicit: suite.webDestinationsData.Upstreams[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
-				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-					details.ServiceEndpointsId = se.Resource.Id
-					details.ServiceEndpoints = se.Data
-					details.IdentityRefs = []*pbresource.Reference{{
-						Name:    "api-1-identity",
-						Tenancy: suite.api1Service.Id.Tenancy,
-					}}
+				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
+						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
+						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpoints = se.Data
+						details.IdentityRefs = []*pbresource.Reference{{
+							Name:    "api-1-identity",
+							Tenancy: suite.api1Service.Id.Tenancy,
+						}}
+					}
 				}),
 			},
 			{
 				Explicit: suite.webDestinationsData.Upstreams[1],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
-				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp1"], suite.api2Service.Id, "tcp1", func(details *pbmesh.BackendTargetDetails) {
-					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-					details.ServiceEndpointsId = se.Resource.Id
-					details.ServiceEndpoints = se.Data
-					details.IdentityRefs = []*pbresource.Reference{{
-						Name:    "api-2-identity",
-						Tenancy: suite.api2Service.Id.Tenancy,
-					}}
+				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp1", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
+						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpoints = se.Data
+						details.IdentityRefs = []*pbresource.Reference{{
+							Name:    "api-2-identity",
+							Tenancy: suite.api2Service.Id.Tenancy,
+						}}
+					}
 				}),
 			},
 			{
 				Explicit: suite.webDestinationsData.Upstreams[2],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
-				ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp2"], suite.api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
-					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-					details.ServiceEndpointsId = se.Resource.Id
-					details.ServiceEndpoints = se.Data
-					details.IdentityRefs = []*pbresource.Reference{{
-						Name:    "api-2-identity",
-						Tenancy: suite.api2Service.Id.Tenancy,
-					}}
+				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
+						se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+						details.ServiceEndpointsId = se.Resource.Id
+						details.ServiceEndpoints = se.Data
+						details.IdentityRefs = []*pbresource.Reference{{
+							Name:    "api-2-identity",
+							Tenancy: suite.api2Service.Id.Tenancy,
+						}}
+					}
 				}),
 			},
 		}
@@ -937,53 +949,65 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 		{
 			Explicit: suite.webDestinationsData.Upstreams[0],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
-			ComputedPortRoutes: routestest.MutateTarget(suite.T(), api1ComputedRoutes.Data.PortedConfigs["tcp"], suite.api1Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-				se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
-				details.ServiceEndpointsId = se.Resource.Id
-				details.ServiceEndpoints = se.Data
-				details.IdentityRefs = []*pbresource.Reference{{
-					Name:    "api-1-identity",
-					Tenancy: suite.api1Service.Id.Tenancy,
-				}}
+			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+				switch {
+				case resource.ReferenceOrIDMatch(suite.api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
+					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api1ServiceEndpoints)
+					details.ServiceEndpointsId = se.Resource.Id
+					details.ServiceEndpoints = se.Data
+					details.IdentityRefs = []*pbresource.Reference{{
+						Name:    "api-1-identity",
+						Tenancy: suite.api1Service.Id.Tenancy,
+					}}
+				}
 			}),
 		},
 		{
 			Explicit: suite.webDestinationsData.Upstreams[1],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
-			ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp1"], suite.api2Service.Id, "tcp1", func(details *pbmesh.BackendTargetDetails) {
-				se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-				details.ServiceEndpointsId = se.Resource.Id
-				details.ServiceEndpoints = se.Data
-				details.IdentityRefs = []*pbresource.Reference{{
-					Name:    "api-2-identity",
-					Tenancy: suite.api2Service.Id.Tenancy,
-				}}
+			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp1", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+				switch {
+				case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp1":
+					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+					details.ServiceEndpointsId = se.Resource.Id
+					details.ServiceEndpoints = se.Data
+					details.IdentityRefs = []*pbresource.Reference{{
+						Name:    "api-2-identity",
+						Tenancy: suite.api1Service.Id.Tenancy,
+					}}
+				}
 			}),
 		},
 		{
 			Explicit: suite.webDestinationsData.Upstreams[2],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
-			ComputedPortRoutes: routestest.MutateTarget(suite.T(), api2ComputedRoutes.Data.PortedConfigs["tcp2"], suite.api2Service.Id, "tcp2", func(details *pbmesh.BackendTargetDetails) {
-				se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
-				details.ServiceEndpointsId = se.Resource.Id
-				details.ServiceEndpoints = se.Data
-				details.IdentityRefs = []*pbresource.Reference{{
-					Name:    "api-2-identity",
-					Tenancy: suite.api2Service.Id.Tenancy,
-				}}
+			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+				switch {
+				case resource.ReferenceOrIDMatch(suite.api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
+					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), suite.api2ServiceEndpoints)
+					details.ServiceEndpointsId = se.Resource.Id
+					details.ServiceEndpoints = se.Data
+					details.IdentityRefs = []*pbresource.Reference{{
+						Name:    "api-2-identity",
+						Tenancy: suite.api1Service.Id.Tenancy,
+					}}
+				}
 			}),
 		},
 		{
 			// implicit
 			Service: resourcetest.MustDecode[*pbcatalog.Service](suite.T(), api3Service),
-			ComputedPortRoutes: routestest.MutateTarget(suite.T(), api3ComputedRoutes.Data.PortedConfigs["tcp"], api3Service.Id, "tcp", func(details *pbmesh.BackendTargetDetails) {
-				se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), api3ServiceEndpoints)
-				details.ServiceEndpointsId = se.Resource.Id
-				details.ServiceEndpoints = se.Data
-				details.IdentityRefs = []*pbresource.Reference{{
-					Name:    "api-3-identity",
-					Tenancy: api3Service.Id.Tenancy,
-				}}
+			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api3ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+				switch {
+				case resource.ReferenceOrIDMatch(api3Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp":
+					se := resourcetest.MustDecode[*pbcatalog.ServiceEndpoints](suite.T(), api3ServiceEndpoints)
+					details.ServiceEndpointsId = se.Resource.Id
+					details.ServiceEndpoints = se.Data
+					details.IdentityRefs = []*pbresource.Reference{{
+						Name:    "api-3-identity",
+						Tenancy: suite.api1Service.Id.Tenancy,
+					}}
+				}
 			}),
 			VirtualIPs: []string{"192.1.1.1"},
 		},

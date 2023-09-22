@@ -12,7 +12,7 @@ This topic describes how to use the OpenTelemetry Access Logging Envoy extension
 
 Complete the following steps to use the OpenTelemetry Access Logging extension:
 
-1. Configure an `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry. 
+1. Configure an `EnvoyExtensions` block in a service defaults or proxy defaults configuration entry.
 1. Apply the configuration entry.
 
 ## Add the `EnvoyExtensions`
@@ -57,23 +57,25 @@ EnvoyExtensions = [
 <CodeBlockConfig filename="api-otel-collector-service-defaults.json">
 
 ```json
-"Kind": "service-defaults",
-"Name": "api",
-"EnvoyExtensions": [{
-  "Name": "builtin/otel-access-logging",
-  "Arguments": {
-    "ProxyType": "connect-proxy",
-    "Config": {
-      "GrpcService": {
-        "Target": {
-          "Service": {
-            "Name": "otel-collector"
+{
+  "Kind": "service-defaults",
+  "Name": "api",
+  "EnvoyExtensions": [{
+    "Name": "builtin/otel-access-logging",
+    "Arguments": {
+      "ProxyType": "connect-proxy",
+      "Config": {
+        "GrpcService": {
+          "Target": {
+            "Service": {
+              "Name": "otel-collector"
+            }
           }
         }
       }
     }
-  }
-}]
+  }]
+}
 ```
 
 </CodeBlockConfig>
