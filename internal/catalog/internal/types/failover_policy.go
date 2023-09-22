@@ -323,7 +323,7 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 	return failover
 }
 
-func aclReadHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+func aclReadHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 	// FailoverPolicy is name-aligned with Service
 	serviceName := id.Name
 
