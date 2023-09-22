@@ -19,17 +19,16 @@ import "pbresource/annotations.proto";
 message HTTPRoute {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
-  // ParentRefs references the resources (usually Gateways) that a Route wants
-  // to be attached to. Note that the referenced parent resource needs to allow
-  // this for the attachment to be complete. For Gateways, that means the
-  // Gateway needs to allow attachment from Routes of this kind and namespace.
+  // ParentRefs references the resources (usually Services) that a Route wants
+  // to be attached to.
   //
   // It is invalid to reference an identical parent more than once. It is valid
-  // to reference multiple distinct sections within the same parent resource,
-  // such as 2 Listeners within a Gateway.
+  // to reference multiple distinct sections within the same parent resource.
   repeated ParentReference parent_refs = 1;
 
   // Hostnames are the hostnames for which this HTTPRoute should respond to requests.
+  //
+  // This is only valid for north/south.
   repeated string hostnames = 2;
 
   // Rules are a list of HTTP-based routing rules that this route should
@@ -40,11 +39,7 @@ message HTTPRoute {
 // HTTPRouteRule specifies the routing rules used to determine what upstream
 // service an HTTP request is routed to.
 message HTTPRouteRule {
-  // Matches specified the matching criteria used in the routing table. If a
-  // request matches the given HTTPMatch configuration, then traffic is routed
-  // to services specified in the Services field.
   repeated HTTPRouteMatch matches = 1;
-
   repeated HTTPRouteFilter filters = 2;
 
   // BackendRefs defines the backend(s) where matching requests should be sent.
@@ -70,9 +65,7 @@ message HTTPRouteRule {
   // choose how that 50 percent is determined.
   repeated HTTPBackendRef backend_refs = 3;
 
-  // ALTERNATIVE: Timeouts defines the timeouts that can be configured for an HTTP request.
   HTTPRouteTimeouts timeouts = 4;
-  // ALTERNATIVE:
   HTTPRouteRetries retries = 5;
 }
 
