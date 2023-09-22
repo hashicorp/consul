@@ -1174,3 +1174,33 @@ func newTestTenancy(s string) *pbresource.Tenancy {
 		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
 	}
 }
+
+func TestHTTPRouteACLs(t *testing.T) {
+	testXRouteACLs[*pbmesh.HTTPRoute](t, func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		data := &pbmesh.HTTPRoute{
+			ParentRefs: nil,
+		}
+		for _, ref := range parentRefs {
+			data.ParentRefs = append(data.ParentRefs, &pbmesh.ParentReference{
+				Ref: ref,
+			})
+		}
+
+		var ruleRefs []*pbmesh.HTTPBackendRef
+		for _, ref := range backendRefs {
+			ruleRefs = append(ruleRefs, &pbmesh.HTTPBackendRef{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: ref,
+				},
+			})
+		}
+		data.Rules = []*pbmesh.HTTPRouteRule{
+			{BackendRefs: ruleRefs},
+		}
+
+		return resourcetest.Resource(HTTPRouteType, "api-http-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, data).
+			Build()
+	})
+}

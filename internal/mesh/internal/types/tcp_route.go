@@ -34,6 +34,7 @@ func RegisterTCPRoute(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateTCPRoute,
 		Validate: ValidateTCPRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.TCPRoute](),
 	})
 }
 

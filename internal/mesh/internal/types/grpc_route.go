@@ -35,6 +35,7 @@ func RegisterGRPCRoute(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),
 	})
 }
 

@@ -37,6 +37,7 @@ func RegisterHTTPRoute(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.HTTPRoute](),
 	})
 }
 
