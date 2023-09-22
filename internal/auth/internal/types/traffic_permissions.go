@@ -11,20 +11,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	TrafficPermissionsKind = "TrafficPermissions"
-)
-
-var (
-	TrafficPermissionsV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         TrafficPermissionsKind,
-	}
-
-	TrafficPermissionsType = TrafficPermissionsV2Beta1Type
-)
-
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbauth.TrafficPermissionsType,

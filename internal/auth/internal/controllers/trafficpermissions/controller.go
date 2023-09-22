@@ -9,10 +9,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/internal/auth/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -38,9 +37,9 @@ func Controller(mapper TrafficPermissionsMapper) controller.Controller {
 		panic("No TrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
 	}
 
-	return controller.ForType(types.ComputedTrafficPermissionsType).
-		WithWatch(types.WorkloadIdentityType, controller.ReplaceType(types.ComputedTrafficPermissionsType)).
-		WithWatch(types.TrafficPermissionsType, mapper.MapTrafficPermissions).
+	return controller.ForType(pbauth.ComputedTrafficPermissionsType).
+		WithWatch(pbauth.WorkloadIdentityType, controller.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
+		WithWatch(pbauth.TrafficPermissionsType, mapper.MapTrafficPermissions).
 		WithReconciler(&reconciler{mapper: mapper})
 }
 
@@ -64,7 +63,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	 */
 	ctpID := req.ID
 	wi := &pbresource.ID{
-		Type:    types.WorkloadIdentityType,
+		Type:    pbauth.WorkloadIdentityType,
 		Tenancy: ctpID.Tenancy,
 		Name:    ctpID.Name,
 	}

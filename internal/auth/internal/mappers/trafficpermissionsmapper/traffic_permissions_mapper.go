@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -23,7 +23,7 @@ type TrafficPermissionsMapper struct {
 func New() *TrafficPermissionsMapper {
 	return &TrafficPermissionsMapper{
 		lock:   sync.Mutex{},
-		mapper: bimapper.New(types.TrafficPermissionsType, types.ComputedTrafficPermissionsType),
+		mapper: bimapper.New(pbauth.TrafficPermissionsType, pbauth.ComputedTrafficPermissionsType),
 	}
 }
 
@@ -44,7 +44,7 @@ func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ c
 	}
 	newCTP := &pbresource.ID{
 		Name:    tp.Destination.IdentityName,
-		Type:    types.ComputedTrafficPermissionsType,
+		Type:    pbauth.ComputedTrafficPermissionsType,
 		Tenancy: res.Id.Tenancy,
 	}
 	requests := []controller.Request{{ID: newCTP}}
