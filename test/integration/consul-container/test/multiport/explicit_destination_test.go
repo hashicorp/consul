@@ -6,9 +6,6 @@ package multiport
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -66,21 +63,16 @@ func TestMultiportService_Explicit(t *testing.T) {
 // transparent proxy enabled. It returns a Service for the static-client.
 func createServices(t *testing.T, cluster *libcluster.Cluster) (*libcluster.ConsulDataplaneContainer, *libcluster.ConsulDataplaneContainer) {
 	n1 := cluster.Agents[1]
-	//client := node.GetClient()
 
 	// Create a service and dataplane
 	serverDataplane, err := createServiceAndDataplane(t, n1, "static-server-workload", "static-server", 8080, 8079, []int{})
 	require.NoError(t, err)
-
-	//libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy", nil)
-	//libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, nil)
 
 	n2 := cluster.Agents[2]
 	// Create a service and dataplane
 	clientDataplane, err := createServiceAndDataplane(t, n2, "static-client-workload", "static-client", 8080, 8079, []int{libcluster.ServiceUpstreamLocalBindPort})
 	require.NoError(t, err)
 
-	//libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)
 	return serverDataplane, clientDataplane
 }
 
@@ -114,9 +106,17 @@ func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, ser
 
 func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, ipAddress string) *pbresource.Resource {
 	serverService := rtest.ResourceID(&pbresource.ID{
-		Name:    "static-server-service",
-		Type:    catalog.ServiceType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name: "static-server-service",
+		Type: &pbresource.Type{
+			Group:        "catalog",
+			GroupVersion: "v2beta1",
+			Kind:         "Service",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "default",
+			PeerName:  "local",
+		},
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-server"}},
 		Ports: []*pbcatalog.ServicePort{
@@ -135,9 +135,17 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	}
 
 	rtest.ResourceID(&pbresource.ID{
-		Name:    "static-server-workload",
-		Type:    catalog.WorkloadType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name: "static-server-workload",
+		Type: &pbresource.Type{
+			Group:        "catalog",
+			GroupVersion: "v2beta1",
+			Kind:         "Workload",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "default",
+			PeerName:  "local",
+		},
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -152,9 +160,17 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 
 func createClientResources(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, ipAddress string) {
 	rtest.ResourceID(&pbresource.ID{
-		Name:    "static-client-service",
-		Type:    catalog.ServiceType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name: "static-client-service",
+		Type: &pbresource.Type{
+			Group:        "catalog",
+			GroupVersion: "v2beta1",
+			Kind:         "Service",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "default",
+			PeerName:  "local",
+		},
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-client"}},
 		Ports: []*pbcatalog.ServicePort{
@@ -173,9 +189,17 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 	}
 
 	rtest.ResourceID(&pbresource.ID{
-		Name:    "static-client-workload",
-		Type:    catalog.WorkloadType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name: "static-client-workload",
+		Type: &pbresource.Type{
+			Group:        "catalog",
+			GroupVersion: "v2beta1",
+			Kind:         "Workload",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "default",
+			PeerName:  "local",
+		},
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -186,15 +210,30 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 		}).
 		Write(t, resourceClient)
 
+	destId := staticServerRef.GetId()
+	destRef := &pbresource.Reference{
+		Type:    destId.Type,
+		Tenancy: destId.Tenancy,
+		Name:    destId.Name,
+		Section: "",
+	}
 	rtest.ResourceID(&pbresource.ID{
-		Name:    "static-client-upstreams",
-		Type:    mesh.UpstreamsType,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name: "static-client-upstreams",
+		Type: &pbresource.Type{
+			Group:        "catalog",
+			GroupVersion: "v2beta1",
+			Kind:         "Upstreams",
+		},
+		Tenancy: &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "default",
+			PeerName:  "local",
+		},
 	}).
 		WithData(t, &pbmesh.Upstreams{
 			Upstreams: []*pbmesh.Upstream{
 				{
-					DestinationRef:  resource.Reference(staticServerRef.GetId(), ""),
+					DestinationRef:  destRef,
 					DestinationPort: "tcp",
 					ListenAddr: &pbmesh.Upstream_IpPort{
 						IpPort: &pbmesh.IPPortAddress{
