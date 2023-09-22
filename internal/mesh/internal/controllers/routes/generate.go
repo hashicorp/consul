@@ -59,6 +59,22 @@ func compile(
 
 	parentServiceRef := resource.Reference(parentServiceID, "")
 
+	// The bound reference collector is supposed to aggregate all
+	// references to resources that influence the production of
+	// a ComputedRoutes resource.
+	//
+	// We only add a reference to the collector if the following are ALL true:
+	//
+	// - We load the resource for some reason.
+	// - The resource is found.
+	// - We decided to use the information in that resource to produce
+	//   ComputedRoutes.
+	//
+	// We currently add all of the data here, but only use the xRoute
+	// references to enhance the DependencyMappers for this Controller. In the
+	// future we could use the others, but for now they are harmless to include
+	// in the produced resource and is beneficial from an audit/debugging
+	// perspective to know all of the inputs that produced this output.
 	boundRefCollector := NewBoundReferenceCollector()
 
 	parentServiceDec := related.GetService(parentServiceID)
