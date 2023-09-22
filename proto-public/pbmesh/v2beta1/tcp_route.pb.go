@@ -35,14 +35,11 @@ type TCPRoute struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// ParentRefs references the resources (usually Gateways) that a Route wants
-	// to be attached to. Note that the referenced parent resource needs to allow
-	// this for the attachment to be complete. For Gateways, that means the
-	// Gateway needs to allow attachment from Routes of this kind and namespace.
+	// ParentRefs references the resources (usually Services) that a Route wants
+	// to be attached to.
 	//
 	// It is invalid to reference an identical parent more than once. It is valid
-	// to reference multiple distinct sections within the same parent resource,
-	// such as 2 Listeners within a Gateway.
+	// to reference multiple distinct sections within the same parent resource.
 	ParentRefs []*ParentReference `protobuf:"bytes,1,rep,name=parent_refs,json=parentRefs,proto3" json:"parent_refs,omitempty"`
 	// Rules are a list of TCP matchers and actions.
 	Rules []*TCPRouteRule `protobuf:"bytes,2,rep,name=rules,proto3" json:"rules,omitempty"`

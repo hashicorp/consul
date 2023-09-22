@@ -20,16 +20,16 @@ import "pbresource/annotations.proto";
 message GRPCRoute {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
-  // ParentRefs references the resources (usually Gateways) that a Route wants
-  // to be attached to. Note that the referenced parent resource needs to allow
-  // this for the attachment to be complete. For Gateways, that means the
-  // Gateway needs to allow attachment from Routes of this kind and namespace.
+  // ParentRefs references the resources (usually Services) that a Route wants
+  // to be attached to.
   //
   // It is invalid to reference an identical parent more than once. It is valid
-  // to reference multiple distinct sections within the same parent resource,
-  // such as 2 Listeners within a Gateway.
+  // to reference multiple distinct sections within the same parent resource.
   repeated ParentReference parent_refs = 1;
 
+  // Hostnames are the hostnames for which this GRPCRoute should respond to requests.
+  //
+  // This is only valid for north/south.
   repeated string hostnames = 2;
 
   // Rules are a list of GRPC matchers, filters and actions.
@@ -39,11 +39,31 @@ message GRPCRoute {
 message GRPCRouteRule {
   repeated GRPCRouteMatch matches = 1;
   repeated GRPCRouteFilter filters = 2;
+
+  // BackendRefs defines the backend(s) where matching requests should be sent.
+  //
+  // Failure behavior here depends on how many BackendRefs are specified and
+  // how many are invalid.
+  //
+  // If all entries in BackendRefs are invalid, and there are also no filters
+  // specified in this route rule, all traffic which matches this rule MUST
+  // receive a 500 status code.
+  //
+  // See the GRPCBackendRef definition for the rules about what makes a single
+  // GRPCBackendRef invalid.
+  //
+  // When a GRPCBackendRef is invalid, 500 status codes MUST be returned for
+  // requests that would have otherwise been routed to an invalid backend. If
+  // multiple backends are specified, and some are invalid, the proportion of
+  // requests that would otherwise have been routed to an invalid backend MUST
+  // receive a 500 status code.
+  //
+  // For example, if two backends are specified with equal weights, and one is
+  // invalid, 50 percent of traffic must receive a 500. Implementations may
+  // choose how that 50 percent is determined.
   repeated GRPCBackendRef backend_refs = 3;
 
-  // ALTERNATIVE: Timeouts defines the timeouts that can be configured for an HTTP request.
   HTTPRouteTimeouts timeouts = 4;
-  // ALTERNATIVE:
   HTTPRouteRetries retries = 5;
 }
 

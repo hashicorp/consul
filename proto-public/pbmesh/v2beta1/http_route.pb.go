@@ -219,16 +219,15 @@ type HTTPRoute struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// ParentRefs references the resources (usually Gateways) that a Route wants
-	// to be attached to. Note that the referenced parent resource needs to allow
-	// this for the attachment to be complete. For Gateways, that means the
-	// Gateway needs to allow attachment from Routes of this kind and namespace.
+	// ParentRefs references the resources (usually Services) that a Route wants
+	// to be attached to.
 	//
 	// It is invalid to reference an identical parent more than once. It is valid
-	// to reference multiple distinct sections within the same parent resource,
-	// such as 2 Listeners within a Gateway.
+	// to reference multiple distinct sections within the same parent resource.
 	ParentRefs []*ParentReference `protobuf:"bytes,1,rep,name=parent_refs,json=parentRefs,proto3" json:"parent_refs,omitempty"`
 	// Hostnames are the hostnames for which this HTTPRoute should respond to requests.
+	//
+	// This is only valid for north/south.
 	Hostnames []string `protobuf:"bytes,2,rep,name=hostnames,proto3" json:"hostnames,omitempty"`
 	// Rules are a list of HTTP-based routing rules that this route should
 	// use for constructing a routing table.
@@ -295,9 +294,6 @@ type HTTPRouteRule struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// Matches specified the matching criteria used in the routing table. If a
-	// request matches the given HTTPMatch configuration, then traffic is routed
-	// to services specified in the Services field.
 	Matches []*HTTPRouteMatch  `protobuf:"bytes,1,rep,name=matches,proto3" json:"matches,omitempty"`
 	Filters []*HTTPRouteFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	// BackendRefs defines the backend(s) where matching requests should be sent.
@@ -321,11 +317,9 @@ type HTTPRouteRule struct {
 	// For example, if two backends are specified with equal weights, and one is
 	// invalid, 50 percent of traffic must receive a 500. Implementations may
 	// choose how that 50 percent is determined.
-	BackendRefs []*HTTPBackendRef `protobuf:"bytes,3,rep,name=backend_refs,json=backendRefs,proto3" json:"backend_refs,omitempty"`
-	// ALTERNATIVE: Timeouts defines the timeouts that can be configured for an HTTP request.
-	Timeouts *HTTPRouteTimeouts `protobuf:"bytes,4,opt,name=timeouts,proto3" json:"timeouts,omitempty"`
-	// ALTERNATIVE:
-	Retries *HTTPRouteRetries `protobuf:"bytes,5,opt,name=retries,proto3" json:"retries,omitempty"`
+	BackendRefs []*HTTPBackendRef  `protobuf:"bytes,3,rep,name=backend_refs,json=backendRefs,proto3" json:"backend_refs,omitempty"`
+	Timeouts    *HTTPRouteTimeouts `protobuf:"bytes,4,opt,name=timeouts,proto3" json:"timeouts,omitempty"`
+	Retries     *HTTPRouteRetries  `protobuf:"bytes,5,opt,name=retries,proto3" json:"retries,omitempty"`
 }
 
 func (x *HTTPRouteRule) Reset() {
