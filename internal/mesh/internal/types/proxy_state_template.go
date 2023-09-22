@@ -15,23 +15,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	ProxyStateTemplateKind = "ProxyStateTemplate"
-)
-
-var (
-	ProxyStateTemplateV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         ProxyStateTemplateKind,
-	}
-
-	ProxyStateTemplateType = ProxyStateTemplateV2Beta1Type
-)
-
 func RegisterProxyStateTemplate(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ProxyStateTemplateV2Beta1Type,
+		Type:     pbmesh.ProxyStateTemplateType,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateProxyStateTemplate,

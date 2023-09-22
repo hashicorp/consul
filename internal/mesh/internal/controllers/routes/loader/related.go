@@ -6,9 +6,10 @@ package loader
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -45,7 +46,7 @@ func (r *RelatedResources) AddComputedRoutesIDs(list ...*pbresource.ID) *Related
 }
 
 func (r *RelatedResources) AddComputedRoutesID(id *pbresource.ID) *RelatedResources {
-	if !resource.EqualType(id.Type, types.ComputedRoutesType) {
+	if !resource.EqualType(id.Type, pbmesh.ComputedRoutesType) {
 		panic(fmt.Sprintf("expected *mesh.ComputedRoutes, not %s", resource.TypeToString(id.Type)))
 	}
 	r.ComputedRoutesList = append(r.ComputedRoutesList, id)
@@ -166,7 +167,7 @@ func (r *RelatedResources) WalkRoutes(fn RouteWalkFunc) {
 }
 
 func (r *RelatedResources) WalkRoutesForParentRef(parentRef *pbresource.Reference, fn RouteWalkFunc) {
-	if !resource.EqualType(parentRef.Type, catalog.ServiceType) {
+	if !resource.EqualType(parentRef.Type, pbcatalog.ServiceType) {
 		panic(fmt.Sprintf("expected *catalog.Service, not %s", resource.TypeToString(parentRef.Type)))
 	}
 	routeMap := r.RoutesByParentRef[resource.NewReferenceKey(parentRef)]
@@ -200,7 +201,7 @@ func (r *RelatedResources) GetFailoverPolicy(ref resource.ReferenceOrID) *types.
 
 func (r *RelatedResources) GetFailoverPolicyForService(ref resource.ReferenceOrID) *types.DecodedFailoverPolicy {
 	failRef := &pbresource.Reference{
-		Type:    catalog.FailoverPolicyType,
+		Type:    pbcatalog.FailoverPolicyType,
 		Tenancy: ref.GetTenancy(),
 		Name:    ref.GetName(),
 	}
@@ -213,7 +214,7 @@ func (r *RelatedResources) GetDestinationPolicy(ref resource.ReferenceOrID) *typ
 
 func (r *RelatedResources) GetDestinationPolicyForService(ref resource.ReferenceOrID) *types.DecodedDestinationPolicy {
 	destRef := &pbresource.Reference{
-		Type:    types.DestinationPolicyType,
+		Type:    pbmesh.DestinationPolicyType,
 		Tenancy: ref.GetTenancy(),
 		Name:    ref.GetName(),
 	}

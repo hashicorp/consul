@@ -71,22 +71,22 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	types.Register(registry)
 	catalog.RegisterTypes(registry)
 
-	api1Service := resourcetest.Resource(catalog.ServiceType, "api-1").
+	api1Service := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	api2Service := resourcetest.Resource(catalog.ServiceType, "api-2").
+	api2Service := resourcetest.Resource(pbcatalog.ServiceType, "api-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	api3Service := resourcetest.Resource(catalog.ServiceType, "api-3").
+	api3Service := resourcetest.Resource(pbcatalog.ServiceType, "api-3").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	backup1Service := resourcetest.Resource(catalog.ServiceType, "backup-1").
+	backup1Service := resourcetest.Resource(pbcatalog.ServiceType, "backup-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
@@ -97,17 +97,17 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		resourcetest.ValidateAndNormalize(t, registry, res)
 	}
 
-	api1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
+	api1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).
 		Build()
 
-	api2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-2").
+	api2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).
 		Build()
 
-	backup1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "backup-1").
+	backup1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "backup-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).
 		Build()
@@ -133,7 +133,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Tenancy: backup1Endpoints.Id.Tenancy,
 	}
 
-	api1DestPolicy := resourcetest.Resource(types.DestinationPolicyType, api1Service.Id.Name).
+	api1DestPolicy := resourcetest.Resource(pbmesh.DestinationPolicyType, api1Service.Id.Name).
 		WithTenancy(api1Service.Id.GetTenancy()).
 		WithData(t, &pbmesh.DestinationPolicy{
 			PortConfigs: map[string]*pbmesh.DestinationConfig{
@@ -146,7 +146,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}).
 		Build()
 
-	api1HTTPRoute := resourcetest.Resource(types.HTTPRouteType, "api-1-http-route").
+	api1HTTPRoute := resourcetest.Resource(pbmesh.HTTPRouteType, "api-1-http-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbmesh.HTTPRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
@@ -207,7 +207,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1HTTPRoute)
 
-	api1FailoverPolicy := resourcetest.Resource(catalog.FailoverPolicyType, "api-1").
+	api1FailoverPolicy := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			PortConfigs: map[string]*pbcatalog.FailoverConfig{
@@ -222,7 +222,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1FailoverPolicy)
 
-	api1TCPRoute := resourcetest.Resource(types.TCPRouteType, "api-1-tcp-route").
+	api1TCPRoute := resourcetest.Resource(pbmesh.TCPRouteType, "api-1-tcp-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
@@ -255,7 +255,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1TCPRoute)
 
-	api1TCP2Route := resourcetest.Resource(types.TCPRouteType, "api-1-tcp2-route").
+	api1TCP2Route := resourcetest.Resource(pbmesh.TCPRouteType, "api-1-tcp2-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
@@ -287,7 +287,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}).
 		Build()
 
-	api1ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, api1Service.Id)
+	api1ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, api1Service.Id)
 	api1ComputedRoutes := routestest.BuildComputedRoutes(t, api1ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
 		resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
@@ -301,7 +301,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	)
 	require.NotNil(t, api1ComputedRoutes)
 
-	api2ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, api2Service.Id)
+	api2ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, api2Service.Id)
 	api2ComputedRoutes := routestest.BuildComputedRoutes(t, api2ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
 	)
@@ -455,22 +455,22 @@ func TestBuildExplicitDestinations(t *testing.T) {
 }
 
 func TestBuildImplicitDestinations(t *testing.T) {
-	api1Service := resourcetest.Resource(catalog.ServiceType, "api-1").
+	api1Service := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	api2Service := resourcetest.Resource(catalog.ServiceType, "api-2").
+	api2Service := resourcetest.Resource(pbcatalog.ServiceType, "api-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	api1Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-1").
+	api1Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-1").
 		WithOwner(api1Service.Id).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).Build()
 
-	api2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "api-2").
+	api2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-2").
 		WithOwner(api2Service.Id).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, endpointsData).Build()
@@ -485,13 +485,13 @@ func TestBuildImplicitDestinations(t *testing.T) {
 		Tenancy: api2Endpoints.Id.Tenancy,
 	}
 
-	api1ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, api1Service.Id)
+	api1ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, api1Service.Id)
 	api1ComputedRoutes := routestest.BuildComputedRoutes(t, api1ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
 	)
 	require.NotNil(t, api1ComputedRoutes)
 
-	api2ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, api2Service.Id)
+	api2ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, api2Service.Id)
 	api2ComputedRoutes := routestest.BuildComputedRoutes(t, api2ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
 	)

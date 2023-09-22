@@ -48,7 +48,7 @@ func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresour
 	nodeHealthName := "test-lifecycle-node-status"
 
 	// initial node creation
-	node := rtest.Resource(catalog.NodeV2Beta1Type, nodeName).
+	node := rtest.Resource(pbcatalog.NodeType, nodeName).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{
 				{Host: "172.16.2.3"},
@@ -157,7 +157,7 @@ func runV2Beta1NodelessWorkloadLifecycleIntegrationTest(t *testing.T, c *rtest.C
 	workloadHealthName := "test-lifecycle-workload-status"
 
 	// create a workload without a node association or health statuses yet
-	workload := rtest.Resource(catalog.WorkloadV2Beta1Type, workloadName).
+	workload := rtest.Resource(pbcatalog.WorkloadType, workloadName).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "198.18.9.8"},
@@ -245,12 +245,12 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 	nodeHealthName2 := "test-lifecycle-node-2"
 
 	// Insert a some nodes to link the workloads to at various points throughout the test
-	node1 := rtest.Resource(catalog.NodeV2Beta1Type, nodeName1).
+	node1 := rtest.Resource(pbcatalog.NodeType, nodeName1).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.10"}},
 		}).
 		Write(t, c)
-	node2 := rtest.Resource(catalog.NodeV2Beta1Type, nodeName2).
+	node2 := rtest.Resource(pbcatalog.NodeType, nodeName2).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.11"}},
 		}).
@@ -263,7 +263,7 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 	setHealthStatus(t, c, node2.Id, nodeHealthName2, pbcatalog.Health_HEALTH_WARNING)
 
 	// Add the workload but don't immediately associate with any node.
-	workload := rtest.Resource(catalog.WorkloadV2Beta1Type, workloadName).
+	workload := rtest.Resource(pbcatalog.WorkloadType, workloadName).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "198.18.9.8"},
@@ -385,7 +385,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 
 	// Create the service without a selector. We should not see endpoints generated but we should see the
 	// status updated to note endpoints are not being managed.
-	service := rtest.Resource(catalog.ServiceV2Beta1Type, serviceName).
+	service := rtest.Resource(pbcatalog.ServiceType, serviceName).
 		WithData(t, &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP}},
 		}).
@@ -395,7 +395,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 	c.WaitForStatusCondition(t, service.Id, catalog.EndpointsStatusKey, catalog.EndpointsStatusConditionUnmanaged)
 
 	// Verify that no endpoints were created.
-	endpointsID := rtest.Resource(catalog.ServiceEndpointsV2Beta1Type, serviceName).ID()
+	endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, serviceName).ID()
 	c.RequireResourceNotFound(t, endpointsID)
 
 	// Add some empty endpoints (type validations enforce that they are owned by the service)
@@ -412,7 +412,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 
 	// api-1 has all ports (http, grpc and mesh). It also has a mixture of Addresses
 	// that select individual ports and one that selects all ports implicitly
-	api1 := rtest.Resource(catalog.WorkloadV2Beta1Type, "api-1").
+	api1 := rtest.Resource(pbcatalog.WorkloadType, "api-1").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -431,7 +431,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 
 	// api-2 has only grpc and mesh ports. It also has a mixture of Addresses that
 	// select individual ports and one that selects all ports implicitly
-	api2 := rtest.Resource(catalog.WorkloadV2Beta1Type, "api-2").
+	api2 := rtest.Resource(pbcatalog.WorkloadType, "api-2").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -448,7 +448,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 
 	// api-3 has the mesh and HTTP ports. It also has a mixture of Addresses that
 	// select individual ports and one that selects all ports.
-	api3 := rtest.Resource(catalog.WorkloadV2Beta1Type, "api-3").
+	api3 := rtest.Resource(pbcatalog.WorkloadType, "api-3").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -463,7 +463,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 		Write(t, c)
 
 	// Now create a service with unmanaged endpoints again
-	service = rtest.Resource(catalog.ServiceV2Beta1Type, serviceName).
+	service = rtest.Resource(pbcatalog.ServiceType, serviceName).
 		WithData(t, &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP}},
 		}).
@@ -706,7 +706,7 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 }
 
 func setHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health) *pbresource.Resource {
-	return rtest.Resource(catalog.HealthStatusV2Beta1Type, name).
+	return rtest.Resource(pbcatalog.HealthStatusType, name).
 		WithData(t, &pbcatalog.HealthStatus{
 			Type:   "synthetic",
 			Status: health,

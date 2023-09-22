@@ -12,8 +12,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
@@ -51,7 +49,7 @@ func New(
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
-	proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
+	proxyID := resource.ReplaceType(pbmesh.ProxyStateTemplateType, id)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.Client, id)
 	if err != nil {
 		return nil, err
@@ -67,7 +65,7 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	identityID := &pbresource.ID{
 		Name:    dec.Data.Identity,
 		Tenancy: dec.Resource.Id.Tenancy,
-		Type:    auth.WorkloadIdentityType,
+		Type:    pbauth.WorkloadIdentityType,
 	}
 
 	f.IdentitiesCache.TrackPair(identityID, proxyID)
@@ -190,7 +188,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		}
 
 		// Fetch ComputedRoutes.
-		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(types.ComputedRoutesType, serviceID))
+		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(pbmesh.ComputedRoutesType, serviceID))
 		if err != nil {
 			return nil, statuses, err
 		} else if cr == nil {
@@ -232,7 +230,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
 			// Fetch ServiceEndpoints.
-			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID))
+			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID))
 			if err != nil {
 				return nil, statuses, err
 			}
@@ -287,7 +285,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 
 	// For now we need to look up all computed routes within a partition.
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
-		Type: types.ComputedRoutesType,
+		Type: pbmesh.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
@@ -299,7 +297,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 	}
 
 	for _, r := range rsp.Resources {
-		svcID := resource.ReplaceType(catalog.ServiceType, r.Id)
+		svcID := resource.ReplaceType(pbcatalog.ServiceType, r.Id)
 		computedRoutes, err := resource.Decode[*pbmesh.ComputedRoutes](r)
 		if err != nil {
 			return nil, err
@@ -312,7 +310,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 
 		// Fetch the service.
 		// todo (ishustava): this should eventually grab virtual IPs resource.
-		svc, err := f.FetchService(ctx, resource.ReplaceType(catalog.ServiceType, r.Id))
+		svc, err := f.FetchService(ctx, resource.ReplaceType(pbcatalog.ServiceType, r.Id))
 		if err != nil {
 			return nil, err
 		}
@@ -322,7 +320,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// If this proxy is a part of this service, ignore it.
-		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
+		if isPartOfService(resource.ReplaceType(pbcatalog.WorkloadType, proxyID), svc) {
 			continue
 		}
 
@@ -347,7 +345,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
-				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+				seID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
 				seRK := resource.NewReferenceKey(seID)
 
 				if _, ok := endpointsMap[seRK]; !ok {
@@ -385,7 +383,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 			}
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
-				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+				seID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
 
 				// Fetch ServiceEndpoints.
 				se, ok := endpointsMap[resource.NewReferenceKey(seID)]

@@ -10,12 +10,12 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -26,13 +26,13 @@ func Controller() controller.Controller {
 	r := &routesReconciler{
 		mapper: mapper,
 	}
-	return controller.ForType(types.ComputedRoutesType).
-		WithWatch(types.HTTPRouteType, mapper.MapHTTPRoute).
-		WithWatch(types.GRPCRouteType, mapper.MapGRPCRoute).
-		WithWatch(types.TCPRouteType, mapper.MapTCPRoute).
-		WithWatch(types.DestinationPolicyType, mapper.MapDestinationPolicy).
-		WithWatch(catalog.FailoverPolicyType, mapper.MapFailoverPolicy).
-		WithWatch(catalog.ServiceType, mapper.MapService).
+	return controller.ForType(pbmesh.ComputedRoutesType).
+		WithWatch(pbmesh.HTTPRouteType, mapper.MapHTTPRoute).
+		WithWatch(pbmesh.GRPCRouteType, mapper.MapGRPCRoute).
+		WithWatch(pbmesh.TCPRouteType, mapper.MapTCPRoute).
+		WithWatch(pbmesh.DestinationPolicyType, mapper.MapDestinationPolicy).
+		WithWatch(pbcatalog.FailoverPolicyType, mapper.MapFailoverPolicy).
+		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithReconciler(r)
 }
 

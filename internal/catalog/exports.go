@@ -20,48 +20,6 @@ import (
 )
 
 var (
-	// API Group Information
-
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV2Beta1
-	CurrentVersion  = types.CurrentVersion
-
-	// Resource Kind Names.
-
-	WorkloadKind         = types.WorkloadKind
-	ServiceKind          = types.ServiceKind
-	ServiceEndpointsKind = types.ServiceEndpointsKind
-	VirtualIPsKind       = types.VirtualIPsKind
-	NodeKind             = types.NodeKind
-	HealthStatusKind     = types.HealthStatusKind
-	HealthChecksKind     = types.HealthChecksKind
-	DNSPolicyKind        = types.DNSPolicyKind
-	FailoverPolicyKind   = types.FailoverPolicyKind
-
-	// Resource Types for the v2beta1 version.
-
-	WorkloadV2Beta1Type         = types.WorkloadV2Beta1Type
-	ServiceV2Beta1Type          = types.ServiceV2Beta1Type
-	ServiceEndpointsV2Beta1Type = types.ServiceEndpointsV2Beta1Type
-	VirtualIPsV2Beta1Type       = types.VirtualIPsV2Beta1Type
-	NodeV2Beta1Type             = types.NodeV2Beta1Type
-	HealthStatusV2Beta1Type     = types.HealthStatusV2Beta1Type
-	HealthChecksV2Beta1Type     = types.HealthChecksV2Beta1Type
-	DNSPolicyV2Beta1Type        = types.DNSPolicyV2Beta1Type
-	FailoverPolicyV2Beta1Type   = types.FailoverPolicyV2Beta1Type
-
-	// Resource Types for the latest version.
-
-	WorkloadType         = types.WorkloadType
-	ServiceType          = types.ServiceType
-	ServiceEndpointsType = types.ServiceEndpointsType
-	VirtualIPsType       = types.VirtualIPsType
-	NodeType             = types.NodeType
-	HealthStatusType     = types.HealthStatusType
-	HealthChecksType     = types.HealthChecksType
-	DNSPolicyType        = types.DNSPolicyType
-	FailoverPolicyType   = types.FailoverPolicyType
-
 	// Controller Statuses
 	NodeHealthStatusKey              = nodehealth.StatusKey
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy

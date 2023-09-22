@@ -11,23 +11,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	HealthChecksKind = "HealthChecks"
-)
-
-var (
-	HealthChecksV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         HealthChecksKind,
-	}
-
-	HealthChecksType = HealthChecksV2Beta1Type
-)
-
 func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HealthChecksV2Beta1Type,
+		Type:     pbcatalog.HealthChecksType,
 		Proto:    &pbcatalog.HealthChecks{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,

@@ -60,11 +60,11 @@ func (n *inputRouteNode) AddTargetsFrom(next *inputRouteNode) {
 func (n *inputRouteNode) AppendRulesFrom(next *inputRouteNode) {
 	n.Default = false
 	switch {
-	case resource.EqualType(n.RouteType, types.HTTPRouteType):
+	case resource.EqualType(n.RouteType, pbmesh.HTTPRouteType):
 		n.HTTPRules = append(n.HTTPRules, next.HTTPRules...)
-	case resource.EqualType(n.RouteType, types.GRPCRouteType):
+	case resource.EqualType(n.RouteType, pbmesh.GRPCRouteType):
 		n.GRPCRules = append(n.GRPCRules, next.GRPCRules...)
-	case resource.EqualType(n.RouteType, types.TCPRouteType):
+	case resource.EqualType(n.RouteType, pbmesh.TCPRouteType):
 		n.TCPRules = append(n.TCPRules, next.TCPRules...)
 	default:
 		panic("impossible")

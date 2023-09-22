@@ -18,7 +18,7 @@ import (
 func createWorkloadResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: WorkloadType,
+			Type: pbcatalog.WorkloadType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",

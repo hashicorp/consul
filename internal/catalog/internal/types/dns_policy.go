@@ -13,23 +13,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	DNSPolicyKind = "DNSPolicy"
-)
-
-var (
-	DNSPolicyV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         DNSPolicyKind,
-	}
-
-	DNSPolicyType = DNSPolicyV2Beta1Type
-)
-
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DNSPolicyV2Beta1Type,
+		Type:     pbcatalog.DNSPolicyType,
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,

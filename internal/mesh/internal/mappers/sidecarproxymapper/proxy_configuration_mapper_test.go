@@ -33,10 +33,10 @@ func TestProxyConfigurationMapper(t *testing.T) {
 		Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 		Ports:     map[string]*pbcatalog.WorkloadPort{"p1": {Port: 8080}},
 	}
-	w1 := resourcetest.Resource(catalog.WorkloadType, "w1").
+	w1 := resourcetest.Resource(pbcatalog.WorkloadType, "w1").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w2 := resourcetest.Resource(catalog.WorkloadType, "w2").
+	w2 := resourcetest.Resource(pbcatalog.WorkloadType, "w2").
 		WithData(t, workloadData).
 		Write(t, client).Id
 
@@ -46,7 +46,7 @@ func TestProxyConfigurationMapper(t *testing.T) {
 			Names: []string{"w1", "w2"},
 		},
 	}
-	pCfg := resourcetest.Resource(types.ProxyConfigurationType, "proxy-config").
+	pCfg := resourcetest.Resource(pbmesh.ProxyConfigurationType, "proxy-config").
 		WithData(t, proxyCfgData).
 		Write(t, client)
 
@@ -56,8 +56,8 @@ func TestProxyConfigurationMapper(t *testing.T) {
 	}, pCfg)
 	require.NoError(t, err)
 
-	p1 := resource.ReplaceType(types.ProxyStateTemplateType, w1)
-	p2 := resource.ReplaceType(types.ProxyStateTemplateType, w2)
+	p1 := resource.ReplaceType(pbmesh.ProxyStateTemplateType, w1)
+	p2 := resource.ReplaceType(pbmesh.ProxyStateTemplateType, w2)
 	expReqs := []controller.Request{
 		{ID: p1},
 		{ID: p2},

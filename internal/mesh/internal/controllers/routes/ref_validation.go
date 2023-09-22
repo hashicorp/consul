@@ -6,7 +6,6 @@ package routes
 import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -45,7 +44,7 @@ func computeNewRouteRefConditions(
 	// TODO(rb): handle port numbers here too if we are allowing those instead of the name?
 
 	for _, parentRef := range parentRefs {
-		if parentRef.Ref == nil || !resource.EqualType(parentRef.Ref.Type, catalog.ServiceType) {
+		if parentRef.Ref == nil || !resource.EqualType(parentRef.Ref.Type, pbcatalog.ServiceType) {
 			continue // not possible due to xRoute validation
 		}
 		if parentRef.Ref.Section != "" {
@@ -82,7 +81,7 @@ func computeNewRouteRefConditions(
 	}
 
 	for _, backendRef := range backendRefs {
-		if backendRef.Ref == nil || !resource.EqualType(backendRef.Ref.Type, catalog.ServiceType) {
+		if backendRef.Ref == nil || !resource.EqualType(backendRef.Ref.Type, pbcatalog.ServiceType) {
 			continue // not possible due to xRoute validation
 		}
 		if backendRef.Ref.Section != "" {

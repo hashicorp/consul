@@ -32,7 +32,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				Protocol:   proto,
 			})
 		}
-		svc := rtest.Resource(catalog.ServiceType, name).
+		svc := rtest.Resource(pbcatalog.ServiceType, name).
 			WithData(t, &pbcatalog.Service{Ports: portSlice}).
 			Build()
 		rtest.ValidateAndNormalize(t, registry, svc)
@@ -52,11 +52,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		t.Run("with no service", func(t *testing.T) {
 			sg := newTestServiceGetter()
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionMissingParentRef(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 			))
 		})
 
@@ -65,11 +65,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionParentRefOutsideMesh(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 			))
 		})
 
@@ -79,11 +79,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), "mesh"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "mesh"),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionParentRefUsingMeshPort(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 				"mesh",
 			))
 		})
@@ -94,11 +94,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), "web"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "web"),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionUnknownParentRefPort(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 				"web",
 			))
 		})
@@ -109,7 +109,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 			}, nil)
 			require.Empty(t, got)
 		})
@@ -120,7 +120,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(catalog.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 			}, nil)
 			require.Empty(t, got)
 		})
@@ -130,11 +130,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		t.Run("with no service", func(t *testing.T) {
 			sg := newTestServiceGetter()
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionMissingBackendRef(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 			))
 		})
 
@@ -143,11 +143,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionBackendRefOutsideMesh(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 			))
 		})
 
@@ -157,11 +157,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "mesh", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "mesh", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionBackendRefUsingMeshPort(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 				"mesh",
 			))
 		})
@@ -172,11 +172,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "web", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "web", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionUnknownBackendRefPort(
-				newRef(catalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api"),
 				"web",
 			))
 		})
@@ -187,7 +187,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
 			})
 			require.Empty(t, got)
 		})
@@ -198,7 +198,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(catalog.ServiceType, "api"), "http", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "http", ""),
 			})
 			require.Empty(t, got)
 		})

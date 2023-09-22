@@ -14,23 +14,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	GRPCRouteKind = "GRPCRoute"
-)
-
-var (
-	GRPCRouteV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         GRPCRouteKind,
-	}
-
-	GRPCRouteType = GRPCRouteV2Beta1Type
-)
-
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     GRPCRouteV2Beta1Type,
+		Type:     pbmesh.GRPCRouteType,
 		Proto:    &pbmesh.GRPCRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateGRPCRoute,

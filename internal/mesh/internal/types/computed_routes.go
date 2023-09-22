@@ -15,27 +15,15 @@ import (
 )
 
 const (
-	ComputedRoutesKind = "ComputedRoutes"
-
 	// NullRouteBackend is the sentinel string used in ComputedRoutes backend
 	// targets to indicate that traffic arriving at this destination should
 	// fail in a protocol-specific way (i.e. HTTP is 5xx)
 	NullRouteBackend = "NULL-ROUTE"
 )
 
-var (
-	ComputedRoutesV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         ComputedRoutesKind,
-	}
-
-	ComputedRoutesType = ComputedRoutesV2Beta1Type
-)
-
 func RegisterComputedRoutes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ComputedRoutesV2Beta1Type,
+		Type:     pbmesh.ComputedRoutesType,
 		Proto:    &pbmesh.ComputedRoutes{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateComputedRoutes,

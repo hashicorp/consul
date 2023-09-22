@@ -22,7 +22,7 @@ func TestValidateProxyStateTemplate(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(ProxyStateTemplateType, "api").
+		res := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api").
 			WithData(t, tc.pst).
 			Build()
 

@@ -14,50 +14,6 @@ import (
 )
 
 var (
-	// API Group Information
-
-	APIGroup       = types.GroupName
-	VersionV2Beta1 = types.VersionV2beta1
-	CurrentVersion = types.CurrentVersion
-
-	// Resource Kind Names.
-
-	ProxyConfigurationKind     = types.ProxyConfigurationKind
-	UpstreamsKind              = types.UpstreamsKind
-	UpstreamsConfigurationKind = types.UpstreamsConfigurationKind
-	ProxyStateKind             = types.ProxyStateTemplateKind
-	HTTPRouteKind              = types.HTTPRouteKind
-	GRPCRouteKind              = types.GRPCRouteKind
-	TCPRouteKind               = types.TCPRouteKind
-	DestinationPolicyKind      = types.DestinationPolicyKind
-	ComputedRoutesKind         = types.ComputedRoutesKind
-	ProxyStateTemplateKind     = types.ProxyStateTemplateKind
-
-	// Resource Types for the v2beta1 version.
-
-	ProxyConfigurationV2Beta1Type              = types.ProxyConfigurationV2Beta1Type
-	UpstreamsV2Beta1Type                       = types.UpstreamsV2Beta1Type
-	UpstreamsConfigurationV2Beta1Type          = types.UpstreamsConfigurationV2Beta1Type
-	ProxyStateTemplateConfigurationV2Beta1Type = types.ProxyStateTemplateV2Beta1Type
-	HTTPRouteV2Beta1Type                       = types.HTTPRouteV2Beta1Type
-	GRPCRouteV2Beta1Type                       = types.GRPCRouteV2Beta1Type
-	TCPRouteV2Beta1Type                        = types.TCPRouteV2Beta1Type
-	DestinationPolicyV2Beta1Type               = types.DestinationPolicyV2Beta1Type
-	ComputedRoutesV2Beta1Type                  = types.ComputedRoutesV2Beta1Type
-	ProxyStateTemplateV1AlphaType              = types.ProxyStateTemplateV2Beta1Type
-
-	// Resource Types for the latest version.
-
-	ProxyConfigurationType     = types.ProxyConfigurationType
-	UpstreamsType              = types.UpstreamsType
-	UpstreamsConfigurationType = types.UpstreamsConfigurationType
-	ProxyStateTemplateType     = types.ProxyStateTemplateType
-	HTTPRouteType              = types.HTTPRouteType
-	GRPCRouteType              = types.GRPCRouteType
-	TCPRouteType               = types.TCPRouteType
-	DestinationPolicyType      = types.DestinationPolicyType
-	ComputedRoutesType         = types.ComputedRoutesType
-
 	// Controller statuses.
 
 	// Sidecar-proxy controller.

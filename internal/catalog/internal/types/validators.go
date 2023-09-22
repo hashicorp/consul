@@ -254,11 +254,11 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 		return wrapErr(resource.ErrMissing)
 	}
 
-	if !resource.EqualType(ref.Type, ServiceType) {
+	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
 		return wrapErr(resource.ErrInvalidField{
 			Name: "type",
 			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: ServiceType,
+				AllowedType: pbcatalog.ServiceType,
 			},
 		})
 	}

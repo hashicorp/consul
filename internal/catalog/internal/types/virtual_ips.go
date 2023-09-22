@@ -11,27 +11,14 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	VirtualIPsKind = "VirtualIPs"
-)
-
-var (
-	VirtualIPsV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         VirtualIPsKind,
-	}
-
-	VirtualIPsType = VirtualIPsV2Beta1Type
-)
-
 func RegisterVirtualIPs(r resource.Registry) {
-	r.Register(resource.Registration{
-		Type:     VirtualIPsV2Beta1Type,
-		Proto:    &pbcatalog.VirtualIPs{},
-		Scope:    resource.ScopeNamespace,
-		Validate: ValidateVirtualIPs,
-	})
+	// todo (ishustava): uncomment when we implement it
+	//r.Register(resource.Registration{
+	//	Type:     pbcatalog.VirtualIPsV2Beta1Type,
+	//	Proto:    &pbcatalog.VirtualIPs{},
+	//	Scope:    resource.ScopeNamespace,
+	//	Validate: ValidateVirtualIPs,
+	//})
 }
 
 func ValidateVirtualIPs(res *pbresource.Resource) error {

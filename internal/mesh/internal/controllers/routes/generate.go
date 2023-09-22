@@ -56,7 +56,7 @@ func compile(
 	// All ports are embedded within.
 
 	parentServiceID := &pbresource.ID{
-		Type:    catalog.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: computedRoutesID.Tenancy,
 		Name:    computedRoutesID.Name,
 	}
@@ -182,13 +182,13 @@ func compile(
 			// enumcover:pbcatalog.Protocol
 			switch protocol {
 			case pbcatalog.Protocol_PROTOCOL_HTTP2:
-				typ = types.HTTPRouteType
+				typ = pbmesh.HTTPRouteType
 			case pbcatalog.Protocol_PROTOCOL_HTTP:
-				typ = types.HTTPRouteType
+				typ = pbmesh.HTTPRouteType
 			case pbcatalog.Protocol_PROTOCOL_GRPC:
-				typ = types.GRPCRouteType
+				typ = pbmesh.GRPCRouteType
 			case pbcatalog.Protocol_PROTOCOL_TCP:
-				typ = types.TCPRouteType
+				typ = pbmesh.TCPRouteType
 			case pbcatalog.Protocol_PROTOCOL_MESH:
 				fallthrough // to default
 			case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED:
@@ -269,7 +269,7 @@ func compile(
 		}
 
 		switch {
-		case resource.EqualType(top.RouteType, types.HTTPRouteType):
+		case resource.EqualType(top.RouteType, pbmesh.HTTPRouteType):
 			if mc.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
 				// The rest are HTTP-like
 				mc.Protocol = pbcatalog.Protocol_PROTOCOL_HTTP
@@ -279,14 +279,14 @@ func compile(
 					Rules: top.HTTPRules,
 				},
 			}
-		case resource.EqualType(top.RouteType, types.GRPCRouteType):
+		case resource.EqualType(top.RouteType, pbmesh.GRPCRouteType):
 			mc.Protocol = pbcatalog.Protocol_PROTOCOL_GRPC
 			mc.Config = &pbmesh.ComputedPortRoutes_Grpc{
 				Grpc: &pbmesh.ComputedGRPCRoute{
 					Rules: top.GRPCRules,
 				},
 			}
-		case resource.EqualType(top.RouteType, types.TCPRouteType):
+		case resource.EqualType(top.RouteType, pbmesh.TCPRouteType):
 			mc.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
 			mc.Config = &pbmesh.ComputedPortRoutes_Tcp{
 				Tcp: &pbmesh.ComputedTCPRoute{
@@ -514,7 +514,7 @@ func compileHTTPRouteNode(
 	route = protoClone(route)
 	node := newInputRouteNode(port)
 
-	node.RouteType = types.HTTPRouteType
+	node.RouteType = pbmesh.HTTPRouteType
 	node.OriginalResource = res
 	node.HTTPRules = make([]*pbmesh.ComputedHTTPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
@@ -590,7 +590,7 @@ func compileGRPCRouteNode(
 
 	node := newInputRouteNode(port)
 
-	node.RouteType = types.GRPCRouteType
+	node.RouteType = pbmesh.GRPCRouteType
 	node.OriginalResource = res
 	node.GRPCRules = make([]*pbmesh.ComputedGRPCRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
@@ -658,7 +658,7 @@ func compileTCPRouteNode(
 
 	node := newInputRouteNode(port)
 
-	node.RouteType = types.TCPRouteType
+	node.RouteType = pbmesh.TCPRouteType
 	node.OriginalResource = res
 	node.TCPRules = make([]*pbmesh.ComputedTCPRouteRule, 0, len(route.Rules))
 	for _, rule := range route.Rules {
@@ -749,16 +749,16 @@ func createDefaultRouteNode(
 		MeshPort:   parentMeshPort,
 	})
 	switch {
-	case resource.EqualType(types.HTTPRouteType, typ):
-		routeNode.RouteType = types.HTTPRouteType
+	case resource.EqualType(pbmesh.HTTPRouteType, typ):
+		routeNode.RouteType = pbmesh.HTTPRouteType
 		appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
-	case resource.EqualType(types.GRPCRouteType, typ):
-		routeNode.RouteType = types.GRPCRouteType
+	case resource.EqualType(pbmesh.GRPCRouteType, typ):
+		routeNode.RouteType = pbmesh.GRPCRouteType
 		appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
-	case resource.EqualType(types.TCPRouteType, typ):
+	case resource.EqualType(pbmesh.TCPRouteType, typ):
 		fallthrough
 	default:
-		routeNode.RouteType = types.TCPRouteType
+		routeNode.RouteType = pbmesh.TCPRouteType
 		appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)
 	}
 
@@ -771,11 +771,11 @@ func appendDefaultRouteNode(
 	defaultBackendTarget string,
 ) {
 	switch {
-	case resource.EqualType(types.HTTPRouteType, routeNode.RouteType):
+	case resource.EqualType(pbmesh.HTTPRouteType, routeNode.RouteType):
 		appendDefaultHTTPRouteRule(routeNode, defaultBackendTarget)
-	case resource.EqualType(types.GRPCRouteType, routeNode.RouteType):
+	case resource.EqualType(pbmesh.GRPCRouteType, routeNode.RouteType):
 		appendDefaultGRPCRouteRule(routeNode, defaultBackendTarget)
-	case resource.EqualType(types.TCPRouteType, routeNode.RouteType):
+	case resource.EqualType(pbmesh.TCPRouteType, routeNode.RouteType):
 		fallthrough
 	default:
 		appendDefaultTCPRouteRule(routeNode, defaultBackendTarget)

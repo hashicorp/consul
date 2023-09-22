@@ -7,12 +7,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 )
 
-const (
-	GroupName      = "mesh"
-	VersionV2beta1 = "v2beta1"
-	CurrentVersion = VersionV2beta1
-)
-
 func Register(r resource.Registry) {
 	RegisterProxyConfiguration(r)
 	RegisterUpstreams(r)

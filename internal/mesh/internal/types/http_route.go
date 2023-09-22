@@ -16,23 +16,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	HTTPRouteKind = "HTTPRoute"
-)
-
-var (
-	HTTPRouteV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         HTTPRouteKind,
-	}
-
-	HTTPRouteType = HTTPRouteV2Beta1Type
-)
-
 func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HTTPRouteV2Beta1Type,
+		Type:     pbmesh.HTTPRouteType,
 		Proto:    &pbmesh.HTTPRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,

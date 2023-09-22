@@ -54,17 +54,17 @@ func (suite *controllerSuite) TestController() {
 	}
 
 	var (
-		apiServiceRef = rtest.Resource(catalog.ServiceType, "api").
+		apiServiceRef = rtest.Resource(pbcatalog.ServiceType, "api").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Reference("")
-		fooServiceRef = rtest.Resource(catalog.ServiceType, "foo").
+		fooServiceRef = rtest.Resource(pbcatalog.ServiceType, "foo").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Reference("")
-		barServiceRef = rtest.Resource(catalog.ServiceType, "bar").
+		barServiceRef = rtest.Resource(pbcatalog.ServiceType, "bar").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Reference("")
 
-		computedRoutesID = rtest.Resource(types.ComputedRoutesType, "api").
+		computedRoutesID = rtest.Resource(pbmesh.ComputedRoutesType, "api").
 					WithTenancy(resource.DefaultNamespacedTenancy()).
 					ID()
 	)
@@ -83,7 +83,7 @@ func (suite *controllerSuite) TestController() {
 		},
 	}
 
-	_ = rtest.Resource(catalog.ServiceType, "api").
+	_ = rtest.Resource(pbcatalog.ServiceType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
@@ -139,7 +139,7 @@ func (suite *controllerSuite) TestController() {
 		},
 	}
 
-	_ = rtest.Resource(catalog.ServiceType, "api").
+	_ = rtest.Resource(pbcatalog.ServiceType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
@@ -158,7 +158,7 @@ func (suite *controllerSuite) TestController() {
 		},
 	}
 
-	_ = rtest.Resource(catalog.ServiceType, "foo").
+	_ = rtest.Resource(pbcatalog.ServiceType, "foo").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), fooServiceData).
 		Write(suite.T(), suite.client)
@@ -280,7 +280,7 @@ func (suite *controllerSuite) TestController() {
 
 	tcpRoute1 := &pbmesh.TCPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "tcp"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp"),
 		},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -288,7 +288,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	tcpRoute1ID := rtest.Resource(types.TCPRouteType, "api-tcp-route1").
+	tcpRoute1ID := rtest.Resource(pbmesh.TCPRouteType, "api-tcp-route1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), tcpRoute1).
 		Write(suite.T(), suite.client).
@@ -296,8 +296,8 @@ func (suite *controllerSuite) TestController() {
 
 	httpRoute1 := &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "http"),
-			newParentRef(newRef(catalog.ServiceType, "api"), "http2"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "http2"),
 		},
 		Rules: []*pbmesh.HTTPRouteRule{{
 			BackendRefs: []*pbmesh.HTTPBackendRef{{
@@ -305,7 +305,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	httpRoute1ID := rtest.Resource(types.HTTPRouteType, "api-http-route1").
+	httpRoute1ID := rtest.Resource(pbmesh.HTTPRouteType, "api-http-route1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute1).
 		Write(suite.T(), suite.client).
@@ -313,7 +313,7 @@ func (suite *controllerSuite) TestController() {
 
 	grpcRoute1 := &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "grpc"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc"),
 		},
 		Rules: []*pbmesh.GRPCRouteRule{{
 			BackendRefs: []*pbmesh.GRPCBackendRef{{
@@ -321,7 +321,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	grpcRoute1ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route1").
+	grpcRoute1ID := rtest.Resource(pbmesh.GRPCRouteType, "api-grpc-route1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute1).
 		Write(suite.T(), suite.client).
@@ -462,7 +462,7 @@ func (suite *controllerSuite) TestController() {
 
 	tcpRoute2 := &pbmesh.TCPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "tcp"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp"),
 		},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -470,7 +470,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	tcpRoute2ID := rtest.Resource(types.TCPRouteType, "api-tcp-route2").
+	tcpRoute2ID := rtest.Resource(pbmesh.TCPRouteType, "api-tcp-route2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), tcpRoute2).
 		Write(suite.T(), suite.client).
@@ -478,8 +478,8 @@ func (suite *controllerSuite) TestController() {
 
 	httpRoute2 := &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "http"),
-			newParentRef(newRef(catalog.ServiceType, "api"), "http2"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "http2"),
 		},
 		Rules: []*pbmesh.HTTPRouteRule{{
 			Matches: []*pbmesh.HTTPRouteMatch{{
@@ -493,7 +493,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	httpRoute2ID := rtest.Resource(types.HTTPRouteType, "api-http-route2").
+	httpRoute2ID := rtest.Resource(pbmesh.HTTPRouteType, "api-http-route2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute2).
 		Write(suite.T(), suite.client).
@@ -501,7 +501,7 @@ func (suite *controllerSuite) TestController() {
 
 	grpcRoute2 := &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "grpc"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc"),
 		},
 		Rules: []*pbmesh.GRPCRouteRule{{
 			Matches: []*pbmesh.GRPCRouteMatch{{
@@ -516,7 +516,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	grpcRoute2ID := rtest.Resource(types.GRPCRouteType, "api-grpc-route2").
+	grpcRoute2ID := rtest.Resource(pbmesh.GRPCRouteType, "api-grpc-route2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute2).
 		Write(suite.T(), suite.client).
@@ -697,11 +697,11 @@ func (suite *controllerSuite) TestController() {
 		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
 
 		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
-			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+			ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar")))
 		suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
-			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+			ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar")))
 		suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
-			ConditionMissingBackendRef(newRef(catalog.ServiceType, "bar")))
+			ConditionMissingBackendRef(newRef(pbcatalog.ServiceType, "bar")))
 	})
 
 	// Update the route2 routes to point to a real service, but overlap in
@@ -715,7 +715,7 @@ func (suite *controllerSuite) TestController() {
 
 	tcpRoute2 = &pbmesh.TCPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "http"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
 		},
 		Rules: []*pbmesh.TCPRouteRule{{
 			BackendRefs: []*pbmesh.TCPBackendRef{{
@@ -730,7 +730,7 @@ func (suite *controllerSuite) TestController() {
 
 	httpRoute2 = &pbmesh.HTTPRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "grpc"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc"),
 		},
 		Rules: []*pbmesh.HTTPRouteRule{{
 			Matches: []*pbmesh.HTTPRouteMatch{{
@@ -751,7 +751,7 @@ func (suite *controllerSuite) TestController() {
 
 	grpcRoute2 = &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), "tcp"),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp"),
 		},
 		Rules: []*pbmesh.GRPCRouteRule{{
 			Matches: []*pbmesh.GRPCRouteMatch{{
@@ -905,11 +905,11 @@ func (suite *controllerSuite) TestController() {
 		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey, ConditionXRouteOK)
 
 		suite.client.WaitForStatusCondition(t, tcpRoute2ID, StatusKey,
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http", types.HTTPRouteType))
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "http", pbmesh.HTTPRouteType))
 		suite.client.WaitForStatusCondition(t, httpRoute2ID, StatusKey,
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "grpc", types.GRPCRouteType))
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "grpc", pbmesh.GRPCRouteType))
 		suite.client.WaitForStatusCondition(t, grpcRoute2ID, StatusKey,
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "tcp", types.TCPRouteType))
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp", pbmesh.TCPRouteType))
 	})
 
 	// - Delete the bad routes
@@ -930,7 +930,7 @@ func (suite *controllerSuite) TestController() {
 	// Re-create with newarly the same data (wildcard port now) with a newer name.
 	grpcRoute1 = &pbmesh.GRPCRoute{
 		ParentRefs: []*pbmesh.ParentReference{
-			newParentRef(newRef(catalog.ServiceType, "api"), ""),
+			newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
 		},
 		Rules: []*pbmesh.GRPCRouteRule{{
 			BackendRefs: []*pbmesh.GRPCBackendRef{{
@@ -938,7 +938,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	grpcRoute1ID = rtest.Resource(types.GRPCRouteType, "zzz-bad-route").
+	grpcRoute1ID = rtest.Resource(pbmesh.GRPCRouteType, "zzz-bad-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), grpcRoute1).
 		Write(suite.T(), suite.client).
@@ -1069,9 +1069,9 @@ func (suite *controllerSuite) TestController() {
 		}
 
 		suite.client.WaitForStatusConditions(t, grpcRoute1ID, StatusKey,
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http", types.HTTPRouteType),
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "http2", types.HTTPRouteType),
-			ConditionConflictNotBoundToParentRef(newRef(catalog.ServiceType, "api"), "tcp", types.TCPRouteType))
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "http", pbmesh.HTTPRouteType),
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "http2", pbmesh.HTTPRouteType),
+			ConditionConflictNotBoundToParentRef(newRef(pbcatalog.ServiceType, "api"), "tcp", pbmesh.TCPRouteType))
 
 		lastVersion = requireNewComputedRoutesVersion(t, suite.client, computedRoutesID, "" /*no change*/, expect)
 
@@ -1094,7 +1094,7 @@ func (suite *controllerSuite) TestController() {
 		},
 	}
 
-	_ = rtest.Resource(catalog.ServiceType, "api").
+	_ = rtest.Resource(pbcatalog.ServiceType, "api").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), apiServiceData).
 		Write(suite.T(), suite.client)
@@ -1103,16 +1103,16 @@ func (suite *controllerSuite) TestController() {
 		suite.client.WaitForDeletion(t, computedRoutesID)
 
 		suite.client.WaitForStatusCondition(t, tcpRoute1ID, StatusKey,
-			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api")))
 		suite.client.WaitForStatusCondition(t, httpRoute1ID, StatusKey,
-			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api")))
 		suite.client.WaitForStatusCondition(t, grpcRoute1ID, StatusKey,
-			ConditionParentRefOutsideMesh(newRef(catalog.ServiceType, "api")))
+			ConditionParentRefOutsideMesh(newRef(pbcatalog.ServiceType, "api")))
 	})
 
 	// Get down to just 2 ports for all relevant services.
 	for _, name := range []string{"foo", "bar", "api"} {
-		_ = rtest.Resource(catalog.ServiceType, name).
+		_ = rtest.Resource(pbcatalog.ServiceType, name).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(suite.T(), &pbcatalog.Service{
 				Workloads: &pbcatalog.WorkloadSelector{
@@ -1137,7 +1137,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	httpRoute1ID = rtest.Resource(types.HTTPRouteType, "route1").
+	httpRoute1ID = rtest.Resource(pbmesh.HTTPRouteType, "route1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute1).
 		Write(suite.T(), suite.client).
@@ -1147,10 +1147,10 @@ func (suite *controllerSuite) TestController() {
 		fooLastVersion string
 		barLastVersion string
 
-		fooComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "foo").
+		fooComputedRoutesID = rtest.Resource(pbmesh.ComputedRoutesType, "foo").
 					WithTenancy(resource.DefaultNamespacedTenancy()).
 					ID()
-		barComputedRoutesID = rtest.Resource(types.ComputedRoutesType, "bar").
+		barComputedRoutesID = rtest.Resource(pbmesh.ComputedRoutesType, "bar").
 					WithTenancy(resource.DefaultNamespacedTenancy()).
 					ID()
 	)
@@ -1252,7 +1252,7 @@ func (suite *controllerSuite) TestController() {
 			}},
 		}},
 	}
-	httpRoute1ID = rtest.Resource(types.HTTPRouteType, "route1").
+	httpRoute1ID = rtest.Resource(pbmesh.HTTPRouteType, "route1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(suite.T(), httpRoute1).
 		Write(suite.T(), suite.client).

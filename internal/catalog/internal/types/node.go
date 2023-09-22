@@ -11,23 +11,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	NodeKind = "Node"
-)
-
-var (
-	NodeV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         NodeKind,
-	}
-
-	NodeType = NodeV2Beta1Type
-)
-
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  NodeV2Beta1Type,
+		Type:  pbcatalog.NodeType,
 		Proto: &pbcatalog.Node{},
 		// TODO: A node should be partition scoped. However its HealthStatus which is
 		// namespace scoped has Node as an owner. We do not support ownership between resources

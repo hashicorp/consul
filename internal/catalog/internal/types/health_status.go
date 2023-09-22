@@ -11,23 +11,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	HealthStatusKind = "HealthStatus"
-)
-
-var (
-	HealthStatusV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         HealthStatusKind,
-	}
-
-	HealthStatusType = HealthStatusV2Beta1Type
-)
-
 func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HealthStatusV2Beta1Type,
+		Type:     pbcatalog.HealthStatusType,
 		Proto:    &pbcatalog.HealthStatus{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthStatus,
@@ -74,7 +60,7 @@ func ValidateHealthStatus(res *pbresource.Resource) error {
 			Name:    "owner",
 			Wrapped: resource.ErrMissing,
 		})
-	} else if !resource.EqualType(res.Owner.Type, WorkloadType) && !resource.EqualType(res.Owner.Type, NodeType) {
+	} else if !resource.EqualType(res.Owner.Type, pbcatalog.WorkloadType) && !resource.EqualType(res.Owner.Type, pbcatalog.NodeType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 

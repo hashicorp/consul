@@ -14,23 +14,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	WorkloadKind = "Workload"
-)
-
-var (
-	WorkloadV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         WorkloadKind,
-	}
-
-	WorkloadType = WorkloadV2Beta1Type
-)
-
 func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     WorkloadV2Beta1Type,
+		Type:     pbcatalog.WorkloadType,
 		Proto:    &pbcatalog.Workload{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateWorkload,

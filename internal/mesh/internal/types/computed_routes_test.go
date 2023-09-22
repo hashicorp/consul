@@ -25,7 +25,7 @@ func TestValidateComputedRoutes(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(ComputedRoutesType, "api").
+		res := resourcetest.Resource(pbmesh.ComputedRoutesType, "api").
 			WithData(t, tc.routes).
 			Build()
 

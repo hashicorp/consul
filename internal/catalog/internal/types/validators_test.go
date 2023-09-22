@@ -566,7 +566,7 @@ func TestValidateReference(t *testing.T) {
 		PeerName:  "local",
 	}
 
-	allowedType := WorkloadType
+	allowedType := pbcatalog.WorkloadType
 
 	type testCase struct {
 		check *pbresource.ID
@@ -583,7 +583,7 @@ func TestValidateReference(t *testing.T) {
 		},
 		"type-err": {
 			check: &pbresource.ID{
-				Type:    NodeType,
+				Type:    pbcatalog.NodeType,
 				Tenancy: allowedTenancy,
 				Name:    "foo",
 			},

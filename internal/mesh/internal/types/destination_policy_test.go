@@ -28,7 +28,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(DestinationPolicyType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
 			WithData(t, tc.policy).
 			Build()
 
@@ -549,7 +549,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(DestinationPolicyType)
+	reg, ok := registry.Resolve(pbmesh.DestinationPolicyType)
 	require.True(t, ok)
 
 	run := func(t *testing.T, tc testcase) {
@@ -560,7 +560,7 @@ func TestDestinationPolicyACLs(t *testing.T) {
 				},
 			},
 		}
-		res := resourcetest.Resource(DestinationPolicyType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, destData).
 			Build()

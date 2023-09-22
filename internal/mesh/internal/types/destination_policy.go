@@ -15,23 +15,9 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	DestinationPolicyKind = "DestinationPolicy"
-)
-
-var (
-	DestinationPolicyV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2beta1,
-		Kind:         DestinationPolicyKind,
-	}
-
-	DestinationPolicyType = DestinationPolicyV2Beta1Type
-)
-
 func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DestinationPolicyV2Beta1Type,
+		Type:     pbmesh.DestinationPolicyType,
 		Proto:    &pbmesh.DestinationPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,
