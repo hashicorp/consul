@@ -100,7 +100,6 @@ func ParseResourceFromFile(filePath string) (*pbresource.Resource, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
 		}
-		fmt.Printf("resource :: %v\n", parsedResource)
 	}
 
 	return parsedResource, nil
