@@ -227,8 +227,6 @@ func (m *Mapper) MapFailoverPolicy(
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
 
-	// TODO: use bound refs here?
-
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
 
@@ -254,8 +252,6 @@ func (m *Mapper) MapDestinationPolicy(
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
-
-	// TODO: use bound refs here?
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -287,7 +283,6 @@ func (m *Mapper) MapService(
 		reqs = append(reqs, got...)
 	}
 
-	// TODO: use bound refs here?
 	return reqs, nil
 }
 
