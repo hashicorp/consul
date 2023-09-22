@@ -20,11 +20,13 @@ import (
 )
 
 type OuterResource struct {
-	Data       map[string]any `json:"data"`
-	Generation string         `json:"generation"`
 	ID         ID             `json:"id"`
-	Metadata   map[string]any `json:"metadata"`
+	Owner      ID             `json:"owner"`
+	Generation string         `json:"generation"`
 	Version    string         `json:"version"`
+	Metadata   map[string]any `json:"metadata"`
+	Data       map[string]any `json:"data"`
+	Status     map[string]any `json:"status"`
 }
 
 type Tenancy struct {
