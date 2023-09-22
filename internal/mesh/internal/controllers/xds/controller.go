@@ -6,6 +6,7 @@ package xds
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cacheshim"
@@ -19,6 +20,7 @@ import (
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -225,6 +227,11 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 			Token:            token,
 			WorkloadIdentity: leafRef.Name,
 			EnterpriseMeta:   acl.NewEnterpriseMetaWithPartition(leafRef.Partition, leafRef.Namespace),
+			// Add some jitter to the max query time so that all goroutines don't wake up at approximately the same time.
+			// Without this, it's likely that these queries will all fire at roughly the same time, because the server
+			// will have spawned many watches immediately on boot. Typically because the index number will not have changed,
+			// this controller will not be notified anyway, but it's still better to space out the waking of goroutines.
+			MaxQueryTime: (10 * time.Minute) + lib.RandomStagger(10*time.Minute),
 		}
 
 		// Step 1: Setup a watch for this leaf if one doesn't already exist.
