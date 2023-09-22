@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	GroupName       = "mesh"
-	VersionV1Alpha1 = "v1alpha1"
-	CurrentVersion  = VersionV1Alpha1
+	GroupName      = "mesh"
+	VersionV2beta1 = "v2beta1"
+	CurrentVersion = VersionV2beta1
 )
 
 func Register(r resource.Registry) {

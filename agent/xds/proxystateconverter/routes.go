@@ -6,7 +6,7 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"sort"
 	"strings"
 	"time"

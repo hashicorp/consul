@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
+	"github.com/hashicorp/consul/command/resource/client"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -44,8 +45,8 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
-	var gvk *api.GVK
-	var opts *api.QueryOptions
+	var gvk *resource.GVK
+	var opts *client.QueryOptions
 
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
@@ -67,12 +68,12 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 
-			gvk = &api.GVK{
+			gvk = &resource.GVK{
 				Group:   parsedResource.Id.Type.GetGroup(),
 				Version: parsedResource.Id.Type.GetGroupVersion(),
 				Kind:    parsedResource.Id.Type.GetKind(),
 			}
-			opts = &api.QueryOptions{
+			opts = &client.QueryOptions{
 				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
 				Partition:         parsedResource.Id.Tenancy.GetPartition(),
 				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
@@ -103,7 +104,7 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 
-		opts = &api.QueryOptions{
+		opts = &client.QueryOptions{
 			Namespace:         c.http.Namespace(),
 			Partition:         c.http.Partition(),
 			Peer:              c.http.PeerName(),
@@ -112,13 +113,18 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	client, err := c.http.APIClient()
+	config := api.DefaultConfig()
+
+	c.http.MergeOntoConfig(config)
+	resourceClient, err := client.NewClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	entry, err := client.Resource().List(gvk, opts)
+	res := resource.Resource{C: resourceClient}
+
+	entry, err := res.List(gvk, opts)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading resources for type %s: %v", gvk, err))
 		return 1
@@ -134,7 +140,7 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func getResourceType(args []string) (gvk *api.GVK, e error) {
+func getResourceType(args []string) (gvk *resource.GVK, e error) {
 	if len(args) < 1 {
 		return nil, fmt.Errorf("Must include resource type argument")
 	}
@@ -147,7 +153,7 @@ func getResourceType(args []string) (gvk *api.GVK, e error) {
 	if len(s) < 3 {
 		return nil, fmt.Errorf("Must include resource type argument in group.verion.kind format")
 	}
-	gvk = &api.GVK{
+	gvk = &resource.GVK{
 		Group:   s[0],
 		Version: s[1],
 		Kind:    s[2],
@@ -175,7 +181,7 @@ and outputs in JSON format.
 
 Example:
 
-$ consul resource list catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
 
 $ consul resource list -f=demo.hcl
 

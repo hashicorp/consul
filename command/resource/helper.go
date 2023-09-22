@@ -10,11 +10,12 @@ import (
 	"fmt"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
+	"net/http"
 	"strings"
 
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/helpers"
+	"github.com/hashicorp/consul/command/resource/client"
 	"github.com/hashicorp/consul/internal/resourcehcl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -114,7 +115,7 @@ func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
 	return nil
 }
 
-func GetTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e error) {
+func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e error) {
 	// it has to be resource name after the type
 	if strings.HasPrefix(args[1], "-") {
 		return nil, "", fmt.Errorf("Must provide resource name right after type")
@@ -125,7 +126,7 @@ func GetTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e
 		return nil, "", fmt.Errorf("Must include resource type argument in group.verion.kind format")
 	}
 
-	gvk = &api.GVK{
+	gvk = &GVK{
 		Group:   s[0],
 		Version: s[1],
 		Kind:    s[2],
@@ -133,4 +134,102 @@ func GetTypeAndResourceName(args []string) (gvk *api.GVK, resourceName string, e
 
 	resourceName = args[1]
 	return
+}
+
+type Resource struct {
+	C *client.Client
+}
+
+type GVK struct {
+	Group   string
+	Version string
+	Kind    string
+}
+
+type WriteRequest struct {
+	Metadata map[string]string `json:"metadata"`
+	Data     map[string]any    `json:"data"`
+	Owner    *pbresource.ID    `json:"owner"`
+}
+
+type ListResponse struct {
+	Resources []map[string]interface{} `json:"resources"`
+}
+
+func (resource *Resource) Read(gvk *GVK, resourceName string, q *client.QueryOptions) (map[string]interface{}, error) {
+	r := resource.C.NewRequest("GET", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
+	r.SetQueryOptions(q)
+	_, resp, err := resource.C.DoRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer client.CloseResponseBody(resp)
+	if err := client.RequireOK(resp); err != nil {
+		return nil, err
+	}
+
+	var out map[string]interface{}
+	if err := client.DecodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func (resource *Resource) Delete(gvk *GVK, resourceName string, q *client.QueryOptions) error {
+	r := resource.C.NewRequest("DELETE", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
+	r.SetQueryOptions(q)
+	_, resp, err := resource.C.DoRequest(r)
+	if err != nil {
+		return err
+	}
+	defer client.CloseResponseBody(resp)
+	if err := client.RequireHttpCodes(resp, http.StatusNoContent); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (resource *Resource) Apply(gvk *GVK, resourceName string, q *client.QueryOptions, payload *WriteRequest) (*map[string]interface{}, error) {
+	url := strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName))
+
+	r := resource.C.NewRequest("PUT", url)
+	r.SetQueryOptions(q)
+	r.Obj = payload
+	_, resp, err := resource.C.DoRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer client.CloseResponseBody(resp)
+	if err := client.RequireOK(resp); err != nil {
+		return nil, err
+	}
+
+	var out map[string]interface{}
+
+	if err := client.DecodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+
+	return &out, nil
+}
+
+func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse, error) {
+	r := resource.C.NewRequest("GET", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind)))
+	r.SetQueryOptions(q)
+	_, resp, err := resource.C.DoRequest(r)
+	if err != nil {
+		return nil, err
+	}
+	defer client.CloseResponseBody(resp)
+	if err := client.RequireOK(resp); err != nil {
+		return nil, err
+	}
+
+	var out *ListResponse
+	if err := client.DecodeBody(resp, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
 }

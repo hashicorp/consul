@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -199,4 +199,34 @@ func TestValidateTCPRoute(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestTCPRouteACLs(t *testing.T) {
+	testXRouteACLs[*pbmesh.TCPRoute](t, func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		data := &pbmesh.TCPRoute{
+			ParentRefs: nil,
+		}
+		for _, ref := range parentRefs {
+			data.ParentRefs = append(data.ParentRefs, &pbmesh.ParentReference{
+				Ref: ref,
+			})
+		}
+
+		var ruleRefs []*pbmesh.TCPBackendRef
+		for _, ref := range backendRefs {
+			ruleRefs = append(ruleRefs, &pbmesh.TCPBackendRef{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: ref,
+				},
+			})
+		}
+		data.Rules = []*pbmesh.TCPRouteRule{
+			{BackendRefs: ruleRefs},
+		}
+
+		return resourcetest.Resource(TCPRouteType, "api-tcp-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, data).
+			Build()
+	})
 }

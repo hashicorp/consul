@@ -33,6 +33,6 @@ func TestCatalog(t *testing.T) {
 	})
 
 	t.Run("lifecycle", func(t *testing.T) {
-		catalogtest.RunCatalogV1Alpha1LifecycleIntegrationTest(t, client)
+		catalogtest.RunCatalogV2Beta1LifecycleIntegrationTest(t, client)
 	})
 }

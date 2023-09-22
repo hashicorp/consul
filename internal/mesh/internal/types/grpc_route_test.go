@@ -10,8 +10,9 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -613,4 +614,34 @@ func TestValidateGRPCRoute(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestGRPCRouteACLs(t *testing.T) {
+	testXRouteACLs[*pbmesh.GRPCRoute](t, func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		data := &pbmesh.GRPCRoute{
+			ParentRefs: nil,
+		}
+		for _, ref := range parentRefs {
+			data.ParentRefs = append(data.ParentRefs, &pbmesh.ParentReference{
+				Ref: ref,
+			})
+		}
+
+		var ruleRefs []*pbmesh.GRPCBackendRef
+		for _, ref := range backendRefs {
+			ruleRefs = append(ruleRefs, &pbmesh.GRPCBackendRef{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: ref,
+				},
+			})
+		}
+		data.Rules = []*pbmesh.GRPCRouteRule{
+			{BackendRefs: ruleRefs},
+		}
+
+		return resourcetest.Resource(GRPCRouteType, "api-grpc-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, data).
+			Build()
+	})
 }

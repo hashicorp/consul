@@ -12,11 +12,10 @@ import (
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
-	"github.com/hashicorp/consul/internal/resourcehcl"
+	"github.com/hashicorp/consul/command/resource/client"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -45,7 +44,7 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
-func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRequest, error error) {
+func makeWriteRequest(parsedResource *pbresource.Resource) (payload *resource.WriteRequest, error error) {
 	// The parsed hcl file has data field in proto message format anypb.Any
 	// Converting to json format requires us to fisrt marshal it then unmarshal it
 	data, err := protojson.Marshal(parsedResource.Data)
@@ -60,7 +59,7 @@ func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRe
 	}
 	delete(resourceData, "@type")
 
-	return &api.WriteRequest{
+	return &resource.WriteRequest{
 		Data:     resourceData,
 		Metadata: parsedResource.GetMetadata(),
 		Owner:    parsedResource.GetOwner(),
@@ -94,20 +93,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.http.APIClient()
+	config := api.DefaultConfig()
+
+	c.http.MergeOntoConfig(config)
+	resourceClient, err := client.NewClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	opts := &api.QueryOptions{
+	res := resource.Resource{C: resourceClient}
+
+	opts := &client.QueryOptions{
 		Namespace: parsedResource.Id.Tenancy.GetNamespace(),
 		Partition: parsedResource.Id.Tenancy.GetPartition(),
 		Peer:      parsedResource.Id.Tenancy.GetPeerName(),
 		Token:     c.http.Token(),
 	}
 
-	gvk := &api.GVK{
+	gvk := &resource.GVK{
 		Group:   parsedResource.Id.Type.GetGroup(),
 		Version: parsedResource.Id.Type.GetGroupVersion(),
 		Kind:    parsedResource.Id.Type.GetKind(),
@@ -119,7 +123,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, _, err := client.Resource().Apply(gvk, parsedResource.Id.GetName(), opts, writeRequest)
+	entry, err := res.Apply(gvk, parsedResource.Id.GetName(), opts, writeRequest)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", gvk, parsedResource.Id.GetName(), err))
 		return 1
@@ -134,17 +138,6 @@ func (c *cmd) Run(args []string) int {
 	c.UI.Info(fmt.Sprintf("%s.%s.%s '%s' created.", gvk.Group, gvk.Version, gvk.Kind, parsedResource.Id.GetName()))
 	c.UI.Info(string(b))
 	return 0
-}
-
-func parseResource(data string) (resource *pbresource.Resource, e error) {
-	// parse the data
-	raw := []byte(data)
-	resource, err := resourcehcl.Unmarshal(raw, consul.NewTypeRegistry())
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-	}
-
-	return resource, nil
 }
 
 func (c *cmd) Synopsis() string {

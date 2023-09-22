@@ -77,7 +77,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 		}
 
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id)
+		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id, event.Resource)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

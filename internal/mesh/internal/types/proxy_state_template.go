@@ -10,8 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -20,23 +20,23 @@ const (
 )
 
 var (
-	ProxyStateTemplateV1Alpha1Type = &pbresource.Type{
+	ProxyStateTemplateV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         ProxyStateTemplateKind,
 	}
 
-	ProxyStateTemplateType = ProxyStateTemplateV1Alpha1Type
+	ProxyStateTemplateType = ProxyStateTemplateV2Beta1Type
 )
 
 func RegisterProxyStateTemplate(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ProxyStateTemplateV1Alpha1Type,
+		Type:     ProxyStateTemplateV2Beta1Type,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
-			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
 				// Check service:read and operator:read permissions.
 				// If service:read is not allowed, check operator:read. We want to allow both as this
 				// resource is mostly useful for debuggability and we want to cover
