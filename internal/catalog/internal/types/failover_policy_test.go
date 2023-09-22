@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
@@ -653,6 +655,114 @@ func TestSimplifyFailoverPolicy(t *testing.T) {
 					},
 				}).
 				Build(),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
+
+func TestFailoverPolicyACLs(t *testing.T) {
+	// Wire up a registry to generically invoke hooks
+	registry := resource.NewRegistry()
+	Register(registry)
+
+	type testcase struct {
+		rules   string
+		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
+		readOK  string
+		writeOK string
+		listOK  string
+	}
+
+	const (
+		DENY    = "deny"
+		ALLOW   = "allow"
+		DEFAULT = "default"
+	)
+
+	checkF := func(t *testing.T, expect string, got error) {
+		switch expect {
+		case ALLOW:
+			if acl.IsErrPermissionDenied(got) {
+				t.Fatal("should be allowed")
+			}
+		case DENY:
+			if !acl.IsErrPermissionDenied(got) {
+				t.Fatal("should be denied")
+			}
+		case DEFAULT:
+			require.Nil(t, got, "expected fallthrough decision")
+		default:
+			t.Fatalf("unexpected expectation: %q", expect)
+		}
+	}
+
+	reg, ok := registry.Resolve(FailoverPolicyType)
+	require.True(t, ok)
+
+	run := func(t *testing.T, tc testcase) {
+		failoverData := &pbcatalog.FailoverPolicy{
+			Config: &pbcatalog.FailoverConfig{
+				Destinations: []*pbcatalog.FailoverDestination{
+					{Ref: newRef(ServiceType, "api-backup")},
+				},
+			},
+		}
+		res := resourcetest.Resource(FailoverPolicyType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, failoverData).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res)
+
+		config := acl.Config{
+			WildcardName: structs.WildcardSpecifier,
+		}
+		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
+		require.NoError(t, err)
+		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
+
+		t.Run("read", func(t *testing.T) {
+			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id)
+			checkF(t, tc.readOK, err)
+		})
+		t.Run("write", func(t *testing.T) {
+			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
+			checkF(t, tc.writeOK, err)
+		})
+		t.Run("list", func(t *testing.T) {
+			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
+			checkF(t, tc.listOK, err)
+		})
+	}
+
+	cases := map[string]testcase{
+		"no rules": {
+			rules:   ``,
+			readOK:  DENY,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"service api read": {
+			rules:   `service "api" { policy = "read" }`,
+			readOK:  ALLOW,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"service api write": {
+			rules:   `service "api" { policy = "write" }`,
+			readOK:  ALLOW,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"service api write and api-backup read": {
+			rules:   `service "api" { policy = "write" } service "api-backup" { policy = "read" }`,
+			readOK:  ALLOW,
+			writeOK: ALLOW,
+			listOK:  DEFAULT,
 		},
 	}
 
