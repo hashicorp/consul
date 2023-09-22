@@ -297,6 +297,21 @@ func TestAgent_ServiceRegisterOpts_WithContextTimeout(t *testing.T) {
 	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
+func TestAgent_ServiceRegisterOpts_Token(t *testing.T) {
+	c, s := makeACLClient(t)
+	defer s.Stop()
+
+	reg := &AgentServiceRegistration{Name: "example"}
+	opts := &ServiceRegisterOpts{}
+	opts.Token = "invalid"
+	err := c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
+
+	opts.Token = "root"
+	err = c.Agent().ServiceRegisterOpts(reg, *opts)
+	require.NoError(t, err)
+}
+
 func TestAPI_NewClient_TokenFileCLIFirstPriority(t *testing.T) {
 	os.Setenv("CONSUL_HTTP_TOKEN_FILE", "httpTokenFile.txt")
 	os.Setenv("CONSUL_HTTP_TOKEN", "httpToken")
