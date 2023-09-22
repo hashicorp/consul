@@ -220,7 +220,7 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-client-upstreams",
 		Type: &pbresource.Type{
-			Group:        "catalog",
+			Group:        "mesh",
 			GroupVersion: "v2beta1",
 			Kind:         "Upstreams",
 		},
