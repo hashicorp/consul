@@ -123,10 +123,10 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	}).Write(t, resourceClient)
 
 	workloadPortMap := map[string]*pbcatalog.WorkloadPort{
-		"tcp": &pbcatalog.WorkloadPort{
+		"tcp": {
 			Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
 		},
-		"mesh": &pbcatalog.WorkloadPort{
+		"mesh": {
 			Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 		},
 	}
