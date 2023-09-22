@@ -294,7 +294,7 @@ func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
 	return hooks
 }
 
-func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
+func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
 	if res == nil {
 		return resource.ErrNeedData
 	}
@@ -319,7 +319,7 @@ func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, authzContext *ac
 	return nil
 }
 
-func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *pbresource.Resource) error {
 	dec, err := resource.Decode[R](res)
 	if err != nil {
 		return err
