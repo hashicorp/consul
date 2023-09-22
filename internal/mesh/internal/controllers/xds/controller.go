@@ -21,7 +21,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -359,7 +359,7 @@ func leafResourceRef(workloadIdentity, namespace, partition string) *pbresource.
 // leaf certificates.
 var InternalLeafType = &pbresource.Type{
 	Group:        "internal",
-	GroupVersion: "v1alpha1",
+	GroupVersion: "v2beta1",
 	Kind:         "leaf",
 }
 

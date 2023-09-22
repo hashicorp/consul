@@ -11,9 +11,9 @@ import (
 var (
 	// API Group Information
 
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV1Alpha1
-	CurrentVersion  = types.CurrentVersion
+	APIGroup       = types.GroupName
+	VersionV2Beta1 = types.VersionV2Beta1
+	CurrentVersion = types.CurrentVersion
 
 	// Resource Kind Names.
 
@@ -21,11 +21,11 @@ var (
 	TrafficPermissions         = types.TrafficPermissionsKind
 	ComputedTrafficPermissions = types.ComputedTrafficPermissionsKind
 
-	// Resource Types for the v1alpha1 version.
+	// Resource Types for the v2beta1 version.
 
-	WorkloadIdentityV1Alpha1Type           = types.WorkloadIdentityV1Alpha1Type
-	TrafficPermissionsV1Alpha1Type         = types.TrafficPermissionsV1Alpha1Type
-	ComputedTrafficPermissionsV1Alpha1Type = types.ComputedTrafficPermissionsV1Alpha1Type
+	WorkloadIdentityV2Beta1Type           = types.WorkloadIdentityV2Beta1Type
+	TrafficPermissionsV2Beta1Type         = types.TrafficPermissionsV2Beta1Type
+	ComputedTrafficPermissionsV2Beta1Type = types.ComputedTrafficPermissionsV2Beta1Type
 
 	// Resource Types for the latest version.
 

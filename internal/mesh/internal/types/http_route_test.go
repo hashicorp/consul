@@ -16,7 +16,7 @@ import (
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -954,7 +954,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(catalog.ServiceType, "api", ""),
 				newParentRef(catalog.WorkloadType, "api", ""),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: invalid "type" field: reference must have type catalog.v1alpha1.Service`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
 		},
 		"parent ref with section": {
 			refs: []*pbmesh.ParentReference{
@@ -971,28 +971,28 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 				newParentRef(catalog.ServiceType, "api", "http"),
 				newParentRef(catalog.ServiceType, "api", "http"),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for port "http" exists twice`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for port "http" exists twice`,
 		},
 		"duplicate wild parents": {
 			refs: []*pbmesh.ParentReference{
 				newParentRef(catalog.ServiceType, "api", ""),
 				newParentRef(catalog.ServiceType, "api", ""),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for wildcard port exists twice`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for wildcard port exists twice`,
 		},
 		"duplicate parents via exact+wild overlap": {
 			refs: []*pbmesh.ParentReference{
 				newParentRef(catalog.ServiceType, "api", "http"),
 				newParentRef(catalog.ServiceType, "api", ""),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for ports [http] covered by wildcard port already`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for ports [http] covered by wildcard port already`,
 		},
 		"duplicate parents via exact+wild overlap (reversed)": {
 			refs: []*pbmesh.ParentReference{
 				newParentRef(catalog.ServiceType, "api", ""),
 				newParentRef(catalog.ServiceType, "api", "http"),
 			},
-			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v1alpha1.Service/default.local.default/api" for port "http" covered by wildcard port already`,
+			expectErr: `invalid element at index 1 of list "parent_refs": invalid "port" field: parent ref "catalog.v2beta1.Service/default.local.default/api" for port "http" covered by wildcard port already`,
 		},
 		"good single parent ref": {
 			refs: []*pbmesh.ParentReference{
@@ -1033,7 +1033,7 @@ func getXRouteBackendRefTestCases() map[string]xRouteBackendRefTestcase {
 				newBackendRef(catalog.ServiceType, "api", ""),
 				newBackendRef(catalog.WorkloadType, "api", ""),
 			},
-			expectErr: `invalid element at index 0 of list "rules": invalid element at index 1 of list "backend_refs": invalid "backend_ref" field: invalid "ref" field: invalid "type" field: reference must have type catalog.v1alpha1.Service`,
+			expectErr: `invalid element at index 0 of list "rules": invalid element at index 1 of list "backend_refs": invalid "backend_ref" field: invalid "ref" field: invalid "type" field: reference must have type catalog.v2beta1.Service`,
 		},
 		"backend ref with section": {
 			refs: []*pbmesh.BackendReference{

@@ -157,12 +157,12 @@ But you could only use one of the approaches.
 
 Example:
 
-$ consul resource read catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource read catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
 $ consul resource read -f resource.hcl
 
 In resource.hcl, it could be:
 ID {
-  Type = gvk("catalog.v1alpha1.Service")
+  Type = gvk("catalog.v2beta1.Service")
   Name = "card-processor"
   Tenancy {
     Namespace = "payments"

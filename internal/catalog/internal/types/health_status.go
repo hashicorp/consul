@@ -4,10 +4,11 @@
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -15,18 +16,18 @@ const (
 )
 
 var (
-	HealthStatusV1Alpha1Type = &pbresource.Type{
+	HealthStatusV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2Beta1,
 		Kind:         HealthStatusKind,
 	}
 
-	HealthStatusType = HealthStatusV1Alpha1Type
+	HealthStatusType = HealthStatusV2Beta1Type
 )
 
 func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HealthStatusV1Alpha1Type,
+		Type:     HealthStatusV2Beta1Type,
 		Proto:    &pbcatalog.HealthStatus{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthStatus,

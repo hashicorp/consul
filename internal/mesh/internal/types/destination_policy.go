@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -19,18 +19,18 @@ const (
 )
 
 var (
-	DestinationPolicyV1Alpha1Type = &pbresource.Type{
+	DestinationPolicyV2Beta1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
+		GroupVersion: VersionV2beta1,
 		Kind:         DestinationPolicyKind,
 	}
 
-	DestinationPolicyType = DestinationPolicyV1Alpha1Type
+	DestinationPolicyType = DestinationPolicyV2Beta1Type
 )
 
 func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DestinationPolicyV1Alpha1Type,
+		Type:     DestinationPolicyV2Beta1Type,
 		Proto:    &pbmesh.DestinationPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,

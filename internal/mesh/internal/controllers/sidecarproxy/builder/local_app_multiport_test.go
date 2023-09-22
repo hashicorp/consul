@@ -11,7 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
 
 func TestBuildLocalApp_Multiport(t *testing.T) {

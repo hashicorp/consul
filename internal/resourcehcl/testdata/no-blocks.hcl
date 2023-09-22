@@ -1,7 +1,7 @@
 ID = {
   Type = {
     Group = "mesh"
-    GroupVersion = "v1alpha1"
+    GroupVersion = "v2beta1"
     Kind = "Upstreams"
   }
 }
@@ -16,7 +16,7 @@ Data = {
       DestinationRef = {
         Type = {
           Group = "catalog"
-          GroupVersion = "v1alpha1"
+          GroupVersion = "v2beta1"
           Kind = "Service"
         }
 

@@ -1,5 +1,5 @@
 ID {
-  Type = gvk("mesh.v1alpha1.Upstreams")
+  Type = gvk("mesh.v2beta1.Upstreams")
   Name = "api"
 }
 
@@ -11,7 +11,7 @@ Data {
   Upstreams = [
     {
       DestinationRef = {
-        Type = gvk("catalog.v1alpha1.Service")
+        Type = gvk("catalog.v2beta1.Service")
         Name = "db"
       }
 

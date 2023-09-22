@@ -123,7 +123,7 @@ func (r *TypeRegistry) Register(registration Registration) {
 	case !groupRegexp.MatchString(typ.Group):
 		panic(fmt.Sprintf("Type.Group must be in snake_case. Got: %q", typ.Group))
 	case !groupVersionRegexp.MatchString(typ.GroupVersion):
-		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v1alpha1`). Got: %q", typ.Group))
+		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v2beta1`). Got: %q", typ.Group))
 	case !kindRegexp.MatchString(typ.Kind):
 		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
 	}

@@ -175,7 +175,7 @@ and outputs in JSON format.
 
 Example:
 
-$ consul resource list catalog.v1alpha1.Service card-processor -partition=billing -namespace=payments -peer=eu
+$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=eu
 
 $ consul resource list -f=demo.hcl
 
