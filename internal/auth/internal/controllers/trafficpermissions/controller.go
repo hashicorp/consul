@@ -62,11 +62,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	 * If it is missing, that means it was deleted.
 	 */
 	ctpID := req.ID
-	wi := &pbresource.ID{
-		Type:    pbauth.WorkloadIdentityType,
-		Tenancy: ctpID.Tenancy,
-		Name:    ctpID.Name,
-	}
+	wi := resource.ReplaceType(pbauth.WorkloadIdentityType, ctpID)
 	workloadIdentity, err := resource.GetDecodedResource[*pbauth.WorkloadIdentity](ctx, rt.Client, wi)
 	if err != nil {
 		rt.Logger.Error("error retrieving corresponding Workload Identity", "error", err)

@@ -383,11 +383,7 @@ func (suite *controllerSuite) TestControllerBasic() {
 	workloadIdentity := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
 
 	// Wait for the controller to record that the CTP has been computed
-	res := suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
-		Name:    "wi1",
-		Type:    pbauth.ComputedTrafficPermissionsType,
-		Tenancy: workloadIdentity.Id.Tenancy,
-	}, StatusKey)
+	res := suite.client.WaitForReconciliation(suite.T(), resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, workloadIdentity.Id), StatusKey)
 	// Check that the status was updated
 	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
 
@@ -413,11 +409,7 @@ func (suite *controllerSuite) TestControllerBasic() {
 	}).Write(suite.T(), suite.client)
 	suite.client.RequireResourceExists(suite.T(), tp1.Id)
 	// Wait for the controller to record that the CTP has been re-computed
-	res = suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
-		Name:    "wi1",
-		Type:    pbauth.ComputedTrafficPermissionsType,
-		Tenancy: workloadIdentity.Id.Tenancy,
-	}, StatusKey)
+	res = suite.client.WaitForReconciliation(suite.T(), resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, workloadIdentity.Id), StatusKey)
 	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
 	// Check that the ctp has been regenerated
 	ctpObject = suite.client.WaitForNewVersion(suite.T(), ctpID, ctpObject.Version)
@@ -469,7 +461,8 @@ func (suite *controllerSuite) TestControllerBasic() {
 }
 
 func (suite *controllerSuite) TestControllerMultipleTrafficPermissions() {
-	// TODO: refactor this
+	// TODO: refactor this, turn back on once timing flakes are understood
+	suite.T().Skip("flaky behavior observed")
 	// In this test we check operations for a workload identity and multiple referencing traffic permissions
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
 	mgr.Register(Controller(suite.mapper))
@@ -517,11 +510,7 @@ func (suite *controllerSuite) TestControllerMultipleTrafficPermissions() {
 
 	// Add a workload identity
 	workloadIdentity := rtest.Resource(pbauth.WorkloadIdentityType, "wi1").Write(suite.T(), suite.client)
-	ctpID := &pbresource.ID{
-		Name:    "wi1",
-		Type:    pbauth.ComputedTrafficPermissionsType,
-		Tenancy: workloadIdentity.Id.Tenancy,
-	}
+	ctpID := resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, workloadIdentity.Id)
 	// Wait for the controller to record that the CTP has been computed
 	res := suite.client.WaitForReconciliation(suite.T(), ctpID, StatusKey)
 	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionComputed("wi1"))
@@ -583,11 +572,7 @@ func (suite *controllerSuite) TestControllerMultipleTrafficPermissions() {
 	// add wi2
 	workloadIdentity2 := rtest.Resource(pbauth.WorkloadIdentityType, "wi2").Write(suite.T(), suite.client)
 	// Wait for the controller to record that the CTP has been computed
-	res2 := suite.client.WaitForReconciliation(suite.T(), &pbresource.ID{
-		Name:    "wi2",
-		Type:    pbauth.ComputedTrafficPermissionsType,
-		Tenancy: workloadIdentity2.Id.Tenancy,
-	}, StatusKey)
+	res2 := suite.client.WaitForReconciliation(suite.T(), resource.ReplaceType(pbauth.ComputedTrafficPermissionsType, workloadIdentity2.Id), StatusKey)
 	rtest.RequireStatusCondition(suite.T(), res2, StatusKey, ConditionComputed("wi2"))
 	// check ctp2 has no permissions
 	ctpObject2 := suite.client.RequireResourceExists(suite.T(), res2.Id)

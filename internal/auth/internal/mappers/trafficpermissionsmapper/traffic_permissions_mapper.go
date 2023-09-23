@@ -56,7 +56,6 @@ func (tm *TrafficPermissionsMapper) MapTrafficPermissions(_ context.Context, _ c
 		}
 	}
 	// re-map traffic permission to new CTP
-	tm.mapper.UntrackItem(res.Id)
 	tm.mapper.TrackItem(res.Id, []resource.ReferenceOrID{newCTP})
 	return requests, nil
 }
