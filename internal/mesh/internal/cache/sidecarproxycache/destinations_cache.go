@@ -61,7 +61,7 @@ func (c *DestinationsCache) WriteDestination(d intermediate.CombinedDestinationR
 
 	// Also, check that explicit destination reference is a mesh.Upstreams type.
 	if d.ExplicitDestinationsID != nil &&
-		!resource.EqualType(pbmesh.UpstreamsType, d.ExplicitDestinationsID.Type) {
+		!resource.EqualType(pbmesh.DestinationsType, d.ExplicitDestinationsID.Type) {
 		panic("ExplicitDestinationsID must be of type mesh.Upstreams")
 	}
 

@@ -22,6 +22,6 @@ type (
 	DecodedServiceEndpoints           = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
 	DecodedWorkload                   = resource.DecodedResource[*pbcatalog.Workload]
 	DecodedProxyConfiguration         = resource.DecodedResource[*pbmesh.ProxyConfiguration]
-	DecodedDestinations               = resource.DecodedResource[*pbmesh.Upstreams]
+	DecodedDestinations               = resource.DecodedResource[*pbmesh.Destinations]
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
 )

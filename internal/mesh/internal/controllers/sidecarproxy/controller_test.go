@@ -390,14 +390,14 @@ func (suite *meshControllerTestSuite) TestController() {
 		)
 
 		// Add a source service and check that a new proxy state is generated.
-		webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
-			WithData(suite.T(), &pbmesh.Upstreams{
+		webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
+			WithData(suite.T(), &pbmesh.Destinations{
 				Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
-				Upstreams: []*pbmesh.Upstream{
+				Destinations: []*pbmesh.Destination{
 					{
 						DestinationRef:  resource.Reference(suite.apiService.Id, ""),
 						DestinationPort: "tcp",
-						ListenAddr: &pbmesh.Upstream_IpPort{
+						ListenAddr: &pbmesh.Destination_IpPort{
 							IpPort: &pbmesh.IPPortAddress{
 								Ip:   "127.0.0.1",
 								Port: 1234,
@@ -466,7 +466,7 @@ func (suite *meshControllerTestSuite) TestController() {
 			suite.client.RequireResourceNotFound(r, apiProxyStateTemplateID)
 		})
 
-		// Check status on the pbmesh.Upstreams resource.
+		// Check status on the pbmesh.Destinations resource.
 		serviceRef := resource.ReferenceToString(resource.Reference(suite.apiService.Id, ""))
 		suite.client.WaitForStatusCondition(t, webDestinations.Id, ControllerName,
 			status.ConditionMeshProtocolNotFound(serviceRef))

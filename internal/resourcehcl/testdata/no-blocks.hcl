@@ -2,7 +2,7 @@ ID = {
   Type = {
     Group = "mesh"
     GroupVersion = "v2beta1"
-    Kind = "Upstreams"
+    Kind = "Destinations"
   }
 }
 
@@ -11,7 +11,7 @@ Data = {
     Prefixes = ["api"]
   }
 
-  Upstreams = [
+  Destinations = [
     {
       DestinationRef = {
         Type = {

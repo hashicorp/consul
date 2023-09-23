@@ -55,12 +55,12 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 				ReferenceNoSection()
 	)
 
-	webDestinationsData := &pbmesh.Upstreams{
+	webDestinationsData := &pbmesh.Destinations{
 		Workloads: &pbcatalog.WorkloadSelector{
 			Names:    []string{"non-prefix-web"},
 			Prefixes: []string{"web"},
 		},
-		Upstreams: []*pbmesh.Upstream{
+		Destinations: []*pbmesh.Destination{
 			{
 				DestinationRef:  api1ServiceRef,
 				DestinationPort: "tcp",
@@ -76,7 +76,7 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 		},
 	}
 
-	webDestinations := resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
+	webDestinations := resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, webDestinationsData).
 		Write(t, client)
@@ -102,7 +102,7 @@ func TestMapDestinationsToProxyStateTemplate(t *testing.T) {
 		proxy3ID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, webWorkload3.Id.Name).
 				WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	)
-	for _, u := range webDestinationsData.Upstreams {
+	for _, u := range webDestinationsData.Destinations {
 		expDestination := intermediate.CombinedDestinationRef{
 			ServiceRef:             u.DestinationRef,
 			Port:                   u.DestinationPort,

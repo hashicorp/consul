@@ -22,13 +22,13 @@ type CombinedDestinationRef struct {
 	// SourceProxies are the reference keys of source proxy state template resources.
 	SourceProxies map[resource.ReferenceKey]struct{}
 
-	// ExplicitDestinationsID is the id of the pbmesh.Upstreams resource. For implicit destinations,
+	// ExplicitDestinationsID is the id of the pbmesh.Destinations resource. For implicit destinations,
 	// this should be nil.
 	ExplicitDestinationsID *pbresource.ID
 }
 
 type Destination struct {
-	Explicit           *pbmesh.Upstream
+	Explicit           *pbmesh.Destination
 	Service            *types.DecodedService      // for the name of this destination
 	VirtualIPs         []string                   // for the name of this destination
 	ComputedPortRoutes *pbmesh.ComputedPortRoutes // for the name of this destination

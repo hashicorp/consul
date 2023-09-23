@@ -233,7 +233,7 @@ func testDestination(proxyID *pbresource.ID) intermediate.CombinedDestinationRef
 		ServiceRef: resourcetest.Resource(pbcatalog.ServiceType, "test-service").
 			WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection(),
 		Port: "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "test-servicedestinations").
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.DestinationsType, "test-servicedestinations").
 			WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
