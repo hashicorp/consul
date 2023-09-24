@@ -87,7 +87,7 @@ func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, ser
 	})
 
 	// Create Consul Dataplane
-	dp, err := libcluster.NewConsulDataplane(context.Background(), proxyID, "0.0.0.0", 8502, serviceBindPorts, node)
+	dp, err := libcluster.NewConsulDataplane(context.Background(), proxyID, "0.0.0.0", 8502, serviceBindPorts, node, false, "")
 	require.NoError(t, err)
 	deferClean.Add(func() {
 		_ = dp.Terminate()
