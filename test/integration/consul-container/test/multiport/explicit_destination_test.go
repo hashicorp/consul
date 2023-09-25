@@ -230,12 +230,12 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 			PeerName:  "local",
 		},
 	}).
-		WithData(t, &pbmesh.Upstreams{
-			Upstreams: []*pbmesh.Upstream{
+		WithData(t, &pbmesh.Destinations{
+			Destinations: []*pbmesh.Destination{
 				{
 					DestinationRef:  destRef,
 					DestinationPort: "tcp",
-					ListenAddr: &pbmesh.Upstream_IpPort{
+					ListenAddr: &pbmesh.Destination_IpPort{
 						IpPort: &pbmesh.IPPortAddress{
 							Ip:   "0.0.0.0",
 							Port: libcluster.ServiceUpstreamLocalBindPort,
