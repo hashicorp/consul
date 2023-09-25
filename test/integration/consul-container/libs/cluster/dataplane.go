@@ -76,13 +76,10 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		fmt.Sprintf("-proxy-id=%s", proxyID),
 		"-proxy-namespace=default",
 		"-proxy-partition=default",
-		//fmt.Sprintf("-service-node-name=%s", node.GetName()),
 		"-log-level=info",
 		"-log-json=false",
-		//"-envoy-concurrency=2",
+		"-envoy-concurrency=2",
 		"-tls-disabled",
-		//"-consul-dns-bind-port=8601",
-		//fmt.Sprintf("-xds-bind-port=%d", xdsBindPort),
 		fmt.Sprintf("-envoy-admin-bind-port=%d", internalAdminPort),
 	}
 
@@ -118,9 +115,6 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		proxyID, out.appPort, serviceBindPorts)
 	fmt.Printf("NewConsulDataplane: proxyID %s, , mapped admin port %d, admin port %d\n",
 		proxyID, out.externalAdminPort, internalAdminPort)
-
-	fmt.Printf("NewConsulDataplane out: %+v", out)
-	fmt.Printf("NewConsulDataplane info: %+v", info)
 
 	return out, nil
 }
