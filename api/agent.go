@@ -307,6 +307,10 @@ type ServiceRegisterOpts struct {
 	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
+	// Token is used to provide a per-request ACL token
+	// which overrides the agent's default token.
+	Token string
+
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use WithContext() to set the context.
 	ctx context.Context
@@ -834,6 +838,9 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	r.ctx = opts.ctx
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
+	}
+	if opts.Token != "" {
+		r.header.Set("X-Consul-Token", opts.Token)
 	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
