@@ -1073,7 +1073,7 @@ func TestAPI_AgentChecks(t *testing.T) {
 		Name: "foo",
 	}
 	reg.TTL = "15s"
-	if err := agent.CheckRegister(reg); err != nil {
+	if err := agent.CheckRegisterOpts(reg, nil); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
@@ -1095,6 +1095,19 @@ func TestAPI_AgentChecks(t *testing.T) {
 	if err := agent.CheckDeregister("foo"); err != nil {
 		t.Fatalf("err: %v", err)
 	}
+}
+
+func TestAgent_AgentChecksRegisterOpts_WithContextTimeout(t *testing.T) {
+	c, err := NewClient(DefaultConfig())
+	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+	t.Cleanup(cancel)
+
+	opts := &QueryOptions{}
+	opts = opts.WithContext(ctx)
+	err = c.Agent().CheckRegisterOpts(&AgentCheckRegistration{}, opts)
+	require.True(t, errors.Is(err, context.DeadlineExceeded), "expected timeout")
 }
 
 func TestAPI_AgentChecksWithFilterOpts(t *testing.T) {
