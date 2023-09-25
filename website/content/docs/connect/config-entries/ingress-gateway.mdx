@@ -226,7 +226,7 @@ Listeners = [
             ResponseHeaderName = "<response header value to set>"
           }
           Remove = [
-            "<response header remove>"
+            "<response header to remove>"
           ]
         }
         TLS = {
@@ -289,7 +289,7 @@ spec:
     passiveHealthCheck:
       interval: "<the time between checks>"
       maxFailures: <number>
-      enforcingConsecutive5xx:<number>
+      enforcingConsecutive5xx: <number>
       maxEjectionPercent: <number>
       baseEjectionTime: "<the base time that a host is ejected for>"
   listeners:
@@ -306,7 +306,7 @@ spec:
               requestHeaderName: <request header value to add>
             set:
               requestHeaderName: <request header value to set>
-      remove:
+            remove:
               - <request header to remove>
           responseHeaders:
             add:
@@ -314,7 +314,7 @@ spec:
             set:
               responseHeaderName: <response header value to set>
             remove:
-              - <response header remove>
+              - <response header to remove>
           tls:
             sds:
               clusterName: <name of SDS cluster>
@@ -407,7 +407,7 @@ spec:
               "ResponseHeaderName" : "<response header value to set>"
             },
             "Remove" : [
-              "<response header remove>"
+              "<response header to remove>"
             ]
           },
           "TLS" : {
@@ -422,10 +422,9 @@ spec:
           "PassiveHealthCheck" : {
             "interval": "<the time between checks>",
             "maxFailures": <number>,
-            "enforcingConsecutive5xx":<number>,
+            "enforcingConsecutive5xx": <number>,
             "maxEjectionPercent": <number>,
             "baseEjectionTime": "<the base time that a host is ejected for>"
-          }
         }
       ],
       "TLS" : {
@@ -1530,7 +1529,7 @@ Refer to the following examples for common ingress gateway configuration pattern
 
 The following example sets up a TCP listener on an ingress gateway named `us-east-ingress` that proxies traffic to the `db` service. For Consul Enterprise, the `db` service can only listen for traffic in the `default` namespace inside the `team-frontend` admin partition:
 
-#### Consul OSS
+#### Consul CE
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1657,7 +1656,7 @@ The Consul Enterprise version implements the following additional configurations
 - The ingress gateway is set up in the `default` [namespace](/consul/docs/enterprise/namespaces) and proxies traffic to all services in the `frontend` namespace.
 - The `api` and `web` services are proxied to team-specific [admin partitions](/consul/docs/enterprise/admin-partitions):
 
-#### Consul OSS
+#### Consul CE
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 

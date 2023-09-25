@@ -33,7 +33,7 @@ The service token must be linked to policies that grant the following permission
 
 @include 'create-token-requirements.mdx'
 
-## Service identity in Consul OSS
+## Service identity in Consul CE
 
 Refer to [Service identities](/consul/docs/security/acl#service-identities) for information about creating service identities that you can link to tokens.
 
@@ -123,7 +123,7 @@ $ curl --request PUT http://127.0.0.1:8500/v1/acl/token \
 
 </Tabs>
 
-## Custom policy in Consul OSS
+## Custom policy in Consul CE
 
 When you are unable to link tokens to a service identity, you can define policies, register them with Consul, and link the policies to tokens that enable services to register into the Consul catalog.
 

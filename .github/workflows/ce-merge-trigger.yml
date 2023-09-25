@@ -8,7 +8,7 @@ on:
       - closed
     branches:
       - main
-      - release/**
+      - 'release/*.*.x'
 
 jobs:
   trigger-ce-merge:

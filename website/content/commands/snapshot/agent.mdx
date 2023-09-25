@@ -14,7 +14,7 @@ Command: `consul snapshot agent`
 ~> The [`agent`](/consul/commands/snapshot/agent) subcommand described here is
 available only in [Consul Enterprise](https://www.hashicorp.com/products/consul/)
 version 0.7.1 and later. All other [snapshot subcommands](/consul/commands/snapshot)
-are available in the open source version of Consul.
+are available in the community edition of Consul.
 
 The `snapshot agent` subcommand starts a process that takes snapshots of the
 state of the Consul servers and saves them locally, or pushes them to an
@@ -339,7 +339,7 @@ no `aws-s3-static-snapshot-name` configured.
 | `ListBucket`         | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 | `ListBucketVersions` | `arn:aws:s3:::<bucket name>`       | Required only when snapshot rotation is enabled |
 
-Within the table `<key>` refers to the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
+Within the table `<key>` refers to the the key used to store the snapshot. When `aws-s3-static-snapshot-name` is configured the `<key>` is simply the value of that configuration. Otherwise the `<key>` will be the `<aws-s3-key-prefix configuration>/consul-*.snap`.
 
 The following example IAM policy document assumes that the `aws-s3-bucket` is `consul-data` with defaults for `aws-s3-key-prefix`, `aws-s3-static-snapshot-name` and `retain`:
 

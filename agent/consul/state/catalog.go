@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package state
 
@@ -3978,7 +3978,7 @@ func updateGatewayService(tx WriteTxn, idx uint64, mapping *structs.GatewayServi
 }
 
 // checkWildcardForGatewaysAndUpdate checks whether a service matches a
-// wildcard definition in gateway config entries and if so adds it the
+// wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
 func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, ns *structs.NodeService, kind structs.GatewayServiceKind) error {
 	sn := structs.ServiceName{Name: structs.WildcardSpecifier, EnterpriseMeta: svc.EnterpriseMeta}
@@ -4026,7 +4026,7 @@ func checkGatewayWildcardsAndUpdate(tx WriteTxn, idx uint64, svc *structs.Servic
 }
 
 // checkGatewayAndUpdate checks whether a service matches a
-// wildcard definition in gateway config entries and if so adds it the
+// wildcard definition in gateway config entries and if so adds it the the
 // gateway-services table.
 func checkGatewayAndUpdate(tx WriteTxn, idx uint64, svc *structs.ServiceName, kind structs.GatewayServiceKind) error {
 	sn := structs.ServiceName{Name: svc.Name, EnterpriseMeta: svc.EnterpriseMeta}

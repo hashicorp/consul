@@ -34,14 +34,14 @@ Consul on ECS with ACLs enabled, the license will be automatically pulled down f
 Currently there is no capability for specifying the license when ACLs are disabled so if you wish to
 run Consul Enterprise clients then you must enable ACLs.
 
-## Running Open Source Consul Clients
+## Running Consul Community Edition clients
 
-You can operate Consul Enterprise servers with Consul OSS (open source) clients as long as the features you are using do not require Consul Enterprise client support. Admin partitions and namespaces, for example, require Consul Enterprise clients and are not supported with Consul OSS.
+You can operate Consul Enterprise servers with Consul CE (community edition) clients as long as the features you are using do not require Consul Enterprise client support. Admin partitions and namespaces, for example, require Consul Enterprise clients and are not supported with Consul CE.
 
 ## Feature Support
 
 Consul on ECS supports the following Consul Enterprise features.
-If you are only using features that run on Consul servers, then you can use an OSS client in your service mesh tasks on ECS.
+If you are only using features that run on Consul servers, then you can use a CE client in your service mesh tasks on ECS.
 If client support is required for any of the features, then you must use a Consul Enterprise client in your `mesh-tasks`.
 
 | Feature                           | Supported     | Description                                                                                                                                                                                  |
@@ -54,8 +54,8 @@ If client support is required for any of the features, then you must use a Consu
 | Advanced Federation/Network Areas | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
 | Sentinel                          | Yes (servers) | This feature runs on Consul servers.                                                                                                                                                         |
 | Network Segments                  | No            | Currently there is no capability to configure the network segment Consul clients on ECS run in.                                                                                              |
-| Namespaces                        | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` namespace. Registration into a non-default namespace requires a Consul Enterprise client.       |
-| Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers. OSS clients can register into the `default` admin partition. Registration into a non-default partition requires a Consul Enterprise client. |
+| Namespaces                        | Yes           | This feature requires Consul Enterprise servers. CE clients can register into the `default` namespace. Registration into a non-default namespace requires a Consul Enterprise client.       |
+| Admin Partitions                  | Yes           | This feature requires Consul Enterprise servers. CE clients can register into the `default` admin partition. Registration into a non-default partition requires a Consul Enterprise client. |
 | Audit Logging                     | Yes           | This feature requires Consul Enterprise clients.                                                                                                                                             |
 
 ### Admin Partitions and Namespaces

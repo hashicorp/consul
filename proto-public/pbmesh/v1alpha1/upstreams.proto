@@ -1,0 +1,100 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "google/protobuf/duration.proto";
+import "pbcatalog/v1alpha1/selector.proto";
+import "pbmesh/v1alpha1/connection.proto";
+import "pbmesh/v1alpha1/routing.proto";
+import "pbresource/resource.proto";
+
+message Upstreams {
+  // Selection of workloads these upstreams should apply to.
+  // These can be prefixes or specific workload names.
+  hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;
+
+  repeated Upstream upstreams = 2;
+  repeated PreparedQueryUpstream pq_upstreams = 3;
+
+  UpstreamConfig upstream_config = 4;
+}
+
+message Upstream {
+  hashicorp.consul.resource.ID destination_ref = 1;
+  string destination_port = 2;
+  string datacenter = 3;
+
+  oneof listen_addr {
+    TCPAddress tcp = 4;
+    UnixSocketAddress unix = 5;
+  }
+
+  UpstreamConfig upstream_config = 7;
+}
+
+message TCPAddress {
+  string ip = 1;
+  uint32 port = 2;
+}
+
+message UnixSocketAddress {
+  string path = 1;
+  string mode = 2;
+}
+
+message PreparedQueryUpstream {
+  string name = 1;
+  string datacenter = 2;
+
+  oneof listen_addr {
+    TCPAddress tcp = 4;
+    UnixSocketAddress unix = 5;
+  }
+
+  UpstreamConfig upstream_config = 6;
+}
+
+message UpstreamConfig {
+  uint64 connect_timeout_ms = 2;
+  UpstreamLimits limits = 3;
+  PassiveHealthCheck passive_health_check = 4;
+  BalanceInboundConnections balance_inbound_connections = 5;
+  MeshGatewayMode mesh_gateway_mode = 6;
+}
+
+// UpstreamLimits describes the limits that are associated with a specific
+// upstream of a service instance.
+message UpstreamLimits {
+  // MaxConnections is the maximum number of connections the local proxy can
+  // make to the upstream service.
+  int32 max_connections = 1;
+
+  // MaxPendingRequests is the maximum number of requests that will be queued
+  // waiting for an available connection. This is mostly applicable to HTTP/1.1
+  // clusters since all HTTP/2 requests are streamed over a single
+  // connection.
+  int32 max_pending_requests = 2;
+
+  // MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
+  // to the upstream cluster at a point in time. This is mostly applicable to HTTP/2
+  // clusters since all HTTP/1.1 requests are limited by MaxConnections.
+  int32 max_concurrent_requests = 3;
+}
+
+message PassiveHealthCheck {
+  // Interval between health check analysis sweeps. Each sweep may remove
+  // hosts or return hosts to the pool.
+  google.protobuf.Duration interval = 1;
+
+  // MaxFailures is the count of consecutive failures that results in a host
+  // being removed from the pool.
+  uint32 max_failures = 2;
+
+  // EnforcingConsecutive5xx is the % chance that a host will be actually ejected
+  // when an outlier status is detected through consecutive 5xx.
+  // This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
+  uint32 enforcing_consecutive_5xx = 3;
+}

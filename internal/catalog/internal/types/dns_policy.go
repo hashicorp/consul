@@ -1,23 +1,35 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+)
+
+const (
+	DNSPolicyKind = "DNSPolicy"
+)
+
+var (
+	DNSPolicyV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         DNSPolicyKind,
+	}
+
+	DNSPolicyType = DNSPolicyV1Alpha1Type
 )
 
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbcatalog.DNSPolicyType,
+		Type:     DNSPolicyV1Alpha1Type,
 		Proto:    &pbcatalog.DNSPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
 	})
 }

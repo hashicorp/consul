@@ -1,0 +1,104 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v1alpha1;
+
+import "google/protobuf/struct.proto";
+import "pbcatalog/v1alpha1/selector.proto";
+import "pbmesh/v1alpha1/connection.proto";
+import "pbmesh/v1alpha1/expose.proto";
+import "pbmesh/v1alpha1/routing.proto";
+
+message ProxyConfiguration {
+  // Selection of workloads this proxy configuration should apply to.
+  // These can be prefixes or specific workload names.
+  hashicorp.consul.catalog.v1alpha1.WorkloadSelector workloads = 1;
+
+  // dynamic_config is the configuration that could be changed
+  // dynamically (i.e. without needing restart).
+  DynamicConfig dynamic_config = 2;
+
+  // bootstrap_config is the configuration that requires proxies
+  // to be restarted to be applied.
+  BootstrapConfig bootstrap_config = 3;
+
+  // deprecated: prevent usage when using v2 APIs directly.
+  // needed for backwards compatibility
+  google.protobuf.Struct opaque_config = 4 [deprecated = true];
+}
+
+message DynamicConfig {
+  // mode indicates the proxy's mode. This will default to 'transparent'.
+  ProxyMode mode = 1;
+
+  TransparentProxy transparent_proxy = 2;
+
+  // local_connection is the configuration that should be used
+  // to connect to the local application provided per-port.
+  // The map keys should correspond to port names on the workload.
+  map<string, ConnectionConfig> local_connection = 3;
+
+  // inbound_connections configures inbound connections to the proxy.
+  InboundConnectionsConfig inbound_connections = 4;
+
+  MeshGatewayMode mesh_gateway_mode = 5;
+
+  ExposeConfig expose_config = 6;
+
+  string public_listener_json = 7;
+  string listener_tracing_json = 8;
+  string local_cluster_json = 9;
+
+  // deprecated:
+  // local_workload_address, local_workload_port, and local_workload_socket_path
+  // are deprecated and are only needed for migration of existing resources.
+  string local_workload_address = 10 [deprecated = true];
+  uint32 local_workload_port = 11 [deprecated = true];
+  string local_workload_socket_path = 12 [deprecated = true];
+}
+
+message TransparentProxy {
+  // outbound_listener_port is the port for the proxy's outbound listener.
+  // This defaults to 15001.
+  uint32 outbound_listener_port = 1;
+
+  // dialed_directly indicates whether this proxy should be dialed using original destination IP
+  // in the connection rather than load balance between all endpoints.
+  bool dialed_directly = 2;
+}
+
+// BootstrapConfig is equivalent to configuration defined
+// in our docs.
+message BootstrapConfig {
+  string statsd_url = 1;
+  string dogstatsd_url = 2;
+  repeated string stats_tags = 3;
+  string prometheus_bind_addr = 4;
+  string stats_bind_addr = 5;
+  string ready_bind_addr = 6;
+  string override_json_tpl = 7;
+  string static_clusters_json = 8;
+  string static_listeners_json = 9;
+  string stats_sinks_json = 10;
+  string stats_config_json = 11;
+  string stats_flush_interval = 12;
+  string tracing_config_json = 13;
+}
+
+enum ProxyMode {
+  // ProxyModeDefault represents no specific mode and should
+  // be used to indicate that a different layer of the configuration
+  // chain should take precedence
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  PROXY_MODE_DEFAULT = 0;
+
+  // ProxyModeTransparent represents that inbound and outbound application
+  // traffic is being captured and redirected through the proxy.
+  PROXY_MODE_TRANSPARENT = 1;
+
+  // ProxyModeDirect represents that the proxy's listeners must be dialed directly
+  // by the local application and other proxies.
+  PROXY_MODE_DIRECT = 2;
+}

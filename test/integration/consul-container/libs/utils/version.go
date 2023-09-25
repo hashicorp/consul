@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package utils
 
@@ -7,7 +7,6 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -54,20 +53,6 @@ func GetLatestImageName() string {
 		return LatestImageName + "-dbg"
 	}
 	return LatestImageName
-}
-
-func TargetImages() topology.Images {
-	img := DockerImage(targetImageName, TargetVersion)
-
-	if IsEnterprise() {
-		return topology.Images{
-			ConsulEnterprise: img,
-		}
-	} else {
-		return topology.Images{
-			ConsulCE: img,
-		}
-	}
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

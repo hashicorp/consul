@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package token
 
@@ -24,7 +24,6 @@ const (
 	TokenKindUser
 	TokenKindReplication
 	TokenKindConfigFileRegistration
-	TokenKindDNS
 )
 
 type watcher struct {
@@ -53,7 +52,7 @@ type Store struct {
 	// also be used for agent operations if the agent token isn't set.
 	userToken string
 
-	// userTokenSource indicates where this token originated from.
+	// userTokenSource indicates where this token originated from
 	userTokenSource TokenSource
 
 	// agentToken is used for internal agent operations like self-registering
@@ -61,7 +60,7 @@ type Store struct {
 	// user-initiated operations.
 	agentToken string
 
-	// agentTokenSource indicates where this token originated from.
+	// agentTokenSource indicates where this token originated from
 	agentTokenSource TokenSource
 
 	// agentRecoveryToken is a special token that's only used locally for
@@ -69,29 +68,22 @@ type Store struct {
 	// available.
 	agentRecoveryToken string
 
-	// agentRecoveryTokenSource indicates where this token originated from.
+	// agentRecoveryTokenSource indicates where this token originated from
 	agentRecoveryTokenSource TokenSource
 
 	// replicationToken is a special token that's used by servers to
 	// replicate data from the primary datacenter.
 	replicationToken string
 
-	// replicationTokenSource indicates where this token originated from.
+	// replicationTokenSource indicates where this token originated from
 	replicationTokenSource TokenSource
 
 	// configFileRegistrationToken is used to register services and checks
 	// that are defined in configuration files.
 	configFileRegistrationToken string
 
-	// configFileRegistrationTokenSource indicates where this token originated from.
+	// configFileRegistrationTokenSource indicates where this token originated from
 	configFileRegistrationTokenSource TokenSource
-
-	// dnsToken is a special token that is used as the implicit token for DNS requests
-	// as well as for DNS-specific RPC requests.
-	dnsToken string
-
-	// dnsTokenSource indicates where the dnsToken originated from.
-	dnsTokenSource TokenSource
 
 	watchers     map[int]watcher
 	watcherIndex int
@@ -212,12 +204,6 @@ func (t *Store) UpdateConfigFileRegistrationToken(token string, source TokenSour
 		&t.configFileRegistrationTokenSource, TokenKindConfigFileRegistration)
 }
 
-// UpdateDNSToken replaces the current DNS token in the store.
-// Returns true if it was changed.
-func (t *Store) UpdateDNSToken(token string, source TokenSource) bool {
-	return t.updateToken(token, source, &t.dnsToken, &t.dnsTokenSource, TokenKindDNS)
-}
-
 func (t *Store) updateToken(token string, source TokenSource, dstToken *string, dstSource *TokenSource, kind TokenKind) bool {
 	t.l.Lock()
 	changed := *dstToken != token || *dstSource != source
@@ -275,13 +261,6 @@ func (t *Store) ConfigFileRegistrationToken() string {
 	return t.configFileRegistrationToken
 }
 
-func (t *Store) DNSToken() string {
-	t.l.RLock()
-	defer t.l.RUnlock()
-
-	return t.dnsToken
-}
-
 // UserToken returns the best token to use for user operations.
 func (t *Store) UserTokenAndSource() (string, TokenSource) {
 	t.l.RLock()
@@ -318,14 +297,6 @@ func (t *Store) ConfigFileRegistrationTokenAndSource() (string, TokenSource) {
 	defer t.l.RUnlock()
 
 	return t.configFileRegistrationToken, t.configFileRegistrationTokenSource
-}
-
-// DNSTokenAndSource returns the best token to use for DNS-specific RPC requests and DNS requests
-func (t *Store) DNSTokenAndSource() (string, TokenSource) {
-	t.l.RLock()
-	defer t.l.RUnlock()
-
-	return t.dnsToken, t.dnsTokenSource
 }
 
 // IsAgentRecoveryToken checks to see if a given token is the agent recovery token.

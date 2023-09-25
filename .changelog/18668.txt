@@ -1,3 +1,0 @@
-```release-note:breaking-change
-audit-logging: **(Enterprise only)** allowing timestamp based filename only on rotation. initially the filename will be just file.json
-```

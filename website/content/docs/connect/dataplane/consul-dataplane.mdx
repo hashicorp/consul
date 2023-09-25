@@ -22,7 +22,7 @@ Consul Dataplane requires servers running Consul version `v1.14+`. To find a spe
 The following options are required when starting `consul-dataplane` with the CLI:
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 - `-addresses`
 - `-service-node-name`
@@ -139,7 +139,7 @@ A static ACL token is passed to Consul Dataplane.
 Consul Dataplane logs in to one of Consul's supported [auth methods](/consul/docs/security/acl/auth-methods).
 
   <Tabs>
-  <Tab heading="Consul OSS">
+  <Tab heading="Consul CE">
 
   ```shell-session
   $ consul-dataplane -credential-type "login"

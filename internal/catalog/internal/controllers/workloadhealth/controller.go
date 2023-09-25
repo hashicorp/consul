@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package workloadhealth
 
 import (
@@ -8,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var (
@@ -50,9 +47,9 @@ func WorkloadHealthController(nodeMap NodeMapper) controller.Controller {
 		panic("No NodeMapper was provided to the WorkloadHealthController constructor")
 	}
 
-	return controller.ForType(pbcatalog.WorkloadType).
-		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.WorkloadType)).
-		WithWatch(pbcatalog.NodeType, nodeMap.MapNodeToWorkloads).
+	return controller.ForType(types.WorkloadType).
+		WithWatch(types.HealthStatusType, controller.MapOwnerFiltered(types.WorkloadType)).
+		WithWatch(types.NodeType, nodeMap.MapNodeToWorkloads).
 		WithReconciler(&workloadHealthReconciler{nodeMap: nodeMap})
 }
 
@@ -210,7 +207,7 @@ func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *
 	workloadHealth := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
+		if resource.EqualType(res.Id.Type, types.HealthStatusType) {
 			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible and will not be executing in tests. The resource type

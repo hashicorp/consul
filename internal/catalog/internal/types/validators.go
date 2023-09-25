@@ -1,21 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"errors"
-	"fmt"
 	"net"
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -138,21 +135,6 @@ func validatePortName(name string) error {
 	return nil
 }
 
-func validateProtocol(protocol pbcatalog.Protocol) error {
-	switch protocol {
-	case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED,
-		// means pbcatalog.FailoverMode_FAILOVER_MODE_TCP
-		pbcatalog.Protocol_PROTOCOL_TCP,
-		pbcatalog.Protocol_PROTOCOL_HTTP,
-		pbcatalog.Protocol_PROTOCOL_HTTP2,
-		pbcatalog.Protocol_PROTOCOL_GRPC,
-		pbcatalog.Protocol_PROTOCOL_MESH:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", protocol))
-	}
-}
-
 // validateWorkloadAddress will validate the WorkloadAddress type. This involves validating
 // the Host within the workload address and the ports references. For ports references we
 // ensure that values in the addresses ports array are present in the set of map keys.
@@ -224,95 +206,4 @@ func validateReference(allowedType *pbresource.Type, allowedTenancy *pbresource.
 	}
 
 	return err
-}
-
-func validateHealth(health pbcatalog.Health) error {
-	switch health {
-	case pbcatalog.Health_HEALTH_ANY,
-		pbcatalog.Health_HEALTH_PASSING,
-		pbcatalog.Health_HEALTH_WARNING,
-		pbcatalog.Health_HEALTH_CRITICAL,
-		pbcatalog.Health_HEALTH_MAINTENANCE:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", health))
-	}
-}
-
-// ValidateLocalServiceRefNoSection ensures the following:
-//
-// - ref is non-nil
-// - type is ServiceType
-// - section is empty
-// - tenancy is set and partition/namespace are both non-empty
-// - peer_name must be "local"
-//
-// Each possible validation error is wrapped in the wrapErr function before
-// being collected in a multierror.Error.
-func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
-	if ref == nil {
-		return wrapErr(resource.ErrMissing)
-	}
-
-	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
-		return wrapErr(resource.ErrInvalidField{
-			Name: "type",
-			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: pbcatalog.ServiceType,
-			},
-		})
-	}
-
-	var merr error
-	if ref.Section != "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "section",
-			Wrapped: errors.New("section cannot be set here"),
-		}))
-	}
-
-	if ref.Tenancy == nil {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "tenancy",
-			Wrapped: resource.ErrMissing,
-		}))
-	} else {
-		// NOTE: these are Service specific, since that's a Namespace-scoped type.
-		if ref.Tenancy.Partition == "" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "partition",
-					Wrapped: resource.ErrEmpty,
-				},
-			}))
-		}
-		if ref.Tenancy.Namespace == "" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "namespace",
-					Wrapped: resource.ErrEmpty,
-				},
-			}))
-		}
-		if ref.Tenancy.PeerName != "local" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "peer_name",
-					Wrapped: errors.New(`must be set to "local"`),
-				},
-			}))
-		}
-	}
-
-	if ref.Name == "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "name",
-			Wrapped: resource.ErrMissing,
-		}))
-	}
-
-	return merr
 }

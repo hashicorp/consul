@@ -1,3 +1,0 @@
-```release-note:feature
-acl: Add new `acl.tokens.dns` config field which specifies the token used implicitly during dns checks.
-```

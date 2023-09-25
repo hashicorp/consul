@@ -35,10 +35,10 @@ When transparent proxy mode is enabled, all service-to-service traffic is requir
 
 The following configurations are examples for registering workloads on Kubernetes into Consul's service mesh in different scenarios. Each scenario provides an example Kubernetes manifest to demonstrate how to use Consul's service mesh with a specific Kubernetes workload type.
 
-- [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
-- [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
-- [Kubernetes Jobs](#kubernetes-jobs)
-- [Kubernetes Pods with multiple ports](#kubernetes-pods-with-multiple-ports)
+ - [Kubernetes Pods running as a deployment](#kubernetes-pods-running-as-a-deployment)
+ - [Connecting to mesh-enabled Services](#connecting-to-mesh-enabled-services)
+ - [Kubernetes Jobs](#kubernetes-jobs)
+ - [Kubernetes Pods with multiple ports](#kubernetes-pods-with-multiple-ports)
 
 #### Kubernetes Pods running as a deployment
 
@@ -106,6 +106,7 @@ of establishing connections to our previous example "static-server" service. The
 connection to this static text service happens over an authorized and encrypted
 connection via service mesh.
 
+
 <CodeBlockConfig filename="static-client.yaml">
 
 ```yaml
@@ -167,7 +168,6 @@ upstream. This is analogous to the standard Kubernetes service environment varia
 point instead to the correct local proxy port to establish connections via
 service mesh.
 
-You cannot reference auto-generated environment variables when the upstream annotation contains a dot. This is because Consul also renders the environment variables to include a dot. For example, Consul renders the variables generated for `static-server.svc:8080` as `STATIC-SERVER.SVC_CONNECT_SERVICE_HOST` and `STATIC_SERVER.SVC_CONNECT_SERVICE_PORT`, which makes the variables unusable.
 You can verify access to the static text server using `kubectl exec`.
 Because transparent proxy is enabled by default,
 use Kubernetes DNS to connect to your desired upstream.

@@ -127,7 +127,7 @@ Create a file for the configuration entry and specify the required fields. If yo
 
 If you use Consul Enterprise, you can also specify the `Namespace` and `Partition` fields to apply the configuration to services in a specific namespace or partition. For Kubernetes environments, the configuration entry is always created in the same partition as the Kubernetes cluster.
 
-### Consul OSS example
+### Consul CE example
 The following example instructs services named `counting` to send up to `512` concurrent requests to a mesh gateway:
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>

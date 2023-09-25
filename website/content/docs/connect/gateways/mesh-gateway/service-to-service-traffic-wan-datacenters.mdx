@@ -94,7 +94,7 @@ Use the following example configurations to help you understand some of the comm
 
 The following `proxy-defaults` configuration will enable gateways for all mesh services in the `local` mode.
 
-<CodeTabs heading="Example: Enabling gateways globally">
+<CodeTabs heading="Example: Enabling gateways globally.">
 
 ```hcl
 Kind = "proxy-defaults"
@@ -105,13 +105,10 @@ MeshGateway {
 ```
 
 ```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ProxyDefaults
-metadata:
-  name: global
-spec:
-  meshGateway:
-    mode: local
+Kind: proxy-defaults
+MeshGateway:
+- Mode: local
+Name: global
 ```
 
 ```json
@@ -140,13 +137,10 @@ MeshGateway {
 ```
 
 ```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ServiceDefaults
-metadata:
-  name: web
-spec:
-  meshGateway:
-    mode: local
+Kind: service-defaults
+MeshGateway:
+- Mode: local
+Name: web
 ```
 
 ```json
