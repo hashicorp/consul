@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 
@@ -934,6 +935,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 			DefaultAllow:    defaultAllow,
 			ProxyUpdater:    proxyUpdater,
 		})
+
+		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
