@@ -20,8 +20,8 @@ func TestTypeRegistration(t *testing.T) {
 	// from types.go a second time here.
 	requiredKinds := []string{
 		pbmesh.ProxyConfigurationKind,
-		pbmesh.UpstreamsKind,
-		pbmesh.UpstreamsConfigurationKind,
+		pbmesh.DestinationsKind,
+		pbmesh.DestinationsConfigurationKind,
 		pbmesh.ProxyStateTemplateKind,
 		pbmesh.HTTPRouteKind,
 		pbmesh.TCPRouteKind,

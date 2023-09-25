@@ -138,7 +138,7 @@ type dataFetcherSuite struct {
 	api2ServiceEndpoints     *pbresource.Resource
 	api2ServiceEndpointsData *pbcatalog.ServiceEndpoints
 	webDestinations          *pbresource.Resource
-	webDestinationsData      *pbmesh.Upstreams
+	webDestinationsData      *pbmesh.Destinations
 	webProxy                 *pbresource.Resource
 	webWorkload              *pbresource.Resource
 }
@@ -205,8 +205,8 @@ func (suite *dataFetcherSuite) SetupTest() {
 		WithData(suite.T(), suite.api2ServiceEndpointsData).
 		Write(suite.T(), suite.client)
 
-	suite.webDestinationsData = &pbmesh.Upstreams{
-		Upstreams: []*pbmesh.Upstream{
+	suite.webDestinationsData = &pbmesh.Destinations{
+		Destinations: []*pbmesh.Destination{
 			{
 				DestinationRef:  resource.Reference(suite.api1Service.Id, ""),
 				DestinationPort: "tcp",
@@ -222,7 +222,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 		},
 	}
 
-	suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
+	suite.webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
 		WithData(suite.T(), suite.webDestinationsData).
 		Write(suite.T(), suite.client)
 
@@ -264,7 +264,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	dest1 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(pbcatalog.ServiceType, "test-service-1").ReferenceNoSection(),
 		Port:                   "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "test-servicedestinations-1").ID(),
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.DestinationsType, "test-servicedestinations-1").ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
 		},
@@ -272,7 +272,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload_WorkloadNotFound() {
 	dest2 := intermediate.CombinedDestinationRef{
 		ServiceRef:             resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").ReferenceNoSection(),
 		Port:                   "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "test-servicedestinations-2").ID(),
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.DestinationsType, "test-servicedestinations-2").ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},
 		},
@@ -344,7 +344,7 @@ func (suite *dataFetcherSuite) TestFetcher_NotFound() {
 			},
 		},
 		"destinations": {
-			typ: pbmesh.UpstreamsType,
+			typ: pbmesh.DestinationsType,
 			fetchFunc: func(id *pbresource.ID) error {
 				_, err := f.FetchDestinations(context.Background(), id)
 				return err
@@ -442,15 +442,15 @@ func (suite *dataFetcherSuite) TestFetcher_FetchErrors() {
 }
 
 func (suite *dataFetcherSuite) syncDestinations(destinations ...intermediate.CombinedDestinationRef) {
-	data := &pbmesh.Upstreams{}
+	data := &pbmesh.Destinations{}
 	for _, dest := range destinations {
-		data.Upstreams = append(data.Upstreams, &pbmesh.Upstream{
+		data.Destinations = append(data.Destinations, &pbmesh.Destination{
 			DestinationRef:  dest.ServiceRef,
 			DestinationPort: dest.Port,
 		})
 	}
 
-	suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
+	suite.webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
 		WithData(suite.T(), data).
 		Write(suite.T(), suite.client)
 }
@@ -482,7 +482,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		destinationRefNoDestinations := intermediate.CombinedDestinationRef{
 			ServiceRef:             api1ServiceRef,
 			Port:                   "tcp",
-			ExplicitDestinationsID: resourcetest.Resource(pbmesh.UpstreamsType, "not-found").ID(),
+			ExplicitDestinationsID: resourcetest.Resource(pbmesh.DestinationsType, "not-found").ID(),
 			SourceProxies: map[resource.ReferenceKey]struct{}{
 				resource.NewReferenceKey(suite.webProxy.Id): {},
 			},
@@ -515,13 +515,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		t.Cleanup(func() {
 			// Restore this for the next test step.
-			suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
+			suite.webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
 				WithData(suite.T(), suite.webDestinationsData).
 				Write(suite.T(), suite.client)
 		})
-		suite.webDestinations = resourcetest.Resource(pbmesh.UpstreamsType, "web-destinations").
-			WithData(suite.T(), &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{{
+		suite.webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
+			WithData(suite.T(), &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{{
 					DestinationRef:  notFoundServiceRef,
 					DestinationPort: "tcp",
 				}},
@@ -644,7 +644,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		// Check that we didn't return any destinations.
 		require.Empty(t, destinations)
 
-		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
+		// Check that destination service is still in cache because it's still referenced from the pbmesh.Destinations
 		// resource.
 		_, foundDest := c.ReadDestination(destinationMeshDestinationPort.ServiceRef, destinationMeshDestinationPort.Port)
 		require.True(t, foundDest)
@@ -746,7 +746,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		// Check that we didn't return any destinations.
 		require.Nil(t, destinations)
 
-		// Check that destination service is still in cache because it's still referenced from the pbmesh.Upstreams
+		// Check that destination service is still in cache because it's still referenced from the pbmesh.Destinations
 		// resource.
 		_, foundDest := c.ReadDestination(destination1.ServiceRef, destination1.Port)
 		require.True(t, foundDest)
@@ -779,7 +779,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 
 		expectedDestinations := []*intermediate.Destination{
 			{
-				Explicit: suite.webDestinationsData.Upstreams[0],
+				Explicit: suite.webDestinationsData.Destinations[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 					switch {
@@ -821,7 +821,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		destinationRefs := []intermediate.CombinedDestinationRef{destination1, destination2, destination3}
 		expectedDestinations := []*intermediate.Destination{
 			{
-				Explicit: suite.webDestinationsData.Upstreams[0],
+				Explicit: suite.webDestinationsData.Destinations[0],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 					switch {
@@ -837,7 +837,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				}),
 			},
 			{
-				Explicit: suite.webDestinationsData.Upstreams[1],
+				Explicit: suite.webDestinationsData.Destinations[1],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp1", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 					switch {
@@ -853,7 +853,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				}),
 			},
 			{
-				Explicit: suite.webDestinationsData.Upstreams[2],
+				Explicit: suite.webDestinationsData.Destinations[2],
 				Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 				ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 					switch {
@@ -947,7 +947,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 
 	existingDestinations := []*intermediate.Destination{
 		{
-			Explicit: suite.webDestinationsData.Upstreams[0],
+			Explicit: suite.webDestinationsData.Destinations[0],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api1Service),
 			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api1ComputedRoutes.Data, "tcp", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
@@ -963,7 +963,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 			}),
 		},
 		{
-			Explicit: suite.webDestinationsData.Upstreams[1],
+			Explicit: suite.webDestinationsData.Destinations[1],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp1", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {
@@ -979,7 +979,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchImplicitDestinationsData() {
 			}),
 		},
 		{
-			Explicit: suite.webDestinationsData.Upstreams[2],
+			Explicit: suite.webDestinationsData.Destinations[2],
 			Service:  resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.api2Service),
 			ComputedPortRoutes: routestest.MutateTargets(suite.T(), api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 				switch {

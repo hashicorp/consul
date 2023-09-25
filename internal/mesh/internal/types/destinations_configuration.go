@@ -10,8 +10,8 @@ import (
 
 func RegisterUpstreamsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbmesh.UpstreamsConfigurationType,
-		Proto:    &pbmesh.UpstreamsConfiguration{},
+		Type:     pbmesh.DestinationsConfigurationType,
+		Proto:    &pbmesh.DestinationsConfiguration{},
 		Scope:    resource.ScopeNamespace,
 		Validate: nil,
 	})

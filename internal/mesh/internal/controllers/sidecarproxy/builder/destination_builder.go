@@ -429,13 +429,13 @@ func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Prot
 }
 
 // addExplicitOutboundListener creates an outbound listener for an explicit destination.
-func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *ListenerBuilder {
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Destination) *ListenerBuilder {
 	listener := makeExplicitListener(explicit, pbproxystate.Direction_DIRECTION_OUTBOUND)
 
 	return b.NewListenerBuilder(listener)
 }
 
-func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Direction) *pbproxystate.Listener {
+func makeExplicitListener(explicit *pbmesh.Destination, direction pbproxystate.Direction) *pbproxystate.Listener {
 	if explicit == nil {
 		panic("explicit upstream required")
 	}
@@ -448,8 +448,8 @@ func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Dire
 
 	// Create outbound listener address.
 	switch explicit.ListenAddr.(type) {
-	case *pbmesh.Upstream_IpPort:
-		destinationAddr := explicit.ListenAddr.(*pbmesh.Upstream_IpPort)
+	case *pbmesh.Destination_IpPort:
+		destinationAddr := explicit.ListenAddr.(*pbmesh.Destination_IpPort)
 		listener.BindAddress = &pbproxystate.Listener_HostPort{
 			HostPort: &pbproxystate.HostPortAddress{
 				Host: destinationAddr.IpPort.Ip,
@@ -457,8 +457,8 @@ func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Dire
 			},
 		}
 		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.IpPort.Ip, destinationAddr.IpPort.Port)
-	case *pbmesh.Upstream_Unix:
-		destinationAddr := explicit.ListenAddr.(*pbmesh.Upstream_Unix)
+	case *pbmesh.Destination_Unix:
+		destinationAddr := explicit.ListenAddr.(*pbmesh.Destination_Unix)
 		listener.BindAddress = &pbproxystate.Listener_UnixSocket{
 			UnixSocket: &pbproxystate.UnixSocketAddress{
 				Path: destinationAddr.Unix.Path,

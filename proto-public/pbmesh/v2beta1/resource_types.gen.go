@@ -10,15 +10,15 @@ const (
 	GroupName = "mesh"
 	Version   = "v2beta1"
 
-	ComputedRoutesKind         = "ComputedRoutes"
-	DestinationPolicyKind      = "DestinationPolicy"
-	GRPCRouteKind              = "GRPCRoute"
-	HTTPRouteKind              = "HTTPRoute"
-	ProxyConfigurationKind     = "ProxyConfiguration"
-	ProxyStateTemplateKind     = "ProxyStateTemplate"
-	TCPRouteKind               = "TCPRoute"
-	UpstreamsKind              = "Upstreams"
-	UpstreamsConfigurationKind = "UpstreamsConfiguration"
+	ComputedRoutesKind            = "ComputedRoutes"
+	DestinationPolicyKind         = "DestinationPolicy"
+	DestinationsKind              = "Destinations"
+	DestinationsConfigurationKind = "DestinationsConfiguration"
+	GRPCRouteKind                 = "GRPCRoute"
+	HTTPRouteKind                 = "HTTPRoute"
+	ProxyConfigurationKind        = "ProxyConfiguration"
+	ProxyStateTemplateKind        = "ProxyStateTemplate"
+	TCPRouteKind                  = "TCPRoute"
 )
 
 var (
@@ -32,6 +32,18 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         DestinationPolicyKind,
+	}
+
+	DestinationsType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         DestinationsKind,
+	}
+
+	DestinationsConfigurationType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         DestinationsConfigurationKind,
 	}
 
 	GRPCRouteType = &pbresource.Type{
@@ -62,17 +74,5 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         TCPRouteKind,
-	}
-
-	UpstreamsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         UpstreamsKind,
-	}
-
-	UpstreamsConfigurationType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         UpstreamsConfigurationKind,
 	}
 )

@@ -1,5 +1,5 @@
 ID {
-  Type = gvk("mesh.v2beta1.Upstreams")
+  Type = gvk("mesh.v2beta1.Destinations")
   Name = "api"
 }
 
@@ -8,7 +8,7 @@ Data {
     Prefixes = ["api"]
   }
 
-  Upstreams = [
+  Destinations = [
     {
       DestinationRef = {
         Type = gvk("catalog.v2beta1.Service")

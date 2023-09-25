@@ -308,11 +308,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	require.NotNil(t, api2ComputedRoutes)
 
 	destinationIpPort := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
 			DestinationPort: "tcp",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_IpPort{
+			ListenAddr: &pbmesh.Destination_IpPort{
 				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 1234},
 			},
 		},
@@ -332,11 +332,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	}
 
 	destinationIpPort2 := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
 			DestinationPort: "tcp2",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_IpPort{
+			ListenAddr: &pbmesh.Destination_IpPort{
 				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 2345},
 			},
 		},
@@ -356,11 +356,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	}
 
 	destinationUnix := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
 			DestinationPort: "tcp",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_Unix{
+			ListenAddr: &pbmesh.Destination_Unix{
 				Unix: &pbmesh.UnixSocketAddress{Path: "/path/to/socket", Mode: "0666"},
 			},
 		},
@@ -376,11 +376,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	}
 
 	destinationUnix2 := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
 			DestinationPort: "tcp2",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_Unix{
+			ListenAddr: &pbmesh.Destination_Unix{
 				Unix: &pbmesh.UnixSocketAddress{Path: "/path/to/socket", Mode: "0666"},
 			},
 		},
@@ -395,11 +395,11 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}),
 	}
 	destinationIpPortHTTP := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
 			DestinationPort: "http",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_IpPort{
+			ListenAddr: &pbmesh.Destination_IpPort{
 				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 1234},
 			},
 		},
@@ -533,11 +533,11 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	}
 
 	destination3 := &intermediate.Destination{
-		Explicit: &pbmesh.Upstream{
+		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
 			DestinationPort: "tcp",
 			Datacenter:      "dc1",
-			ListenAddr: &pbmesh.Upstream_IpPort{
+			ListenAddr: &pbmesh.Destination_IpPort{
 				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 1234},
 			},
 		},

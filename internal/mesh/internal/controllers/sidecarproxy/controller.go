@@ -89,7 +89,7 @@ func Controller(
 	return controller.ForType(pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
 		WithWatch(pbcatalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
-		WithWatch(pbmesh.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
+		WithWatch(pbmesh.DestinationsType, mapper.MapDestinationsToProxyStateTemplate).
 		WithWatch(pbmesh.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
 		WithWatch(pbmesh.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
 		WithWatch(pbauth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).

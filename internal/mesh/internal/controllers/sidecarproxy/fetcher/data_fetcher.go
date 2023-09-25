@@ -90,7 +90,7 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 }
 
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
-	return resource.GetDecodedResource[*pbmesh.Upstreams](ctx, f.Client, id)
+	return resource.GetDecodedResource[*pbmesh.Destinations](ctx, f.Client, id)
 }
 
 func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
@@ -490,8 +490,8 @@ func findServicePort(ports []*pbcatalog.ServicePort, name string) *pbcatalog.Ser
 	return nil
 }
 
-func findDestination(ref *pbresource.Reference, port string, destinations *pbmesh.Upstreams) *pbmesh.Upstream {
-	for _, destination := range destinations.Upstreams {
+func findDestination(ref *pbresource.Reference, port string, destinations *pbmesh.Destinations) *pbmesh.Destination {
+	for _, destination := range destinations.Destinations {
 		if resource.EqualReference(ref, destination.DestinationRef) &&
 			port == destination.DestinationPort {
 			return destination

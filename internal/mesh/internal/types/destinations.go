@@ -15,8 +15,8 @@ import (
 
 func RegisterUpstreams(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbmesh.UpstreamsType,
-		Proto:    &pbmesh.Upstreams{},
+		Type:     pbmesh.DestinationsType,
+		Proto:    &pbmesh.Destinations{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateUpstreams,
 		Validate: ValidateUpstreams,
@@ -24,7 +24,7 @@ func RegisterUpstreams(r resource.Registry) {
 }
 
 func MutateUpstreams(res *pbresource.Resource) error {
-	var destinations pbmesh.Upstreams
+	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
 		return resource.NewErrDataParse(&destinations, err)
@@ -32,7 +32,7 @@ func MutateUpstreams(res *pbresource.Resource) error {
 
 	changed := false
 
-	for _, dest := range destinations.Upstreams {
+	for _, dest := range destinations.Destinations {
 		if dest.DestinationRef == nil {
 			continue // skip; let the validation hook error out instead
 		}
@@ -65,7 +65,7 @@ func isLocalPeer(p string) bool {
 }
 
 func ValidateUpstreams(res *pbresource.Resource) error {
-	var destinations pbmesh.Upstreams
+	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
 		return resource.NewErrDataParse(&destinations, err)
@@ -73,7 +73,7 @@ func ValidateUpstreams(res *pbresource.Resource) error {
 
 	var merr error
 
-	for i, dest := range destinations.Upstreams {
+	for i, dest := range destinations.Destinations {
 		wrapDestErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "upstreams",

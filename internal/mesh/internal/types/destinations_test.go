@@ -20,20 +20,20 @@ import (
 func TestMutateUpstreams(t *testing.T) {
 	type testcase struct {
 		tenancy   *pbresource.Tenancy
-		data      *pbmesh.Upstreams
-		expect    *pbmesh.Upstreams
+		data      *pbmesh.Destinations
+		expect    *pbmesh.Destinations
 		expectErr string
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(pbmesh.UpstreamsType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationsType, "api").
 			WithTenancy(tc.tenancy).
 			WithData(t, tc.data).
 			Build()
 
 		err := MutateUpstreams(res)
 
-		got := resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
+		got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
 
 		if tc.expectErr == "" {
 			require.NoError(t, err)
@@ -45,32 +45,32 @@ func TestMutateUpstreams(t *testing.T) {
 
 	cases := map[string]testcase{
 		"empty-1": {
-			data:   &pbmesh.Upstreams{},
-			expect: &pbmesh.Upstreams{},
+			data:   &pbmesh.Destinations{},
+			expect: &pbmesh.Destinations{},
 		},
 		"invalid/nil dest ref": {
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: nil},
 				},
 			},
-			expect: &pbmesh.Upstreams{ // untouched
-				Upstreams: []*pbmesh.Upstream{
+			expect: &pbmesh.Destinations{ // untouched
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: nil},
 				},
 			},
 		},
 		"dest ref tenancy defaulting": {
 			tenancy: newTestTenancy("foo.bar"),
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(""), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(".zim"), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},
 				},
 			},
-			expect: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			expect: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.bar"), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.zim"), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},
@@ -88,13 +88,13 @@ func TestMutateUpstreams(t *testing.T) {
 
 func TestValidateUpstreams(t *testing.T) {
 	type testcase struct {
-		data       *pbmesh.Upstreams
+		data       *pbmesh.Destinations
 		skipMutate bool
 		expectErr  string
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(pbmesh.UpstreamsType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationsType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.data).
 			Build()
@@ -103,14 +103,14 @@ func TestValidateUpstreams(t *testing.T) {
 			require.NoError(t, MutateUpstreams(res))
 
 			// Verify that mutate didn't actually change the object.
-			got := resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
+			got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
 			prototest.AssertDeepEqual(t, tc.data, got.Data)
 		}
 
 		err := ValidateUpstreams(res)
 
 		// Verify that validate didn't actually change the object.
-		got := resourcetest.MustDecode[*pbmesh.Upstreams](t, res)
+		got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
 		prototest.AssertDeepEqual(t, tc.data, got.Data)
 
 		if tc.expectErr == "" {
@@ -123,12 +123,12 @@ func TestValidateUpstreams(t *testing.T) {
 	cases := map[string]testcase{
 		// emptiness
 		"empty": {
-			data: &pbmesh.Upstreams{},
+			data: &pbmesh.Destinations{},
 		},
 		"dest/nil ref": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: nil},
 				},
 			},
@@ -136,8 +136,8 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"dest/bad type": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.WorkloadType, nil, "api")},
 				},
 			},
@@ -145,8 +145,8 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"dest/nil tenancy": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: &pbresource.Reference{Type: pbcatalog.ServiceType, Name: "api"}},
 				},
 			},
@@ -154,8 +154,8 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"dest/bad dest tenancy/partition": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy(".bar"), "api")},
 				},
 			},
@@ -163,8 +163,8 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"dest/bad dest tenancy/namespace": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo"), "api")},
 				},
 			},
@@ -172,16 +172,16 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"dest/bad dest tenancy/peer_name": {
 			skipMutate: true,
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, &pbresource.Tenancy{Partition: "foo", Namespace: "bar"}, "api")},
 				},
 			},
 			expectErr: `invalid element at index 0 of list "upstreams": invalid "destination_ref" field: invalid "tenancy" field: invalid "peer_name" field: must be set to "local"`,
 		},
 		"normal": {
-			data: &pbmesh.Upstreams{
-				Upstreams: []*pbmesh.Upstream{
+			data: &pbmesh.Destinations{
+				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.bar"), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("foo.zim"), "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, newTestTenancy("gir.zim"), "api")},

@@ -14,7 +14,7 @@ import (
 )
 
 func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	destinations, err := resource.Decode[*pbmesh.Upstreams](res)
+	destinations, err := resource.Decode[*pbmesh.Destinations](res)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func (m *Mapper) MapDestinationsToProxyStateTemplate(ctx context.Context, rt con
 	}
 
 	// Add this destination to destinationsCache.
-	for _, destination := range destinations.Data.Upstreams {
+	for _, destination := range destinations.Data.Destinations {
 		destinationRef := intermediate.CombinedDestinationRef{
 			ServiceRef:             destination.DestinationRef,
 			Port:                   destination.DestinationPort,
