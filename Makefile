@@ -66,8 +66,7 @@ UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 ENVOY_VERSION?='1.25.4'
-# TODO(jm): fix this when consul-dataplane is multi-arch
-CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"jmurrethc/consul-dataplane-dbg")
+CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
