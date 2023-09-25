@@ -97,7 +97,7 @@
                     },
                     "editorMode": "code",
                     "exemplar": false,
-                    "expr": "consul_consul_server_0_members_servers{pod=\"consul-server-0\"}",
+                    "expr": "consul_consul_server_0_consul_members_servers{pod=\"consul-server-0\"}",
                     "hide": false,
                     "instant": true,
                     "legendFormat": "__auto",
@@ -275,6 +275,85 @@
                 "type": "prometheus",
                 "uid": "PBFA97CFB590B2093"
             },
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 9
+            },
+            "id": 61,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "last"
+                    ],
+                    "fields": "/.*/",
+                    "limit": 1,
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "pluginVersion": "9.5.5",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max(consul_consul_server_0_version{pod=\"consul-server-0\"}) by (version)",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "Consul Server Version",
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true,
+                            "Value": true
+                        },
+                        "indexByName": {},
+                        "renameByName": {
+                            "Time": ""
+                        }
+                    }
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
             "description": "No data in agentless mode",
             "fieldConfig": {
                 "defaults": {
@@ -408,7 +487,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 10
+                        "y": 18
                     },
                     "id": 22,
                     "options": {
@@ -512,7 +591,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 10
+                        "y": 18
                     },
                     "id": 18,
                     "options": {
@@ -615,7 +694,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 18
+                        "y": 26
                     },
                     "id": 20,
                     "options": {
@@ -718,7 +797,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 18
+                        "y": 26
                     },
                     "id": 46,
                     "options": {
@@ -809,7 +888,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 26
+                        "y": 34
                     },
                     "id": 47,
                     "options": {
@@ -901,7 +980,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 26
+                        "y": 34
                     },
                     "id": 41,
                     "options": {
@@ -993,7 +1072,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 34
+                        "y": 42
                     },
                     "id": 42,
                     "options": {
@@ -1084,7 +1163,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1099,7 +1179,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 11
+                        "y": 19
                     },
                     "id": 44,
                     "options": {
@@ -1176,7 +1256,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1191,7 +1272,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 11
+                        "y": 19
                     },
                     "id": 45,
                     "options": {
@@ -1281,7 +1362,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1296,7 +1378,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 12
+                        "y": 20
                     },
                     "id": 6,
                     "options": {
@@ -1356,7 +1438,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1371,7 +1454,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 12
+                        "y": 20
                     },
                     "id": 4,
                     "options": {
@@ -1451,7 +1534,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1467,7 +1551,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 20
+                        "y": 28
                     },
                     "id": 2,
                     "options": {
@@ -1515,7 +1599,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1531,7 +1616,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 20
+                        "y": 28
                     },
                     "id": 8,
                     "options": {
@@ -1611,7 +1696,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1627,7 +1713,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 28
+                        "y": 36
                     },
                     "id": 48,
                     "options": {
@@ -1733,7 +1819,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 13
+                        "y": 21
                     },
                     "id": 26,
                     "options": {
@@ -1808,7 +1894,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 13
+                        "y": 21
                     },
                     "id": 28,
                     "options": {
@@ -1904,7 +1990,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 21
+                        "y": 29
                     },
                     "id": 23,
                     "options": {
@@ -1968,7 +2054,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 21
+                        "y": 29
                     },
                     "id": 25,
                     "options": {
@@ -2076,7 +2162,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 17
+                        "y": 25
                     },
                     "id": 55,
                     "options": {
@@ -2151,7 +2237,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 17
+                        "y": 25
                     },
                     "id": 56,
                     "options": {
@@ -2247,7 +2333,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 25
+                        "y": 33
                     },
                     "id": 59,
                     "options": {
@@ -2311,7 +2397,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 25
+                        "y": 33
                     },
                     "id": 58,
                     "options": {
@@ -2419,7 +2505,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 15
+                        "y": 23
                     },
                     "id": 31,
                     "options": {
@@ -2510,7 +2596,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 15
+                        "y": 23
                     },
                     "id": 34,
                     "options": {
@@ -2615,7 +2701,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 16
+                        "y": 24
                     },
                     "id": 50,
                     "options": {
@@ -2706,7 +2792,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 16
+                        "y": 24
                     },
                     "id": 51,
                     "options": {
@@ -2798,7 +2884,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 24
+                        "y": 32
                     },
                     "id": 52,
                     "options": {
@@ -2890,7 +2976,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 24
+                        "y": 32
                     },
                     "id": 53,
                     "options": {
@@ -2996,7 +3082,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 14
+                        "y": 22
                     },
                     "id": 37,
                     "options": {
@@ -3088,7 +3174,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 14
+                        "y": 22
                     },
                     "id": 36,
                     "options": {
@@ -3180,7 +3266,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 22
+                        "y": 30
                     },
                     "id": 39,
                     "options": {
@@ -3272,7 +3358,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 22
+                        "y": 30
                     },
                     "id": 32,
                     "options": {
@@ -3364,7 +3450,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 30
+                        "y": 38
                     },
                     "id": 38,
                     "options": {
@@ -3456,7 +3542,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 30
+                        "y": 38
                     },
                     "id": 35,
                     "options": {
@@ -3507,6 +3593,6 @@
     "timepicker": {},
     "timezone": "",
     "title": "Consul K8s monitoring (control plane)",
-    "version": 2,
+    "version": 8,
     "weekStart": ""
 }
