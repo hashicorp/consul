@@ -114,6 +114,7 @@ func getXRouteParentRefTestCases() map[string]xRouteParentRefTestcase {
 			Port: port,
 		}
 	}
+
 	return map[string]xRouteParentRefTestcase{
 		"no parent refs": {
 			routeTenancy: resource.DefaultNamespacedTenancy(),
@@ -372,7 +373,10 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 
 	userNewRoute := newRoute
 	newRoute = func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		require.NotEmpty(t, parentRefs)
+		require.NotEmpty(t, backendRefs)
 		res := userNewRoute(t, parentRefs, backendRefs)
+		res.Id.Tenancy = parentRefs[0].Tenancy
 		resourcetest.ValidateAndNormalize(t, registry, res)
 		return res
 	}
@@ -408,42 +412,54 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 		}
 	}
 
-	resOneParentOneBackend := newRoute(t,
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "api1"),
-		},
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "backend1"),
-		},
-	)
-	resTwoParentsOneBackend := newRoute(t,
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "api1"),
-			newRef(pbcatalog.ServiceType, "api2"),
-		},
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "backend1"),
-		},
-	)
-	resOneParentTwoBackends := newRoute(t,
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "api1"),
-		},
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "backend1"),
-			newRef(pbcatalog.ServiceType, "backend2"),
-		},
-	)
-	resTwoParentsTwoBackends := newRoute(t,
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "api1"),
-			newRef(pbcatalog.ServiceType, "api2"),
-		},
-		[]*pbresource.Reference{
-			newRef(pbcatalog.ServiceType, "backend1"),
-			newRef(pbcatalog.ServiceType, "backend2"),
-		},
-	)
+	serviceRef := func(tenancy, name string) *pbresource.Reference {
+		return newRefWithTenancy(pbcatalog.ServiceType, tenancy, name)
+	}
+
+	resOneParentOneBackend := func(parentTenancy, backendTenancy string) *pbresource.Resource {
+		return newRoute(t,
+			[]*pbresource.Reference{
+				serviceRef(parentTenancy, "api1"),
+			},
+			[]*pbresource.Reference{
+				serviceRef(backendTenancy, "backend1"),
+			},
+		)
+	}
+	resTwoParentsOneBackend := func(parentTenancy, backendTenancy string) *pbresource.Resource {
+		return newRoute(t,
+			[]*pbresource.Reference{
+				serviceRef(parentTenancy, "api1"),
+				serviceRef(parentTenancy, "api2"),
+			},
+			[]*pbresource.Reference{
+				serviceRef(backendTenancy, "backend1"),
+			},
+		)
+	}
+	resOneParentTwoBackends := func(parentTenancy, backendTenancy string) *pbresource.Resource {
+		return newRoute(t,
+			[]*pbresource.Reference{
+				serviceRef(parentTenancy, "api1"),
+			},
+			[]*pbresource.Reference{
+				serviceRef(backendTenancy, "backend1"),
+				serviceRef(backendTenancy, "backend2"),
+			},
+		)
+	}
+	resTwoParentsTwoBackends := func(parentTenancy, backendTenancy string) *pbresource.Resource {
+		return newRoute(t,
+			[]*pbresource.Reference{
+				serviceRef(parentTenancy, "api1"),
+				serviceRef(parentTenancy, "api2"),
+			},
+			[]*pbresource.Reference{
+				serviceRef(backendTenancy, "backend1"),
+				serviceRef(backendTenancy, "backend2"),
+			},
+		)
+	}
 
 	run := func(t *testing.T, name string, tc testcase) {
 		t.Run(name, func(t *testing.T) {
@@ -457,19 +473,29 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 			reg, ok := registry.Resolve(tc.res.Id.GetType())
 			require.True(t, ok)
 
-			err = reg.ACLs.Read(authz, &acl.AuthorizerContext{}, tc.res.Id, nil)
+			authCtx := &acl.AuthorizerContext{} // unused
+
+			err = reg.ACLs.Read(authz, authCtx, tc.res.Id, nil)
 			require.ErrorIs(t, err, resource.ErrNeedResource, "read hook should require the data payload")
 
-			checkF(t, "read", tc.readOK, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, tc.res.Id, tc.res))
-			checkF(t, "write", tc.writeOK, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, tc.res))
-			checkF(t, "list", DEFAULT, reg.ACLs.List(authz, &acl.AuthorizerContext{}))
+			checkF(t, "read", tc.readOK, reg.ACLs.Read(authz, authCtx, tc.res.Id, tc.res))
+			checkF(t, "write", tc.writeOK, reg.ACLs.Write(authz, authCtx, tc.res))
+			checkF(t, "list", DEFAULT, reg.ACLs.List(authz, authCtx))
 		})
 	}
 
-	serviceRead := func(name string) string {
+	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+
+	serviceRead := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "read" } } }`, partition, namespace, name)
+		}
 		return fmt.Sprintf(` service %q { policy = "read" } `, name)
 	}
-	serviceWrite := func(name string) string {
+	serviceWrite := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "write" } } }`, partition, namespace, name)
+		}
 		return fmt.Sprintf(` service %q { policy = "write" } `, name)
 	}
 
@@ -483,34 +509,64 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 		run(t, name, tc)
 	}
 
-	t.Run("no rules", func(t *testing.T) {
-		rules := ``
-		assert(t, "1parent 1backend", rules, resOneParentOneBackend, DENY, DENY)
-		assert(t, "1parent 2backends", rules, resOneParentTwoBackends, DENY, DENY)
-		assert(t, "2parents 1backend", rules, resTwoParentsOneBackend, DENY, DENY)
-		assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends, DENY, DENY)
-	})
-	t.Run("api1:read", func(t *testing.T) {
-		rules := serviceRead("api1")
-		assert(t, "1parent 1backend", rules, resOneParentOneBackend, ALLOW, DENY)
-		assert(t, "1parent 2backends", rules, resOneParentTwoBackends, ALLOW, DENY)
-		assert(t, "2parents 1backend", rules, resTwoParentsOneBackend, DENY, DENY)
-		assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends, DENY, DENY)
-	})
-	t.Run("api1:write", func(t *testing.T) {
-		rules := serviceWrite("api1")
-		assert(t, "1parent 1backend", rules, resOneParentOneBackend, ALLOW, DENY)
-		assert(t, "1parent 2backends", rules, resOneParentTwoBackends, ALLOW, DENY)
-		assert(t, "2parents 1backend", rules, resTwoParentsOneBackend, DENY, DENY)
-		assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends, DENY, DENY)
-	})
-	t.Run("api1:write backend1:read", func(t *testing.T) {
-		rules := serviceWrite("api1") + serviceRead("backend1")
-		assert(t, "1parent 1backend", rules, resOneParentOneBackend, ALLOW, ALLOW)
-		assert(t, "1parent 2backends", rules, resOneParentTwoBackends, ALLOW, DENY)
-		assert(t, "2parents 1backend", rules, resTwoParentsOneBackend, DENY, DENY)
-		assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends, DENY, DENY)
-	})
+	tenancies := []string{"default.default"}
+	if isEnterprise {
+		tenancies = append(tenancies, "default.foo", "alpha.default", "alpha.foo")
+	}
+
+	for _, parentTenancyStr := range tenancies {
+		t.Run("route tenancy: "+parentTenancyStr, func(t *testing.T) {
+			for _, backendTenancyStr := range tenancies {
+				t.Run("backend tenancy: "+backendTenancyStr, func(t *testing.T) {
+					for _, aclTenancyStr := range tenancies {
+						t.Run("acl tenancy: "+aclTenancyStr, func(t *testing.T) {
+							aclTenancy := resourcetest.Tenancy(aclTenancyStr)
+
+							maybe := func(match string, parentOnly bool) string {
+								if parentTenancyStr != aclTenancyStr {
+									return DENY
+								}
+								if !parentOnly && backendTenancyStr != aclTenancyStr {
+									return DENY
+								}
+								return match
+							}
+
+							t.Run("no rules", func(t *testing.T) {
+								rules := ``
+								assert(t, "1parent 1backend", rules, resOneParentOneBackend(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "1parent 2backends", rules, resOneParentTwoBackends(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "2parents 1backend", rules, resTwoParentsOneBackend(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends(parentTenancyStr, backendTenancyStr), DENY, DENY)
+							})
+							t.Run("api1:read", func(t *testing.T) {
+								rules := serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "api1")
+								assert(t, "1parent 1backend", rules, resOneParentOneBackend(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "1parent 2backends", rules, resOneParentTwoBackends(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "2parents 1backend", rules, resTwoParentsOneBackend(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends(parentTenancyStr, backendTenancyStr), DENY, DENY)
+							})
+							t.Run("api1:write", func(t *testing.T) {
+								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api1")
+								assert(t, "1parent 1backend", rules, resOneParentOneBackend(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "1parent 2backends", rules, resOneParentTwoBackends(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "2parents 1backend", rules, resTwoParentsOneBackend(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends(parentTenancyStr, backendTenancyStr), DENY, DENY)
+							})
+							t.Run("api1:write backend1:read", func(t *testing.T) {
+								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api1") +
+									serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "backend1")
+								assert(t, "1parent 1backend", rules, resOneParentOneBackend(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), maybe(ALLOW, false))
+								assert(t, "1parent 2backends", rules, resOneParentTwoBackends(parentTenancyStr, backendTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "2parents 1backend", rules, resTwoParentsOneBackend(parentTenancyStr, backendTenancyStr), DENY, DENY)
+								assert(t, "2parents 2backends", rules, resTwoParentsTwoBackends(parentTenancyStr, backendTenancyStr), DENY, DENY)
+							})
+						})
+					}
+				})
+			}
+		})
+	}
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
