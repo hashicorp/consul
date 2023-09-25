@@ -50,7 +50,6 @@ message PartitionTrafficPermissions {
 // be in the same tenancy as the TrafficPermissions resource.
 message Destination {
   string identity_name = 1;
-  string identity_prefix = 2;
 }
 
 enum Action {
