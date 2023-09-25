@@ -31,6 +31,7 @@ func TestMutateHTTPRoute(t *testing.T) {
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		err := MutateHTTPRoute(res)
 
@@ -196,14 +197,17 @@ func TestMutateHTTPRoute(t *testing.T) {
 
 func TestValidateHTTPRoute(t *testing.T) {
 	type testcase struct {
-		route     *pbmesh.HTTPRoute
-		expectErr string
+		routeTenancy *pbresource.Tenancy
+		route        *pbmesh.HTTPRoute
+		expectErr    string
 	}
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(pbmesh.HTTPRouteType, "api").
+			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		// Ensure things are properly mutated and updated in the inputs.
 		err := MutateHTTPRoute(res)
@@ -840,6 +844,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 	// Add common parent refs test cases.
 	for name, parentTC := range getXRouteParentRefTestCases() {
 		cases["parent-ref: "+name] = testcase{
+			routeTenancy: parentTC.routeTenancy,
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: parentTC.refs,
 			},
@@ -855,6 +860,7 @@ func TestValidateHTTPRoute(t *testing.T) {
 			})
 		}
 		cases["backend-ref: "+name] = testcase{
+			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
 					newParentRef(pbcatalog.ServiceType, "web", ""),
