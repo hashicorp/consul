@@ -112,11 +112,6 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 			GroupVersion: "v2beta1",
 			Kind:         "Service",
 		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-server"}},
 		Ports: []*pbcatalog.ServicePort{
@@ -141,11 +136,6 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 			GroupVersion: "v2beta1",
 			Kind:         "Workload",
 		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -158,18 +148,13 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 	return serverService
 }
 
-func createClientResources(t *testing.T, resourceClient *rtest.Client, staticServerRef *pbresource.Resource, ipAddress string) {
+func createClientResources(t *testing.T, resourceClient *rtest.Client, staticServerResource *pbresource.Resource, ipAddress string) {
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-client-service",
 		Type: &pbresource.Type{
 			Group:        "catalog",
 			GroupVersion: "v2beta1",
 			Kind:         "Service",
-		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
 		},
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-client"}},
@@ -195,11 +180,6 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 			GroupVersion: "v2beta1",
 			Kind:         "Workload",
 		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -210,7 +190,7 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 		}).
 		Write(t, resourceClient)
 
-	destId := staticServerRef.GetId()
+	destId := staticServerResource.GetId()
 	destRef := &pbresource.Reference{
 		Type:    destId.Type,
 		Tenancy: destId.Tenancy,
@@ -223,11 +203,6 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 			Group:        "mesh",
 			GroupVersion: "v2beta1",
 			Kind:         "Destinations",
-		},
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
 		},
 	}).
 		WithData(t, &pbmesh.Destinations{

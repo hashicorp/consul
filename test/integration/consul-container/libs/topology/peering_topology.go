@@ -267,20 +267,18 @@ func NewClusterWithConfig(
 		retryJoin = append(retryJoin, fmt.Sprintf("agent-%d", i))
 	}
 
-	if config.NumClients > 0 {
-		// Add numClients static clients to register the service
-		configbuiilder := libcluster.NewConfigBuilder(ctx).
-			Client().
-			Peering(true).
-			RetryJoin(retryJoin...)
-		clientConf := configbuiilder.ToAgentConfig(t)
-		t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
-		if clientHclConfig != "" {
-			clientConf.MutatebyAgentConfig(clientHclConfig)
-		}
-
-		require.NoError(t, cluster.AddN(*clientConf, config.NumClients, true))
+	// Add numClients static clients to register the service
+	configbuiilder := libcluster.NewConfigBuilder(ctx).
+		Client().
+		Peering(true).
+		RetryJoin(retryJoin...)
+	clientConf := configbuiilder.ToAgentConfig(t)
+	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
+	if clientHclConfig != "" {
+		clientConf.MutatebyAgentConfig(clientHclConfig)
 	}
+
+	require.NoError(t, cluster.AddN(*clientConf, config.NumClients, true))
 
 	// Use the client agent as the HTTP endpoint since we will not rotate it in many tests.
 	var client *api.Client
