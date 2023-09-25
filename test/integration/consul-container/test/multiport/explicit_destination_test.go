@@ -222,7 +222,7 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 		Type: &pbresource.Type{
 			Group:        "mesh",
 			GroupVersion: "v2beta1",
-			Kind:         "Upstreams",
+			Kind:         "Destinations",
 		},
 		Tenancy: &pbresource.Tenancy{
 			Partition: "default",
