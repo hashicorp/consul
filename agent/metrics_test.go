@@ -491,7 +491,7 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 			if t.Failed() {
 				t.Log("--- Failed output START ---")
 				t.Log(out)
-				t.Log("--- Failed output END -test--")
+				t.Log("--- Failed output END ---")
 			}
 		}()
 		require.Contains(t, out, "agent_5_raft_wal_head_truncations")
