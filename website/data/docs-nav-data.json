@@ -1544,11 +1544,7 @@
         "routes": [
           {
             "title": "Deploy using the Terraform module",
-            "path": "ecs/deploy/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/deploy/secure-configuration"
+            "path": "ecs/deploy/install-terraform"
           },
           {
             "title": "Migrate Existing Tasks",
