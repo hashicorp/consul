@@ -1540,18 +1540,26 @@
         "path": "ecs"
       },
       {
+        "title": "Architecture",
+        "path": "ecs/architecture"
+      },
+      {
+        "title": "Technical specifications",
+        "path": "ecs/tech-specs"
+      },
+      {
         "title": "Deploy Consul to ECS",
         "routes": [
           {
             "title": "Deploy using the Terraform module",
-            "path": "ecs/deploy/install-terraform"
+            "path": "ecs/deploy/terraform"
           },
           {
-            "title": "Configure the bind address",
+            "title": "Configure the ECS task bind address",
             "path": "ecs/deploy/bind-addresses"
           },
           {
-            "title": "Configure routes between tasks",
+            "title": "Configure routes between ECS tasks",
             "path": "ecs/deploy/configure-routes"
           },
           {
@@ -1584,14 +1592,6 @@
       {
         "title": "Reference",
         "routes": [
-          {
-            "title": "Architecture",
-            "path": "ecs/reference/architecture"
-          },
-          {
-            "title": "Technical specifications",
-            "path": "ecs/reference/tech-specs"
-          },
           {
             "title": "Configuration reference",
             "path": "ecs/reference/configuration-reference"
