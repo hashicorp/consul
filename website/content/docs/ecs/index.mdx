@@ -22,7 +22,7 @@ You can install Consul on ECS with the HashiCorp [Terraform modules](/consul/doc
 
 ### Manual installation
 
-To manually install Consul, you must create definitions for each container that operates in the ECS cluster. Refer to [Architecture]() for information about the Consul containers you must deploy. Note that there is no manual process for creating gateway task containers. Gateways enable you to connect multiple datacenters or admin partitions. You must use Terraform if you want to deploy gateways to your network.
+To manually install Consul, you must create definitions for each container that operates in the ECS cluster. Refer to [Architecture](/consul/docs/ecs/reference/architecture) for information about the Consul containers you must deploy. Note that there is no manual process for creating gateway task containers. Gateways enable you to connect multiple datacenters or admin partitions. You must use Terraform if you want to deploy gateways to your network.
 
 ## Guidance
 
@@ -30,12 +30,12 @@ Refer to the following documentation and tutorials for additional guidance.
 
 ### Tutorials
 
-- [Integrate your AWS ECS services into Consul service mesh](): Shows how to use Terraform to run Consul service mesh applications on ECS with self-managed Consul or HCP-managed Consul.
+- [Integrate your AWS ECS services into Consul service mesh](/consul/tutorials/cloud-integrations/consul-ecs): Shows how to use Terraform to run Consul service mesh applications on ECS with self-managed Consul or HCP-managed Consul.
 
 The following are additional example configuration for Consul on ECS:
 
 - [Examples on GitHub](https://github.com/hashicorp/terraform-aws-consul-ecs/tree/main/examples)
- [Consul with dev server on ECS using the Fargate launch type](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate) 
+- [Consul with dev server on ECS using the Fargate launch type](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-fargate) 
 - [Consul with dev server onn ECS using the EC2 launch type](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/examples/dev-server-ec2)
 
 ### Documentation
@@ -47,5 +47,5 @@ The following are additional example configuration for Consul on ECS:
 
 ### Reference
 
-- [Architecture]()
-- [Technical specifications]()
+- [Architecture](/consul/docs/ecs/reference/architecture)
+- [Technical specifications](/consul/docs/ecs/reference/tech-specs)

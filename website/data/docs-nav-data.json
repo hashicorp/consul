@@ -1540,14 +1540,6 @@
         "path": "ecs"
       },
       {
-        "title": "Requirements",
-        "path": "ecs/requirements"
-      },
-      {
-        "title": "Task Resource Usage",
-        "path": "ecs/task-resource-usage"
-      },
-      {
         "title": "Install with Terraform",
         "routes": [
           {
@@ -1582,10 +1574,6 @@
         ]
       },
       {
-        "title": "Architecture",
-        "path": "ecs/architecture"
-      },
-      {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       },
@@ -1596,6 +1584,19 @@
       {
         "title": "Compatibility Matrix",
         "path": "ecs/compatibility"
+      },
+      {
+        "title": "Reference",
+        "routes": [
+          {
+            "title": "Architecture",
+            "path": "ecs/reference/architecture"
+          },
+          {
+            "title": "Technical specifications",
+            "path": "ecs/reference/tech-specs"
+          }
+        ]
       }
     ]
   },
