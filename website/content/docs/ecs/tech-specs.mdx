@@ -5,9 +5,11 @@ description: >-
   Consul has requirements to install and run on Amazon Web Services ECS. Learn about Consul's requirements for Fargate and EC2, including network mode and subnet information, as well as server, routing, and ACL controller considerations to keep in mind.
 ---
 
-# Technical specifications for Consul on AWS Elastic Container Service (ECS)
+# Technical specifications for Consul on ECS
 
-This topic describes the general requirements and specifications for using Consul service mesh for your ECS workloads. For requirements associated with using the Terraform mesh-task module to deploy Consul service mesh, refer [Deploy Consul with the Terraform module](/consul/docs/ecs/install-terraform). For requirements associated with manually deploying Consul service mesh to your ECS cluster, refer [Deploy Consul manually](/consul/docs/ecs/install-manual). 
+This topic describes the supported runtimes and environments for using Consul service mesh for your ECS workloads.
+
+For requirements associated with using the Terraform mesh-task module to deploy Consul service mesh, refer [Deploy Consul with the Terraform module](/consul/docs/ecs/deploy/terraform). For requirements associated with manually deploying Consul service mesh to your ECS cluster, refer [Deploy Consul manually](/consul/docs/ecs/deploy/manual). 
 
 ## Supported environments and runtimes
 
@@ -48,4 +50,4 @@ The containers added by Consul on ECS consume resources well below the minimum C
 memory limits for an ECS task. Use the `memory` and `cpu` settings for the task definition
 if additional resources are necessary for your application task.
 
-Refer to [Architecture](/consul/docs/ecs/reference/architecture) for details about each component.
+Refer to [Architecture](/consul/docs/ecs/architecture) for details about each component.

@@ -129,7 +129,7 @@ Provide Consul server connection settings to the mesh task module so that the mo
 
   When you apply the configuration, the mesh task module interpolates the server configuration variables, builds a `config.tf` file, and injects the settings into the appropriate containers. 
 
-For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/configuration-reference). 
+For additional information about the `config.tf` file, refer to the [JSON schema reference documentation](/consul/docs/ecs/reference/consul-server-json). 
 
 ## Configure an ECS service to run your task instances
 
@@ -171,7 +171,7 @@ Refer to the following documentation for additional information:
 - [WAN Federation via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways)
 - [Service-to-service Traffic Across Datacenters](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters)
 
-Mesh gateways require TLS and gossip encryption to be enabled. Refer to the [Requirements]() for additional information. 
+Mesh gateways require TLS and gossip encryption to be enabled. Refer to the [Requirements](#requirements) for additional information. 
 
 1. Add a `module` block to your Terraform configuration file and specify a label. The label is a unique identifier for the gateway.
 1. Add a `source` to the `module` and specify the location of the `gateway-task`. The value must be `hashicorp/consul-ecs/aws//modules/gateway-task`.
