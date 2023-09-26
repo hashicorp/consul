@@ -268,11 +268,11 @@ func NewClusterWithConfig(
 	}
 
 	// Add numClients static clients to register the service
-	configbuiilder := libcluster.NewConfigBuilder(ctx).
+	configBuilder := libcluster.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
 		RetryJoin(retryJoin...)
-	clientConf := configbuiilder.ToAgentConfig(t)
+	clientConf := configBuilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 	if clientHclConfig != "" {
 		clientConf.MutatebyAgentConfig(clientHclConfig)

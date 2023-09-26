@@ -11,19 +11,13 @@ import (
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/stretchr/testify/require"
 	"testing"
-	"time"
 
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-)
-
-var (
-	requestRetryTimer = &retry.Timer{Timeout: 120 * time.Second, Wait: 500 * time.Millisecond}
 )
 
 // TestMultiportService_Explicit makes sure two services in the same datacenter have connectivity
@@ -107,11 +101,7 @@ func createServiceAndDataplane(t *testing.T, node libcluster.Agent, proxyID, ser
 func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client, ipAddress string) *pbresource.Resource {
 	serverService := rtest.ResourceID(&pbresource.ID{
 		Name: "static-server-service",
-		Type: &pbresource.Type{
-			Group:        "catalog",
-			GroupVersion: "v2beta1",
-			Kind:         "Service",
-		},
+		Type: pbcatalog.ServiceType,
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-server"}},
 		Ports: []*pbcatalog.ServicePort{
@@ -131,11 +121,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-server-workload",
-		Type: &pbresource.Type{
-			Group:        "catalog",
-			GroupVersion: "v2beta1",
-			Kind:         "Workload",
-		},
+		Type: pbcatalog.WorkloadType,
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -151,11 +137,7 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 func createClientResources(t *testing.T, resourceClient *rtest.Client, staticServerResource *pbresource.Resource, ipAddress string) {
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-client-service",
-		Type: &pbresource.Type{
-			Group:        "catalog",
-			GroupVersion: "v2beta1",
-			Kind:         "Service",
-		},
+		Type: pbcatalog.ServiceType,
 	}).WithData(t, &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"static-client"}},
 		Ports: []*pbcatalog.ServicePort{
@@ -175,11 +157,7 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-client-workload",
-		Type: &pbresource.Type{
-			Group:        "catalog",
-			GroupVersion: "v2beta1",
-			Kind:         "Workload",
-		},
+		Type: pbcatalog.WorkloadType,
 	}).
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
@@ -199,11 +177,7 @@ func createClientResources(t *testing.T, resourceClient *rtest.Client, staticSer
 	}
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-client-upstreams",
-		Type: &pbresource.Type{
-			Group:        "mesh",
-			GroupVersion: "v2beta1",
-			Kind:         "Destinations",
-		},
+		Type: pbmesh.DestinationsType,
 	}).
 		WithData(t, &pbmesh.Destinations{
 			Destinations: []*pbmesh.Destination{
