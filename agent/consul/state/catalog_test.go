@@ -2199,14 +2199,10 @@ func TestStateStore_Services(t *testing.T) {
 		Port:    1111,
 	}
 	ns1.EnterpriseMeta.Normalize()
-	ns1.Tags = []string{}
-	ns1.Meta = map[string]string{}
 	if err := s.EnsureService(2, "node1", ns1); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	ns1Dogs := testRegisterService(t, s, 3, "node1", "dogs")
-	ns1Dogs.Tags = nil
-	ns1Dogs.Meta = map[string]string{}
 	ns1Dogs.EnterpriseMeta.Normalize()
 
 	testRegisterNode(t, s, 4, "node2")
@@ -2217,9 +2213,7 @@ func TestStateStore_Services(t *testing.T) {
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
-	ns2.Tags = []string{}
 	ns2.EnterpriseMeta.Normalize()
-	ns2.Meta = map[string]string{}
 	if err := s.EnsureService(5, "node2", ns2); err != nil {
 		t.Fatalf("err: %s", err)
 	}
