@@ -1540,19 +1540,19 @@
         "path": "ecs"
       },
       {
-        "title": "Install with Terraform",
+        "title": "Deploy Consul to ECS",
         "routes": [
           {
-            "title": "Installation",
-            "path": "ecs/terraform/install"
+            "title": "Deploy using the Terraform module",
+            "path": "ecs/deploy/install"
           },
           {
             "title": "Secure Configuration",
-            "path": "ecs/terraform/secure-configuration"
+            "path": "ecs/deploy/secure-configuration"
           },
           {
             "title": "Migrate Existing Tasks",
-            "path": "ecs/terraform/migrate-existing-tasks"
+            "path": "ecs/deploy/migrate-existing-tasks"
           }
         ]
       },
