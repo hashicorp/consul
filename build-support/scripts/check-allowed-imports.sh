@@ -46,7 +46,7 @@ function main {
          then
             module_root="$1"
          else
-            allowed_packages+="$1"
+            allowed_packages+=("$1")
          fi
          shift     
       esac
