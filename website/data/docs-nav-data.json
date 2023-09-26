@@ -1555,6 +1555,10 @@
             "path": "ecs/deploy/terraform"
           },
           {
+            "title": "Deploy manually",
+            "path": "ecs/deploy/manual"
+          },
+          {
             "title": "Configure the ECS task bind address",
             "path": "ecs/deploy/bind-addresses"
           },
@@ -1565,23 +1569,6 @@
           {
             "title": "Migrate existing tasks",
             "path": "ecs/deploy/migrate-existing-tasks"
-          }
-        ]
-      },
-      {
-        "title": "Install Manually",
-        "routes": [
-          {
-            "title": "Installation",
-            "path": "ecs/manual/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/manual/secure-configuration"
-          },
-          {
-            "title": "ACL Controller",
-            "path": "ecs/manual/acl-controller"
           }
         ]
       },
@@ -1599,6 +1586,10 @@
           {
             "title": "Compatibility matrix",
             "path": "ecs/reference/compatibility"
+          },
+          {
+            "title": "Consul server JSON schema",
+            "path": "ecs/reference/consul-server-json"
           }
         ]
       }
