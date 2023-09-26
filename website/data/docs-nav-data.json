@@ -1547,7 +1547,15 @@
             "path": "ecs/deploy/install-terraform"
           },
           {
-            "title": "Migrate Existing Tasks",
+            "title": "Configure the bind address",
+            "path": "ecs/deploy/bind-addresses"
+          },
+          {
+            "title": "Configure routes between tasks",
+            "path": "ecs/deploy/configure-routes"
+          },
+          {
+            "title": "Migrate existing tasks",
             "path": "ecs/deploy/migrate-existing-tasks"
           }
         ]

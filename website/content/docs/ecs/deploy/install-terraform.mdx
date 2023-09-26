@@ -5,7 +5,7 @@ description: >-
   When you install Consul on Amazon Web Services ECS, you can use Terraform modules to simplify the process. Learn how to create task definitions, schedule tasks for your service mesh, and configure routes with example configurations.
 ---
 
-# Install Consul on AWS Elastic Container Service (ECS) with Terraform
+# Deploy Consul to ECS using the Terraform module
 
 
 This topic describes how to create a Terraform configuration that deploys Consul service mesh to your ECS cluster workloads. Consul server agents do not run on ECS and must be deployed to another runtime, such as EKS, and connected to your ECS workloads. Refer [Consul on AWS Elastic Container Service overview](/consul/docs/ecs) for additional information.
@@ -383,7 +383,7 @@ Refer to the [Terraform documentation](/terraform/docs) for more information and
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
 
 - [Configure routes between ECS tasks]()
-- [Configure the ECS task bind address]()
+- [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
 
 
 ## Gateway task configuration examples
@@ -485,108 +485,3 @@ module "my_mesh_gateway" {
 
 When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/consul/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
 
-
-## Configure routes
-
-Now that your tasks are registered in the mesh, you're able to use the service
-mesh to route between them.
-
-In order to make calls through the service mesh, you must configure the sidecar
-proxy to listen on a different port for each upstream service your application
-needs to call. You then must modify your application to make requests to the sidecar
-proxy on that port.
-
-For example, if your application `web` makes calls to another application called `backend`, then you would first configure the `mesh-task` module's upstream(s):
-
-```hcl
-module "web" {
-  family = "web"
-  upstreams = [
-    {
-      destinationName = "backend"
-      localBindPort = 8080
-    }
-  ]
-}
-```
-
-| Input Variable    | Type    | Description                                                                                                                                                      |
-| ----------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `destinationName` | string  | The name of the upstream service, as it is registered in the Consul service catalog.                                                                             |
-| `localBindPort`   | integer | Requests to this port will be forwarded by the proxy to the upstream service. This must be an unused port, but does not need to match the upstream service port. |
-
-If you have multiple upstream services they each need to be listed here.
-
-Next, configure your application to make requests to `localhost:8080` when
-it wants to call the `backend` service.
-
-For example, if your service allows configuring the URL for `backend` via the
-`BACKEND_URL` environment variable, you would set:
-
-```hcl
-module "web" {
-  family = "web"
-  upstreams = [
-    {
-      destinationName = "backend"
-      localBindPort = 8080
-    }
-  ]
-  container_definitions = [
-    {
-      name        = "web"
-      environment = [
-        {
-          name  = "BACKEND_URL"
-          value = "http://localhost:8080"
-        }
-      ]
-      ...
-    }
-  ]
-  ...
-}
-```
-
-## Configure the bind address
-
-To ensure that your application only receives traffic through the service mesh,
-you must change the address that your application listens on to the loopback address. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`.
-Binding to the loopback address allows the sidecar proxy running in the same task to only make requests within the service mesh.
-
-If your application is listening on all interfaces, such as `0.0.0.0`, then other
-applications can call it directly, bypassing its sidecar proxy.
-
-Changing the listening address is specific to the language and framework you're
-using in your application. Regardless of which language or framework you're using,
-binding the loopback address to a dynamic value, such as an environment variable, is a best practice:
-
-```bash
-export BIND_ADDRESS="127.0.0.1:8080"
-```
-
-The following examples demonstrate how to bind the loopback address to an environment variable in golang and Django (Python):
-
-<CodeTabs>
-
-```go
-s := &http.Server{
-	Addr: os.Getenv("BIND_ADDRESS"),
-  ...
-}
-log.Fatal(s.ListenAndServe())
-```
-
-```bash
-python manage.py runserver "$BIND_ADDRESS"
-```
-
-</CodeTabs>
-
-## Next steps
-
-- Follow the [Secure Configuration](/consul/docs/ecs/terraform/secure-configuration) to get production-ready.
-- Now that your applications are running in the service mesh, read about
-  other [Service Mesh features](/consul/docs/connect).
-- View the [Architecture](/consul/docs/ecs/architecture) documentation to understand
-  what's going on under the hood.
