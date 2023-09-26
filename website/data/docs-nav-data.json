@@ -1578,14 +1578,6 @@
         "path": "ecs/enterprise"
       },
       {
-        "title": "Configuration Reference",
-        "path": "ecs/configuration-reference"
-      },
-      {
-        "title": "Compatibility Matrix",
-        "path": "ecs/compatibility"
-      },
-      {
         "title": "Reference",
         "routes": [
           {
@@ -1595,6 +1587,14 @@
           {
             "title": "Technical specifications",
             "path": "ecs/reference/tech-specs"
+          },
+          {
+            "title": "Configuration reference",
+            "path": "ecs/reference/configuration-reference"
+          },
+          {
+            "title": "Compatibility matrix",
+            "path": "ecs/reference/compatibility"
           }
         ]
       }
