@@ -487,6 +487,13 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
+		defer func() {
+			if t.Failed() {
+				t.Log("--- Failed output START ---")
+				t.Log(out)
+				t.Log("--- Failed output END ---")
+			}
+		}()
 		require.Contains(t, out, "agent_5_raft_wal_head_truncations")
 		require.Contains(t, out, "agent_5_raft_wal_last_segment_age_seconds")
 		require.Contains(t, out, "agent_5_raft_wal_log_appends")
@@ -587,6 +594,13 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
+		defer func() {
+			if t.Failed() {
+				t.Log("--- Failed output START ---")
+				t.Log(out)
+				t.Log("--- Failed output END ---")
+			}
+		}()
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_checkpoints_written")
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_dropped_reports")
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_ranges_verified")

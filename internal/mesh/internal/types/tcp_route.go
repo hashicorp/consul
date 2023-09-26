@@ -9,31 +9,18 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	TCPRouteKind = "TCPRoute"
-)
-
-var (
-	TCPRouteV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         TCPRouteKind,
-	}
-
-	TCPRouteType = TCPRouteV1Alpha1Type
 )
 
 func RegisterTCPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     TCPRouteV1Alpha1Type,
+		Type:     pbmesh.TCPRouteType,
 		Proto:    &pbmesh.TCPRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateTCPRoute,
 		Validate: ValidateTCPRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.TCPRoute](),
 	})
 }
 

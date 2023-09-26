@@ -5,9 +5,20 @@ package xroutemapper
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+func refSliceToRefSlice(refs []*pbresource.Reference) []resource.ReferenceOrID {
+	if refs == nil {
+		return nil
+	}
+	out := make([]resource.ReferenceOrID, 0, len(refs))
+	for _, ref := range refs {
+		out = append(out, ref)
+	}
+	return out
+}
 
 func parentRefSliceToRefSlice(parentRefs []*pbmesh.ParentReference) []resource.ReferenceOrID {
 	if parentRefs == nil {

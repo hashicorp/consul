@@ -10,20 +10,20 @@ import (
 	"github.com/stretchr/testify/require"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestMapComputedTrafficPermissionsToProxyStateTemplate(t *testing.T) {
 	client := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
-	ctp := resourcetest.Resource(auth.ComputedTrafficPermissionsType, "workload-identity-1").
+	ctp := resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, "workload-identity-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbauth.ComputedTrafficPermissions{}).
 		Build()
@@ -36,12 +36,12 @@ func TestMapComputedTrafficPermissionsToProxyStateTemplate(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, requests, 0)
 
-	identityID1 := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-1").
+	identityID1 := resourcetest.Resource(pbauth.WorkloadIdentityType, "workload-identity-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
-	proxyID1 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-1").
+	proxyID1 := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyID2 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-2").
+	proxyID2 := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	i.TrackPair(identityID1, proxyID1)

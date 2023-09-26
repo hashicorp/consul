@@ -8,10 +8,9 @@ import (
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.ComputedTrafficPermissions) *Builder {
@@ -190,17 +189,17 @@ func sourceToSpiffe(trustDomain string, s pbauth.SourceToSpiffe) *pbproxystate.S
 		name = anyPath
 	}
 
-	spiffeMatcher := connect.SpiffeIDFromIdentityRef(trustDomain, &pbresource.Reference{
-		Name: name,
-		Tenancy: &pbresource.Tenancy{
-			Partition: ap,
-			Namespace: ns,
-			PeerName:  s.GetPeer(),
-		},
-	})
+	spiffeURI := connect.SpiffeIDWorkloadIdentity{
+		TrustDomain:      trustDomain,
+		Partition:        ap,
+		Namespace:        ns,
+		WorkloadIdentity: name,
+	}.URI()
+
+	matcher := fmt.Sprintf(`^%s://%s%s$`, spiffeURI.Scheme, spiffeURI.Host, spiffeURI.Path)
 
 	return &pbproxystate.Spiffe{
-		Regex: fmt.Sprintf(`^%s$`, spiffeMatcher),
+		Regex: matcher,
 	}
 }
 

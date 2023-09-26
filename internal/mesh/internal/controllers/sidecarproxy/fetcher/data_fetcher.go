@@ -12,17 +12,15 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -51,7 +49,7 @@ func New(
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
-	proxyID := resource.ReplaceType(types.ProxyStateTemplateType, id)
+	proxyID := resource.ReplaceType(pbmesh.ProxyStateTemplateType, id)
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.Client, id)
 	if err != nil {
 		return nil, err
@@ -67,7 +65,7 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	identityID := &pbresource.ID{
 		Name:    dec.Data.Identity,
 		Tenancy: dec.Resource.Id.Tenancy,
-		Type:    auth.WorkloadIdentityType,
+		Type:    pbauth.WorkloadIdentityType,
 	}
 
 	f.IdentitiesCache.TrackPair(identityID, proxyID)
@@ -92,7 +90,7 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 }
 
 func (f *Fetcher) FetchDestinations(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinations, error) {
-	return resource.GetDecodedResource[*pbmesh.Upstreams](ctx, f.Client, id)
+	return resource.GetDecodedResource[*pbmesh.Destinations](ctx, f.Client, id)
 }
 
 func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedRoutes, error) {
@@ -190,7 +188,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		}
 
 		// Fetch ComputedRoutes.
-		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(types.ComputedRoutesType, serviceID))
+		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(pbmesh.ComputedRoutesType, serviceID))
 		if err != nil {
 			return nil, statuses, err
 		} else if cr == nil {
@@ -227,11 +225,12 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 			continue // the cache is out of sync
 		}
 
+		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		for _, routeTarget := range d.ComputedPortRoutes.Targets {
 			targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
 			// Fetch ServiceEndpoints.
-			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID))
+			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID))
 			if err != nil {
 				return nil, statuses, err
 			}
@@ -286,7 +285,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 
 	// For now we need to look up all computed routes within a partition.
 	rsp, err := f.Client.List(ctx, &pbresource.ListRequest{
-		Type: types.ComputedRoutesType,
+		Type: pbmesh.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
@@ -298,7 +297,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 	}
 
 	for _, r := range rsp.Resources {
-		svcID := resource.ReplaceType(catalog.ServiceType, r.Id)
+		svcID := resource.ReplaceType(pbcatalog.ServiceType, r.Id)
 		computedRoutes, err := resource.Decode[*pbmesh.ComputedRoutes](r)
 		if err != nil {
 			return nil, err
@@ -311,7 +310,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 
 		// Fetch the service.
 		// todo (ishustava): this should eventually grab virtual IPs resource.
-		svc, err := f.FetchService(ctx, resource.ReplaceType(catalog.ServiceType, r.Id))
+		svc, err := f.FetchService(ctx, resource.ReplaceType(pbcatalog.ServiceType, r.Id))
 		if err != nil {
 			return nil, err
 		}
@@ -321,7 +320,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// If this proxy is a part of this service, ignore it.
-		if isPartOfService(resource.ReplaceType(catalog.WorkloadType, proxyID), svc) {
+		if isPartOfService(resource.ReplaceType(pbcatalog.WorkloadType, proxyID), svc) {
 			continue
 		}
 
@@ -339,12 +338,14 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 		}
 
 		// Fetch the resources that may show up duplicated.
+		//
+		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		endpointsMap := make(map[resource.ReferenceKey]*types.DecodedServiceEndpoints)
 		for _, portConfig := range computedRoutes.Data.PortedConfigs {
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
 
-				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+				seID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
 				seRK := resource.NewReferenceKey(seID)
 
 				if _, ok := endpointsMap[seRK]; !ok {
@@ -382,7 +383,7 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 			}
 			for _, routeTarget := range portConfig.Targets {
 				targetServiceID := resource.IDFromReference(routeTarget.BackendRef.Ref)
-				seID := resource.ReplaceType(catalog.ServiceEndpointsType, targetServiceID)
+				seID := resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID)
 
 				// Fetch ServiceEndpoints.
 				se, ok := endpointsMap[resource.NewReferenceKey(seID)]
@@ -489,8 +490,8 @@ func findServicePort(ports []*pbcatalog.ServicePort, name string) *pbcatalog.Ser
 	return nil
 }
 
-func findDestination(ref *pbresource.Reference, port string, destinations *pbmesh.Upstreams) *pbmesh.Upstream {
-	for _, destination := range destinations.Upstreams {
+func findDestination(ref *pbresource.Reference, port string, destinations *pbmesh.Destinations) *pbmesh.Destination {
+	for _, destination := range destinations.Destinations {
 		if resource.EqualReference(ref, destination.DestinationRef) &&
 			port == destination.DestinationPort {
 			return destination

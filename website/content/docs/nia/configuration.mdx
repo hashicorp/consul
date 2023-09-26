@@ -564,7 +564,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  module_input “services” {
+  module_input "services" {
     regexp = "^web.*"
     datacenter = "dc1"
     namespace  = "default"

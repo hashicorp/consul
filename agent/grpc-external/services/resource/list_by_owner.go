@@ -74,7 +74,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		}
 
 		// Filter out children that fail real ACL.
-		err = childReg.ACLs.Read(childAuthz, childAuthzContext, child.Id)
+		err = childReg.ACLs.Read(childAuthz, childAuthzContext, child.Id, child)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

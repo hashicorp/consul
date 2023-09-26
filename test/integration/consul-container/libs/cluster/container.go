@@ -614,6 +614,7 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"8500/tcp", // Consul HTTP API
 			"8501/tcp", // Consul HTTPs API
 			"8502/tcp", // Consul gRPC API
+			"8600/udp", // Consul DNS API
 
 			"8443/tcp", // Envoy Gateway Listener
 

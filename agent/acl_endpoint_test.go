@@ -1374,7 +1374,7 @@ func TestACL_HTTP(t *testing.T) {
 
 			var list map[string]api.ACLTemplatedPolicyResponse
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-			require.Len(t, list, 3)
+			require.Len(t, list, 4)
 
 			require.Equal(t, api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,

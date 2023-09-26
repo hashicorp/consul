@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 
@@ -288,14 +288,14 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		tc.workloadData.Ports = map[string]*pbcatalog.WorkloadPort{
 			"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 		}
-		workloadResource := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+		workloadResource := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 			WithData(t, tc.workloadData).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, resourceClient)
 
 		// Create any proxy cfg resources.
 		for i, cfg := range tc.proxyCfgs {
-			resourcetest.Resource(mesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
+			resourcetest.Resource(pbmesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
 				WithData(t, cfg).
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				Write(t, resourceClient)
@@ -543,7 +543,7 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 		require.Equal(t, tc.expecteErrMsg, errStatus.Message())
 	}
 
-	workload := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},

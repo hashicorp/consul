@@ -6,20 +6,22 @@ package xds
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/lib"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -33,8 +35,8 @@ func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher 
 		panic("endpointsMapper, updater, fetcher, leafCertManager, leafMapper, and datacenter are required")
 	}
 
-	return controller.ForType(types.ProxyStateTemplateType).
-		WithWatch(catalog.ServiceEndpointsType, endpointsMapper.MapLink).
+	return controller.ForType(pbmesh.ProxyStateTemplateType).
+		WithWatch(pbcatalog.ServiceEndpointsType, endpointsMapper.MapLink).
 		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithCustomWatch(&controller.Source{Source: leafCertEvents}, leafMapper.EventMapLink).
 		WithPlacement(controller.PlacementEachServer).
@@ -225,6 +227,11 @@ func (r *xdsReconciler) Reconcile(ctx context.Context, rt controller.Runtime, re
 			Token:            token,
 			WorkloadIdentity: leafRef.Name,
 			EnterpriseMeta:   acl.NewEnterpriseMetaWithPartition(leafRef.Partition, leafRef.Namespace),
+			// Add some jitter to the max query time so that all goroutines don't wake up at approximately the same time.
+			// Without this, it's likely that these queries will all fire at roughly the same time, because the server
+			// will have spawned many watches immediately on boot. Typically because the index number will not have changed,
+			// this controller will not be notified anyway, but it's still better to space out the waking of goroutines.
+			MaxQueryTime: (10 * time.Minute) + lib.RandomStagger(10*time.Minute),
 		}
 
 		// Step 1: Setup a watch for this leaf if one doesn't already exist.
@@ -352,7 +359,7 @@ func leafResourceRef(workloadIdentity, namespace, partition string) *pbresource.
 // leaf certificates.
 var InternalLeafType = &pbresource.Type{
 	Group:        "internal",
-	GroupVersion: "v1alpha1",
+	GroupVersion: "v2beta1",
 	Kind:         "leaf",
 }
 
@@ -397,18 +404,13 @@ func (r *xdsReconciler) cancelWatches(leafResourceRefs []*pbresource.Reference) 
 
 // prevWatchesToCancel computes if there are any items in prevWatchedLeafs that are not in currentLeafs, and returns a list of those items.
 func prevWatchesToCancel(prevWatchedLeafs []*pbresource.Reference, currentLeafs []resource.ReferenceOrID) []*pbresource.Reference {
-	var prevWatchedLeafsToCancel []*pbresource.Reference
+	prevWatchedLeafsToCancel := make([]*pbresource.Reference, 0, len(prevWatchedLeafs))
+	newLeafs := make(map[string]struct{})
+	for _, newLeaf := range currentLeafs {
+		newLeafs[keyFromReference(newLeaf)] = struct{}{}
+	}
 	for _, prevLeaf := range prevWatchedLeafs {
-		prevKey := keyFromReference(prevLeaf)
-		found := false
-		for _, newLeaf := range currentLeafs {
-			newKey := keyFromReference(newLeaf)
-			if prevKey == newKey {
-				found = true
-				break
-			}
-		}
-		if !found {
+		if _, ok := newLeafs[keyFromReference(prevLeaf)]; !ok {
 			prevWatchedLeafsToCancel = append(prevWatchedLeafsToCancel, prevLeaf)
 		}
 	}

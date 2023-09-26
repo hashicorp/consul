@@ -4,10 +4,11 @@
 package sidecarproxycache
 
 import (
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -17,7 +18,7 @@ type ComputedRoutesCache struct {
 
 func NewComputedRoutesCache() *ComputedRoutesCache {
 	return &ComputedRoutesCache{
-		mapper: bimapper.New(types.ComputedRoutesType, catalog.ServiceType),
+		mapper: bimapper.New(pbmesh.ComputedRoutesType, pbcatalog.ServiceType),
 	}
 }
 
@@ -27,11 +28,6 @@ func (c *ComputedRoutesCache) TrackComputedRoutes(computedRoutes *types.DecodedC
 	for _, pcr := range computedRoutes.Data.PortedConfigs {
 		for _, details := range pcr.Targets {
 			serviceRefs = append(serviceRefs, details.BackendRef.Ref)
-			if details.FailoverConfig != nil {
-				for _, dest := range details.FailoverConfig.Destinations {
-					serviceRefs = append(serviceRefs, dest.Ref)
-				}
-			}
 		}
 	}
 

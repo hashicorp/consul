@@ -10,15 +10,15 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/internal/catalog"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -55,22 +55,22 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			},
 		},
 	}
-	apiAppService := resourcetest.Resource(catalog.ServiceType, apiApp).
+	apiAppService := resourcetest.Resource(pbcatalog.ServiceType, apiApp).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	apiApp2Service := resourcetest.Resource(catalog.ServiceType, apiApp2).
+	apiApp2Service := resourcetest.Resource(pbcatalog.ServiceType, apiApp2).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, serviceData).
 		Build()
 
-	apiAppEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
+	apiAppEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp).
 		WithOwner(apiAppService.Id).
 		WithData(t, multiportEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
-	apiApp2Endpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp2).
+	apiApp2Endpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp2).
 		WithOwner(apiApp2Service.Id).
 		WithData(t, multiportEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
@@ -99,7 +99,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 			},
 		},
 	}
-	mwEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, apiApp).
+	mwEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp).
 		WithOwner(apiAppService.Id).
 		WithData(t, mwEndpointsData).
 		WithTenancy(resource.DefaultNamespacedTenancy()).Build()
@@ -114,13 +114,13 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		Tenancy: apiApp2Endpoints.Id.Tenancy,
 	}
 
-	apiAppComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, apiAppService.Id)
+	apiAppComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, apiAppService.Id)
 	apiAppComputedRoutes := routestest.BuildComputedRoutes(t, apiAppComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, apiAppService),
 	)
 	require.NotNil(t, apiAppComputedRoutes)
 
-	apiApp2ComputedRoutesID := resource.ReplaceType(types.ComputedRoutesType, apiApp2Service.Id)
+	apiApp2ComputedRoutesID := resource.ReplaceType(pbmesh.ComputedRoutesType, apiApp2Service.Id)
 	apiApp2ComputedRoutes := routestest.BuildComputedRoutes(t, apiApp2ComputedRoutesID,
 		resourcetest.MustDecode[*pbcatalog.Service](t, apiApp2Service),
 	)
@@ -143,15 +143,15 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				continue
 			}
 
-			portConfig, ok := computedRoutes.Data.PortedConfigs[portName]
-			require.True(t, ok, "port %q not found in port configs", portName)
-
 			dest := &intermediate.Destination{
 				Service: svcDec,
-				ComputedPortRoutes: routestest.MutateTarget(t, portConfig, svc.Id, portName, func(details *pbmesh.BackendTargetDetails) {
-					details.ServiceEndpointsId = endpoints.Id
-					details.ServiceEndpoints = seDec.Data
-					details.IdentityRefs = identities
+				ComputedPortRoutes: routestest.MutateTargets(t, computedRoutes.Data, portName, func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+					switch {
+					case resource.ReferenceOrIDMatch(svc.Id, details.BackendRef.Ref) && details.BackendRef.Port == portName:
+						details.ServiceEndpointsId = endpoints.Id
+						details.ServiceEndpoints = seDec.Data
+						details.IdentityRefs = identities
+					}
 				}),
 				VirtualIPs: virtualIPs,
 			}

@@ -8,13 +8,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbproxystate "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -102,7 +102,7 @@ func TestBuildLocalApp(t *testing.T) {
 }
 
 func testProxyStateTemplateID() *pbresource.ID {
-	return resourcetest.Resource(types.ProxyStateTemplateType, "test").
+	return resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		ID()
 }
@@ -243,7 +243,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 						{
 							Principals: []*pbproxystate.Principal{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
 									},
@@ -273,7 +273,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 						{
 							Principals: []*pbproxystate.Principal{
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/quux$"},
 									},
@@ -288,7 +288,7 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 									Spiffe: &pbproxystate.Spiffe{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/foo$"},
 								},
 								{
-									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/%5B%5E/%5D+$`},
+									Spiffe: &pbproxystate.Spiffe{Regex: `^spiffe://test.consul/ap/default/ns/default/identity/[^/]+$`},
 									ExcludeSpiffes: []*pbproxystate.Spiffe{
 										{Regex: "^spiffe://test.consul/ap/default/ns/default/identity/bar$"},
 									},

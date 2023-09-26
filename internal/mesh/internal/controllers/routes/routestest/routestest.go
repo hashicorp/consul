@@ -12,9 +12,8 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
-	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -41,29 +40,23 @@ func BuildComputedRoutes(
 	return makeComputedRoutes(t, nil, id, decResList...)
 }
 
-func MutateTarget(
+func MutateTargets(
 	t *testing.T,
-	portConfig *pbmesh.ComputedPortRoutes,
-	ref resource.ReferenceOrID,
-	port string,
-	mutFn func(details *pbmesh.BackendTargetDetails),
+	routes *pbmesh.ComputedRoutes,
+	parentPort string,
+	mutFn func(t *testing.T, details *pbmesh.BackendTargetDetails),
 ) *pbmesh.ComputedPortRoutes {
 	t.Helper()
 
-	backendRef := &pbmesh.BackendReference{
-		Ref:        resource.ReferenceFromReferenceOrID(ref),
-		Port:       port,
-		Datacenter: "",
-	}
-
-	key := types.BackendRefToComputedRoutesTarget(backendRef)
+	portConfig, ok := routes.PortedConfigs[parentPort]
+	require.True(t, ok, "port %q not found in ported_configs", parentPort)
 
 	portConfig = proto.Clone(portConfig).(*pbmesh.ComputedPortRoutes)
 
-	details, ok := portConfig.Targets[key]
-	require.True(t, ok, "key %q not found in targets map", key)
+	for _, details := range portConfig.Targets {
+		mutFn(t, details)
+	}
 
-	mutFn(details)
 	return portConfig
 }
 

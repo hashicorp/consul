@@ -8,11 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -20,7 +20,7 @@ import (
 func TestWrite_Create(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination := testDestination(proxyID)
 	cache.WriteDestination(destination)
@@ -42,14 +42,14 @@ func TestWrite_Create(t *testing.T) {
 func TestWrite_Update(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").ReferenceNoSection()
+	destination2.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
 	// Check that the source proxies are updated.
@@ -63,9 +63,9 @@ func TestWrite_Update(t *testing.T) {
 	require.Equal(t, expectedSourceProxies, actualSourceProxies)
 
 	// Add another destination for a different proxy.
-	anotherProxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-def").ID()
+	anotherProxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-def").ID()
 	destination3 := testDestination(anotherProxyID)
-	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-3").
+	destination3.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "test-service-3").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination3)
 
@@ -101,14 +101,14 @@ func TestWrite_Update(t *testing.T) {
 func TestWrite_Delete(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+	destination2.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
@@ -127,7 +127,7 @@ func TestWrite_Delete(t *testing.T) {
 
 	// Try to delete non-existing destination and check that nothing has changed..
 	cache.DeleteDestination(
-		resourcetest.Resource(catalog.ServiceType, "does-not-exist").
+		resourcetest.Resource(pbcatalog.ServiceType, "does-not-exist").
 			WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection(),
 		"doesn't-matter")
 
@@ -138,14 +138,14 @@ func TestWrite_Delete(t *testing.T) {
 func TestDeleteSourceProxy(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+	destination2.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
@@ -175,14 +175,14 @@ func TestDeleteSourceProxy(t *testing.T) {
 func TestDestinationsBySourceProxy(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	destination1 := testDestination(proxyID)
 	cache.WriteDestination(destination1)
 
 	// Add another destination for the same proxy ID.
 	destination2 := testDestination(proxyID)
-	destination2.ServiceRef = resourcetest.Resource(catalog.ServiceType, "test-service-2").
+	destination2.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "test-service-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination2)
 
@@ -194,7 +194,7 @@ func TestDestinationsBySourceProxy(t *testing.T) {
 func TestReadDestinationsByServiceAllPorts(t *testing.T) {
 	cache := NewDestinationsCache()
 
-	proxyID := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-abc").
+	proxyID := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-abc").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	// test-service@tcp
@@ -208,7 +208,7 @@ func TestReadDestinationsByServiceAllPorts(t *testing.T) {
 
 	// other-service@tcp
 	destination3 := testDestination(proxyID)
-	destination3.ServiceRef = resourcetest.Resource(catalog.ServiceType, "other-service").
+	destination3.ServiceRef = resourcetest.Resource(pbcatalog.ServiceType, "other-service").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection()
 	cache.WriteDestination(destination3)
 
@@ -230,10 +230,10 @@ func TestReadDestinationsByServiceAllPorts(t *testing.T) {
 
 func testDestination(proxyID *pbresource.ID) intermediate.CombinedDestinationRef {
 	return intermediate.CombinedDestinationRef{
-		ServiceRef: resourcetest.Resource(catalog.ServiceType, "test-service").
+		ServiceRef: resourcetest.Resource(pbcatalog.ServiceType, "test-service").
 			WithTenancy(resource.DefaultNamespacedTenancy()).ReferenceNoSection(),
 		Port: "tcp",
-		ExplicitDestinationsID: resourcetest.Resource(types.UpstreamsType, "test-servicedestinations").
+		ExplicitDestinationsID: resourcetest.Resource(pbmesh.DestinationsType, "test-servicedestinations").
 			WithTenancy(resource.DefaultNamespacedTenancy()).ID(),
 		SourceProxies: map[resource.ReferenceKey]struct{}{
 			resource.NewReferenceKey(proxyID): {},

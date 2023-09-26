@@ -19,6 +19,11 @@ plugins:
     out: .
     opt:
       - paths=source_relative
+  - name: resource-types
+    out: .
+    opt:
+      - paths=source_relative
+    strategy: all
   - name: consul-rate-limit
     out: .
     opt:

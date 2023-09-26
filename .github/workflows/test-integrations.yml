@@ -24,6 +24,7 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -34,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest 
     name: Get files changed and conditionally skip CI
     outputs:
-      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
@@ -47,7 +48,7 @@ jobs:
     needs: [conditional-skip]
     runs-on: ubuntu-latest
     name: Setup
-    if: needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
       compute-medium: ${{ steps.runners.outputs.compute-medium }}
@@ -495,7 +496,7 @@ jobs:
     - envoy-integration-test
     - compatibility-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |

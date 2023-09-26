@@ -1,0 +1,26 @@
+```release-note:feature
+# Catalog v2 feature preview
+This release provides the ability to preview Consul's v2 Catalog and Resource API if enabled. The new model supports
+multi-port application deployments with only a single Envoy proxy. Note that the v1 and v2 catalogs are not cross
+compatible, and not all Consul features are available within this v2 feature preview. See the [v2 Catalog and Resource
+API documentation](https://developer.hashicorp.com/consul/docs/architecture/v2) for more information. The v2 Catalog and
+Resources API should be considered a feature preview within this release and should not be used in production
+environments.
+
+### Limitations
+* The v2 catalog API feature preview does not support connections with client agents. As a result, it is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
+* The v1 and v2 catalog APIs cannot run concurrently.
+* The Consul UI does not support multi-port services or the v2 catalog API in this release.
+* HCP Consul does not support multi-port services or the v2 catalog API in this release.
+* The v2 API only supports transparent proxy mode where services that have permissions to connect to each other can use
+  Kube DNS to connect.
+
+### Known Issues
+* When using the v2 API with transparent proxy, Kubernetes pods cannot use L7 liveness, readiness, or startup probes.
+
+
+[[Catalog resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/catalog/internal/controllers)
+[[Mesh resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/mesh/internal/controllers)
+[[Auth resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/auth/internal)
+[[V2 Protobufs]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/proto-public)
+```

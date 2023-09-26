@@ -882,6 +882,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
 			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
 			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
+			ACLDNSToken:                    stringVal(c.ACL.Tokens.DNS),
 		},
 
 		// Autopilot

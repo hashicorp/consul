@@ -9,11 +9,10 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -44,27 +43,27 @@ func newMemoizingLoader(client pbresource.ResourceServiceClient) *memoizingLoade
 }
 
 func (m *memoizingLoader) GetHTTPRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedHTTPRoute, error) {
-	return getOrCacheResource[*pbmesh.HTTPRoute](ctx, m.client, m.mapHTTPRoute, types.HTTPRouteType, id)
+	return getOrCacheResource[*pbmesh.HTTPRoute](ctx, m.client, m.mapHTTPRoute, pbmesh.HTTPRouteType, id)
 }
 
 func (m *memoizingLoader) GetGRPCRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedGRPCRoute, error) {
-	return getOrCacheResource[*pbmesh.GRPCRoute](ctx, m.client, m.mapGRPCRoute, types.GRPCRouteType, id)
+	return getOrCacheResource[*pbmesh.GRPCRoute](ctx, m.client, m.mapGRPCRoute, pbmesh.GRPCRouteType, id)
 }
 
 func (m *memoizingLoader) GetTCPRoute(ctx context.Context, id *pbresource.ID) (*types.DecodedTCPRoute, error) {
-	return getOrCacheResource[*pbmesh.TCPRoute](ctx, m.client, m.mapTCPRoute, types.TCPRouteType, id)
+	return getOrCacheResource[*pbmesh.TCPRoute](ctx, m.client, m.mapTCPRoute, pbmesh.TCPRouteType, id)
 }
 
 func (m *memoizingLoader) GetDestinationPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedDestinationPolicy, error) {
-	return getOrCacheResource[*pbmesh.DestinationPolicy](ctx, m.client, m.mapDestinationPolicy, types.DestinationPolicyType, id)
+	return getOrCacheResource[*pbmesh.DestinationPolicy](ctx, m.client, m.mapDestinationPolicy, pbmesh.DestinationPolicyType, id)
 }
 
 func (m *memoizingLoader) GetFailoverPolicy(ctx context.Context, id *pbresource.ID) (*types.DecodedFailoverPolicy, error) {
-	return getOrCacheResource[*pbcatalog.FailoverPolicy](ctx, m.client, m.mapFailoverPolicy, catalog.FailoverPolicyType, id)
+	return getOrCacheResource[*pbcatalog.FailoverPolicy](ctx, m.client, m.mapFailoverPolicy, pbcatalog.FailoverPolicyType, id)
 }
 
 func (m *memoizingLoader) GetService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
-	return getOrCacheResource[*pbcatalog.Service](ctx, m.client, m.mapService, catalog.ServiceType, id)
+	return getOrCacheResource[*pbcatalog.Service](ctx, m.client, m.mapService, pbcatalog.ServiceType, id)
 }
 
 func getOrCacheResource[T proto.Message](

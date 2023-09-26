@@ -22,6 +22,7 @@ type TenancyBridge interface {
 const (
 	DefaultPartitionName = "default"
 	DefaultNamespaceName = "default"
+	DefaultPeerName      = "local"
 )
 
 // V2TenancyBridge is used by the resource service to access V2 implementations of
@@ -71,7 +72,7 @@ func Normalize(tenancy *pbresource.Tenancy) {
 
 	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 	if tenancy.PeerName == "" {
-		tenancy.PeerName = "local"
+		tenancy.PeerName = DefaultPeerName
 	}
 }
 
@@ -79,7 +80,7 @@ func Normalize(tenancy *pbresource.Tenancy) {
 func DefaultClusteredTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: "local",
+		PeerName: DefaultPeerName,
 	}
 }
 
@@ -88,7 +89,7 @@ func DefaultPartitionedTenancy() *pbresource.Tenancy {
 	return &pbresource.Tenancy{
 		Partition: DefaultPartitionName,
 		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: "local",
+		PeerName: DefaultPeerName,
 	}
 }
 
@@ -98,7 +99,7 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 		Partition: DefaultPartitionName,
 		Namespace: DefaultNamespaceName,
 		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-		PeerName: "local",
+		PeerName: DefaultPeerName,
 	}
 }
 
@@ -132,7 +133,7 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 	}
 
 	if itemTenancy.PeerName == "" {
-		itemTenancy.PeerName = "local"
+		itemTenancy.PeerName = DefaultPeerName
 	}
 	Normalize(itemTenancy)
 
@@ -147,13 +148,13 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 	}
 	Normalize(parentTenancy)
 
-	if !equalOrEmpty(itemTenancy.PeerName, "local") {
+	if !equalOrEmpty(itemTenancy.PeerName, DefaultPeerName) {
 		panic("peering is not supported yet for resource tenancies")
 	}
-	if !equalOrEmpty(parentTenancy.PeerName, "local") {
+	if !equalOrEmpty(parentTenancy.PeerName, DefaultPeerName) {
 		panic("peering is not supported yet for parent tenancies")
 	}
-	if !equalOrEmpty(scopeTenancy.PeerName, "local") {
+	if !equalOrEmpty(scopeTenancy.PeerName, DefaultPeerName) {
 		panic("peering is not supported yet for scopes")
 	}
 

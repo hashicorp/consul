@@ -76,10 +76,8 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 		buffer.WriteString(fmt.Sprintf("\n%sName: String - Required - The node name.\n", WhitespaceIndent))
 		buffer.WriteString("Example usage:\n")
 		buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy builtin/node -var name:node-1\n", WhitespaceIndent))
-	case api.ACLTemplatedPolicyDNSName:
-		buffer.WriteString(" None\n")
-		buffer.WriteString("Example usage:\n")
-		buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy builtin/dns\n", WhitespaceIndent))
+	case api.ACLTemplatedPolicyDNSName, api.ACLTemplatedPolicyNomadServerName:
+		noRequiredVariablesOutput(&buffer, templatedPolicy.TemplateName)
 	default:
 		buffer.WriteString("   None\n")
 	}
@@ -92,6 +90,12 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 	}
 
 	return buffer.String(), nil
+}
+
+func noRequiredVariablesOutput(buffer *bytes.Buffer, templateName string) {
+	buffer.WriteString(" None\n")
+	buffer.WriteString("Example usage:\n")
+	buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy %s\n", WhitespaceIndent, templateName))
 }
 
 func (f *prettyFormatter) FormatTemplatedPolicyList(policies map[string]api.ACLTemplatedPolicyResponse) (string, error) {

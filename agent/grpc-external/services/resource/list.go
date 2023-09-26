@@ -69,7 +69,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 		}
 
 		// Filter out items that don't pass read ACLs.
-		err = reg.ACLs.Read(authz, authzContext, resource.Id)
+		err = reg.ACLs.Read(authz, authzContext, resource.Id, resource)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

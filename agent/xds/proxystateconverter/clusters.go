@@ -6,10 +6,11 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -22,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
@@ -312,7 +313,8 @@ func (s *Converter) makePassthroughClusters(cfgSnap *proxycfg.ConfigSnapshot) (m
 									ConnectTimeout: durationpb.New(5 * time.Second),
 									// Endpoints are managed separately by EDS
 									// Having an empty config enables outlier detection with default config.
-									OutlierDetection: &pbproxystate.OutlierDetection{},
+									OutlierDetection:      &pbproxystate.OutlierDetection{},
+									DisablePanicThreshold: true,
 								},
 							},
 						},
@@ -653,8 +655,7 @@ func (s *Converter) makeUpstreamClusterForPreparedQuery(upstream structs.Upstrea
 								ConnectTimeout: durationpb.New(time.Duration(cfg.ConnectTimeoutMs) * time.Millisecond),
 								// Endpoints are managed separately by EDS
 								// Having an empty config enables outlier detection with default config.
-								OutlierDetection:      makeOutlierDetection(cfg.PassiveHealthCheck, nil, true),
-								DisablePanicThreshold: true,
+								OutlierDetection: makeOutlierDetection(cfg.PassiveHealthCheck, nil, true),
 								CircuitBreakers: &pbproxystate.CircuitBreakers{
 									UpstreamLimits: makeUpstreamLimitsIfNeeded(cfg.Limits),
 								},
@@ -880,7 +881,8 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 					CircuitBreakers: &pbproxystate.CircuitBreakers{
 						UpstreamLimits: makeUpstreamLimitsIfNeeded(upstreamConfig.Limits),
 					},
-					OutlierDetection: makeOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true),
+					DisablePanicThreshold: true,
+					OutlierDetection:      makeOutlierDetection(upstreamConfig.PassiveHealthCheck, nil, true),
 				},
 			}
 			ti := groupedTarget.Targets[0]

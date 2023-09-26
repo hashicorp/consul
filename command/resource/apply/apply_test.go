@@ -7,10 +7,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestResourceApplyCommand(t *testing.T) {
@@ -36,7 +37,7 @@ func TestResourceApplyCommand(t *testing.T) {
 		{
 			name:   "nested data format",
 			args:   []string{"-f=../testdata/nested_data.hcl"},
-			output: "mesh.v1alpha1.Upstreams 'api' created.",
+			output: "mesh.v2beta1.Destinations 'api' created.",
 		},
 	}
 

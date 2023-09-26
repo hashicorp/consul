@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -254,11 +254,11 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 		return wrapErr(resource.ErrMissing)
 	}
 
-	if !resource.EqualType(ref.Type, ServiceType) {
+	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
 		return wrapErr(resource.ErrInvalidField{
 			Name: "type",
 			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: ServiceType,
+				AllowedType: pbcatalog.ServiceType,
 			},
 		})
 	}

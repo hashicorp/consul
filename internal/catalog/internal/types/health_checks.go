@@ -4,29 +4,16 @@
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
-)
 
-const (
-	HealthChecksKind = "HealthChecks"
-)
-
-var (
-	HealthChecksV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         HealthChecksKind,
-	}
-
-	HealthChecksType = HealthChecksV1Alpha1Type
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HealthChecksV1Alpha1Type,
+		Type:     pbcatalog.HealthChecksType,
 		Proto:    &pbcatalog.HealthChecks{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,

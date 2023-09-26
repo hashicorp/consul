@@ -9,32 +9,24 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	FailoverPolicyKind = "FailoverPolicy"
-)
-
-var (
-	FailoverPolicyV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         FailoverPolicyKind,
-	}
-
-	FailoverPolicyType = FailoverPolicyV1Alpha1Type
 )
 
 func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     FailoverPolicyV1Alpha1Type,
+		Type:     pbcatalog.FailoverPolicyType,
 		Proto:    &pbcatalog.FailoverPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateFailoverPolicy,
 		Validate: ValidateFailoverPolicy,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookFailoverPolicy,
+			Write: aclWriteHookFailoverPolicy,
+			List:  aclListHookFailoverPolicy,
+		},
 	})
 }
 
@@ -174,13 +166,19 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapErr func(error) error) error {
 	var merr error
 
+	if config.SamenessGroup != "" {
+		// TODO(v2): handle other forms of failover
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "sameness_group",
+			Wrapped: fmt.Errorf("not supported in this release"),
+		}))
+	}
+	// TODO(peering/v2): remove this bypass when we know what to do with
+
 	if (len(config.Destinations) > 0) == (config.SamenessGroup != "") {
 		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name: "destinations",
-			// Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
-			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set: %v || %v",
-				(len(config.Destinations) > 0), (config.SamenessGroup != ""),
-			),
+			Name:    "destinations",
+			Wrapped: fmt.Errorf("exactly one of destinations or sameness_group should be set"),
 		}))
 	}
 	for i, dest := range config.Destinations {
@@ -309,4 +307,57 @@ func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.Failover
 	}
 
 	return failover
+}
+
+func aclReadHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+	// FailoverPolicy is name-aligned with Service
+	serviceName := id.Name
+
+	// Check service:read permissions.
+	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext)
+}
+
+func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	// FailoverPolicy is name-aligned with Service
+	serviceName := res.Id.Name
+
+	// Check service:write permissions on the service this is controlling.
+	if err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext); err != nil {
+		return err
+	}
+
+	dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
+	if err != nil {
+		return err
+	}
+
+	// Ensure you have service:read on any destination that may be affected by
+	// traffic FROM this config change.
+	if dec.Data.Config != nil {
+		for _, dest := range dec.Data.Config.Destinations {
+			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
+			destServiceName := dest.Ref.GetName()
+			if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(destServiceName, destAuthzContext); err != nil {
+				return err
+			}
+		}
+	}
+	for _, pc := range dec.Data.PortConfigs {
+		for _, dest := range pc.Destinations {
+			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
+			destServiceName := dest.Ref.GetName()
+			if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(destServiceName, destAuthzContext); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+
+}
+
+func aclListHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement.
+	return nil
 }

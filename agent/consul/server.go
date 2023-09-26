@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 
@@ -83,7 +84,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -934,6 +935,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 			DefaultAllow:    defaultAllow,
 			ProxyUpdater:    proxyUpdater,
 		})
+
+		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
 	reaper.RegisterControllers(s.controllerManager)

@@ -12,8 +12,8 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -29,6 +29,8 @@ import (
 // the data causing the event to notice something has been deleted and to
 // untrack it here.
 type Mapper struct {
+	boundRefMapper *bimapper.Mapper
+
 	httpRouteParentMapper *bimapper.Mapper
 	grpcRouteParentMapper *bimapper.Mapper
 	tcpRouteParentMapper  *bimapper.Mapper
@@ -43,13 +45,15 @@ type Mapper struct {
 // New creates a new Mapper.
 func New() *Mapper {
 	return &Mapper{
-		httpRouteParentMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
-		grpcRouteParentMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
-		tcpRouteParentMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+		boundRefMapper: bimapper.NewWithWildcardLinkType(pbmesh.ComputedRoutesType),
 
-		httpRouteBackendMapper: bimapper.New(types.HTTPRouteType, catalog.ServiceType),
-		grpcRouteBackendMapper: bimapper.New(types.GRPCRouteType, catalog.ServiceType),
-		tcpRouteBackendMapper:  bimapper.New(types.TCPRouteType, catalog.ServiceType),
+		httpRouteParentMapper: bimapper.New(pbmesh.HTTPRouteType, pbcatalog.ServiceType),
+		grpcRouteParentMapper: bimapper.New(pbmesh.GRPCRouteType, pbcatalog.ServiceType),
+		tcpRouteParentMapper:  bimapper.New(pbmesh.TCPRouteType, pbcatalog.ServiceType),
+
+		httpRouteBackendMapper: bimapper.New(pbmesh.HTTPRouteType, pbcatalog.ServiceType),
+		grpcRouteBackendMapper: bimapper.New(pbmesh.GRPCRouteType, pbcatalog.ServiceType),
+		tcpRouteBackendMapper:  bimapper.New(pbmesh.TCPRouteType, pbcatalog.ServiceType),
 
 		failMapper: catalog.NewFailoverPolicyMapper(),
 	}
@@ -57,11 +61,11 @@ func New() *Mapper {
 
 func (m *Mapper) getRouteBiMappers(typ *pbresource.Type) (parent, backend *bimapper.Mapper) {
 	switch {
-	case resource.EqualType(types.HTTPRouteType, typ):
+	case resource.EqualType(pbmesh.HTTPRouteType, typ):
 		return m.httpRouteParentMapper, m.httpRouteBackendMapper
-	case resource.EqualType(types.GRPCRouteType, typ):
+	case resource.EqualType(pbmesh.GRPCRouteType, typ):
 		return m.grpcRouteParentMapper, m.grpcRouteBackendMapper
-	case resource.EqualType(types.TCPRouteType, typ):
+	case resource.EqualType(pbmesh.TCPRouteType, typ):
 		return m.tcpRouteParentMapper, m.tcpRouteBackendMapper
 	default:
 		panic("unknown xroute type: " + resource.TypeToString(typ))
@@ -86,6 +90,17 @@ func (m *Mapper) walkRouteBackendBiMappers(fn func(bm *bimapper.Mapper)) {
 	} {
 		fn(bm)
 	}
+}
+
+func (m *Mapper) TrackComputedRoutes(cr *types.DecodedComputedRoutes) {
+	if cr != nil {
+		refs := refSliceToRefSlice(cr.Data.BoundReferences)
+		m.boundRefMapper.TrackItem(cr.Resource.Id, refs)
+	}
+}
+
+func (m *Mapper) UntrackComputedRoutes(id *pbresource.ID) {
+	m.boundRefMapper.UntrackItem(id)
 }
 
 // TrackXRoute indexes the xRoute->parentRefService and
@@ -180,10 +195,16 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 
 	m.TrackXRoute(res.Id, route)
 
-	return controller.MakeRequests(
-		types.ComputedRoutesType,
-		parentRefSliceToRefSlice(route.GetParentRefs()),
-	), nil
+	refs := parentRefSliceToRefSlice(route.GetParentRefs())
+
+	// Augment with any bound refs to cover the case where an xRoute used to
+	// have a parentRef to a service and now no longer does.
+	prevRefs := m.boundRefMapper.ItemRefsForLink(dec.Resource.Id)
+	for _, ref := range prevRefs {
+		refs = append(refs, ref)
+	}
+
+	return controller.MakeRequests(pbmesh.ComputedRoutesType, refs), nil
 }
 
 func (m *Mapper) MapFailoverPolicy(
@@ -204,7 +225,7 @@ func (m *Mapper) MapFailoverPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -230,7 +251,7 @@ func (m *Mapper) MapDestinationPolicy(
 
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
-	svcID := resource.ReplaceType(catalog.ServiceType, res.Id)
+	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
 }
@@ -248,7 +269,7 @@ func (m *Mapper) MapService(
 
 	// (case 2) First find all failover policies that have a reference to our input service.
 	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
-	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, catalog.ServiceType)
+	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, pbcatalog.ServiceType)
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)
@@ -273,7 +294,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 
 	// return 1 hit for the name aligned mesh config
 	primaryReq := controller.Request{
-		ID: resource.ReplaceType(types.ComputedRoutesType, svcID),
+		ID: resource.ReplaceType(pbmesh.ComputedRoutesType, svcID),
 	}
 
 	svcRef := resource.Reference(svcID, "")
@@ -292,7 +313,7 @@ func (m *Mapper) mapXRouteDirectServiceRefToComputedRoutesByID(svcID *pbresource
 		svcRefs := m.ParentServiceRefsByRouteID(routeID)
 
 		out = append(out, controller.MakeRequests(
-			types.ComputedRoutesType,
+			pbmesh.ComputedRoutesType,
 			svcRefs,
 		)...)
 	}

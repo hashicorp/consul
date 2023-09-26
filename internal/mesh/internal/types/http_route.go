@@ -12,31 +12,18 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	HTTPRouteKind = "HTTPRoute"
-)
-
-var (
-	HTTPRouteV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         HTTPRouteKind,
-	}
-
-	HTTPRouteType = HTTPRouteV1Alpha1Type
 )
 
 func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HTTPRouteV1Alpha1Type,
+		Type:     pbmesh.HTTPRouteType,
 		Proto:    &pbmesh.HTTPRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.HTTPRoute](),
 	})
 }
 
@@ -124,6 +111,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 						Wrapped: err,
 					})
 				}
+				// enumcover:pbmesh.PathMatchType
 				switch match.Path.Type {
 				case pbmesh.PathMatchType_PATH_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchPathErr(
@@ -147,6 +135,15 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 							resource.ErrInvalidField{
 								Name:    "value",
 								Wrapped: fmt.Errorf("prefix patch value does not start with '/': %q", match.Path.Value),
+							},
+						))
+					}
+				case pbmesh.PathMatchType_PATH_MATCH_TYPE_REGEX:
+					if match.Path.Value == "" {
+						merr = multierror.Append(merr, wrapMatchPathErr(
+							resource.ErrInvalidField{
+								Name:    "value",
+								Wrapped: resource.ErrEmpty,
 							},
 						))
 					}
@@ -197,6 +194,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 					})
 				}
 
+				// enumcover:pbmesh.QueryParamMatchType
 				switch qm.Type {
 				case pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchParamErr(
@@ -237,6 +235,10 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			}
 		}
 
+		var (
+			hasReqMod     bool
+			hasUrlRewrite bool
+		)
 		for j, filter := range rule.Filters {
 			wrapFilterErr := func(err error) error {
 				return wrapRuleErr(resource.ErrInvalidListElement{
@@ -248,12 +250,14 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			set := 0
 			if filter.RequestHeaderModifier != nil {
 				set++
+				hasReqMod = true
 			}
 			if filter.ResponseHeaderModifier != nil {
 				set++
 			}
 			if filter.UrlRewrite != nil {
 				set++
+				hasUrlRewrite = true
 				if filter.UrlRewrite.PathPrefix == "" {
 					merr = multierror.Append(merr, wrapFilterErr(
 						resource.ErrInvalidField{
@@ -271,6 +275,12 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 					errors.New("exactly one of request_header_modifier, response_header_modifier, or url_rewrite is required"),
 				))
 			}
+		}
+
+		if hasReqMod && hasUrlRewrite {
+			merr = multierror.Append(merr, wrapRuleErr(
+				errors.New("exactly one of request_header_modifier or url_rewrite can be set at a time"),
+			))
 		}
 
 		if len(rule.BackendRefs) == 0 {

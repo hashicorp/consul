@@ -4,10 +4,10 @@
 package sidecarproxycache
 
 import (
-	auth "github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -20,7 +20,7 @@ type IdentitiesCache struct {
 
 func NewIdentitiesCache() *IdentitiesCache {
 	return &IdentitiesCache{
-		mapper: bimapper.New(types.ProxyStateTemplateType, auth.WorkloadIdentityType),
+		mapper: bimapper.New(pbmesh.ProxyStateTemplateType, pbauth.WorkloadIdentityType),
 	}
 }
 

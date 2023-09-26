@@ -15,53 +15,11 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
-	// API Group Information
-
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV1Alpha1
-	CurrentVersion  = types.CurrentVersion
-
-	// Resource Kind Names.
-
-	WorkloadKind         = types.WorkloadKind
-	ServiceKind          = types.ServiceKind
-	ServiceEndpointsKind = types.ServiceEndpointsKind
-	VirtualIPsKind       = types.VirtualIPsKind
-	NodeKind             = types.NodeKind
-	HealthStatusKind     = types.HealthStatusKind
-	HealthChecksKind     = types.HealthChecksKind
-	DNSPolicyKind        = types.DNSPolicyKind
-	FailoverPolicyKind   = types.FailoverPolicyKind
-
-	// Resource Types for the v1alpha1 version.
-
-	WorkloadV1Alpha1Type         = types.WorkloadV1Alpha1Type
-	ServiceV1Alpha1Type          = types.ServiceV1Alpha1Type
-	ServiceEndpointsV1Alpha1Type = types.ServiceEndpointsV1Alpha1Type
-	VirtualIPsV1Alpha1Type       = types.VirtualIPsV1Alpha1Type
-	NodeV1Alpha1Type             = types.NodeV1Alpha1Type
-	HealthStatusV1Alpha1Type     = types.HealthStatusV1Alpha1Type
-	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
-	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
-	FailoverPolicyV1Alpha1Type   = types.FailoverPolicyV1Alpha1Type
-
-	// Resource Types for the latest version.
-
-	WorkloadType         = types.WorkloadType
-	ServiceType          = types.ServiceType
-	ServiceEndpointsType = types.ServiceEndpointsType
-	VirtualIPsType       = types.VirtualIPsType
-	NodeType             = types.NodeType
-	HealthStatusType     = types.HealthStatusType
-	HealthChecksType     = types.HealthChecksType
-	DNSPolicyType        = types.DNSPolicyType
-	FailoverPolicyType   = types.FailoverPolicyType
-
 	// Controller Statuses
 	NodeHealthStatusKey              = nodehealth.StatusKey
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy

@@ -6,13 +6,15 @@ package types
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -190,6 +192,7 @@ func validateBackendRef(backendRef *pbmesh.BackendReference, wrapErr func(error)
 }
 
 func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
+	// enumcover:pbmesh.HeaderMatchType
 	switch typ {
 	case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED:
 		return resource.ErrMissing
@@ -204,6 +207,10 @@ func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
 	return nil
 }
 
+func errTimeoutCannotBeNegative(d time.Duration) error {
+	return fmt.Errorf("timeout cannot be negative: %v", d)
+}
+
 func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 	if timeouts == nil {
 		return nil
@@ -216,16 +223,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
-			})
-		}
-	}
-	if timeouts.BackendRequest != nil {
-		val := timeouts.BackendRequest.AsDuration()
-		if val < 0 {
-			errs = append(errs, resource.ErrInvalidField{
-				Name:    "backend_request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}
@@ -234,7 +232,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "idle",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}
@@ -280,4 +278,76 @@ func isValidRetryCondition(retryOn string) bool {
 	default:
 		return false
 	}
+}
+
+func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
+	hooks := &resource.ACLHooks{
+		Read:  aclReadHookXRoute[R],
+		Write: aclWriteHookXRoute[R],
+		List:  aclListHookXRoute[R],
+	}
+
+	return hooks
+}
+
+func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedData
+	}
+
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
+	// Need service:read on ALL of the services this is controlling traffic for.
+	for _, parentRef := range route.GetParentRefs() {
+		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
+		parentServiceName := parentRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(parentServiceName, parentAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *pbresource.Resource) error {
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
+	// Need service:write on ALL of the services this is controlling traffic for.
+	for _, parentRef := range route.GetParentRefs() {
+		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
+		parentServiceName := parentRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(parentServiceName, parentAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	// Need service:read on ALL of the services this directs traffic at.
+	for _, backendRef := range route.GetUnderlyingBackendRefs() {
+		backendAuthzContext := resource.AuthorizerContext(backendRef.Ref.GetTenancy())
+		backendServiceName := backendRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(backendServiceName, backendAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func aclListHookXRoute[R XRouteData](authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement.
+	return nil
 }

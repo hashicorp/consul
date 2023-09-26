@@ -6,12 +6,14 @@ package builder
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 func (b *Builder) backendTargetToClusterName(
@@ -131,8 +133,6 @@ func (b *Builder) makeDestinationConfiguration(
 	timeouts *pbmesh.HTTPRouteTimeouts,
 	retries *pbmesh.HTTPRouteRetries,
 ) *pbproxystate.DestinationConfiguration {
-	// TODO: prefix rewrite,  lb config
-
 	cfg := &pbproxystate.DestinationConfiguration{
 		TimeoutConfig: translateTimeouts(timeouts),
 		RetryPolicy:   translateRetries(retries),
@@ -144,8 +144,202 @@ func (b *Builder) makeDestinationConfiguration(
 	return cfg
 }
 
-func makeGRPCRouteMatch(match *pbmesh.GRPCRouteMatch) *pbproxystate.RouteMatch {
-	panic("TODO")
+func applyRouteFilters[V interface {
+	GetRequestHeaderModifier() *pbmesh.HTTPHeaderFilter
+	GetResponseHeaderModifier() *pbmesh.HTTPHeaderFilter
+	GetUrlRewrite() *pbmesh.HTTPURLRewriteFilter
+}](
+	psDestConfig *pbproxystate.DestinationConfiguration,
+	filters []V,
+) []*pbproxystate.HeaderMutation {
+	var headerMutations []*pbproxystate.HeaderMutation
+	for _, filter := range filters {
+		switch {
+		case filter.GetRequestHeaderModifier() != nil:
+			mod := filter.GetRequestHeaderModifier()
+
+			for _, hdr := range mod.Set {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_RequestHeaderAdd{
+						RequestHeaderAdd: &pbproxystate.RequestHeaderAdd{
+							Header: &pbproxystate.Header{
+								Key:   hdr.Name,
+								Value: hdr.Value,
+							},
+							AppendAction: pbproxystate.AppendAction_APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD,
+						},
+					},
+				})
+			}
+			for _, hdr := range mod.Add {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_RequestHeaderAdd{
+						RequestHeaderAdd: &pbproxystate.RequestHeaderAdd{
+							Header: &pbproxystate.Header{
+								Key:   hdr.Name,
+								Value: hdr.Value,
+							},
+							AppendAction: pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD,
+						},
+					},
+				})
+			}
+
+			if len(mod.Remove) > 0 {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_RequestHeaderRemove{
+						RequestHeaderRemove: &pbproxystate.RequestHeaderRemove{
+							HeaderKeys: mod.Remove,
+						},
+					},
+				})
+			}
+
+		case filter.GetResponseHeaderModifier() != nil:
+			mod := filter.GetResponseHeaderModifier()
+
+			for _, hdr := range mod.Set {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_ResponseHeaderAdd{
+						ResponseHeaderAdd: &pbproxystate.ResponseHeaderAdd{
+							Header: &pbproxystate.Header{
+								Key:   hdr.Name,
+								Value: hdr.Value,
+							},
+							AppendAction: pbproxystate.AppendAction_APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD,
+						},
+					},
+				})
+			}
+			for _, hdr := range mod.Add {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_ResponseHeaderAdd{
+						ResponseHeaderAdd: &pbproxystate.ResponseHeaderAdd{
+							Header: &pbproxystate.Header{
+								Key:   hdr.Name,
+								Value: hdr.Value,
+							},
+							AppendAction: pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD,
+						},
+					},
+				})
+			}
+
+			if len(mod.Remove) > 0 {
+				headerMutations = append(headerMutations, &pbproxystate.HeaderMutation{
+					Action: &pbproxystate.HeaderMutation_ResponseHeaderRemove{
+						ResponseHeaderRemove: &pbproxystate.ResponseHeaderRemove{
+							HeaderKeys: mod.Remove,
+						},
+					},
+				})
+			}
+
+		case filter.GetUrlRewrite() != nil:
+			prefix := filter.GetUrlRewrite().PathPrefix
+			if prefix != "" {
+				psDestConfig.PrefixRewrite = prefix
+			}
+		}
+	}
+	return headerMutations
+}
+
+func applyLoadBalancerPolicy[V interface {
+	GetBackendTarget() string
+}](
+	psDestConfig *pbproxystate.DestinationConfiguration,
+	cpr *pbmesh.ComputedPortRoutes,
+	backendRefs []V,
+) {
+	var lb *pbmesh.LoadBalancer
+
+	// If there are multiple targets, just pick the lb policy from
+	// the first one configured.
+	for _, backendRef := range backendRefs {
+		if backendRef.GetBackendTarget() == types.NullRouteBackend {
+			continue
+		}
+		details, ok := cpr.Targets[backendRef.GetBackendTarget()]
+		if !ok {
+			continue
+		}
+		thisLB := details.DestinationConfig.LoadBalancer
+		if thisLB != nil {
+			lb = thisLB
+			break
+		}
+	}
+
+	if lb == nil {
+		return
+	}
+
+	for _, policy := range lb.HashPolicies {
+		if policy.SourceIp {
+			psDestConfig.HashPolicies = append(psDestConfig.HashPolicies, &pbproxystate.LoadBalancerHashPolicy{
+				Policy: &pbproxystate.LoadBalancerHashPolicy_ConnectionProperties{
+					ConnectionProperties: &pbproxystate.ConnectionPropertiesPolicy{
+						SourceIp: true,
+						Terminal: policy.Terminal,
+					},
+				},
+			})
+
+			continue
+		}
+
+		// enumcover:pbmesh.HashPolicyField
+		switch policy.Field {
+		case pbmesh.HashPolicyField_HASH_POLICY_FIELD_HEADER:
+			psDestConfig.HashPolicies = append(psDestConfig.HashPolicies, &pbproxystate.LoadBalancerHashPolicy{
+				Policy: &pbproxystate.LoadBalancerHashPolicy_Header{
+					Header: &pbproxystate.HeaderPolicy{
+						Name:     policy.FieldValue,
+						Terminal: policy.Terminal,
+					},
+				},
+			})
+		case pbmesh.HashPolicyField_HASH_POLICY_FIELD_COOKIE:
+			cookie := &pbproxystate.CookiePolicy{
+				Name:     policy.FieldValue,
+				Terminal: policy.Terminal,
+			}
+			if policy.CookieConfig != nil {
+				cookie.Path = policy.CookieConfig.Path
+
+				if policy.CookieConfig.Ttl != nil {
+					if policy.CookieConfig.Ttl.AsDuration() != 0 {
+						cookie.Ttl = policy.CookieConfig.Ttl
+					}
+				}
+
+				// Envoy will generate a session cookie if the ttl is present and zero.
+				if policy.CookieConfig.Session {
+					cookie.Ttl = durationpb.New(0 * time.Second)
+				}
+			}
+
+			psDestConfig.HashPolicies = append(psDestConfig.HashPolicies, &pbproxystate.LoadBalancerHashPolicy{
+				Policy: &pbproxystate.LoadBalancerHashPolicy_Cookie{
+					Cookie: cookie,
+				},
+			})
+		case pbmesh.HashPolicyField_HASH_POLICY_FIELD_QUERY_PARAMETER:
+			psDestConfig.HashPolicies = append(psDestConfig.HashPolicies, &pbproxystate.LoadBalancerHashPolicy{
+				Policy: &pbproxystate.LoadBalancerHashPolicy_QueryParameter{
+					QueryParameter: &pbproxystate.QueryParameterPolicy{
+						Name:     policy.FieldValue,
+						Terminal: policy.Terminal,
+					},
+				},
+			})
+		case pbmesh.HashPolicyField_HASH_POLICY_FIELD_UNSPECIFIED:
+			// fallthrough to default
+		default:
+			// not possible from validation
+		}
+	}
 }
 
 func makeHTTPRouteMatch(match *pbmesh.HTTPRouteMatch) *pbproxystate.RouteMatch {
@@ -185,48 +379,7 @@ func makeHTTPRouteMatch(match *pbmesh.HTTPRouteMatch) *pbproxystate.RouteMatch {
 		}
 	}
 
-	if len(match.Headers) > 0 {
-		em.HeaderMatches = make([]*pbproxystate.HeaderMatch, 0, len(match.Headers))
-		for _, hdr := range match.Headers {
-			eh := &pbproxystate.HeaderMatch{
-				Name: hdr.Name,
-			}
-
-			// enumcover:pbmesh.HeaderMatchType
-			switch hdr.Type {
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT:
-				eh.Match = &pbproxystate.HeaderMatch_Exact{
-					Exact: hdr.Value,
-				}
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_REGEX:
-				eh.Match = &pbproxystate.HeaderMatch_Regex{
-					Regex: hdr.Value,
-				}
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_PREFIX:
-				eh.Match = &pbproxystate.HeaderMatch_Prefix{
-					Prefix: hdr.Value,
-				}
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_SUFFIX:
-				eh.Match = &pbproxystate.HeaderMatch_Suffix{
-					Suffix: hdr.Value,
-				}
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_PRESENT:
-				eh.Match = &pbproxystate.HeaderMatch_Present{
-					Present: true,
-				}
-			case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED:
-				fallthrough // to default
-			default:
-				panic(fmt.Sprintf("unknown header match type: %v", hdr.Type))
-			}
-
-			if hdr.Invert {
-				eh.InvertMatch = true
-			}
-
-			em.HeaderMatches = append(em.HeaderMatches, eh)
-		}
-	}
+	em.HeaderMatches = translateHeaderMatches(match.Headers, (*pbmesh.HTTPHeaderMatch).GetInvert)
 
 	if match.Method != "" {
 		em.MethodMatches = []string{match.Method}
@@ -265,6 +418,122 @@ func makeHTTPRouteMatch(match *pbmesh.HTTPRouteMatch) *pbproxystate.RouteMatch {
 	}
 
 	return em
+}
+
+func makeGRPCRouteMatch(match *pbmesh.GRPCRouteMatch) *pbproxystate.RouteMatch {
+	em := &pbproxystate.RouteMatch{}
+
+	if match.Method != nil {
+		mm := match.Method
+		switch mm.Type {
+		case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_EXACT:
+			switch {
+			case mm.Method == "":
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Prefix{
+						Prefix: fmt.Sprintf("/%s/", mm.Service),
+					},
+				}
+			case mm.Service == "":
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Regex{
+						Regex: fmt.Sprintf("/[^/]+/%s", mm.Method),
+					},
+				}
+			default:
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Exact{
+						Exact: fmt.Sprintf("/%s/%s", mm.Service, mm.Method),
+					},
+				}
+			}
+		case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_REGEX:
+			switch {
+			case mm.Method == "":
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Regex{
+						Regex: fmt.Sprintf("/%s/.+", mm.Service),
+					},
+				}
+			case mm.Service == "":
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Regex{
+						Regex: fmt.Sprintf("/[^/]+/%s", mm.Method),
+					},
+				}
+			default:
+				em.PathMatch = &pbproxystate.PathMatch{
+					PathMatch: &pbproxystate.PathMatch_Regex{
+						Regex: fmt.Sprintf("/%s/%s", mm.Service, mm.Method),
+					},
+				}
+			}
+		case pbmesh.GRPCMethodMatchType_GRPC_METHOD_MATCH_TYPE_UNSPECIFIED:
+			fallthrough // to default
+		default:
+			panic(fmt.Sprintf("unknown method match type: %v", match.Method.Type))
+		}
+	}
+
+	em.HeaderMatches = translateHeaderMatches(match.Headers, nil)
+
+	return em
+}
+
+func translateHeaderMatches[V interface {
+	GetType() pbmesh.HeaderMatchType
+	GetName() string
+	GetValue() string
+}](
+	headers []V,
+	getInvert func(v V) bool,
+) []*pbproxystate.HeaderMatch {
+	if len(headers) == 0 {
+		return nil
+	}
+	var out []*pbproxystate.HeaderMatch
+	out = make([]*pbproxystate.HeaderMatch, 0, len(headers))
+	for _, hdr := range headers {
+		eh := &pbproxystate.HeaderMatch{
+			Name: hdr.GetName(),
+		}
+
+		// enumcover:pbmesh.HeaderMatchType
+		switch hdr.GetType() {
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_EXACT:
+			eh.Match = &pbproxystate.HeaderMatch_Exact{
+				Exact: hdr.GetValue(),
+			}
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_REGEX:
+			eh.Match = &pbproxystate.HeaderMatch_Regex{
+				Regex: hdr.GetValue(),
+			}
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_PREFIX:
+			eh.Match = &pbproxystate.HeaderMatch_Prefix{
+				Prefix: hdr.GetValue(),
+			}
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_SUFFIX:
+			eh.Match = &pbproxystate.HeaderMatch_Suffix{
+				Suffix: hdr.GetValue(),
+			}
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_PRESENT:
+			eh.Match = &pbproxystate.HeaderMatch_Present{
+				Present: true,
+			}
+		case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED:
+			fallthrough // to default
+		default:
+			panic(fmt.Sprintf("unknown header match type: %v", hdr.GetType()))
+		}
+
+		// HTTPHeaderMatch only
+		if getInvert != nil && getInvert(hdr) {
+			eh.InvertMatch = true
+		}
+
+		out = append(out, eh)
+	}
+	return out
 }
 
 func translateTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) *pbproxystate.TimeoutConfig {

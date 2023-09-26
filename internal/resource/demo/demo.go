@@ -72,6 +72,8 @@ const (
 	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
 	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
+	LabelV1ReadPolicy   = `key_prefix "resource/demo.v1.Label/" { policy = "read" }`
+	LabelV1WritePolicy  = `key_prefix "resource/demo.v1.Label/" { policy = "write" }`
 )
 
 // RegisterTypes registers the demo types. Should only be called in tests and
@@ -80,7 +82,12 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
+		if resource.EqualType(TypeV1RecordLabel, id.Type) {
+			if res == nil {
+				return resource.ErrNeedData
+			}
+		}
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
 	}
