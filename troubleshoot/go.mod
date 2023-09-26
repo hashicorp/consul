@@ -2,9 +2,9 @@ module github.com/hashicorp/consul/troubleshoot
 
 go 1.19
 
-//replace github.com/hashicorp/consul/api => ../api
+replace github.com/hashicorp/consul/api => ../api
 
-//replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
+replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 
 replace github.com/hashicorp/consul/proto-public => ../proto-public
 
@@ -16,8 +16,8 @@ exclude (
 require (
 	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/hashicorp/consul/api v1.26.0-rc1
-	github.com/hashicorp/consul/envoyextensions v0.5.0-rc1
+	github.com/hashicorp/consul/api v1.24.0
+	github.com/hashicorp/consul/envoyextensions v0.4.1
 	github.com/stretchr/testify v1.8.3
 	google.golang.org/protobuf v1.30.0
 )
