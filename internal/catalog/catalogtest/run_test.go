@@ -43,5 +43,5 @@ func TestControllers_Integration(t *testing.T) {
 
 func TestControllers_Lifecycle(t *testing.T) {
 	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV1Alpha1LifecycleIntegrationTest(t, client)
+	RunCatalogV2Beta1LifecycleIntegrationTest(t, client)
 }

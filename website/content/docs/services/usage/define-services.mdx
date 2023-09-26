@@ -44,7 +44,7 @@ For Kubernetes environments, you can enable the  [`connectInject`](/consul/docs/
 The following example defines a service named `redis` that is available on port `80`. By default, the service has the IP address of the agent node.
 
 <CodeTabs>
-<CodeBlockConfig heading="service.hcl">
+<CodeBlockConfig filename="service.hcl">
 
 ```hcl
 service {
@@ -72,7 +72,7 @@ service {
 ```
 
 </CodeBlockConfig>
-<CodeBlockConfig heading="service.json">
+<CodeBlockConfig filename="service.json">
 
 ```json
 {
@@ -380,8 +380,7 @@ services {
           "timeout": "60s"
         }
       ]
-    },
-    ...
+    }
   ]
 }
 ```
@@ -397,24 +396,31 @@ Add the `enable_tag_override` option to the `service` block and set the value to
 
 <CodeTabs tabs={[ "HCL","JSON" ]}>
 
+<CodeBlockConfig highlight="4">
 
 ```hcl
 service {
-  ## ...
+  name = "redis"
+  port = 6379
   enable_tag_override = true
-  ## ...
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig highlight="5">
 
 ```json
 {
   "service": {
-    ## ...
-    "enable_tag_override": true,
-    ## ...
+    "name": "redis",
+    "port": 6379,
+    "enable_tag_override": true
   }
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 

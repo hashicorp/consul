@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 ID {
-  Type = gvk("mesh.v1alpha1.Upstreams")
+  Type = gvk("mesh.v2beta1.Destinations")
   Name = "api"
 }
 
@@ -11,10 +11,10 @@ Data {
     Prefixes = ["api"]
   }
 
-  Upstreams = [
+  Destinations = [
     {
       DestinationRef = {
-        Type = gvk("catalog.v1alpha1.Service")
+        Type = gvk("catalog.v2beta1.Service")
         Name = "db"
       }
 

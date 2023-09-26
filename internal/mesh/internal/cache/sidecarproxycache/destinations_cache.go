@@ -6,10 +6,10 @@ package sidecarproxycache
 import (
 	"sync"
 
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -55,13 +55,13 @@ func KeyFromRefAndPort(ref *pbresource.Reference, port string) ReferenceKeyWithP
 // WriteDestination adds destination reference to the cache.
 func (c *DestinationsCache) WriteDestination(d intermediate.CombinedDestinationRef) {
 	// Check that reference is a catalog.Service type.
-	if !resource.EqualType(catalog.ServiceType, d.ServiceRef.Type) {
+	if !resource.EqualType(pbcatalog.ServiceType, d.ServiceRef.Type) {
 		panic("ref must of type catalog.Service")
 	}
 
 	// Also, check that explicit destination reference is a mesh.Upstreams type.
 	if d.ExplicitDestinationsID != nil &&
-		!resource.EqualType(types.UpstreamsType, d.ExplicitDestinationsID.Type) {
+		!resource.EqualType(pbmesh.DestinationsType, d.ExplicitDestinationsID.Type) {
 		panic("ExplicitDestinationsID must be of type mesh.Upstreams")
 	}
 
@@ -75,7 +75,7 @@ func (c *DestinationsCache) WriteDestination(d intermediate.CombinedDestinationR
 // DeleteDestination deletes a given destination reference and port from cache.
 func (c *DestinationsCache) DeleteDestination(ref *pbresource.Reference, port string) {
 	// Check that reference is a catalog.Service type.
-	if !resource.EqualType(catalog.ServiceType, ref.Type) {
+	if !resource.EqualType(pbcatalog.ServiceType, ref.Type) {
 		panic("ref must of type catalog.Service")
 	}
 
@@ -153,7 +153,7 @@ func (c *DestinationsCache) deletePortLocked(ref *pbresource.Reference, port str
 // DeleteSourceProxy deletes the source proxy given by id from the cache.
 func (c *DestinationsCache) DeleteSourceProxy(id *pbresource.ID) {
 	// Check that id is the ProxyStateTemplate type.
-	if !resource.EqualType(types.ProxyStateTemplateType, id.Type) {
+	if !resource.EqualType(pbmesh.ProxyStateTemplateType, id.Type) {
 		panic("id must of type mesh.ProxyStateTemplate")
 	}
 
@@ -184,7 +184,7 @@ func (c *DestinationsCache) DeleteSourceProxy(id *pbresource.ID) {
 // ReadDestination returns a destination reference for the given service reference and port.
 func (c *DestinationsCache) ReadDestination(ref *pbresource.Reference, port string) (intermediate.CombinedDestinationRef, bool) {
 	// Check that reference is a catalog.Service type.
-	if !resource.EqualType(catalog.ServiceType, ref.Type) {
+	if !resource.EqualType(pbcatalog.ServiceType, ref.Type) {
 		panic("ref must of type catalog.Service")
 	}
 
@@ -199,7 +199,7 @@ func (c *DestinationsCache) ReadDestination(ref *pbresource.Reference, port stri
 
 func (c *DestinationsCache) ReadDestinationsByServiceAllPorts(ref *pbresource.Reference) []intermediate.CombinedDestinationRef {
 	// Check that reference is a catalog.Service type.
-	if !resource.EqualType(catalog.ServiceType, ref.Type) {
+	if !resource.EqualType(pbcatalog.ServiceType, ref.Type) {
 		panic("ref must of type catalog.Service")
 	}
 
@@ -229,7 +229,7 @@ func (c *DestinationsCache) ReadDestinationsByServiceAllPorts(ref *pbresource.Re
 // DestinationsBySourceProxy returns all destinations that are a referenced by the given source proxy id.
 func (c *DestinationsCache) DestinationsBySourceProxy(id *pbresource.ID) []intermediate.CombinedDestinationRef {
 	// Check that id is the ProxyStateTemplate type.
-	if !resource.EqualType(types.ProxyStateTemplateType, id.Type) {
+	if !resource.EqualType(pbmesh.ProxyStateTemplateType, id.Type) {
 		panic("id must of type mesh.ProxyStateTemplate")
 	}
 

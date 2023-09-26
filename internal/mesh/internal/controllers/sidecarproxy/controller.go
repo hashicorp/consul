@@ -9,8 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
@@ -18,7 +16,9 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -86,13 +86,13 @@ func Controller(
 							[implicit/temp]: trigger all
 	*/
 
-	return controller.ForType(types.ProxyStateTemplateType).
-		WithWatch(catalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
-		WithWatch(catalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
-		WithWatch(types.UpstreamsType, mapper.MapDestinationsToProxyStateTemplate).
-		WithWatch(types.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
-		WithWatch(types.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
-		WithWatch(auth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).
+	return controller.ForType(pbmesh.ProxyStateTemplateType).
+		WithWatch(pbcatalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
+		WithWatch(pbcatalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
+		WithWatch(pbmesh.DestinationsType, mapper.MapDestinationsToProxyStateTemplate).
+		WithWatch(pbmesh.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
+		WithWatch(pbmesh.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
+		WithWatch(pbauth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).
 		WithReconciler(&reconciler{
 			destinationsCache:   destinationsCache,
 			proxyCfgCache:       proxyCfgCache,
@@ -129,7 +129,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	)
 
 	// Check if the workload exists.
-	workloadID := resource.ReplaceType(catalog.WorkloadType, req.ID)
+	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
 	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated workload", "error", err)
@@ -282,7 +282,7 @@ func identityRefFromWorkload(w *types.DecodedWorkload) *pbresource.Reference {
 
 func computedTrafficPermissionsIDFromWorkload(w *types.DecodedWorkload) *pbresource.ID {
 	return &pbresource.ID{
-		Type:    auth.ComputedTrafficPermissionsType,
+		Type:    pbauth.ComputedTrafficPermissionsType,
 		Name:    w.Data.Identity,
 		Tenancy: w.Resource.Id.Tenancy,
 	}

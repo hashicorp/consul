@@ -8,20 +8,21 @@ import (
 	"fmt"
 	"testing"
 
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 var (
@@ -76,23 +77,23 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 
 	// The rest of the setup will be to prime the resource service with some data
-	suite.nodeNoHealth = resourcetest.Resource(types.NodeType, "test-node-no-health").
+	suite.nodeNoHealth = resourcetest.Resource(pbcatalog.NodeType, "test-node-no-health").
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodePassing = resourcetest.Resource(types.NodeType, "test-node-passing").
+	suite.nodePassing = resourcetest.Resource(pbcatalog.NodeType, "test-node-passing").
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeWarning = resourcetest.Resource(types.NodeType, "test-node-warning").
+	suite.nodeWarning = resourcetest.Resource(pbcatalog.NodeType, "test-node-warning").
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeCritical = resourcetest.Resource(types.NodeType, "test-node-critical").
+	suite.nodeCritical = resourcetest.Resource(pbcatalog.NodeType, "test-node-critical").
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
-	suite.nodeMaintenance = resourcetest.Resource(types.NodeType, "test-node-maintenance").
+	suite.nodeMaintenance = resourcetest.Resource(pbcatalog.NodeType, "test-node-maintenance").
 		WithData(suite.T(), nodeData).
 		Write(suite.T(), suite.resourceClient).Id
 
@@ -121,7 +122,7 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	for _, node := range []*pbresource.ID{suite.nodePassing, suite.nodeWarning, suite.nodeCritical, suite.nodeMaintenance} {
 		for idx, health := range precedenceHealth {
 			if nodeHealthDesiredStatus[node.Name] >= health {
-				resourcetest.Resource(types.HealthStatusType, fmt.Sprintf("test-check-%s-%d", node.Name, idx)).
+				resourcetest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("test-check-%s-%d", node.Name, idx)).
 					WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
 					WithOwner(node).
 					Write(suite.T(), suite.resourceClient)
@@ -132,7 +133,7 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
 	// to be something that doesn't care about its owner. All we want to prove is that we are
 	// filtering out non-HealthStatus types appropriately.
-	resourcetest.Resource(types.DNSPolicyType, "test-policy").
+	resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy").
 		WithData(suite.T(), dnsPolicyData).
 		WithOwner(suite.nodeNoHealth).
 		Write(suite.T(), suite.resourceClient)
@@ -159,7 +160,7 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 	// no error is returned but also no data is. The default passing
 	// status should then be returned in the same manner as the node
 	// existing but with no associated HealthStatus resources.
-	ref := resourceID(types.NodeType, "foo")
+	ref := resourceID(pbcatalog.NodeType, "foo")
 	ref.Uid = ulid.Make().String()
 	health, err := getNodeHealth(context.Background(), suite.runtime, ref)
 
@@ -201,7 +202,7 @@ func (suite *nodeHealthControllerTestSuite) TestReconcileNodeNotFound() {
 	// This test ensures that removed nodes are ignored. In particular we don't
 	// want to propagate the error and indefinitely keep re-reconciling in this case.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: resourceID(types.NodeType, "not-found"),
+		ID: resourceID(pbcatalog.NodeType, "not-found"),
 	})
 	require.NoError(suite.T(), err)
 }
@@ -339,7 +340,7 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 
 	// rewrite the resource - this will cause the nodes health
 	// to be rereconciled but wont result in any health change
-	resourcetest.Resource(types.NodeType, suite.nodePassing.Name).
+	resourcetest.Resource(pbcatalog.NodeType, suite.nodePassing.Name).
 		WithData(suite.T(), &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{
 				{
@@ -352,7 +353,7 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 	// wait for rereconciliation to happen
 	suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
-	resourcetest.Resource(types.HealthStatusType, "failure").
+	resourcetest.Resource(pbcatalog.HealthStatusType, "failure").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 		WithOwner(suite.nodePassing).
 		Write(suite.T(), suite.resourceClient)

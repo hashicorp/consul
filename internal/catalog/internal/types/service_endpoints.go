@@ -9,27 +9,13 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	ServiceEndpointsKind = "ServiceEndpoints"
-)
-
-var (
-	ServiceEndpointsV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         ServiceEndpointsKind,
-	}
-
-	ServiceEndpointsType = ServiceEndpointsV1Alpha1Type
 )
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ServiceEndpointsV1Alpha1Type,
+		Type:     pbcatalog.ServiceEndpointsType,
 		Proto:    &pbcatalog.ServiceEndpoints{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateServiceEndpoints,
@@ -40,7 +26,7 @@ func RegisterServiceEndpoints(r resource.Registry) {
 func MutateServiceEndpoints(res *pbresource.Resource) error {
 	if res.Owner == nil {
 		res.Owner = &pbresource.ID{
-			Type:    ServiceV1Alpha1Type,
+			Type:    pbcatalog.ServiceType,
 			Tenancy: res.Id.Tenancy,
 			Name:    res.Id.Name,
 		}
@@ -57,16 +43,16 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 	}
 
 	var err error
-	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
+	if !resource.EqualType(res.Owner.Type, pbcatalog.ServiceType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
-			ResourceType: ServiceEndpointsV1Alpha1Type,
+			ResourceType: pbcatalog.ServiceEndpointsType,
 			OwnerType:    res.Owner.Type,
 		})
 	}
 
 	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
 		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
-			ResourceType:    ServiceEndpointsV1Alpha1Type,
+			ResourceType:    pbcatalog.ServiceEndpointsType,
 			ResourceTenancy: res.Id.Tenancy,
 			OwnerTenancy:    res.Owner.Tenancy,
 		})
@@ -103,7 +89,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 	// corresponding workloads that Consul has knowledge of.
 	if endpoint.TargetRef != nil {
 		// Validate the target reference
-		if refErr := validateReference(WorkloadType, res.Id.GetTenancy(), endpoint.TargetRef); refErr != nil {
+		if refErr := validateReference(pbcatalog.WorkloadType, res.Id.GetTenancy(), endpoint.TargetRef); refErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidField{
 				Name:    "target_ref",
 				Wrapped: refErr,

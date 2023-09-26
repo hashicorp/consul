@@ -5,27 +5,12 @@ package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	WorkloadIdentityKind = "WorkloadIdentity"
-)
-
-var (
-	WorkloadIdentityV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         WorkloadIdentityKind,
-	}
-
-	WorkloadIdentityType = WorkloadIdentityV1Alpha1Type
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 )
 
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     WorkloadIdentityV1Alpha1Type,
+		Type:     pbauth.WorkloadIdentityType,
 		Proto:    &pbauth.WorkloadIdentity{},
 		Scope:    resource.ScopeNamespace,
 		Validate: nil,

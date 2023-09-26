@@ -20,9 +20,9 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 func TestConfigSource_Success(t *testing.T) {
@@ -79,7 +79,7 @@ func TestConfigSource_Success(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	snapCh, termCh, cancelWatch1, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	snapCh, termCh, cancelWatch1, err := mgr.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
 	require.NoError(t, err)
 	require.Equal(t, session1TermCh, termCh)
 
@@ -136,7 +136,7 @@ func TestConfigSource_Success(t *testing.T) {
 	}
 
 	// Start another watch.
-	_, termCh2, cancelWatch2, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, termCh2, cancelWatch2, err := mgr.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
 	require.NoError(t, err)
 	require.Equal(t, session2TermCh, termCh2)
 
@@ -170,7 +170,7 @@ func TestConfigSource_Success(t *testing.T) {
 
 func TestConfigSource_LocallyManagedService(t *testing.T) {
 	serviceID := structs.NewServiceID("web-sidecar-proxy-1", nil)
-	proxyID := rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID()
+	proxyID := rtest.Resource(pbmesh.ProxyConfigurationType, serviceID.ID).ID()
 	nodeName := "node-1"
 	token := "token"
 
@@ -238,7 +238,7 @@ func TestConfigSource_ErrorRegisteringService(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, _, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, _, _, err := mgr.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
 	require.Error(t, err)
 	require.True(t, canceledWatch, "watch should've been canceled")
 
@@ -279,7 +279,7 @@ func TestConfigSource_NotProxyService(t *testing.T) {
 	})
 	t.Cleanup(mgr.Shutdown)
 
-	_, _, _, err := mgr.Watch(rtest.Resource(mesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
+	_, _, _, err := mgr.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, serviceID.ID).ID(), nodeName, token)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "must be a sidecar proxy or gateway")
 	require.True(t, canceledWatch, "watch should've been canceled")
@@ -296,7 +296,7 @@ func TestConfigSource_SessionLimiterError(t *testing.T) {
 	t.Cleanup(src.Shutdown)
 
 	_, _, _, err := src.Watch(
-		rtest.Resource(mesh.ProxyConfigurationType, "web-sidecar-proxy-1").ID(),
+		rtest.Resource(pbmesh.ProxyConfigurationType, "web-sidecar-proxy-1").ID(),
 		"node-name",
 		"token",
 	)

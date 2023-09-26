@@ -10,31 +10,18 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	GRPCRouteKind = "GRPCRoute"
-)
-
-var (
-	GRPCRouteV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         GRPCRouteKind,
-	}
-
-	GRPCRouteType = GRPCRouteV1Alpha1Type
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     GRPCRouteV1Alpha1Type,
+		Type:     pbmesh.GRPCRouteType,
 		Proto:    &pbmesh.GRPCRoute{},
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),
 	})
 }
 

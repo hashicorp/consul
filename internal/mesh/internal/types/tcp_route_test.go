@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -59,7 +59,7 @@ func TestMutateTCPRoute(t *testing.T) {
 			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: refs},
@@ -67,7 +67,7 @@ func TestMutateTCPRoute(t *testing.T) {
 			},
 			expect: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: expect},
@@ -77,7 +77,7 @@ func TestMutateTCPRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(TCPRouteType, "api").
+		res := resourcetest.Resource(pbmesh.TCPRouteType, "api").
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
@@ -108,7 +108,7 @@ func TestValidateTCPRoute(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(TCPRouteType, "api").
+		res := resourcetest.Resource(pbmesh.TCPRouteType, "api").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, tc.route).
 			Build()
@@ -138,24 +138,24 @@ func TestValidateTCPRoute(t *testing.T) {
 		"no rules": {
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 			},
 		},
 		"more than one rule": {
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{
 						BackendRefs: []*pbmesh.TCPBackendRef{{
-							BackendRef: newBackendRef(catalog.ServiceType, "api", ""),
+							BackendRef: newBackendRef(pbcatalog.ServiceType, "api", ""),
 						}},
 					},
 					{
 						BackendRefs: []*pbmesh.TCPBackendRef{{
-							BackendRef: newBackendRef(catalog.ServiceType, "db", ""),
+							BackendRef: newBackendRef(pbcatalog.ServiceType, "db", ""),
 						}},
 					},
 				},
@@ -184,7 +184,7 @@ func TestValidateTCPRoute(t *testing.T) {
 		cases["backend-ref: "+name] = testcase{
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
-					newParentRef(catalog.ServiceType, "web", ""),
+					newParentRef(pbcatalog.ServiceType, "web", ""),
 				},
 				Rules: []*pbmesh.TCPRouteRule{
 					{BackendRefs: refs},
@@ -199,4 +199,34 @@ func TestValidateTCPRoute(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestTCPRouteACLs(t *testing.T) {
+	testXRouteACLs[*pbmesh.TCPRoute](t, func(t *testing.T, parentRefs, backendRefs []*pbresource.Reference) *pbresource.Resource {
+		data := &pbmesh.TCPRoute{
+			ParentRefs: nil,
+		}
+		for _, ref := range parentRefs {
+			data.ParentRefs = append(data.ParentRefs, &pbmesh.ParentReference{
+				Ref: ref,
+			})
+		}
+
+		var ruleRefs []*pbmesh.TCPBackendRef
+		for _, ref := range backendRefs {
+			ruleRefs = append(ruleRefs, &pbmesh.TCPBackendRef{
+				BackendRef: &pbmesh.BackendReference{
+					Ref: ref,
+				},
+			})
+		}
+		data.Rules = []*pbmesh.TCPRouteRule{
+			{BackendRefs: ruleRefs},
+		}
+
+		return resourcetest.Resource(pbmesh.TCPRouteType, "api-tcp-route").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, data).
+			Build()
+	})
 }

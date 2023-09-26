@@ -22,9 +22,9 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -70,11 +70,11 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.fetcher = mockFetcher
 
-	suite.mapper = bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
+	suite.mapper = bimapper.New(pbmesh.ProxyStateTemplateType, pbcatalog.ServiceEndpointsType)
 	suite.updater = newMockUpdater()
 
 	suite.leafMapper = &LeafMapper{
-		bimapper.New(types.ProxyStateTemplateType, InternalLeafType),
+		bimapper.New(pbmesh.ProxyStateTemplateType, InternalLeafType),
 	}
 	lcm, signer := leafcert.NewTestManager(suite.T(), nil)
 	signer.UpdateCA(suite.T(), nil)
@@ -109,7 +109,7 @@ func mockFetcher() (*pbproxystate.TrustBundle, error) {
 // This test ensures when a ProxyState is deleted, it is no longer tracked in the mappers.
 func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 	// Track the id of a non-existent ProxyStateTemplate.
-	proxyStateTemplateId := resourcetest.Resource(types.ProxyStateTemplateType, "not-found").ID()
+	proxyStateTemplateId := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "not-found").ID()
 	suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 	suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 	require.False(suite.T(), suite.mapper.IsEmpty())
@@ -130,7 +130,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 // disconnected from this server, it's ignored and removed from the mapper.
 func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConnectedToServer() {
 	// Store the initial ProxyStateTemplate and track it in the mapper.
-	proxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "test").
+	proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{}).
 		Write(suite.T(), suite.client)
 
@@ -174,14 +174,14 @@ func (suite *xdsControllerTestSuite) TestReconcile_PushChangeError() {
 func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 	// Set fooProxyStateTemplate with a reference to fooEndpoints, without storing fooEndpoints so the controller should
 	// notice it's missing.
-	fooEndpointsId := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	fooEndpointsId := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
 		Id:   fooEndpointsId,
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints: fooRequiredEndpoints,
 			ProxyState:        &pbmesh.ProxyState{},
@@ -219,7 +219,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints: fooRequiredEndpoints,
 			ProxyState:        &pbmesh.ProxyState{},
@@ -364,7 +364,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 
 	// Now, update the endpoint to be unhealthy. This will ensure the controller is getting triggered on changes to this
 	// endpoint that it should be tracking, even when the ProxyStateTemplate does not change.
-	resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -408,11 +408,11 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 
 	// Now add a new endpoint reference and endpoint to the fooProxyStateTemplate. This will ensure that the controller
 	// now tracks the newly added endpoint.
-	secondService := resourcetest.Resource(catalog.ServiceType, "second-service").
+	secondService := resourcetest.Resource(pbcatalog.ServiceType, "second-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	secondEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "second-service").
+	secondEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "second-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -443,7 +443,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 	}
 
 	oldVersion := suite.fooProxyStateTemplate.Version
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints:        suite.fooEndpointRefs,
 			ProxyState:               &pbmesh.ProxyState{},
@@ -550,7 +550,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateDeleteLeafRe
 	// Delete the leaf references on the fooProxyStateTemplate
 	delete(suite.fooLeafRefs, "foo-workload-identity")
 	oldVersion := suite.fooProxyStateTemplate.Version
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints:        suite.fooEndpointRefs,
 			ProxyState:               &pbmesh.ProxyState{},
@@ -655,11 +655,11 @@ func (suite *xdsControllerTestSuite) TestController_ComputeEndpointForProxyConne
 //
 // Saves all related resources to the suite so they can be looked up by the controller or modified if needed.
 func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences() {
-	fooService := resourcetest.Resource(catalog.ServiceType, "foo-service").
+	fooService := resourcetest.Resource(pbcatalog.ServiceType, "foo-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -694,7 +694,7 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences() 
 		Name: "foo-workload-identity",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints:        fooRequiredEndpoints,
 			RequiredLeafCertificates: fooRequiredLeafs,
@@ -755,11 +755,11 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences() 
 //
 // Saves all related resources to the suite so they can be modified if needed.
 func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints() {
-	fooService := resourcetest.Resource(catalog.ServiceType, "foo-service").
+	fooService := resourcetest.Resource(pbcatalog.ServiceType, "foo-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -783,11 +783,11 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		WithOwner(fooService.Id).
 		Write(suite.T(), suite.client)
 
-	fooBarService := resourcetest.Resource(catalog.ServiceType, "foo-bar-service").
+	fooBarService := resourcetest.Resource(pbcatalog.ServiceType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooBarEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-bar-service").
+	fooBarEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -828,7 +828,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			// Contains the foo and foobar endpoints.
 			RequiredEndpoints: fooRequiredEndpoints,
@@ -840,7 +840,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
 	})
 
-	barProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "bar-pst").
+	barProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "bar-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			// Contains the foobar endpoint.
 			RequiredEndpoints: barRequiredEndpoints,
@@ -928,6 +928,68 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 	suite.fooBarService = fooBarService
 	suite.expectedFooProxyStateEndpoints = expectedFooProxyStateEndpoints
 	suite.expectedBarProxyStateEndpoints = expectedBarProxyStateEndpoints
+}
+
+func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
+	makeRef := func(names ...string) []*pbresource.Reference {
+		out := make([]*pbresource.Reference, len(names))
+		for i, name := range names {
+			out[i] = &pbresource.Reference{
+				Name: name,
+				Type: &pbresource.Type{
+					Group:        "g",
+					GroupVersion: "v",
+					Kind:         "k",
+				},
+				Tenancy: &pbresource.Tenancy{},
+			}
+		}
+		return out
+	}
+	convert := func(input []*pbresource.Reference) []resource.ReferenceOrID {
+		asInterface := make([]resource.ReferenceOrID, len(input))
+		for i := range input {
+			asInterface[i] = input[i]
+		}
+		return asInterface
+	}
+
+	cases := []struct {
+		old    []*pbresource.Reference
+		new    []*pbresource.Reference
+		expect []*pbresource.Reference
+	}{
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "c"),
+			expect: makeRef("b"),
+		},
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "b", "c"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef("a", "b"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef("a", "b"),
+			new:    makeRef(),
+			expect: makeRef("a", "b"),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef(),
+			expect: makeRef(),
+		},
+	}
+
+	for _, tc := range cases {
+		toCancel := prevWatchesToCancel(tc.old, convert(tc.new))
+		require.ElementsMatch(suite.T(), toCancel, tc.expect)
+	}
 }
 
 func TestXdsController(t *testing.T) {

@@ -5,6 +5,8 @@ package resource
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -14,12 +16,15 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestRead_InputValidation(t *testing.T) {
@@ -213,18 +218,50 @@ func TestRead_VerifyReadConsistencyArg(t *testing.T) {
 // N.B. Uses key ACLs for now. See demo.RegisterTypes()
 func TestRead_ACLs(t *testing.T) {
 	type testCase struct {
-		authz resolver.Result
-		code  codes.Code
+		res          *pbresource.Resource
+		authz        resolver.Result
+		codeNotExist codes.Code
+		codeExists   codes.Code
 	}
+
+	artist, err := demo.GenerateV2Artist()
+	require.NoError(t, err)
+
+	label, err := demo.GenerateV1RecordLabel("blink1982")
+	require.NoError(t, err)
+
 	testcases := map[string]testCase{
-		"read hook denied": {
-			authz: AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
-			code:  codes.PermissionDenied,
+		"artist-v1/read hook denied": {
+			res:          artist,
+			authz:        AuthorizerFrom(t, demo.ArtistV1ReadPolicy),
+			codeNotExist: codes.PermissionDenied,
+			codeExists:   codes.PermissionDenied,
 		},
-		"read hook allowed": {
-			authz: AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
-			code:  codes.NotFound,
+		"artist-v2/read hook allowed": {
+			res:          artist,
+			authz:        AuthorizerFrom(t, demo.ArtistV2ReadPolicy),
+			codeNotExist: codes.NotFound,
+			codeExists:   codes.OK,
 		},
+		// Labels have the read ACL that requires reading the data.
+		"label-v1/read hook denied": {
+			res:          label,
+			authz:        AuthorizerFrom(t, demo.LabelV1ReadPolicy),
+			codeNotExist: codes.NotFound,
+			codeExists:   codes.PermissionDenied,
+		},
+	}
+
+	adminAuthz := AuthorizerFrom(t, `key_prefix "" { policy = "write" }`)
+
+	idx := 0
+	nextTokenContext := func(t *testing.T) context.Context {
+		// Each query should use a distinct token string to avoid caching so we can
+		// change the behavior each call.
+		token := fmt.Sprintf("token-%d", idx)
+		idx++
+		//nolint:staticcheck
+		return context.WithValue(testContext(t), "x-consul-token", token)
 	}
 
 	for desc, tc := range testcases {
@@ -232,21 +269,61 @@ func TestRead_ACLs(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
 
-			mockACLResolver := &MockACLResolver{}
-			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-				Return(tc.authz, nil)
-			server.ACLResolver = mockACLResolver
+			dr := &dummyACLResolver{
+				result: testutils.ACLsDisabled(t),
+			}
+			server.ACLResolver = dr
+
 			demo.RegisterTypes(server.Registry)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
+			dr.SetResult(tc.authz)
+			testutil.RunStep(t, "does not exist", func(t *testing.T) {
+				_, err = client.Read(nextTokenContext(t), &pbresource.ReadRequest{Id: tc.res.Id})
+				if tc.codeNotExist == codes.OK {
+					require.NoError(t, err)
+				} else {
+					require.Error(t, err)
+				}
+				require.Equal(t, tc.codeNotExist.String(), status.Code(err).String(), "%v", err)
+			})
 
-			// exercise ACL
-			_, err = client.Read(testContext(t), &pbresource.ReadRequest{Id: artist.Id})
-			require.Error(t, err)
-			require.Equal(t, tc.code.String(), status.Code(err).String())
+			// Create it.
+			dr.SetResult(adminAuthz)
+			_, err = client.Write(nextTokenContext(t), &pbresource.WriteRequest{Resource: tc.res})
+			require.NoError(t, err, "could not write resource")
+
+			dr.SetResult(tc.authz)
+			testutil.RunStep(t, "does exist", func(t *testing.T) {
+				// exercise ACL when the data does exist
+				_, err = client.Read(nextTokenContext(t), &pbresource.ReadRequest{Id: tc.res.Id})
+				if tc.codeExists == codes.OK {
+					require.NoError(t, err)
+				} else {
+					require.Error(t, err)
+				}
+				require.Equal(t, tc.codeExists.String(), status.Code(err).String())
+			})
 		})
 	}
+}
+
+type dummyACLResolver struct {
+	lock   sync.Mutex
+	result resolver.Result
+}
+
+var _ ACLResolver = (*dummyACLResolver)(nil)
+
+func (r *dummyACLResolver) SetResult(result resolver.Result) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.result = result
+}
+
+func (r *dummyACLResolver) ResolveTokenAndDefaultMeta(string, *acl.EnterpriseMeta, *acl.AuthorizerContext) (resolver.Result, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.result, nil
 }
 
 type readTestCase struct {

@@ -8,24 +8,24 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestIdentitiesCache(t *testing.T) {
 	cache := NewIdentitiesCache()
 
-	identityID1 := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-1").
+	identityID1 := resourcetest.Resource(pbauth.WorkloadIdentityType, "workload-identity-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	identityID2 := resourcetest.Resource(auth.WorkloadIdentityType, "workload-identity-2").
+	identityID2 := resourcetest.Resource(pbauth.WorkloadIdentityType, "workload-identity-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
-	proxyID1 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-1").
+	proxyID1 := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
-	proxyID2 := resourcetest.Resource(types.ProxyStateTemplateType, "service-workload-2").
+	proxyID2 := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "service-workload-2").
 		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 
 	// Empty cache

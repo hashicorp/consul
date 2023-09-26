@@ -15,7 +15,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
-	meshv1alpha1 "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/sdk/testutil"
 
 	"github.com/stretchr/testify/require"
@@ -89,10 +89,10 @@ func protoToJSON(t *testing.T, pb proto.Message) string {
 	return string(gotJSON)
 }
 
-func jsonToProxyTemplate(t *testing.T, json []byte) *meshv1alpha1.ProxyStateTemplate {
+func jsonToProxyTemplate(t *testing.T, json []byte) *meshv2beta1.ProxyStateTemplate {
 	t.Helper()
 	um := protojson.UnmarshalOptions{}
-	proxyTemplate := &meshv1alpha1.ProxyStateTemplate{}
+	proxyTemplate := &meshv2beta1.ProxyStateTemplate{}
 	err := um.Unmarshal(json, proxyTemplate)
 	require.NoError(t, err)
 	return proxyTemplate

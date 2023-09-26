@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -15,9 +14,10 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/internal/protoutil"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -109,6 +109,8 @@ func (b *Builder) buildDestination(
 				}
 			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
+			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
 
 			dest := b.makeHTTPRouteDestination(
 				routeRule.BackendRefs,
@@ -117,17 +119,14 @@ func (b *Builder) buildDestination(
 				defaultDC,
 			)
 
-			// TODO(rb/v2): Filters     []*HTTPRouteFilter
-			// TODO(rb/v2): BackendRefs []*ComputedHTTPBackendRef
-
 			// Explode out by matches
 			for _, match := range routeRule.Matches {
 				routeMatch := makeHTTPRouteMatch(match)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
-					Match:       routeMatch,
-					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
-					// TODO: mutations
+					Match:           routeMatch,
+					Destination:     protoutil.Clone(dest),
+					HeaderMutations: protoutil.CloneSlice(headerMutations),
 				})
 			}
 		}
@@ -153,6 +152,8 @@ func (b *Builder) buildDestination(
 				}
 			}
 			destConfig := b.makeDestinationConfiguration(routeRule.Timeouts, routeRule.Retries)
+			headerMutations := applyRouteFilters(destConfig, routeRule.Filters)
+			applyLoadBalancerPolicy(destConfig, cpr, routeRule.BackendRefs)
 
 			// nolint:staticcheck
 			dest := b.makeGRPCRouteDestination(
@@ -162,16 +163,14 @@ func (b *Builder) buildDestination(
 				defaultDC,
 			)
 
-			// TODO(rb/v2): Filters     []*HTTPRouteFilter
-
 			// Explode out by matches
 			for _, match := range routeRule.Matches {
 				routeMatch := makeGRPCRouteMatch(match)
 
 				proxyRouteRules = append(proxyRouteRules, &pbproxystate.RouteRule{
-					Match:       routeMatch,
-					Destination: proto.Clone(dest).(*pbproxystate.RouteDestination),
-					// TODO: mutations
+					Match:           routeMatch,
+					Destination:     protoutil.Clone(dest),
+					HeaderMutations: protoutil.CloneSlice(headerMutations),
 				})
 			}
 		}
@@ -261,6 +260,16 @@ func (b *Builder) buildDestination(
 	}
 
 	for _, details := range targets {
+		// NOTE: we only emit clusters for DIRECT targets here. The others will
+		// be folded into one or more aggregate clusters somehow.
+		if details.Type != pbmesh.BackendTargetDetailsType_BACKEND_TARGET_DETAILS_TYPE_DIRECT {
+			continue
+		}
+
+		connectTimeout := details.DestinationConfig.ConnectTimeout
+		loadBalancer := details.DestinationConfig.LoadBalancer
+
+		// NOTE: we collect both DIRECT and INDIRECT target information here.
 		dc := defaultDC(details.BackendRef.Datacenter)
 		portName := details.BackendRef.Port
 
@@ -271,8 +280,48 @@ func (b *Builder) buildDestination(
 		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
-		b.addCluster(clusterName, sni, portName, details.IdentityRefs)
+		egBase := b.newClusterEndpointGroup("", sni, portName, details.IdentityRefs, connectTimeout, loadBalancer)
+
+		var endpointGroups []*pbproxystate.EndpointGroup
+
+		// Original target is the first (or only) target.
+		endpointGroups = append(endpointGroups, egBase)
 		b.addEndpointsRef(clusterName, details.ServiceEndpointsId, details.MeshPort)
+
+		if details.FailoverConfig != nil {
+			failover := details.FailoverConfig
+			// TODO(v2): handle other forms of failover (regions/locality/etc)
+
+			for i, dest := range failover.Destinations {
+				if dest.BackendTarget == types.NullRouteBackend {
+					continue // not possible
+				}
+				destDetails, ok := targets[dest.BackendTarget]
+				if !ok {
+					continue // not possible
+				}
+
+				destConnectTimeout := destDetails.DestinationConfig.ConnectTimeout
+				destLoadBalancer := destDetails.DestinationConfig.LoadBalancer
+
+				destDC := defaultDC(destDetails.BackendRef.Datacenter)
+				destPortName := destDetails.BackendRef.Port
+
+				destSNI := DestinationSNI(
+					destDetails.BackendRef.Ref,
+					destDC,
+					b.trustDomain,
+				)
+				destClusterName := fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, i, clusterName)
+
+				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
+
+				endpointGroups = append(endpointGroups, egDest)
+				b.addEndpointsRef(destClusterName, destDetails.ServiceEndpointsId, destDetails.MeshPort)
+			}
+		}
+
+		b.addCluster(clusterName, endpointGroups, connectTimeout)
 	}
 
 	return b
@@ -343,7 +392,7 @@ func (b *ListenerBuilder) addL4RouterForSplit(
 				},
 			},
 			StatPrefix: statPrefix,
-			// TODO: can we use RDS for TCPRoute split?
+			// TODO(rb/v2): can we use RDS for TCPRoute split?
 		},
 	}
 
@@ -380,13 +429,13 @@ func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Prot
 }
 
 // addExplicitOutboundListener creates an outbound listener for an explicit destination.
-func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Upstream) *ListenerBuilder {
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Destination) *ListenerBuilder {
 	listener := makeExplicitListener(explicit, pbproxystate.Direction_DIRECTION_OUTBOUND)
 
 	return b.NewListenerBuilder(listener)
 }
 
-func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Direction) *pbproxystate.Listener {
+func makeExplicitListener(explicit *pbmesh.Destination, direction pbproxystate.Direction) *pbproxystate.Listener {
 	if explicit == nil {
 		panic("explicit upstream required")
 	}
@@ -399,8 +448,8 @@ func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Dire
 
 	// Create outbound listener address.
 	switch explicit.ListenAddr.(type) {
-	case *pbmesh.Upstream_IpPort:
-		destinationAddr := explicit.ListenAddr.(*pbmesh.Upstream_IpPort)
+	case *pbmesh.Destination_IpPort:
+		destinationAddr := explicit.ListenAddr.(*pbmesh.Destination_IpPort)
 		listener.BindAddress = &pbproxystate.Listener_HostPort{
 			HostPort: &pbproxystate.HostPortAddress{
 				Host: destinationAddr.IpPort.Ip,
@@ -408,8 +457,8 @@ func makeExplicitListener(explicit *pbmesh.Upstream, direction pbproxystate.Dire
 			},
 		}
 		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.IpPort.Ip, destinationAddr.IpPort.Port)
-	case *pbmesh.Upstream_Unix:
-		destinationAddr := explicit.ListenAddr.(*pbmesh.Upstream_Unix)
+	case *pbmesh.Destination_Unix:
+		destinationAddr := explicit.ListenAddr.(*pbmesh.Destination_Unix)
 		listener.BindAddress = &pbproxystate.Listener_UnixSocket{
 			UnixSocket: &pbproxystate.UnixSocketAddress{
 				Path: destinationAddr.Unix.Path,
@@ -482,49 +531,124 @@ func makeRouterMatchForIPAndPort(vips []string, virtualPort uint32) *pbproxystat
 }
 
 // addCluster creates and adds a cluster to the proxyState based on the destination.
-func (b *Builder) addCluster(clusterName, sni, portName string, destinationIdentities []*pbresource.Reference) *Builder {
+func (b *Builder) addCluster(
+	clusterName string,
+	endpointGroups []*pbproxystate.EndpointGroup,
+	connectTimeout *durationpb.Duration,
+) {
+	cluster := &pbproxystate.Cluster{
+		Name:        clusterName,
+		AltStatName: clusterName,
+	}
+	switch len(endpointGroups) {
+	case 0:
+		panic("no endpoint groups provided")
+	case 1:
+		cluster.Group = &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: endpointGroups[0],
+		}
+	default:
+		cluster.Group = &pbproxystate.Cluster_FailoverGroup{
+			FailoverGroup: &pbproxystate.FailoverGroup{
+				EndpointGroups: endpointGroups,
+				Config: &pbproxystate.FailoverGroupConfig{
+					UseAltStatName: true,
+					ConnectTimeout: connectTimeout,
+				},
+			},
+		}
+	}
+
+	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
+}
+
+func (b *Builder) newClusterEndpointGroup(
+	clusterName string,
+	sni string,
+	portName string,
+	destinationIdentities []*pbresource.Reference,
+	connectTimeout *durationpb.Duration,
+	loadBalancer *pbmesh.LoadBalancer,
+) *pbproxystate.EndpointGroup {
 	var spiffeIDs []string
 	for _, identity := range destinationIdentities {
 		spiffeIDs = append(spiffeIDs, connect.SpiffeIDFromIdentityRef(b.trustDomain, identity))
 	}
 
-	// TODO(v2): DestinationPolicy: connect timeout, lb policy, cluster discovery type, circuit breakers, outlier detection
+	// TODO(v2): DestinationPolicy: circuit breakers, outlier detection
 
 	// TODO(v2): if http2/grpc then set http2protocol options
 
-	// Create destination cluster.
-	cluster := &pbproxystate.Cluster{
-		Name:        clusterName,
-		AltStatName: clusterName,
-		Group: &pbproxystate.Cluster_EndpointGroup{
-			EndpointGroup: &pbproxystate.EndpointGroup{
-				Group: &pbproxystate.EndpointGroup_Dynamic{
-					Dynamic: &pbproxystate.DynamicEndpointGroup{
-						Config: &pbproxystate.DynamicEndpointGroupConfig{
-							DisablePanicThreshold: true,
-						},
-						OutboundTls: &pbproxystate.TransportSocket{
-							ConnectionTls: &pbproxystate.TransportSocket_OutboundMesh{
-								OutboundMesh: &pbproxystate.OutboundMeshMTLS{
-									IdentityKey: b.proxyStateTemplate.ProxyState.Identity.Name,
-									ValidationContext: &pbproxystate.MeshOutboundValidationContext{
-										SpiffeIds:              spiffeIDs,
-										TrustBundlePeerNameKey: b.id.Tenancy.PeerName,
-									},
-									Sni: sni,
-								},
+	degConfig := &pbproxystate.DynamicEndpointGroupConfig{
+		DisablePanicThreshold: true,
+		ConnectTimeout:        connectTimeout,
+	}
+
+	if loadBalancer != nil {
+		// enumcover:pbmesh.LoadBalancerPolicy
+		switch loadBalancer.Policy {
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RANDOM:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_Random{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_ROUND_ROBIN:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_RoundRobin{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_LEAST_REQUEST:
+			var choiceCount uint32
+			cfg, ok := loadBalancer.Config.(*pbmesh.LoadBalancer_LeastRequestConfig)
+			if ok {
+				choiceCount = cfg.LeastRequestConfig.GetChoiceCount()
+			}
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_LeastRequest{
+				LeastRequest: &pbproxystate.LBPolicyLeastRequest{
+					ChoiceCount: wrapperspb.UInt32(choiceCount),
+				},
+			}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_MAGLEV:
+			degConfig.LbPolicy = &pbproxystate.DynamicEndpointGroupConfig_Maglev{}
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_RING_HASH:
+			policy := &pbproxystate.DynamicEndpointGroupConfig_RingHash{}
+
+			cfg, ok := loadBalancer.Config.(*pbmesh.LoadBalancer_RingHashConfig)
+			if ok {
+				policy.RingHash = &pbproxystate.LBPolicyRingHash{
+					MinimumRingSize: wrapperspb.UInt64(cfg.RingHashConfig.MinimumRingSize),
+					MaximumRingSize: wrapperspb.UInt64(cfg.RingHashConfig.MaximumRingSize),
+				}
+			}
+
+			degConfig.LbPolicy = policy
+
+		case pbmesh.LoadBalancerPolicy_LOAD_BALANCER_POLICY_UNSPECIFIED:
+			// fallthrough to default
+		default:
+			// do nothing
+		}
+	}
+
+	return &pbproxystate.EndpointGroup{
+		Name: clusterName,
+		Group: &pbproxystate.EndpointGroup_Dynamic{
+			Dynamic: &pbproxystate.DynamicEndpointGroup{
+				Config: degConfig,
+				OutboundTls: &pbproxystate.TransportSocket{
+					ConnectionTls: &pbproxystate.TransportSocket_OutboundMesh{
+						OutboundMesh: &pbproxystate.OutboundMeshMTLS{
+							IdentityKey: b.proxyStateTemplate.ProxyState.Identity.Name,
+							ValidationContext: &pbproxystate.MeshOutboundValidationContext{
+								SpiffeIds:              spiffeIDs,
+								TrustBundlePeerNameKey: b.id.Tenancy.PeerName,
 							},
-							AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
+							Sni: sni,
 						},
 					},
+					AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 				},
 			},
 		},
 	}
-
-	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
-
-	return b
 }
 
 func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) {
@@ -534,12 +658,11 @@ func (b *Builder) addRoute(listenerName string, route *pbproxystate.Route) {
 // addEndpointsRef creates and add an endpointRef for each serviceEndpoint for a destination and
 // adds it to the proxyStateTemplate so it will be processed later during reconciliation by
 // the XDS controller.
-func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) *Builder {
+func (b *Builder) addEndpointsRef(clusterName string, serviceEndpointsID *pbresource.ID, destinationPort string) {
 	b.proxyStateTemplate.RequiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
 		Id:   serviceEndpointsID,
 		Port: destinationPort,
 	}
-	return b
 }
 
 func orDefault(v, def string) string {

@@ -26,6 +26,10 @@ When configuring your deployment to enforce service intentions with JSON Web Tok
 
 When you set the `JWT{}.Providers` field in a service intentions configuration entry to the wildcard `*`, you can configure default behavior for all services that present a token that matches an existing JWT provider configuration entry. In this configuration, services that have a valid token but do not have a more specific matching intention default to the behavior defined in the wildcard intention.
 
+## Requirements
+
+* **Enable ACLs**. Verify that ACLs are enabled and that the default_policy is set to deny.
+
 ## Usage
 
 To configure Envoy proxies in the service mesh to validate JWTs before forwarding requests to servers, complete the following steps:

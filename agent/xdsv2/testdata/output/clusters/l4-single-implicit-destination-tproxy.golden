@@ -11,6 +11,9 @@
           "resourceApiVersion":  "V3"
         }
       },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {}
+      },
       "name": "tcp.api-1.default.dc1.internal.foo.consul",
       "transportSocket": {
         "name": "tls",

@@ -4,9 +4,9 @@
 package sidecarproxycache
 
 import (
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -19,7 +19,7 @@ type ProxyConfigurationCache struct {
 
 func NewProxyConfigurationCache() *ProxyConfigurationCache {
 	return &ProxyConfigurationCache{
-		mapper: bimapper.New(types.ProxyConfigurationType, types.ProxyStateTemplateType),
+		mapper: bimapper.New(pbmesh.ProxyConfigurationType, pbmesh.ProxyStateTemplateType),
 	}
 }
 

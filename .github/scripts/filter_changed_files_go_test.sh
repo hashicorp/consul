@@ -2,36 +2,41 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
+set -euo pipefail
 
 # Get the list of changed files
-files_to_check=$(git diff --name-only origin/$GITHUB_BASE_REF)
+# Using `git merge-base` ensures that we're always comparing against the correct branch point. 
+#For example, given the commits:
+#
+# A---B---C---D---W---X---Y---Z # origin/main
+#             \---E---F         # feature/branch
+#
+# ... `git merge-base origin/$SKIP_CHECK_BRANCH HEAD` would return commit `D`
+# `...HEAD` specifies from the common ancestor to the latest commit on the current branch (HEAD)..
+files_to_check=$(git diff --name-only "$(git merge-base origin/$SKIP_CHECK_BRANCH HEAD~)"...HEAD)
 
 # Define the directories to check
 skipped_directories=("docs/" "ui/" "website/" "grafana/")
 
-# Initialize a variable to track directories outside the skipped ones
-other_directories=""
-trigger_ci=true
+# Loop through the changed files and find directories/files outside the skipped ones
+for file_to_check in "${files_to_check[@]}"; do
+	file_is_skipped=false
+	for dir in "${skipped_directories[@]}"; do
+		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
+			file_is_skipped=true
+			break
+		fi
+	done
+	if [ "$file_is_skipped" != "true" ]; then
+		echo -e $file_to_check
+        SKIP_CI=false
+		echo "Changes detected in non-documentation files - skip-ci: $SKIP_CI"
+        echo "skip-ci=$SKIP_CI" >> "$GITHUB_OUTPUT"
+		exit 0 ## if file is outside of the skipped_directory exit script
+	fi
+done
 
-# # Loop through the changed files and find directories/files outside the skipped ones
-# for file_to_check in $files_to_check; do
-# 	file_is_skipped=false
-# 	for dir in "${skipped_directories[@]}"; do
-# 		if [[ "$file_to_check" == "$dir"* ]] || [[ "$file_to_check" == *.md && "$dir" == *"/" ]]; then
-# 			file_is_skipped=true
-# 			break
-# 		fi
-# 	done
-# 	if [ "$file_is_skipped" = "false" ]; then
-# 		other_directories+="$(dirname "$file_to_check")\n"
-# 		trigger_ci=true
-# 		echo "Non doc file(s) changed - triggered ci: $trigger_ci"
-# 		echo -e $other_directories
-# 		echo "trigger-ci=$trigger_ci" >>"$GITHUB_OUTPUT"
-# 		exit 0 ## if file is outside of the skipped_directory exit script
-# 	fi
-# done
-
-# echo "Only doc file(s) changed - triggered ci: $trigger_ci"
-echo "Doc file(s) change detection is currently disabled - triggering ci"
-echo "trigger-ci=$trigger_ci" >>"$GITHUB_OUTPUT"
+echo -e "$files_to_check"
+SKIP_CI=true
+echo "Changes detected in only documentation files - skip-ci: $SKIP_CI"
+echo "skip-ci=$SKIP_CI" >> "$GITHUB_OUTPUT"

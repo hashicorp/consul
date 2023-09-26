@@ -4,8 +4,8 @@
 package builder
 
 import (
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -60,7 +60,21 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 	}
 	b.proxyStateTemplate.ProxyState.TrafficPermissionDefaultAllow = b.defaultAllow
 
+	finalCleanupOfProxyStateTemplate(b.proxyStateTemplate)
+
 	return b.proxyStateTemplate
+}
+
+func finalCleanupOfProxyStateTemplate(pst *pbmesh.ProxyStateTemplate) {
+	if pst.ProxyState != nil {
+		// Ensure all clusters have names by duplicating them from the map
+		// if the above assembly code neglected any.
+		for name, cluster := range pst.ProxyState.Clusters {
+			if cluster.Name == "" && name != "" {
+				cluster.Name = name
+			}
+		}
+	}
 }
 
 type ListenerBuilder struct {

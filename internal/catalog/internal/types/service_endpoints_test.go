@@ -10,7 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -33,7 +33,7 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		Endpoints: []*pbcatalog.Endpoint{
 			{
 				TargetRef: &pbresource.ID{
-					Type:    WorkloadType,
+					Type:    pbcatalog.WorkloadType,
 					Tenancy: defaultEndpointTenancy,
 					Name:    "foo",
 				},
@@ -53,7 +53,7 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		},
 	}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
 		WithTenancy(defaultEndpointTenancy).
 		WithData(t, data).
 		Build()
@@ -71,7 +71,7 @@ func TestValidateServiceEndpoints_ParseError(t *testing.T) {
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := rtest.Resource(ServiceEndpointsType, "test-service").WithData(t, data).Build()
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").WithData(t, data).Build()
 
 	err := ValidateServiceEndpoints(res)
 	require.Error(t, err)
@@ -82,7 +82,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	genData := func() *pbcatalog.Endpoint {
 		return &pbcatalog.Endpoint{
 			TargetRef: &pbresource.ID{
-				Type:    WorkloadType,
+				Type:    pbcatalog.WorkloadType,
 				Tenancy: defaultEndpointTenancy,
 				Name:    "foo",
 			},
@@ -110,10 +110,10 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	cases := map[string]testCase{
 		"invalid-target": {
 			modify: func(endpoint *pbcatalog.Endpoint) {
-				endpoint.TargetRef.Type = NodeType
+				endpoint.TargetRef.Type = pbcatalog.NodeType
 			},
 			validateErr: func(t *testing.T, err error) {
-				require.ErrorIs(t, err, resource.ErrInvalidReferenceType{AllowedType: WorkloadType})
+				require.ErrorIs(t, err, resource.ErrInvalidReferenceType{AllowedType: pbcatalog.WorkloadType})
 			},
 		},
 		"invalid-address": {
@@ -196,16 +196,16 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 		},
 		"invalid-owner": {
 			owner: &pbresource.ID{
-				Type:    DNSPolicyType,
+				Type:    pbcatalog.DNSPolicyType,
 				Tenancy: badEndpointTenancy,
 				Name:    "wrong",
 			},
 			validateErr: func(t *testing.T, err error) {
 				rtest.RequireError(t, err, resource.ErrOwnerTypeInvalid{
-					ResourceType: ServiceEndpointsType,
-					OwnerType:    DNSPolicyType})
+					ResourceType: pbcatalog.ServiceEndpointsType,
+					OwnerType:    pbcatalog.DNSPolicyType})
 				rtest.RequireError(t, err, resource.ErrOwnerTenantInvalid{
-					ResourceType:    ServiceEndpointsType,
+					ResourceType:    pbcatalog.ServiceEndpointsType,
 					ResourceTenancy: defaultEndpointTenancy,
 					OwnerTenancy:    badEndpointTenancy,
 				})
@@ -231,7 +231,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 					endpoint,
 				},
 			}
-			res := rtest.Resource(ServiceEndpointsType, "test-service").
+			res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
 				WithTenancy(defaultEndpointTenancy).
 				WithOwner(tcase.owner).
 				WithData(t, data).
@@ -248,13 +248,13 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 }
 
 func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
-	res := rtest.Resource(ServiceEndpointsType, "test-service").
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
 		WithTenancy(defaultEndpointTenancy).
 		Build()
 
 	require.NoError(t, MutateServiceEndpoints(res))
 	require.NotNil(t, res.Owner)
-	require.True(t, resource.EqualType(res.Owner.Type, ServiceType))
+	require.True(t, resource.EqualType(res.Owner.Type, pbcatalog.ServiceType))
 	require.True(t, resource.EqualTenancy(res.Owner.Tenancy, defaultEndpointTenancy))
 	require.Equal(t, res.Owner.Name, res.Id.Name)
 }

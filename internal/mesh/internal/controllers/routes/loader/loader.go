@@ -9,10 +9,11 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -56,7 +57,7 @@ func LoadResourcesForComputedRoutes(
 }
 
 func (l *loader) requestLoad(computedRoutesID *pbresource.ID) {
-	if !resource.EqualType(computedRoutesID.Type, types.ComputedRoutesType) {
+	if !resource.EqualType(computedRoutesID.Type, pbmesh.ComputedRoutesType) {
 		panic("input must be a ComputedRoutes type")
 	}
 	rk := resource.NewReferenceKey(computedRoutesID)
@@ -68,7 +69,7 @@ func (l *loader) requestLoad(computedRoutesID *pbresource.ID) {
 }
 
 func (l *loader) markLoaded(computedRoutesID *pbresource.ID) {
-	if !resource.EqualType(computedRoutesID.Type, types.ComputedRoutesType) {
+	if !resource.EqualType(computedRoutesID.Type, pbmesh.ComputedRoutesType) {
 		panic("input must be a ComputedRoutes type")
 	}
 	rk := resource.NewReferenceKey(computedRoutesID)
@@ -119,7 +120,7 @@ func (l *loader) loadOne(
 	//
 	// All ports are embedded within.
 
-	parentServiceID := changeResourceType(computedRoutesID, catalog.ServiceType)
+	parentServiceID := changeResourceType(computedRoutesID, pbcatalog.ServiceType)
 	parentServiceRef := resource.Reference(parentServiceID, "")
 
 	if err := l.loadUpstreamService(ctx, logger, parentServiceID); err != nil {
@@ -147,7 +148,7 @@ func (l *loader) gatherXRoutesAsInput(
 	// read the xRoutes
 	for _, routeID := range routeIDs {
 		switch {
-		case resource.EqualType(routeID.Type, types.HTTPRouteType):
+		case resource.EqualType(routeID.Type, pbmesh.HTTPRouteType):
 			route, err := l.mem.GetHTTPRoute(ctx, routeID)
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -162,7 +163,7 @@ func (l *loader) gatherXRoutesAsInput(
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
 			}
-		case resource.EqualType(routeID.Type, types.GRPCRouteType):
+		case resource.EqualType(routeID.Type, pbmesh.GRPCRouteType):
 			route, err := l.mem.GetGRPCRoute(ctx, routeID)
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -177,7 +178,7 @@ func (l *loader) gatherXRoutesAsInput(
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
 			}
-		case resource.EqualType(routeID.Type, types.TCPRouteType):
+		case resource.EqualType(routeID.Type, pbmesh.TCPRouteType):
 			route, err := l.mem.GetTCPRoute(ctx, routeID)
 			if err != nil {
 				return fmt.Errorf("the resource service has returned an unexpected error loading %s: %w", routeID, err)
@@ -216,7 +217,7 @@ func (l *loader) loadUpstreamService(
 	if service != nil {
 		l.out.AddService(service)
 
-		failoverPolicyID := changeResourceType(svcID, catalog.FailoverPolicyType)
+		failoverPolicyID := changeResourceType(svcID, pbcatalog.FailoverPolicyType)
 		failoverPolicy, err := l.mem.GetFailoverPolicy(ctx, failoverPolicyID)
 		if err != nil {
 			logger.Error("error retrieving the failover policy", "failoverPolicyID", failoverPolicyID, "error", err)
@@ -238,23 +239,38 @@ func (l *loader) loadUpstreamService(
 				}
 				if failService != nil {
 					l.out.AddService(failService)
+
+					if err := l.loadDestConfig(ctx, logger, failService.Resource.Id); err != nil {
+						return err
+					}
 				}
 			}
 		} else {
 			l.mapper.UntrackFailoverPolicy(failoverPolicyID)
 		}
 
-		destPolicyID := changeResourceType(svcID, types.DestinationPolicyType)
-		destPolicy, err := l.mem.GetDestinationPolicy(ctx, destPolicyID)
-		if err != nil {
-			logger.Error("error retrieving the destination config", "destPolicyID", destPolicyID, "error", err)
+		if err := l.loadDestConfig(ctx, logger, svcID); err != nil {
 			return err
-		}
-		if destPolicy != nil {
-			l.out.AddDestinationPolicy(destPolicy)
 		}
 	}
 
+	return nil
+}
+
+func (l *loader) loadDestConfig(
+	ctx context.Context,
+	logger hclog.Logger,
+	svcID *pbresource.ID,
+) error {
+	destPolicyID := changeResourceType(svcID, pbmesh.DestinationPolicyType)
+	destPolicy, err := l.mem.GetDestinationPolicy(ctx, destPolicyID)
+	if err != nil {
+		logger.Error("error retrieving the destination config", "destPolicyID", destPolicyID, "error", err)
+		return err
+	}
+	if destPolicy != nil {
+		l.out.AddDestinationPolicy(destPolicy)
+	}
 	return nil
 }
 
@@ -277,7 +293,7 @@ func (l *loader) gatherSingleXRouteAsInput(
 	for _, parentRef := range route.GetParentRefs() {
 		if types.IsServiceType(parentRef.Ref.Type) {
 			parentComputedRoutesID := &pbresource.ID{
-				Type:    types.ComputedRoutesType,
+				Type:    pbmesh.ComputedRoutesType,
 				Tenancy: parentRef.Ref.Tenancy,
 				Name:    parentRef.Ref.Name,
 			}

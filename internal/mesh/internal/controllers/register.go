@@ -7,15 +7,15 @@ import (
 	"context"
 
 	"github.com/hashicorp/consul/agent/leafcert"
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 type Dependencies struct {
@@ -28,9 +28,9 @@ type Dependencies struct {
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	endpointsMapper := bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
+	endpointsMapper := bimapper.New(pbmesh.ProxyStateTemplateType, pbcatalog.ServiceEndpointsType)
 	leafMapper := &xds.LeafMapper{
-		Mapper: bimapper.New(types.ProxyStateTemplateType, xds.InternalLeafType),
+		Mapper: bimapper.New(pbmesh.ProxyStateTemplateType, xds.InternalLeafType),
 	}
 	leafCancels := &xds.LeafCancels{
 		Cancels: make(map[string]context.CancelFunc),

@@ -53,6 +53,13 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 				Template:     structs.ACLTemplatedPolicyService,
 			},
 		},
+		"nomad-server-templated-policy": {
+			templatedPolicy: api.ACLTemplatedPolicyResponse{
+				TemplateName: api.ACLTemplatedPolicyNomadServerName,
+				Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
+				Template:     structs.ACLTemplatedPolicyNomadServer,
+			},
+		},
 	}
 
 	formatters := map[string]Formatter{

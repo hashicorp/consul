@@ -15,7 +15,8 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -30,20 +31,20 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 		Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 		Ports:     map[string]*pbcatalog.WorkloadPort{"p1": {Port: 8080}},
 	}
-	w1 := resourcetest.Resource(catalog.WorkloadType, "w1").
+	w1 := resourcetest.Resource(pbcatalog.WorkloadType, "w1").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w2 := resourcetest.Resource(catalog.WorkloadType, "w2").
+	w2 := resourcetest.Resource(pbcatalog.WorkloadType, "w2").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w3 := resourcetest.Resource(catalog.WorkloadType, "prefix-w3").
+	w3 := resourcetest.Resource(pbcatalog.WorkloadType, "prefix-w3").
 		WithData(t, workloadData).
 		Write(t, client).Id
-	w4 := resourcetest.Resource(catalog.WorkloadType, "prefix-w4").
+	w4 := resourcetest.Resource(pbcatalog.WorkloadType, "prefix-w4").
 		WithData(t, workloadData).
 		Write(t, client).Id
 	// This workload should not be used as it's not selected by the workload selector.
-	resourcetest.Resource(catalog.WorkloadType, "not-selected-workload").
+	resourcetest.Resource(pbcatalog.WorkloadType, "not-selected-workload").
 		WithData(t, workloadData).
 		Write(t, client)
 
@@ -52,10 +53,10 @@ func TestMapWorkloadsBySelector(t *testing.T) {
 		Prefixes: []string{"prefix"},
 	}
 	expReqs := []controller.Request{
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w1)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w2)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w3)},
-		{ID: resource.ReplaceType(types.ProxyStateTemplateType, w4)},
+		{ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, w1)},
+		{ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, w2)},
+		{ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, w3)},
+		{ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, w4)},
 	}
 
 	var cachedReqs []controller.Request

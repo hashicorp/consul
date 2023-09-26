@@ -6,28 +6,27 @@ package sidecarproxymapper
 import (
 	"context"
 
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v1alpha1"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func (m *Mapper) MapComputedTrafficPermissionsToProxyStateTemplate(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+func (m *Mapper) MapComputedTrafficPermissionsToProxyStateTemplate(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	var ctp pbauth.ComputedTrafficPermissions
 	err := res.Data.UnmarshalTo(&ctp)
 	if err != nil {
 		return nil, err
 	}
 
-	pid := resource.ReplaceType(auth.WorkloadIdentityType, res.Id)
+	pid := resource.ReplaceType(pbauth.WorkloadIdentityType, res.Id)
 	ids := m.identitiesCache.ProxyIDsByWorkloadIdentity(pid)
 
 	requests := make([]controller.Request, 0, len(ids))
 	for _, id := range ids {
 		requests = append(requests, controller.Request{
-			ID: resource.ReplaceType(types.ProxyStateTemplateType, id)},
+			ID: resource.ReplaceType(pbmesh.ProxyStateTemplateType, id)},
 		)
 	}
 

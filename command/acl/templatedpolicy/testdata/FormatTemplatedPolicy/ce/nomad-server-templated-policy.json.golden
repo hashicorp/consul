@@ -1,0 +1,5 @@
+{
+    "TemplateName": "builtin/nomad-server",
+    "Schema": "",
+    "Template": "\nacl = \"write\"\nagent_prefix \"\" {\n  policy = \"read\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\nservice_prefix \"\" {\n  policy = \"write\"\n}"
+}

@@ -5,7 +5,7 @@ package proxytracker
 
 import (
 	"github.com/hashicorp/consul/acl"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 // ProxyState is an implementation of the ProxySnapshot interface for pbmesh.ProxyState.

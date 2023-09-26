@@ -13,6 +13,12 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+var wildcardType = &pbresource.Type{
+	Group:        "@@any@@",
+	GroupVersion: "@@any@@",
+	Kind:         "@@any@@",
+}
+
 // Mapper tracks bidirectional lookup for an item that contains references to
 // other items. For example: an HTTPRoute has many references to Services.
 //
@@ -20,6 +26,7 @@ import (
 // Tracking is done on items.
 type Mapper struct {
 	itemType, linkType *pbresource.Type
+	wildcardLink       bool
 
 	lock       sync.Mutex
 	itemToLink map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}
@@ -40,6 +47,14 @@ func New(itemType, linkType *pbresource.Type) *Mapper {
 		itemToLink: make(map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}),
 		linkToItem: make(map[resource.ReferenceKey]map[resource.ReferenceKey]struct{}),
 	}
+}
+
+// NewWithWildcardLinkType creates a bimapper between the provided item type
+// and can have a mixed set of link types.
+func NewWithWildcardLinkType(itemType *pbresource.Type) *Mapper {
+	m := New(itemType, wildcardType)
+	m.wildcardLink = true
+	return m
 }
 
 // Reset clears the internal mappings.
@@ -72,7 +87,7 @@ func (m *Mapper) UntrackItem(item resource.ReferenceOrID) {
 // UntrackLink removes tracking for the provided link. The link type MUST match
 // the type configured for the link.
 func (m *Mapper) UntrackLink(link resource.ReferenceOrID) {
-	if !resource.EqualType(link.GetType(), m.linkType) {
+	if !m.wildcardLink && !resource.EqualType(link.GetType(), m.linkType) {
 		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
 			resource.TypeToString(link.GetType()),
@@ -105,7 +120,7 @@ func (m *Mapper) TrackItem(item resource.ReferenceOrID, links []resource.Referen
 
 	linksAsKeys := make([]resource.ReferenceKey, 0, len(links))
 	for _, link := range links {
-		if !resource.EqualType(link.GetType(), m.linkType) {
+		if !m.wildcardLink && !resource.EqualType(link.GetType(), m.linkType) {
 			panic(fmt.Sprintf("expected link type %q got %q",
 				resource.TypeToString(m.linkType),
 				resource.TypeToString(link.GetType()),
@@ -223,7 +238,7 @@ func (m *Mapper) ItemsForLink(link *pbresource.ID) []*pbresource.ID {
 
 // ItemIDsForLink returns item ids for items related to the provided link.
 func (m *Mapper) ItemIDsForLink(link resource.ReferenceOrID) []*pbresource.ID {
-	if !resource.EqualType(link.GetType(), m.linkType) {
+	if !m.wildcardLink && !resource.EqualType(link.GetType(), m.linkType) {
 		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
 			resource.TypeToString(link.GetType()),
@@ -235,7 +250,7 @@ func (m *Mapper) ItemIDsForLink(link resource.ReferenceOrID) []*pbresource.ID {
 
 // ItemRefsForLink returns item references for items related to the provided link.
 func (m *Mapper) ItemRefsForLink(link resource.ReferenceOrID) []*pbresource.Reference {
-	if !resource.EqualType(link.GetType(), m.linkType) {
+	if !m.wildcardLink && !resource.EqualType(link.GetType(), m.linkType) {
 		panic(fmt.Sprintf("expected link type %q got %q",
 			resource.TypeToString(m.linkType),
 			resource.TypeToString(link.GetType()),
@@ -249,7 +264,7 @@ func (m *Mapper) ItemRefsForLink(link resource.ReferenceOrID) []*pbresource.Refe
 func (m *Mapper) MapLink(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	link := res.Id
 
-	if !resource.EqualType(link.Type, m.linkType) {
+	if !m.wildcardLink && !resource.EqualType(link.Type, m.linkType) {
 		return nil, fmt.Errorf("expected type %q got %q",
 			resource.TypeToString(m.linkType),
 			resource.TypeToString(link.Type),
