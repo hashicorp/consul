@@ -1573,6 +1573,10 @@
         ]
       },
       {
+        "title": "Upgrade to Consul dataplane architecture",
+        "path": "ecs/upgrade-to-dataplanes"
+      },
+      {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       },
