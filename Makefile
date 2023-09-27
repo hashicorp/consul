@@ -66,6 +66,7 @@ UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 ENVOY_VERSION?='1.25.4'
+CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
@@ -263,7 +264,8 @@ lint-container-test-deps: ## Check that the test-container module only imports a
 	@cd test/integration/consul-container && \
 		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
 			github.com/hashicorp/consul \
-			internal/catalog/catalogtest
+			"internal/catalog/catalogtest" \
+			"internal/resource/resourcetest"
 
 ##@ Testing
 
@@ -347,6 +349,7 @@ test-compat-integ-setup: dev-docker
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
 	@#  'consul-envoy:target-version' is needed by compatibility integ test
 	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+	@docker build -t consul-dataplane:local --build-arg CONSUL_DATAPLANE_IMAGE=${CONSUL_DATAPLANE_IMAGE} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
 
 .PHONY: test-compat-integ
 test-compat-integ: test-compat-integ-setup ## Test compat integ
