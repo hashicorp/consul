@@ -24,8 +24,7 @@ After Consul 1.17.0, only timestamps will be included in rotated log file names.
 #### Known issues
 
 Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
-When this bug triggers, it will cause Envoy to incorrectly populate upstream endpoints. Due to this issue, it is currently not recommended for
-service mesh users running agent-less workloads to upgrade Consul to these versions.
+When this bug triggers, it causes Envoy to incorrectly populate upstream endpoints. To prevent this issue, service mesh users who run agent-less workloads should upgrade Consul to v1.16.2 or later.
 
 #### API health endpoints return different status code
 
@@ -757,11 +756,11 @@ fields which are those documented in the example payloads in the API documentati
 
 ### DNS PTR Record Output
 
-Consul will now return the canonical service name in response to PTR queries. For OSS users the
+Consul will now return the canonical service name in response to PTR queries. For CE users, the
 change is that the datacenter will be present where it was not before. For Consul Enterprise
 users, both the datacenter and the services namespace will be present. For example, where a
 PTR record would previously have contained `web.service.consul`, it will now be `web.service.dc1.consul`
-in OSS or `web.service.ns1.dc1.consul` for Enterprise.
+in CE, or `web.service.ns1.dc1.consul` for Enterprise.
 
 ### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
 
@@ -896,7 +895,7 @@ datacenters monitor this periodically (every few minutes) and will
 automatically upgrade service mesh to use a federated Certificate Authority when
 they do.
 
-In general, migrating a Consul cluster from OSS to Enterprise will update the
+In general, migrating a Consul cluster from CE to Enterprise will update the
 CA to be federated automatically and without impact on service mesh traffic. When
 upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA
 upgrade is seamless, however depending on the size of the cluster, _new_
