@@ -34,11 +34,9 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 				addInboundTLS()
 
 			b.addLocalAppCluster(clusterName).
-				addLocalAppStaticEndpoints(clusterName, port.GetPort())
+				addLocalAppStaticEndpoints(clusterName, port)
 		}
 	}
-
-	b.buildExposePaths(workload)
 
 	// If there are no inbound ports other than the mesh port, we black-hole all inbound traffic.
 	if !foundInboundNonMeshPorts {
@@ -343,20 +341,22 @@ func (b *Builder) addBlackHoleCluster() *Builder {
 	return b
 }
 
-func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port uint32) {
+func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port *pbcatalog.WorkloadPort) *Builder {
 	// We're adding endpoints statically as opposed to creating an endpoint ref
 	// because this endpoint is less likely to change as we're not tracking the health.
 	endpoint := &pbproxystate.Endpoint{
 		Address: &pbproxystate.Endpoint_HostPort{
 			HostPort: &pbproxystate.HostPortAddress{
 				Host: "127.0.0.1",
-				Port: port,
+				Port: port.Port,
 			},
 		},
 	}
 	b.proxyStateTemplate.ProxyState.Endpoints[clusterName] = &pbproxystate.Endpoints{
 		Endpoints: []*pbproxystate.Endpoint{endpoint},
 	}
+
+	return b
 }
 
 func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
