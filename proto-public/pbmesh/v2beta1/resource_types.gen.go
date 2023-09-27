@@ -10,6 +10,7 @@ const (
 	GroupName = "mesh"
 	Version   = "v2beta1"
 
+	ComputedDestinationsKind       = "ComputedDestinations"
 	ComputedProxyConfigurationKind = "ComputedProxyConfiguration"
 	ComputedRoutesKind             = "ComputedRoutes"
 	DestinationPolicyKind          = "DestinationPolicy"
@@ -23,6 +24,12 @@ const (
 )
 
 var (
+	ComputedDestinationsType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedDestinationsKind,
+	}
+
 	ComputedProxyConfigurationType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
