@@ -17,8 +17,8 @@ import (
 
 type WorkloadSelectionTracker struct {
 	lock     sync.Mutex
-	prefixes *radix.Tree[[]controller.Request]
-	exact    *radix.Tree[[]controller.Request]
+	prefixes *radix.Tree[[]*pbresource.ID]
+	exact    *radix.Tree[[]*pbresource.ID]
 
 	// workloadSelectors contains a map keyed on resource names with values
 	// being the selector that resource is currently associated with. This map
@@ -31,8 +31,8 @@ type WorkloadSelectionTracker struct {
 
 func New() *WorkloadSelectionTracker {
 	return &WorkloadSelectionTracker{
-		prefixes:          radix.New[[]controller.Request](),
-		exact:             radix.New[[]controller.Request](),
+		prefixes:          radix.New[[]*pbresource.ID](),
+		exact:             radix.New[[]*pbresource.ID](),
 		workloadSelectors: make(map[string]*pbcatalog.WorkloadSelector),
 	}
 }
@@ -40,22 +40,28 @@ func New() *WorkloadSelectionTracker {
 // MapWorkload will return a slice of controller.Requests with 1 resource for
 // each resource that selects the specified Workload resource.
 func (t *WorkloadSelectionTracker) MapWorkload(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	resIds := t.GetIDsForName(res.Id.Name)
+
+	return controller.MakeRequests(nil, resIds), nil
+}
+
+func (t *WorkloadSelectionTracker) GetIDsForName(name string) []*pbresource.ID {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	var reqs []controller.Request
+	var result []*pbresource.ID
 
 	// gather the list of all resources that select the specified workload using a prefix match
-	t.prefixes.WalkPath(res.Id.Name, func(path string, requests []controller.Request) bool {
-		reqs = append(reqs, requests...)
+	t.prefixes.WalkPath(name, func(path string, ids []*pbresource.ID) bool {
+		result = append(result, ids...)
 		return false
 	})
 
 	// gather the list of all resources that select the specified workload using an exact match
-	exactReqs, _ := t.exact.Get(res.Id.Name)
+	exactReqs, _ := t.exact.Get(name)
 
 	// return the combined list of all resources that select the specified workload
-	return append(reqs, exactReqs...), nil
+	return append(result, exactReqs...)
 }
 
 // TrackIDForSelector will associate workloads matching the specified workload
@@ -85,7 +91,7 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 		leaf, _ := t.exact.Get(name)
 
 		// append the ID to the existing request list
-		t.exact.Insert(name, append(leaf, controller.Request{ID: id}))
+		t.exact.Insert(name, append(leaf, id))
 	}
 
 	// loop over all the prefix matching rules and associate those prefixes
@@ -95,7 +101,7 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 		leaf, _ := t.prefixes.Get(prefix)
 
 		// append the new resource ID to the existing request list
-		t.prefixes.Insert(prefix, append(leaf, controller.Request{ID: id}))
+		t.prefixes.Insert(prefix, append(leaf, id))
 	}
 
 	t.workloadSelectors[id.Name] = selector
@@ -128,33 +134,33 @@ func (t *WorkloadSelectionTracker) untrackID(id *pbresource.ID) {
 }
 
 // removeIDFromTree will remove the given resource ID from all leaf nodes in the radix tree.
-func removeIDFromTreeAtPaths(t *radix.Tree[[]controller.Request], id *pbresource.ID, paths []string) {
+func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID, paths []string) {
 	for _, path := range paths {
-		requests, _ := t.Get(path)
+		ids, _ := t.Get(path)
 
 		foundIdx := -1
-		for idx, req := range requests {
-			if resource.EqualID(req.ID, id) {
+		for idx, resID := range ids {
+			if resource.EqualID(resID, id) {
 				foundIdx = idx
 				break
 			}
 		}
 
 		if foundIdx != -1 {
-			l := len(requests)
+			l := len(ids)
 
 			if l == 1 {
-				requests = nil
+				ids = nil
 			} else if foundIdx == l-1 {
-				requests = requests[:foundIdx]
+				ids = ids[:foundIdx]
 			} else if foundIdx == 0 {
-				requests = requests[1:]
+				ids = ids[1:]
 			} else {
-				requests = append(requests[:foundIdx], requests[foundIdx+1:]...)
+				ids = append(ids[:foundIdx], ids[foundIdx+1:]...)
 			}
 
-			if len(requests) > 1 {
-				t.Insert(path, requests)
+			if len(ids) > 0 {
+				t.Insert(path, ids)
 			} else {
 				t.Delete(path)
 			}

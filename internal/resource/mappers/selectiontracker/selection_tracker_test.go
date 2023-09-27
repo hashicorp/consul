@@ -35,7 +35,7 @@ var (
 )
 
 func TestRemoveIDFromTreeAtPaths(t *testing.T) {
-	tree := radix.New[[]controller.Request]()
+	tree := radix.New[[]*pbresource.ID]()
 
 	toRemove := rtest.Resource(pbcatalog.ServiceEndpointsType, "blah").ID()
 	other1 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
@@ -51,31 +51,32 @@ func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 	//   - removal from middle of the list
 	// * Paths without matching ids are ignored
 
-	notMatching := []controller.Request{
-		{ID: other1},
-		{ID: other2},
+	notMatching := []*pbresource.ID{
+		other1,
+		other2,
 	}
 
-	matchAtBeginning := []controller.Request{
-		{ID: toRemove},
-		{ID: other1},
-		{ID: other2},
+	matchAtBeginning := []*pbresource.ID{
+		toRemove,
+		other1,
+		other2,
 	}
 
-	matchAtEnd := []controller.Request{
-		{ID: other1},
-		{ID: other2},
-		{ID: toRemove},
+	// For this case, we only add one other not matching to test that we don't remove
+	// non-matching ones.
+	matchAtEnd := []*pbresource.ID{
+		other1,
+		toRemove,
 	}
 
-	matchInMiddle := []controller.Request{
-		{ID: other1},
-		{ID: toRemove},
-		{ID: other2},
+	matchInMiddle := []*pbresource.ID{
+		other1,
+		toRemove,
+		other2,
 	}
 
-	matchOnly := []controller.Request{
-		{ID: toRemove},
+	matchOnly := []*pbresource.ID{
+		toRemove,
 	}
 
 	tree.Insert("no-match", notMatching)
@@ -102,7 +103,7 @@ func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 
 	reqs, found = tree.Get("match-end")
 	require.True(t, found)
-	require.Equal(t, notMatching, reqs)
+	require.Equal(t, []*pbresource.ID{other1}, reqs)
 
 	reqs, found = tree.Get("match-middle")
 	require.True(t, found)
