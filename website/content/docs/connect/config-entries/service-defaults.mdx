@@ -899,7 +899,7 @@ Specifies the name of the service you are setting the defaults for.
 
 ### `metadata.namespace` <Enterprise/>
 
-Specifies the Consul namespace that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
+Specifies the Consul namespace that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
 - Default: `default`
 - Data type: String
@@ -1336,7 +1336,7 @@ You can also set the global default protocol for all proxies in the [`proxy-defa
 ### Upstream configuration
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 The following example sets default connection limits and mesh gateway mode across all upstreams of the `dashboard` service.
 It also overrides the mesh gateway mode used when dialing its `counting` upstream  service.
@@ -1612,13 +1612,13 @@ Proxy services must be in transparent proxy mode to configure destinations. Refe
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
         {
           name: 'partition',
           enterprise: true,
           description:
-            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
+            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul CE.',
         },
       ],
       hcl: false,
