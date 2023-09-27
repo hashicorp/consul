@@ -92,36 +92,15 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 	copy(exposedPorts, appPortStrs)
 	exposedPorts = append(exposedPorts, adminPortStr)
 
-	command := []string{
-		"consul-dataplane",
-		"-addresses", serverAddresses,
-		fmt.Sprintf("-grpc-port=%d", grpcPort),
-		fmt.Sprintf("-proxy-id=%s", proxyID),
-		"-proxy-namespace=default",
-		"-proxy-partition=default",
-		"-log-level=info",
-		"-log-json=false",
-		"-envoy-concurrency=2",
-		"-tls-disabled",
-		fmt.Sprintf("-envoy-admin-bind-port=%d", internalAdminPort),
-	}
-
-	if bootstrapToken != "" {
-		command = append(command,
-			"-credential-type=static",
-			fmt.Sprintf("-static-token=%s", bootstrapToken))
-	}
-
-	command = append(command, containerArgs...)
-
 	req := testcontainers.ContainerRequest{
 		Image:      "consul-dataplane:local",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,
-		Cmd:        command,
 		Env:        map[string]string{},
 	}
+
+	var command []string
 
 	if tproxy {
 		req.Entrypoint = []string{"sh", "/bin/tproxy-startup.sh"}
@@ -142,7 +121,29 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 			" ",
 		)
 		req.CapAdd = append(req.CapAdd, "NET_ADMIN")
+		command = append(command, "consul-dataplane")
 	}
+
+	command = append(command,
+		"-addresses", serverAddresses,
+		fmt.Sprintf("-grpc-port=%d", grpcPort),
+		fmt.Sprintf("-proxy-id=%s", proxyID),
+		"-proxy-namespace=default",
+		"-proxy-partition=default",
+		"-log-level=info",
+		"-log-json=false",
+		"-envoy-concurrency=2",
+		"-tls-disabled",
+		fmt.Sprintf("-envoy-admin-bind-port=%d", internalAdminPort),
+	)
+
+	if bootstrapToken != "" {
+		command = append(command,
+			"-credential-type=static",
+			fmt.Sprintf("-static-token=%s", bootstrapToken))
+	}
+
+	req.Cmd = append(command, containerArgs...)
 
 	info, err := LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {

@@ -349,7 +349,7 @@ test-compat-integ-setup: dev-docker
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
 	@#  'consul-envoy:target-version' is needed by compatibility integ test
 	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
-	@docker build -t consul-dataplane:local --build-arg CONSUL_DATAPLANE_IMAGE=${CONSUL_DATAPLANE_IMAGE} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
+	@docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg CONSUL_DATAPLANE_IMAGE=${CONSUL_DATAPLANE_IMAGE} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
 
 .PHONY: test-compat-integ
 test-compat-integ: test-compat-integ-setup ## Test compat integ
