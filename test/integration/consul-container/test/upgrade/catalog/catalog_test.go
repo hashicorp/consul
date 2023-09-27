@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-var minCatalogResourceVersion = version.Must(version.NewVersion("v1.16.0"))
+var minCatalogResourceVersion = version.Must(version.NewVersion("v1.17.0"))
 
 const (
 	versionUndetermined = `

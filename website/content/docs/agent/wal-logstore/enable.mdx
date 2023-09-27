@@ -47,11 +47,11 @@ While their likelihood remains low to very low, be aware of the following risks 
  - If WAL corrupts data on a Consul server agent, the server data cannot be recovered. Restart the server with an empty data directory and reload its state from the leader to resolve the issue.
  - WAL may corrupt data or contain a defect that causes the server to panic and crash. WAL may not restart if the defect recurs when WAL reads from the logs on startup. Restart the server with an empty data directory and reload its state from the leader to resolve the issue.
  -  If WAL corrupts data, clients may read corrupted data from the Consul server, such as invalid IP addresses or unmatched tokens. This outcome is unlikely even if a recurring defect causes WAL to corrupt data because replication uses objects cached in memory instead of reads from disk. Restart the server with an empty data directory and reload its state from the leader to resolve the issue.
- - If you enable a Consul OSS server to use WAL or enable WAL on a voting server with Consul Enterprise, WAL may corrupt the server's state, become the leader, and replicate the corrupted state to all other servers. In this case, restoring from backup is required to recover a completely uncorrupted state. Test WAL on a non-voting server in Enterprise to prevent this outcome. You can add a new non-voting server to the cluster to test with if there are no existing ones.
+ - If you enable a Consul CE server to use WAL or enable WAL on a voting server with Consul Enterprise, WAL may corrupt the server's state, become the leader, and replicate the corrupted state to all other servers. In this case, restoring from backup is required to recover a completely uncorrupted state. Test WAL on a non-voting server in Enterprise to prevent this outcome. You can add a new non-voting server to the cluster to test with if there are no existing ones.
 
 ## Enable log verification
 
-You must enable log verification on all voting servers in Enterprise and all servers in OSS because the leader writes verification checkpoints.
+You must enable log verification on all voting servers in Enterprise and all servers in CE because the leader writes verification checkpoints.
 
 1. On each voting server, add the following to the server's configuration file:
 
@@ -64,8 +64,8 @@ You must enable log verification on all voting servers in Enterprise and all ser
   }
   ```
 
-1. Restart the server to apply the changes. The `consul reload` command is not sufficient to apply `raft_logstore` configuration changes. 
-1. Run the `consul operator raft list-peers` command to wait for each server to become a healthy voter before moving on to the next. This may take a few minutes for large snapshots. 
+1. Restart the server to apply the changes. The `consul reload` command is not sufficient to apply `raft_logstore` configuration changes.
+1. Run the `consul operator raft list-peers` command to wait for each server to become a healthy voter before moving on to the next. This may take a few minutes for large snapshots.
 
 When complete, the server's logs should contain verifier reports that appear like the following example:
 
@@ -75,7 +75,7 @@ When complete, the server's logs should contain verifier reports that appear lik
 
 ## Select target server to enable WAL
 
-If you are using Consul OSS or Consul Enterprise without non-voting servers, select a follower server to enable WAL. As noted in [Risks](#risks), Consul Enterprise users with non-voting servers should first select a non-voting server, or consider adding another server as a non-voter to test on. 
+If you are using Consul CE, or Consul Enterprise without non-voting servers, select a follower server to enable WAL. As noted in [Risks](#risks), Consul Enterprise users with non-voting servers should first select a non-voting server, or consider adding another server as a non-voter to test on.
 
 Retrieve the current state of the servers by running the following command:
 
@@ -85,7 +85,7 @@ $ consul operator raft list-peers
 
 ## Stop target server
 
-Stop the target server gracefully. For example, if you are using `systemd`, 
+Stop the target server gracefully. For example, if you are using `systemd`,
 run the following command:
 
 ```shell-session

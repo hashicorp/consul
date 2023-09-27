@@ -1,0 +1,8 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+ARG CONSUL_DATAPLANE_IMAGE
+
+FROM ${CONSUL_DATAPLANE_IMAGE} as consuldataplane
+COPY --from=busybox:uclibc /bin/sh /bin/sh
+COPY --from=ghcr.io/tarampampam/curl:latest /bin/curl /bin/curl

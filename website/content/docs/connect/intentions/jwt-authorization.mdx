@@ -14,7 +14,7 @@ By specifying a JSON Web Key Set (JWKS) in the configuration entry and referenci
 
 The process to configure your network to enforce service intentions based on JSON web tokens consists of the following steps:
 
-1. **Create a JWT provider configuration entry**. This configuration entry defines rules and behaviors for verifying tokens. These configurations apply to admin partitions in Consul Enterprise, which is functionally equivalent to a datacenter in Consul OSS. Then, write the `jwt-provider` configuration entry to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
+1. **Create a JWT provider configuration entry**. This configuration entry defines rules and behaviors for verifying tokens. These configurations apply to admin partitions in Consul Enterprise, which is functionally equivalent to a datacenter in Consul CE. Then, write the `jwt-provider` configuration entry to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
 
 1. **Create or update a service intentions configuration entry to reference the JWT provider**. This configuration invokes the name of the `jwt-provider` configuration entry you created, which causes the Envoy proxy to verify the token and the permissions it authorizes before the incoming request is accepted. Then, write the `service-intentions` configuration entry that references the JWT to Consul. The ACL policy requirement to read and modify this configuration entry is `mesh:write`.
 
