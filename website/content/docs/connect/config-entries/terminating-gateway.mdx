@@ -46,7 +46,7 @@ traffic from the mesh to those services will be evenly load-balanced between the
 ### Access an external service
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service.
 
@@ -144,7 +144,7 @@ spec:
 ### Access an external service over TLS
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file to be used for one-way TLS authentication.
@@ -259,7 +259,7 @@ spec:
 ### Access an external service over mutual TLS
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file, key file, and cert file to be used for mutual TLS authentication.
@@ -385,7 +385,7 @@ spec:
 ### Override connection parameters for a specific service
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 
@@ -611,7 +611,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,
