@@ -32,14 +32,14 @@ concurrency:
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     name: Get files changed and conditionally skip CI
     outputs:
       skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
       - name: Get changed files
         id: read-files
         run: ./.github/scripts/filter_changed_files_go_test.sh
@@ -116,7 +116,7 @@ jobs:
             --packages="./command/agent/consul" \
             --junitfile $TEST_RESULTS_DIR/results.xml -- \
             -run TestConsul
-      
+
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
         if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -257,12 +257,12 @@ jobs:
       - name: Generate Envoy Job Matrix
         id: set-matrix
         env:
-          # this is further going to multiplied in envoy-integration tests by the 
+          # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
           # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
+          TOTAL_RUNNERS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -281,7 +281,7 @@ jobs:
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
-  
+
   envoy-integration-test:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
@@ -384,7 +384,7 @@ jobs:
       contents: read
     env:
       ENVOY_VERSION: "1.25.4"
-      CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev"
+      CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi"
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
@@ -417,7 +417,7 @@ jobs:
         if: steps.buildConsulEnvoyImage.outcome == 'failure'
         run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
       - name: Build consul-dataplane:local image
-        run: docker build -t consul-dataplane:local --build-arg CONSUL_DATAPLANE_IMAGE=${{ env.CONSUL_DATAPLANE_IMAGE }} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
+        run: docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg CONSUL_DATAPLANE_IMAGE=${{ env.CONSUL_DATAPLANE_IMAGE }} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
       - name: Configure GH workaround for ipv6 loopback
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
@@ -489,7 +489,7 @@ jobs:
 
 
   test-integrations-success:
-    needs: 
+    needs:
     - conditional-skip
     - setup
     - dev-build

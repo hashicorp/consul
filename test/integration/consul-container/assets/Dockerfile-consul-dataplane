@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 ARG CONSUL_DATAPLANE_IMAGE
+ARG CONSUL_IMAGE
+
+# Docker doesn't support expansion in COPY --copy, so we need to create an intermediate image.
+FROM ${CONSUL_IMAGE} as consul
 
 FROM ${CONSUL_DATAPLANE_IMAGE} as consuldataplane
 
@@ -11,7 +15,7 @@ RUN microdnf install -y iptables sudo nc \
  	&& usermod -a -G wheel consul-dataplane \
  	&& echo 'consul-dataplane ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
-COPY --from=consul:local /bin/consul /bin/consul
+COPY --from=consul /bin/consul /bin/consul
 
 COPY tproxy-startup.sh /bin/tproxy-startup.sh
 RUN chmod +x /bin/tproxy-startup.sh && chown root:root /bin/tproxy-startup.sh

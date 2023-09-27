@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package tproxy
+package trafficpermissions
 
 import (
 	"context"
@@ -43,14 +43,18 @@ type trafficPermissionsCase struct {
 	client2EchoSuccess bool
 }
 
+// We are using tproxy to test traffic permissions now because explicitly specifying destinations
+// doesn't work when multiple downstreams specify the same destination yet. In the future, we will need
+// to update this to use explicit destinations once we infer tproxy destinations from traffic permissions.
+//
+// This also explicitly uses virtual IPs and virtual ports because Consul DNS doesn't support v2 resources yet.
+// We should update this to use Consul DNS when it is working.
 func runTrafficPermissionsTests(t *testing.T, aclsEnabled bool, cases map[string]trafficPermissionsCase) {
-	t.Parallel()
-
 	cluster, resourceClient := createCluster(t, aclsEnabled)
 
-	serverService, serverDataplane := createServerResources(t, resourceClient, cluster, cluster.Agents[1])
-	client1Dataplane := createClientResources(t, resourceClient, cluster, serverService, cluster.Agents[2], 1)
-	client2Dataplane := createClientResources(t, resourceClient, cluster, serverService, cluster.Agents[3], 2)
+	serverDataplane := createServerResources(t, resourceClient, cluster, cluster.Agents[1])
+	client1Dataplane := createClientResources(t, resourceClient, cluster, cluster.Agents[2], 1)
+	client2Dataplane := createClientResources(t, resourceClient, cluster, cluster.Agents[3], 2)
 
 	assertDataplaneContainerState(t, client1Dataplane, "running")
 	assertDataplaneContainerState(t, client2Dataplane, "running")
@@ -295,6 +299,30 @@ func TestTrafficPermission_TCP_DefaultAllow(t *testing.T) {
 			client2TCPSuccess:  true,
 			client2EchoSuccess: true,
 		},
+		"empty allow denies everything": {
+			tp1: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: staticServerIdentity,
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+			},
+			client1TCPSuccess:  false,
+			client1EchoSuccess: false,
+			client2TCPSuccess:  false,
+			client2EchoSuccess: false,
+		},
+		"empty deny denies everything": {
+			tp1: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: staticServerIdentity,
+				},
+				Action: pbauth.Action_ACTION_DENY,
+			},
+			client1TCPSuccess:  false,
+			client1EchoSuccess: false,
+			client2TCPSuccess:  false,
+			client2EchoSuccess: false,
+		},
 		"allow everything": {
 			tp1: &pbauth.TrafficPermissions{
 				Destination: &pbauth.Destination{
@@ -318,8 +346,7 @@ func TestTrafficPermission_TCP_DefaultAllow(t *testing.T) {
 			client2TCPSuccess:  true,
 			client2EchoSuccess: true,
 		},
-		// TODO I don't like this behavior.
-		"allow one protocol doesnt impact the other protocol": {
+		"allow one protocol denies the other protocol": {
 			tp1: &pbauth.TrafficPermissions{
 				Destination: &pbauth.Destination{
 					IdentityName: staticServerIdentity,
@@ -343,9 +370,9 @@ func TestTrafficPermission_TCP_DefaultAllow(t *testing.T) {
 				},
 			},
 			client1TCPSuccess:  true,
-			client1EchoSuccess: true,
+			client1EchoSuccess: false,
 			client2TCPSuccess:  true,
-			client2EchoSuccess: true,
+			client2EchoSuccess: false,
 		},
 		"allow something unrelated": {
 			tp1: &pbauth.TrafficPermissions{
@@ -426,8 +453,8 @@ func storeStaticServerTrafficPermissions(t *testing.T, resourceClient *rtest.Cli
 	}
 }
 
-func createServerResources(t *testing.T, resourceClient *rtest.Client, cluster *libcluster.Cluster, node libcluster.Agent) (*pbresource.Resource, *libcluster.ConsulDataplaneContainer) {
-	serverService := rtest.ResourceID(&pbresource.ID{
+func createServerResources(t *testing.T, resourceClient *rtest.Client, cluster *libcluster.Cluster, node libcluster.Agent) *libcluster.ConsulDataplaneContainer {
+	rtest.ResourceID(&pbresource.ID{
 		Name: "static-server-service",
 		Type: pbcatalog.ServiceType,
 	}).
@@ -483,10 +510,10 @@ func createServerResources(t *testing.T, resourceClient *rtest.Client, cluster *
 	serverDataplane, err := createServiceAndDataplane(t, node, cluster, "static-server-workload", "static-server", 8080, 8079, []int{})
 	require.NoError(t, err)
 
-	return serverService, serverDataplane
+	return serverDataplane
 }
 
-func createClientResources(t *testing.T, resourceClient *rtest.Client, cluster *libcluster.Cluster, staticServerRef *pbresource.Resource, node libcluster.Agent, idx int) *libcluster.ConsulDataplaneContainer {
+func createClientResources(t *testing.T, resourceClient *rtest.Client, cluster *libcluster.Cluster, node libcluster.Agent, idx int) *libcluster.ConsulDataplaneContainer {
 	prefix := fmt.Sprintf("static-client-%d", idx)
 	rtest.ResourceID(&pbresource.ID{
 		Name: prefix + "-service",
@@ -580,30 +607,10 @@ func assertDataplaneContainerState(t *testing.T, dataplane *libcluster.ConsulDat
 func httpRequestToVirtualAddress(dp *libcluster.ConsulDataplaneContainer) (string, error) {
 	addr := fmt.Sprintf("%s:%d", staticServerVIP, tcpPort)
 
-	// Test that we can make a request to the virtual ip to reach the upstream.
-	//
-	// NOTE(pglass): This uses a workaround for DNS because I had trouble modifying
-	// /etc/resolv.conf. There is a --dns option to docker run, but it
-	// didn't seem to be exposed via testcontainers. I'm not sure if it would
-	// do what I want. In any case, Docker sets up /etc/resolv.conf for certain
-	// functionality so it seems better to leave DNS alone.
-	//
-	// But, that means DNS queries aren't redirected to Consul out of the box.
-	// As a workaround, we `dig @localhost:53` which is iptables-redirected to
-	// localhost:8600 where the Consul client responds with the virtual ip.
-	//
-	// In tproxy tests, Envoy is not configured with a unique listener for each
-	// upstream. This means the usual approach for non-tproxy tests doesn't
-	// work - where we send the request to a host address mapped in to Envoy's
-	// upstream listener. Instead, we exec into the container and run curl.
-	//
-	// We must make this request with a non-envoy user. The envoy and consul
-	// users are excluded from traffic redirection rules, so instead we
-	// make the request as root.
 	out, err := dp.Exec(
 		context.Background(),
 		[]string{"sudo", "sh", "-c", fmt.Sprintf(`
-set -e
+			set -e
 			curl -s "%s/debug?env=dump"
 			`, addr),
 		},
@@ -622,26 +629,6 @@ set -e
 }
 
 func echoToVirtualAddress(dp *libcluster.ConsulDataplaneContainer) (string, error) {
-	// Test that we can make a request to the virtual ip to reach the upstream.
-	//
-	// NOTE(pglass): This uses a workaround for DNS because I had trouble modifying
-	// /etc/resolv.conf. There is a --dns option to docker run, but it
-	// didn't seem to be exposed via testcontainers. I'm not sure if it would
-	// do what I want. In any case, Docker sets up /etc/resolv.conf for certain
-	// functionality so it seems better to leave DNS alone.
-	//
-	// But, that means DNS queries aren't redirected to Consul out of the box.
-	// As a workaround, we `dig @localhost:53` which is iptables-redirected to
-	// localhost:8600 where the Consul client responds with the virtual ip.
-	//
-	// In tproxy tests, Envoy is not configured with a unique listener for each
-	// upstream. This means the usual approach for non-tproxy tests doesn't
-	// work - where we send the request to a host address mapped in to Envoy's
-	// upstream listener. Instead, we exec into the container and run curl.
-	//
-	// We must make this request with a non-envoy user. The envoy and consul
-	// users are excluded from traffic redirection rules, so instead we
-	// make the request as root.
 	out, err := dp.Exec(
 		context.Background(),
 		[]string{"sudo", "sh", "-c", fmt.Sprintf(`
