@@ -352,9 +352,10 @@ jobs:
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
+        # One-off RC hack to munge docker dev tag: https://hashicorp.slack.com/archives/CR024M999/p1695845055293629
         run: |
           version="${{ env.version }}"
-          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          echo "dev_tag=${version%.-}-dev" >> $GITHUB_ENV
 
       - uses: hashicorp/actions-docker-build@v1
         with:
