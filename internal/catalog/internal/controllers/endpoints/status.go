@@ -3,7 +3,12 @@
 
 package endpoints
 
-import "github.com/hashicorp/consul/proto-public/pbresource"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
+)
 
 const (
 	StatusKey                       = "consul.io/endpoint-manager"
@@ -14,6 +19,14 @@ const (
 
 	SelectorFoundMessage    = "A valid workload selector is present within the service."
 	SelectorNotFoundMessage = "Either the workload selector was not present or contained no selection criteria."
+
+	StatusConditionBoundIdentities = "BoundIdentities"
+
+	StatusReasonWorkloadIdentitiesFound   = "WorkloadIdentitiesFound"
+	StatusReasonNoWorkloadIdentitiesFound = "NoWorkloadIdentitiesFound"
+
+	IdentitiesFoundMessageFormat     = "Found workload identities associated with this service: %q."
+	IdentitiesNotFoundChangedMessage = "No associated workload identities found."
 )
 
 var (
@@ -30,4 +43,20 @@ var (
 		Reason:  StatusReasonSelectorNotFound,
 		Message: SelectorNotFoundMessage,
 	}
+
+	ConditionIdentitiesNotFound = &pbresource.Condition{
+		Type:    StatusConditionBoundIdentities,
+		State:   pbresource.Condition_STATE_FALSE,
+		Reason:  StatusReasonNoWorkloadIdentitiesFound,
+		Message: IdentitiesNotFoundChangedMessage,
+	}
 )
+
+func ConditionIdentitiesFound(identities []string) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:    StatusConditionBoundIdentities,
+		State:   pbresource.Condition_STATE_TRUE,
+		Reason:  StatusReasonWorkloadIdentitiesFound,
+		Message: fmt.Sprintf(IdentitiesFoundMessageFormat, strings.Join(identities, ",")),
+	}
+}

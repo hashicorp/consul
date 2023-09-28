@@ -17,14 +17,11 @@ var (
 	// Controller statuses.
 
 	// Sidecar-proxy controller.
-	SidecarProxyStatusKey                                  = sidecarproxy.ControllerName
-	SidecarProxyStatusConditionMeshDestination             = status.StatusConditionDestinationAccepted
-	SidecarProxyStatusReasonNonMeshDestination             = status.StatusReasonMeshProtocolNotFound
-	SidecarProxyStatusReasonMeshDestination                = status.StatusReasonMeshProtocolFound
-	SidecarProxyStatusReasonDestinationServiceNotFound     = status.StatusReasonDestinationServiceNotFound
-	SidecarProxyStatusReasonDestinationServiceFound        = status.StatusReasonDestinationServiceFound
-	SidecarProxyStatusReasonMeshProtocolDestinationPort    = status.StatusReasonMeshProtocolDestinationPort
-	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
+	SidecarProxyStatusKey                               = sidecarproxy.ControllerName
+	SidecarProxyStatusConditionMeshDestination          = status.StatusConditionDestinationsAccepted
+	SidecarProxyStatusReasonNonMeshDestination          = status.StatusReasonMeshProtocolNotFound
+	SidecarProxyStatusReasonDestinationServiceNotFound  = status.StatusReasonDestinationServiceNotFound
+	SidecarProxyStatusReasonMeshProtocolDestinationPort = status.StatusReasonMeshProtocolDestinationPort
 
 	// Routes controller
 	RoutesStatusKey                                                = routes.StatusKey

@@ -10,10 +10,9 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
-	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
@@ -28,90 +27,82 @@ const ControllerName = "consul.io/sidecar-proxy-controller"
 type TrustDomainFetcher func() (string, error)
 
 func Controller(
-	destinationsCache *sidecarproxycache.DestinationsCache,
-	proxyCfgCache *sidecarproxycache.ProxyConfigurationCache,
-	computedRoutesCache *sidecarproxycache.ComputedRoutesCache,
-	identitiesCache *sidecarproxycache.IdentitiesCache,
-	mapper *sidecarproxymapper.Mapper,
+	cache *cache.Cache,
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
 	defaultAllow bool,
 ) controller.Controller {
-	if destinationsCache == nil || proxyCfgCache == nil || computedRoutesCache == nil || identitiesCache == nil || mapper == nil || trustDomainFetcher == nil {
-		panic("destinations cache, proxy configuration cache, computed routes cache, identities cache, mapper, and trust domain fetcher are required")
+	if cache == nil || trustDomainFetcher == nil {
+		panic("cache and trust domain fetcher are required")
 	}
 
 	/*
-		Workload           <align>   PST
-		Upstreams          <select>  PST(==Workload)
-		Upstreams          <contain> Service(upstream)
-		ProxyConfiguration <select>  PST(==Workload)
-		ComputedRoutes     <align>   Service(upstream)
-		ComputedRoutes     <contain> Service(disco)
-		ServiceEndpoints   <align>   Service(disco)
+			Workload                   <align>   PST
+			ComputedDestinations       <align>   PST(==Workload)
+			ComputedDestinations       <contain> Service(destinations)
+			ComputedProxyConfiguration <align>   PST(==Workload)
+			ComputedRoutes             <align>   Service(upstream)
+			ComputedRoutes             <contain> Service(disco)
+		    ComputedTrafficPermissions <align>   WorkloadIdentity
+		    Workload                   <contain> WorkloadIdentity
 
-		These relationships then dicate the following reconcile logic.
+			These relationships then dictate the following reconcile logic.
 
-		controller: read workload for PST
-		controller: read previous PST
-		controller: read ProxyConfiguration for Workload
-		controller: use cached Upstreams data to walk explicit upstreams
-		<EXPLICIT-for-each>
-			fetcher: read Upstreams to find single Upstream
-			fetcher: read Service(upstream)
-			fetcher: read ComputedRoutes
-			<TARGET-for-each>
-				fetcher: read ServiceEndpoints
-			</TARGET-for-each>
-		</EXPLICIT-for-each>
-		<IMPLICIT>
-			fetcher: list ALL ComputedRoutes
-			<CR-for-each>
-				fetcher: read Service(upstream)
+			controller: read workload for PST
+			controller: read previous PST
+			controller: read ComputedProxyConfiguration for Workload
+			controller: read ComputedDestinations for workload to walk explicit upstreams
+		    controller: read ComputedTrafficPermissions for workload using workload.identity field.
+			<EXPLICIT-for-each>
+				fetcher: read Service(Destination)
+				fetcher: read ComputedRoutes
 				<TARGET-for-each>
 					fetcher: read ServiceEndpoints
 				</TARGET-for-each>
-			</CR-for-each>
-		</IMPLICIT>
+			</EXPLICIT-for-each>
+			<IMPLICIT>
+				fetcher: list ALL ComputedRoutes
+				<CR-for-each>
+					fetcher: read Service(upstream)
+					<TARGET-for-each>
+						fetcher: read ServiceEndpoints
+					</TARGET-for-each>
+				</CR-for-each>
+			</IMPLICIT>
 	*/
 
 	/*
-		Which means for equivalence, the following mapper relationships should exist:
+			Which means for equivalence, the following mapper relationships should exist:
 
-		Service:            find upstreams with Service; Recurse(Upstreams)
-		ServiceEndpoints:   ServiceEndpoints=>Service; find ComputedRoutes with this in a Target or FailoverConfig; Recurse(ComputedRoutes)
-		Upstreams:          use selector to select workloads; workloads=>PST
-		ProxyConfiguration: use selector to select workloads; workloads=>PST
-		ComputedRoutes:     CR=>Service; find upstreams with Service; Recurse(Upstreams)
-							[implicit/temp]: trigger all
+			Service:                    find destinations with Service; Recurse(ComputedDestinations);
+		                                find ComputedRoutes with this in a Target or FailoverConfig; Recurse(ComputedRoutes)
+			ComputedDestinations:       replace type CED=>PST
+			ComputedProxyConfiguration: replace type CPC=>PST
+			ComputedRoutes:             CR=>Service; find destinations with Service; Recurse(Destinations)
+								        [implicit/temp]: trigger all
+		    ComputedTrafficPermissions: find workloads in cache stored for this CTP=Workload, workloads=>PST reconcile requests
 	*/
 
 	return controller.ForType(pbmesh.ProxyStateTemplateType).
-		WithWatch(pbcatalog.ServiceType, mapper.MapServiceToProxyStateTemplate).
-		WithWatch(pbcatalog.ServiceEndpointsType, mapper.MapServiceEndpointsToProxyStateTemplate).
-		WithWatch(pbmesh.DestinationsType, mapper.MapDestinationsToProxyStateTemplate).
-		WithWatch(pbmesh.ProxyConfigurationType, mapper.MapProxyConfigurationToProxyStateTemplate).
-		WithWatch(pbmesh.ComputedRoutesType, mapper.MapComputedRoutesToProxyStateTemplate).
-		WithWatch(pbauth.ComputedTrafficPermissionsType, mapper.MapComputedTrafficPermissionsToProxyStateTemplate).
+		WithWatch(pbcatalog.ServiceType, cache.MapService).
+		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedExplicitDestinationsType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedProxyConfigurationType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedRoutesType, cache.MapComputedRoutes).
+		WithWatch(pbauth.ComputedTrafficPermissionsType, cache.MapComputedTrafficPermissions).
 		WithReconciler(&reconciler{
-			destinationsCache:   destinationsCache,
-			proxyCfgCache:       proxyCfgCache,
-			computedRoutesCache: computedRoutesCache,
-			identitiesCache:     identitiesCache,
-			getTrustDomain:      trustDomainFetcher,
-			dc:                  dc,
-			defaultAllow:        defaultAllow,
+			cache:          cache,
+			getTrustDomain: trustDomainFetcher,
+			dc:             dc,
+			defaultAllow:   defaultAllow,
 		})
 }
 
 type reconciler struct {
-	destinationsCache   *sidecarproxycache.DestinationsCache
-	proxyCfgCache       *sidecarproxycache.ProxyConfigurationCache
-	computedRoutesCache *sidecarproxycache.ComputedRoutesCache
-	identitiesCache     *sidecarproxycache.IdentitiesCache
-	getTrustDomain      TrustDomainFetcher
-	defaultAllow        bool
-	dc                  string
+	cache          *cache.Cache
+	getTrustDomain TrustDomainFetcher
+	defaultAllow   bool
+	dc             string
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -120,13 +111,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
-	dataFetcher := fetcher.New(
-		rt.Client,
-		r.destinationsCache,
-		r.proxyCfgCache,
-		r.computedRoutesCache,
-		r.identitiesCache,
-	)
+	dataFetcher := fetcher.New(rt.Client, r.cache)
 
 	// Check if the workload exists.
 	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
@@ -153,7 +138,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template for this workload doesn't yet exist; generating a new one")
 	}
 
-	if !fetcher.IsWorkloadMeshEnabled(workload.Data.Ports) {
+	if !workload.GetData().IsMeshEnabled() {
 		// Skip non-mesh workloads.
 
 		// If there's existing proxy state template, delete it.
@@ -164,9 +149,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 				rt.Logger.Error("error deleting existing proxy state template", "error", err)
 				return err
 			}
-
-			// Remove it from destinationsCache.
-			r.destinationsCache.DeleteSourceProxy(req.ID)
 		}
 		rt.Logger.Trace("skipping proxy state template generation because workload is not on the mesh", "workload", workload.Resource.Id)
 		return nil
@@ -180,7 +162,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Fetch proxy configuration.
-	proxyCfg, err := dataFetcher.FetchAndMergeProxyConfigurations(ctx, req.ID)
+	proxyCfg, err := dataFetcher.FetchComputedProxyConfiguration(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching proxy and merging proxy configurations", "error", err)
 		return err
@@ -197,23 +179,18 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		ctp = trafficPermissions.Data
 	}
 
-	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, r.defaultAllow, proxyCfg).
+	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, r.defaultAllow, proxyCfg.GetData()).
 		BuildLocalApp(workload.Data, ctp)
 
 	// Get all destinationsData.
-	destinationsRefs := r.destinationsCache.DestinationsBySourceProxy(req.ID)
-	if len(destinationsRefs) > 0 {
-		rt.Logger.Trace("found destinations for this proxy", "id", req.ID, "destination_refs", destinationsRefs)
-	} else {
-		rt.Logger.Trace("did not find any destinations for this proxy", "id", req.ID)
-	}
-	destinationsData, statuses, err := dataFetcher.FetchExplicitDestinationsData(ctx, destinationsRefs)
+	destinationsData, status, err := dataFetcher.FetchExplicitDestinationsData(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
 	}
 
-	if proxyCfg.IsTransparentProxy() {
+	if proxyCfg.GetData() != nil && proxyCfg.GetData().IsTransparentProxy() {
+		rt.Logger.Trace("transparent proxy is enabled; fetching implicit destinations")
 		destinationsData, err = dataFetcher.FetchImplicitDestinationsData(ctx, req.ID, destinationsData)
 		if err != nil {
 			rt.Logger.Error("error fetching implicit destinations for this proxy", "error", err)
@@ -250,12 +227,13 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template data has not changed, skipping update")
 	}
 
-	// Update any statuses.
-	for _, status := range statuses {
+	// Update status if needed.
+	if status != nil {
 		updatedStatus := &pbresource.Status{
 			ObservedGeneration: status.Generation,
+			Conditions:         status.Conditions,
 		}
-		updatedStatus.Conditions = status.Conditions
+
 		// If the status is unchanged then we should return and avoid the unnecessary write
 		if !resource.EqualStatus(status.OldStatus[ControllerName], updatedStatus, false) {
 			rt.Logger.Trace("updating status", "id", status.ID)
@@ -277,6 +255,7 @@ func identityRefFromWorkload(w *types.DecodedWorkload) *pbresource.Reference {
 	return &pbresource.Reference{
 		Name:    w.Data.Identity,
 		Tenancy: w.Resource.Id.Tenancy,
+		Type:    pbauth.WorkloadIdentityType,
 	}
 }
 

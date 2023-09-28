@@ -139,6 +139,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				},
 			},
 		},
+		Type: pbauth.WorkloadIdentityType,
 	}
 
 	for name, c := range cases {
