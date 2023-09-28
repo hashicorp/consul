@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 // QueryOptions are used to parameterize a query
@@ -92,63 +90,18 @@ func NewClient(config *api.Config) (*HttpClient, error) {
 
 	if config.HttpClient == nil {
 		var err error
-		config.HttpClient, err = NewHttpClient(config.Transport, config.TLSConfig)
+		config.HttpClient, err = NewHttpClient(config.Transport)
 		if err != nil {
 			return nil, err
 		}
 	}
-
-	if config.Namespace == "" {
-		config.Namespace = defConfig.Namespace
-	}
-
-	if config.Partition == "" {
-		config.Partition = defConfig.Partition
-	}
-
-	parts := strings.SplitN(config.Address, "://", 2)
-	if len(parts) == 2 {
-		switch parts[0] {
-		case "http":
-			// Never revert to http if TLS was explicitly requested.
-		case "https":
-			config.Scheme = "https"
-		case "unix":
-			trans := cleanhttp.DefaultTransport()
-			trans.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", parts[1])
-			}
-			httpClient, err := NewHttpClient(trans, config.TLSConfig)
-			if err != nil {
-				return nil, err
-			}
-			config.HttpClient = httpClient
-		default:
-			return nil, fmt.Errorf("unknown protocol scheme: %s", parts[0])
-		}
-		config.Address = parts[1]
-
-		// separate out a reverse proxy prefix, if it is present.
-		// NOTE: Rewriting this code to use url.Parse() instead of
-		// strings.SplitN() breaks existing test cases.
-		switch parts[0] {
-		case "http", "https":
-			parts := strings.SplitN(parts[1], "/", 2)
-			if len(parts) == 2 {
-				config.Address = parts[0]
-				config.PathPrefix = "/" + parts[1]
-			}
-		}
-	}
-
-	config.Token = defConfig.Token
 
 	return &HttpClient{config: *config, headers: make(http.Header)}, nil
 }
 
 // NewHttpClient returns an http client configured with the given Transport and TLS
 // config.
-func NewHttpClient(transport *http.Transport, tlsConf api.TLSConfig) (*http.Client, error) {
+func NewHttpClient(transport *http.Transport) (*http.Client, error) {
 	client := &http.Client{
 		Transport: transport,
 	}

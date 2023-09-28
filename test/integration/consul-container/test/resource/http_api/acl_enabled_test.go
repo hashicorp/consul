@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWrteEndpoint(t *testing.T) {
+func Test_ServerAgent_Endpoints(t *testing.T) {
 	t.Parallel()
 
 	numOfServers := 1
@@ -31,257 +31,13 @@ func TestWrteEndpoint(t *testing.T) {
 					expectedErrorMsg: "",
 					includeToken:     true,
 				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-			},
-		},
-		{
-			description: "should return unauthorized when token is bad",
-			operations: []operation{
-				{
-					action:           applyResource,
-					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
-					includeToken:     false,
-				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.description, func(t *testing.T) {
-			for i, op := range tc.operations {
-				if op.includeToken {
-					tc.config[i].queryOptions.Token = cluster.TokenBootstrap
-				}
-
-				err := op.action(&resource, tc.config[i])
-				if len(op.expectedErrorMsg) > 0 {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), op.expectedErrorMsg)
-				} else {
-					require.NoError(t, err)
-				}
-			}
-		})
-	}
-}
-
-func TestReadEndpoint(t *testing.T) {
-	t.Parallel()
-
-	numOfServers := 1
-	numOfClients := 0
-	cluster, resourceClient := SetupClusterAndClient(t, makeClusterConfig(numOfServers, numOfClients, true), true)
-
-	resource := Resource{
-		HttpClient: resourceClient,
-	}
-
-	defer Terminate(t, cluster)
-
-	testCases := []testCase{
-		{
-			description: "should read resource successfully when token is provided",
-			operations: []operation{
-				{
-					action:           applyResource,
-					expectedErrorMsg: "",
-					includeToken:     true,
-				},
 				{
 					action:           readResource,
 					expectedErrorMsg: "",
 					includeToken:     true,
 				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-				},
-			},
-		},
-		{
-			description: "should return unauthorized when token is bad",
-			operations: []operation{
-				{
-					action:           applyResource,
-					expectedErrorMsg: "",
-					includeToken:     true,
-				},
-				{
-					action:           readResource,
-					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
-					includeToken:     false,
-				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.description, func(t *testing.T) {
-			for i, op := range tc.operations {
-				if op.includeToken {
-					tc.config[i].queryOptions.Token = cluster.TokenBootstrap
-				}
-				err := op.action(&resource, tc.config[i])
-				if len(op.expectedErrorMsg) > 0 {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), op.expectedErrorMsg)
-				} else {
-					require.NoError(t, err)
-				}
-			}
-		})
-	}
-}
-
-func TestListEndpoint(t *testing.T) {
-	t.Parallel()
-
-	numOfServers := 1
-	numOfClients := 0
-	cluster, resourceClient := SetupClusterAndClient(t, makeClusterConfig(numOfServers, numOfClients, true), true)
-
-	resource := Resource{
-		HttpClient: resourceClient,
-	}
-
-	defer Terminate(t, cluster)
-
-	testCases := []testCase{
-		{
-			description: "should list resource successfully when token is provided",
-			operations: []operation{
-				{
-					action:           applyResource,
-					expectedErrorMsg: "",
-					includeToken:     true,
-				},
 				{
 					action:           listResource,
-					expectedErrorMsg: "",
-					includeToken:     true,
-				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-				{
-					gvk:          demoGVK,
-					queryOptions: defaultTenancyQueryOptions,
-				},
-			},
-		},
-		{
-			description: "should return unauthorized when token is bad",
-			operations: []operation{
-				{
-					action:           applyResource,
-					expectedErrorMsg: "",
-					includeToken:     true,
-				},
-				{
-					action:           listResource,
-					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
-					includeToken:     false,
-				},
-			},
-			config: []config{
-				{
-					gvk:          demoGVK,
-					resourceName: "korn",
-					queryOptions: defaultTenancyQueryOptions,
-					payload:      demoPayload,
-				},
-				{
-					gvk:          demoGVK,
-					queryOptions: defaultTenancyQueryOptions,
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-		t.Run(tc.description, func(t *testing.T) {
-
-			for i, op := range tc.operations {
-				if op.includeToken {
-					tc.config[i].queryOptions.Token = cluster.TokenBootstrap
-				}
-
-				err := op.action(&resource, tc.config[i])
-				if len(op.expectedErrorMsg) > 0 {
-					require.Error(t, err)
-					require.Contains(t, err.Error(), op.expectedErrorMsg)
-				} else {
-					require.NoError(t, err)
-				}
-			}
-		})
-	}
-}
-
-func TestDeleteEndpoint(t *testing.T) {
-	t.Parallel()
-
-	numOfServers := 1
-	numOfClients := 0
-	cluster, resourceClient := SetupClusterAndClient(t, makeClusterConfig(numOfServers, numOfClients, true), true)
-
-	resource := Resource{
-		HttpClient: resourceClient,
-	}
-
-	defer Terminate(t, cluster)
-
-	testCases := []testCase{
-		{
-			description: "should delete resource successfully when token is provided",
-			operations: []operation{
-				{
-					action:           applyResource,
 					expectedErrorMsg: "",
 					includeToken:     true,
 				},
@@ -303,15 +59,39 @@ func TestDeleteEndpoint(t *testing.T) {
 					resourceName: "korn",
 					queryOptions: defaultTenancyQueryOptions,
 				},
+				{
+					gvk:          demoGVK,
+					queryOptions: defaultTenancyQueryOptions,
+				},
+				{
+					gvk:          demoGVK,
+					resourceName: "korn",
+					queryOptions: defaultTenancyQueryOptions,
+				},
 			},
 		},
 		{
-			description: "should return unauthorized when token is bad",
+			description: "should return permission denied",
 			operations: []operation{
+				{
+					action:           applyResource,
+					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
+					includeToken:     false,
+				},
 				{
 					action:           applyResource,
 					expectedErrorMsg: "",
 					includeToken:     true,
+				},
+				{
+					action:           readResource,
+					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
+					includeToken:     false,
+				},
+				{
+					action:           listResource,
+					expectedErrorMsg: "Unexpected response code: 403 (rpc error: code = PermissionDenied desc = Permission denied",
+					includeToken:     false,
 				},
 				{
 					action:           deleteResource,
@@ -322,13 +102,28 @@ func TestDeleteEndpoint(t *testing.T) {
 			config: []config{
 				{
 					gvk:          demoGVK,
-					resourceName: "korn",
+					resourceName: "prince",
 					queryOptions: defaultTenancyQueryOptions,
 					payload:      demoPayload,
 				},
 				{
 					gvk:          demoGVK,
-					resourceName: "korn",
+					resourceName: "deleteme",
+					queryOptions: defaultTenancyQueryOptions,
+					payload:      demoPayload,
+				},
+				{
+					gvk:          demoGVK,
+					resourceName: "keith",
+					queryOptions: defaultTenancyQueryOptions,
+				},
+				{
+					gvk:          demoGVK,
+					queryOptions: defaultTenancyQueryOptions,
+				},
+				{
+					gvk:          demoGVK,
+					resourceName: "deleteme",
 					queryOptions: defaultTenancyQueryOptions,
 				},
 			},
@@ -381,7 +176,7 @@ func Test_ClientAgent(t *testing.T) {
 			config: []config{
 				{
 					gvk:          demoGVK,
-					resourceName: "korn",
+					resourceName: "test",
 					queryOptions: defaultTenancyQueryOptions,
 					payload:      demoPayload,
 				},
@@ -399,7 +194,7 @@ func Test_ClientAgent(t *testing.T) {
 			config: []config{
 				{
 					gvk:          demoGVK,
-					resourceName: "korn",
+					resourceName: "test2",
 					queryOptions: defaultTenancyQueryOptions,
 					payload:      demoPayload,
 				},

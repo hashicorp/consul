@@ -190,12 +190,14 @@ func SetupClusterAndClient(t *testing.T, clusterConfig *libtopology.ClusterConfi
 	var resourceHttpClient *client.HttpClient
 	if getServerHttpClient {
 		apiClientConfig := cluster.Servers()[0].GetAPIClientConfig()
+		apiClientConfig.Token = ""
 		resourceClient, err := client.NewClient(&apiClientConfig)
 		require.NoError(t, err)
 
 		resourceHttpClient = resourceClient
 	} else {
 		apiClientConfig := cluster.Clients()[0].GetAPIClientConfig()
+		apiClientConfig.Token = ""
 		resourceClient, err := client.NewClient(&apiClientConfig)
 		require.NoError(t, err)
 
