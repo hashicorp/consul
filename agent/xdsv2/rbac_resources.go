@@ -84,13 +84,20 @@ func makeRBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envo
 	policies := make(map[string]*envoy_rbac_v3.Policy, len(l4Permissions))
 
 	for i, permission := range l4Permissions {
-		policies[policyLabel(i)] = makeRBACPolicy(permission)
+		policy := makeRBACPolicy(permission)
+		if policy != nil {
+			policies[policyLabel(i)] = policy
+		}
 	}
 
 	return policies
 }
 
 func makeRBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
+	if len(p.Principals) == 0 {
+		return nil
+	}
+
 	var principals []*envoy_rbac_v3.Principal
 
 	for _, p := range p.Principals {
