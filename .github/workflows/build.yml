@@ -354,8 +354,7 @@ jobs:
       - name: Set docker dev tag
         # One-off RC hack to munge docker dev tag: https://hashicorp.slack.com/archives/CR024M999/p1695845055293629
         run: |
-          version="${{ env.version }}"
-          echo "dev_tag=${version%.-}-dev" >> $GITHUB_ENV
+          echo "dev_tag=${{ env.version }}" >> $GITHUB_ENV
 
       - uses: hashicorp/actions-docker-build@v1
         with:
