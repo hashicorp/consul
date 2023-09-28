@@ -81,7 +81,15 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_NoReferencingTrafficPermis
 
 func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissionsExist() {
 	// create dead-end traffic permissions
-	p1 := &pbauth.Permission{}
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "foo",
+				Namespace:    "default",
+				Partition:    "default",
+				Peer:         "local",
+			}},
+	}
 	tp1 := rtest.Resource(pbauth.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
 			IdentityName: "wi1",
@@ -127,7 +135,15 @@ func (suite *controllerSuite) TestReconcile_CTPCreate_ReferencingTrafficPermissi
 }
 
 func (suite *controllerSuite) TestReconcile_WorkloadIdentityDelete_ReferencingTrafficPermissionsExist() {
-	p1 := &pbauth.Permission{}
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "foo",
+				Namespace:    "default",
+				Partition:    "default",
+				Peer:         "local",
+			}},
+	}
 	tp1 := rtest.Resource(pbauth.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
 			IdentityName: "wi1",
@@ -203,7 +219,15 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsCreate_Destination
 	require.NoError(suite.T(), err)
 
 	// create traffic permissions
-	p1 := &pbauth.Permission{}
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "foo",
+				Namespace:    "default",
+				Partition:    "default",
+				Peer:         "local",
+			}},
+	}
 	tp1 := rtest.Resource(pbauth.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
 			IdentityName: "wi1",
@@ -275,7 +299,15 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 	require.NoError(suite.T(), err)
 
 	// create traffic permissions
-	p1 := &pbauth.Permission{}
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "foo",
+				Namespace:    "default",
+				Partition:    "default",
+				Peer:         "local",
+			}},
+	}
 	tp1 := rtest.Resource(pbauth.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
 			IdentityName: "wi1",
@@ -327,7 +359,15 @@ func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_Destination
 
 func (suite *controllerSuite) TestReconcile_TrafficPermissionsDelete_DestinationWorkloadIdentityDoesNotExist() {
 	// create traffic permissions
-	p1 := &pbauth.Permission{}
+	p1 := &pbauth.Permission{
+		Sources: []*pbauth.Source{
+			{
+				IdentityName: "foo",
+				Namespace:    "default",
+				Partition:    "default",
+				Peer:         "local",
+			}},
+	}
 	tp1 := rtest.Resource(pbauth.TrafficPermissionsType, "tp1").WithData(suite.T(), &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
 			IdentityName: "wi1",
