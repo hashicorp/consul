@@ -668,13 +668,21 @@
                 "routes": [
                   {
                     "title": "Deploy listeners to VMs",
-                    "path": "connect/gateways/api-gateway/deploy/usage"
+                    "path": "connect/gateways/api-gateway/deploy/listeners-vms"
                   }
                 ]
               },
               {
                 "title": "Define routes",
                 "routes": [
+                  {
+                    "title": "Define routes on VMs",
+                    "path": "connect/gateways/api-gateway/define-routes/routes-vms"
+                  },
+                  {
+                    "title": "Define routes on Kubernetes",
+                    "path": "connect/gateways/api-gateway/define-routes/routes-k8s"
+                  },
                   {
                     "title": "Reroute traffic in Kubernetes",
                     "path": "connect/gateways/api-gateway/define-routes/reroute-http-requests"
