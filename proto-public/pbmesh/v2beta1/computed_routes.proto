@@ -106,8 +106,7 @@ message ComputedTCPRouteRule {
   repeated ComputedTCPBackendRef backend_refs = 1;
 }
 
-// TODO: look into smuggling the target through a different typeURL, or just
-// skip in favor of letting the caller do their own lookups?
+// TODO: look into smuggling the target through a different typeURL, or just skip in favor of letting the caller do their own lookups?
 message ComputedTCPBackendRef {
   // BackendTarget indicates which key in the targets map provides
   // the rest of the configuration.
@@ -143,6 +142,8 @@ message BackendTargetDetails {
   repeated hashicorp.consul.resource.Reference identity_refs = 23;
 }
 
+// +kubebuilder:validation:Enum=BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED;BACKEND_TARGET_DETAILS_TYPE_DIRECT;BACKEND_TARGET_DETAILS_TYPE_INDIRECT
+// +kubebuilder:validation:Type=string
 enum BackendTargetDetailsType {
   BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED = 0;
 
@@ -166,6 +167,6 @@ message ComputedFailoverConfig {
 }
 
 message ComputedFailoverDestination {
-  // This must be a Service.
+  // BackendTarget must be a Service.
   string backend_target = 1;
 }

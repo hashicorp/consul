@@ -9,7 +9,9 @@ import "google/protobuf/duration.proto";
 
 // Referenced by ProxyConfiguration
 message ConnectionConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration request_timeout = 2;
 }
 
@@ -19,6 +21,8 @@ message InboundConnectionsConfig {
   BalanceConnections balance_inbound_connections = 13;
 }
 
+// +kubebuilder:validation:Enum=BALANCE_CONNECTIONS_DEFAULT;BALANCE_CONNECTIONS_EXACT
+// +kubebuilder:validation:Type=string
 enum BalanceConnections {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   BALANCE_CONNECTIONS_DEFAULT = 0;

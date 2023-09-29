@@ -16,6 +16,8 @@ message ExposePath {
   ExposePathProtocol protocol = 4;
 }
 
+// +kubebuilder:validation:Enum=EXPOSE_PATH_PROTOCOL_HTTP;EXPOSE_PATH_PROTOCOL_HTTP2
+// +kubebuilder:validation:Type=string
 enum ExposePathProtocol {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   EXPOSE_PATH_PROTOCOL_HTTP = 0;

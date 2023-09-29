@@ -6,7 +6,6 @@ package generate
 import (
 	"path"
 	"strings"
-	"sync"
 
 	"google.golang.org/protobuf/compiler/protogen"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -15,6 +14,9 @@ import (
 func Generate(gen *protogen.Plugin) error {
 	for _, file := range gen.Files {
 		if file.Generate != true {
+			continue
+		}
+		if len(file.Messages) == 0 {
 			continue
 		}
 		filename := file.GeneratedFilenamePrefix + "_json.gen.go"
@@ -66,17 +68,11 @@ func FileName(file *protogen.File) string {
 	return toCamelInitCase(fname, true)
 }
 
-var uppercaseAcronym = sync.Map{}
-
 // Converts a string to CamelCase
 func toCamelInitCase(s string, initCase bool) string {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return s
-	}
-	a, hasAcronym := uppercaseAcronym.Load(s)
-	if hasAcronym {
-		s = a.(string)
 	}
 
 	n := strings.Builder{}
@@ -96,7 +92,7 @@ func toCamelInitCase(s string, initCase bool) string {
 				v += 'a'
 				v -= 'A'
 			}
-		} else if prevIsCap && vIsCap && !hasAcronym {
+		} else if prevIsCap && vIsCap {
 			v += 'a'
 			v -= 'A'
 		}

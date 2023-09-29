@@ -36,6 +36,8 @@ message Listener {
   bool use_escape_hatch_tracing = 10;
 }
 
+// +kubebuilder:validation:Enum=DIRECTION_UNSPECIFIED;DIRECTION_INBOUND;DIRECTION_OUTBOUND
+// +kubebuilder:validation:Type=string
 enum Direction {
   // DIRECTION_UNSPECIFIED is used by mesh gateway listeners.
   DIRECTION_UNSPECIFIED = 0;
@@ -43,6 +45,8 @@ enum Direction {
   DIRECTION_OUTBOUND = 2;
 }
 
+// +kubebuilder:validation:Enum=BALANCE_CONNECTIONS_DEFAULT;BALANCE_CONNECTIONS_EXACT
+// +kubebuilder:validation:Type=string
 enum BalanceConnections {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   BALANCE_CONNECTIONS_DEFAULT = 0;
@@ -50,6 +54,9 @@ enum BalanceConnections {
 }
 
 // Capabilities map to proxy functionality to enable. These enable tproxy, l7 protocol/alpn inspection, or l4 sni/alpn inspection.
+//
+// +kubebuilder:validation:Enum=CAPABILITY_TRANSPARENT;CAPABILITY_L7_PROTOCOL_INSPECTION;CAPABILITY_L4_TLS_INSPECTION
+// +kubebuilder:validation:Type=string
 enum Capability {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   CAPABILITY_TRANSPARENT = 0;
@@ -129,6 +136,8 @@ message L7Destination {
   uint64 max_inbound_connections = 9;
 }
 
+// +kubebuilder:validation:Enum=XFCC_POLICY_SANITIZE;XFCC_POLICY_FORWARD_ONLY;XFCC_POLICY_APPEND_FORWARD;XFCC_POLICY_SANITIZE_SET;XFCC_POLICY_ALWAYS_FORWARD_ONLY
+// +kubebuilder:validation:Type=string
 enum XFCCPolicy {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   // Do not send the XFCC header to the next hop. This is the default value.
@@ -147,6 +156,8 @@ enum XFCCPolicy {
   XFCC_POLICY_ALWAYS_FORWARD_ONLY = 4;
 }
 
+// +kubebuilder:validation:Enum=L7_PROTOCOL_HTTP;L7_PROTOCOL_HTTP2;L7_PROTOCOL_GRPC
+// +kubebuilder:validation:Type=string
 enum L7Protocol {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   L7_PROTOCOL_HTTP = 0;

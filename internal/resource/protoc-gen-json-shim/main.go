@@ -16,6 +16,8 @@ var (
 	file = flag.String("file", "-", "where to load data from")
 )
 
+// This file is responsible for generating a JSON marhsal/unmarshal overwrite for proto
+// structs which allows Kubernetes CRDs to get created directly from the proto-types.
 func main() {
 	flag.Parse()
 

@@ -863,7 +863,9 @@ type TimeoutConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Timeout     *durationpb.Duration `protobuf:"bytes,1,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// +kubebuilder:validation:Format=duration
+	Timeout *durationpb.Duration `protobuf:"bytes,1,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// +kubebuilder:validation:Format=duration
 	IdleTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=idle_timeout,json=idleTimeout,proto3" json:"idle_timeout,omitempty"`
 }
 
@@ -1027,7 +1029,8 @@ type CookiePolicy struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name     string               `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// +kubebuilder:validation:Format=duration
 	Ttl      *durationpb.Duration `protobuf:"bytes,2,opt,name=ttl,proto3" json:"ttl,omitempty"`
 	Path     string               `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	Terminal bool                 `protobuf:"varint,4,opt,name=terminal,proto3" json:"terminal,omitempty"`

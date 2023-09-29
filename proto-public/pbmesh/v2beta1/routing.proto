@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
+// +kubebuilder:validation:Enum=MESH_GATEWAY_MODE_UNSPECIFIED;MESH_GATEWAY_MODE_NONE;MESH_GATEWAY_MODE_LOCAL;MESH_GATEWAY_MODE_REMOTE
+// +kubebuilder:validation:Type=string
 enum MeshGatewayMode {
   // MESH_GATEWAY_MODE_UNSPECIFIED represents no specific mode and should be
   // used to indicate that a the decision on the mode will be made by other
