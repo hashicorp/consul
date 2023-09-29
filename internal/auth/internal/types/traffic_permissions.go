@@ -152,6 +152,13 @@ func ValidateTrafficPermissions(res *pbresource.Resource) error {
 func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 	var merr error
 
+	if len(p.Sources) == 0 {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "sources",
+			Wrapped: resource.ErrEmpty,
+		}))
+	}
+
 	for s, src := range p.Sources {
 		wrapSrcErr := func(err error) error {
 			return wrapErr(resource.ErrInvalidListElement{
