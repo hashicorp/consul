@@ -687,7 +687,7 @@
               },
               {
                 "title": "Secure traffic",
-                "path": [
+                "routes": [
                   {
                     "title": "Encrypt traffic on virtual machines",
                     "path": "connect/gateways/api-gateway/secure-traffic/encrypt-vms"
