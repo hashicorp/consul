@@ -660,8 +660,12 @@
                 "path": "connect/gateways/api-gateway/tech-specs"
               },
               {
-                "title": "Install API gateway on Kubernetes",
+                "title": "Install on Kubernetes",
                 "path": "connect/gateways/api-gateway/install-k8s"
+              },
+              {
+                "title": "Upgrade on Kubernetes",
+                "path": "connect/gateways/api-gateway/upgrades-k8s"
               },
               {
                 "title": "Deploy listeners",
@@ -726,6 +730,10 @@
                     "path": "connect/gateways/api-gateway/configuration/inline-certificate"
                   }
                 ]
+              },
+              {
+                "title": "Error Messages",
+                "path": "connect/gateways/api-gateway/errors"
               }
             ]
           },
@@ -1781,23 +1789,6 @@
   {
     "title": "API Gateway for Kubernetes",
     "routes": [
-      {
-        "title": "Overview",
-        "path": "api-gateway"
-      },
-      {
-        "title": "Upgrades",
-        "path": "api-gateway/upgrades"
-      },
-      {
-        "title": "Usage",
-        "routes": [
-          {
-            "title": "Error Messages",
-            "path": "api-gateway/usage/errors"
-          }
-        ]
-      },
       {
         "title": "Configuration",
         "routes": [
