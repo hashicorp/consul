@@ -660,12 +660,12 @@
                 "path": "connect/gateways/api-gateway/tech-specs"
               },
               {
+                "title": "Install API gateway on Kubernetes",
+                "path": "connect/gateways/api-gateway/install-k8s"
+              },
+              {
                 "title": "Deploy listeners",
                 "routes": [
-                  {
-                    "title": "Install API gateways on Kubernetes",
-                    "path": "connect/gateways/api-gateway/deploy/install-k8s"
-                  },
                   {
                     "title": "Deploy listeners to VMs",
                     "path": "connect/gateways/api-gateway/deploy/usage"
