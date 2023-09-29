@@ -124,7 +124,8 @@ type permissionTestCase struct {
 func permissionsTestCases() map[string]permissionTestCase {
 	return map[string]permissionTestCase{
 		"empty": {
-			p: &pbauth.Permission{},
+			p:         &pbauth.Permission{},
+			expectErr: `invalid "sources" field: cannot be empty`,
 		},
 		"empty-sources": {
 			p: &pbauth.Permission{
@@ -143,6 +144,7 @@ func permissionsTestCases() map[string]permissionTestCase {
 					},
 				},
 			},
+			expectErr: `invalid "sources" field: cannot be empty`,
 		},
 		"empty-destination-rules": {
 			p: &pbauth.Permission{
