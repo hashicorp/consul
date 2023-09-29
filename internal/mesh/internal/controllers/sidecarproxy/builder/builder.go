@@ -58,7 +58,6 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
 		Peer: b.id.Tenancy.PeerName,
 	}
-	b.proxyStateTemplate.ProxyState.TrafficPermissionDefaultAllow = b.defaultAllow
 
 	finalCleanupOfProxyStateTemplate(b.proxyStateTemplate)
 
