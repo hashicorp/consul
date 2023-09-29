@@ -8,10 +8,14 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -133,6 +137,24 @@ func isHCL(v []byte) bool {
 	}
 
 	return true
+}
+
+func ParseResourceInput(filePath string, stdin io.Reader) (*pbresource.Resource, error) {
+	data, err := helpers.LoadDataSourceNoRaw(filePath, stdin)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load data: %v", err)
+	}
+	var parsedResource *pbresource.Resource
+	parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+	if err != nil {
+		parsedResource, err = parseJson(data)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
+		}
+	}
+
+	return parsedResource, nil
 }
 
 func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
