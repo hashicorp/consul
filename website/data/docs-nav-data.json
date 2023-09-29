@@ -660,8 +660,39 @@
                 "path": "connect/gateways/api-gateway/tech-specs"
               },
               {
-                "title": "Usage",
-                "path": "connect/gateways/api-gateway/usage"
+                "title": "Deploy listeners",
+                "routes": [
+                  {
+                    "title": "Install API gateways on Kubernetes",
+                    "path": "connect/gateways/api-gateway/deploy/install-k8s"
+                  },
+                  {
+                    "title": "Deploy listeners to VMs",
+                    "path": "connect/gateways/api-gateway/deploy/usage"
+                  }
+                ]
+              },
+              {
+                "title": "Define routes",
+                "routes": [
+                  {
+                    "title": "Reroute traffic in Kubernetes",
+                    "path": "connect/gateways/api-gateway/define-routes/reroute-http-requests"
+                  },
+                  {
+                    "title": "Route to peered services in Kubernetes",
+                    "path": "connect/gateways/api-gateway/define-routes/route-to-peered-services"
+                  }
+                ]
+              },
+              {
+                "title": "Secure traffic",
+                "path": [
+                  {
+                    "title": "Encrypt traffic on virtual machines",
+                    "path": "connect/gateways/api-gateway/secure-traffic/encrypt-vms"
+                  }
+                ]
               },
               {
                 "title": "Configuration",
@@ -1743,10 +1774,6 @@
         "path": "api-gateway"
       },
       {
-        "title": "Installation",
-        "path": "api-gateway/install"
-      },
-      {
         "title": "Upgrades",
         "path": "api-gateway/upgrades"
       },
@@ -1756,14 +1783,6 @@
           {
             "title": "Deploy",
             "path": "api-gateway/usage/usage"
-          },
-          {
-            "title": "Reroute HTTP Requests",
-            "path": "api-gateway/usage/reroute-http-requests"
-          },
-          {
-            "title": "Route Traffic to Peered Services",
-            "path": "api-gateway/usage/route-to-peered-services"
           },
           {
             "title": "Error Messages",
