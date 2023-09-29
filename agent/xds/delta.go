@@ -95,9 +95,7 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher) (map[string][]proto.Message, error) {
 	switch proxySnapshot.(type) {
 	case *proxycfg.ConfigSnapshot:
-		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ConfigSnapshot",
-			"proxySnapshot", proxySnapshot,
-		)
+		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ConfigSnapshot")
 		generator := NewResourceGenerator(
 			logger,
 			cfgFetcher,
@@ -105,23 +103,18 @@ func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hcl
 		)
 
 		c := proxySnapshot.(*proxycfg.ConfigSnapshot)
-		logger.Trace("ConfigSnapshot", c)
 		return generator.AllResourcesFromSnapshot(c)
 	case *proxytracker.ProxyState:
-		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ProxyState",
-			"proxySnapshot", proxySnapshot,
-		)
+		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ProxyState")
 		generator := xdsv2.NewResourceGenerator(
 			logger,
 		)
 		c := proxySnapshot.(*proxytracker.ProxyState)
-		logger.Trace("ProxyState", c)
 		resources, err := generator.AllResourcesFromIR(c)
 		if err != nil {
 			logger.Error("error generating resources from proxy state template", "err", err)
 			return nil, err
 		}
-		logger.Trace("generated resources from proxy state template", "resources", resources)
 		return resources, nil
 	default:
 		return nil, errors.New("proxysnapshot must be of type ProxyState or ConfigSnapshot")
