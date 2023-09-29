@@ -669,6 +669,10 @@
                   {
                     "title": "Deploy listeners to VMs",
                     "path": "connect/gateways/api-gateway/deploy/listeners-vms"
+                  },
+                  {
+                    "title": "Deploy listeners to Kubernetes",
+                    "path": "connect/gateways/api-gateway/deploy/listeners-k8s"
                   }
                 ]
               },
@@ -1788,10 +1792,6 @@
       {
         "title": "Usage",
         "routes": [
-          {
-            "title": "Deploy",
-            "path": "api-gateway/usage/usage"
-          },
           {
             "title": "Error Messages",
             "path": "api-gateway/usage/errors"
