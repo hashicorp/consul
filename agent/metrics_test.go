@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -35,8 +32,9 @@ func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRec
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
 
-	a.srv.h.ServeHTTP(respRec, req)
-	require.Equalf(t, 200, respRec.Code, "expected 200, got %d, body: %s", respRec.Code, respRec.Body.String())
+	_, err = a.srv.AgentMetrics(respRec, req)
+	require.NoError(t, err, "Failed to serve agent metrics")
+
 }
 
 func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
@@ -487,13 +485,6 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
-		defer func() {
-			if t.Failed() {
-				t.Log("--- Failed output START ---")
-				t.Log(out)
-				t.Log("--- Failed output END ---")
-			}
-		}()
 		require.Contains(t, out, "agent_5_raft_wal_head_truncations")
 		require.Contains(t, out, "agent_5_raft_wal_last_segment_age_seconds")
 		require.Contains(t, out, "agent_5_raft_wal_log_appends")
@@ -594,13 +585,6 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		recordPromMetrics(t, a, respRec)
 
 		out := respRec.Body.String()
-		defer func() {
-			if t.Failed() {
-				t.Log("--- Failed output START ---")
-				t.Log(out)
-				t.Log("--- Failed output END ---")
-			}
-		}()
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_checkpoints_written")
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_dropped_reports")
 		require.Contains(t, out, "agent_5_raft_logstore_verifier_ranges_verified")

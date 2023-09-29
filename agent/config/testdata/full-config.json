@@ -327,9 +327,6 @@
   "encrypt": "A4wELWqH",
   "encrypt_verify_incoming": true,
   "encrypt_verify_outgoing": true,
-  "experiments": [
-    "foo"
-  ],
   "http_config": {
     "block_endpoints": [
       "RBvAFcGD",
@@ -410,17 +407,17 @@
   "raft_snapshot_interval": "30s",
   "raft_trailing_logs": 83749,
   "raft_logstore": {
-    "backend": "wal",
-    "disable_log_cache": true,
+    "backend" : "wal",
+    "disable_log_cache":  true,
     "verification": {
-      "enabled": true,
-      "interval": "12345s"
+        "enabled": true,
+        "interval":"12345s"
     },
     "boltdb": {
-      "no_freelist_sync": true
+        "no_freelist_sync": true
     },
     "wal": {
-      "segment_size_mb": 15
+       "segment_size_mb": 15
     }
   },
   "read_replica": true,

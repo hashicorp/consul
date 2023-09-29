@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { getContext } from '@ember/test-helpers';
 import { getExecutionContext } from 'ember-cli-page-object/-private/execution_context';
 import createQueryParams from 'consul-ui/utils/http/create-query-params';

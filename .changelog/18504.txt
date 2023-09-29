@@ -1,3 +1,0 @@
-```release-note:feature
-dataplane: Allow getting bootstrap parameters when using V2 APIs
-```

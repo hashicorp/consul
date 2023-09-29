@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package proxycfg
 
 import (
@@ -15,13 +12,13 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
+
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 )
 
 type handlerMeshGateway struct {
@@ -393,7 +390,7 @@ func (s *handlerMeshGateway) handleUpdate(ctx context.Context, u UpdateEvent, sn
 		if hasExports && snap.MeshGateway.LeafCertWatchCancel == nil {
 			// no watch and we need one
 			ctx, cancel := context.WithCancel(ctx)
-			err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
+			err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
 				Datacenter:     s.source.Datacenter,
 				Token:          s.token,
 				Kind:           structs.ServiceKindMeshGateway,

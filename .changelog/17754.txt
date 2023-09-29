@@ -1,3 +1,0 @@
-```release-note:feature
-ui: Display the Consul agent version in the nodes list, and allow filtering and sorting of nodes based on versions.
-```

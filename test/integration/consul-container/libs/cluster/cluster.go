@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cluster
 
 import (
@@ -17,7 +14,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/serf/serf"
 
 	goretry "github.com/avast/retry-go"
@@ -129,34 +125,21 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		// Each agent gets it's own area in the cluster scratch.
 		conf.ScratchDir = filepath.Join(c.ScratchDir, strconv.Itoa(c.Index))
 		if err := os.MkdirAll(conf.ScratchDir, 0777); err != nil {
-			return fmt.Errorf("container %d making scratchDir: %w", idx, err)
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 		if err := os.Chmod(conf.ScratchDir, 0777); err != nil {
-			return fmt.Errorf("container %d perms on scratchDir: %w", idx, err)
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
 
-		var n Agent
-
-		// retry creating client every ten seconds. with local development, we've found
-		// that this "port not found" error occurs when runs happen too close together
-		if err := goretry.Do(
-			func() (err error) {
-				n, err = NewConsulContainer(
-					context.Background(),
-					conf,
-					c,
-					ports...,
-				)
-				return err
-			},
-			goretry.Delay(10*time.Second),
-			goretry.RetryIf(func(err error) bool {
-				return strings.Contains(err.Error(), "port not found")
-			}),
-		); err != nil {
-			return fmt.Errorf("container %d creating: %s", idx, err)
+		n, err := NewConsulContainer(
+			context.Background(),
+			conf,
+			c,
+			ports...,
+		)
+		if err != nil {
+			return fmt.Errorf("container %d: %w", idx, err)
 		}
-
 		agents = append(agents, n)
 		c.Index++
 	}
@@ -169,10 +152,6 @@ func (c *Cluster) Add(configs []Config, serfJoin bool, ports ...int) (xe error) 
 		if err := c.JoinExternally(agents); err != nil {
 			return fmt.Errorf("could not join agents to cluster: %w", err)
 		}
-	}
-
-	if utils.Debug {
-		c.PrintDebugInfo(agents)
 	}
 
 	return nil
@@ -665,26 +644,6 @@ func (c *Cluster) ConfigEntryDelete(entry api.ConfigEntry) error {
 		return fmt.Errorf("error deleting config entry: %v", err)
 	}
 	return err
-}
-
-func (c *Cluster) PrintDebugInfo(agents []Agent) {
-	for _, a := range agents {
-		uri := a.GetInfo().DebugURI
-		n := a.GetAgentName()
-		s := a.IsServer()
-		l := "NA"
-		if s {
-			leader, err := c.Leader()
-			if err == nil {
-				if leader == a {
-					l = "true"
-				} else {
-					l = "false"
-				}
-			}
-		}
-		fmt.Printf("\ndebug info:: n=%s,s=%t,l=%s,uri=%s\n\n", n, s, l, uri)
-	}
 }
 
 func extractSecretIDFrom(tokenOutput string) (string, error) {

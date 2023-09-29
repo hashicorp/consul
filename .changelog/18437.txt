@@ -1,3 +1,0 @@
-```release-note:bug
-Inherit locality from services when registering sidecar proxies.
-```

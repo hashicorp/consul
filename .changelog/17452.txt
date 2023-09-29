@@ -1,3 +1,0 @@
-```release-note:feature
-mesh: Support configuring JWT authentication in Envoy.
-```

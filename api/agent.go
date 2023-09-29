@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -107,8 +104,7 @@ type AgentService struct {
 	Namespace string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition string `json:",omitempty" bexpr:"-" hash:"ignore"`
 	// Datacenter is only ever returned and is ignored if presented.
-	Datacenter string    `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality   *Locality `json:",omitempty" bexpr:"-" hash:"ignore"`
+	Datacenter string `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // AgentServiceChecksInfo returns information about a Service and its checks
@@ -297,7 +293,6 @@ type AgentServiceRegistration struct {
 	Connect           *AgentServiceConnect            `json:",omitempty"`
 	Namespace         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
 	Partition         string                          `json:",omitempty" bexpr:"-" hash:"ignore"`
-	Locality          *Locality                       `json:",omitempty" bexpr:"-" hash:"ignore"`
 }
 
 // ServiceRegisterOpts is used to pass extra options to the service register.
@@ -306,10 +301,6 @@ type ServiceRegisterOpts struct {
 	// Using this parameter allows to idempotently register a service and its checks without
 	// having to manually deregister checks.
 	ReplaceExistingChecks bool
-
-	// Token is used to provide a per-request ACL token
-	// which overrides the agent's default token.
-	Token string
 
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use WithContext() to set the context.
@@ -349,7 +340,6 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
-	TCPUseTLS              bool                `json:",omitempty"`
 	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
@@ -495,24 +485,6 @@ func (a *Agent) Self() (map[string]map[string]interface{}, error) {
 // a operator:read ACL token.
 func (a *Agent) Host() (map[string]interface{}, error) {
 	r := a.c.newRequest("GET", "/v1/agent/host")
-	_, resp, err := a.c.doRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer closeResponseBody(resp)
-	if err := requireOK(resp); err != nil {
-		return nil, err
-	}
-	var out map[string]interface{}
-	if err := decodeBody(resp, &out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-// Version is used to retrieve information about the running Consul version and build.
-func (a *Agent) Version() (map[string]interface{}, error) {
-	r := a.c.newRequest("GET", "/v1/agent/version")
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
@@ -839,9 +811,6 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
 	}
-	if opts.Token != "" {
-		r.header.Set("X-Consul-Token", opts.Token)
-	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
@@ -998,14 +967,7 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 // CheckRegister is used to register a new check with
 // the local agent
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
-	return a.CheckRegisterOpts(check, nil)
-}
-
-// CheckRegisterOpts is used to register a new check with
-// the local agent using query options
-func (a *Agent) CheckRegisterOpts(check *AgentCheckRegistration, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
-	r.setQueryOptions(q)
 	r.obj = check
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1094,17 +1056,8 @@ func (a *Agent) ForceLeavePrune(node string) error {
 
 // ForceLeaveOpts is used to have the agent eject a failed node or remove it
 // completely from the list of members.
-//
-// DEPRECATED - Use ForceLeaveOptions instead.
 func (a *Agent) ForceLeaveOpts(node string, opts ForceLeaveOpts) error {
-	return a.ForceLeaveOptions(node, opts, nil)
-}
-
-// ForceLeaveOptions is used to have the agent eject a failed node or remove it
-// completely from the list of members. Allows usage of QueryOptions on-top of ForceLeaveOpts
-func (a *Agent) ForceLeaveOptions(node string, opts ForceLeaveOpts, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/force-leave/"+node)
-	r.setQueryOptions(q)
 	if opts.Prune {
 		r.params.Set("prune", "1")
 	}
@@ -1391,10 +1344,6 @@ func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*Write
 // for more details
 func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("config_file_service_registration", token, q)
-}
-
-func (a *Agent) UpdateDNSToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("dns", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

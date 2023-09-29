@@ -1,3 +1,0 @@
-```release-note:feature
-gateway: **(Enterprise only)** Add JWT authentication and authorization to APIGateway Listeners and HTTPRoutes.
-```

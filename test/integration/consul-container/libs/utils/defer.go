@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package utils
 
 // ResettableDefer is a way to capture a series of cleanup functions and

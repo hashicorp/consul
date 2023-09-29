@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 tls {
   internal_rpc {
     ca_file                = "/workdir/primary/tls/consul-agent-ca.pem"

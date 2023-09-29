@@ -48,5 +48,5 @@ Feature: login
     And I click ".okta-oidc-provider"
     Then a POST request was made to "/v1/acl/oidc/auth-url?dc=dc-1&ns=@!namespace&partition=partition"
     And a POST request was made to "/v1/acl/oidc/callback?dc=dc-1&ns=@!namespace&partition=partition"
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-authorize" class
+    And "[data-notification]" has the "success" class

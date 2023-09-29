@@ -15,9 +15,11 @@ Envoy filters support setting and getting dynamic metadata, allowing a filter to
 
 To use the Lua Envoy extension, configure the following arguments in the `EnvoyExtensions` block:
 
-- `ProxyType`: string | `connect-proxy` - Determines the proxy type the extension applies to. The only supported value is `connect-proxy`.
-- `ListenerType`: string | required - Specifies if the extension is applied to the `inbound` or `outbound` listener.
-- `Script`: string | required - The Lua script that is configured to run by the HTTP Lua filter.
+| Arguments      | Description                                                                                      |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| `ProxyType`    | Determines the proxy type the extension applies to. The only supported value is `connect-proxy`. |
+| `ListenerType` | Specifies if the extension is applied to the `inbound` or `outbound` listener.                   |
+| `Script`       | The Lua script that is configured to run by the HTTP Lua filter.                                 |
 
 ## Workflow
 
@@ -44,15 +46,14 @@ The following example configures the Lua Envoy extension on every service by usi
 ```hcl
 Kind = "proxy-defaults"
 Name = "global"
-Config {
-  protocol = "http"
-}
+Protocol  = "http"
 EnvoyExtensions {
   Name = "builtin/lua"
+  
   Arguments = {
     ProxyType = "connect-proxy"
-    Listener  = "inbound"
-    Script    = <<-EOF
+    Listener = "inbound"
+    Script = <<-EOS
 function envoy_on_request(request_handle)
   meta = request_handle:streamInfo():dynamicMetadata()
   m = meta:get("consul")
@@ -61,7 +62,7 @@ function envoy_on_request(request_handle)
   request_handle:headers():add("x-consul-datacenter", m["datacenter"])
   request_handle:headers():add("x-consul-trust-domain", m["trust-domain"])
 end
- EOF
+EOS
   }
 }
 ```
@@ -158,7 +159,7 @@ $ kubectl apply lua-envoy-extension-proxy-defaults.yaml
 
 In the following example, the `service-defaults` configure the Lua Envoy extension to insert the HTTP Lua filter for service `myservice` and add the Consul service name to the`x-consul-service` header for all inbound requests. The `ListenerType` makes it so that the extension applies only on the inbound listener of the service's connect proxy.
 
-<CodeBlockConfig filename="lua-envoy-extension.hcl">
+<CodeBlockConfig filename="lua-envoy-extension.json">
 
 ```hcl
 Kind = "service-defaults"
@@ -169,8 +170,8 @@ EnvoyExtensions = [
     
     Arguments = {
       ProxyType = "connect-proxy"
-      Listener  = "inbound"
-      Script    = <<EOF
+      Listener = "inbound"
+      Script = <<EOF
   function envoy_on_request(request_handle)
     local service = request_handle:streamInfo():dynamicMetadata():get("consul")["service"]
     request_handle:headers():add("x-consul-service", service)
@@ -187,7 +188,7 @@ Alternatively, you can apply the same extension configuration to [`proxy-default
 
 You can also specify multiple Lua filters through the Envoy extensions. They will not override each other.
 
-<CodeBlockConfig filename="lua-envoy-extension.hcl">
+<CodeBlockConfig filename="lua-envoy-extension.json">
 
 ```hcl
 Kind = "service-defaults"
@@ -197,8 +198,8 @@ EnvoyExtensions = [
     Name = "builtin/lua",
     Arguments = {
       ProxyType = "connect-proxy"
-      Listener  = "inbound"
-      Script    = <<-EOF
+      Listener = "inbound"
+      Script = <<-EOF
 function envoy_on_request(request_handle)
   meta = request_handle:streamInfo():dynamicMetadata()
   m = meta:get("consul")
@@ -211,8 +212,8 @@ end
     Name = "builtin/lua",
     Arguments = {
       ProxyType = "connect-proxy"
-      Listener  = "inbound"
-      Script    = <<-EOF
+      Listener = "inbound"
+      Script = <<-EOF
 function envoy_on_request(request_handle)
   meta = request_handle:streamInfo():dynamicMetadata()
   m = meta:get("consul")

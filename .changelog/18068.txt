@@ -1,3 +1,0 @@
-```release-note:bug
-xds: Prevent partial application of non-Required Envoy extensions in the case of failure.
-```

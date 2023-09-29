@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package service
 
 import (
@@ -9,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
 
 	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
@@ -28,31 +24,22 @@ type Checks struct {
 }
 
 type SidecarService struct {
-	Port  int
-	Proxy ConnectProxy
-}
-
-type ConnectProxy struct {
-	Mode string
+	Port int
 }
 
 type ServiceOpts struct {
-	Name     string
-	ID       string
-	Meta     map[string]string
-	HTTPPort int
-	GRPCPort int
-	// if true, register GRPC port instead of HTTP (default)
-	RegisterGRPC bool
-	Checks       Checks
-	Connect      SidecarService
-	Namespace    string
-	Partition    string
-	Locality     *api.Locality
+	Name      string
+	ID        string
+	Meta      map[string]string
+	HTTPPort  int
+	GRPCPort  int
+	Checks    Checks
+	Connect   SidecarService
+	Namespace string
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
-func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int, grpcPort int, svc *api.AgentServiceRegistration, customContainerCfg func(testcontainers.ContainerRequest) testcontainers.ContainerRequest, containerArgs ...string) (Service, Service, error) {
+func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, grpcPort int, svc *api.AgentServiceRegistration, containerArgs ...string) (Service, Service, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
@@ -63,7 +50,7 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 	}
 
 	// Create a service and proxy instance
-	serverService, err := NewExampleService(context.Background(), svc.ID, httpPort, grpcPort, node, containerArgs...)
+	serverService, err := NewExampleService(context.Background(), svc.ID, svc.Port, grpcPort, node, containerArgs...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -74,17 +61,11 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
 		ServiceID: svc.ID,
 		Namespace: svc.Namespace,
-		Partition: svc.Partition,
-		EnableTProxy: svc.Connect != nil &&
-			svc.Connect.SidecarService != nil &&
-			svc.Connect.SidecarService.Proxy != nil &&
-			svc.Connect.SidecarService.Proxy.Mode == api.ProxyModeTransparent,
 	}
-	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node, customContainerCfg) // bindPort not used
+	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node) // bindPort not used
 	if err != nil {
 		return nil, nil, err
 	}
-
 	deferClean.Add(func() {
 		_ = serverConnectProxy.Terminate()
 	})
@@ -93,141 +74,30 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 	deferClean.Reset()
 
 	return serverService, serverConnectProxy, nil
-}
-
-// createAndRegisterCustomServiceAndSidecar creates a custom service from the given testcontainers.ContainerRequest
-// and a sidecar proxy for the service. The customContainerCfg parameter is used to mutate the
-// testcontainers.ContainerRequest for the sidecar proxy.
-func createAndRegisterCustomServiceAndSidecar(node libcluster.Agent,
-	httpPort int,
-	grpcPort int,
-	svc *api.AgentServiceRegistration,
-	request testcontainers.ContainerRequest,
-	customContainerCfg func(testcontainers.ContainerRequest) testcontainers.ContainerRequest,
-) (Service, Service, error) {
-	// Do some trickery to ensure that partial completion is correctly torn
-	// down, but successful execution is not.
-	var deferClean utils.ResettableDefer
-	defer deferClean.Execute()
-
-	if err := node.GetClient().Agent().ServiceRegister(svc); err != nil {
-		return nil, nil, err
-	}
-
-	// Create a service and proxy instance
-	serverService, err := NewCustomService(context.Background(), svc.ID, httpPort, grpcPort, node, request)
-	if err != nil {
-		return nil, nil, err
-	}
-	deferClean.Add(func() {
-		_ = serverService.Terminate()
-	})
-	sidecarCfg := SidecarConfig{
-		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
-		ServiceID: svc.ID,
-		Namespace: svc.Namespace,
-		EnableTProxy: svc.Connect != nil &&
-			svc.Connect.SidecarService != nil &&
-			svc.Connect.SidecarService.Proxy != nil &&
-			svc.Connect.SidecarService.Proxy.Mode == api.ProxyModeTransparent,
-	}
-	serverConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{svc.Port}, node, customContainerCfg) // bindPort not used
-	if err != nil {
-		return nil, nil, err
-	}
-
-	deferClean.Add(func() {
-		_ = serverConnectProxy.Terminate()
-	})
-
-	// disable cleanup functions now that we have an object with a Terminate() function
-	deferClean.Reset()
-
-	return serverService, serverConnectProxy, nil
-}
-
-func CreateAndRegisterCustomServiceAndSidecar(node libcluster.Agent,
-	serviceOpts *ServiceOpts,
-	request testcontainers.ContainerRequest,
-	customContainerCfg func(testcontainers.ContainerRequest) testcontainers.ContainerRequest) (Service, Service, error) {
-	// Register the static-server service and sidecar first to prevent race with sidecar
-	// trying to get xDS before it's ready
-	p := serviceOpts.HTTPPort
-	agentCheck := api.AgentServiceCheck{
-		Name:     "Static Server Listening",
-		TCP:      fmt.Sprintf("127.0.0.1:%d", p),
-		Interval: "10s",
-		Status:   api.HealthPassing,
-	}
-	if serviceOpts.RegisterGRPC {
-		p = serviceOpts.GRPCPort
-		agentCheck.TCP = ""
-		agentCheck.GRPC = fmt.Sprintf("127.0.0.1:%d", p)
-	}
-	req := &api.AgentServiceRegistration{
-		Name: serviceOpts.Name,
-		ID:   serviceOpts.ID,
-		Port: p,
-		Connect: &api.AgentServiceConnect{
-			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
-				},
-			},
-		},
-		Namespace: serviceOpts.Namespace,
-		Partition: serviceOpts.Partition,
-		Locality:  serviceOpts.Locality,
-		Meta:      serviceOpts.Meta,
-		Check:     &agentCheck,
-	}
-	return createAndRegisterCustomServiceAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, request, customContainerCfg)
-}
-
-// CreateAndRegisterStaticServerAndSidecarWithCustomContainerConfig creates an example static server and a sidecar for
-// the service. The customContainerCfg parameter is a function of testcontainers.ContainerRequest to
-// testcontainers.ContainerRequest which can be used to mutate the container request for the sidecar proxy and inject
-// custom configuration and lifecycle hooks.
-func CreateAndRegisterStaticServerAndSidecarWithCustomContainerConfig(node libcluster.Agent,
-	serviceOpts *ServiceOpts,
-	customContainerCfg func(testcontainers.ContainerRequest) testcontainers.ContainerRequest,
-	containerArgs ...string) (Service, Service, error) {
-	// Register the static-server service and sidecar first to prevent race with sidecar
-	// trying to get xDS before it's ready
-	p := serviceOpts.HTTPPort
-	agentCheck := api.AgentServiceCheck{
-		Name:     "Static Server Listening",
-		TCP:      fmt.Sprintf("127.0.0.1:%d", p),
-		Interval: "10s",
-		Status:   api.HealthPassing,
-	}
-	if serviceOpts.RegisterGRPC {
-		p = serviceOpts.GRPCPort
-		agentCheck.TCP = ""
-		agentCheck.GRPC = fmt.Sprintf("127.0.0.1:%d", p)
-	}
-	req := &api.AgentServiceRegistration{
-		Name: serviceOpts.Name,
-		ID:   serviceOpts.ID,
-		Port: p,
-		Connect: &api.AgentServiceConnect{
-			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
-				},
-			},
-		},
-		Namespace: serviceOpts.Namespace,
-		Partition: serviceOpts.Partition,
-		Locality:  serviceOpts.Locality,
-		Meta:      serviceOpts.Meta,
-		Check:     &agentCheck,
-	}
-	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, customContainerCfg, containerArgs...)
 }
 
 func CreateAndRegisterStaticServerAndSidecar(node libcluster.Agent, serviceOpts *ServiceOpts, containerArgs ...string) (Service, Service, error) {
-	return CreateAndRegisterStaticServerAndSidecarWithCustomContainerConfig(node, serviceOpts, nil, containerArgs...)
+	// Register the static-server service and sidecar first to prevent race with sidecar
+	// trying to get xDS before it's ready
+	req := &api.AgentServiceRegistration{
+		Name: serviceOpts.Name,
+		ID:   serviceOpts.ID,
+		Port: serviceOpts.HTTPPort,
+		Connect: &api.AgentServiceConnect{
+			SidecarService: &api.AgentServiceRegistration{
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+			},
+		},
+		Namespace: serviceOpts.Namespace,
+		Check: &api.AgentServiceCheck{
+			Name:     "Static Server Listening",
+			TCP:      fmt.Sprintf("127.0.0.1:%d", serviceOpts.HTTPPort),
+			Interval: "10s",
+			Status:   api.HealthPassing,
+		},
+		Meta: serviceOpts.Meta,
+	}
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req, containerArgs...)
 }
 
 func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, serviceOpts *ServiceOpts) (Service, Service, error) {
@@ -239,10 +109,8 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 		Port: serviceOpts.HTTPPort,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: &api.AgentServiceConnectProxyConfig{
-					Mode: api.ProxyMode(serviceOpts.Connect.Proxy.Mode),
-				},
-				Port: serviceOpts.Connect.Port,
+				Proxy: &api.AgentServiceConnectProxyConfig{},
+				Port:  serviceOpts.Connect.Port,
 			},
 		},
 		Checks: api.AgentServiceChecks{
@@ -251,48 +119,25 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 				TTL:  serviceOpts.Checks.TTL,
 			},
 		},
-		Meta:      serviceOpts.Meta,
-		Namespace: serviceOpts.Namespace,
-		Partition: serviceOpts.Partition,
-		Locality:  serviceOpts.Locality,
+		Meta: serviceOpts.Meta,
 	}
 
-	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, nil)
+	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.GRPCPort, req)
 }
 
 func CreateAndRegisterStaticClientSidecar(
 	node libcluster.Agent,
 	peerName string,
 	localMeshGateway bool,
-	enableTProxy bool,
-	serviceOpts *ServiceOpts,
 ) (*ConnectContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
 	var deferClean utils.ResettableDefer
 	defer deferClean.Execute()
 
-	var proxy *api.AgentServiceConnectProxyConfig
-	if enableTProxy {
-		proxy = &api.AgentServiceConnectProxyConfig{
-			Mode: "transparent",
-		}
-	} else {
-		mgwMode := api.MeshGatewayModeRemote
-		if localMeshGateway {
-			mgwMode = api.MeshGatewayModeLocal
-		}
-		proxy = &api.AgentServiceConnectProxyConfig{
-			Upstreams: []api.Upstream{{
-				DestinationName:  StaticServerServiceName,
-				DestinationPeer:  peerName,
-				LocalBindAddress: "0.0.0.0",
-				LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
-				MeshGateway: api.MeshGatewayConfig{
-					Mode: mgwMode,
-				},
-			}},
-		}
+	mgwMode := api.MeshGatewayModeRemote
+	if localMeshGateway {
+		mgwMode = api.MeshGatewayModeLocal
 	}
 
 	// Register the static-client service and sidecar first to prevent race with sidecar
@@ -302,30 +147,19 @@ func CreateAndRegisterStaticClientSidecar(
 		Port: 8080,
 		Connect: &api.AgentServiceConnect{
 			SidecarService: &api.AgentServiceRegistration{
-				Proxy: proxy,
+				Proxy: &api.AgentServiceConnectProxyConfig{
+					Upstreams: []api.Upstream{{
+						DestinationName:  StaticServerServiceName,
+						DestinationPeer:  peerName,
+						LocalBindAddress: "0.0.0.0",
+						LocalBindPort:    libcluster.ServiceUpstreamLocalBindPort,
+						MeshGateway: api.MeshGatewayConfig{
+							Mode: mgwMode,
+						},
+					}},
+				},
 			},
 		},
-	}
-
-	// Set relevant fields for static client if opts are provided
-	if serviceOpts != nil {
-		if serviceOpts.Connect.Proxy.Mode != "" {
-			return nil, fmt.Errorf("this helper does not support directly setting connect proxy mode; use enableTProxy and/or localMeshGateway instead")
-		}
-		// These options are defaulted above, so only set them as overrides
-		if serviceOpts.Name != "" {
-			req.Name = serviceOpts.Name
-		}
-		if serviceOpts.HTTPPort != 0 {
-			req.Port = serviceOpts.HTTPPort
-		}
-		if serviceOpts.Connect.Port != 0 {
-			req.Connect.SidecarService.Port = serviceOpts.Connect.Port
-		}
-		req.Meta = serviceOpts.Meta
-		req.Namespace = serviceOpts.Namespace
-		req.Partition = serviceOpts.Partition
-		req.Locality = serviceOpts.Locality
 	}
 
 	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {
@@ -334,12 +168,11 @@ func CreateAndRegisterStaticClientSidecar(
 
 	// Create a service and proxy instance
 	sidecarCfg := SidecarConfig{
-		Name:         fmt.Sprintf("%s-sidecar", StaticClientServiceName),
-		ServiceID:    StaticClientServiceName,
-		EnableTProxy: enableTProxy,
+		Name:      fmt.Sprintf("%s-sidecar", StaticClientServiceName),
+		ServiceID: StaticClientServiceName,
 	}
 
-	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node, nil)
+	clientConnectProxy, err := NewConnectService(context.Background(), sidecarCfg, []int{libcluster.ServiceUpstreamLocalBindPort}, node)
 	if err != nil {
 		return nil, err
 	}

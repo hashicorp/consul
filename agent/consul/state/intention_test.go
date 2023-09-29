@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -1270,15 +1267,15 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 
 func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	type testcase struct {
-		name          string
-		configEntries []structs.ConfigEntry
-		query         structs.IntentionQueryMatch
-		expect        []structs.Intentions
+		name   string
+		input  []*structs.ServiceIntentionsConfigEntry
+		query  structs.IntentionQueryMatch
+		expect []structs.Intentions
 	}
 	run := func(t *testing.T, tc testcase) {
 		s := testConfigStateStore(t)
 		idx := uint64(0)
-		for _, conf := range tc.configEntries {
+		for _, conf := range tc.input {
 			require.NoError(t, conf.Normalize())
 			require.NoError(t, conf.Validate())
 			idx++
@@ -1300,8 +1297,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	tcs := []testcase{
 		{
 			name: "peered intention matched with destination query",
-			configEntries: []structs.ConfigEntry{
-				&structs.ServiceIntentionsConfigEntry{
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{
@@ -1360,8 +1357,8 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 			// This behavior may change in the future but this test is in place
 			// to ensure peered intentions cannot accidentally be queried by source
 			name: "peered intention cannot be queried by source",
-			configEntries: []structs.ConfigEntry{
-				&structs.ServiceIntentionsConfigEntry{
+			input: []*structs.ServiceIntentionsConfigEntry{
+				{
 					Kind: structs.ServiceIntentions,
 					Name: "foo",
 					Sources: []*structs.SourceIntention{
@@ -2097,7 +2094,6 @@ func disableLegacyIntentions(s *Store) error {
 
 func testConfigStateStore(t *testing.T) *Store {
 	s := testStateStore(t)
-	s.SystemMetadataSet(5, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
 	disableLegacyIntentions(s)
 	return s
 }
@@ -2162,7 +2158,6 @@ func TestStore_IntentionTopology(t *testing.T) {
 		name            string
 		defaultDecision acl.EnforcementDecision
 		intentions      []structs.ServiceIntentionsConfigEntry
-		discoveryChains []structs.ConfigEntry
 		target          structs.ServiceName
 		downstreams     bool
 		expect          expect
@@ -2189,68 +2184,6 @@ func TestStore_IntentionTopology(t *testing.T) {
 				services: structs.ServiceList{
 					{
 						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-				},
-			},
-		},
-		{
-			name:            "(upstream) acl allow includes virtual service",
-			defaultDecision: acl.Allow,
-			discoveryChains: []structs.ConfigEntry{
-				&structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "backend",
-				},
-			},
-			target:      structs.NewServiceName("web", nil),
-			downstreams: false,
-			expect: expect{
-				idx: 10,
-				services: structs.ServiceList{
-					{
-						Name:           "api",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-					{
-						Name:           "backend",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-					{
-						Name:           "mysql",
-						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
-					},
-				},
-			},
-		},
-		{
-			name:            "(upstream) acl deny all intentions allow virtual service",
-			defaultDecision: acl.Deny,
-			discoveryChains: []structs.ConfigEntry{
-				&structs.ServiceResolverConfigEntry{
-					Kind: structs.ServiceResolver,
-					Name: "backend",
-				},
-			},
-			intentions: []structs.ServiceIntentionsConfigEntry{
-				{
-					Kind: structs.ServiceIntentions,
-					Name: "backend",
-					Sources: []*structs.SourceIntention{
-						{
-							Name:   "web",
-							Action: structs.IntentionActionAllow,
-						},
-					},
-				},
-			},
-			target:      structs.NewServiceName("web", nil),
-			downstreams: false,
-			expect: expect{
-				idx: 11,
-				services: structs.ServiceList{
-					{
-						Name:           "backend",
 						EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 					},
 				},
@@ -2440,10 +2373,6 @@ func TestStore_IntentionTopology(t *testing.T) {
 			}
 			for _, ixn := range tt.intentions {
 				require.NoError(t, s.EnsureConfigEntry(idx, &ixn))
-				idx++
-			}
-			for _, entry := range tt.discoveryChains {
-				require.NoError(t, s.EnsureConfigEntry(idx, entry))
 				idx++
 			}
 
@@ -2652,7 +2581,6 @@ func TestStore_IntentionTopology_Destination(t *testing.T) {
 
 func TestStore_IntentionTopology_Watches(t *testing.T) {
 	s := testConfigStateStore(t)
-	s.SystemMetadataSet(10, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
 
 	var i uint64 = 1
 	require.NoError(t, s.EnsureNode(i, &structs.Node{
@@ -2689,8 +2617,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(2), index)
-	// Because API is a virtual service, it is included in this output.
-	require.Equal(t, structs.ServiceList{structs.NewServiceName("api", nil)}, got)
+	require.Empty(t, got)
 
 	// Watch should not fire after unrelated intention changes
 	require.NoError(t, s.EnsureConfigEntry(i, &structs.ServiceIntentionsConfigEntry{
@@ -2704,6 +2631,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 		},
 	}))
 	i++
+
 	// TODO(freddy) Why is this firing?
 	// require.False(t, watchFired(ws))
 
@@ -2711,7 +2639,7 @@ func TestStore_IntentionTopology_Watches(t *testing.T) {
 	index, got, err = s.IntentionTopology(ws, target, false, acl.Deny, structs.IntentionTargetService)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), index)
-	require.Equal(t, structs.ServiceList{structs.NewServiceName("api", nil)}, got)
+	require.Empty(t, got)
 
 	// Watch should fire after service list changes
 	require.NoError(t, s.EnsureService(i, "foo", &structs.NodeService{
