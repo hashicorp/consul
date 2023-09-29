@@ -1,7 +1,0 @@
-```release-note:feature
-acl: Added ACL Templated policies to simplify getting the right ACL token.
-```
-
-```release-note:improvement
-cli: Added `-templated-policy`, `-templated-policy-file`, `-replace-templated-policy`, `-append-templated-policy`, `-replace-templated-policy-file`, `-append-templated-policy-file` and `-var` flags for creating or updating tokens/roles.
-```

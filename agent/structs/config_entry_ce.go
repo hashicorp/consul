@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 //go:build !consulent
 // +build !consulent
@@ -30,8 +30,6 @@ func validateUnusedKeys(unused []string) error {
 			// to exist on the target.
 		case strings.HasSuffix(strings.ToLower(k), "namespace"):
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q, namespaces are a consul enterprise feature", k))
-		case strings.Contains(strings.ToLower(k), "jwt"):
-			err = multierror.Append(err, fmt.Errorf("invalid config key %q, api-gateway jwt validation is a consul enterprise feature", k))
 		default:
 			err = multierror.Append(err, fmt.Errorf("invalid config key %q", k))
 		}
@@ -53,12 +51,3 @@ func validateExportedServicesName(name string) error {
 func makeEnterpriseConfigEntry(kind, name string) ConfigEntry {
 	return nil
 }
-
-func validateRatelimit(rl *RateLimits) error {
-	if rl != nil {
-		return fmt.Errorf("invalid rate_limits config. Rate limiting is a consul enterprise feature")
-	}
-	return nil
-}
-
-func (rl RateLimits) ToEnvoyExtension() *EnvoyExtension { return nil }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package role
 
@@ -89,20 +89,6 @@ func (f *prettyFormatter) FormatRole(role *api.ACLRole) (string, error) {
 			buffer.WriteString(fmt.Sprintf("   %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
 		}
 	}
-	if len(role.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("Templated Policies:"))
-		for _, templatedPolicy := range role.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("   %s\n", templatedPolicy.TemplateName))
-			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("      Name: %s\n", templatedPolicy.TemplateVariables.Name))
-			}
-			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("      Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
-			} else {
-				buffer.WriteString("      Datacenters: all\n")
-			}
-		}
-	}
 
 	return buffer.String(), nil
 }
@@ -155,21 +141,6 @@ func (f *prettyFormatter) formatRoleListEntry(role *api.ACLRole) string {
 		buffer.WriteString(fmt.Sprintln("   Node Identities:"))
 		for _, nodeid := range role.NodeIdentities {
 			buffer.WriteString(fmt.Sprintf("      %s (Datacenter: %s)\n", nodeid.NodeName, nodeid.Datacenter))
-		}
-	}
-
-	if len(role.TemplatedPolicies) > 0 {
-		buffer.WriteString(fmt.Sprintln("   Templated Policies:"))
-		for _, templatedPolicy := range role.TemplatedPolicies {
-			buffer.WriteString(fmt.Sprintf("      %s\n", templatedPolicy.TemplateName))
-			if templatedPolicy.TemplateVariables != nil && templatedPolicy.TemplateVariables.Name != "" {
-				buffer.WriteString(fmt.Sprintf("         Name: %s\n", templatedPolicy.TemplateVariables.Name))
-			}
-			if len(templatedPolicy.Datacenters) > 0 {
-				buffer.WriteString(fmt.Sprintf("         Datacenters: %s\n", strings.Join(templatedPolicy.Datacenters, ", ")))
-			} else {
-				buffer.WriteString("         Datacenters: all\n")
-			}
 		}
 	}
 

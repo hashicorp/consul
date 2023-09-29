@@ -1,12 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
@@ -19,7 +18,7 @@ import (
 // resources for a single client.
 type ResourceGenerator struct {
 	Logger         hclog.Logger
-	CfgFetcher     configfetcher.ConfigFetcher
+	CfgFetcher     ConfigFetcher
 	IncrementalXDS bool
 
 	ProxyFeatures xdscommon.SupportedProxyFeatures
@@ -27,7 +26,7 @@ type ResourceGenerator struct {
 
 func NewResourceGenerator(
 	logger hclog.Logger,
-	cfgFetcher configfetcher.ConfigFetcher,
+	cfgFetcher ConfigFetcher,
 	incrementalXDS bool,
 ) *ResourceGenerator {
 	return &ResourceGenerator{

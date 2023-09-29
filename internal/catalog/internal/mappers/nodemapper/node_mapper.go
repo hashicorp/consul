@@ -1,15 +1,13 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package nodemapper
 
 import (
 	"context"
 	"sync"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -30,7 +28,7 @@ func New() *NodeMapper {
 // the workload and with the name populated from the workloads NodeName field.
 func (m *NodeMapper) NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID {
 	return &pbresource.ID{
-		Type:    pbcatalog.NodeType,
+		Type:    types.NodeType,
 		Tenancy: workload.Id.Tenancy,
 		Name:    workloadData.NodeName,
 	}

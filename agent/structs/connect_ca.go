@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package structs
 
@@ -217,11 +217,6 @@ type IssuedCert struct {
 	// PrivateKeyPEM is the PEM encoded private key associated with CertPEM.
 	PrivateKeyPEM string `json:",omitempty"`
 
-	// WorkloadIdentity is the name of the workload identity for which the cert was issued.
-	WorkloadIdentity string `json:",omitempty"`
-	// WorkloadIdentityURI is the cert URI value.
-	WorkloadIdentityURI string `json:",omitempty"`
-
 	// Service is the name of the service for which the cert was issued.
 	Service string `json:",omitempty"`
 	// ServiceURI is the cert URI value.
@@ -250,12 +245,6 @@ type IssuedCert struct {
 	acl.EnterpriseMeta
 
 	RaftIndex
-}
-
-func (i *IssuedCert) Key() string {
-	return fmt.Sprintf("%s",
-		i.SerialNumber,
-	)
 }
 
 // CAOp is the operation for a request related to intentions.

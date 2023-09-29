@@ -7,13 +7,13 @@
         "issuer": "test-issuer",
         "payloadInMetadata": "jwt_payload_okta",
         "remoteJwks": {
+          "httpUri": {
+            "uri": "https://example-okta.com/.well-known/jwks.json",
+            "cluster": "jwks_cluster_okta",
+            "timeout": "1s"
+          },
           "asyncFetch": {
             "fastListener": true
-          },
-          "httpUri": {
-            "cluster": "jwks_cluster_okta",
-            "timeout": "1s",
-            "uri": "https://example-okta.com/.well-known/jwks.json"
           }
         }
       }
@@ -26,12 +26,8 @@
         "requires": {
           "requiresAny": {
             "requirements": [
-              {
-                "providerName": "okta"
-              },
-              {
-                "allowMissingOrFailed": {}
-              }
+              {"providerName": "okta"}, 
+              {"allowMissingOrFailed": {}}
             ]
           }
         }

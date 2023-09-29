@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package upgrade
 
@@ -73,8 +73,8 @@ func TestTrafficManagement_ResolverDefaultSubset(t *testing.T) {
 	assertionFn := func() {
 		_, serverAdminPortV1 := serverConnectProxyV1.GetAdminAddr()
 		_, serverAdminPortV2 := serverConnectProxyV2.GetAdminAddr()
-		_, adminPort := staticClientProxy.GetAdminAddr() // httpPort
-		_, port := staticClientProxy.GetAddr()           // EnvoyAdminPort
+		_, adminPort := staticClientProxy.GetAdminAddr()
+		_, port := staticClientProxy.GetAddr()
 
 		libassert.AssertEnvoyRunning(t, serverAdminPortV1)
 		libassert.AssertEnvoyRunning(t, serverAdminPortV2)

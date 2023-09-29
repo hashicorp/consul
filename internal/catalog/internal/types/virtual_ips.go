@@ -1,24 +1,35 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+)
+
+const (
+	VirtualIPsKind = "VirtualIPs"
+)
+
+var (
+	VirtualIPsV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         VirtualIPsKind,
+	}
+
+	VirtualIPsType = VirtualIPsV1Alpha1Type
 )
 
 func RegisterVirtualIPs(r resource.Registry) {
-	// todo (ishustava): uncomment when we implement it
-	//r.Register(resource.Registration{
-	//	Type:     pbcatalog.VirtualIPsV2Beta1Type,
-	//	Proto:    &pbcatalog.VirtualIPs{},
-	//	Scope:    resource.ScopeNamespace,
-	//	Validate: ValidateVirtualIPs,
-	//})
+	r.Register(resource.Registration{
+		Type:     VirtualIPsV1Alpha1Type,
+		Proto:    &pbcatalog.VirtualIPs{},
+		Validate: ValidateVirtualIPs,
+	})
 }
 
 func ValidateVirtualIPs(res *pbresource.Resource) error {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package cache provides caching features for data from a Consul server.
 //
@@ -32,7 +32,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/ttlcache"
 )
@@ -173,7 +172,32 @@ type typeEntry struct {
 
 // ResultMeta is returned from Get calls along with the value and can be used
 // to expose information about the cache status for debugging or testing.
-type ResultMeta = cacheshim.ResultMeta
+type ResultMeta struct {
+	// Hit indicates whether or not the request was a cache hit
+	Hit bool
+
+	// Age identifies how "stale" the result is. It's semantics differ based on
+	// whether or not the cache type performs background refresh or not as defined
+	// in https://www.consul.io/api/index.html#agent-caching.
+	//
+	// For background refresh types, Age is 0 unless the background blocking query
+	// is currently in a failed state and so not keeping up with the server's
+	// values. If it is non-zero it represents the time since the first failure to
+	// connect during background refresh, and is reset after a background request
+	// does manage to reconnect and either return successfully, or block for at
+	// least the yamux keepalive timeout of 30 seconds (which indicates the
+	// connection is OK but blocked as expected).
+	//
+	// For simple cache types, Age is the time since the result being returned was
+	// fetched from the servers.
+	Age time.Duration
+
+	// Index is the internal ModifyIndex for the cache entry. Not all types
+	// support blocking and all that do will likely have this in their result type
+	// already but this allows generic code to reason about whether cache values
+	// have changed.
+	Index uint64
+}
 
 // Options are options for the Cache.
 type Options struct {

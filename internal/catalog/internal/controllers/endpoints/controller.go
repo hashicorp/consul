@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package endpoints
 
@@ -7,14 +7,14 @@ import (
 	"context"
 	"sort"
 
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 const (
@@ -43,9 +43,9 @@ func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controlle
 		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
 	}
 
-	return controller.ForType(pbcatalog.ServiceEndpointsType).
-		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbcatalog.ServiceEndpointsType)).
-		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
+	return controller.ForType(types.ServiceEndpointsType).
+		WithWatch(types.ServiceType, controller.ReplaceType(types.ServiceEndpointsType)).
+		WithWatch(types.WorkloadType, workloadMap.MapWorkload).
 		WithReconciler(newServiceEndpointsReconciler(workloadMap))
 }
 
@@ -69,7 +69,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 	endpointsID := req.ID
 	serviceID := &pbresource.ID{
-		Type:    pbcatalog.ServiceType,
+		Type:    types.ServiceType,
 		Tenancy: endpointsID.Tenancy,
 		Name:    endpointsID.Name,
 	}
@@ -117,7 +117,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		// cause this service to be rereconciled.
 		r.workloadMap.TrackIDForSelector(req.ID, serviceData.service.GetWorkloads())
 
-		// Now read and unmarshal all workloads selected by the service. It is imperative
+		// Now read and umarshal all workloads selected by the service. It is imperative
 		// that this happens after we notify the selection tracker to be tracking that
 		// selection criteria. If the order were reversed we could potentially miss
 		// workload creations that should be selected if they happen after gathering
@@ -310,13 +310,8 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 			continue
 		}
 
-		// If workload protocol is not specified, we will default to service's protocol.
-		// This is because on some platforms (kubernetes), workload protocol is not always
-		// known, and so we need to inherit from the service instead.
-		if workloadPort.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
-			workloadPort.Protocol = svcPort.Protocol
-		} else if workloadPort.Protocol != svcPort.Protocol {
-			// Otherwise, there's workload port mismatch - ignore it.
+		if workloadPort.Protocol != svcPort.Protocol {
+			// workload port mismatch - ignore it
 			continue
 		}
 
@@ -385,6 +380,5 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		HealthStatus: health,
 		Addresses:    workloadAddrs,
 		Ports:        endpointPorts,
-		Identity:     data.workload.Identity,
 	}
 }
