@@ -410,19 +410,19 @@
           },
           {
             "title": "API gateway",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/api-gateway"
+            "path": "connect/config-entries/api-gateway"
           },
           {
             "title": "HTTP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/http-route"
+            "path": "connect/config-entries/http-route"
           },
           {
             "title": "TCP route",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/tcp-route"
+            "path": "connect/config-entries/tcp-route"
           },
           {
             "title": "Inline certificate",
-            "href": "/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate"
+            "path": "connect/config-entries/inline-certificate"
           },
           {
             "title": "Ingress gateway",
@@ -714,20 +714,28 @@
                 "title": "Configuration",
                 "routes": [
                   {
-                    "title": "API Gateway",
-                    "path": "connect/gateways/api-gateway/configuration/api-gateway"
+                    "title": "Overview",
+                    "path": "connect/gateways/api-gateway/configuration"
                   },
                   {
-                    "title": "HTTP Route",
-                    "path": "connect/gateways/api-gateway/configuration/http-route"
+                    "title": "Gateway",
+                    "path": "connect/gateways/api-gateway/configuration/gateway"
                   },
                   {
-                    "title": "TCP Route",
-                    "path": "connect/gateways/api-gateway/configuration/tcp-route"
+                    "title": "GatewayClass",
+                    "path": "connect/gateways/api-gateway/configuration/gatewayclass"
                   },
                   {
-                    "title": "Inline Certificate",
-                    "path": "connect/gateways/api-gateway/configuration/inline-certificate"
+                    "title": "GatewayClassConfig",
+                    "path": "connect/gateways/api-gateway/configuration/gatewayclassconfig"
+                  },
+                  {
+                    "title": "Routes",
+                    "path": "connect/gateways/api-gateway/configuration/routes"
+                  },
+                  {
+                    "title": "MeshService",
+                    "path": "connect/gateways/api-gateway/configuration/meshservice"
                   }
                 ]
               },
@@ -1785,40 +1793,6 @@
   },
   {
     "divider": true
-  },
-  {
-    "title": "API Gateway for Kubernetes",
-    "routes": [
-      {
-        "title": "Configuration",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "api-gateway/configuration"
-          },
-          {
-            "title": "Gateway",
-            "path": "api-gateway/configuration/gateway"
-          },
-          {
-            "title": "GatewayClass",
-            "path": "api-gateway/configuration/gatewayclass"
-          },
-          {
-            "title": "GatewayClassConfig",
-            "path": "api-gateway/configuration/gatewayclassconfig"
-          },
-          {
-            "title": "Routes",
-            "path": "api-gateway/configuration/routes"
-          },
-          {
-            "title": "MeshService",
-            "path": "api-gateway/configuration/meshservice"
-          }
-        ]
-      }
-    ]
   },
   {
     "title": "Network Infrastructure Automation",
