@@ -34,6 +34,12 @@ to view additional details, including default values.
       - [`Set`](#rules-filters-headers-set): map | no default
     - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
       - [`Path`](#rules-filters-urlrewrite-path): string | no default
+    - [`JWT`](#rules-filters-jwt): map
+         - [`Providers`](#rules-filters-jwt-providers): list
+            - [`Name`](#rules-filters-jwt-providers): string
+            - [`VerifyClaims`](#rules-filters-jwt-providers): map
+               - [`Path`](#rules-filters-jwt-providers): list
+               - [`Value`](#rules-filters-jwt-providers): string
   - [`Matches`](#rules-matches): list | no default
     - [`Headers`](#rules-matches-headers): list | no default
       - [`Match`](#rules-matches-headers-match): string | no default
@@ -104,6 +110,15 @@ Rules = [
       ]
       URLRewrite = {
         Path = "<path to rewrite request to>"
+      }
+      JWT = {
+        Providers = [
+          Name = "<name of the provider>"
+          VerifyClaim = {
+            Path = ["<path to claim>"]
+            Value = "<value of claim>"
+          }
+        ]
       }
     }
     Matches = [
@@ -204,68 +219,76 @@ Rules = [
             {
               "Path": "<path to rewrite request to>"
             }
-          ]
+          ],        
+        "JWT": {
+          "Providers": [{
+            "Name": "okta",
+            "VerifyClaims": {
+              "Path": ["perms", "role"],
+              "Value": "user"
+            }
+          }]
         }
-      ],
-      "Matches": [
-        {
-          "Headers": [
-            {
-              "Match": "<type of match: exact, prefix or regex>",
-              "Name": "<name of header to match on>",
-              "Value": "<value of header to match on>"
-            }
-          ],
-          "Method": "<method type to match on>",
-          "Path": [
-            {
-              "Match": "<type of match: exact, prefix or regex>",
-              "Value": "<value to match on>"
-            }
-          ],
-          "Query": [
-            {
-              "Match": "<type of match: exact, present or regex>",
-              "Name": "<name of query parameter to match on>",
-              "Value": "<value of query parameter to match on>"
-            }
-          ]
-        }
-      ],
-      "Services": [
-        {
-          "Name": "<name of Consul service to route to>",
-          "Namespace": "<enterprise: namespace of the route>",
-          "Partition": "<enterprise: partition of the route>",
-          "Weight": "<number proportional to other weights>",
-          "Filters": [
-            {
-              "Headers": [
-                {
-                  "Add": [
-                    {
-                      "<name of header to add": "<value of header to add>"
-                    }
-                  ],
-                  "Remove": ["<header to remove from request>"],
-                  "Set": [
-                    {
-                      "<name of header to set": "<value of header to set>"
-                    }
-                  ]
-                }
-              ],
-              "URLRewrite": [
-                {
-                  "Path": "<path to rewrite request to>"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
+      }
+    ],
+    "Matches": [
+      {
+        "Headers": [
+          {
+            "Match": "<type of match: exact, prefix or regex>",
+            "Name": "<name of header to match on>",
+            "Value": "<value of header to match on>"
+          }
+        ],
+        "Method": "<method type to match on>",
+        "Path": [
+          {
+            "Match": "<type of match: exact, prefix or regex>",
+            "Value": "<value to match on>"
+          }
+        ],
+        "Query": [
+          {
+            "Match": "<type of match: exact, present or regex>",
+            "Name": "<name of query parameter to match on>",
+            "Value": "<value of query parameter to match on>"
+          }
+        ]
+      }
+    ],
+    "Services": [
+      {
+        "Name": "<name of Consul service to route to>",
+        "Namespace": "<enterprise: namespace of the route>",
+        "Partition": "<enterprise: partition of the route>",
+        "Weight": "<number proportional to other weights>",
+        "Filters": [
+          {
+            "Headers": [
+              {
+                "Add": [
+                  {
+                    "<name of header to add": "<value of header to add>"
+                  }
+                ],
+                "Remove": ["<header to remove from request>"],
+                "Set": [
+                  {
+                    "<name of header to set": "<value of header to set>"
+                  }
+                ]
+              }
+            ],
+            "URLRewrite": [
+              {
+                "Path": "<path to rewrite request to>"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }]
 }
 ```
 
@@ -445,6 +468,34 @@ The following table describes the parameters for `path`:
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
 | `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged.                                       | String |
 | `type`               | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String |
+
+### `Rules[].Filters{}.JWT`
+
+Specifies a block of JWT verification configurations to apply to the route. The route-specific settings have precedence over default configurations defined for listeners the route attaches to on the API gateway.  Refer to [`Listeners[].default{}.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `Rules[].Filters{}.JWT{}.Providers`
+
+Specifies a list of JWT provider configurations to apply to the route. A provider configuration contains the name of the provider and claims.  
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+The following table describes the parameters you can specify in a member of the `Providers` list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Name` | Specifies the name of the provider. | String | None |
+| `VerifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: List of paths to the claims</li><li>`Value`: ???</li></ul> | Map | None |
+
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+
 
 ### `Rules[].Matches[]`
 
@@ -682,3 +733,97 @@ Specifies rule for rewriting the URL of incoming requests.
 
 - Default: none
 - This field is a map that contains a `Path` field.
+
+## Examples
+
+Add the following example configuration:
+
+### Configure JWT verification settings
+
+In the following example, the route is configured to accept incoming requests from the `okta` provider that claims to have `admin` permissions.
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```hcl
+kind = "http-route"
+name = "api-gateway-route"
+parents = [
+  {
+    sectionName = "listener-one"
+    name = "api-gateway"
+    kind = "api-gateway"
+  },
+]
+rules = [
+  {
+    matches = /
+  }
+  {
+    matches = /admin
+    filters = {
+      JWT = {
+        Providers = [
+          {
+            Name = "okta", # this is referencing an existing JWT provider config entry
+            VerifyClaims = {
+              Path = ["perms", "role"],
+              Value = "admin",
+            }
+          }
+        ]
+      }
+    }
+    services = [
+      {
+        name = "bender"
+      }
+    ]
+  }
+]
+```
+</Tab>
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "kind": "http-route",
+  "name": "api-gateway-route",
+  "parents": [
+    {
+      "sectionName": "listener-one",
+      "name": "api-gateway",
+      "kind": "api-gateway"
+    }
+  ],
+  "rules": [
+    {
+      "matches": "/"
+    },
+    {
+      "matches": "/admin",
+      "filters": {
+        "JWT": {
+          "Providers": [
+            {
+              "Name": "okta", 
+              "VerifyClaims": {
+                "Path": ["perms", "role"],
+                "Value": "admin"
+              }
+            }
+          ]
+        }
+      },
+    "services": [
+      {
+        "name": "bender"
+      }
+    ]
+  }]
+}
+
+```
+
+</Tab>
+</Tabs>
