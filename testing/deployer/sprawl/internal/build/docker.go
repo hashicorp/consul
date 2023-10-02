@@ -40,7 +40,7 @@ func DockerImages(
 	run *runner.Runner,
 	t *topology.Topology,
 ) error {
-	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Info})
+	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
 
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {

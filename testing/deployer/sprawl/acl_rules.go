@@ -177,7 +177,6 @@ func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy
 		Description: policyName,
 	}
 	if enterprise {
-		fmt.Printf("Enterprise mgw ACLS - Partition: %s, Namespace: default", svc.ID.Partition)
 		policy.Partition = svc.ID.Partition
 		policy.Namespace = "default"
 	}

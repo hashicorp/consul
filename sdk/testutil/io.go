@@ -10,6 +10,7 @@ import (
 )
 
 var noCleanup = strings.ToLower(os.Getenv("TEST_NOCLEANUP")) == "true"
+var saveSnapshot = strings.ToLower(os.Getenv("TEST_SAVE_SNAPSHOT")) == "true"
 
 // TempDir creates a temporary directory within tmpdir with the name 'testname-name'.
 // If the directory cannot be created t.Fatal is called.

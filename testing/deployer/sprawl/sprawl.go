@@ -188,7 +188,7 @@ func Launch(
 		return nil, fmt.Errorf("topology.Compile: %w", err)
 	}
 
-	s.logger.Info("compiled topology", "ct", jd(s.topology)) // TODO
+	s.logger.Debug("compiled topology", "ct", jd(s.topology)) // TODO
 
 	start := time.Now()
 	if err := s.launch(); err != nil {
@@ -220,7 +220,7 @@ func (s *Sprawl) Relaunch(
 
 	s.topology = newTopology
 
-	s.logger.Info("compiled replacement topology", "ct", jd(s.topology)) // TODO
+	s.logger.Debug("compiled replacement topology", "ct", jd(s.topology)) // TODO
 
 	start := time.Now()
 	if err := s.relaunch(); err != nil {
@@ -401,7 +401,7 @@ func (s *Sprawl) CaptureLogs(ctx context.Context) error {
 		return err
 	}
 
-	s.logger.Info("Capturing logs")
+	s.logger.Debug("Capturing logs")
 
 	var merr error
 	for _, container := range containers {

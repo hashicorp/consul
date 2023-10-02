@@ -153,7 +153,7 @@ RETRY:
 		return fmt.Errorf("failed to register service %q to node %q: %w", svc.ID, node.ID(), err)
 	}
 
-	logger.Info("registered service to client agent",
+	logger.Debug("registered service to client agent",
 		"service", svc.ID.Name,
 		"node", node.Name,
 		"namespace", svc.ID.Namespace,
@@ -226,7 +226,7 @@ RETRY:
 		return fmt.Errorf("error registering virtual node %s: %w", node.ID(), err)
 	}
 
-	logger.Info("virtual node created",
+	logger.Debug("virtual node created",
 		"node", node.ID(),
 	)
 
@@ -258,7 +258,7 @@ RETRY:
 		return fmt.Errorf("error registering service %s to node %s: %w", svc.ID, node.ID(), err)
 	}
 
-	logger.Info("dataplane service created",
+	logger.Debug("dataplane service created",
 		"service", svc.ID,
 		"node", node.ID(),
 	)
@@ -293,7 +293,7 @@ RETRY:
 		return fmt.Errorf("error registering service %s to node %s: %w", svc.ID, node.ID(), err)
 	}
 
-	logger.Info("dataplane sidecar service created",
+	logger.Debug("dataplane sidecar service created",
 		"service", pid,
 		"node", node.ID(),
 	)
