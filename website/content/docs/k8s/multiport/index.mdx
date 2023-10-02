@@ -108,10 +108,10 @@ The v2 catalog API is available alongside the existing v1 catalog API, but the c
 
 To use a multi-port service in Consul on Kubernetes deployments, complete the following steps:
 
-1. Enable the v2 catalog. Update the server agent configuration and then apply the change to your Kubernetes cluster.
+1. Enable the v2 catalog. Add `global.experiments: ["resource-apis"]` to a cluster's Helm chart before deploying Consul.
 1. Use the `"consul.hashicorp.com/mesh-inject": "true"` annotation so that Consul registers the service automatically when Kubernetes deploys containers.
 1. Configure traffic permissions. In the beta release, the all services registered to the v2 catalog allow all traffic by default. You can use `TrafficPermissions` to deny traffic to individual services for testing purposes.
-1. Confirm multi-port functionality. Send test traffic to each port to confirm that traffic is authorized and routed correctly.
+1. Validate multi-port functionality. Send test traffic to each port to confirm that traffic is authorized and routed correctly.
 
 For an example configuration and instructions for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
