@@ -164,6 +164,14 @@ func checkAllowSnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *A
 	require.Equal(t, Allow, authz.Snapshot(entCtx))
 }
 
+func checkAllowTrafficPermissionsRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.TrafficPermissionsRead(prefix, entCtx))
+}
+
+func checkAllowTrafficPermissionsWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Allow, authz.TrafficPermissionsWrite(prefix, entCtx))
+}
+
 func checkDenyACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.ACLRead(entCtx))
 }
@@ -310,6 +318,14 @@ func checkDenySessionWrite(t *testing.T, authz Authorizer, prefix string, entCtx
 
 func checkDenySnapshot(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
 	require.Equal(t, Deny, authz.Snapshot(entCtx))
+}
+
+func checkDenyTrafficPermissionsRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.TrafficPermissionsRead(prefix, entCtx))
+}
+
+func checkDenyTrafficPermissionsWrite(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
+	require.Equal(t, Deny, authz.TrafficPermissionsWrite(prefix, entCtx))
 }
 
 func checkDefaultACLRead(t *testing.T, authz Authorizer, prefix string, entCtx *AuthorizerContext) {
@@ -555,6 +571,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
 				{name: "DenySnapshot", check: checkDenySnapshot},
+				{name: "AllowTrafficPermissionsRead", check: checkAllowTrafficPermissionsRead},
+				{name: "AllowTrafficPermissionsWrite", check: checkAllowTrafficPermissionsWrite},
 			},
 		},
 		{
@@ -596,6 +614,8 @@ func TestACL(t *testing.T) {
 				{name: "AllowSessionRead", check: checkAllowSessionRead},
 				{name: "AllowSessionWrite", check: checkAllowSessionWrite},
 				{name: "AllowSnapshot", check: checkAllowSnapshot},
+				{name: "AllowTrafficPermissionsRead", check: checkAllowTrafficPermissionsRead},
+				{name: "AllowTrafficPermissionsWrite", check: checkAllowTrafficPermissionsWrite},
 			},
 		},
 		{
@@ -1074,26 +1094,26 @@ func TestACL(t *testing.T) {
 			checks: []aclCheck{
 				{name: "IdentityReadAllowed", prefix: "foo", check: checkAllowIdentityRead},
 				{name: "IdentityWriteAllowed", prefix: "foo", check: checkAllowIdentityWrite},
-				{name: "IntentionReadAllowed", prefix: "foo", check: checkAllowIntentionRead},
-				{name: "IntentionWriteAllowed", prefix: "foo", check: checkAllowIntentionWrite},
+				{name: "TrafficPermissionsReadAllowed", prefix: "foo", check: checkAllowTrafficPermissionsRead},
+				{name: "TrafficPermissionsWriteAllowed", prefix: "foo", check: checkAllowTrafficPermissionsWrite},
 				{name: "IdentityReadAllowed", prefix: "football", check: checkAllowIdentityRead},
 				{name: "IdentityWriteDenied", prefix: "football", check: checkDenyIdentityWrite},
-				{name: "IntentionReadAllowed", prefix: "football", check: checkAllowIntentionRead},
+				{name: "TrafficPermissionsReadAllowed", prefix: "football", check: checkAllowTrafficPermissionsRead},
 				// This might be surprising but omitting intention rule gives at most intention:read
 				// if we have identity:write perms. This matches services as well.
-				{name: "IntentionWriteDenied", prefix: "football", check: checkDenyIntentionWrite},
+				{name: "TrafficPermissionsWriteDenied", prefix: "football", check: checkDenyTrafficPermissionsWrite},
 				{name: "IdentityReadAllowed", prefix: "prefix", check: checkAllowIdentityRead},
 				{name: "IdentityWriteDenied", prefix: "prefix", check: checkDenyIdentityWrite},
-				{name: "IntentionReadAllowed", prefix: "prefix", check: checkAllowIntentionRead},
-				{name: "IntentionWriteDenied", prefix: "prefix", check: checkAllowIntentionWrite},
+				{name: "TrafficPermissionsReadAllowed", prefix: "prefix", check: checkAllowTrafficPermissionsRead},
+				{name: "TrafficPermissionsWriteDenied", prefix: "prefix", check: checkAllowTrafficPermissionsWrite},
 				{name: "IdentityReadDenied", prefix: "prefix-forbidden", check: checkDenyIdentityRead},
 				{name: "IdentityWriteDenied", prefix: "prefix-forbidden", check: checkDenyIdentityWrite},
-				{name: "IntentionReadDenied", prefix: "prefix-forbidden", check: checkDenyIntentionRead},
-				{name: "IntentionWriteDenied", prefix: "prefix-forbidden", check: checkDenyIntentionWrite},
+				{name: "TrafficPermissionsReadDenied", prefix: "prefix-forbidden", check: checkDenyTrafficPermissionsRead},
+				{name: "TrafficPermissionsWriteDenied", prefix: "prefix-forbidden", check: checkDenyTrafficPermissionsWrite},
 				{name: "IdentityReadAllowed", prefix: "foozball", check: checkAllowIdentityRead},
 				{name: "IdentityWriteAllowed", prefix: "foozball", check: checkAllowIdentityWrite},
-				{name: "IntentionReadAllowed", prefix: "foozball", check: checkAllowIntentionRead},
-				{name: "IntentionWriteDenied", prefix: "foozball", check: checkDenyIntentionWrite},
+				{name: "TrafficPermissionsReadAllowed", prefix: "foozball", check: checkAllowTrafficPermissionsRead},
+				{name: "TrafficPermissionsWriteDenied", prefix: "foozball", check: checkDenyTrafficPermissionsWrite},
 			},
 		},
 		{
