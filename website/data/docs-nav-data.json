@@ -734,6 +734,10 @@
                     "path": "connect/gateways/api-gateway/configuration/gatewayclassconfig"
                   },
                   {
+                    "title": "GatewayPolicy",
+                    "path": "connect/gateways/api-gateway/configuration/gatewaypolicy"
+                  },
+                  {
                     "title": "Routes",
                     "path": "connect/gateways/api-gateway/configuration/routes"
                   },
