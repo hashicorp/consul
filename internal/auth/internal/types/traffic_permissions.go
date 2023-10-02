@@ -14,16 +14,16 @@ import (
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbauth.TrafficPermissionsType,
-		Proto:    &pbauth.TrafficPermissions{},
-		Scope:    resource.ScopeNamespace,
-		Validate: ValidateTrafficPermissions,
+		Type:  pbauth.TrafficPermissionsType,
+		Proto: &pbauth.TrafficPermissions{},
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookTrafficPermissions,
 			Write: aclWriteHookTrafficPermissions,
 			List:  aclListHookTrafficPermissions,
 		},
-		Mutate: MutateTrafficPermissions,
+		Validate: ValidateTrafficPermissions,
+		Mutate:   MutateTrafficPermissions,
+		Scope:    resource.ScopeNamespace,
 	})
 }
 
