@@ -35,6 +35,22 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`Name`](#listeners-tls-certificates-name): string | no default
       - [`Namespace`](#listeners-tls-certificates-namespace): string | no default <EnterpriseAlert inline />
       - [`Partition`](#listeners-tls-certificates-partition): string | no default <EnterpriseAlert inline />
+  - [`default`](#listeners-default): map
+    - [`JWT`](#listeners-default-jwt): map 
+      - [`Providers`](#listeners-default-jwt-providers): list
+        - [`Name`](#listeners-default-jwt-providers): string
+          - [`VerifyClaims`](#listeners-default-jwt-providers): map
+              - [`Path`](#listeners-default-jwt-providers): list
+              - [`Value`](#listeners-default-jwt-providers): string
+  - [`override`](#listeners-override): map
+    - [`JWT`](#listeners-override-jwt): map 
+      - [`Providers`](#listeners-override-jwt-providers): list
+        - [`Name`](#listeners-override-jwt-providers): string
+          - [`VerifyClaims`](#listeners-override-jwt-providers): map
+            - [`Path`](#listeners-override-jwt-providers): list
+            - [`Value`](#listeners-override-jwt-providers): string
+
+
 
 ## Complete configuration
 
@@ -72,6 +88,28 @@ Listeners = [
         }
       ]
     }
+    default = {
+     JWT = {
+      Providers = [
+        Name = "<provider>"
+        VerifyClaims = {
+          Path = ["<path to claim>"]
+          Value = "<value of claim>"
+        }
+      ]
+     } 
+    }
+    override = {
+     JWT = {
+      Providers = [
+        Name = "<provider>"
+        VerifyClaims = {
+          Path = ["<path to claim>"]
+          Value = "<value of claim>"
+        }
+      ]
+     } 
+    }
   }
 ]
 ```
@@ -104,6 +142,36 @@ Listeners = [
             "Partition": "<enterprise: partition of the certificate>"
           }
         ]
+      }
+    },
+    {
+      "default": {
+        "JWT": {
+          "Providers": [
+            {
+              "Name": "<name of provider>",
+              "VerifyClaims": {
+                "Path": ["<path to claim>"],
+                "Value": "<value of the claim>"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "override": {
+        "JWT": {
+          "Providers": [
+            {
+              "Name": "<name of provider>",
+              "VerifyClaims": {
+                "Path": ["<path to claim>"],
+                "Value": "<value of the claim>"
+              }
+            }
+          ]
+        }
       }
     }
   ]
@@ -329,3 +397,166 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 - Default: `"default"` in Enterprise
 - Data type: string
+
+### `Listeners[].default`
+
+Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations. Refer to the [`override` block](#listeners-override) for details.  
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `Listeners[].default{}.JWT`
+
+Specifies a block of default JWT verification configurations to apply to the gateway listener. You can specify override configurations that have precedence over default configurations. Refer to the [`override.JWT` block](#listeners-override) for details.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `Listeners[].default{}.JWT{}.Providers`
+
+Specifies a list of default JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. You can specify override configurations that have precedence over default configurations. Refer to the [`override.JWT.Providers` block](#listeners-override-providers) for details.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+The following table describes the parameters you can specify in a member of the `Providers` list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Name` | Specifies the name of the provider. | String | None |
+| `VerifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <li>`Path`: List of paths to the claims</li><li>`Value`: ???</li> | Map | None |
+
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+
+### `Listeners[].override`
+
+Specifies a block of configurations to apply to the gateway listener. The override settings have  precedence over the [`default` configurations](#listeners-default).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `Listeners[].override{}.JWT`
+
+Specifies a block of JWT verification configurations to apply to the gateway listener. The override settings have  precedence over the [`default` configurations](#listeners-default), as well as any route-specific JWT configurations.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `Listeners[].override{}.JWT{}.Providers`
+
+Specifies a list of JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over defaults as well as any listener specific configuration. 
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+The following table describes the parameters you can specify in a member of the `Providers` list:
+
+| Parameter | Description | Data type | Default |
+| ---       | ---         | ---       | ---     |
+| `Name` | Specifies the name of the provider. | String | None |
+| `VerifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: List of paths to the claims</li><li>`Value`: ???</li></ul> | Map | None |
+
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+
+## Examples
+
+Add the following example to the Examples section.
+
+### Configure JWT verification settings
+
+The following example configures `listener-one` to verify that requests are from clients that have Okta user permissions by default. The listener also verifies claims that  <TODO - need help describing the example>:
+
+<Tabs>
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind = "api-gateway"
+Name = "api-gateway"
+Listeners = [
+    {
+        name = "listener-one"
+        port     = 9001
+        protocol = "http"
+        # override and default are backed by the same type of data structure, see the following section for more on how they interact
+        override = {
+            JWT = {
+                Providers = [
+                    {
+                        Name = "okta",
+                        VerifyClaims = {
+                            Path = ["aud"],
+                            Value = "api.apps.organization.com",
+                        }
+                    },
+                ]
+            }
+        }
+        default = {
+            JWT = {
+                Providers = [
+                     {
+                        Name = "okta",
+                        VerifyClaims = {
+                            Path = ["perms", "role"],
+                            Value = "user",
+                        }
+                    }
+                ]
+            }
+        }
+    }
+]
+```
+</Tab>
+<Tab heading="JSON" group="json">
+
+```json
+{
+  "Kind": "api-gateway",
+  "Name": "api-gateway",
+  "Listeners": [
+    {
+      "name": "listener-one",
+      "port": 9001,
+      "protocol": "http",      
+      "override": {
+        "JWT": {
+          "Providers": [{
+            "Name": "okta",
+            "VerifyClaims": {
+              "Path": ["aud"],
+              "Value": "api.apps.organization.com"
+            }
+          }]
+        }
+      },
+      "default": {
+        "JWT": {
+          "Providers": [{
+              "Name": "okta",
+              "VerifyClaims": {
+                "Path": ["perms", "role"],
+                "Value": "user"
+              }
+            }]
+          }
+        }
+      }
+    ]
+}
+```
+
+</Tab>
+</Tabs>
