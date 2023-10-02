@@ -1,0 +1,26 @@
+---
+layout: docs
+page_title: Configure multi-port services 
+description: Learn how to enable the v2 catalog and configure services to support multiple ports in Consul on Kubernetes. You can configure multiple ports on a single service or multiple services and ports in a single container.
+---
+
+# Configure multi-port services
+
+<Warning>
+Multi-port services are part of a feature preview release for testing and development purposes. Do not use multi-port services or the v2 catalog API in secure production environments. 
+</Warning>
+
+This page describes the process for integrating a service that uses multiple ports in a single container when running Consul on Kubernetes deployments. It included example configurations for an end-to-end deployment test.
+## Prerequisites
+
+Registering multi-port services with Consul has the following software prerequisites:
+
+`kubectl` v xx
+`consul` v1.17.0
+`consul-k8s` v1.1.0 or Consul Helm chart release v1.1.0
+
+Configuring multi-port services for service discovery does not have additional prerequisites.
+
+Consul’s transparent proxy for service mesh, which enables Kube DNS instead of Consul DNS through permissive mTLS settings, has additional prerequisites. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow). 
+
+## Enable the v2 catalog
