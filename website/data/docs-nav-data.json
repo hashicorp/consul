@@ -711,6 +711,10 @@
                   {
                     "title": "Verify incoming requests with JWTs on virtual machines",
                     "path": "connect/gateways/api-gateway/secure-traffic/verify-jwts-vms"
+                  },
+                  {
+                    "title": "Verify incoming requests with JWTs on Kubernetes",
+                    "path": "connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s"
                   }
                 ]
               },
