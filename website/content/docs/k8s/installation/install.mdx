@@ -104,6 +104,17 @@ NAME: consul
 ...
 ```
 
+### Install Consul on OpenShift clusters
+
+Red Hat OpenShift is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, add the following parameters to the `global` field of your values file:
+
+```yaml
+  openshift:
+    enabled: true
+ ```
+ 
+Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-global-openshift) for additional information.  
+
 ### Enable the Consul CNI plugin
 
 By default, Consul injects a `connect-inject-init` init container as part of the Kubernetes pod startup process when Consul is in [transparent proxy mode](/consul/docs/connect/transparent-proxy).
