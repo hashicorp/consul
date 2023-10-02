@@ -707,6 +707,10 @@
                   {
                     "title": "Encrypt traffic on virtual machines",
                     "path": "connect/gateways/api-gateway/secure-traffic/encrypt-vms"
+                  },
+                  {
+                    "title": "Verify incoming requests with JWTs on virtual machines",
+                    "path": "connect/gateways/api-gateway/secure-traffic/verify-jwts-vms"
                   }
                 ]
               },
