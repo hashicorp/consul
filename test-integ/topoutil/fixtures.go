@@ -14,6 +14,7 @@ const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
 func NewFortioServiceWithDefaults(
 	cluster string,
 	sid topology.ServiceID,
+	nodeVersion topology.NodeVersion,
 	mut func(s *topology.Service),
 ) *topology.Service {
 	const (
@@ -26,7 +27,6 @@ func NewFortioServiceWithDefaults(
 	svc := &topology.Service{
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/fortio/fortio",
-		Port:           httpPort,
 		EnvoyAdminPort: adminPort,
 		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
 		Env: []string{
@@ -39,6 +39,17 @@ func NewFortioServiceWithDefaults(
 			"-redirect-port", "-disabled",
 		},
 	}
+
+	if nodeVersion == topology.NodeVersionV2 {
+		svc.Ports = map[string]int{
+			"http":     httpPort,
+			"http-alt": httpPort,
+			"grpc":     grpcPort,
+		}
+	} else {
+		svc.Port = httpPort
+	}
+
 	if mut != nil {
 		mut(svc)
 	}

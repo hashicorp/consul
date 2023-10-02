@@ -513,12 +513,12 @@ jobs:
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           export NOLOGBUFFER=1
-          cd ./test-integ/connect
+          cd ./test-integ
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
             --raw-command \
             --format=standard-verbose \
             --debug \
-            --packages="./..." \
+            --packages="./catalogv2/... ./connect/..." \
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
@@ -527,6 +527,8 @@ jobs:
             -json . \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local
+            --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --latest-version latest
         env:
           # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml

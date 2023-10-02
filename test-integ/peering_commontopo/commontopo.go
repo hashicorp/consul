@@ -444,5 +444,5 @@ func NewFortioServiceWithDefaults(
 	sid topology.ServiceID,
 	mut func(s *topology.Service),
 ) *topology.Service {
-	return topoutil.NewFortioServiceWithDefaults(cluster, sid, mut)
+	return topoutil.NewFortioServiceWithDefaults(cluster, sid, topology.NodeVersionV1, mut)
 }

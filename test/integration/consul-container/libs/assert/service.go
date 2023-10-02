@@ -12,12 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/testing/deployer/util"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 )
 
@@ -25,6 +29,72 @@ const (
 	defaultHTTPTimeout = 120 * time.Second
 	defaultHTTPWait    = defaultWait
 )
+
+// CatalogV2ServiceExists verifies the service name exists in the Consul catalog
+func CatalogV2ServiceExists(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy) {
+	t.Helper()
+	catalogV2ServiceHasEndpointCount(t, client, svc, tenancy, -1)
+}
+
+// CatalogV2ServiceDoesNotExist verifies the service name does not exist in the Consul catalog
+func CatalogV2ServiceDoesNotExist(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy) {
+	t.Helper()
+	ctx := testutil.TestContext(t)
+	retry.Run(t, func(r *retry.R) {
+		got, err := util.GetDecodedResource[*pbcatalog.Service](ctx, client, &pbresource.ID{
+			Type:    pbcatalog.ServiceType,
+			Name:    svc,
+			Tenancy: tenancy,
+		})
+		require.NoError(r, err, "error reading service data")
+		require.Nil(r, got, "unexpectedly found Service resource for %q", svc)
+
+		got2, err := util.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, client, &pbresource.ID{
+			Type:    pbcatalog.ServiceEndpointsType,
+			Name:    svc,
+			Tenancy: tenancy,
+		})
+		require.NotNil(r, err, "error reading service data")
+		require.Nil(r, got2, "unexpectedly found ServiceEndpoints resource for %q", svc)
+	})
+}
+
+// CatalogV2ServiceHasEndpointCount verifies the service name exists in the Consul catalog and has the specified
+// number of workload endpoints.
+func CatalogV2ServiceHasEndpointCount(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy, count int) {
+	t.Helper()
+	require.True(t, count > 0)
+
+	catalogV2ServiceHasEndpointCount(t, client, svc, tenancy, count)
+}
+
+func catalogV2ServiceHasEndpointCount(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy, count int) {
+	t.Helper()
+	require.False(t, count == 0)
+
+	ctx := testutil.TestContext(t)
+	retry.Run(t, func(r *retry.R) {
+		got, err := util.GetDecodedResource[*pbcatalog.Service](ctx, client, &pbresource.ID{
+			Type:    pbcatalog.ServiceType,
+			Name:    svc,
+			Tenancy: tenancy,
+		})
+		require.NoError(r, err, "error reading service data")
+		require.NotNil(r, got, "did not find Service resource for %q", svc)
+
+		got2, err := util.GetDecodedResource[*pbcatalog.ServiceEndpoints](ctx, client, &pbresource.ID{
+			Type:    pbcatalog.ServiceEndpointsType,
+			Name:    svc,
+			Tenancy: tenancy,
+		})
+		require.NoError(r, err, "error reading service data")
+		require.NotNil(r, got2, "did not find ServiceEndpoints resource for %q", svc)
+		require.NotEmpty(r, got2.Data.Endpoints, "did not find any workload data in the ServiceEndpoints resource for %q", svc)
+		if count > 0 {
+			require.Len(r, got2.Data.Endpoints, count)
+		}
+	})
+}
 
 // CatalogServiceExists verifies the service name exists in the Consul catalog
 func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
@@ -36,6 +106,15 @@ func CatalogServiceExists(t *testing.T, c *api.Client, svc string, opts *api.Que
 		if len(services) == 0 {
 			r.Fatalf("did not find catalog entry for %q with opts %#v", svc, opts)
 		}
+	})
+}
+
+// CatalogServiceDoesNotExist verifies the service name does not exist in the Consul catalog
+func CatalogServiceDoesNotExist(t *testing.T, c *api.Client, svc string, opts *api.QueryOptions) {
+	retry.Run(t, func(r *retry.R) {
+		services, _, err := c.Catalog().Service(svc, "", opts)
+		require.NoError(r, err, "error reading service data")
+		require.Empty(r, services)
 	})
 }
 
@@ -63,6 +142,17 @@ func CatalogNodeExists(t *testing.T, c *api.Client, nodeName string) {
 		if node == nil {
 			r.Fatal("did not find node entry for", nodeName)
 		}
+	})
+}
+
+// CatalogNodeDoesNotExist verifies the node name does not exist in the Consul catalog
+func CatalogNodeDoesNotExist(t *testing.T, c *api.Client, nodeName string) {
+	retry.Run(t, func(r *retry.R) {
+		node, _, err := c.Catalog().Node(nodeName, nil)
+		if err != nil {
+			r.Fatal("error reading node data")
+		}
+		require.Nil(r, node)
 	})
 }
 
@@ -105,6 +195,7 @@ func HTTPServiceEchoesWithClient(t *testing.T, client *http.Client, addr string,
 func HTTPServiceEchoesResHeader(t *testing.T, ip string, port int, path string, expectedResHeader map[string]string) {
 	doHTTPServiceEchoes(t, ip, port, path, nil, expectedResHeader)
 }
+
 func HTTPServiceEchoesResHeaderWithClient(t *testing.T, client *http.Client, addr string, path string, expectedResHeader map[string]string) {
 	doHTTPServiceEchoesWithClient(t, client, addr, path, nil, expectedResHeader)
 }
@@ -142,7 +233,7 @@ func doHTTPServiceEchoesWithClient(
 
 		reader := strings.NewReader(phrase)
 		req, err := http.NewRequest("POST", url, reader)
-		require.NoError(t, err, "could not construct request")
+		require.NoError(r, err, "could not construct request")
 
 		for k, v := range requestHeaders {
 			req.Header.Add(k, v)

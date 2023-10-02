@@ -237,6 +237,15 @@ func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
 				if err != nil {
 					return fmt.Errorf("could not create policy: %w", err)
 				}
+			} else {
+				if svc.IsV2() {
+					// TODO: temporary until workload identities exist on ACLToken
+					var err error
+					overridePolicy, err = CreateOrUpdatePolicy(client, policyForWorkloadIdentityHACK(svc, cluster.Enterprise))
+					if err != nil {
+						return fmt.Errorf("could not create policy: %w", err)
+					}
+				}
 			}
 
 			token, err := CreateOrUpdateToken(client, tokenForService(svc, overridePolicy, cluster.Enterprise))

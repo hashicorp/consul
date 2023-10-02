@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -40,6 +41,7 @@ type SprawlLite interface {
 	HTTPClientForCluster(clusterName string) (*http.Client, error)
 	APIClientForNode(clusterName string, nid topology.NodeID, token string) (*api.Client, error)
 	APIClientForCluster(clusterName string, token string) (*api.Client, error)
+	ResourceServiceClientForCluster(clusterName string) pbresource.ResourceServiceClient
 	Topology() *topology.Topology
 }
 
@@ -214,37 +216,43 @@ func (a *Asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, 
 	)
 }
 
+type testingT interface {
+	require.TestingT
+	Helper()
+}
+
 // does a fortio /fetch2 to the given fortio service, targetting the given upstream. Returns
 // the body, and response with response.Body already Closed.
 //
 // We treat 400, 503, and 504s as retryable errors
-func (a *Asserter) fortioFetch2Upstream(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, path string) (body []byte, res *http.Response) {
+func (a *Asserter) fortioFetch2Upstream(
+	t testingT,
+	client *http.Client,
+	addr string,
+	upstream *topology.Upstream,
+	path string,
+) (body []byte, res *http.Response) {
 	t.Helper()
 
 	// TODO: fortioSvc.ID.Normalize()? or should that be up to the caller?
 
-	node := fortioSvc.Node
-	client := a.mustGetHTTPClient(t, node.Cluster)
-	urlbase := fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.Port)
-
-	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", urlbase,
+	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", addr,
 		url.QueryEscape(fmt.Sprintf("http://localhost:%d/%s", upstream.LocalPort, path)),
 	)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	require.NoError(t, err)
-	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		res, err = client.Do(req)
-		require.NoError(r, err)
-		defer res.Body.Close()
-		// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
-		require.NotEqual(r, http.StatusServiceUnavailable, res.StatusCode)
-		require.NotEqual(r, http.StatusGatewayTimeout, res.StatusCode)
-		// not sure when this happens, suspect it's when envoy hasn't configured the local upstream yet
-		require.NotEqual(r, http.StatusBadRequest, res.StatusCode)
-		body, err = io.ReadAll(res.Body)
-		require.NoError(r, err)
-	})
+
+	res, err = client.Do(req)
+	require.NoError(t, err)
+	defer res.Body.Close()
+	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
+	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
+	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
+	// not sure when this happens, suspect it's when envoy hasn't configured the local upstream yet
+	require.NotEqual(t, http.StatusBadRequest, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
 
 	return body, res
 }
@@ -256,11 +264,17 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 	const passphrase = "hello"
 	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
 
+	var (
+		node   = fortioSvc.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		client = a.mustGetHTTPClient(t, node.Cluster)
+	)
+
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		_, res := a.fortioFetch2Upstream(t, fortioSvc, upstream, path)
-		require.Equal(t, http.StatusOK, res.StatusCode)
+		_, res := a.fortioFetch2Upstream(r, client, addr, upstream, path)
+		require.Equal(r, http.StatusOK, res.StatusCode)
 		v := res.Header.Get(kPassphrase)
-		require.Equal(t, passphrase, v)
+		require.Equal(r, passphrase, v)
 	})
 }
 
@@ -270,12 +284,18 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 func (a *Asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, clusterName string, sid topology.ServiceID) {
 	t.Helper()
 
+	var (
+		node   = fortioSvc.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		client = a.mustGetHTTPClient(t, node.Cluster)
+	)
+
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
 	path := "/debug?env=dump"
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-		body, res := a.fortioFetch2Upstream(t, fortioSvc, upstream, path)
-		require.Equal(t, http.StatusOK, res.StatusCode)
+		body, res := a.fortioFetch2Upstream(r, client, addr, upstream, path)
+		require.Equal(r, http.StatusOK, res.StatusCode)
 
 		// TODO: not sure we should retry these?
 		m := fortioNameRE.FindStringSubmatch(string(body))
