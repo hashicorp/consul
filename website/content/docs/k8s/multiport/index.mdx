@@ -7,7 +7,7 @@ description: Consul on Kubernetes supports multi-port services for both service 
 # Multi-port services for service discovery and service mesh
 
 <Warning>
-Multi-port services are part of a beta release for testing and development purposes. Do not use multi-port services or the v2 catalog API in secure production environments.
+Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
 </Warning>
 
 This topic describes using a service with multiple ports running in a single container on Consul on Kubernetes deployments.
@@ -20,7 +20,9 @@ When Consul registers services, its catalog API tracks the following information
 - The locations of the _nodes_ the instances run on
 - The names of the _services_ the instances are associated with
 
-This catalog API was designed prior to the introduction of Consul’s service mesh features. Since that time, workarounds for common networking needs developed. For example, while the catalog API does not support multi-port services natively, you can register a service with multiple ports by scheduling it in two containers. The following example code demonstrates how a multi-port service could be configured in Kubernetes in order to function with the existing Consul Catalog:
+This catalog API was designed prior to the introduction of Consul’s service mesh features. Since that time, workarounds for common networking needs developed. For example, while the catalog API does not support multi-port services natively, you can register a service with multiple ports by scheduling it in two containers.
+
+The following example code demonstrates how a multi-port service could be scheduled in Kubernetes in order to function with the existing Consul catalog:
 
 <CodeBlockConfig hideClipboard>
 
@@ -61,7 +63,7 @@ spec:
         app: api
       annotations:
         "consul.hashicorp.com/mesh-inject": "true"
-        "consul.hashicorp.com/transparent-proxy': "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
     spec:
       containers:
         - name: api
