@@ -27,7 +27,7 @@ Consul’s transparent proxy for service mesh, which enables Kube DNS instead of
 
 To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]`. The following example configuration shows this parameter in the Helm chart’s context:
 
-<CodeBlockConfig name=”values.yaml”>
+<CodeBlockConfig name="values.yaml">
 
 ```yaml
 global:
@@ -40,7 +40,7 @@ Then apply the updates to your Kubernetes cluster using either the `consul-k8s` 
 
 <Tabs>
 
-<Tab heading="`consul-k8s CLI`" group=”consul-k8s”>
+<Tab heading="consul-k8s CLI" group="consul-k8s">
 
 ```shell-session
 $ consul-k8s install -config-file=values.yaml
@@ -48,10 +48,10 @@ $ consul-k8s install -config-file=values.yaml
 
 </Tab>
 
-<Tab heading="`kubectl`" group=”helm”>
+<Tab heading="Helm" group="helm">
 
 ```shell-session
-$ kubectl apply -f values.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
 ```
 
 </Tab>
@@ -65,7 +65,7 @@ The following example configures two pods. The first pod contains two services, 
 
 <CodeTabs>
 
-<CodeBlockConfig filename=”api.yaml”>
+<CodeBlockConfig filename="api.yaml">
 
 ```yaml
 apiVersion: v1
