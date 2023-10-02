@@ -1,62 +1,126 @@
 ---
 layout: docs
 page_title: Multi-port services for service discovery and service mesh
-description: Consul on Kubernetes supports multi-port services for both service discovery and service mesh scenarios. Learn about Consul’s catalog changes to support multiple ports for a service running in a single container.
+description: Consul on Kubernetes supports multi-port services for both service discovery and service mesh scenarios. Learn about Consul’s v2 catalog changes to support multiple ports for a service running in a single container.
 ---
 
 # Multi-port services for service discovery and service mesh
 
 <Warning>
-Multi-port services are part of a feature preview release for testing and development purposes. Do not use multi-port services or the v2 catalog API in secure production environments. 
+Multi-port services are part of a beta release for testing and development purposes. Do not use multi-port services or the v2 catalog API in secure production environments.
 </Warning>
 
-This topic describes using a service with multiple ports running in a single container on Consul on Kubernetes deployments. 
+This topic describes using a service with multiple ports running in a single container on Consul on Kubernetes deployments.
 
 ## Background
 
 When Consul registers services, its catalog API tracks the following information:
 
-The IDs of the specific _service instances_ that are registered
-The locations of the _nodes_ the instances run on
-The names of the _services_ the instances are associated with
+- The IDs of the specific _service instances_ that are registered
+- The locations of the _nodes_ the instances run on
+- The names of the _services_ the instances are associated with
 
-This catalog API was designed prior to the introduction of Consul’s service mesh features. Since that time, workarounds for common networking needs developed. For example, while Consul does not support multi-port services natively, you can register a service with multiple ports as separate service instances. This deployment model emulates an environment with multiple ports by associating each port with its own dedicated service instance. However, this workaround requires additional resource consumption so that Kubernetes can run multiple instances of a service in separate containers. 
+This catalog API was designed prior to the introduction of Consul’s service mesh features. Since that time, workarounds for common networking needs developed. For example, while the catalog API does not support multi-port services natively, you can register a service with multiple ports by scheduling it in two containers. The following example code demonstrates how a multi-port service could be configured in Kubernetes in order to function with the existing Consul Catalog:
 
-### Catalog API v2 feature preview
+<CodeBlockConfig hideClipboard>
 
-Consul v1.17.0 introduces a new version of the catalog API designed to bridge differences between the Consul and Kubernetes data models. The v2 catalog API tracks the following information about services when they are registered with Consul:
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: api
+      port: 80
+      targetPort: api
+    - name: admin
+      port: 90
+      targetPort: admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      name: api
+      labels:
+        app: api
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy': "true"
+    spec:
+      containers:
+        - name: api
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: api
+        - name: api-admin
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          args:
+            - -text="hello world from 9090 admin"
+            - -listen=:9090
+          ports:
+            - containerPort: 9090
+              name: admin
+      serviceAccountName: api
+```
 
-`Service` is a Consul service.
-`Workload` is a partial replacement for the Consul service instance.
-`Node` is a Consul node. 
-`HealthStatus` is a resource for reporting the health status of a workload. This resource does not handle health check definitions.
-`HealthCheck` is a resource for defining the health checks for a workload. This resource does not report health check status.
-`ProxyConfiguration` represents a configuration for a sidecar or a gateway proxy. This resource is largely equivalent to the `Proxy` field in the current service definition. 
-`Destinations` represents explicit service upstreams.
-`ServiceEndpoints` maps services to workload addresses and points. This resource is computed by Consul.
-`VirtualIPs` stores user-provided and auto-generated virtual IPs for a service. This resource is computed by Consul.
-`DNSPolicy` represents policy used for DNS resolution of services. 
-`TrafficPermissions`
-`WorkloadIdentities`
+</CodeBlockConfig>
 
-The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This feature preview release is for testing and development purposes only. Production environment migrations are not required at this time.
+This deployment model emulates an environment with multiple ports by associating the `api` and `admin` services with their own dedicated service instances. However, this workaround requires additional resource consumption so that Kubernetes can run multiple instances of a service in separate containers.
+
+### Catalog API v2 beta
+
+Consul v1.17 introduces a new version of the catalog API designed to bridge differences between the Consul and Kubernetes data models. The v2 catalog API tracks the following information about services when they are registered with Consul:
+
+- `Service` is service in the Consul catalog.
+- `Workload` is a partial replacement for the Consul service instance. It is a resource equivalent to [Kubernetes Workloads](https://kubernetes.io/docs/concepts/workloads/)
+- `WorkloadIdentities` is a partial replacement for the Consul service instance.
+- `Node` is a Consul node.
+- `ServiceEndpoints` maps services to workload addresses and points. This resource is computed by Consul.
+- `HealthStatus` is a resource for reporting the health status of a workload.
+- `HealthCheck` is a resource for defining the health checks for a workload.
+- `ProxyConfiguration` represents a configuration for a sidecar or a gateway proxy. This resource is largely equivalent to the `Proxy` field in the current service definition.
+- `Destinations` represents explicit service upstreams.
+- `TrafficPermissions` is a replacement for the `ServiceIntentions` Custom Resource Definition (CRD). Traffic permissions replace service intentions for multi-port services, enabling authorization of L4 traffic according to workload identity instead of service identity.
+
+The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This beta release is for testing and development purposes only. Production environment migrations are not suggested at this time.
 
 ## Workflow
 
 To use a multi-port service in Consul on Kubernetes deployments, complete the following steps:
 
-Enable the v2 catalog. Update the server agent configuration, then apply the change to your Kubernetes cluster.
-Register the service. Create the service definition with configured ports and register it with Consul.
-Configure traffic permissions. Traffic permissions replace service intentions for multi-port services, enabling authorization of L4 traffic according to workload identity instead of service identity. Traffic permissions are required to authorize connections between multi-port services and their upstreams.
-Confirm multi-port functionality. Send test traffic to each port to confirm that traffic is authorized and routed correctly.
+1. Enable the v2 catalog. Update the server agent configuration and then apply the change to your Kubernetes cluster.
+1. Use the `"consul.hashicorp.com/mesh-inject": "true"` annotation so that Consul registers the service automatically when Kubernetes deploys containers.
+1. Configure traffic permissions. In the beta release, the all services registered to the v2 catalog allow all traffic by default. You can use `TrafficPermissions` to deny traffic to individual services for testing purposes.
+1. Confirm multi-port functionality. Send test traffic to each port to confirm that traffic is authorized and routed correctly.
 
-For instructions and an example configuration for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
+For an example configuration and instructions for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
 ## Constraints and limitations
 
 Be aware of the following constraints and technical limitations on using multi-port services and the v2 catalog API:
 
-The v2 catalog API feature preview does not support connections with client agents. As a result, it is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
-The v1 and v2 catalog APIs cannot run concurrently. 
-The Consul UI does not support multi-port services or the v2 catalog API in this release.
-HCP Consul does not support multi-port services or the v2 catalog API in this release.
+- The v2 catalog API beta does not support connections with client agents. It is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
+- The v1 and v2 catalog APIs cannot run concurrently.
+- The Consul UI does not support multi-port services or the v2 catalog API in this release.
+- HCP Consul does not support multi-port services or the v2 catalog API in this release.
+- The v2 catalog API does not support ACLs in this release.
