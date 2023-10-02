@@ -64,23 +64,23 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	workloads := []*workloadData{
 		{
 			// this workload should result in an endpoints
-			resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			Resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
 				WithData(t, workloadData1).
 				Build(),
-			workload: workloadData1,
+			Data: workloadData1,
 		},
 		{
 			// this workload should be filtered out
-			resource: rtest.Resource(pbcatalog.WorkloadType, "bar").
+			Resource: rtest.Resource(pbcatalog.WorkloadType, "bar").
 				WithData(t, workloadData2).
 				Build(),
-			workload: workloadData2,
+			Data: workloadData2,
 		},
 	}
 
 	endpoints := workloadsToEndpoints(service, workloads)
 	require.Len(t, endpoints.Endpoints, 1)
-	prototest.AssertDeepEqual(t, workloads[0].resource.Id, endpoints.Endpoints[0].TargetRef)
+	prototest.AssertDeepEqual(t, workloads[0].Resource.Id, endpoints.Endpoints[0].TargetRef)
 }
 
 func TestWorkloadToEndpoint(t *testing.T) {
@@ -128,14 +128,14 @@ func TestWorkloadToEndpoint(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+		Resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
-		workload: workload,
+		Data: workload,
 	}
 
 	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
+		TargetRef: data.Resource.Id,
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{Host: "127.0.0.1", Ports: []string{"http"}},
 			{Host: "198.18.1.1", Ports: []string{"http"}},
@@ -176,10 +176,10 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+		Resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
-		workload: workload,
+		Data: workload,
 	}
 
 	require.Nil(t, workloadToEndpoint(service, data))
@@ -205,14 +205,14 @@ func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+		Resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
-		workload: workload,
+		Data: workload,
 	}
 
 	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
+		TargetRef: data.Resource.Id,
 		Addresses: []*pbcatalog.WorkloadAddress{
 			{Host: "127.0.0.1", Ports: []string{"test-port"}},
 		},
@@ -439,7 +439,6 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	tracker    *selectiontracker.WorkloadSelectionTracker
 	reconciler *serviceEndpointsReconciler
 }
 
@@ -451,17 +450,7 @@ func (suite *controllerSuite) SetupTest() {
 		Logger: testutil.Logger(suite.T()),
 	}
 	suite.client = rtest.NewClient(client)
-	suite.tracker = selectiontracker.New()
-	suite.reconciler = newServiceEndpointsReconciler(suite.tracker)
-}
-
-func (suite *controllerSuite) requireTracking(workload *pbresource.Resource, ids ...*pbresource.ID) {
-	reqs, err := suite.tracker.MapWorkload(suite.ctx, suite.rt, workload)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, len(ids))
-	for _, id := range ids {
-		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
-	}
+	suite.reconciler = newServiceEndpointsReconciler()
 }
 
 func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, expected ...*pbcatalog.Endpoint) {
@@ -469,34 +458,6 @@ func (suite *controllerSuite) requireEndpoints(resource *pbresource.Resource, ex
 	require.NoError(suite.T(), resource.Data.UnmarshalTo(&svcEndpoints))
 	require.Len(suite.T(), svcEndpoints.Endpoints, len(expected))
 	prototest.AssertElementsMatch(suite.T(), expected, svcEndpoints.Endpoints)
-}
-
-func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
-	// This test's purpose is to ensure that when we are reconciling
-	// endpoints for a service that no longer exists, we stop
-	// tracking the endpoints resource ID in the selection tracker.
-
-	// generate a workload resource to use for checking if it maps
-	// to a service endpoints object
-	workload := rtest.Resource(pbcatalog.WorkloadType, "foo").Build()
-
-	// ensure that the tracker knows about the service prior to
-	// calling reconcile so that we can ensure it removes tracking
-	id := rtest.Resource(pbcatalog.ServiceEndpointsType, "not-found").ID()
-	suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
-
-	// verify that mapping the workload to service endpoints returns a
-	// non-empty list prior to reconciliation which should remove the
-	// tracking.
-	suite.requireTracking(workload, id)
-
-	// Because the endpoints don't exist, this reconcile call should
-	// cause tracking of the endpoints to be removed
-	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-	require.NoError(suite.T(), err)
-
-	// Now ensure that the tracking was removed
-	suite.requireTracking(workload)
 }
 
 func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
@@ -669,7 +630,7 @@ func (suite *controllerSuite) TestController() {
 
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(ServiceEndpointsController(suite.tracker))
+	mgr.Register(ServiceEndpointsController())
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 

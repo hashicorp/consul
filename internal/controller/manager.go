@@ -70,7 +70,7 @@ func (m *Manager) Run(ctx context.Context) {
 		if logger == nil {
 			logger = m.logger.With("managed_type", resource.ToGVK(desc.managedType))
 		}
-
+	
 		runner := &controllerRunner{
 			ctrl:   desc,
 			client: m.client,

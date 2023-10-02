@@ -6,10 +6,10 @@ package workloadhealth
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
-	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +18,6 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -120,7 +119,6 @@ func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog
 type workloadHealthControllerTestSuite struct {
 	controllerSuite
 
-	mapper     *nodemapper.NodeMapper
 	reconciler *workloadHealthReconciler
 }
 
@@ -128,10 +126,7 @@ func (suite *workloadHealthControllerTestSuite) SetupTest() {
 	// invoke all the other suite setup
 	suite.controllerSuite.SetupTest()
 
-	suite.mapper = nodemapper.New()
-	suite.reconciler = &workloadHealthReconciler{
-		nodeMap: suite.mapper,
-	}
+	suite.reconciler = &workloadHealthReconciler{}
 }
 
 // testReconcileWithNode will inject a node with the given health, a workload
@@ -161,22 +156,6 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 	})
 
 	require.NoError(suite.T(), err)
-
-	// ensure that the node is now being tracked by the mapper
-	reqs, err := suite.mapper.MapNodeToWorkloads(context.Background(), suite.runtime, node)
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, 1)
-	protocmp.Transform()
-	prototest.AssertDeepEqual(suite.T(), workload.Id, reqs[0].ID, protocmp.IgnoreFields(workload.Id, "uid"))
-
-	suite.T().Cleanup(func() {
-		// future calls to reconcile would normally have done this as the resource was
-		// removed. In the case of reconcile being called manually, when the resources
-		// are automatically removed, the tracking will be stale. In most tests this step
-		// to remove the tracking should be unnecessary as they will not be reusing a
-		// mapper between subtests and so it will get "removed" as the mapper is gc'ed.
-		suite.mapper.UntrackWorkload(workload.Id)
-	})
 
 	return suite.checkWorkloadStatus(workload.Id, status)
 }
@@ -391,24 +370,6 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		Build()
 
-	node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
-		WithData(suite.T(), nodeData).
-		// Whether this gets written or not doesn't matter
-		Build()
-
-	// Track the workload - this simulates a previous round of reconciliation
-	// where the workload existed and was associated to the node. Other tests
-	// will cover more of the lifecycle of the controller so for the purposes
-	// of this test we can just inject it ourselves.
-	suite.mapper.TrackWorkload(workload.Id, node.Id)
-
-	// check that the worklooad is in fact tracked properly
-	reqs, err := suite.mapper.MapNodeToWorkloads(context.Background(), suite.runtime, node)
-
-	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, 1)
-	prototest.AssertDeepEqual(suite.T(), workload.Id, reqs[0].ID)
-
 	// This workload was never actually inserted so the request should return a NotFound
 	// error and remove the workload from tracking
 	require.NoError(
@@ -417,11 +378,6 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 			context.Background(),
 			suite.runtime,
 			controller.Request{ID: workload.Id}))
-
-	// Check the mapper again to ensure the node:workload association was removed.
-	reqs, err = suite.mapper.MapNodeToWorkloads(context.Background(), suite.runtime, node)
-	require.NoError(suite.T(), err)
-	require.Empty(suite.T(), reqs)
 }
 
 func (suite *workloadHealthControllerTestSuite) TestGetNodeHealthError() {
@@ -490,7 +446,7 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	mgr := controller.NewManager(suite.client, testutil.Logger(suite.T()))
 
 	// register our controller
-	mgr.Register(WorkloadHealthController(suite.mapper))
+	mgr.Register(WorkloadHealthController())
 	mgr.SetRaftLeader(true)
 	ctx, cancel := context.WithCancel(context.Background())
 	suite.T().Cleanup(cancel)

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/indexers"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -24,41 +25,15 @@ var (
 	errNodeHealthConditionNotFound = fmt.Errorf("Node health status is missing the %s condition", nodehealth.StatusConditionHealthy)
 )
 
-// The NodeMapper interface is used to provide an implementation around being able to
-// map a watch event for a Node resource and translate it to reconciliation requests
-// for all Workloads assigned to that node.
-type NodeMapper interface {
-	// MapNodeToWorkloads will take a Node resource and return controller requests
-	// for all Workloads associated with the Node.
-	MapNodeToWorkloads(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
-
-	// TrackWorkload instructs the NodeMapper to associate the given workload
-	// ID with the given node ID.
-	TrackWorkload(workloadID *pbresource.ID, nodeID *pbresource.ID)
-
-	// UntrackWorkload instructs the Nodemapper to forget about any
-	// association it was tracking for this workload.
-	UntrackWorkload(workloadID *pbresource.ID)
-
-	// NodeIDFromWorkload is used to generate the resource ID for the Node referenced
-	// within the NodeName field of the Workload.
-	NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID
-}
-
-func WorkloadHealthController(nodeMap NodeMapper) controller.Controller {
-	if nodeMap == nil {
-		panic("No NodeMapper was provided to the WorkloadHealthController constructor")
-	}
-
+func WorkloadHealthController() controller.Controller {
 	return controller.ForType(pbcatalog.WorkloadType).
+		WithIndex(pbcatalog.WorkloadType, "node", indexers.WorkloadNodeIndexer()).
 		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.WorkloadType)).
-		WithWatch(pbcatalog.NodeType, nodeMap.MapNodeToWorkloads).
-		WithReconciler(&workloadHealthReconciler{nodeMap: nodeMap})
+		WithWatch(pbcatalog.NodeType, controller.CacheListMapper(pbcatalog.WorkloadType, "node")).
+		WithReconciler(&workloadHealthReconciler{})
 }
 
-type workloadHealthReconciler struct {
-	nodeMap NodeMapper
-}
+type workloadHealthReconciler struct{}
 
 func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
@@ -68,31 +43,24 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	rt.Logger.Trace("reconciling workload health")
 
 	// read the workload
-	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
-	switch {
-	case status.Code(err) == codes.NotFound:
-		rt.Logger.Trace("workload has been deleted")
-		r.nodeMap.UntrackWorkload(req.ID)
-		return nil
-	case err != nil:
+	workload, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, rt.Client, req.ID)
+	if err != nil {
 		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
 		return err
 	}
 
-	res := rsp.Resource
-	var workload pbcatalog.Workload
-	if err := res.Data.UnmarshalTo(&workload); err != nil {
-		// This should be impossible and will not be exercised in tests. Various
-		// type validations on admission ensure that all Workloads would
-		// be marshallable in this way.
-		rt.Logger.Error("error unmarshalling workload data", "error", err)
-		return err
+	if workload == nil {
+		rt.Logger.Debug("workload has been deleted")
+		return nil
 	}
 
 	nodeHealth := pbcatalog.Health_HEALTH_PASSING
-	if workload.NodeName != "" {
-		nodeID := r.nodeMap.NodeIDFromWorkload(res, &workload)
-		r.nodeMap.TrackWorkload(res.Id, nodeID)
+	if workload.Data.NodeName != "" {
+		nodeID := &pbresource.ID{
+			Type:    pbcatalog.NodeType,
+			Tenancy: workload.Resource.Id.Tenancy,
+			Name:    workload.Data.NodeName,
+		}
 
 		// It is important that getting the nodes health happens after tracking the
 		// Workload with the node mapper. If the order were reversed we could
@@ -104,9 +72,6 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 			rt.Logger.Error("error looking up node health", "error", err, "node-id", nodeID)
 			return err
 		}
-	} else {
-		// the node association may be been removed so stop tracking it.
-		r.nodeMap.UntrackWorkload(res.Id)
 	}
 
 	// passing the workload from the response because getWorkloadHealth uses
@@ -127,18 +92,18 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	}
 
 	condition := WorkloadConditions[workloadHealth]
-	if workload.NodeName != "" {
+	if workload.Data.NodeName != "" {
 		condition = NodeAndWorkloadConditions[workloadHealth][nodeHealth]
 	}
 
 	newStatus := &pbresource.Status{
-		ObservedGeneration: res.Generation,
+		ObservedGeneration: workload.Resource.Generation,
 		Conditions: []*pbresource.Condition{
 			condition,
 		},
 	}
 
-	if resource.EqualStatus(res.Status[StatusKey], newStatus, false) {
+	if resource.EqualStatus(workload.Resource.Status[StatusKey], newStatus, false) {
 		rt.Logger.Trace("resources workload health status is unchanged",
 			"health", health.String(),
 			"node-health", nodeHealth.String(),
@@ -147,7 +112,7 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	}
 
 	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-		Id:     res.Id,
+		Id:     workload.Resource.Id,
 		Key:    StatusKey,
 		Status: newStatus,
 	})

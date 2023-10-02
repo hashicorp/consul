@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -65,5 +66,94 @@ func ReplaceType(desiredType *pbresource.Type) DependencyMapper {
 				},
 			},
 		}, nil
+	}
+}
+
+func CacheListMapper(indexedType *pbresource.Type, indexName string) DependencyMapper {
+	return func(_ context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapping dependencies from cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+			)
+		}
+		iter, err := rt.Cache.ListIterator(indexedType, indexName, res.GetId())
+		if err != nil {
+			rt.Logger.Error("failed to map dependencies from the cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"error", err,
+			)
+			return nil, fmt.Errorf("failed to list from cache index %q on type %q: %w", indexName, resource.ToGVK(indexedType), err)
+		}
+
+		var results []Request
+		for res := iter.Next(); res != nil; res = iter.Next() {
+			results = append(results, Request{ID: res.GetId()})
+		}
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapped dependencies",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"dependencies", results,
+			)
+		}
+
+		return results, nil
+	}
+}
+
+func CacheParentsMapper(indexedType *pbresource.Type, indexName string) DependencyMapper {
+	return func(_ context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapping dependencies from cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+			)
+		}
+		iter, err := rt.Cache.ParentsIterator(indexedType, indexName, res.GetId())
+		if err != nil {
+			rt.Logger.Error("failed to map dependencies from the cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"error", err,
+			)
+			return nil, fmt.Errorf("failed to list from cache index %q on type %q: %w", indexName, resource.ToGVK(indexedType), err)
+		}
+
+		var results []Request
+		for res := iter.Next(); res != nil; res = iter.Next() {
+			results = append(results, Request{ID: res.GetId()})
+		}
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapped dependencies",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"dependencies", results,
+			)
+		}
+
+		return results, nil
+	}
+}
+
+func WrapAndReplaceType(desiredType *pbresource.Type, mapper DependencyMapper) DependencyMapper {
+	return func(ctx context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
+		reqs, err := mapper(ctx, rt, res)
+		if err != nil {
+			return nil, err
+		}
+
+		for idx, req := range reqs {
+			req.ID = resource.ReplaceType(desiredType, req.ID)
+			reqs[idx] = req
+		}
+		return reqs, nil
 	}
 }

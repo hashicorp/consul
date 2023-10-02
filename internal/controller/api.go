@@ -12,13 +12,18 @@ import (
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
+	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // ForType begins building a Controller for the given resource type.
 func ForType(managedType *pbresource.Type) Controller {
-	return Controller{managedType: managedType}
+	return Controller{
+		managedType: managedType,
+		watches:     make(map[string]*watch),
+		cache:       cache.New(),
+	}
 }
 
 // WithReconciler changes the controller's reconciler.
@@ -28,6 +33,31 @@ func (c Controller) WithReconciler(reconciler Reconciler) Controller {
 	}
 
 	c.reconciler = reconciler
+	return c
+}
+
+// WithIndex will add an cache index for the given resource type
+func (c Controller) WithIndex(indexedType *pbresource.Type, name string, index *cache.Index) Controller {
+	if indexedType == nil {
+		panic("indexedType must not be nil")
+	}
+
+	if name == "" {
+		panic("the index must have a non-empty name")
+	} else if name == "id" {
+		panic("cannot add an index with name 'id'. An index with this name will be automatically generated")
+	}
+
+	if index == nil {
+		panic("indexer must not be nil")
+	}
+
+	c.getOrCreateWatch(indexedType)
+	err := c.cache.AddIndex(indexedType, name, index)
+	if err != nil {
+		panic(err)
+	}
+
 	return c
 }
 
@@ -43,8 +73,27 @@ func (c Controller) WithWatch(watchedType *pbresource.Type, mapper DependencyMap
 		panic("mapper must not be nil")
 	}
 
-	c.watches = append(c.watches, watch{watchedType, mapper})
+	w := c.getOrCreateWatch(watchedType)
+	if w.mapper != nil {
+		panic(fmt.Sprintf("cannot set multiple dependency mappers for the %s type", resource.ToGVK(watchedType)))
+	}
+
+	w.mapper = mapper
 	return c
+}
+
+func (c *Controller) getOrCreateWatch(rtype *pbresource.Type) *watch {
+	gvk := resource.ToGVK(rtype)
+	w, ok := c.watches[gvk]
+	if !ok {
+		w = &watch{
+			watchedType: rtype,
+		}
+		c.watches[gvk] = w
+	}
+	c.cache.AddType(rtype)
+
+	return w
 }
 
 // WithCustomWatch adds a custom watch on the given dependency to the controller. Custom mapper
@@ -90,9 +139,9 @@ func (c Controller) WithPlacement(placement Placement) Controller {
 
 // String returns a textual description of the controller, useful for debugging.
 func (c Controller) String() string {
-	watchedTypes := make([]string, len(c.watches))
-	for idx, w := range c.watches {
-		watchedTypes[idx] = fmt.Sprintf("%q", resource.ToGVK(w.watchedType))
+	watchedTypes := make([]string, 0, len(c.watches))
+	for _, w := range c.watches {
+		watchedTypes = append(watchedTypes, fmt.Sprintf("%q", resource.ToGVK(w.watchedType)))
 	}
 	base, max := c.backoff()
 	return fmt.Sprintf(
@@ -126,16 +175,18 @@ type Controller struct {
 	managedType   *pbresource.Type
 	reconciler    Reconciler
 	logger        hclog.Logger
-	watches       []watch
+	watches       map[string]*watch
 	customWatches []customWatch
 	baseBackoff   time.Duration
 	maxBackoff    time.Duration
 	placement     Placement
+	cache         cache.Cache
 }
 
 type watch struct {
 	watchedType *pbresource.Type
 	mapper      DependencyMapper
+	indexes     map[string]*cache.Index
 }
 
 // Watch is responsible for watching for custom events from source and adding them to
@@ -200,6 +251,7 @@ func (r Request) Key() string {
 type Runtime struct {
 	Client pbresource.ResourceServiceClient
 	Logger hclog.Logger
+	Cache  cache.ReadOnlyCache
 }
 
 // Reconciler implements the business logic of a controller.

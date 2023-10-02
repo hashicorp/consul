@@ -41,6 +41,10 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	})
 
 	for _, w := range c.ctrl.watches {
+		if resource.EqualType(w.watchedType, c.ctrl.managedType) {
+			// we already setup the watch
+			continue
+		}
 		mapQueue := runQueue[mapperRequest](groupCtx, c.ctrl)
 		watcher := w
 		// Watched Type Events → Mapper Queue
@@ -109,13 +113,21 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 			c.logger.Warn("error received from watch", "error", err)
 			return err
 		}
+
+		switch event.Operation {
+		case pbresource.WatchEvent_OPERATION_UPSERT:
+			c.ctrl.cache.Insert(event.Resource)
+		case pbresource.WatchEvent_OPERATION_DELETE:
+			c.ctrl.cache.Delete(event.Resource)
+		}
+
 		add(event.Resource)
 	}
 }
 
 func (c *controllerRunner) runMapper(
 	ctx context.Context,
-	w watch,
+	w *watch,
 	from queue.WorkQueue[mapperRequest],
 	to queue.WorkQueue[Request],
 	mapper func(ctx context.Context, runtime Runtime, itemType queue.ItemType) ([]Request, error),
@@ -234,6 +246,7 @@ func (c *controllerRunner) runtime() Runtime {
 	return Runtime{
 		Client: c.client,
 		Logger: c.logger,
+		Cache:  c.ctrl.cache,
 	}
 }
 

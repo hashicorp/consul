@@ -9,8 +9,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -160,96 +158,6 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		Write(suite.T(), suite.client)
 }
 
-func (suite *reconciliationDataSuite) TestGetServiceData_NotFound() {
-	// This test's purposes is to ensure that NotFound errors when retrieving
-	// the service data are ignored properly.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(pbcatalog.ServiceType, "not-found").WithTenancy(resource.DefaultNamespacedTenancy()).ID())
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetServiceData_ReadError() {
-	// This test's purpose is to ensure that Read errors other than NotFound
-	// are propagated back to the caller. Specifying a resource ID with an
-	// unregistered type is the easiest way to force a resource service error.
-	badType := &pbresource.Type{
-		Group:        "not",
-		Kind:         "found",
-		GroupVersion: "vfake",
-	}
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(badType, "foo").ID())
-	require.Error(suite.T(), err)
-	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetServiceData_UnmarshalError() {
-	// This test's purpose is to ensure that unmarshlling errors are returned
-	// to the caller. We are using a resource id that points to an endpoints
-	// object instead of a service to ensure that the data will be unmarshallable.
-	data, err := getServiceData(suite.ctx, suite.rt, rtest.Resource(pbcatalog.ServiceEndpointsType, "api").ID())
-	require.Error(suite.T(), err)
-	var parseErr resource.ErrDataParse
-	require.ErrorAs(suite.T(), err, &parseErr)
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetServiceData_Ok() {
-	// This test's purpose is to ensure that the happy path for
-	// retrieving a service works as expected.
-	data, err := getServiceData(suite.ctx, suite.rt, suite.apiService.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), data)
-	require.NotNil(suite.T(), data.resource)
-	prototest.AssertDeepEqual(suite.T(), suite.apiService.Id, data.resource.Id)
-	require.Len(suite.T(), data.service.Ports, 1)
-}
-
-func (suite *reconciliationDataSuite) TestGetEndpointsData_NotFound() {
-	// This test's purposes is to ensure that NotFound errors when retrieving
-	// the endpoint data are ignored properly.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(pbcatalog.ServiceEndpointsType, "not-found").ID())
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetEndpointsData_ReadError() {
-	// This test's purpose is to ensure that Read errors other than NotFound
-	// are propagated back to the caller. Specifying a resource ID with an
-	// unregistered type is the easiest way to force a resource service error.
-	badType := &pbresource.Type{
-		Group:        "not",
-		Kind:         "found",
-		GroupVersion: "vfake",
-	}
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(badType, "foo").ID())
-	require.Error(suite.T(), err)
-	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetEndpointsData_UnmarshalError() {
-	// This test's purpose is to ensure that unmarshlling errors are returned
-	// to the caller. We are using a resource id that points to a service object
-	// instead of an endpoints object to ensure that the data will be unmarshallable.
-	data, err := getEndpointsData(suite.ctx, suite.rt, rtest.Resource(pbcatalog.ServiceType, "api").ID())
-	require.Error(suite.T(), err)
-	var parseErr resource.ErrDataParse
-	require.ErrorAs(suite.T(), err, &parseErr)
-	require.Nil(suite.T(), data)
-}
-
-func (suite *reconciliationDataSuite) TestGetEndpointsData_Ok() {
-	// This test's purpose is to ensure that the happy path for
-	// retrieving an endpoints object works as expected.
-	data, err := getEndpointsData(suite.ctx, suite.rt, suite.apiEndpoints.Id)
-	require.NoError(suite.T(), err)
-	require.NotNil(suite.T(), data)
-	require.NotNil(suite.T(), data.resource)
-	prototest.AssertDeepEqual(suite.T(), suite.apiEndpoints.Id, data.resource.Id)
-	require.Len(suite.T(), data.endpoints.Endpoints, 1)
-}
-
 func (suite *reconciliationDataSuite) TestGetWorkloadData() {
 	// This test's purpose is to ensure that gather workloads for
 	// a service work as expected. The services selector was crafted
@@ -258,17 +166,17 @@ func (suite *reconciliationDataSuite) TestGetWorkloadData() {
 	// unique workloads are returned and that they are ordered.
 
 	data, err := getWorkloadData(suite.ctx, suite.rt, &serviceData{
-		resource: suite.apiService,
-		service:  suite.apiServiceData,
+		Resource: suite.apiService,
+		Data:     suite.apiServiceData,
 	})
 
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), data, 5)
-	prototest.AssertDeepEqual(suite.T(), suite.api1Workload, data[0].resource)
-	prototest.AssertDeepEqual(suite.T(), suite.api123Workload, data[1].resource)
-	prototest.AssertDeepEqual(suite.T(), suite.api2Workload, data[2].resource)
-	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[3].resource)
-	prototest.AssertDeepEqual(suite.T(), suite.web2Workload, data[4].resource)
+	prototest.AssertDeepEqual(suite.T(), suite.api1Workload, data[0].Resource)
+	prototest.AssertDeepEqual(suite.T(), suite.api123Workload, data[1].Resource)
+	prototest.AssertDeepEqual(suite.T(), suite.api2Workload, data[2].Resource)
+	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[3].Resource)
+	prototest.AssertDeepEqual(suite.T(), suite.web2Workload, data[4].Resource)
 }
 
 func (suite *reconciliationDataSuite) TestGetWorkloadDataWithFilter() {
