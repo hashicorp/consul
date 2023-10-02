@@ -738,6 +738,10 @@
                     "path": "connect/gateways/api-gateway/configuration/gatewaypolicy"
                   },
                   {
+                    "title": "HTTPRouteAuthFilter",
+                    "path": "connect/gateways/api-gateway/configuration/httprouteauthfilter"
+                  },
+                  {
                     "title": "Routes",
                     "path": "connect/gateways/api-gateway/configuration/routes"
                   },
