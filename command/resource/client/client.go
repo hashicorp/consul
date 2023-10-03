@@ -805,6 +805,7 @@ func NewHttpClient(transport *http.Transport, tlsConf api.TLSConfig) (*http.Clie
 }
 
 // request is used to help build up a request
+// defined a custom object that includes use-case specific config
 type request struct {
 	config *api.Config
 	method string

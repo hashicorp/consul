@@ -267,6 +267,10 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				if !IsValidLabel(svc.ID.Name) {
 					return nil, fmt.Errorf("service name is not valid: %s", svc.ID.Name)
 				}
+				if svc.ID.Partition != n.Partition {
+					return nil, fmt.Errorf("service %s on node %s has mismatched partitions: %s != %s",
+						svc.ID.Name, n.Name, svc.ID.Partition, n.Partition)
+				}
 				addTenancy(svc.ID.Partition, svc.ID.Namespace)
 
 				if _, exists := seenServices[svc.ID]; exists {
