@@ -29,13 +29,24 @@ Consul’s transparent proxy for service mesh, which enables Kube DNS instead of
 
 ## Enable the v2 catalog
 
-To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]`. The following example configuration shows this parameter in the Helm chart’s context:
+To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]`. The following example includes this parameter in a Helm chart with minimal required configurations for the Consul installation:
 
 <CodeBlockConfig name="values.yaml">
 
 ```yaml
 global:
+  enabled: true
+  name: consul
+  image: hashicorp/consul:1.17.0-rc1
+  datacenter: dc1
+  tls:
+    enabled: true
   experiments: ["resource-apis"]
+server:
+  enabled: true
+  replicas: 1
+connectInject:
+  enabled: true
 ```
 
 </CodeBlockConfig>
@@ -65,9 +76,9 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 
 To deploy a multi-port service that uses a single Envoy proxy in a single pod, you must define a Kubernetes ServiceAccount, two Kubernetes Services that expose their target ports, and schedule a single Kubernetes Workload that configures two service containers and the ports they listen on.
 
-The following example configures two pods. The first pod contains two services, `api` and `api-admin`, deployed in separate containers. This pod has a single Envoy proxy that listens on ports 80 and 90 and then forwards traffic to the appropriate container and port. The second pod defines a `web` service that functions as a static client you can use to verify that the multi-port service functions correctly.
+The following example contains two tabs with configurations for two Kubernetes Pods. The first Pod schedules two services, `api` and `api-admin`, deployed in separate containers. This pod has a single Envoy proxy that listens on ports 80 and 90 and then forwards traffic to the appropriate container and port. The second pod schedules a `web` service that functions as a static client you can use to verify that the multi-port service functions correctly.
 
-<CodeTabs>
+<CodeTabs tabs={[ "API services", "Web services" ]}>
 
 <CodeBlockConfig filename="api.yaml">
 
@@ -202,7 +213,7 @@ Consul uses traffic permissions to validate communication between services based
 
 The following examples create Consul CRDs that allow traffic to only one port of the multi-port service. Each resource separately denies `web` permission when it is a source of traffic to one of the services.
 
-<CodeTabs>
+<CodeTabs tabs={[ "Deny port 80", "Deny port 90" ]}>
 
 <CodeBlockConfig filename="deny-80.yaml">
 
@@ -251,21 +262,24 @@ To open a shell to the `web` container, you need the name of the pod it currentl
 
 ```shell-session
 $ kubectl get pods
+NAME                   READY   STATUS    RESTARTS   AGE
+api-7dc9d84f-kfnwz     2/2     Running   0          23s
+web-7bc5786747-b5pzl   1/1     Running   0          23s
 ```
 
 ### Validate both ports
 
-Use the pod name to open a shell session and test the `api` service.
+Use the `web` Pod's name to open a shell session and test the `api` service.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api:80
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 hello world
 ```
 
 Then test the `api-admin` service.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api-admin:90
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
 hello world from 9090 admin
 ```
 
@@ -280,14 +294,14 @@ $ kubectl apply -f deny-90.yaml
 Then, open a shell session in the `web` container and test the `api` service on port 80.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api:80
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 hello world
 ```
 
 Test the `admin` service on port 90. This command should fail, indicating that the traffic permission is in effect.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api-admin:90
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
 ```
 
 Before testing the other port, remove the TrafficPermissions CRD.
@@ -307,12 +321,12 @@ $ kubectl apply -f deny-80.yaml
 Then, open a shell session in the `web` container and test the `admin` service on port 90.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api-admin:90
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
 hello world
 ```
 
 Test the `api` service on port 80. This command should fail, indicating that the traffic permission is in effect.
 
 ```shell-session
-$ kubectl exec -it <pod-name> -c web -- curl api:80
+$ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 ```
