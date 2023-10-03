@@ -11,11 +11,11 @@ This topic describes how to configure the bind address for your workloads to the
 
 ## Introduction
 
-Binding workloads to the loopback address ensures that your application only receives traffic through the service mesh. It allows the dataplane container running in the same task to only make requests within the service mesh. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`. If your application is listening on all interfaces, such as `0.0.0.0`, then other applications can bypass the proxy and call it directly.
+Binding workloads to the loopback address ensures that your application only receives traffic through the dataplane container running in the same task, which limits requests to the service mesh. The loopback address is also called `localhost`, `lo`, and `127.0.0.1`. If your application is listening on all interfaces, such as `0.0.0.0`, then other applications can bypass the proxy and call it directly.
 
 ## Requirements
 
-Complete the steps to deploy Consul service mesh to ECS. Refer to the following topics:
+Consul service mesh must be deployed to ECS before you can bind a network address. For more information, refer to the following topics:
 
 - [Deploy Consul to ECS using the Terraform module](/consul/docs/ecs/deploy/install-terraform)
 - [Deploy Consul to ECS manually](/consul/docs/ecs/deploy/install-manual)

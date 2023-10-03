@@ -66,17 +66,17 @@ Consul on ECS uses the AWS IAM auth method so that ECS tasks can automatically o
 
 When ACLs are enabled, the Terraform modules for Consul on ECS support AWS IAM auth methods by default. The ECS controller sets up the auth method on the Consul servers. The `mesh-task` module configures the ECS task definition to be compatible with the auth method.
 
-A unique task IAM role is required for each ECS task family. Task IAM roles must not be shared by different task families. This is because the task family represents only one Consul service and the task IAM role must encode the Consul service name.
+A unique task IAM role is required for each ECS task family. A task family represents only one Consul service and the task IAM role must encode the Consul service name. As a result, task IAM roles must not be shared by different task families. 
 
-By default, the mesh-task module will create and configure the task IAM role for you.
+By default, the mesh-task module creates and configures the task IAM role for you.
 
-When passing an existing IAM role to the mesh-task module using the task_role input variable, you must configure the IAM role as described in ECS Task Role Configuration to be compatible with the AWS IAM auth method.
+To pass an existing IAM role to the mesh-task module using the `task_role` input variable, configure the IAM role as described in ECS Task Role Configuration to be compatible with the AWS IAM auth method.
 
 ### ECS task roles
 
 The [ECS task role](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-iam-roles.html) is an IAM role associated with an ECS task.
 
-When an ECS task starts up, it runs a consul login command. The consul login command obtains credentials for the task role from AWS. It uses those credentials to sign the login request to the AWS IAM auth method. This proves the ECS task's identity to the Consul servers.
+When an ECS task starts up, it runs a `consul login` command. The command obtains credentials for the task role from AWS and then uses those credentials to sign the login request to the AWS IAM auth method. The credentials prove the ECS task's identity to the Consul servers.
 
 You must configure the task role with the following details for it to be compatible with the AWS IAM auth method:
 
