@@ -43,6 +43,9 @@ func aclWriteHookWorkloadIdentity(
 	authorizer acl.Authorizer,
 	authzCtx *acl.AuthorizerContext,
 	res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedData
+	}
 	return authorizer.ToAllowAuthorizer().IdentityWriteAllowed(res.Id.Name, authzCtx)
 }
 

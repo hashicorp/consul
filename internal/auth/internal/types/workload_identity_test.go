@@ -20,8 +20,6 @@ func TestWorkloadIdentityACLs(t *testing.T) {
 		DEFAULT = "default"
 	)
 
-	// isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
-
 	registry := resource.NewRegistry()
 	Register(registry)
 
@@ -79,6 +77,10 @@ func TestWorkloadIdentityACLs(t *testing.T) {
 		t.Run("list", func(t *testing.T) {
 			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
 			checkF(t, tc.listOK, err)
+		})
+		t.Run("errors", func(t *testing.T) {
+			require.ErrorIs(t, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, nil, nil), resource.ErrNeedData)
+			require.ErrorIs(t, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, nil), resource.ErrNeedData)
 		})
 	}
 
