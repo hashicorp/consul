@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -237,6 +238,45 @@ func (suite *controllerTestSuite) TestController() {
 
 			matchingWorkloadCPC := suite.client.RequireResourceExists(r, matchingWorkloadCPCID)
 			dec := resourcetest.MustDecode[*pbmesh.ComputedProxyConfiguration](r, matchingWorkloadCPC)
+			prototest.AssertDeepEqual(r, suite.proxyCfg2.GetDynamicConfig(), dec.GetData().GetDynamicConfig())
+			prototest.AssertDeepEqual(r, suite.proxyCfg2.GetBootstrapConfig(), dec.GetData().GetBootstrapConfig())
+		})
+	})
+
+	testutil.RunStep(suite.T(), "update proxy config selector", func(t *testing.T) {
+		t.Log("running update proxy config selector")
+		// Update proxy config selector to no longer select "test-workload"
+		updatedProxyCfg := proto.Clone(suite.proxyCfg2).(*pbmesh.ProxyConfiguration)
+		updatedProxyCfg.Workloads = &pbcatalog.WorkloadSelector{
+			Names: []string{"test-extra-workload"},
+		}
+
+		matchingWorkload := resourcetest.Resource(pbcatalog.WorkloadType, "test-extra-workload").
+			WithData(t, suite.workload).
+			Write(t, suite.client)
+		matchingWorkloadCPCID := resource.ReplaceType(pbmesh.ComputedProxyConfigurationType, matchingWorkload.Id)
+		resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg2").
+			WithData(suite.T(), updatedProxyCfg).
+			Write(suite.T(), suite.client)
+
+		retry.Run(t, func(r *retry.R) {
+			res := suite.client.RequireResourceExists(r, cpcID)
+
+			// The "test-workload" computed traffic permissions should now be updated to use only proxy cfg 1 and 3.
+			expProxyCfg := &pbmesh.ComputedProxyConfiguration{
+				DynamicConfig: &pbmesh.DynamicConfig{
+					Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+				},
+				BootstrapConfig: &pbmesh.BootstrapConfig{
+					PrometheusBindAddr: "0.0.0.0:9000",
+				},
+			}
+			dec := resourcetest.MustDecode[*pbmesh.ComputedProxyConfiguration](t, res)
+			prototest.AssertDeepEqual(r, expProxyCfg.GetDynamicConfig(), dec.GetData().GetDynamicConfig())
+			prototest.AssertDeepEqual(r, expProxyCfg.GetBootstrapConfig(), dec.GetData().GetBootstrapConfig())
+
+			matchingWorkloadCPC := suite.client.RequireResourceExists(r, matchingWorkloadCPCID)
+			dec = resourcetest.MustDecode[*pbmesh.ComputedProxyConfiguration](r, matchingWorkloadCPC)
 			prototest.AssertDeepEqual(r, suite.proxyCfg2.GetDynamicConfig(), dec.GetData().GetDynamicConfig())
 			prototest.AssertDeepEqual(r, suite.proxyCfg2.GetBootstrapConfig(), dec.GetData().GetBootstrapConfig())
 		})

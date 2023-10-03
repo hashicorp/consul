@@ -80,9 +80,8 @@ func (p proxyCfgsSorter) Less(i, j int) bool {
 			return iID.Time() < jID.Time()
 		} else {
 			// It's impossible for names to be equal, and so we are checking if
-			// i's name is "less" lexicographically than j's name
-			return strings.Compare(p.proxyCfgs[i].GetResource().GetId().GetName(),
-				p.proxyCfgs[j].GetResource().GetId().GetName()) == -1
+			// i's name is "less" lexicographically than j's name.
+			return p.proxyCfgs[i].GetResource().GetId().GetName() < p.proxyCfgs[j].GetResource().GetId().GetName()
 		}
 	}
 }

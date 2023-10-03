@@ -20,9 +20,13 @@ func MapSelector(ctx context.Context,
 	typ *pbresource.Type,
 	selector *pbcatalog.WorkloadSelector,
 	tenancy *pbresource.Tenancy) ([]controller.Request, error) {
+	if selector == nil {
+		return nil, nil
+	}
+
 	var result []controller.Request
 
-	for _, prefix := range selector.Prefixes {
+	for _, prefix := range selector.GetPrefixes() {
 		resp, err := client.List(ctx, &pbresource.ListRequest{
 			Type:       pbcatalog.WorkloadType,
 			Tenancy:    tenancy,
@@ -43,7 +47,7 @@ func MapSelector(ctx context.Context,
 	}
 
 	// We don't do lookups for names as this should be done in the controller's reconcile.
-	for _, name := range selector.Names {
+	for _, name := range selector.GetNames() {
 		id := &pbresource.ID{
 			Name:    name,
 			Tenancy: tenancy,

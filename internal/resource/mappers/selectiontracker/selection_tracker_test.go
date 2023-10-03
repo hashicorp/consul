@@ -39,7 +39,7 @@ func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 
 	toRemove := rtest.Resource(pbcatalog.ServiceEndpointsType, "blah").ID()
 	other1 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
-	other2 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
+	other2 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other2").ID()
 
 	// we are trying to create a tree such that removal of the toRemove id causes a
 	// few things to happen.
@@ -120,10 +120,13 @@ type selectionTrackerSuite struct {
 	rt      controller.Runtime
 	tracker *WorkloadSelectionTracker
 
-	workloadAPI1 *pbresource.Resource
-	workloadWeb1 *pbresource.Resource
-	endpointsFoo *pbresource.ID
-	endpointsBar *pbresource.ID
+	workloadAPI1                      *pbresource.Resource
+	workloadWeb1                      *pbresource.Resource
+	endpointsFoo                      *pbresource.ID
+	endpointsBar                      *pbresource.ID
+	endpointsFooNSFoo                 *pbresource.ID
+	endpointsFooDefaultNSFooPartition *pbresource.ID
+	endpointsFooFooNSFooPartition     *pbresource.ID
 }
 
 func (suite *selectionTrackerSuite) SetupTest() {
@@ -133,6 +136,24 @@ func (suite *selectionTrackerSuite) SetupTest() {
 	suite.workloadWeb1 = rtest.Resource(pbcatalog.WorkloadType, "web-1").WithData(suite.T(), workloadData).Build()
 	suite.endpointsFoo = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").ID()
 	suite.endpointsBar = rtest.Resource(pbcatalog.ServiceEndpointsType, "bar").ID()
+	suite.endpointsFooNSFoo = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
+		WithTenancy(&pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "foo",
+			PeerName:  "local",
+		}).ID()
+	suite.endpointsFooDefaultNSFooPartition = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
+		WithTenancy(&pbresource.Tenancy{
+			Partition: "foo",
+			Namespace: "default",
+			PeerName:  "local",
+		}).ID()
+	suite.endpointsFooFooNSFooPartition = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
+		WithTenancy(&pbresource.Tenancy{
+			Partition: "foo",
+			Namespace: "foo",
+			PeerName:  "local",
+		}).ID()
 }
 
 func (suite *selectionTrackerSuite) requireMappedIDs(workload *pbresource.Resource, ids ...*pbresource.ID) {
@@ -194,6 +215,33 @@ func (suite *selectionTrackerSuite) TestTrackAndMap_MultiResource_SingleWorkload
 
 	// now the mapping should return both endpoints resource ids
 	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo, suite.endpointsBar)
+}
+
+func (suite *selectionTrackerSuite) TestTrackAndMap_MultiResource_SingleWorkloadMapping_WithTenancy() {
+	// This test aims to prove that multiple resources selecting of a workload
+	// will result in multiple requests when mapping that workload.
+
+	// associate the foo endpoints with some workloads
+	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+		Prefixes: []string{"api-"},
+	})
+
+	// associate the bar endpoints with some workloads
+	suite.tracker.TrackIDForSelector(suite.endpointsFooNSFoo, &pbcatalog.WorkloadSelector{
+		Names: []string{"api-1"},
+	})
+
+	suite.tracker.TrackIDForSelector(suite.endpointsFooDefaultNSFooPartition, &pbcatalog.WorkloadSelector{
+		Names: []string{"api-1"},
+	})
+
+	suite.tracker.TrackIDForSelector(suite.endpointsFooFooNSFooPartition, &pbcatalog.WorkloadSelector{
+		Names: []string{"api-1"},
+	})
+
+	// now the mapping should return both endpoints resource ids
+	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo, suite.endpointsFooNSFoo,
+		suite.endpointsFooDefaultNSFooPartition, suite.endpointsFooFooNSFooPartition)
 }
 
 func (suite *selectionTrackerSuite) TestDuplicateTracking() {

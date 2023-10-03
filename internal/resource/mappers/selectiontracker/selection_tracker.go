@@ -20,20 +20,20 @@ type WorkloadSelectionTracker struct {
 	prefixes *radix.Tree[[]*pbresource.ID]
 	exact    *radix.Tree[[]*pbresource.ID]
 
-	// workloadSelectors contains a map keyed on resource names with values
+	// workloadSelectors contains a map keyed on resource references with values
 	// being the selector that resource is currently associated with. This map
 	// is kept mainly to make tracking removal operations more efficient.
 	// Generally any operation that could take advantage of knowing where
 	// in the trees the resource id is referenced can use this to prevent
 	// needing to search the whole tree.
-	workloadSelectors map[string]*pbcatalog.WorkloadSelector
+	workloadSelectors map[resource.ReferenceKey]*pbcatalog.WorkloadSelector
 }
 
 func New() *WorkloadSelectionTracker {
 	return &WorkloadSelectionTracker{
 		prefixes:          radix.New[[]*pbresource.ID](),
 		exact:             radix.New[[]*pbresource.ID](),
-		workloadSelectors: make(map[string]*pbcatalog.WorkloadSelector),
+		workloadSelectors: make(map[resource.ReferenceKey]*pbcatalog.WorkloadSelector),
 	}
 }
 
@@ -70,7 +70,8 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	if previousSelector, found := t.workloadSelectors[id.Name]; found {
+	ref := resource.NewReferenceKey(id)
+	if previousSelector, found := t.workloadSelectors[ref]; found {
 		if stringslice.Equal(previousSelector.Names, selector.Names) &&
 			stringslice.Equal(previousSelector.Prefixes, selector.Prefixes) {
 			// the selector is unchanged so do nothing
@@ -104,7 +105,7 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 		t.prefixes.Insert(prefix, append(leaf, id))
 	}
 
-	t.workloadSelectors[id.Name] = selector
+	t.workloadSelectors[ref] = selector
 }
 
 // UntrackID causes the tracker to stop tracking the given resource ID
@@ -114,12 +115,21 @@ func (t *WorkloadSelectionTracker) UntrackID(id *pbresource.ID) {
 	t.untrackID(id)
 }
 
+// GetSelector returns the currently stored selector for the given ID.
+func (t *WorkloadSelectionTracker) GetSelector(id *pbresource.ID) *pbcatalog.WorkloadSelector {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	return t.workloadSelectors[resource.NewReferenceKey(id)]
+}
+
 // untrackID should be called to stop tracking a resource ID.
 // This method assumes the lock is already held. Besides modifying
 // the prefix & name trees to not reference this ID, it will also
 // delete any corresponding entry within the workloadSelectors map
 func (t *WorkloadSelectionTracker) untrackID(id *pbresource.ID) {
-	selector, found := t.workloadSelectors[id.Name]
+	ref := resource.NewReferenceKey(id)
+	selector, found := t.workloadSelectors[ref]
 	if !found {
 		return
 	}
@@ -130,7 +140,7 @@ func (t *WorkloadSelectionTracker) untrackID(id *pbresource.ID) {
 	// If we don't do this deletion then reinsertion of the id for
 	// tracking in the future could prevent selection criteria from
 	// being properly inserted into the radix trees.
-	delete(t.workloadSelectors, id.Name)
+	delete(t.workloadSelectors, ref)
 }
 
 // removeIDFromTree will remove the given resource ID from all leaf nodes in the radix tree.
