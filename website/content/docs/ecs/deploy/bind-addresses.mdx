@@ -25,7 +25,7 @@ Consul service mesh must be deployed to ECS before you can bind a network addres
 Changing the listening address is specific to your language and framework, but binding the loopback address to a dynamic value, such as an environment variable, is a best practice:
 
 ```bash
-export BIND_ADDRESS="127.0.0.1:8080"
+$ export BIND_ADDRESS="127.0.0.1:8080"
 ```
 
 The following examples demonstrate how to bind the loopback address to an environment variable in golang and Django (Python):

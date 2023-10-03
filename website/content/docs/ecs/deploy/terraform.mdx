@@ -313,7 +313,7 @@ module "my_task" {
   consul_grpc_ca_cert_arn = aws_secretsmanager_secret.ca_cert.arn
 
   acls                      = true
-  consul_server_hosts          = "https://consul-server.example.com:8501"
+  consul_server_hosts          = "https://consul-server.example.com"
   consul_https_ca_cert_arn  = aws_secretsmanager_secret.ca_cert.arn
 }
 
@@ -333,8 +333,8 @@ Save the Terraform configuration for the task definition to a file, such as `mes
 You should place this file in a directory alongside other Terraform configuration files for your project.
 
 The `mesh-task` module requires the AWS Terraform provider. The following example shows how to include
-and configure the AWS provider in a file called `provider.tf`. Refer to the [AWS Terraform provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
-documentation for complete configuration details.
+and configure the AWS provider in a file called `provider.tf`. Refer to [AWS provider in the Terraform registry](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+for additional documentation and specifications.
 
 <CodeBlockConfig filename="provider.tf">
 
@@ -374,7 +374,6 @@ Issue the following commands to run the configuration:
 Terraform reads all files in the current directory that have a `.tf` file extension.
 Refer to the [Terraform documentation](/terraform/docs) for more information and Terraform best practices.
 
-
 ## Next steps
  
 After deploying the Consul service mesh infrastructure, you must still define routes between service instances as well as configure the bind address for your applications so that they only receive traffic through the mesh. Refer to the following topics:
@@ -382,14 +381,13 @@ After deploying the Consul service mesh infrastructure, you must still define ro
 - [Configure routes between ECS tasks](/consul/docs/ecs/deploy/configure-routes)
 - [Configure the ECS task bind address](/consul/docs/ecs/deploy/bind-addresses)
 
-
 ## Gateway task configuration examples
 
 The following examples illustrate how to configure the `gateway-task` for different use cases.
 
 ### Ingress
 
-Mesh gateways need to be reachable over the WAN to route traffic between datacenters. Configure the following options in the `gateway-task` to enable ingress through the mesh gateway.
+Mesh gateways need to be reachable over the WAN to route traffic between datacenters. Configure the following options in the `gateway-task` module to enable ingress through the mesh gateway.
 
 | Input variable | Type | Description |
 | ---    | ---  | ---         |
@@ -430,12 +428,12 @@ Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If yo
 
 ### ACLs
 
-Configure the following options in the `gateway-task` when ACLs are enabled.
+When ACLs are enabled, configure the following options in the `gateway-task` module.
 
 | Option | Type | Description |
 | ---    | ---  | ---         |
 | `acl` | Boolean | Set to `true` if ACLs are enabled. |
-| `consul_http_addr` | string |  Specifies the HTTP `address:port` of the Consul server. Required for the mesh gateway task to log into Consul via the IAM Auth Method to obtain its client and service tokens. |
+| `consul_server_hosts` | string |  Specifies the HTTP `address` of the Consul server. Required for the mesh gateway task to log into Consul using the IAM auth method so that it can obtain its client and service tokens. |
 | `consul_https_ca_cert_arn` | string |  Specifies ARN of the Secrets Manager secret that contains the certificate for the Consul HTTPS API. |
 
 <CodeBlockConfig filename="mesh-gateway.tf">
@@ -454,7 +452,7 @@ module "my_mesh_gateway" {
 
 ### WAN federation
 
-Configure the following options in the `gateway-task` to enable [WAN federation via mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
+Configure the following options in the `gateway-task` to enable [WAN federation through mesh gateways](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways).
 
 | Option | Type | Description |
 | ---    | ---  | ---         |
@@ -471,14 +469,10 @@ The following example shows how to configure the `gateway-task` module.
 module "my_mesh_gateway" {
   ...
 
-  consul_datacenter                  = "<name of the local Consul datacenter>"
-  consul_primary_datacenter          = "<name of the primary Consul datacenter>"
   enable_mesh_gateway_wan_federation = true
-  enable_acl_token_replication       = true
 }
 ```
 
 </CodeBlockConfig>
 
 When federating Consul datacenters over the WAN with ACLs enabled, [ACL Token replication](/consul/docs/security/acl/acl-federated-datacenters) must be enabled on all server and client agents in all datacenters.
-
