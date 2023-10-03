@@ -1686,6 +1686,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		peerTrustBundles := cfgSnap.TerminatingGateway.InboundPeerTrustBundles[svc]
 
 		cfg, err := config.ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
@@ -1702,10 +1703,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		dest = &svcConfig.Destination
 
 		opts := terminatingGatewayFilterChainOpts{
-			service:    svc,
-			intentions: intentions,
-			protocol:   cfg.Protocol,
-			port:       dest.Port,
+			service:          svc,
+			intentions:       intentions,
+			protocol:         cfg.Protocol,
+			port:             dest.Port,
+			peerTrustBundles: peerTrustBundles,
 		}
 		for _, address := range dest.Addresses {
 			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
@@ -2120,7 +2122,6 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
 		useRDS = useHTTPFilter
 	)
-
 	if useHTTPFilter && cfgSnap.MeshGateway.Leaf == nil {
 		return nil, nil // ignore; not ready
 	}
