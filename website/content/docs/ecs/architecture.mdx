@@ -7,7 +7,7 @@ description: >-
 
 # Consul on AWS Elastic Container Service (ECS) architecture
 
-This topic provides reference information about the Consul on ECS architecture. The following diagram shows the main components of the Consul architecture when deployed to an ECS cluster.
+This topic provides reference information about the Consul's deployment architecture on AWS ECS. The following diagram shows the main components of the Consul architecture when deployed to an ECS cluster.
 
 ![Diagram that provides an overview of the Consul Architecture on ECS](/img/ecs/consul-on-ecs-architecture-dataplanes.jpg#light-theme-only)
 ![Diagram that provides an overview of the Consul Architecture on ECS ](/img/ecs/consul-on-ecs-architecture-dataplanes-dark.jpg#dark-theme-only)
@@ -30,7 +30,7 @@ The control-plane container performs the following actions:
 
 The dataplane process runs in the same container as the Envoy proxy and performs the following actions:
 
-- Consumes and configures itself the bootstrap configuration written by the control-plane container.
+- Consumes and configures itself according to the bootstrap configuration written by the control-plane container.
 - Contains and starts up the Envoy sidecar.
 
 ### ECS controller container
@@ -62,7 +62,7 @@ Consul leverages AWS components to facilitate its own security features.
 
 ### Auth methods
 
-Consul on ECS uses the AWS IAM auth method to enable tasks to automatically obtain Consul ACL tokens during startup.
+Consul on ECS uses the AWS IAM auth method so that ECS tasks can automatically obtain Consul ACL tokens during startup.
 
 When ACLs are enabled, the Terraform modules for Consul on ECS support AWS IAM auth methods by default. The ECS controller sets up the auth method on the Consul servers. The `mesh-task` module configures the ECS task definition to be compatible with the auth method.
 
