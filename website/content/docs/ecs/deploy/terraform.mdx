@@ -61,8 +61,7 @@ Refer to the [`mesh-task` module reference documentation in the Terraform regist
 
 You should also configure the ACL and encryption settings if they are enabled on your Consul servers. Refer to [Enable secure deployment](#enable-secure-deployment) for additional information.
 
-In the following example, the Terraform configuration file called `mesh-task.tf` creates a task definition with an application container called `example-client-app`:
-
+In the following example, the Terraform configuration file `mesh-task.tf` creates a task definition with an application container called `example-client-app`:
 
 <CodeBlockConfig filename="mesh-task.tf">
 
@@ -424,7 +423,7 @@ module "my_mesh_gateway" {
 
 </CodeBlockConfig>
 
-Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) for ingress to a mesh gateway, you must use an AWS [Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) or a [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html).
+Mesh gateways route L4 TCP connections and do not terminate mTLS sessions. If you manually configure [AWS Elastic Load Balancing](https://aws.amazon.com/elasticloadbalancing/) for ingress to a mesh gateway, you must use an [AWS Network Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/network/introduction.html) or a [Classic Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/classic/introduction.html).
 
 ### ACLs
 
@@ -432,7 +431,7 @@ When ACLs are enabled, configure the following options in the `gateway-task` mod
 
 | Option | Type | Description |
 | ---    | ---  | ---         |
-| `acl` | Boolean | Set to `true` if ACLs are enabled. |
+| `acl` | Boolean | Set to `true` when ACLs are enabled. |
 | `consul_server_hosts` | string |  Specifies the HTTP `address` of the Consul server. Required for the mesh gateway task to log into Consul using the IAM auth method so that it can obtain its client and service tokens. |
 | `consul_https_ca_cert_arn` | string |  Specifies ARN of the Secrets Manager secret that contains the certificate for the Consul HTTPS API. |
 
@@ -443,7 +442,8 @@ module "my_mesh_gateway" {
   ...
 
   acls                         = true
-  consul_http_addr          = "<HTTP address of the Consul server>"
+  consul_server_hosts          = "<HTTP address of the Consul server>"
+  tls = true
   consul_https_ca_cert_arn  = "<Secrets Manager secret ARN>"
 }
 ```

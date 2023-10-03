@@ -21,7 +21,7 @@ In an ACL enabled cluster, deploy the latest version of the ECS controller modul
 
 ## Upgrade workloads
 
-For application tasks, upgrade the individual task definitions to `v1.1.0`` or later of the `mesh-task` module. You must upgrade each task one at a time.
+For application tasks, upgrade the individual task definitions to `v0.7.0` or later of the `mesh-task` module. You must upgrade each task one at a time.
 
 ```hcl
 module "my_task" {
@@ -30,7 +30,7 @@ module "my_task" {
 }
 ```
 
-For gateway tasks, upgrade the individual task definitions to `v1.1.0`` or later of the `gateway-task` module. You must upgrade each task one by one independently. ECS creates new versions of tasks before shutting down the older tasks to support zero downtime deployments.
+For gateway tasks, upgrade the individual task definitions to `v0.7.0` or later of the `gateway-task` module. You must upgrade each task one by one independently. ECS creates new versions of tasks before shutting down the older tasks to support zero downtime deployments.
 
 ```hcl
 module "my_task" {
