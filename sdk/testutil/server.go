@@ -177,9 +177,16 @@ type ServerConfigCallback func(c *TestServerConfig)
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
 func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServerConfig {
-	nodeID, err := uuid.GenerateUUID()
-	if err != nil {
-		panic(err)
+	var nodeID string
+	var err error
+
+	if id, ok := os.LookupEnv("TEST_NODE_ID"); ok {
+		nodeID = id
+	} else {
+		nodeID, err = uuid.GenerateUUID()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	ports := freeport.GetN(t, 7)
@@ -287,14 +294,29 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 			"consul or skip this test")
 	}
 
-	prefix := "consul"
-	if t != nil {
-		// Use test name for tmpdir if available
-		prefix = strings.Replace(t.Name(), "/", "_", -1)
-	}
-	tmpdir, err := os.MkdirTemp("", prefix)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create tempdir")
+	var tmpdir string
+
+	if dir, ok := os.LookupEnv("TEST_TMP_DIR"); ok {
+		// NOTE(CTIA): using TEST_TMP_DIR may cause conflict when NewTestServerConfigT
+		// is called > 1 since two agent will uses the same directory
+		tmpdir = dir
+		if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
+			if err = os.Mkdir(tmpdir, 0750); err != nil {
+				return nil, errors.Wrap(err, "failed to create tempdir from env TEST_TMP_DIR")
+			}
+		} else {
+			t.Logf("WARNING: using tempdir that already exists %s", tmpdir)
+		}
+	} else {
+		prefix := "consul"
+		if t != nil {
+			// Use test name for tmpdir if available
+			prefix = strings.Replace(t.Name(), "/", "_", -1)
+		}
+		tmpdir, err = os.MkdirTemp("", prefix)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create tempdir")
+		}
 	}
 
 	consulVersion, err := findConsulVersion()
@@ -302,8 +324,12 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, err
 	}
 
+	datadir := filepath.Join(tmpdir, "data")
+	if _, err := os.Stat(datadir); !os.IsNotExist(err) {
+		t.Logf("WARNING: using a data that already exists %s", datadir)
+	}
 	cfg := defaultServerConfig(t, consulVersion)
-	cfg.DataDir = filepath.Join(tmpdir, "data")
+	cfg.DataDir = datadir
 	if cb != nil {
 		cb(cfg)
 	}
@@ -324,6 +350,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	// Start the server
 	args := []string{"agent", "-config-file", configFile}
 	args = append(args, cfg.Args...)
+	t.Logf("test cmd args: consul args: %s", args)
 	cmd := exec.Command("consul", args...)
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
@@ -388,6 +415,21 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
+
+		if saveSnapshot {
+			fmt.Println("Saving snapshot")
+			// create a snapshot prior to upgrade test
+			args := []string{"snapshot", "save", "-http-addr",
+				fmt.Sprintf("http://%s", s.HTTPAddr), filepath.Join(s.tmpdir, "backup.snap")}
+			fmt.Printf("Saving snapshot: consul args: %s\n", args)
+			cmd := exec.Command("consul", args...)
+			cmd.Stdout = s.Config.Stdout
+			cmd.Stderr = s.Config.Stderr
+			if err := cmd.Run(); err != nil {
+				return errors.Wrap(err, "failed to save a snapshot")
+			}
+		}
+
 		if runtime.GOOS == "windows" {
 			if err := s.cmd.Process.Kill(); err != nil {
 				return errors.Wrap(err, "failed to kill consul server")
