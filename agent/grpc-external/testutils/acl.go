@@ -84,6 +84,18 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 	}
 }
 
+func ACLUseProvidedPolicy(t *testing.T, aclPolicy *acl.Policy) resolver.Result {
+	t.Helper()
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclPolicy}, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
 func ACLOperatorRead(t *testing.T) resolver.Result {
 	t.Helper()
 

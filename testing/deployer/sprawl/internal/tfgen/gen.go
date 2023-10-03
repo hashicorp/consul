@@ -69,9 +69,7 @@ func NewGenerator(
 		workdir: workdir,
 		license: license,
 
-		tfLogger: logger.Named("terraform").StandardWriter(&hclog.StandardLoggerOptions{
-			ForceLevel: hclog.Info,
-		}),
+		tfLogger: logger.Named("terraform").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug}),
 	}
 	g.SetTopology(topo)
 
@@ -166,7 +164,7 @@ func (g *Generator) Generate(step Step) error {
 
 		imageNames[image] = name
 
-		g.logger.Info("registering image", "resource", name, "image", image)
+		g.logger.Debug("registering image", "resource", name, "image", image)
 
 		images = append(images, DockerImage(name, image))
 	}

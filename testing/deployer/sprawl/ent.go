@@ -74,7 +74,7 @@ func (s *Sprawl) initTenancies(cluster *topology.Cluster) error {
 				if err != nil {
 					return fmt.Errorf("error creating partition %q: %w", ap.Name, err)
 				}
-				logger.Info("created partition", "partition", ap.Name)
+				logger.Debug("created partition", "partition", ap.Name)
 			}
 
 			partitionNameList = append(partitionNameList, ap.Name)
@@ -105,13 +105,13 @@ func (s *Sprawl) initTenancies(cluster *topology.Cluster) error {
 					if err != nil {
 						return err
 					}
-					logger.Info("updated namespace", "namespace", ns, "partition", ap.Name)
+					logger.Debug("updated namespace", "namespace", ns, "partition", ap.Name)
 				} else {
 					_, _, err := nsClient.Create(obj, nil)
 					if err != nil {
 						return err
 					}
-					logger.Info("created namespace", "namespace", ns, "partition", ap.Name)
+					logger.Debug("created namespace", "namespace", ns, "partition", ap.Name)
 				}
 			}
 		}

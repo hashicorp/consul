@@ -92,8 +92,11 @@ func init() {
 //     environment variable SKIP_TEARDOWN=1.
 func Launch(t *testing.T, cfg *topology.Config) *sprawl.Sprawl {
 	SkipIfTerraformNotPresent(t)
+	logger := testutil.Logger(t)
+	// IMO default level for tests should be info, not warn
+	logger.SetLevel(testutil.TestLogLevelWithDefault(hclog.Info))
 	sp, err := sprawl.Launch(
-		testutil.Logger(t),
+		logger,
 		initWorkingDirectory(t),
 		cfg,
 	)

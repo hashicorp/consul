@@ -6,6 +6,7 @@ package types
 import (
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -13,11 +14,16 @@ import (
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbauth.TrafficPermissionsType,
-		Proto:    &pbauth.TrafficPermissions{},
-		Scope:    resource.ScopeNamespace,
+		Type:  pbauth.TrafficPermissionsType,
+		Proto: &pbauth.TrafficPermissions{},
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookTrafficPermissions,
+			Write: aclWriteHookTrafficPermissions,
+			List:  aclListHookTrafficPermissions,
+		},
 		Validate: ValidateTrafficPermissions,
 		Mutate:   MutateTrafficPermissions,
+		Scope:    resource.ScopeNamespace,
 	})
 }
 
@@ -263,4 +269,38 @@ func sourceHasIncompatibleTenancies(src pbauth.SourceToSpiffe) bool {
 
 func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
+}
+
+func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedData
+	}
+	return authorizeDestination(res, func(dest string) error {
+		return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(dest, authzContext)
+	})
+}
+
+func aclWriteHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	return authorizeDestination(res, func(dest string) error {
+		return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(dest, authzContext)
+	})
+}
+
+func aclListHookTrafficPermissions(_ acl.Authorizer, _ *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement
+	return nil
+}
+
+func authorizeDestination(res *pbresource.Resource, intentionAllowed func(string) error) error {
+	tp, err := resource.Decode[*pbauth.TrafficPermissions](res)
+	if err != nil {
+		return err
+	}
+	// Check intention:x permissions for identity
+	err = intentionAllowed(tp.Data.Destination.IdentityName)
+	if err != nil {
+		return err
+	}
+	return nil
 }

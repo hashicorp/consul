@@ -256,6 +256,19 @@ func (m *MockAuthorizer) Snapshot(ctx *AuthorizerContext) EnforcementDecision {
 	return ret.Get(0).(EnforcementDecision)
 }
 
+// TrafficPermissionsRead determines if specific traffic permissions can be read.
+func (m *MockAuthorizer) TrafficPermissionsRead(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// TrafficPermissionsWrite determines if specific traffic permissions can be
+// created, modified, or deleted.
+func (m *MockAuthorizer) TrafficPermissionsWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 func (p *MockAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
 	return AllowAuthorizer{Authorizer: p}
 }

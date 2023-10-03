@@ -1456,7 +1456,10 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 				"we are %s", v.Datacenter, dc)
 		}
 	case *connect.SpiffeIDWorkloadIdentity:
-		// TODO: Check for identity:write on the token when identity permissions are supported.
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.IdentityWriteAllowed(v.WorkloadIdentity, &authzContext); err != nil {
+			return nil, err
+		}
 	case *connect.SpiffeIDAgent:
 		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
 		if err := allow.NodeWriteAllowed(v.Agent, &authzContext); err != nil {

@@ -188,6 +188,13 @@ type Authorizer interface {
 	// Snapshot checks for permission to take and restore snapshots.
 	Snapshot(*AuthorizerContext) EnforcementDecision
 
+	// TrafficPermissionsRead determines if specific traffic permissions can be read.
+	TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision
+
+	// TrafficPermissionsWrite determines if specific traffic permissions can be
+	// created, modified, or deleted.
+	TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision
+
 	// Embedded Interface for Consul Enterprise specific ACL enforcement
 	enterpriseAuthorizer
 
@@ -310,6 +317,23 @@ func (a AllowAuthorizer) IntentionReadAllowed(name string, ctx *AuthorizerContex
 // created, modified, or deleted.
 func (a AllowAuthorizer) IntentionWriteAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.IntentionWrite(name, ctx) != Allow {
+		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
+	}
+	return nil
+}
+
+// TrafficPermissionsReadAllowed determines if specific traffic permissions can be read.
+func (a AllowAuthorizer) TrafficPermissionsReadAllowed(name string, ctx *AuthorizerContext) error {
+	if a.Authorizer.TrafficPermissionsRead(name, ctx) != Allow {
+		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessRead, name)
+	}
+	return nil
+}
+
+// TrafficPermissionsWriteAllowed determines if specific traffic permissions can be
+// created, modified, or deleted.
+func (a AllowAuthorizer) TrafficPermissionsWriteAllowed(name string, ctx *AuthorizerContext) error {
+	if a.Authorizer.TrafficPermissionsWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
 	}
 	return nil
