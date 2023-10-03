@@ -41,7 +41,7 @@ func (p *ProxyState) Authorize(authz acl.Authorizer) error {
 	if err := allow.IdentityWriteAllowed(p.Identity.Name, resource.AuthorizerContext(p.Identity.Tenancy)); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
