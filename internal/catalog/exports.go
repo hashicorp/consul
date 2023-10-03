@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -58,36 +57,16 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
-type ControllerDependencies = controllers.Dependencies
-
-func DefaultControllerDependencies() ControllerDependencies {
-	return ControllerDependencies{
-		FailoverMapper: failovermapper.New(),
-	}
-}
-
 // RegisterControllers registers controllers for the catalog types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
-	controllers.Register(mgr, deps)
+func RegisterControllers(mgr *controller.Manager) {
+	controllers.Register(mgr)
 }
 
 // SimplifyFailoverPolicy fully populates the PortConfigs map and clears the
 // Configs map using the provided Service.
 func SimplifyFailoverPolicy(svc *pbcatalog.Service, failover *pbcatalog.FailoverPolicy) *pbcatalog.FailoverPolicy {
 	return types.SimplifyFailoverPolicy(svc, failover)
-}
-
-// FailoverPolicyMapper maintains the bidirectional tracking relationship of a
-// FailoverPolicy to the Services related to it.
-type FailoverPolicyMapper interface {
-	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
-	UntrackFailover(failoverID *pbresource.ID)
-	FailoverIDsByService(svcID *pbresource.ID) []*pbresource.ID
-}
-
-func NewFailoverPolicyMapper() FailoverPolicyMapper {
-	return failovermapper.New()
 }
 
 // ValidateLocalServiceRefNoSection ensures the following:

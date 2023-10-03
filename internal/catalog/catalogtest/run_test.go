@@ -8,14 +8,13 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/catalog/internal/controllers"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Dependencies) pbresource.ResourceServiceClient {
+func runInMemResourceServiceAndControllers(t *testing.T) pbresource.ResourceServiceClient {
 	t.Helper()
 
 	ctx := testutil.TestContext(t)
@@ -25,7 +24,7 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 
 	// Setup/Run the controller manager
 	mgr := controller.NewManager(client, testutil.Logger(t))
-	catalog.RegisterControllers(mgr, deps)
+	catalog.RegisterControllers(mgr)
 
 	// We also depend on the reaper to take care of cleaning up owned health statuses and
 	// service endpoints so we must enable that controller as well
@@ -37,11 +36,11 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 }
 
 func TestControllers_Integration(t *testing.T) {
-	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV2Beta1IntegrationTest(t, client)
+	client := runInMemResourceServiceAndControllers(t)
+	RunCatalogV1Alpha1IntegrationTest(t, client)
 }
 
 func TestControllers_Lifecycle(t *testing.T) {
-	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
+	client := runInMemResourceServiceAndControllers(t)
 	RunCatalogV2Beta1LifecycleIntegrationTest(t, client)
 }

@@ -6,6 +6,7 @@ package failover
 import (
 	"context"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/indexers"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -13,41 +14,17 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// FailoverMapper tracks the relationship between a FailoverPolicy an a Service
-// it references whether due to name-alignment or from a reference in a
-// FailoverDestination leg.
-type FailoverMapper interface {
-	// TrackFailover extracts all Service references from the provided
-	// FailoverPolicy and indexes them so that MapService can turn Service
-	// events into FailoverPolicy events properly.
-	TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy])
-
-	// UntrackFailover forgets the links inserted by TrackFailover for the
-	// provided FailoverPolicyID.
-	UntrackFailover(failoverID *pbresource.ID)
-
-	// MapService will take a Service resource and return controller requests
-	// for all FailoverPolicies associated with the Service.
-	MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
-}
-
-func FailoverPolicyController(mapper FailoverMapper) controller.Controller {
-	if mapper == nil {
-		panic("No FailoverMapper was provided to the FailoverPolicyController constructor")
-	}
+func FailoverPolicyController() controller.Controller {
 	return controller.ForType(pbcatalog.FailoverPolicyType).
-		WithWatch(pbcatalog.ServiceType, mapper.MapService).
-		WithReconciler(newFailoverPolicyReconciler(mapper))
+		WithIndex(pbcatalog.FailoverPolicyType, "destinations", indexers.FailoverDestinationsIndexer()).
+		WithWatch(pbcatalog.ServiceType, controller.CacheListMapper(pbcatalog.FailoverPolicyType, "destinations")).
+		WithReconciler(newFailoverPolicyReconciler())
 }
 
-type failoverPolicyReconciler struct {
-	mapper FailoverMapper
-}
+type failoverPolicyReconciler struct{}
 
-func newFailoverPolicyReconciler(mapper FailoverMapper) *failoverPolicyReconciler {
-	return &failoverPolicyReconciler{
-		mapper: mapper,
-	}
+func newFailoverPolicyReconciler() *failoverPolicyReconciler {
+	return &failoverPolicyReconciler{}
 }
 
 func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -64,15 +41,6 @@ func (r *failoverPolicyReconciler) Reconcile(ctx context.Context, rt controller.
 		rt.Logger.Error("error retrieving failover policy", "error", err)
 		return err
 	}
-	if failoverPolicy == nil {
-		r.mapper.UntrackFailover(failoverPolicyID)
-
-		// Either the failover policy was deleted, or it doesn't exist but an
-		// update to a Service came through and we can ignore it.
-		return nil
-	}
-
-	r.mapper.TrackFailover(failoverPolicy)
 
 	// FailoverPolicy is name-aligned with the Service it controls.
 	serviceID := &pbresource.ID{

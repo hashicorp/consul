@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
@@ -26,8 +25,6 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	failoverMapper FailoverMapper
-
 	ctl failoverPolicyReconciler
 }
 
@@ -40,7 +37,6 @@ func (suite *controllerSuite) SetupTest() {
 	}
 	suite.client = rtest.NewClient(client)
 
-	suite.failoverMapper = failovermapper.New()
 }
 
 func (suite *controllerSuite) TestController() {
@@ -49,7 +45,7 @@ func (suite *controllerSuite) TestController() {
 
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(FailoverPolicyController(suite.failoverMapper))
+	mgr.Register(FailoverPolicyController())
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
