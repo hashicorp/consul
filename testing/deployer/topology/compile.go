@@ -317,6 +317,13 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q node %q has more than one public address", c.Name, n.Name)
 			}
 
+			if n.IsDataplane() && len(n.Services) > 1 {
+				// Our use of consul-dataplane here is supposed to mimic that
+				// of consul-k8s, which ultimately has one IP per Service, so
+				// we introduce the same limitation here.
+				return nil, fmt.Errorf("cluster %q node %q uses dataplane, but has more than one service", c.Name, n.Name)
+			}
+
 			seenServices := make(map[ServiceID]struct{})
 			for _, svc := range n.Services {
 				if n.IsAgent() {
@@ -387,7 +394,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				// 	return nil, fmt.Errorf("service has invalid protocol: %s", svc.Protocol)
 				// }
 
-				for _, u := range svc.Upstreams {
+				defaultUpstream := func(u *Upstream) error {
 					// Default to that of the enclosing service.
 					if u.Peer == "" {
 						if u.ID.Partition == "" {
@@ -406,22 +413,50 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 
 					addTenancy(u.ID.Partition, u.ID.Namespace)
 
-					if u.LocalAddress == "" {
-						// v1 defaults to 127.0.0.1 but v2 does not. Safe to do this generally though.
-						u.LocalAddress = "127.0.0.1"
+					if u.Implied {
+						if u.PortName == "" {
+							return fmt.Errorf("implicit upstreams must use port names in v2")
+						}
+					} else {
+						if u.LocalAddress == "" {
+							// v1 defaults to 127.0.0.1 but v2 does not. Safe to do this generally though.
+							u.LocalAddress = "127.0.0.1"
+						}
+						if u.PortName != "" && n.IsV1() {
+							return fmt.Errorf("explicit upstreams cannot use port names in v1")
+						}
+						if u.PortName == "" && n.IsV2() {
+							// Assume this is a v1->v2 conversion and name it.
+							u.PortName = "legacy"
+						}
 					}
 
-					if u.PortName != "" && n.IsV1() {
-						return nil, fmt.Errorf("explicit upstreams cannot use port names in v1")
+					return nil
+				}
+
+				for _, u := range svc.Upstreams {
+					if err := defaultUpstream(u); err != nil {
+						return nil, err
 					}
-					if u.PortName == "" && n.IsV2() {
-						// Assume this is a v1->v2 conversion and name it.
-						u.PortName = "legacy"
+				}
+
+				if n.IsV2() {
+					for _, u := range svc.ImpliedUpstreams {
+						u.Implied = true
+						if err := defaultUpstream(u); err != nil {
+							return nil, err
+						}
 					}
+				} else {
+					return nil, fmt.Errorf("v1 does not support implied upstreams yet")
 				}
 
 				if err := svc.Validate(); err != nil {
 					return nil, fmt.Errorf("cluster %q node %q service %q is not valid: %w", c.Name, n.Name, svc.ID.String(), err)
+				}
+
+				if svc.EnableTransparentProxy && !n.IsDataplane() {
+					return nil, fmt.Errorf("cannot enable tproxy on a non-dataplane node")
 				}
 
 				if n.IsV2() {
@@ -429,26 +464,27 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 						svc.V2Services = []string{svc.ID.Name}
 
 						var svcPorts []*pbcatalog.ServicePort
-						for name := range svc.Ports {
+						for name, cfg := range svc.Ports {
 							svcPorts = append(svcPorts, &pbcatalog.ServicePort{
 								TargetPort: name,
-								Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
-							})
-						}
-						if !svc.DisableServiceMesh {
-							svcPorts = append(svcPorts, &pbcatalog.ServicePort{
-								TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+								Protocol:   cfg.ActualProtocol,
 							})
 						}
 
 						v2svc := &pbcatalog.Service{
-							Workloads: &pbcatalog.WorkloadSelector{
-								Names: []string{svc.Workload},
-							},
-							Ports: svcPorts,
+							Workloads: &pbcatalog.WorkloadSelector{},
+							Ports:     svcPorts,
 						}
 
-						c.Services[svc.ID] = v2svc
+						prev, ok := c.Services[svc.ID]
+						if !ok {
+							c.Services[svc.ID] = v2svc
+							prev = v2svc
+						}
+						if prev.Workloads == nil {
+							prev.Workloads = &pbcatalog.WorkloadSelector{}
+						}
+						prev.Workloads.Names = append(prev.Workloads.Names, svc.Workload)
 
 					} else {
 						for _, name := range svc.V2Services {
@@ -475,6 +511,31 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					}
 					if len(svc.WorkloadIdentities) > 0 {
 						return nil, fmt.Errorf("cannot specify workload identities for v1")
+					}
+				}
+			}
+		}
+
+		if err := assignVirtualIPs(c); err != nil {
+			return nil, err
+		}
+
+		if c.EnableV2 {
+			// Populate the VirtualPort field on all implied upstreams.
+			for _, n := range c.Nodes {
+				for _, svc := range n.Services {
+					for _, u := range svc.ImpliedUpstreams {
+						res, ok := c.Services[u.ID]
+						if ok {
+							for _, sp := range res.Ports {
+								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+									continue
+								}
+								if sp.TargetPort == u.PortName {
+									u.VirtualPort = sp.VirtualPort
+								}
+							}
+						}
 					}
 				}
 			}
@@ -605,6 +666,21 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					// this helps in generating fortio assertions; otherwise field is ignored
 					u.ID.Partition = remotePeer.Link.Partition
 				}
+				for _, u := range svc.ImpliedUpstreams {
+					if u.Peer == "" {
+						u.Cluster = c.Name
+						u.Peering = nil
+						continue
+					}
+					remotePeer, ok := c.Peerings[u.Peer]
+					if !ok {
+						return nil, fmt.Errorf("not possible")
+					}
+					u.Cluster = remotePeer.Link.Name
+					u.Peering = remotePeer.Link
+					// this helps in generating fortio assertions; otherwise field is ignored
+					u.ID.Partition = remotePeer.Link.Partition
+				}
 			}
 		}
 	}
@@ -669,6 +745,51 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 	}
 
 	return t, nil
+}
+
+func assignVirtualIPs(c *Cluster) error {
+	lastVIPIndex := 1
+	for _, svcData := range c.Services {
+		lastVIPIndex++
+		if lastVIPIndex > 250 {
+			return fmt.Errorf("too many ips using this approach to VIPs")
+		}
+		svcData.VirtualIps = []string{
+			fmt.Sprintf("10.244.0.%d", lastVIPIndex),
+		}
+
+		// populate virtual ports where we forgot them
+		var (
+			usedPorts = make(map[uint32]struct{})
+			next      = uint32(8080)
+		)
+		for _, sp := range svcData.Ports {
+			if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				continue
+			}
+			if sp.VirtualPort > 0 {
+				usedPorts[sp.VirtualPort] = struct{}{}
+			}
+		}
+		for _, sp := range svcData.Ports {
+			if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
+				continue
+			}
+			if sp.VirtualPort > 0 {
+				continue
+			}
+		RETRY:
+			attempt := next
+			next++
+			_, used := usedPorts[attempt]
+			if used {
+				goto RETRY
+			}
+			usedPorts[attempt] = struct{}{}
+			sp.VirtualPort = attempt
+		}
+	}
+	return nil
 }
 
 const permutedWarning = "use the disabled node kind if you want to ignore a node"

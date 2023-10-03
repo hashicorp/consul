@@ -17,15 +17,15 @@ import (
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
-// TestBasicL4ExplicitDestinations sets up the following:
+// TestBasicL4ImplicitDestinations sets up the following:
 //
 // - 1 cluster (no peering / no wanfed)
 // - 3 servers in that cluster
 // - v2 arch is activated
 // - for each tenancy, only using v2 constructs:
-//   - a client with one explicit destination to a single port service
-//   - a client with multiple explicit destinations to multiple ports of the
-//     same multiport service
+//   - a server exposing 2 tcp ports
+//   - a client with transparent proxy enabled and no explicit upstreams
+//   - a traffic permission granting the client access to the service on all ports
 //
 // When this test is executed in CE it will only use the default/default
 // tenancy.
@@ -36,8 +36,8 @@ import (
 // - part1/default
 // - default/nsa
 // - part1/nsa
-func TestBasicL4ExplicitDestinations(t *testing.T) {
-	cfg := testBasicL4ExplicitDestinationsCreator{}.NewConfig(t)
+func TestBasicL4ImplicitDestinations(t *testing.T) {
+	cfg := testBasicL4ImplicitDestinationsCreator{}.NewConfig(t)
 
 	sp := sprawltest.Launch(t, cfg)
 
@@ -54,12 +54,10 @@ func TestBasicL4ExplicitDestinations(t *testing.T) {
 
 	t.Log(topology.RenderRelationships(ships))
 
-	// Make sure things are in v2.
+	// Make sure things are truly in v2 not v1.
 	for _, name := range []string{
-		"single-server",
-		"single-client",
-		"multi-server",
-		"multi-client",
+		"static-server",
+		"static-client",
 	} {
 		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, name, nil, 1)
 	}
@@ -75,15 +73,17 @@ func TestBasicL4ExplicitDestinations(t *testing.T) {
 			clusterPrefix := clusterPrefixForUpstream(u)
 
 			asserter.UpstreamEndpointStatus(t, svc, clusterPrefix+".", "HEALTHY", 1)
-			asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
+			if u.LocalPort > 0 {
+				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
+			}
 			asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, u.ID)
 		})
 	}
 }
 
-type testBasicL4ExplicitDestinationsCreator struct{}
+type testBasicL4ImplicitDestinationsCreator struct{}
 
-func (c testBasicL4ExplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
+func (c testBasicL4ImplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
 	const clusterName = "dc1"
 
 	servers := topoutil.NewTopologyServerSet(clusterName+"-server", 3, []string{clusterName, "wan"}, nil)
@@ -119,7 +119,7 @@ func (c testBasicL4ExplicitDestinationsCreator) NewConfig(t *testing.T) *topolog
 	}
 }
 
-func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
+func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 	t *testing.T,
 	cluster *topology.Cluster,
 	nodeName func() string,
@@ -142,7 +142,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		PeerName:  "local",
 	}
 
-	singleportServerNode := &topology.Node{
+	serverNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
@@ -150,55 +150,15 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Services: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
-				newServiceID("single-server"),
-				topology.NodeVersionV2,
-				nil,
-			),
-		},
-	}
-	singleportClientNode := &topology.Node{
-		Kind:      topology.NodeKindDataplane,
-		Version:   topology.NodeVersionV2,
-		Partition: partition,
-		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
-				clusterName,
-				newServiceID("single-client"),
+				newServiceID("static-server"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc")     // v2 mode turns this on, so turn it off
-					delete(svc.Ports, "http-alt") // v2 mode turns this on, so turn it off
-					svc.Upstreams = []*topology.Upstream{{
-						ID:           newServiceID("single-server"),
-						PortName:     "http",
-						LocalAddress: "0.0.0.0", // needed for an assertion
-						LocalPort:    5000,
-					}}
+					svc.EnableTransparentProxy = true
 				},
 			),
 		},
 	}
-	singleportTrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    pbauth.TrafficPermissionsType,
-			Name:    "single-server-perms",
-			Tenancy: tenancy,
-		},
-	}, &pbauth.TrafficPermissions{
-		Destination: &pbauth.Destination{
-			IdentityName: "single-server",
-		},
-		Action: pbauth.Action_ACTION_ALLOW,
-		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "single-client",
-				Namespace:    namespace,
-			}},
-		}},
-	})
-
-	multiportServerNode := &topology.Node{
+	clientNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
@@ -206,69 +166,49 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Services: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
-				newServiceID("multi-server"),
-				topology.NodeVersionV2,
-				nil,
-			),
-		},
-	}
-	multiportClientNode := &topology.Node{
-		Kind:      topology.NodeKindDataplane,
-		Version:   topology.NodeVersionV2,
-		Partition: partition,
-		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
-				clusterName,
-				newServiceID("multi-client"),
+				newServiceID("static-client"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					svc.Upstreams = []*topology.Upstream{
+					svc.EnableTransparentProxy = true
+					svc.ImpliedUpstreams = []*topology.Upstream{
 						{
-							ID:           newServiceID("multi-server"),
-							PortName:     "http",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5000,
+							ID:       newServiceID("static-server"),
+							PortName: "http",
 						},
 						{
-							ID:           newServiceID("multi-server"),
-							PortName:     "http-alt",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5001,
+							ID:       newServiceID("static-server"),
+							PortName: "http-alt",
 						},
 					}
 				},
 			),
 		},
 	}
-	multiportTrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
+	trafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
-			Name:    "multi-server-perms",
+			Name:    "static-server-perms",
 			Tenancy: tenancy,
 		},
 	}, &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
-			IdentityName: "multi-server",
+			IdentityName: "static-server",
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
 			Sources: []*pbauth.Source{{
-				IdentityName: "multi-client",
+				IdentityName: "static-client",
 				Namespace:    namespace,
 			}},
 		}},
 	})
 
 	cluster.Nodes = append(cluster.Nodes,
-		singleportClientNode,
-		singleportServerNode,
-		multiportClientNode,
-		multiportServerNode,
+		clientNode,
+		serverNode,
 	)
 
 	cluster.InitialResources = append(cluster.InitialResources,
-		singleportTrafficPerms,
-		multiportTrafficPerms,
+		trafficPerms,
 	)
 }

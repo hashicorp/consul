@@ -230,6 +230,15 @@ func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster
 						return err
 					}
 				}
+				if pending.ProxyConfiguration != nil {
+					res, err := pending.ProxyConfiguration.Build()
+					if err != nil {
+						return fmt.Errorf("error serializing resource %s: %w", util.IDToString(pending.ProxyConfiguration.Resource.Id), err)
+					}
+					if _, err := s.writeResource(cluster, res); err != nil {
+						return err
+					}
+				}
 			} else {
 				if err := s.registerCatalogServiceV1(cluster, node, svc); err != nil {
 					return fmt.Errorf("error registering service: %w", err)
@@ -268,6 +277,7 @@ func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster
 				},
 				Data: svcData,
 			}
+
 			res, err := svcInfo.Build()
 			if err != nil {
 				return fmt.Errorf("error serializing resource %s: %w", util.IDToString(svcInfo.Resource.Id), err)
@@ -482,10 +492,11 @@ func (r *Resource[V]) Build() (*pbresource.Resource, error) {
 }
 
 type ServiceResources struct {
-	Workload         *Resource[*pbcatalog.Workload]
-	HealthStatuses   []*Resource[*pbcatalog.HealthStatus]
-	Destinations     *Resource[*pbmesh.Destinations]
-	WorkloadIdentity *Resource[*pbauth.WorkloadIdentity]
+	Workload           *Resource[*pbcatalog.Workload]
+	HealthStatuses     []*Resource[*pbcatalog.HealthStatus]
+	Destinations       *Resource[*pbmesh.Destinations]
+	WorkloadIdentity   *Resource[*pbauth.WorkloadIdentity]
+	ProxyConfiguration *Resource[*pbmesh.ProxyConfiguration]
 }
 
 func serviceInstanceToResources(
@@ -506,8 +517,8 @@ func serviceInstanceToResources(
 	)
 	for name, port := range svc.Ports {
 		wlPorts[name] = &pbcatalog.WorkloadPort{
-			Port:     uint32(port),
-			Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+			Port:     uint32(port.Number),
+			Protocol: port.ActualProtocol,
 		}
 	}
 
@@ -549,6 +560,7 @@ func serviceInstanceToResources(
 
 		healthResList   []*Resource[*pbcatalog.HealthStatus]
 		destinationsRes *Resource[*pbmesh.Destinations]
+		proxyConfigRes  *Resource[*pbmesh.ProxyConfiguration]
 	)
 
 	if svc.HasCheck() {
@@ -577,11 +589,6 @@ func serviceInstanceToResources(
 	}
 
 	if !svc.DisableServiceMesh {
-		workloadRes.Data.Ports["mesh"] = &pbcatalog.WorkloadPort{
-			Port:     uint32(svc.EnvoyPublicListenerPort),
-			Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
-		}
-
 		destinationsRes = &Resource[*pbmesh.Destinations]{
 			Resource: &pbresource.Resource{
 				Id: &pbresource.ID{
@@ -615,13 +622,32 @@ func serviceInstanceToResources(
 			}
 			destinationsRes.Data.Destinations = append(destinationsRes.Data.Destinations, dest)
 		}
+
+		if svc.EnableTransparentProxy {
+			proxyConfigRes = &Resource[*pbmesh.ProxyConfiguration]{
+				Resource: &pbresource.Resource{
+					Id: &pbresource.ID{
+						Type:    pbmesh.ProxyConfigurationType,
+						Name:    svc.Workload,
+						Tenancy: tenancy,
+					},
+				},
+				Data: &pbmesh.ProxyConfiguration{
+					Workloads: selector,
+					DynamicConfig: &pbmesh.DynamicConfig{
+						Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+					},
+				},
+			}
+		}
 	}
 
 	return &ServiceResources{
-		Workload:         workloadRes,
-		HealthStatuses:   healthResList,
-		Destinations:     destinationsRes,
-		WorkloadIdentity: worloadIdentityRes,
+		Workload:           workloadRes,
+		HealthStatuses:     healthResList,
+		Destinations:       destinationsRes,
+		WorkloadIdentity:   worloadIdentityRes,
+		ProxyConfiguration: proxyConfigRes,
 	}
 }
 
