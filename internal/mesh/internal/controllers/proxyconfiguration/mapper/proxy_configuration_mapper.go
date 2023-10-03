@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/common"
 	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
+	"github.com/hashicorp/consul/lib/stringslice"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -39,6 +40,20 @@ func (m *Mapper) MapProxyConfiguration(ctx context.Context, rt controller.Runtim
 		proxyConfig.GetWorkloads(), res.Id.Tenancy)
 	if err != nil {
 		return nil, err
+	}
+
+	// Then generate requests for any previously selected workloads.
+	prevSelector := m.workloadSelectionTracker.GetSelector(res.GetId())
+
+	if !(stringslice.Equal(prevSelector.GetNames(), proxyConfig.GetWorkloads().GetNames()) &&
+		stringslice.Equal(prevSelector.GetPrefixes(), proxyConfig.GetWorkloads().GetPrefixes())) {
+		// the selector is different, so we need to map those selectors as well.
+		requestsForPrevSelector, err := common.MapSelector(ctx, rt.Client, pbmesh.ComputedProxyConfigurationType,
+			prevSelector, res.Id.Tenancy)
+		if err != nil {
+			return nil, err
+		}
+		requests = append(requests, requestsForPrevSelector...)
 	}
 
 	// Second, we track this proxy configuration's selector and ID in the tracker.
