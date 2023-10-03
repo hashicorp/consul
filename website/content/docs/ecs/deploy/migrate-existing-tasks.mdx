@@ -9,8 +9,7 @@ description: >-
 
 To migrate existing tasks to Consul, rewrite the existing Terraform code for your tasks so that the container definitions include the [`mesh-task` Terraform module](https://registry.terraform.io/modules/hashicorp/consul-ecs/aws/latest/submodules/mesh-task). 
 
-Your tasks must already be defined in Terraform using the `ecs_task_definition` resource so that they can then be converted to use the mesh-task module.
-
+Your tasks must already be defined in Terraform using the `ecs_task_definition` resource so that they can then be converted to use the `mesh-task` module.
 
 ## Example 
 
@@ -57,9 +56,9 @@ resource "aws_ecs_service" "my_task" {
 ```
 
 
-Replace the ECS task definition with the `mesh-task` module so that Consul adda the necessary dataplane containers for your task to join the mesh. The `mesh-task` module uses inputs similar to your old ECS task definition but creates a new version of the task definition with additional containers.
+Replace the `aws_ecs_task_definition` resource with the `mesh-task` module so that Consul adds the necessary dataplane containers that enable your task to join the mesh. The `mesh-task` module uses inputs similar to your old ECS task definition but creates a new version of the task definition with additional containers.
 
-The following Terraform uses the `mesh-task` module:
+The following Terraform configuration uses the `mesh-task` module to replace the previous example's task definition:
 
 ```hcl
 module "my_task" {
@@ -93,7 +92,7 @@ module "my_task" {
 
 Note the following differences:
 
-- The `execution_role_arn` and `task_role_arn` fields are removed. The `mesh-task` module creates the task and execution roles by default. If you need to use existing IAM role(s), set the `task_role` and `execution_role` fields to pass in existing roles.
+- The `execution_role_arn` and `task_role_arn` fields are removed. The `mesh-task` module creates the task and execution roles by default. If you need to use existing IAM roles, set the `task_role` and `execution_role` fields to pass in existing roles.
 - The `port` field specifes the port that your application listens on. If your application has no listening port, set `outbound_only = true` and remove the `port` field.
 - The `jsonencode()` function is removed from the `container_definitions` field.
 
