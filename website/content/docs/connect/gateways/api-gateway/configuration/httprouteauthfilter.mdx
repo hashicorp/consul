@@ -1,10 +1,10 @@
 ---
 layout: docs
-page_title: HTTRouteAuthFilter configuration reference
-description: Learn how to configure the `HTTRouteAuthFilter` resource, which defines behaviors for gateway listeners that are attached to specific HTTP routes.
+page_title: HTTPRouteAuthFilter configuration reference
+description: Learn how to configure the `HTTPRouteAuthFilter` resource, which defines behaviors for gateway listeners that are attached to specific HTTP routes.
 ---
 
-# HTTRouteAuthFilter
+# HTTPRouteAuthFilter configuration reference
 
 This topic provides reference information for the HTTP route auth filter resource, which defines authorization filter configurations for specific routes in Consul service mesh on Kubernetes-orchestrated networks.
 
@@ -12,7 +12,7 @@ This topic provides reference information for the HTTP route auth filter resourc
 
 The following list outlines field hierarchy, data types, and requirements in an HTTP route auth filter resource. Click on a property name to view additional details, including default values.
 
-- [`apiVersion`](#apiversion): string | required | must be set to `gateway.networking.k8s.io/v1beta1`
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
 - [`kind`](#kind): string | required | must be set to `HTTPRouteAuthFilter`
 - [`metadata`](#metadata): map | required
    - [`name`](#metadata-name): string | required 
@@ -78,7 +78,7 @@ Specifies the namespace that the configuration applies to. Refer to [Namespaces]
 
 #### Values
 
-- Default: None
+- Default: `default`
 - Data type: String
 
 ### `spec`
@@ -103,8 +103,7 @@ Map that contains JWT verification configurations to apply to listeners when the
 
 ### `spec.jwt.providers`
 
-Specifies a list of JWT provider configurations to apply to listeners when the filter is attached to the route. A provider configuration contains the name of the provider and claims. The route-specific settings have precedence over the `default` configurations, but not `override` configurations, defined in the [`GatewayPolicy`](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy) resource.
-
+Specifies a list of JWT provider configurations to apply to listeners when the filter is attached to the route. A provider configuration contains the name of the provider and claims. The route-specific settings have precedence over the `default` configurations, but not `override` configurations, that are defined in the [`GatewayPolicy`](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy) resource.
 
 #### Values
 
@@ -116,7 +115,7 @@ The following table describes the parameters you can specify in a member of the 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the provider. | String | None |
-| `verifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
 
 ## Example configuration
 

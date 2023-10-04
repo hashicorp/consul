@@ -492,10 +492,9 @@ The following table describes the parameters you can specify in a member of the 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `Name` | Specifies the name of the provider. | String | None |
-| `VerifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: List of paths to the claims</li><li>`Value`: ???</li></ul> | Map | None |
+| `VerifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: List of paths to the claims</li><li>`Value`: ???</li></ul> | Map | None |
 
 Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
-
 
 ### `Rules[].Matches[]`
 
@@ -736,7 +735,7 @@ Specifies rule for rewriting the URL of incoming requests.
 
 ## Examples
 
-Add the following example configuration:
+The following examples demonstrate common HTTP route configuration patterns for specific use cases.
 
 ### Configure JWT verification settings
 

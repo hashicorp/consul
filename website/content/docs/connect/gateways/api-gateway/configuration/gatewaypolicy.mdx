@@ -12,7 +12,7 @@ This topic provides reference information for the API gateway policy resource, w
 
 The following list outlines field hierarchy, data types, and requirements in a gateway policy resource. Click on a property name to view additional details, including default values.
 
-- [`apiVersion`](#apiversion): string | required | must be set to `gateway.networking.k8s.io/v1beta1`
+- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
 - [`kind`](#kind): string | required | must be set to `GatewayPolicy`
 - [`metadata`](#metadata): map | required
    - [`name`](#metadata-name): string | required 
@@ -165,7 +165,7 @@ Map that contains configurations to apply to listeners when the policy is attach
 
 ### `spec.override.jwt`
 
-Map that contains JWT verification configurations to apply to listeners when the policy is attached to the gateway. The override settings have  precedence over the [`default` configurations](#listeners-default), as well as any route-specific JWT configurations defined in [`HTTPRouteAuthFilter` configurations](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter).
+Map that contains JWT verification configurations to apply to listeners when the policy is attached to the gateway. The override settings have precedence over the [`default` configurations](#listeners-default) as well as any route-specific JWT configurations defined in [`HTTPRouteAuthFilter` configurations](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter).
 
 #### Values
 
@@ -183,11 +183,10 @@ Specifies a list of JWT provider configurations to apply to listeners when the p
 
 The following table describes the parameters you can specify in a member of the `Providers` list:
 
-
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the provider. | String | None |
-| `verifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
 
 ### `spec.default`
 
@@ -221,11 +220,11 @@ The following table describes the parameters you can specify in a member of the 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the provider. | String | None |
-| `verifyClaim` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
 
 ## Example configuration
 
-In the following exampl, all requests through the gateway must have the `api.apps.organization.com` audience. Additionally, requests through the gateway must have a `user` role by default. 
+In the following example, all requests through the gateway must have the `api.apps.organization.com` audience claim. Additionally, requests through the gateway must have a `user` role by default. 
 
 ```yaml
 apiVersion: consul.hashicorp.com/v1alpha1

@@ -400,7 +400,7 @@ Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partiti
 
 ### `Listeners[].default`
 
-Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations. Refer to the [`override` block](#listeners-override) for details.  
+Specifies a block of default configurations to apply to the gateway listener. All routes attached to the listener inherit the default configurations. You can specify override configurations that have precedence over default configurations in the [`override` block](#listeners-override) as well as in the `JWT` block in the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route).  
 
 #### Values
 
@@ -436,7 +436,7 @@ Refer to [Configure JWT verification settings](#configure-jwt-verification-setti
 
 ### `Listeners[].override`
 
-Specifies a block of configurations to apply to the gateway listener. The override settings have  precedence over the [`default` configurations](#listeners-default).
+Specifies a block of configurations to apply to the gateway listener. The override settings have precedence over the configurations in the [`Listeners[].default` block](#listeners-default).
 
 #### Values
 
@@ -445,7 +445,7 @@ Specifies a block of configurations to apply to the gateway listener. The overri
 
 ### `Listeners[].override{}.JWT`
 
-Specifies a block of JWT verification configurations to apply to the gateway listener. The override settings have  precedence over the [`default` configurations](#listeners-default), as well as any route-specific JWT configurations.
+Specifies a block of JWT verification configurations to apply to the gateway listener. The override settings have precedence over the [`Listeners[].default` configurations](#listeners-default) as well as any route-specific JWT configurations.
 
 #### Values
 
@@ -454,7 +454,7 @@ Specifies a block of JWT verification configurations to apply to the gateway lis
 
 ### `Listeners[].override{}.JWT{}.Providers`
 
-Specifies a list of JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over defaults as well as any listener specific configuration. 
+Specifies a list of JWT provider configurations to apply to the gateway listener. A provider configuration contains the name of the provider and claims. The override settings have precedence over `Listeners[].defaults{}.JWT{}.Providers` as well as any listener-specific configuration. 
 
 #### Values
 
@@ -472,11 +472,11 @@ Refer to [Configure JWT verification settings](#configure-jwt-verification-setti
 
 ## Examples
 
-Add the following example to the Examples section.
+The following examples demonstrate common API gateway configuration patterns for specific use cases.
 
 ### Configure JWT verification settings
 
-The following example configures `listener-one` to verify that requests are from clients that have Okta user permissions by default. The listener also verifies claims that  <TODO - need help describing the example>:
+The following example configures `listener-one` to verify that requests include a token with Okta user permissions by default. The listener also verifies that the token has an audience of `api.apps.organization.com`.
 
 <Tabs>
 <Tab heading="HCL" group="hcl">
