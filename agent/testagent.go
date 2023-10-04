@@ -17,9 +17,9 @@ import (
 	"text/template"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -414,12 +414,12 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	ports := freeport.GetN(t, 8)
+	ports := freeport.GetN(t, 7)
 
 	var http, https int
 	if useHTTPS {
 		http = -1
-		https = ports[2]
+		https = ports[1]
 	} else {
 		http = ports[1]
 		https = -1
@@ -430,11 +430,11 @@ func randomPortsSource(t *testing.T, useHTTPS bool) string {
 			dns = ` + strconv.Itoa(ports[0]) + `
 			http = ` + strconv.Itoa(http) + `
 			https = ` + strconv.Itoa(https) + `
-			serf_lan = ` + strconv.Itoa(ports[3]) + `
-			serf_wan = ` + strconv.Itoa(ports[4]) + `
-			server = ` + strconv.Itoa(ports[5]) + `
-			grpc = ` + strconv.Itoa(ports[6]) + `
-			grpc_tls = ` + strconv.Itoa(ports[7]) + `
+			serf_lan = ` + strconv.Itoa(ports[2]) + `
+			serf_wan = ` + strconv.Itoa(ports[3]) + `
+			server = ` + strconv.Itoa(ports[4]) + `
+			grpc = ` + strconv.Itoa(ports[5]) + `
+			grpc_tls = ` + strconv.Itoa(ports[6]) + `
 		}
 	`
 }

@@ -126,7 +126,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	newStatus := &pbresource.Status{
 		ObservedGeneration: rsp.Resource.Generation,
 		Conditions: []*pbresource.Condition{
-			ConditionComputed(req.ID.Name),
+			ConditionComputed(req.ID.Name, latestTrafficPermissions.IsDefault),
 		},
 	}
 	_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
@@ -167,6 +167,7 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 	}
 	ap := make([]*pbauth.Permission, 0)
 	dp := make([]*pbauth.Permission, 0)
+	isDefault := true
 	for _, t := range trackedTPs {
 		rsp, err := resource.GetDecodedResource[*pbauth.TrafficPermissions](ctx, rt.Client, resource.IDFromReference(t))
 		if err != nil {
@@ -179,11 +180,16 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 			wm.UntrackTrafficPermissions(resource.IDFromReference(t))
 			continue
 		}
+		isDefault = false
 		if rsp.Data.Action == pbauth.Action_ACTION_ALLOW {
 			ap = append(ap, rsp.Data.Permissions...)
 		} else {
 			dp = append(dp, rsp.Data.Permissions...)
 		}
 	}
-	return &pbauth.ComputedTrafficPermissions{AllowPermissions: ap, DenyPermissions: dp}, nil
+	return &pbauth.ComputedTrafficPermissions{
+		AllowPermissions: ap,
+		DenyPermissions:  dp,
+		IsDefault:        isDefault,
+	}, nil
 }
