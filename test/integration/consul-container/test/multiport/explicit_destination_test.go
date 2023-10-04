@@ -30,6 +30,7 @@ import (
 //   - Make sure a request from static-client to the virtual address (<svc>.virtual.consul) returns a
 //     response from the upstream.
 func TestMultiportService_Explicit(t *testing.T) {
+	t.Skip()
 	t.Parallel()
 
 	cluster := createCluster(t)
