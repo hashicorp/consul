@@ -14,45 +14,20 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestValidateComputedTrafficPermissions_Permissions(t *testing.T) {
-	for n, tc := range permissionsTestCases() {
-		t.Run(n, func(t *testing.T) {
+func TestWorkloadIdentityACLs(t *testing.T) {
+	const (
+		DENY    = "deny"
+		ALLOW   = "allow"
+		DEFAULT = "default"
+	)
 
-			for _, s := range tc.p.Sources {
-				normalizedTenancyForSource(s, resource.DefaultNamespacedTenancy())
-			}
-
-			allowCTP := &pbauth.ComputedTrafficPermissions{
-				AllowPermissions: []*pbauth.Permission{tc.p},
-			}
-
-			denyCTP := &pbauth.ComputedTrafficPermissions{
-				DenyPermissions: []*pbauth.Permission{tc.p},
-			}
-
-			for _, ctp := range []*pbauth.ComputedTrafficPermissions{allowCTP, denyCTP} {
-				res := resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, "tp").
-					WithData(t, ctp).
-					Build()
-
-				err := ValidateComputedTrafficPermissions(res)
-				if tc.expectErr == "" {
-					require.NoError(t, err)
-				} else {
-					testutil.RequireErrorContains(t, err, tc.expectErr)
-				}
-			}
-		})
-	}
-}
-
-func TestComputedTrafficPermissionsACLs(t *testing.T) {
-	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
 	Register(registry)
+
+	reg, ok := registry.Resolve(pbauth.WorkloadIdentityType)
+	require.True(t, ok)
 
 	type testcase struct {
 		rules   string
@@ -61,12 +36,6 @@ func TestComputedTrafficPermissionsACLs(t *testing.T) {
 		writeOK string
 		listOK  string
 	}
-
-	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
-	)
 
 	checkF := func(t *testing.T, expect string, got error) {
 		switch expect {
@@ -85,14 +54,11 @@ func TestComputedTrafficPermissionsACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(pbauth.ComputedTrafficPermissionsType)
-	require.True(t, ok)
-
 	run := func(t *testing.T, tc testcase) {
-		ctpData := &pbauth.ComputedTrafficPermissions{}
-		res := resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, "wi1").
+		wid := &pbauth.WorkloadIdentity{}
+		res := resourcetest.Resource(pbauth.WorkloadIdentityType, "wi1").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, ctpData).
+			WithData(t, wid).
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, res)
 
@@ -115,6 +81,10 @@ func TestComputedTrafficPermissionsACLs(t *testing.T) {
 			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
 			checkF(t, tc.listOK, err)
 		})
+		t.Run("errors", func(t *testing.T) {
+			require.ErrorIs(t, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, nil, nil), resource.ErrNeedData)
+			require.ErrorIs(t, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, nil), resource.ErrNeedData)
+		})
 	}
 
 	cases := map[string]testcase{
@@ -124,43 +94,43 @@ func TestComputedTrafficPermissionsACLs(t *testing.T) {
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 read, no intentions": {
+		"workload identity wi1 read, no intentions": {
 			rules:   `identity "wi1" { policy = "read" }`,
 			readOK:  ALLOW,
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 read, deny intentions": {
+		"workload identity wi1 read, deny intentions has no effect": {
 			rules:   `identity "wi1" { policy = "read", intentions = "deny" }`,
-			readOK:  DENY,
+			readOK:  ALLOW,
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 read, intentions read": {
+		"workload identity wi1 read, intentions read has no effect": {
 			rules:   `identity "wi1" { policy = "read", intentions = "read" }`,
 			readOK:  ALLOW,
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 write, write intentions": {
+		"workload identity wi1 write, write intentions has no effect": {
 			rules:   `identity "wi1" { policy = "read", intentions = "write" }`,
+			readOK:  ALLOW,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"workload identity wi1 write, deny intentions has no effect": {
+			rules:   `identity "wi1" { policy = "write", intentions = "deny" }`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 write, deny intentions": {
-			rules:   `identity "wi1" { policy = "write", intentions = "deny" }`,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"workload identity w1 write, intentions read": {
+		"workload identity wi1 write, intentions read has no effect": {
 			rules:   `identity "wi1" { policy = "write", intentions = "read" }`,
 			readOK:  ALLOW,
-			writeOK: DENY,
+			writeOK: ALLOW,
 			listOK:  DEFAULT,
 		},
-		"workload identity w1 write, intentions write": {
+		"workload identity wi1 write, intentions write": {
 			rules:   `identity "wi1" { policy = "write", intentions = "write" }`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,

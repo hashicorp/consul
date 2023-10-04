@@ -292,6 +292,20 @@ func (s *staticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	return Deny
 }
 
+func (s *staticAuthorizer) TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
 	return AllowAuthorizer{Authorizer: s}
 }

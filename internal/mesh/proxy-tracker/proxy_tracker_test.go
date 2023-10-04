@@ -194,9 +194,7 @@ func TestProxyTracker_PushChange(t *testing.T) {
 	require.NoError(t, err)
 
 	// PushChange
-	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
-		TrafficPermissionDefaultAllow: true,
-	}}
+	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{}}
 
 	// using a goroutine so that the channel and main test thread do not cause
 	// blocking issues with each other
@@ -227,9 +225,7 @@ func TestProxyTracker_PushChanges_ErrorProxyNotConnected(t *testing.T) {
 	})
 
 	// PushChange
-	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{
-		TrafficPermissionDefaultAllow: true,
-	}}
+	proxyState := &ProxyState{ProxyState: &pbmesh.ProxyState{}}
 
 	err := pt.PushChange(resourceID, proxyState)
 	require.Error(t, err)

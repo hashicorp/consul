@@ -6,6 +6,7 @@ package types
 import (
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -13,10 +14,15 @@ import (
 
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbauth.ComputedTrafficPermissionsType,
-		Proto:    &pbauth.ComputedTrafficPermissions{},
-		Scope:    resource.ScopeNamespace,
+		Type:  pbauth.ComputedTrafficPermissionsType,
+		Proto: &pbauth.ComputedTrafficPermissions{},
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookComputedTrafficPermissions,
+			Write: aclWriteHookComputedTrafficPermissions,
+			List:  aclListHookComputedTrafficPermissions,
+		},
 		Validate: ValidateComputedTrafficPermissions,
+		Scope:    resource.ScopeNamespace,
 	})
 }
 
@@ -56,4 +62,18 @@ func ValidateComputedTrafficPermissions(res *pbresource.Resource) error {
 	}
 
 	return merr
+}
+
+func aclReadHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+	return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(id.Name, authzContext)
+}
+
+func aclWriteHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(res.Id.Name, authzContext)
+}
+
+func aclListHookComputedTrafficPermissions(_ acl.Authorizer, _ *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement
+	return nil
 }

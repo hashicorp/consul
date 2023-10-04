@@ -34,6 +34,7 @@ import (
 )
 
 const (
+	testIdentity     = "test-identity"
 	testToken        = "acl-token-get-envoy-bootstrap-params"
 	testServiceName  = "web"
 	proxyServiceID   = "web-proxy"
@@ -308,7 +309,23 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		}
 
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-			Return(testutils.ACLServiceRead(t, workloadResource.Id.Name), nil)
+			Return(testutils.ACLUseProvidedPolicy(t,
+				&acl.Policy{
+					PolicyRules: acl.PolicyRules{
+						Services: []*acl.ServiceRule{
+							{
+								Name:   workloadResource.Id.Name,
+								Policy: acl.PolicyRead,
+							},
+						},
+						Identities: []*acl.IdentityRule{
+							{
+								Name:   testIdentity,
+								Policy: acl.PolicyWrite,
+							},
+						},
+					},
+				}), nil)
 
 		resp, err := client.GetEnvoyBootstrapParams(ctx, req)
 		require.NoError(t, err)
@@ -328,14 +345,14 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		{
 			name: "workload without node",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
 			expBootstrapCfg: &pbmesh.BootstrapConfig{},
 		},
 		{
 			name: "workload with node",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 				NodeName: "test-node",
 			},
 			expBootstrapCfg: &pbmesh.BootstrapConfig{},
@@ -343,7 +360,7 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		{
 			name: "single proxy configuration",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
 			proxyCfgs: []*pbmesh.ProxyConfiguration{
 				{
@@ -360,7 +377,7 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		{
 			name: "multiple proxy configurations",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
 			proxyCfgs: []*pbmesh.ProxyConfiguration{
 				{

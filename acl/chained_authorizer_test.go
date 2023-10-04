@@ -122,6 +122,12 @@ func (authz testAuthorizer) SessionWrite(string, *AuthorizerContext) Enforcement
 func (authz testAuthorizer) Snapshot(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
+func (authz testAuthorizer) TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 
 func (authz testAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
 	return AllowAuthorizer{Authorizer: &authz}

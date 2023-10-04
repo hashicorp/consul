@@ -308,7 +308,7 @@ func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Ro
 	if err != nil {
 		return nil, err
 	}
-	envoyFilters, err := makeL4Filters(pr.proxyState.TrafficPermissionDefaultAllow, l4.L4)
+	envoyFilters, err := makeL4Filters(l4.L4)
 	return envoyFilters, err
 }
 
@@ -333,10 +333,10 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 	return alpnProtocols
 }
 
-func makeL4Filters(defaultAllow bool, l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
+func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
-		rbacFilters, err := MakeL4RBAC(defaultAllow, l4.TrafficPermissions)
+		rbacFilters, err := MakeL4RBAC(l4.TrafficPermissions)
 		if err != nil {
 			return nil, err
 		}

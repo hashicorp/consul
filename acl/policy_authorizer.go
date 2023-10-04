@@ -20,6 +20,9 @@ type policyAuthorizer struct {
 	// intentionRules contains the service intention exact-match policies
 	intentionRules *radix.Tree
 
+	// trafficPermissionsRules contains the service intention exact-match policies
+	trafficPermissionsRules *radix.Tree
+
 	// keyRules contains the key exact-match policies
 	keyRules *radix.Tree
 
@@ -199,7 +202,7 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 			}
 		}
 
-		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.intentionRules, false); err != nil {
+		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.trafficPermissionsRules, false); err != nil {
 			return err
 		}
 	}
@@ -220,7 +223,7 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 			}
 		}
 
-		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.intentionRules, true); err != nil {
+		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.trafficPermissionsRules, true); err != nil {
 			return err
 		}
 	}
@@ -393,15 +396,16 @@ func newPolicyAuthorizer(policies []*Policy, ent *Config) (*policyAuthorizer, er
 
 func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (*policyAuthorizer, error) {
 	p := &policyAuthorizer{
-		agentRules:         radix.New(),
-		identityRules:      radix.New(),
-		intentionRules:     radix.New(),
-		keyRules:           radix.New(),
-		nodeRules:          radix.New(),
-		serviceRules:       radix.New(),
-		sessionRules:       radix.New(),
-		eventRules:         radix.New(),
-		preparedQueryRules: radix.New(),
+		agentRules:              radix.New(),
+		identityRules:           radix.New(),
+		intentionRules:          radix.New(),
+		trafficPermissionsRules: radix.New(),
+		keyRules:                radix.New(),
+		nodeRules:               radix.New(),
+		serviceRules:            radix.New(),
+		sessionRules:            radix.New(),
+		eventRules:              radix.New(),
+		preparedQueryRules:      radix.New(),
 	}
 
 	p.enterprisePolicyAuthorizer.init(ent)
@@ -608,8 +612,7 @@ func (p *policyAuthorizer) IntentionDefaultAllow(_ *AuthorizerContext) Enforceme
 	return Default
 }
 
-// IntentionRead checks if writing (creating, updating, or deleting) of an
-// intention is allowed.
+// IntentionRead checks if reading an intention is allowed.
 func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if prefix == "*" {
 		return p.anyAllowed(p.intentionRules, AccessRead)
@@ -629,6 +632,31 @@ func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) E
 	}
 
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
+		return enforce(rule.access, AccessWrite)
+	}
+	return Default
+}
+
+// TrafficPermissionsRead checks if reading of traffic permissions is allowed.
+func (p *policyAuthorizer) TrafficPermissionsRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.anyAllowed(p.trafficPermissionsRules, AccessRead)
+	}
+
+	if rule, ok := getPolicy(prefix, p.trafficPermissionsRules); ok {
+		return enforce(rule.access, AccessRead)
+	}
+	return Default
+}
+
+// TrafficPermissionsWrite checks if writing (creating, updating, or deleting) of traffic
+// permissions is allowed.
+func (p *policyAuthorizer) TrafficPermissionsWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.allAllowed(p.trafficPermissionsRules, AccessWrite)
+	}
+
+	if rule, ok := getPolicy(prefix, p.trafficPermissionsRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
 	return Default

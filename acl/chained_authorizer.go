@@ -312,6 +312,21 @@ func (c *ChainedAuthorizer) Snapshot(entCtx *AuthorizerContext) EnforcementDecis
 	})
 }
 
+// TrafficPermissionsRead determines if specific traffic permissions can be read.
+func (c *ChainedAuthorizer) TrafficPermissionsRead(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.TrafficPermissionsRead(prefix, entCtx)
+	})
+}
+
+// TrafficPermissionsWrite determines if specific traffic permissions can be
+// created, modified, or deleted.
+func (c *ChainedAuthorizer) TrafficPermissionsWrite(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.TrafficPermissionsWrite(prefix, entCtx)
+	})
+}
+
 func (c *ChainedAuthorizer) ToAllowAuthorizer() AllowAuthorizer {
 	return AllowAuthorizer{Authorizer: c}
 }
