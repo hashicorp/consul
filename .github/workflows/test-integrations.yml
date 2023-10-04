@@ -436,8 +436,6 @@ jobs:
               --rerun-fails=3 \
               -- \
               go test \
-              -p=6 \
-              -parallel=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
