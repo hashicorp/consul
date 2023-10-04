@@ -76,6 +76,7 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
@@ -899,6 +900,8 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	hcpctl.RegisterControllers(s.controllerManager, hcpctl.DefaultControllerDependencies())
+
 	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
