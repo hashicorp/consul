@@ -227,18 +227,21 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 }
 
 func inferGVKFromResourceType(resourceType string) (*GVK, error) {
-	s := strings.Split(resourceType, ".")
+	s := strings.Split(strings.ToLower(resourceType), ".")
 	if len(s) == 1 {
 		kindToGVKMap := BuildKindToGVKMap()
-		// infer gvk from resource kind
-		if len(kindToGVKMap[s[0]]) != 0 {
+		if len(kindToGVKMap[s[0]]) == 0 {
+			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
+		} else if len(kindToGVKMap[s[0]]) == 1 {
+			// infer gvk from resource kind
+			gvkSplit := strings.Split(kindToGVKMap[s[0]][0], ".")
 			return &GVK{
-				Group:   kindToGVKMap[s[0]][0],
-				Version: kindToGVKMap[s[0]][1],
-				Kind:    kindToGVKMap[s[0]][2],
+				Group:   gvkSplit[0],
+				Version: gvkSplit[1],
+				Kind:    gvkSplit[2],
 			}, nil
 		} else {
-			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
+			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
 		}
 	}
 
@@ -259,7 +262,13 @@ func BuildKindToGVKMap() map[string][]string {
 	typeRegistry := consul.NewTypeRegistry()
 	kindToGVKMap := map[string][]string{}
 	for _, r := range typeRegistry.Types() {
-		kindToGVKMap[r.Type.Kind] = []string{r.Type.GroupVersion, r.Type.GroupVersion, r.Type.Kind}
+		gvkString := fmt.Sprintf("%s.%s.%s", r.Type.Group, r.Type.GroupVersion, r.Type.Kind)
+		kindKey := strings.ToLower(r.Type.Kind)
+		if len(kindToGVKMap[kindKey]) == 0 {
+			kindToGVKMap[kindKey] = []string{gvkString}
+		} else {
+			kindToGVKMap[kindKey] = append(kindToGVKMap[kindKey], gvkString)
+		}
 	}
 	return kindToGVKMap
 }
