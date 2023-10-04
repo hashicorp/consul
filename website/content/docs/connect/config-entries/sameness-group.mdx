@@ -28,6 +28,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`Name`](#name): string | required
 - [`Partition`](#partition): string | `default`
 - [`DefaultForFailover`](#defaultforfailover): boolean | `false`
+- [`IncludeLocal`](#includelocal): boolean | `false`
 - [`Members`](#members): list of maps | required
   - [`Partition`](#members-partition): string
   - [`Peer`](#members-peer): string
@@ -41,10 +42,11 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
 - [`spec`](#spec): map | required
-  - [`DefaultForFailover`](#spec-defaultforfailover): boolean | `false`
-  - [`Members`](#spec-members): list of maps | required
-    - [`Partition`](#spec-members-partition): string
-    - [`Peer`](#spec-members-peer): string
+  - [`defaultForFailover`](#spec-defaultforfailover): boolean | `false`
+  - [`includeLocal`](#spec-includelocal): boolean | `false`
+  - [`members`](#spec-members): list of maps | required
+    - [`partition`](#spec-members-partition): string
+    - [`peer`](#spec-members-peer): string
 
 </Tab>
 </Tabs>
@@ -62,6 +64,7 @@ Kind               = "sameness-group"             # required
 Name               = "<group-name>"               # required
 Partition          = "<partition-configuration-applies-to>"
 DefaultForFailover = false
+IncludeLocal       = true
 Members = [                                       # required
   { Partition = "<partition-with-services-in-group>" },
   { Peer = "<cluster-peer-with-services-in-group>" }
@@ -78,6 +81,7 @@ Members = [                                       # required
     "Name": "<group-name>",                             // required
     "Partition": "<partition-configuration-applies-to>",
     "DefaultForFailover": false,
+    "IncludeLocal": true,    
     "Members": [                                        // required
         {
             "Partition": "<partition-with-services-in-group>"
@@ -100,6 +104,7 @@ metadata:
   name: <groupName>
 spec:
   defaultForFailover: false
+  includeLocal: true
   members:                                        # required
     - partition: <partitionWithServicesInGroup>
     - peer: <clusterPeerWithServicesInGroup>
@@ -150,6 +155,15 @@ Specifies the local admin partition that the sameness group applies to. Refer to
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `Members` list.
 
 When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `IncludeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic target return a health instance from the local partition unless one does not exist.
 
 #### Values
 
@@ -250,6 +264,15 @@ Map that contains the details about the `SamenessGroup` configuration entry. The
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list.
 
 When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.includeLocal`
+
+Determines whether the local partition should be considered the first member of the sameness group. When this field is set to `true`, DNS queries, upstream requests, and failover traffic target return a health instance from the local partition unless one does not exist.
 
 #### Values
 
