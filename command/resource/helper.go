@@ -227,14 +227,15 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 }
 
 func inferGVKFromResourceType(resourceType string) (*GVK, error) {
-	s := strings.Split(strings.ToLower(resourceType), ".")
+	s := strings.Split(resourceType, ".")
 	if len(s) == 1 {
 		kindToGVKMap := BuildKindToGVKMap()
-		if len(kindToGVKMap[s[0]]) == 0 {
+		kind := strings.ToLower(s[0])
+		if len(kindToGVKMap[kind]) == 0 {
 			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
-		} else if len(kindToGVKMap[s[0]]) == 1 {
+		} else if len(kindToGVKMap[kind]) == 1 {
 			// infer gvk from resource kind
-			gvkSplit := strings.Split(kindToGVKMap[s[0]][0], ".")
+			gvkSplit := strings.Split(kindToGVKMap[kind][0], ".")
 			return &GVK{
 				Group:   gvkSplit[0],
 				Version: gvkSplit[1],
