@@ -42,6 +42,6 @@ Refer to the [Automate geo-failover with prepared queries tutorial](/consul/tuto
 
 In networks with multiple datacenters or partitions that share a peer connection, each datacenter or partition functions as an independent unit. As a result, Consul does not correlate services that have the same name, even if they are in the same namespace.
 
-You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical services are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time. 
+You can configure sameness groups for this type of network. Sameness groups allow you to define a group of admin partitions where identical services are deployed in identical namespaces. After you configure the sameness group, you can reference the `SamenessGroup` parameter in service resolver, exported service, and service intention configuration entries, enabling you to add or remove cluster peers from the group without making changes to every cluster peer every time.
 
-Refer to [Sameness groups usage page](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) for more information.
+Refer to [Failover with sameness groups](/consul/docs/connect/failover/sameness) for more information.

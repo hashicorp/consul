@@ -785,6 +785,10 @@
               {
                 "title": "Automate geo-failover with prepared queries",
                 "href": "/tutorials/developer-discovery/automate-geo-failover"
+              },
+              {
+                "title": "Failover with sameness groups",
+                "path": "connect/failover/sameness"
               }
             ]
           },
