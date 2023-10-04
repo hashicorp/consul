@@ -64,6 +64,9 @@ all targets for 5 minutes.
 - `-archive` - Optional, if the tool show archive the directory of data into a
   compressed tar file. Defaults to true.
 
+- `-since` - Optional, can be used to capture information since a particular time
+   in the past
+
 #### API Options
 
 @include 'http_api_options_client.mdx'
@@ -125,7 +128,7 @@ $ consul debug -interval=15s -duration=1m
 To capture information since a particular time in past `-since` flag
 can be used.
 
-```shell-sesion
+```shell-session
 $ consul debug -since 1h
 ...
 ```
