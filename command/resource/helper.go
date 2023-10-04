@@ -8,10 +8,11 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/anypb"
 	"net/http"
 	"strings"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/helpers"
@@ -120,19 +121,10 @@ func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e err
 	if strings.HasPrefix(args[1], "-") {
 		return nil, "", fmt.Errorf("Must provide resource name right after type")
 	}
-
-	s := strings.Split(args[0], ".")
-	if len(s) != 3 {
-		return nil, "", fmt.Errorf("Must include resource type argument in group.verion.kind format")
-	}
-
-	gvk = &GVK{
-		Group:   s[0],
-		Version: s[1],
-		Kind:    s[2],
-	}
-
 	resourceName = args[1]
+
+	gvk, e = inferGVKFromResourceType(args[0])
+
 	return
 }
 
@@ -232,4 +224,42 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 	}
 
 	return out, nil
+}
+
+func inferGVKFromResourceType(resourceType string) (*GVK, error) {
+	s := strings.Split(resourceType, ".")
+	if len(s) == 1 {
+		kindToGVKMap := BuildKindToGVKMap()
+		// infer gvk from resource kind
+		if len(kindToGVKMap[s[0]]) != 0 {
+			return &GVK{
+				Group:   kindToGVKMap[s[0]][0],
+				Version: kindToGVKMap[s[0]][1],
+				Kind:    kindToGVKMap[s[0]][2],
+			}, nil
+		} else {
+			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
+		}
+	}
+
+	if len(s) != 3 {
+		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
+	}
+
+	return &GVK{
+		Group:   s[0],
+		Version: s[1],
+		Kind:    s[2],
+	}, nil
+}
+
+func BuildKindToGVKMap() map[string][]string {
+	// this will generate the map everytime when we execute the CLI
+	// do we need to build this beforehand and save it somewhere?
+	typeRegistry := consul.NewTypeRegistry()
+	kindToGVKMap := map[string][]string{}
+	for _, r := range typeRegistry.Types() {
+		kindToGVKMap[r.Type.Kind] = []string{r.Type.GroupVersion, r.Type.GroupVersion, r.Type.Kind}
+	}
+	return kindToGVKMap
 }

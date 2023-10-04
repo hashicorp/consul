@@ -48,6 +48,7 @@ import (
 	acltread "github.com/hashicorp/consul/command/acl/token/read"
 	acltupdate "github.com/hashicorp/consul/command/acl/token/update"
 	"github.com/hashicorp/consul/command/agent"
+	"github.com/hashicorp/consul/command/apiresources"
 	"github.com/hashicorp/consul/command/catalog"
 	catlistdc "github.com/hashicorp/consul/command/catalog/list/dc"
 	catlistnodes "github.com/hashicorp/consul/command/catalog/list/nodes"
@@ -187,6 +188,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl templated-policy read", func(ui cli.Ui) (cli.Command, error) { return acltpread.New(ui), nil }},
 		entry{"acl templated-policy preview", func(ui cli.Ui) (cli.Command, error) { return acltppreview.New(ui), nil }},
 		entry{"agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil }},
+		entry{"api-resources", func(ui cli.Ui) (cli.Command, error) { return apiresources.New(ui), nil }},
 		entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
 		entry{"catalog nodes", func(ui cli.Ui) (cli.Command, error) { return catlistnodes.New(ui), nil }},
