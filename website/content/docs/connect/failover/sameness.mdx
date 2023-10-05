@@ -12,4 +12,41 @@ To create a sameness group and configure each Consul datacenter to allow traffic
 
 ## Failover strategies
 
-You can edit a sameness group configuration entry so that all services failover to healthy instances on other group members by default. You can also use the sameness group in configurations to enact other failover strategies with your strategies.
+You can edit a sameness group configuration entry so that all services failover to healthy instances on other members of a sameness group by default. You can also reference the sameness group in other configuration entries to enact other failover strategies with your strategies. 
+
+You can establish a failover strategy by configuring sameness group behavior in the following locations:
+
+- Sameness group configuration entry
+- Service resolver configuration entry
+- Prepared queries
+
+### Failover with a sameness group configuration entry
+
+To define failover behavior using a sameness group configuration entry, set `DefaultForFailover=true` and apply the updated configuration to all clusters that are members of the group.
+
+When `DefaultForFailover=true`, Consul attempts to redirect traffic to healthy instances according to the order of the group `Members` in the configuration entry. When you set `IncludeLocal=true` in the sameness group configuration entry, Consul attempts to redirect traffic to another instance in the same admin partition before redirecting to other group members.
+
+In the following example, datacenter `dc1` has two partitions, `partition-1` and `partition-2`. A second datacenter, `dc2`, has a single partition named `partition-1`. All three partitions have identically configured services and established cluster peering connections. The configuration entry defines a sameness group, `example-sg` in `dc1`. When redirecting traffic during a failover scenario, Consul will attempt to find a healthy instance in a specific order: `dc1-partition-1`, then `dc-1-partition-2`, then `dc2-partition-1`.
+
+<Tabs>
+
+<Tab heading="HCL" group="HCL">
+
+```hcl
+Kind                     = "sameness-group"  
+Name                     = "example-sg"
+Partition                = "partition-1" 
+DefaultForFailover       = true
+IncludeLocal             = true
+Members                = [
+      {Partition = "partition-1"},
+      {Partition = "partition-2"},
+      {Peer      = "dc2-partition-1"}
+      ]
+```
+
+</Tab>
+
+When a sameness group is configured to be the failover default, sameness group failover takes precedence over all other failover configurations in the cluster. You cannot choose subsets of services to use the sameness group for failover. All services registered in the admin partition must failover to another member of the sameness group. If groups do not have identical services, or if a service is registered to some group members but not all members, this failover strategy may produce errors.
+
+For more information about specifying sameness group members and failover, refer to [sameness group configuration entry reference](/consul/docs/connects/config-entries/sameness-group).
