@@ -6,6 +6,7 @@ package multiport
 import (
 	"context"
 	"fmt"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -118,6 +119,11 @@ func createServerServicesAndWorkloads(t *testing.T, resourceClient *rtest.Client
 			Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
 		},
 	}
+
+	rtest.ResourceID(&pbresource.ID{
+		Name: "static-server-identity",
+		Type: pbauth.WorkloadIdentityType,
+	}).Write(t, resourceClient)
 
 	rtest.ResourceID(&pbresource.ID{
 		Name: "static-server-workload",

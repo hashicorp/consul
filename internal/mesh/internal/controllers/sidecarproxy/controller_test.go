@@ -43,15 +43,15 @@ type meshControllerTestSuite struct {
 	ctl *reconciler
 	ctx context.Context
 
-	apiWorkloadID                  *pbresource.ID
-	apiWorkload                    *pbcatalog.Workload
-	computedTrafficPermissions     *pbresource.Resource
-	computedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
-	apiService                     *pbresource.Resource
-	apiServiceData                 *pbcatalog.Service
-	apiEndpoints                   *pbresource.Resource
-	apiEndpointsData               *pbcatalog.ServiceEndpoints
-	webWorkload                    *pbresource.Resource
+	apiWorkloadID                     *pbresource.ID
+	apiWorkload                       *pbcatalog.Workload
+	apiComputedTrafficPermissions     *pbresource.Resource
+	apiComputedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
+	apiService                        *pbresource.Resource
+	apiServiceData                    *pbcatalog.Service
+	apiEndpoints                      *pbresource.Resource
+	apiEndpointsData                  *pbcatalog.ServiceEndpoints
+	webWorkload                       *pbresource.Resource
 
 	dbWorkloadID    *pbresource.ID
 	dbWorkload      *pbcatalog.Workload
@@ -147,7 +147,8 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.computedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+	suite.apiComputedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+		IsDefault: false,
 		AllowPermissions: []*pbauth.Permission{
 			{
 				Sources: []*pbauth.Source{
@@ -162,8 +163,8 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.computedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-		WithData(suite.T(), suite.computedTrafficPermissionsData).
+	suite.apiComputedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+		WithData(suite.T(), suite.apiComputedTrafficPermissionsData).
 		Write(suite.T(), resourceClient)
 
 	suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
@@ -200,6 +201,10 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		WithData(suite.T(), webWorkloadData).
 		Write(suite.T(), suite.client)
 
+	resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, webWorkloadData.Identity).
+		WithData(suite.T(), &pbauth.ComputedTrafficPermissions{IsDefault: true}).
+		Write(suite.T(), resourceClient)
+
 	resourcetest.Resource(pbcatalog.ServiceType, "web").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
@@ -227,7 +232,7 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	}
 
 	suite.proxyStateTemplate = builder.New(suite.apiWorkloadID, identityRef, "test.consul", "dc1", false, nil).
-		BuildLocalApp(suite.apiWorkload, suite.computedTrafficPermissionsData).
+		BuildLocalApp(suite.apiWorkload, suite.apiComputedTrafficPermissionsData).
 		Build()
 }
 
@@ -555,19 +560,20 @@ func (suite *meshControllerTestSuite) TestController() {
 	})
 
 	testutil.RunStep(suite.T(), "traffic permissions", func(t *testing.T) {
-		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, apiProxyStateTemplate)
-		require.False(t, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
+		// Global default deny applies to all identities.
+		assertTrafficPermissionDefaultPolicy(t, false, apiProxyStateTemplate)
+		assertTrafficPermissionDefaultPolicy(t, false, webProxyStateTemplate)
 
 		suite.runtime.Logger.Trace("deleting computed traffic permissions")
-		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.computedTrafficPermissions.Id})
+		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.apiComputedTrafficPermissions.Id})
 		require.NoError(t, err)
-		suite.client.WaitForDeletion(t, suite.computedTrafficPermissions.Id)
+		suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions.Id)
 
 		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		suite.runtime.Logger.Trace("creating computed traffic permissions")
 		resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-			WithData(t, suite.computedTrafficPermissionsData).
+			WithData(t, suite.apiComputedTrafficPermissionsData).
 			Write(t, suite.client)
 
 		suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
@@ -646,14 +652,17 @@ func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
 
 	var (
 		// Create proxy state template IDs to check against in this test.
+		apiProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").ID()
 		webProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "web-def").ID()
 	)
 
 	retry.Run(suite.T(), func(r *retry.R) {
-		suite.client.RequireResourceExists(r, webProxyStateTemplateID)
 		webProxyStateTemplate := suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](r, webProxyStateTemplate)
-		require.True(r, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
+		apiProxyStateTemplate := suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+
+		// Default deny because api has non-empty computed traffic permissions.
+		assertTrafficPermissionDefaultPolicy(r, false, apiProxyStateTemplate)
+		assertTrafficPermissionDefaultPolicy(r, true, webProxyStateTemplate)
 	})
 }
 
@@ -770,4 +779,19 @@ func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
 		},
 		Name: name,
 	}
+}
+
+func assertTrafficPermissionDefaultPolicy(t resourcetest.T, defaultAllow bool, resource *pbresource.Resource) {
+	dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, resource)
+	var listener *pbproxystate.Listener
+	for _, l := range dec.Data.ProxyState.Listeners {
+		if l.Name == "public_listener" {
+			listener = l
+			break
+		}
+	}
+	require.Len(t, listener.Routers, 1)
+	l4 := listener.Routers[0].GetL4()
+	require.NotNil(t, l4)
+	require.Equal(t, defaultAllow, l4.TrafficPermissions.DefaultAllow)
 }

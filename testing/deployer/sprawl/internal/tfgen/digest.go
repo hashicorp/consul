@@ -22,7 +22,7 @@ func (g *Generator) digestOutputs(out *Outputs) error {
 			}
 
 			if node.DigestExposedPorts(nodeOut.Ports) {
-				g.logger.Info("discovered exposed port mappings",
+				g.logger.Debug("discovered exposed port mappings",
 					"cluster", clusterName,
 					"node", nid.String(),
 					"ports", nodeOut.Ports,
@@ -37,7 +37,7 @@ func (g *Generator) digestOutputs(out *Outputs) error {
 			return err
 		}
 		if changed {
-			g.logger.Info("discovered exposed forward proxy port",
+			g.logger.Debug("discovered exposed forward proxy port",
 				"network", netName,
 				"port", proxyPort,
 			)

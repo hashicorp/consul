@@ -427,12 +427,12 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 	start := time.Now()
 	for attempts := 0; ; attempts++ {
 		if err := tryKV(); err != nil {
-			logger.Warn("local kv write failed; something is not ready yet", "error", err)
+			logger.Debug("local kv write failed; something is not ready yet", "error", err)
 			time.Sleep(500 * time.Millisecond)
 			continue
 		} else {
 			dur := time.Since(start)
-			logger.Info("local kv write success", "elapsed", dur, "retries", attempts)
+			logger.Debug("local kv write success", "elapsed", dur, "retries", attempts)
 		}
 
 		break
@@ -442,12 +442,12 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 		start = time.Now()
 		for attempts := 0; ; attempts++ {
 			if err := tryAP(); err != nil {
-				logger.Warn("local partition write failed; something is not ready yet", "error", err)
+				logger.Debug("local partition write failed; something is not ready yet", "error", err)
 				time.Sleep(500 * time.Millisecond)
 				continue
 			} else {
 				dur := time.Since(start)
-				logger.Info("local partition write success", "elapsed", dur, "retries", attempts)
+				logger.Debug("local partition write success", "elapsed", dur, "retries", attempts)
 			}
 
 			break
@@ -501,10 +501,10 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 
 		if len(stragglers) == 0 {
 			dur := time.Since(start)
-			logger.Info("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
+			logger.Debug("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
 			return nil
 		}
-		logger.Info("not all client nodes have posted node updates yet", "nodes", stragglers)
+		logger.Debug("not all client nodes have posted node updates yet", "nodes", stragglers)
 
 		time.Sleep(1 * time.Second)
 	}
