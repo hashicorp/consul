@@ -241,7 +241,7 @@ func (b *Builder) buildDestination(
 
 		rb := lb.addL7Router("", effectiveProtocol)
 		if destination.Explicit == nil {
-			rb.addIPMatch(destination.VirtualIPs)
+			rb.addIPAndPortMatch(destination.VirtualIPs, virtualPortNumber)
 		}
 		rb.buildRouter()
 	} else {
