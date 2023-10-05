@@ -941,38 +941,7 @@ The following table describes the settings you can configure in the `TimeoutFilt
 
 ## Examples
 
-The following examples demonstrates how to set an idle timeout and a request timeout. 
-
-```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: RouteTimeoutFilter
-metadata:
-  name: timeouts
-spec:
-  requestTimeout: 15s
-  idleTimeout: 15s
-  
- ---
- 
-apiVersion: gateway.networking.k8s.io/v1beta1
-kind: HTTPRoute
-metadata:
-  name: example-route
-  namespace: default
-spec:
-  parentRefs:
-    - name: gateway
-  rules:
-     - backendRefs:
-          - name: example-service
-            kind: Service
-            port: 80
-       filters:
-        - type: ExtensionRef
-          extensionRef:
-            group: consul.hashicorp.com
-            kind: RouteTimeoutFilter
-            name: timeouts
+The following examples demonstrate common HTTP route configuration patterns for specific use cases.
 
 ### Configure JWT verification settings
 
