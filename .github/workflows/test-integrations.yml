@@ -433,7 +433,7 @@ jobs:
               --raw-command \
               --format=pkgname-and-test-fails \
               --debug \
-              --rerun-fails=2 \
+              --rerun-fails=3 \
               -- \
               go test \
               -p=6 \
