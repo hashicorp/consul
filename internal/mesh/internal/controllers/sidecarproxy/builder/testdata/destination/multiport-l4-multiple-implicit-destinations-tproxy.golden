@@ -223,6 +223,40 @@
             }
           },
           {
+            "l7": {
+              "name": "outbound_listener",
+              "statPrefix": "upstream."
+            },
+            "match": {
+              "destinationPort": 8080,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "1.1.1.1",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          },
+          {
+            "l7": {
+              "name": "outbound_listener",
+              "statPrefix": "upstream."
+            },
+            "match": {
+              "destinationPort": 8080,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          },
+          {
             "l4": {
               "cluster": {
                 "name": "tcp2.api-app.default.dc1.internal.foo.consul"
@@ -248,38 +282,6 @@
             },
             "match": {
               "destinationPort": 8081,
-              "prefixRanges": [
-                {
-                  "addressPrefix": "2.2.2.2",
-                  "prefixLen": 32
-                },
-                {
-                  "addressPrefix": "3.3.3.3",
-                  "prefixLen": 32
-                }
-              ]
-            }
-          },
-          {
-            "l7": {
-              "name": "outbound_listener",
-              "statPrefix": "upstream."
-            },
-            "match": {
-              "prefixRanges": [
-                {
-                  "addressPrefix": "1.1.1.1",
-                  "prefixLen": 32
-                }
-              ]
-            }
-          },
-          {
-            "l7": {
-              "name": "outbound_listener",
-              "statPrefix": "upstream."
-            },
-            "match": {
               "prefixRanges": [
                 {
                   "addressPrefix": "2.2.2.2",
