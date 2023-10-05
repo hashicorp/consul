@@ -55,7 +55,7 @@ Configuring service localities is only applicable for service mesh deployments t
 
 1. Configure the `locality` block in your service definition. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locale to the proxy so that it can route traffic accordingly. 
 
-   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/services/configuration/services-configuration-reference) in the services configuration reference for additional information.
+   The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/services/configuration/services-configuration-reference#locality) in the services configuration reference for additional information.
 
 1. Verify that your service is also configured with a proxy. Refer to [Define service mesh proxy](/consul/docs/connect/proxies/deploy-sidecar-services#define-service-mesh-proxy) for additional information.
 Register or re-register the service to apply the configuration. Refer to [Register services and health checks](/consul/docs/services/usage/register-services-checks) for instructions.
