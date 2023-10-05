@@ -1575,6 +1575,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		peerTrustBundles := cfgSnap.TerminatingGateway.InboundPeerTrustBundles[svc]
 
 		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
@@ -1588,10 +1589,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		}
 
 		opts := terminatingGatewayFilterChainOpts{
-			cluster:    clusterName,
-			service:    svc,
-			intentions: intentions,
-			protocol:   cfg.Protocol,
+			cluster:          clusterName,
+			service:          svc,
+			intentions:       intentions,
+			protocol:         cfg.Protocol,
+			peerTrustBundles: peerTrustBundles,
 		}
 
 		clusterChain, err := s.makeFilterChainTerminatingGateway(cfgSnap, opts)
@@ -1619,6 +1621,7 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 	for _, svc := range cfgSnap.TerminatingGateway.ValidDestinations() {
 		intentions := cfgSnap.TerminatingGateway.Intentions[svc]
 		svcConfig := cfgSnap.TerminatingGateway.ServiceConfigs[svc]
+		peerTrustBundles := cfgSnap.TerminatingGateway.InboundPeerTrustBundles[svc]
 
 		cfg, err := ParseProxyConfig(svcConfig.ProxyConfig)
 		if err != nil {
@@ -1635,10 +1638,11 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 		dest = &svcConfig.Destination
 
 		opts := terminatingGatewayFilterChainOpts{
-			service:    svc,
-			intentions: intentions,
-			protocol:   cfg.Protocol,
-			port:       dest.Port,
+			service:          svc,
+			intentions:       intentions,
+			protocol:         cfg.Protocol,
+			port:             dest.Port,
+			peerTrustBundles: peerTrustBundles,
 		}
 		for _, address := range dest.Addresses {
 			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
@@ -1695,12 +1699,13 @@ func (s *ResourceGenerator) makeTerminatingGatewayListener(
 }
 
 type terminatingGatewayFilterChainOpts struct {
-	cluster    string
-	service    structs.ServiceName
-	intentions structs.Intentions
-	protocol   string
-	address    string // only valid for destination listeners
-	port       int    // only valid for destination listeners
+	cluster          string
+	service          structs.ServiceName
+	intentions       structs.Intentions
+	protocol         string
+	address          string // only valid for destination listeners
+	port             int    // only valid for destination listeners
+	peerTrustBundles []*pbpeering.PeeringTrustBundle
 }
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
@@ -1736,7 +1741,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 				datacenter:  cfgSnap.Datacenter,
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
-			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
+			tgtwyOpts.peerTrustBundles,
 		)
 		if err != nil {
 			return nil, err
@@ -1782,7 +1787,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 				datacenter:  cfgSnap.Datacenter,
 				partition:   cfgSnap.ProxyID.PartitionOrDefault(),
 			},
-			nil, // TODO(peering): verify intentions w peers don't apply to terminatingGateway
+			tgtwyOpts.peerTrustBundles,
 		)
 		if err != nil {
 			return nil, err
@@ -2051,7 +2056,6 @@ func (s *ResourceGenerator) makeMeshGatewayPeerFilterChain(
 		// RDS, Envoy's Route Discovery Service, is only used for HTTP services.
 		useRDS = useHTTPFilter
 	)
-
 	if useHTTPFilter && cfgSnap.MeshGateway.Leaf == nil {
 		return nil, nil // ignore; not ready
 	}
