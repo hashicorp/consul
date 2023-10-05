@@ -32,14 +32,14 @@ concurrency:
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     name: Get files changed and conditionally skip CI
     outputs:
       skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
       - name: Get changed files
         id: read-files
         run: ./.github/scripts/filter_changed_files_go_test.sh
@@ -262,7 +262,7 @@ jobs:
           # multiplied by 8 based on these values:
           # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
+          TOTAL_RUNNERS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -375,7 +375,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   compatibility-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
     needs:
       - setup
       - dev-build
@@ -431,11 +431,13 @@ jobs:
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
-              --format=standard-verbose \
+              --format=pkgname-and-test-fails \
               --debug \
               --rerun-fails=3 \
               -- \
               go test \
+              -p=6 \
+              -parallel=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
@@ -487,7 +489,7 @@ jobs:
 
 
   test-integrations-success:
-    needs: 
+    needs:
     - conditional-skip
     - setup
     - dev-build
