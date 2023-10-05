@@ -6,6 +6,7 @@ package trafficpermissions
 import (
 	"context"
 	"fmt"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"strings"
 	"testing"
 	"time"
@@ -68,6 +69,7 @@ func runTrafficPermissionsTests(t *testing.T, aclsEnabled bool, cases map[string
 			// We must establish a new TCP connection each time because TCP traffic permissions are
 			// enforced at the connection level.
 			retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
+				libassert.HTTPServiceEchoes(t, "google.com", 80, "")
 				assertPassing(r, httpRequestToVirtualAddress, client1Dataplane, tc.client1TCPSuccess)
 				assertPassing(r, echoToVirtualAddress, client1Dataplane, tc.client1EchoSuccess)
 				assertPassing(r, httpRequestToVirtualAddress, client2Dataplane, tc.client2TCPSuccess)
