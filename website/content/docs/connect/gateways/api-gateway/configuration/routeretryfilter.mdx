@@ -181,4 +181,27 @@ spec:
   numRetries: 5
   retryOnConnectFailure: true
   retryOn: ['reset']
+  
+  ---
+  
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: example-route
+  namespace: default
+spec:
+  parentRefs:
+    - name: gateway
+  rules:
+     - backendRefs:
+          - name: example-service
+            kind: Service
+            port: 80
+       filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: consul.hashicorp.com
+            kind: RouteRetryFilter
+            name: orders
+
 ```
