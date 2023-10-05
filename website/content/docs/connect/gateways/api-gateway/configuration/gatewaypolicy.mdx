@@ -60,7 +60,7 @@ spec:
       - name: "<name of the provider all listeners verify against>"
         verifyClaims:
         - path:
-          - "<>"
+          - "aud"
           value: "api.apps.organization.com"
   default:
     jwt:
@@ -151,7 +151,7 @@ The following table describes the members of the `targetRef` map:
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the API gateway that the policy attaches to. | String | None |
 | `kind` | Specifies the type of resource that the policy attaches to. Must be set to `Gateway`. | String | None |
-| `group` | Must be set to `gateway.networking.kuberenetes.io` <TODO need help providing a more complete description/>| String | None |
+| `group` | Specifies the resource group. Must be set to `gateway.networking.kuberenetes.io`. | String | None |
 | `sectionName` | Specifies a part of the gateway that the policy applies to. | String | None |
 
 ### `spec.override`
