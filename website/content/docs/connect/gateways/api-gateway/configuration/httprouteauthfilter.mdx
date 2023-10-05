@@ -115,7 +115,7 @@ The following table describes the parameters you can specify in a member of the 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `name` | Specifies the name of the provider. | String | None |
-| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: List of paths to the claims</li><li>`value`: ???</li></ul> | Map | None |
+| `verifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`path`: Specifies a list of one or more registered or custom claims.</li><li>`value`: Specifies the expected value of the claim.</li></ul>  | Map | None |
 
 ## Example configuration
 
