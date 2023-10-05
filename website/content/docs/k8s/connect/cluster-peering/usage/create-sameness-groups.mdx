@@ -63,7 +63,7 @@ To define a sameness group for a partition, create a [sameness group CRD](/consu
 1. Other partitions in the same datacenter
 1. Partitions with established cluster peering relationships
 
-If you want all services to failover to other instances in the sameness group by default, set `spec.defaultForFailover=true`and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/connect/failover/sameness) for more information.
+If you want all services to failover to other instances in the sameness group by default, set `spec.defaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/connect/failover/sameness) for more information.
 
 Be aware that the sameness group CRDs are different for each partition. The following example demonstrates how to format three different CRDs for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
 

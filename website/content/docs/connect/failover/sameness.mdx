@@ -5,3 +5,11 @@ description: You can configure sameness groups so that when a service instance f
 ---
 
 # Failover with sameness groups
+
+This page describes how to use sameness groups to automatically redirect service traffic to healthy instances in failover scenarios. Sameness groups are a user-defined set of Consul admin partitions with identical registered services. These admin paritions typically belong to Consul datacenters in different cloud regions, which enables sameness groups to participate in several service failover configuration strategies.
+
+To create a sameness group and configure each Consul datacenter to allow traffic from other members of the group, refer to [create sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups).
+
+## Failover strategies
+
+You can edit a sameness group configuration entry so that all services failover to healthy instances on other group members by default. You can also use the sameness group in configurations to enact other failover strategies with your strategies.
