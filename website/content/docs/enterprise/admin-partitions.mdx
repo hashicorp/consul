@@ -68,6 +68,8 @@ The partition in which [`proxy-defaults`](/consul/docs/connect/config-entries/pr
 
 You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/consul/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
 
+-> **Export mesh gateway **: When ACL is enabled in Consul-k8s and `meshgateway.mode` is set to `local`, the `mesh-gateway` service must be exported to their consumers for cross-partition traffic.
+
 ### Cluster Peering
 
 You can use [cluster peering](/consul/docs/connect/cluster-peering/) between two admin partitions to connect clusters owned by different operators. Without Consul Enterprise, cluster peering is limited to the `default` partitions in each datacenter. Enterprise users can [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) between any two admin partitions as long as the partitions are in separate datacenters. It is not possible to establish cluster peering connections between two partitions in a single datacenter.
