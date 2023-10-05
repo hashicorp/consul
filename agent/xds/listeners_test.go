@@ -995,12 +995,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Bundles: []*pbpeering.PeeringTrustBundle{
 								{
 									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc1",
+									PeerName:    "dc2",
 									Partition:   "default",
 									RootPEMs: []string{
 										roots.Roots[0].RootCert,
 									},
-									ExportedPartition: "dc1",
+									ExportedPartition: "default",
 									CreateIndex:       0,
 									ModifyIndex:       0,
 								},
@@ -1011,8 +1011,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
-								SourceName:      "*",
-								DestinationName: "web",
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
 							},
 						},
 					},
