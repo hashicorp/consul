@@ -8,8 +8,9 @@ package structs
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func TestStructs_ACLTemplatedPolicy_SyntheticPolicy(t *testing.T) {
@@ -79,6 +80,21 @@ service_prefix "" {
 }
 query_prefix "" {
 	policy = "read"
+}`,
+			},
+		},
+		"workload-identity-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
+				TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "api",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/workload-identity",
+				Rules: `identity "api" {
+	policy = "write"
 }`,
 			},
 		},
