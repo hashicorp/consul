@@ -61,6 +61,10 @@ type CASigningKeyTypes struct {
 	CSRKeyBits     int
 }
 
+type vaultRequirements struct {
+	Enterprise bool
+}
+
 // CASigningKeyTypeCases returns the cross-product of the important supported CA
 // key types for generating table tests for CA signing tests (CrossSignCA and
 // SignIntermediate).
@@ -93,7 +97,7 @@ func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvi
 //
 // These tests may be skipped in CI. They are run as part of a separate
 // integration test suite.
-func SkipIfVaultNotPresent(t testing.T) {
+func SkipIfVaultNotPresent(t testing.T, reqs ...vaultRequirements) {
 	// Try to safeguard against tests that will never run in CI.
 	// This substring should match the pattern used by the
 	// test-connect-ca-providers CI job.
@@ -109,6 +113,16 @@ func SkipIfVaultNotPresent(t testing.T) {
 	path, err := exec.LookPath(vaultBinaryName)
 	if err != nil || path == "" {
 		t.Skipf("%q not found on $PATH - download and install to run this test", vaultBinaryName)
+	}
+
+	// Check for any additional Vault requirements.
+	for _, r := range reqs {
+		if r.Enterprise {
+			ver := vaultVersion(t, vaultBinaryName)
+			if !strings.Contains(ver, "+ent") {
+				t.Skipf("%q is not a Vault Enterprise version", ver)
+			}
+		}
 	}
 }
 
@@ -239,8 +253,8 @@ func requireTrailingNewline(t testing.T, leafPEM string) {
 	if len(leafPEM) == 0 {
 		t.Fatalf("cert is empty")
 	}
-	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
-		t.Fatalf("cert do not end with a new line")
+	if rune(leafPEM[len(leafPEM)-1]) != '\n' {
+		t.Fatalf("cert does not end with a new line")
 	}
 }
 
@@ -366,4 +380,11 @@ func createVaultTokenAndPolicy(t testing.T, client *vaultapi.Client, policyName,
 	})
 	require.NoError(t, err)
 	return tok.Auth.ClientToken
+}
+
+func vaultVersion(t testing.T, vaultBinaryName string) string {
+	cmd := exec.Command(vaultBinaryName, []string{"version"}...)
+	output, err := cmd.Output()
+	require.NoError(t, err)
+	return string(output[:len(output)-1])
 }

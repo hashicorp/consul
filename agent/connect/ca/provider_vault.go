@@ -518,7 +518,7 @@ func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 // because the endpoint only returns the raw PEM contents of the CA cert
 // and not the typical format of the secrets endpoints.
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
-	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca/pem")
+	resp, err := v.client.WithNamespace(v.getNamespace(namespace)).Logical().ReadRaw(path + "/ca/pem")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -544,7 +544,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 
 // TODO: refactor to remove duplication with getCA
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
-	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca_chain")
+	resp, err := v.client.WithNamespace(v.getNamespace(namespace)).Logical().ReadRaw(path + "/ca_chain")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -851,27 +851,34 @@ func (v *VaultProvider) Stop() {
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
-	return v.client.WithNamespace(namespace).Sys().Mount(path, mountInfo)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().Mount(path, mountInfo)
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
-	return v.client.WithNamespace(namespace).Sys().TuneMount(path, *mountConfig)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().TuneMount(path, *mountConfig)
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
-	return v.client.WithNamespace(namespace).Sys().Unmount(path)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().Unmount(path)
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Read(resource)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Read(resource)
 }
 
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Write(resource, data)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Write(resource, data)
 }
 
 func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Delete(resource)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Delete(resource)
+}
+
+func (v *VaultProvider) getNamespace(namespace string) string {
+	if namespace != "" {
+		return namespace
+	}
+	return v.baseNamespace
 }
 
 // autotidyIssuers sets Vault's auto-tidy to remove expired issuers
