@@ -750,6 +750,14 @@
                     "path": "connect/gateways/api-gateway/configuration/routes"
                   },
                   {
+                    "title": "RouteRetryFilter",
+                    "path": "connect/gateways/api-gateway/configuration/routeretryfilter"
+                  },
+                  {
+                    "title": "RouteTimeoutFilter",
+                    "path": "connect/gateways/api-gateway/configuration/routetimeoutfilter"
+                  },
+                  {
                     "title": "MeshService",
                     "path": "connect/gateways/api-gateway/configuration/meshservice"
                   }
