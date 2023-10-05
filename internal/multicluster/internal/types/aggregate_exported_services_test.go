@@ -16,7 +16,7 @@ func createAggregatedServicesResource(t *testing.T, data protoreflect.ProtoMessa
 			Type: &pbresource.Type{
 				Group:        GroupName,
 				GroupVersion: VersionV1Alpha1,
-				Kind:         multiclusterv1alpha1.ExportedServicesKind,
+				Kind:         multiclusterv1alpha1.AggregateExportedServicesKind,
 			},
 			Tenancy: resource.DefaultPartitionedTenancy(),
 		},
