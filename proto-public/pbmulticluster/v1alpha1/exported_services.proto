@@ -6,6 +6,8 @@ import "pbresource/annotations.proto";
 import "pbmulticluster/v1alpha1/exported_services_consumer.proto";
 
 message ExportedServices {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
   repeated string services = 1;
   repeated  ExportedServicesConsumer consumers = 2;
 }

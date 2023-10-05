@@ -7,6 +7,8 @@ import "pbresource/annotations.proto";
 import "pbmulticluster/v1alpha1/exported_services_consumer.proto";
 
 message AggregateExportedServices {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
   repeated AggregateExportedService consumers = 1;
 }
 

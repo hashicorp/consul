@@ -10,6 +10,8 @@ const (
 	GroupName = "multicluster"
 	Version   = "v1alpha1"
 
+	AggregateExportedServicesKind = "AggregateExportedServices"
+	ExportedServicesKind          = "ExportedServices"
 	NamespaceExportedServicesKind = "NamespaceExportedServices"
 	PartitionExportedServicesKind = "PartitionExportedServices"
 	SamenessGroupKind             = "SamenessGroup"
@@ -17,6 +19,18 @@ const (
 )
 
 var (
+	AggregateExportedServicesType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         AggregateExportedServicesKind,
+	}
+
+	ExportedServicesType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ExportedServicesKind,
+	}
+
 	NamespaceExportedServicesType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
