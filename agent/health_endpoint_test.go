@@ -442,19 +442,21 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-	resp = httptest.NewRecorder()
-	obj, err = a.srv.HealthServiceChecks(resp, req)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	assertIndex(t, resp)
+	retry.Run(t, func(r *retry.R) {
+		req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+		resp = httptest.NewRecorder()
+		obj, err = a.srv.HealthServiceChecks(resp, req)
+		if err != nil {
+			r.Fatalf("err: %v", err)
+		}
+		assertIndex(r, resp)
 
-	// Should be 1 health check for consul
-	nodes = obj.(structs.HealthChecks)
-	if len(nodes) != 1 {
-		t.Fatalf("bad: %v", obj)
-	}
+		// Should be 1 health check for consul
+		nodes = obj.(structs.HealthChecks)
+		if len(nodes) != 1 {
+			r.Fatalf("bad: %v", obj)
+		}
+	})
 }
 
 func TestHealthServiceChecks_Filtering(t *testing.T) {

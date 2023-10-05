@@ -32,6 +32,10 @@ func skipIfShortTesting(t *testing.T) {
 }
 
 func recordPromMetrics(t require.TestingT, a *TestAgent, respRec *httptest.ResponseRecorder) {
+	if tt, ok := t.(*testing.T); ok {
+		tt.Helper()
+	}
+
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
 
