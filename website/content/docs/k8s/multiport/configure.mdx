@@ -74,7 +74,7 @@ $ helm install consul hashicorp/consul --create-namespace --namespace consul --v
 
 ## Define the multi-port service
 
-There are two ways to schedule multi-port services so that Consul can register them:
+Consul's v2 catalog supports two methods for defining multi-port services in Kubernetes:
 
 - Method 1: Define a single Kubernetes Service that exposes multiple ports
 - Method 2: Define multiple Kubernetes Services that expose individual ports
@@ -84,6 +84,7 @@ These methods affect how the Services are addressed in Kubernetes.
 The following example contains two tabs, each with a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers, with each container supporting traffic to one of the ports exposed by the Service.
 
 <Tabs>
+
 <Tab heading="Method 1" group="method1">
 
 <CodeBlockConfig filename="api.yaml">
@@ -159,7 +160,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: api
-
 ---
 apiVersion: v1
 kind: Service
@@ -224,9 +224,10 @@ spec:
 ```
 
 </CodeBlockConfig>
-</CodeTabs>
+</Tab>
+</Tabs>
 
-For testing purposes, the following example defines a Service to function as a static client that you can use to verify that the multi-port service functions correctly.
+For testing purposes, the following example defines a Service to function as a static client that you can use to verify that the multi-port services function correctly.
 
 <CodeBlockConfig filename="web.yaml">
 
@@ -274,7 +275,6 @@ spec:
 ```
 
 </CodeBlockConfig>
-</CodeTabs>
 
 To apply these services to your Kubernetes deployment and register them with Consul, run the following command:
 
@@ -347,6 +347,7 @@ web-7bc5786747-b5pzl   1/1     Running   0          23s
 Use the `web` Pod's name to open a shell session and test the `api` service.
 
 <Tabs>
+
 <Tab heading="Method 1" group="method1">
 
 ```shell-session
@@ -389,6 +390,7 @@ $ kubectl apply -f deny-90.yaml
 ```
 
 <Tabs>
+
 <Tab heading="Method 1" group="method1">
 
 Then, open a shell session in the `web` container and test the `api` service on port 80.
@@ -439,6 +441,7 @@ $ kubectl apply -f deny-80.yaml
 ```
 
 <Tabs>
+
 <Tab heading="Method 1" group="method1">
 
 Then, open a shell session in the `web` container and test the `admin` service on port 90.
