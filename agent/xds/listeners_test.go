@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -1065,6 +1066,41 @@ func TestListenersFromSnapshot(t *testing.T) {
 					{
 						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
 						Result:        nil,                            // tombstone this
+					},
+				})
+			},
+		},
+		{
+			name: "terminating-gateway-with-peer-trust-bundle",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				roots, _ := proxycfg.TestCerts(t)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peer-trust-bundle:web",
+						Result: &pbpeering.TrustBundleListByServiceResponse{
+							Bundles: []*pbpeering.PeeringTrustBundle{
+								{
+									TrustDomain: "foo.bar.gov",
+									PeerName:    "dc1",
+									Partition:   "default",
+									RootPEMs: []string{
+										roots.Roots[0].RootCert,
+									},
+									ExportedPartition: "dc1",
+									CreateIndex:       0,
+									ModifyIndex:       0,
+								},
+							},
+						},
+					},
+					{
+						CorrelationID: "service-intentions:web",
+						Result: structs.SimplifiedIntentions{
+							{
+								SourceName:      "*",
+								DestinationName: "web",
+							},
+						},
 					},
 				})
 			},
