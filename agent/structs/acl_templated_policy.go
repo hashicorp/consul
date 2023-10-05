@@ -11,12 +11,13 @@ import (
 	"hash/fnv"
 	"html/template"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/exp/slices"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 //go:embed acltemplatedpolicy/schemas/node.json
@@ -25,13 +26,17 @@ var ACLTemplatedPolicyNodeSchema string
 //go:embed acltemplatedpolicy/schemas/service.json
 var ACLTemplatedPolicyServiceSchema string
 
+//go:embed acltemplatedpolicy/schemas/workload-identity.json
+var ACLTemplatedPolicyWorkloadIdentitySchema string
+
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
-	ACLTemplatedPolicyServiceID     = "00000000-0000-0000-0000-000000000003"
-	ACLTemplatedPolicyNodeID        = "00000000-0000-0000-0000-000000000004"
-	ACLTemplatedPolicyDNSID         = "00000000-0000-0000-0000-000000000005"
-	ACLTemplatedPolicyNomadServerID = "00000000-0000-0000-0000-000000000006"
+	ACLTemplatedPolicyServiceID          = "00000000-0000-0000-0000-000000000003"
+	ACLTemplatedPolicyNodeID             = "00000000-0000-0000-0000-000000000004"
+	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
+	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -72,6 +77,12 @@ var (
 			TemplateName: api.ACLTemplatedPolicyNomadServerName,
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyNomadServer,
+		},
+		api.ACLTemplatedPolicyWorkloadIdentityName: {
+			TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			Schema:       ACLTemplatedPolicyWorkloadIdentitySchema,
+			Template:     ACLTemplatedPolicyWorkloadIdentity,
 		},
 	}
 )
