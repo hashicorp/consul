@@ -1,0 +1,68 @@
+---
+layout: docs
+page_title: Upgrade to Consul dataplane architecture
+description: Learn how to upgrade your existing Consul service mesh on ECS workloads to the agentless dataplanes architecture.
+---
+
+# Upgrade to Consul dataplane architecture
+
+This topic describes how to manually upgrade a live installation of Consul on ECS to the dataplane-based architecture with zero downtime. Since v0.7.0, Consul service mesh on ECS uses [Consul dataplanes](/consul/docs/connect/dataplane), which are lightweight processes for managing Envoy proxies in containerized networks. Refer to the [release notes](/consul/docs/release-notes/consul-ecs/v0_7_x) for additional information about the switch to Consul dataplanes.
+
+## Requirements
+
+Before you upgrading to the dataplane-based architecture, you must upgrade your Consul servers to a version compatible with Consul ECS:
+
+- Consul 1.14.x and later
+- Consul dataplane 1.3.x and later
+
+## Deploy the latest version of the ECS controller module
+
+In an ACL enabled cluster, deploy the latest version of the ECS controller module in `hashicorp/terraform-aws-consul-ecs` along with the older version of the ACL controller. Note that both the controllers should coexist until the upgrade is complete. The new version of the controller only tracks tasks that use dataplanes.
+
+## Upgrade workloads
+
+For application tasks, upgrade the individual task definitions to `v0.7.0` or later of the `mesh-task` module. You must upgrade each task one at a time.
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul-ecs/aws//modules/mesh-task"
+  version = "v0.7.0"
+}
+```
+
+For gateway tasks, upgrade the individual task definitions to `v0.7.0` or later of the `gateway-task` module. You must upgrade each task one by one independently. ECS creates new versions of tasks before shutting down the older tasks to support zero downtime deployments.
+
+```hcl
+module "my_task" {
+  source  = "hashicorp/consul-ecs/aws//modules/gateway-task"
+  version = "v0.7.0"
+}
+```
+
+## Delete previous tasks
+
+After upgrading all tasks, you can destroy the `acl-controller` containers, which are replaced by the ECS controller. You can manually remove any artifacts related to the old architecture, including Consul clients and ACL controllers, by executing the following commands:
+
+1. Run `consul acl policy delete` to delete the client policy. You can pass either the ID of the policy or the name of the policy, for example:
+
+   ```shell-session
+   $ consul acl policy delete -name="consul-ecs-client-policy"
+   ```
+
+   Refer to the [`consul acl policy delete`](/consul/commands/acl/policy/delete) documentation for additional information.
+
+1. Run the `consul acl role delete` command to delete the client role. You can pass either the ID of the role or the name of the role, for example:
+
+   ```shell-session
+   $ consul acl role delete -name="consul-ecs-client-role"
+   ```
+
+   Refer to the [`consul acl role delete`](/consul/commands/acl/role/delete) documentation for additional information.
+
+1. Run the `consul acl auth-method delete` command and specify the auth method name to delete. 
+
+   ```shell-session
+   $ consul acl auth-method delete -name="iam-ecs-client-token"
+   ```
+
+   Refer to the [`consul acl auth-method delete`](/consul/commands/acl/auth-method/delete) documentation for additional information.
