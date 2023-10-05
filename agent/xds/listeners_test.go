@@ -1076,7 +1076,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 				roots, _ := proxycfg.TestCerts(t)
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
 					{
-						CorrelationID: "peer-trust-bundle:",
+						CorrelationID: "peer-trust-bundle:web",
 						Result: &pbpeering.TrustBundleListByServiceResponse{
 							Bundles: []*pbpeering.PeeringTrustBundle{
 								{
@@ -1090,6 +1090,15 @@ func TestListenersFromSnapshot(t *testing.T) {
 									CreateIndex:       0,
 									ModifyIndex:       0,
 								},
+							},
+						},
+					},
+					{
+						CorrelationID: "service-intentions:web",
+						Result: structs.SimplifiedIntentions{
+							{
+								SourceName:      "*",
+								DestinationName: "web",
 							},
 						},
 					},
