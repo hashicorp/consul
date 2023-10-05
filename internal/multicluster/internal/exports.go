@@ -19,7 +19,7 @@ var (
 
 )
 
-// RegisterTypes adds all resource types within the "tenancy" API group
+// RegisterTypes adds all resource types within the "multicluster" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
