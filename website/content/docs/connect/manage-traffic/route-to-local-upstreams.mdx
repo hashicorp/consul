@@ -78,7 +78,7 @@ You can configure the default routing behavior for all proxies in the mesh as we
 
 ### Configure default routing behavior
 
-1. Configure the `PrioritizeByLocality` block in the proxy defaults configuration entry and specify the `failover` mode. This configuration enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/proxy-defaults#prioritzebylocality) in the proxy defaults reference for details about the configuration.
+1. Configure the `PrioritizeByLocality` block in the proxy defaults configuration entry and specify the `failover` mode. This configuration enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/proxy-defaults#prioritizebylocality) in the proxy defaults reference for details about the configuration.
 1. Apply the configuration by either calling the [`/config` HTTP API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). 
 
    The following example writes a proxy defaults configuration entry from a local HCL file using the CLI:
