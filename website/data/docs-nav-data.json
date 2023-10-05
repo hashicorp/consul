@@ -632,6 +632,10 @@
             "path": "connect/manage-traffic/route-to-local-upstreams"
           },
           {
+            "title": "Limit request rates to services",
+            "path": "connect/manage-traffic/limit-request-rates"
+          },
+          {
             "title": "Failover",
             "routes": [
               {
