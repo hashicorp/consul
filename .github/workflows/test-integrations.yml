@@ -375,7 +375,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   compatibility-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
     needs:
       - setup
       - dev-build
@@ -436,6 +436,8 @@ jobs:
               --rerun-fails=2 \
               -- \
               go test \
+              -p=6 \
+              -parallel=4 \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
               -json \
