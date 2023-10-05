@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v1alpha1;
+
+import "pbresource/resource.proto";
+import "pbresource/annotations.proto";
+import "pbmulticluster/v1alpha1/exported_services_consumer.proto";
+
+message AggregateExportedServices {
+  repeated AggregateExportedService consumers = 1;
+}
+
+message AggregateExportedService {
+  repeated hashicorp.consul.resource.ID target_refs = 1;
+
+  repeated AggregateExportedServicesConsumer consumers = 3;
+
+}
+
+message AggregateExportedServicesConsumer {
+  string name = 1;
+  string namespace = 2;
+
+  oneof consumer_tenancy {
+    string peer = 3;
+    string partition = 4;
+  }
+}

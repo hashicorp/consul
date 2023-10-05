@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v1alpha1;
+
+import "pbresource/annotations.proto";
+
+message SamenessGroup {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
+  bool default_for_failover = 1;
+  repeated SamenessGroupMember members = 2;
+}
+
+message SamenessGroupMember {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
+  string partition = 1;
+  string peer = 2;
+}
