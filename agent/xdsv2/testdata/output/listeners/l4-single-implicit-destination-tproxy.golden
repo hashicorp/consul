@@ -10,6 +10,18 @@
           "portValue":  15001
         }
       },
+      "defaultFilterChain": {
+        "filters": [
+          {
+            "name": "envoy.filters.network.tcp_proxy",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+              "cluster": "original-destination",
+              "statPrefix": "upstream.original-destination"
+            }
+          }
+        ]
+      },
       "filterChains":  [
         {
           "filterChainMatch":  {

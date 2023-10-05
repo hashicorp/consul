@@ -5,6 +5,7 @@ package builder
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/xds/naming"
 	"time"
 
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -27,6 +28,8 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	var lb *ListenerBuilder
 	if b.proxyCfg.IsTransparentProxy() {
 		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		lb.listener.DefaultRouter = lb.addL4RouterForDirect(naming.OriginalDestinationClusterName, fmt.Sprintf("upstream.%s", naming.OriginalDestinationClusterName)).router
+
 	}
 
 	for _, destination := range destinations {

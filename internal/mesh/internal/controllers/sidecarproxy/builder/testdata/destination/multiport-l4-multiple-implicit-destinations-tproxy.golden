@@ -177,6 +177,14 @@
         "capabilities": [
           "CAPABILITY_TRANSPARENT"
         ],
+        "defaultRouter": {
+          "l4": {
+            "cluster": {
+              "name": "original-destination"
+            },
+            "statPrefix": "upstream.original-destination"
+          }
+        },
         "direction": "DIRECTION_OUTBOUND",
         "hostPort": {
           "host": "127.0.0.1",
