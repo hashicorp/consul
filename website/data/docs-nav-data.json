@@ -628,6 +628,10 @@
             "path": "connect/manage-traffic"
           },
           {
+            "title": "Route traffic to local upstreams",
+            "path": "connect/manage-traffic/route-to-local-upstreams"
+          },
+          {
             "title": "Failover",
             "routes": [
               {
