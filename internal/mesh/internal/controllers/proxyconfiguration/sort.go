@@ -26,7 +26,7 @@ import (
 //
 // It returns them in order such that proxy configurations that take precedence occur first in the list.
 func SortProxyConfigurations(proxyCfgs []*types.DecodedProxyConfiguration, workloadName string) []*types.DecodedProxyConfiguration {
-	// Copy proxy configs so that we don't mutate the original.
+	// Shallow-copy proxy configs so that we don't mutate the original slice.
 	proxyCfgsToSort := make([]*types.DecodedProxyConfiguration, len(proxyCfgs))
 	for i, cfg := range proxyCfgs {
 		proxyCfgsToSort[i] = cfg

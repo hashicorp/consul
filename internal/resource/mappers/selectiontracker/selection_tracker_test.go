@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -32,14 +33,39 @@ var (
 			},
 		},
 	}
+
+	tenancyCases = map[string]*pbresource.Tenancy{
+		"default": resource.DefaultNamespacedTenancy(),
+		"bar ns, default partition, local peer": {
+			Partition: "default",
+			Namespace: "bar",
+			PeerName:  "local",
+		},
+		"default ns, baz partition, local peer": {
+			Partition: "baz",
+			Namespace: "default",
+			PeerName:  "local",
+		},
+		"bar ns, baz partition, local peer": {
+			Partition: "baz",
+			Namespace: "bar",
+			PeerName:  "local",
+		},
+		"bar ns, baz partition, non-local peer": {
+			Partition: "baz",
+			Namespace: "bar",
+			PeerName:  "non-local",
+		},
+	}
 )
 
 func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 	tree := radix.New[[]*pbresource.ID]()
 
-	toRemove := rtest.Resource(pbcatalog.ServiceEndpointsType, "blah").ID()
-	other1 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").ID()
-	other2 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other2").ID()
+	tenancy := resource.DefaultNamespacedTenancy()
+	toRemove := rtest.Resource(pbcatalog.ServiceEndpointsType, "blah").WithTenancy(tenancy).ID()
+	other1 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other1").WithTenancy(tenancy).ID()
+	other2 := rtest.Resource(pbcatalog.ServiceEndpointsType, "other2").WithTenancy(tenancy).ID()
 
 	// we are trying to create a tree such that removal of the toRemove id causes a
 	// few things to happen.
@@ -79,38 +105,44 @@ func TestRemoveIDFromTreeAtPaths(t *testing.T) {
 		toRemove,
 	}
 
-	tree.Insert("no-match", notMatching)
-	tree.Insert("match-beginning", matchAtBeginning)
-	tree.Insert("match-end", matchAtEnd)
-	tree.Insert("match-middle", matchInMiddle)
-	tree.Insert("match-only", matchOnly)
+	noMatchKey := treePathFromNameOrPrefix(tenancy, "no-match")
+	matchBeginningKey := treePathFromNameOrPrefix(tenancy, "match-beginning")
+	matchEndKey := treePathFromNameOrPrefix(tenancy, "match-end")
+	matchMiddleKey := treePathFromNameOrPrefix(tenancy, "match-middle")
+	matchOnlyKey := treePathFromNameOrPrefix(tenancy, "match-only")
+
+	tree.Insert(noMatchKey, notMatching)
+	tree.Insert(matchBeginningKey, matchAtBeginning)
+	tree.Insert(matchEndKey, matchAtEnd)
+	tree.Insert(matchMiddleKey, matchInMiddle)
+	tree.Insert(matchOnlyKey, matchOnly)
 
 	removeIDFromTreeAtPaths(tree, toRemove, []string{
-		"no-match",
-		"match-beginning",
-		"match-end",
-		"match-middle",
-		"match-only",
+		noMatchKey,
+		matchBeginningKey,
+		matchEndKey,
+		matchMiddleKey,
+		matchOnlyKey,
 	})
 
-	reqs, found := tree.Get("no-match")
+	reqs, found := tree.Get(noMatchKey)
 	require.True(t, found)
 	require.Equal(t, notMatching, reqs)
 
-	reqs, found = tree.Get("match-beginning")
+	reqs, found = tree.Get(matchBeginningKey)
 	require.True(t, found)
 	require.Equal(t, notMatching, reqs)
 
-	reqs, found = tree.Get("match-end")
+	reqs, found = tree.Get(matchEndKey)
 	require.True(t, found)
 	require.Equal(t, []*pbresource.ID{other1}, reqs)
 
-	reqs, found = tree.Get("match-middle")
+	reqs, found = tree.Get(matchMiddleKey)
 	require.True(t, found)
 	require.Equal(t, notMatching, reqs)
 
 	// The last tracked request should cause removal from the tree
-	_, found = tree.Get("match-only")
+	_, found = tree.Get(matchOnlyKey)
 	require.False(t, found)
 }
 
@@ -120,63 +152,92 @@ type selectionTrackerSuite struct {
 	rt      controller.Runtime
 	tracker *WorkloadSelectionTracker
 
-	workloadAPI1                      *pbresource.Resource
-	workloadWeb1                      *pbresource.Resource
-	endpointsFoo                      *pbresource.ID
-	endpointsBar                      *pbresource.ID
-	endpointsFooNSFoo                 *pbresource.ID
-	endpointsFooDefaultNSFooPartition *pbresource.ID
-	endpointsFooFooNSFooPartition     *pbresource.ID
+	// The test setup adds resources with various tenancy settings. Because tenancies are stored in a map,
+	// it adds "free" order randomization, and so we need to remember the order in which those tenancy were executed.
+	executedTenancies []*pbresource.Tenancy
+
+	endpointsFoo []*pbresource.ID
+	endpointsBar []*pbresource.ID
+	workloadsAPI []*pbresource.Resource
+	workloadsWeb []*pbresource.Resource
 }
 
 func (suite *selectionTrackerSuite) SetupTest() {
 	suite.tracker = New()
 
-	suite.workloadAPI1 = rtest.Resource(pbcatalog.WorkloadType, "api-1").WithData(suite.T(), workloadData).Build()
-	suite.workloadWeb1 = rtest.Resource(pbcatalog.WorkloadType, "web-1").WithData(suite.T(), workloadData).Build()
-	suite.endpointsFoo = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").ID()
-	suite.endpointsBar = rtest.Resource(pbcatalog.ServiceEndpointsType, "bar").ID()
-	suite.endpointsFooNSFoo = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
-		WithTenancy(&pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "foo",
-			PeerName:  "local",
-		}).ID()
-	suite.endpointsFooDefaultNSFooPartition = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
-		WithTenancy(&pbresource.Tenancy{
-			Partition: "foo",
-			Namespace: "default",
-			PeerName:  "local",
-		}).ID()
-	suite.endpointsFooFooNSFooPartition = rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
-		WithTenancy(&pbresource.Tenancy{
-			Partition: "foo",
-			Namespace: "foo",
-			PeerName:  "local",
-		}).ID()
+	for _, tenancy := range tenancyCases {
+		suite.executedTenancies = append(suite.executedTenancies, tenancy)
+
+		endpointsFooID := rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
+			WithTenancy(tenancy).ID()
+		suite.endpointsFoo = append(suite.endpointsFoo, endpointsFooID)
+
+		endpointsBarID := rtest.Resource(pbcatalog.ServiceEndpointsType, "bar").
+			WithTenancy(tenancy).ID()
+		suite.endpointsBar = append(suite.endpointsBar, endpointsBarID)
+
+		suite.workloadsAPI = append(suite.workloadsAPI, rtest.Resource(pbcatalog.WorkloadType, "api-1").
+			WithData(suite.T(), workloadData).
+			WithTenancy(tenancy).
+			Build())
+		suite.workloadsWeb = append(suite.workloadsWeb, rtest.Resource(pbcatalog.WorkloadType, "web-1").
+			WithData(suite.T(), workloadData).
+			WithTenancy(tenancy).
+			Build())
+	}
 }
 
-func (suite *selectionTrackerSuite) requireMappedIDs(workload *pbresource.Resource, ids ...*pbresource.ID) {
-	suite.T().Helper()
+func (suite *selectionTrackerSuite) TearDownTest() {
+	suite.executedTenancies = nil
+	suite.workloadsAPI = nil
+	suite.workloadsWeb = nil
+	suite.endpointsFoo = nil
+	suite.endpointsBar = nil
+}
+
+func (suite *selectionTrackerSuite) requireMappedIDs(t *testing.T, workload *pbresource.Resource, ids ...*pbresource.ID) {
+	t.Helper()
 
 	reqs, err := suite.tracker.MapWorkload(context.Background(), suite.rt, workload)
 	require.NoError(suite.T(), err)
-	require.Len(suite.T(), reqs, len(ids))
+	require.Len(t, reqs, len(ids))
 	for _, id := range ids {
-		prototest.AssertContainsElement(suite.T(), reqs, controller.Request{ID: id})
+		prototest.AssertContainsElement(t, reqs, controller.Request{ID: id})
+	}
+}
+
+func (suite *selectionTrackerSuite) requireMappedIDsAllTenancies(t *testing.T, workloads []*pbresource.Resource, ids ...[]*pbresource.ID) {
+	t.Helper()
+
+	for i := range suite.executedTenancies {
+		reqs, err := suite.tracker.MapWorkload(context.Background(), suite.rt, workloads[i])
+		require.NoError(suite.T(), err)
+		require.Len(t, reqs, len(ids))
+		for _, id := range ids {
+			prototest.AssertContainsElement(t, reqs, controller.Request{ID: id[i]})
+		}
+	}
+}
+
+func (suite *selectionTrackerSuite) trackIDForSelectorInAllTenancies(ids []*pbresource.ID, selector *pbcatalog.WorkloadSelector) {
+	suite.T().Helper()
+
+	for i := range suite.executedTenancies {
+		suite.tracker.TrackIDForSelector(ids[i], selector)
 	}
 }
 
 func (suite *selectionTrackerSuite) TestMapWorkload_Empty() {
 	// If we aren't tracking anything than the default mapping behavior
 	// should be to return an empty list of requests.
-	suite.requireMappedIDs(suite.workloadAPI1)
+	suite.requireMappedIDs(suite.T(),
+		rtest.Resource(pbcatalog.WorkloadType, "api-1").WithData(suite.T(), workloadData).Build())
 }
 
 func (suite *selectionTrackerSuite) TestUntrackID_Empty() {
 	// this test has no assertions but mainly is here to prove that things
-	// dont explode if this is attempted.
-	suite.tracker.UntrackID(suite.endpointsFoo)
+	// don't explode if this is attempted.
+	suite.tracker.UntrackID(rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").ID())
 }
 
 func (suite *selectionTrackerSuite) TestTrackAndMap_SingleResource_MultipleWorkloadMappings() {
@@ -186,62 +247,49 @@ func (suite *selectionTrackerSuite) TestTrackAndMap_SingleResource_MultipleWorkl
 	// and exact match criteria are handle correctly and that one resource
 	// can be mapped from multiple distinct workloads.
 
-	// associate the foo endpoints with some workloads
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	// Create resources for the test and track endpoints.
+	suite.trackIDForSelectorInAllTenancies(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
 		Names:    []string{"bar", "api", "web-1"},
 		Prefixes: []string{"api-"},
 	})
 
-	// Ensure that mappings tracked by prefix work.
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo)
-
-	// Ensure that mappings tracked by exact match work.
-	suite.requireMappedIDs(suite.workloadWeb1, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsAPI, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb, suite.endpointsFoo)
 }
 
 func (suite *selectionTrackerSuite) TestTrackAndMap_MultiResource_SingleWorkloadMapping() {
 	// This test aims to prove that multiple resources selecting of a workload
 	// will result in multiple requests when mapping that workload.
 
-	// associate the foo endpoints with some workloads
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
-		Prefixes: []string{"api-"},
-	})
+	cases := map[string]struct {
+		selector *pbcatalog.WorkloadSelector
+	}{
+		"names": {
+			selector: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-1"},
+			},
+		},
+		"prefixes": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"api"},
+			},
+		},
+	}
 
-	// associate the bar endpoints with some workloads
-	suite.tracker.TrackIDForSelector(suite.endpointsBar, &pbcatalog.WorkloadSelector{
-		Names: []string{"api-1"},
-	})
+	for name, c := range cases {
+		suite.T().Run(name, func(t *testing.T) {
+			for i := range suite.executedTenancies {
+				// associate the foo endpoints with some workloads
+				suite.tracker.TrackIDForSelector(suite.endpointsFoo[i], c.selector)
 
-	// now the mapping should return both endpoints resource ids
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo, suite.endpointsBar)
-}
+				// associate the bar endpoints with some workloads
+				suite.tracker.TrackIDForSelector(suite.endpointsBar[i], c.selector)
+			}
 
-func (suite *selectionTrackerSuite) TestTrackAndMap_MultiResource_SingleWorkloadMapping_WithTenancy() {
-	// This test aims to prove that multiple resources selecting of a workload
-	// will result in multiple requests when mapping that workload.
-
-	// associate the foo endpoints with some workloads
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
-		Prefixes: []string{"api-"},
-	})
-
-	// associate the bar endpoints with some workloads
-	suite.tracker.TrackIDForSelector(suite.endpointsFooNSFoo, &pbcatalog.WorkloadSelector{
-		Names: []string{"api-1"},
-	})
-
-	suite.tracker.TrackIDForSelector(suite.endpointsFooDefaultNSFooPartition, &pbcatalog.WorkloadSelector{
-		Names: []string{"api-1"},
-	})
-
-	suite.tracker.TrackIDForSelector(suite.endpointsFooFooNSFooPartition, &pbcatalog.WorkloadSelector{
-		Names: []string{"api-1"},
-	})
-
-	// now the mapping should return both endpoints resource ids
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo, suite.endpointsFooNSFoo,
-		suite.endpointsFooDefaultNSFooPartition, suite.endpointsFooFooNSFooPartition)
+			// now the mapping should return both endpoints resource ids
+			suite.requireMappedIDsAllTenancies(t, suite.workloadsAPI, suite.endpointsFoo, suite.endpointsBar)
+		})
+	}
 }
 
 func (suite *selectionTrackerSuite) TestDuplicateTracking() {
@@ -250,56 +298,62 @@ func (suite *selectionTrackerSuite) TestDuplicateTracking() {
 
 	// associate the foo endpoints with some workloads 3 times without changing
 	// the selection criteria. The second two times should be no-ops
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	workloadAPI1 := rtest.Resource(pbcatalog.WorkloadType, "api-1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(suite.T(), workloadData).Build()
+	endpointsFoo := rtest.Resource(pbcatalog.ServiceEndpointsType, "foo").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+
+	suite.tracker.TrackIDForSelector(endpointsFoo, &pbcatalog.WorkloadSelector{
 		Prefixes: []string{"api-"},
 	})
 
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	suite.tracker.TrackIDForSelector(endpointsFoo, &pbcatalog.WorkloadSelector{
 		Prefixes: []string{"api-"},
 	})
 
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	suite.tracker.TrackIDForSelector(endpointsFoo, &pbcatalog.WorkloadSelector{
 		Prefixes: []string{"api-"},
 	})
 
 	// regardless of the number of times tracked we should only see a single request
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo)
+	suite.requireMappedIDs(suite.T(), workloadAPI1, endpointsFoo)
 }
 
 func (suite *selectionTrackerSuite) TestModifyTracking() {
 	// This test aims to prove that modifying selection criteria for a resource
 	// works as expected. Adding new criteria results in all being tracked.
-	// Removal of some criteria does't result in removal of all etc. More or
+	// Removal of some criteria doesn't result in removal of all etc. More or
 	// less we want to ensure that updating selection criteria leaves the
 	// tracker in a consistent/expected state.
 
-	// track the web-1 workload
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	// Create resources for the test and track endpoints.
+	suite.trackIDForSelectorInAllTenancies(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
 		Names: []string{"web-1"},
 	})
 
 	// ensure that api-1 isn't mapped but web-1 is
-	suite.requireMappedIDs(suite.workloadAPI1)
-	suite.requireMappedIDs(suite.workloadWeb1, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsAPI)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb, suite.endpointsFoo)
 
 	// now also track the api- prefix
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	suite.trackIDForSelectorInAllTenancies(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
 		Names:    []string{"web-1"},
 		Prefixes: []string{"api-"},
 	})
 
 	// ensure that both workloads are mapped appropriately
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo)
-	suite.requireMappedIDs(suite.workloadWeb1, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsAPI, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb, suite.endpointsFoo)
 
 	// now remove the web tracking
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	suite.trackIDForSelectorInAllTenancies(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
 		Prefixes: []string{"api-"},
 	})
 
 	// ensure that only api-1 is mapped
-	suite.requireMappedIDs(suite.workloadAPI1, suite.endpointsFoo)
-	suite.requireMappedIDs(suite.workloadWeb1)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsAPI, suite.endpointsFoo)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb)
 }
 
 func (suite *selectionTrackerSuite) TestRemove() {
@@ -308,18 +362,20 @@ func (suite *selectionTrackerSuite) TestRemove() {
 	// workload.
 
 	// track the web-1 workload
-	suite.tracker.TrackIDForSelector(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
+	suite.trackIDForSelectorInAllTenancies(suite.endpointsFoo, &pbcatalog.WorkloadSelector{
 		Names: []string{"web-1"},
 	})
 
-	// ensure that api-1 isn't mapped but web-1 is
-	suite.requireMappedIDs(suite.workloadWeb1, suite.endpointsFoo)
+	// ensure web-1 is mapped
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb, suite.endpointsFoo)
 
-	// untrack the resource
-	suite.tracker.UntrackID(suite.endpointsFoo)
+	for i := range suite.executedTenancies {
+		// untrack the resource
+		suite.tracker.UntrackID(suite.endpointsFoo[i])
+	}
 
 	// ensure that we no longer map the previous workload to the resource
-	suite.requireMappedIDs(suite.workloadWeb1)
+	suite.requireMappedIDsAllTenancies(suite.T(), suite.workloadsWeb)
 }
 
 func TestWorkloadSelectionSuite(t *testing.T) {

@@ -82,16 +82,16 @@ func TestMapProxyConfiguration(t *testing.T) {
 		reqs)
 
 	// Check mapper state for each workload.
-	ids := mapper.ProxyConfigurationsForWorkload(wID1.Name)
+	ids := mapper.ProxyConfigurationsForWorkload(wID1)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id, pCfg2.Id}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID2.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID2)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg2.Id}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID3.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID3)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id, pCfg2.Id}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID4.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID4)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id, pCfg2.Id}, ids)
 
 	// Update pCfg2's selector and check that we generate requests for previous and new selector.
@@ -113,30 +113,30 @@ func TestMapProxyConfiguration(t *testing.T) {
 		reqs)
 
 	// Check mapper state for each workload.
-	ids = mapper.ProxyConfigurationsForWorkload(wID1.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID1)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID2.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID2)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID3.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID3)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID4.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID4)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg1.Id, pCfg2.Id}, ids)
 
 	// Untrack one of the proxy cfgs and check that mapper is updated.
 	mapper.UntrackProxyConfiguration(pCfg1.Id)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID1.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID1)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID2.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID2)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID3.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID3)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{}, ids)
 
-	ids = mapper.ProxyConfigurationsForWorkload(wID4.Name)
+	ids = mapper.ProxyConfigurationsForWorkload(wID4)
 	prototest.AssertElementsMatch(t, []*pbresource.ID{pCfg2.Id}, ids)
 }

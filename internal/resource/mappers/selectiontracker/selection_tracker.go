@@ -5,6 +5,7 @@ package selectiontracker
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/consul/internal/controller"
@@ -40,25 +41,27 @@ func New() *WorkloadSelectionTracker {
 // MapWorkload will return a slice of controller.Requests with 1 resource for
 // each resource that selects the specified Workload resource.
 func (t *WorkloadSelectionTracker) MapWorkload(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	resIds := t.GetIDsForName(res.Id.Name)
+	resIds := t.GetIDsForWorkload(res.Id)
 
 	return controller.MakeRequests(nil, resIds), nil
 }
 
-func (t *WorkloadSelectionTracker) GetIDsForName(name string) []*pbresource.ID {
+func (t *WorkloadSelectionTracker) GetIDsForWorkload(id *pbresource.ID) []*pbresource.ID {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
 	var result []*pbresource.ID
 
+	workloadTreeKey := treePathFromNameOrPrefix(id.GetTenancy(), id.GetName())
+
 	// gather the list of all resources that select the specified workload using a prefix match
-	t.prefixes.WalkPath(name, func(path string, ids []*pbresource.ID) bool {
+	t.prefixes.WalkPath(workloadTreeKey, func(path string, ids []*pbresource.ID) bool {
 		result = append(result, ids...)
 		return false
 	})
 
 	// gather the list of all resources that select the specified workload using an exact match
-	exactReqs, _ := t.exact.Get(name)
+	exactReqs, _ := t.exact.Get(workloadTreeKey)
 
 	// return the combined list of all resources that select the specified workload
 	return append(result, exactReqs...)
@@ -88,21 +91,25 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 	// loop over all the exact matching rules and associate those workload names
 	// with the given resource id
 	for _, name := range selector.GetNames() {
+		key := treePathFromNameOrPrefix(id.GetTenancy(), name)
+
 		// lookup any resource id associations for the given workload name
-		leaf, _ := t.exact.Get(name)
+		leaf, _ := t.exact.Get(key)
 
 		// append the ID to the existing request list
-		t.exact.Insert(name, append(leaf, id))
+		t.exact.Insert(key, append(leaf, id))
 	}
 
 	// loop over all the prefix matching rules and associate those prefixes
 	// with the given resource id.
 	for _, prefix := range selector.GetPrefixes() {
+		key := treePathFromNameOrPrefix(id.GetTenancy(), prefix)
+
 		// lookup any resource id associations for the given workload name prefix
-		leaf, _ := t.prefixes.Get(prefix)
+		leaf, _ := t.prefixes.Get(key)
 
 		// append the new resource ID to the existing request list
-		t.prefixes.Insert(prefix, append(leaf, id))
+		t.prefixes.Insert(key, append(leaf, id))
 	}
 
 	t.workloadSelectors[ref] = selector
@@ -134,8 +141,18 @@ func (t *WorkloadSelectionTracker) untrackID(id *pbresource.ID) {
 		return
 	}
 
-	removeIDFromTreeAtPaths(t.exact, id, selector.Names)
-	removeIDFromTreeAtPaths(t.prefixes, id, selector.Prefixes)
+	exactTreePaths := make([]string, len(selector.GetNames()))
+	for i, name := range selector.GetNames() {
+		exactTreePaths[i] = treePathFromNameOrPrefix(id.GetTenancy(), name)
+	}
+
+	prefixTreePaths := make([]string, len(selector.GetPrefixes()))
+	for i, prefix := range selector.GetPrefixes() {
+		prefixTreePaths[i] = treePathFromNameOrPrefix(id.GetTenancy(), prefix)
+	}
+
+	removeIDFromTreeAtPaths(t.exact, id, exactTreePaths)
+	removeIDFromTreeAtPaths(t.prefixes, id, prefixTreePaths)
 
 	// If we don't do this deletion then reinsertion of the id for
 	// tracking in the future could prevent selection criteria from
@@ -176,4 +193,15 @@ func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID,
 			}
 		}
 	}
+}
+
+// treePathFromNameOrPrefix computes radix tree key from the resource tenancy and a selector name or prefix.
+// The keys will be computed in the following form:
+// <partition>/<peer>/<namespace>/<name or prefix>.
+func treePathFromNameOrPrefix(tenancy *pbresource.Tenancy, nameOrPrefix string) string {
+	return fmt.Sprintf("%s/%s/%s/%s",
+		tenancy.GetPartition(),
+		tenancy.GetPeerName(),
+		tenancy.GetNamespace(),
+		nameOrPrefix)
 }

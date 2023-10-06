@@ -83,7 +83,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any proxy configurations IDs that we have in the cache that have selectors matching the name
 	// of this CPC (name-aligned with the workload).
-	proxyCfgIDs := r.proxyConfigMapper.ProxyConfigurationsForWorkload(req.ID.GetName())
+	proxyCfgIDs := r.proxyConfigMapper.ProxyConfigurationsForWorkload(req.ID)
 	rt.Logger.Trace("cached proxy cfg IDs", "ids", proxyCfgIDs)
 
 	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs)
