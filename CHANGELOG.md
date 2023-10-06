@@ -1,3 +1,75 @@
+## 1.17.0-rc1 (October 11, 2023)
+
+BREAKING CHANGES:
+
+* api: RaftLeaderTransfer now requires an id string. An empty string can be specified to keep the old behavior. [[GH-17107](https://github.com/hashicorp/consul/issues/17107)]
+* audit-logging: **(Enterprise only)** allowing timestamp based filename only on rotation. initially the filename will be just file.json [[GH-18668](https://github.com/hashicorp/consul/issues/18668)]
+
+FEATURES:
+
+* # Catalog v2 feature preview
+This release provides the ability to preview Consul's v2 Catalog and Resource API if enabled. The new model supports
+multi-port application deployments with only a single Envoy proxy. Note that the v1 and v2 catalogs are not cross
+compatible, and not all Consul features are available within this v2 feature preview. See the [v2 Catalog and Resource
+API documentation](https://developer.hashicorp.com/consul/docs/architecture/v2) for more information. The v2 Catalog and
+Resources API should be considered a feature preview within this release and should not be used in production
+environments.
+
+### Limitations
+* The v2 catalog API feature preview does not support connections with client agents. As a result, it is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
+* The v1 and v2 catalog APIs cannot run concurrently.
+* The Consul UI does not support multi-port services or the v2 catalog API in this release.
+* HCP Consul does not support multi-port services or the v2 catalog API in this release.
+* The v2 API only supports transparent proxy mode where services that have permissions to connect to each other can use
+  Kube DNS to connect.
+
+### Known Issues
+* When using the v2 API with transparent proxy, Kubernetes pods cannot use L7 liveness, readiness, or startup probes.
+
+
+[[Catalog resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/catalog/internal/controllers)
+[[Mesh resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/mesh/internal/controllers)
+[[Auth resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/auth/internal)
+[[V2 Protobufs]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/proto-public) [[GH-18994](https://github.com/hashicorp/consul/issues/18994)]
+* Support custom watches on the Consul Controller framework. [[GH-18439](https://github.com/hashicorp/consul/issues/18439)]
+* Windows: support consul connect envoy command on Windows [[GH-17694](https://github.com/hashicorp/consul/issues/17694)]
+* acl: Add BindRule support for templated policies. Add new BindType: templated-policy and BindVar field for templated policy variables. [[GH-18719](https://github.com/hashicorp/consul/issues/18719)]
+* acl: Add new `acl.tokens.dns` config field which specifies the token used implicitly during dns checks. [[GH-17936](https://github.com/hashicorp/consul/issues/17936)]
+* acl: Added ACL Templated policies to simplify getting the right ACL token. [[GH-18708](https://github.com/hashicorp/consul/issues/18708)]
+* acl: Adds a new ACL rule for workload identities [[GH-18769](https://github.com/hashicorp/consul/issues/18769)]
+* api-gateway: Add support for response header modifiers on http-route configuration entry [[GH-18646](https://github.com/hashicorp/consul/issues/18646)]
+* api-gateway: add retry and timeout filters [[GH-18324](https://github.com/hashicorp/consul/issues/18324)]
+* cli: Add `bind-var` flag to `consul acl binding-rule` for templated policy variables. [[GH-18719](https://github.com/hashicorp/consul/issues/18719)]
+* cli: Add `consul acl templated-policy` commands to read, list and preview templated policies. [[GH-18816](https://github.com/hashicorp/consul/issues/18816)]
+* config-entry(api-gateway): (Enterprise only) Add GatewayPolicy to APIGateway Config Entry listeners
+* config-entry(api-gateway): (Enterprise only) Add JWTFilter to HTTPRoute Filters
+* dataplane: Allow getting bootstrap parameters when using V2 APIs [[GH-18504](https://github.com/hashicorp/consul/issues/18504)]
+* gateway: **(Enterprise only)** Add JWT authentication and authorization to APIGateway Listeners and HTTPRoutes.
+* mesh: **(Enterprise only)** Adds rate limiting config to service-defaults [[GH-18583](https://github.com/hashicorp/consul/issues/18583)]
+* xds: Add a built-in Envoy extension that appends OpenTelemetry Access Logging (otel-access-logging) to the HTTP Connection Manager filter. [[GH-18336](https://github.com/hashicorp/consul/issues/18336)]
+* xds: Add support for patching outbound listeners to the built-in Envoy External Authorization extension. [[GH-18336](https://github.com/hashicorp/consul/issues/18336)]
+
+IMPROVEMENTS:
+
+* xds: Use downstream protocol when connecting to local app [[GH-18573](https://github.com/hashicorp/consul/issues/18573)]
+* Windows: Integration tests for Consul Windows VMs [[GH-18007](https://github.com/hashicorp/consul/issues/18007)]
+* acl: Use templated policy to generate synthetic policies for tokens/roles with node and/or service identities [[GH-18813](https://github.com/hashicorp/consul/issues/18813)]
+* api: added `CheckRegisterOpts` to Agent API [[GH-18943](https://github.com/hashicorp/consul/issues/18943)]
+* api: added `Token` field to `ServiceRegisterOpts` type in Agent API [[GH-18983](https://github.com/hashicorp/consul/issues/18983)]
+* ca: Vault CA provider config no longer requires root_pki_path for secondary datacenters [[GH-17831](https://github.com/hashicorp/consul/issues/17831)]
+* cli: Added `-templated-policy`, `-templated-policy-file`, `-replace-templated-policy`, `-append-templated-policy`, `-replace-templated-policy-file`, `-append-templated-policy-file` and `-var` flags for creating or updating tokens/roles. [[GH-18708](https://github.com/hashicorp/consul/issues/18708)]
+* config: Add new `tls.defaults.verify_server_hostname` configuration option. This specifies the default value for any interfaces that support the `verify_server_hostname` option. [[GH-17155](https://github.com/hashicorp/consul/issues/17155)]
+* connect: update supported envoy versions to 1.24.10, 1.25.9, 1.26.4, 1.27.0 [[GH-18300](https://github.com/hashicorp/consul/issues/18300)]
+* ui: Use Community verbiage [[GH-18560](https://github.com/hashicorp/consul/issues/18560)]
+
+BUG FIXES:
+
+* api: add custom marshal/unmarshal for ServiceResolverConfigEntry.RequestTimeout so config entries that set this field can be read using the API. [[GH-19031](https://github.com/hashicorp/consul/issues/19031)]
+* dev-mode: Fix dev mode has new line in responses. Now new line is added only when url has pretty query parameter. [[GH-18367](https://github.com/hashicorp/consul/issues/18367)]
+* docs: fix list of telemetry metrics [[GH-17593](https://github.com/hashicorp/consul/issues/17593)]
+* telemetry: emit consul version metric on a regular interval. [[GH-6876](https://github.com/hashicorp/consul/issues/6876)]
+* tlsutil: Default setting of ServerName field in outgoing TLS configuration for checks now handled by crypto/tls. [[GH-17481](https://github.com/hashicorp/consul/issues/17481)]
+
 ## 1.16.2 (September 19, 2023)
 
 SECURITY:
