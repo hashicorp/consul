@@ -12,5 +12,5 @@ message ComputedDestinations {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
   // destinations is the list of explicit destinations to define for the selected workloads.
-  repeated Destination destinations = 2;
+  repeated Destination destinations = 1;
 }
