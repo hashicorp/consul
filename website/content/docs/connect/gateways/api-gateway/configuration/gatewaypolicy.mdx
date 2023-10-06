@@ -199,7 +199,7 @@ Map that contains default configurations to apply to listeners when the policy i
 
 ### `spec.default.jwt`
 
-Specifies default JWT configurations to apply to listeners when the policy is attached to the gateway. You can specify override configurations that have precedence over default configurations. Refer to the [`spec.override.jwt`](#spec-override-jwt) for details.
+Specifies default JWT configurations to apply to listeners when the policy is attached to the gateway. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT` block](#spec-override-jwt) or in an [`HTTPRouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter) attached to an  HTTP route. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -208,7 +208,7 @@ Specifies default JWT configurations to apply to listeners when the policy is at
 
 ### `spec.default.jwt.providers`
 
-Specifies default JWT provider configurations to apply to the listener when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. You can specify override configurations that have precedence over default configurations. Refer to the [`spec.override.jwt.providers`](#spec-override-jwt-providers) for details.
+Specifies default JWT provider configurations to apply to the listener when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT.providers` block](#spec-override-jwt) or in an [`HTTPRouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter) attached to an  HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
