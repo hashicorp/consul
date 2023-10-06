@@ -6010,8 +6010,26 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{``},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
 			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+		},
+	})
+	run(t, testCase{
+		desc: "logstore defaults",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"experiments": ["resource-apis"]
+			}	
+		`},
+		hcl: []string{`experiments=["resource-apis"]`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
+			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+			rt.Experiments = []string{"resource-apis"}
 		},
 	})
 	run(t, testCase{

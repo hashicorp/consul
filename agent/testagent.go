@@ -405,6 +405,19 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
+// Using sdk/freeport with *retry.R is not possible without changing
+// function signatures. We use this shim instead to save the headache
+// of syncing sdk submodule updates.
+type retryShim struct {
+	*retry.R
+
+	name string
+}
+
+func (r *retryShim) Name() string {
+	return r.name
+}
+
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significantly with little overhead. Furthermore, asking
@@ -414,7 +427,10 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	ports := freeport.GetN(t, 7)
+	var ports []int
+	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
+		ports = freeport.GetN(&retryShim{r, t.Name()}, 7)
+	})
 
 	var http, https int
 	if useHTTPS {
