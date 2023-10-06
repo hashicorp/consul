@@ -276,11 +276,9 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 				continue
 			}
 
-			routeKey := l.Name + routeRef.String()
-
 			for _, upstream := range routeUpstreamsForListener {
 				// Insert or update readyListener for the listener to include this upstream
-				r, ok := ready[routeKey]
+				r, ok := ready[l.Name]
 				if !ok {
 					r = readyListener{
 						listenerKey:      listenerKey,
@@ -290,7 +288,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 					}
 				}
 				r.upstreams = append(r.upstreams, upstream)
-				ready[routeKey] = r
+				ready[l.Name] = r
 			}
 		}
 	}
