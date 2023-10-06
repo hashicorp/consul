@@ -18,14 +18,14 @@ This page describes the process for integrating a service that uses multiple por
 
 Registering multi-port services with Consul requires Kubernetes. Multi-port services are not supported on VM deployments.
 
-There are also software version prerequisites:
+The following software versions are required:
 
-- `consul` v1.17.0
+- Consul v1.17.0
 - `consul-k8s` CLI v1.3.0+ or `hashicorp/consul` Helm chart release v1.3.0+
 
 For more information about upgrading versions for `consul-k8s` and Helm charts, refer to [Update the Consul K8s CLI](/consul/docs/k8s/upgrade/upgrade-cli) and [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
 
-Consul’s transparent proxy for service mesh, which enables Kube DNS instead of Consul DNS through permissive mTLS settings, has additional prerequisites. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
+There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
 
 ## Enable the v2 catalog
 
@@ -81,7 +81,7 @@ Consul's v2 catalog supports two methods for defining multi-port services in Kub
 
 These methods affect how the Services are addressed in Kubernetes.
 
-The following example contains two tabs, each with a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers, with each container supporting traffic to one of the ports exposed by the Service.
+Each tab in the following example contains a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers that each support traffic to one of the ports exposed by the Service.
 
 <Tabs>
 
@@ -333,7 +333,7 @@ spec:
 
 ## Validate multi-port connection
 
-To open a shell to the `web` container, you need the name of the pod it currently runs on. Run the following command to return a list of pods:
+To open a shell to the `web` container, you need the name of the Pod it currently runs on. Run the following command to return a list of Pods:
 
 ```shell-session
 $ kubectl get pods

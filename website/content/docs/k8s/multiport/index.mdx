@@ -16,15 +16,15 @@ This topic describes changes to Consul's catalog that allow you to register a se
 
 ## Background
 
-When Consul registers services, its catalog API tracks the following information:
+When Consul registers services, v1 of its catalog API tracks the following information:
 
-- The IDs of the specific _service instances_ that are registered
-- The locations of the _nodes_ the instances run on
-- The names of the _services_ the instances are associated with
+- IDs of the specific _service instances_ that are registered
+- Locations of the _nodes_ the instances run on
+- Names of the _services_ the instances are associated with
 
 This catalog API was designed prior to the introduction of Consul’s service mesh features. Services and service instances are coupled in the catalog such that Consul's ACL system requires a Kubernetes ServiceAccount resource to match the Service name. As a result, only one service can represent a Kubernetes Workload in the Consul catalog.
 
-Since that time, the cloud networking needs for applications evolved and the Consul catalog developed to support workarounds for these needs. For example, [Kubernetes Pods with multiple ports](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports) demonstrates how you can schedule a service with multiple ports so that Consul registers it in the catalog as distinct services with their own service instances. However, this workaround results in additional resource consumption because Consul requires that each service and port use their own proxy and Consul dataplane so that it can recognize them as distinct services.
+Since then, the cloud networking needs for applications have evolved and the Consul catalog adapted to support workarounds for these needs. For example, [Kubernetes Pods with multiple ports](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports) demonstrates how you can schedule a service with multiple ports so that Consul registers it in the catalog as distinct services with their own service instances. However, this workaround results in additional resource consumption because Consul requires that each service and port use their own proxy and Consul dataplane so that it can recognize them as distinct services.
 
 ### Catalog API v2 beta
 
@@ -33,7 +33,7 @@ Consul v1.17 introduces a new version of the catalog API designed to bridge diff
 - `Workload`, like [Kubernetes Workloads](https://kubernetes.io/docs/concepts/workloads/), is an application instance running in a set of one or more Pods scheduled according to a Workload resource such as a Deployment or StatefulSet.
 - `WorkloadIdentities`, like [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/), provide a distinct identity for a Workload to assume in a Kubernetes cluster.
 
-This catalog structure enables Consul to associate a single Kubernetes workload with multiple services in its catalog.
+This catalog structure enables Consul to associate a single Kubernetes Workload with multiple services in its catalog.
 
 The v2 catalog API also tracks the following information about services when they are registered with Consul:
 
@@ -42,9 +42,9 @@ The v2 catalog API also tracks the following information about services when the
 - `HealthCheck` is a resource for defining the health checks for a workload.
 - `ProxyConfiguration` represents a configuration for a sidecar or gateway proxy, similar to the `Proxy` field in the current service definition.
 - `Destinations` represents explicit service upstreams.
-- `TrafficPermissions` is a replacement for the `ServiceIntentions` Custom Resource Definition (CRD). Traffic permissions replace service intentions all services in the v2 catalog, enabling authorization of L4 traffic according to workload identity instead of service identity.
+- `TrafficPermissions` is a replacement for the `ServiceIntentions` custom resource definition (CRD). Traffic permissions replace service intentions for all services in the v2 catalog, which enables L4 traffic authorization according to workload identity instead of service identity.
 
-The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This beta release is for testing and development purposes only. Production environment migrations are not suggested at this time.
+The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This beta release is for testing and development purposes only. We do not recommend implementing v2 in production environments or migrating to v2 until the API is generally available.
 
 ## Workflow
 
