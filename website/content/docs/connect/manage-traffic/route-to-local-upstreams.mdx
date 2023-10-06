@@ -17,14 +17,14 @@ By default, Consul balances traffic to all healthy upstream instances in the clu
 - Consul prioritizes the nearest upstream when routing traffic through the mesh. 
 - When a service instance in the same partition becomes unhealthy, Consul prioritizes failing over to upstream services that are in the same region as the downstream service. Refer to [Failover](/consul/docs/connect/traffic-management/failover) for additional information about failover strategies in Consul.
 
-If properly implemented, routing traffic to local upstreams can reduce latency and transfer costs associated with sending requests to other regions. 
+When properly implemented, routing traffic to local upstreams can reduce latency and transfer costs associated with sending requests to other regions. 
 
 ### Workflow
 
 For networks deployed to virtual machines, complete the following steps to route traffic to local upstream services:
 
 1. Specify the region and zone for your Consul client agents. 
-1. It is not required, but you can specify the region and zone for your services. Skip this 1. step to allow services to inherit the region and zone configured for the Consul client that the services are registered with. 
+1. It is not required, but you can specify the region and zone for your services. Skip this step to allow services to inherit the region and zone configured for the Consul client that the services are registered with. 
 1. Enable service mesh proxies to route traffic locally within the partition.
 1. Start service mesh proxies.
 
@@ -51,7 +51,7 @@ locality = {
 
 ## Specify the localities of your service instances
 
-Configuring service localities is only applicable for service mesh deployments that use [Consul dataplane](/consul/docs/connect/dataplane). This step is optional for networks deployed to virtual machines. Instead, you should allow services to inherit the localities of the Consul agent that they are registered with.  
+You may only need to configure service localities in service mesh deployments that use [Consul dataplane](/consul/docs/connect/dataplane). This step is optional for networks deployed to virtual machines, which you should allow services to inherit the localities of the Consul agent that they are registered with.  
 
 1. Configure the `locality` block in your service definition. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locale to the proxy so that it can route traffic accordingly. 
 

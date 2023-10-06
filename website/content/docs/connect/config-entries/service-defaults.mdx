@@ -607,7 +607,7 @@ Specifies a mode for how the service directs inbound and outbound traffic.
 
 ### `RateLimits`
 
-Map containing an instance-level configuration for the service. 
+Map containing an instance-level configuration for limiting the service's traffic rate.
 
 #### Values
 
@@ -625,7 +625,7 @@ Map containing a set of request rate limit configurations for instances of the s
 
 ### `RateLimits{}.InstanceLevel{}.RequestsPerScond`
 
-Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You must also specify the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `RequestsPerSecond` parameter, but not the `RequestsMaxBurst` parameter. 
+Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You may also specify the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `RequestsPerSecond` parameter, but not the `RequestsMaxBurst` parameter. 
 
 #### Values
 
@@ -649,7 +649,7 @@ Specifies a list of rate limiting configurations to apply to specific routes to 
 - `PathPrefix`
 - `PathRegex` 
 
-Refer to [Examples] for example configurations.
+Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
 
 #### Values
 
@@ -664,7 +664,7 @@ The following table describes the parameters you can specify in the `Routes` map
 | `PathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `PathExact` or `PathRegex` in the same `Routes` map. | String | None |
 | `PathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same `Routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `RequestsPerSecond` | Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. Overrides the  [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
-| `RequestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `Routes.RequestsPerSecond` parameter. Overrides the  [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
+| `RequestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `Routes.RequestsPerSecond` parameter. Overrides the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `UpstreamConfig`
 
@@ -1071,9 +1071,9 @@ Specifies a mode for how the service directs inbound and outbound traffic.
 - `direct`: The proxy's listeners must be dialed directly by the local application and other proxies.
 - `transparent`: The service captures inbound and outbound traffic and redirects it through the proxy. The mode does not enable the traffic redirection. It instructs Consul to configure Envoy as if traffic is already being redirected.
 
-### `RateLimits`
+### `spec.rateLimits`
 
-Map containing an instance-level configuration for the service. 
+Map containing an instance-level configuration for limiting the service's traffic rate.
 
 #### Values
 
@@ -1089,9 +1089,9 @@ Map containing a set of request rate limit configurations for instances of the s
 - Default: None
 - Data type: Map
 
-### `spec.rateLimits{}.instanceLevel{}.requestsPerScond`
+### `spec.rateLimits{}.instanceLevel{}.requestsPerSecond`
 
-Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You must also specify the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `requestsPerSecond` parameter, but not the `requestsMaxBurst` parameter. 
+Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You may also specify the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `requestsPerSecond` parameter, but not the `requestsMaxBurst` parameter. 
 
 #### Values
 
@@ -1115,7 +1115,7 @@ Specifies a list of rate limiting configurations to apply to specific routes to 
 - `pathPrefix`
 - `pathRegex` 
 
-Refer to [Examples] for example configurations.
+Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
 
 #### Values
 
@@ -1130,7 +1130,7 @@ The following table describes the parameters you can specify in the `routes` map
 | `pathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `pathExact` or `pathRegex` in the same `routes` map. | String | None |
 | `pathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same `routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
 | `requestsPerSecond` | Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. Overrides the  [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
-| `requestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `routes.requestsPerSecond` parameter. Overrides the  [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
+| `requestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `routes.requestsPerSecond` parameter. Overrides the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `spec.upstreamConfig`
 
@@ -1784,7 +1784,7 @@ rateLimit:
 
 ### Enable request rate limit on a prefixed path
  
-The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests. Request paths that begin with `/admin`, however, are limited to an average of `20` requests per second.
+The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests. Request paths that begin with `/admin`, however, are limited to `20` requests per second.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
