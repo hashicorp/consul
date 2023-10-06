@@ -289,3 +289,7 @@ If you separately follow the steps in this documentation to create a cluster pee
 If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single service intentions CRD.
 
 Configure the `sources` block with the `samenessGroup` field instead of the `peer` field. Be aware that this scenario requires you to apply the `samenessGroup` CRD before you apply the `serviceIntentions` CRD that references the sameness group.
+
+## Next steps
+
+When `defaultForFailover=true` in a sameness group CRD, additional upstream configuration is not required. If the sameness group is not configured as the default for failover, you must specify the sameness group in an upstream annotation when scheduling the workload. Refer to the specifications for `consul.hashicorp.com/connect-service-upstreams` in the [Kubernetes annotations and labels reference](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for more information.

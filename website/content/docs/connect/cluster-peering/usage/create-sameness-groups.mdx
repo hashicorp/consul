@@ -299,6 +299,8 @@ Configure the `Sources` block with the `SamenessGroup` field instead of the `Pee
 
 ## Next steps
 
+When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required. If the sameness group is not configured as the default for failover, you must specify `destination_sameness_group` in a connect-proxy upstream configuration to enable the sameness group to function as a service upstream. Refer to [upstream configuration reference](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) for more information.
+
 After creating a sameness group, you can use them with static Consul DNS lookups and dynamic DNS lookups (prepared queries) for service discovery use cases. You can also set up failover between services in a sameness group. Refer to the following topics for more details:
 
 - [Static Consul DNS lookups](/consul/docs/services/discovery/dns-static-lookups)
