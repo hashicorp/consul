@@ -49,19 +49,10 @@ type Deps struct {
 	EnterpriseDeps
 }
 
-// UseV2Resources returns true if "resource-apis" is present in the Experiments
+// useV2Resources returns true if "resource-apis" is present in the Experiments
 // array of the agent config.
 func (d Deps) UseV2Resources() bool {
 	if stringslice.Contains(d.Experiments, CatalogResourceExperimentName) {
-		return true
-	}
-	return false
-}
-
-// UseV2Tenancy returns true if "v2tenancy" is present in the Experiments
-// array of the agent config.
-func (d Deps) UseV2Tenancy() bool {
-	if stringslice.Contains(d.Experiments, V2TenancyExperimentName) {
 		return true
 	}
 	return false

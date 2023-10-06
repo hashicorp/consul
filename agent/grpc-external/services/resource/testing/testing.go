@@ -7,11 +7,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -21,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -94,17 +94,10 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 		mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
-		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", "foo").Return(false, nil)
 		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 		config.TenancyBridge = mockTenancyBridge
-	} else {
-		switch config.TenancyBridge.(type) {
-		case *tenancy.V2TenancyBridge:
-			err = initTenancy(ctx, backend)
-			require.NoError(t, err)
-		}
 	}
 
 	if config.ACLResolver == nil {
@@ -147,14 +140,6 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
-	client := pbresource.NewResourceServiceClient(conn)
-	if config.TenancyBridge != nil {
-		switch config.TenancyBridge.(type) {
-		case *tenancy.V2TenancyBridge:
-			config.TenancyBridge.(*tenancy.V2TenancyBridge).WithClient(client)
-		}
 
-	}
-
-	return client
+	return pbresource.NewResourceServiceClient(conn)
 }

@@ -299,8 +299,8 @@ func (s *Sprawl) createFirstTime() error {
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
 	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
@@ -367,8 +367,8 @@ func (s *Sprawl) preRegenTasks() error {
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
 	if err := s.syncAllServicesForDataplaneInstances(); err != nil {

@@ -245,6 +245,115 @@ type endpointTestCase struct {
 	alsoRunTestForV2   bool
 }
 
+func makeEndpointDiscoChainTests(enterprise bool) []endpointTestCase {
+	return []endpointTestCase{
+		{
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-overrides",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-default-chain-and-custom-cluster",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+	}
+}
+
 func TestEndpointsFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
 	// eventually to test all of the xDS types at once with the same input,
@@ -318,7 +427,186 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			// TODO(proxystate): mesh gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
+		{
+			name: "ingress-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"default", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-gateway-nil-config-entry",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
+					"default", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"simple", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"external-sni", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-chain-and-failover-to-cluster-peer",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-to-cluster-peer", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-remote-gateway", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-remote-gateway-triggered", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-remote-gateway", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-remote-gateway-triggered", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-local-gateway", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-local-gateway-triggered", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-local-gateway", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
+					"failover-through-double-local-gateway-triggered", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "ingress-splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
+					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
+			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsets,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-default-service-subset",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayDefaultServiceSubset,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "ingress-multiple-listeners-duplicate-service",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
 	}
+
+	tests = append(tests, makeEndpointDiscoChainTests(false)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {

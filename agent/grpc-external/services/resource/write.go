@@ -37,7 +37,7 @@ import (
 var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	reg, err := s.ensureWriteRequestValid(req)
+	reg, err := s.validateWriteRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -78,13 +78,13 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
-	// Check tenancy exists for the V2 resource
-	if err = tenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+	// Check V1 tenancy exists for the V2 resource
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
-	// Check tenancy not marked for deletion.
-	if err = tenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+	// Check V1 tenancy not marked for deletion.
+	if err = v1TenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
 		return nil, err
 	}
 
@@ -265,7 +265,7 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resource.Registration, error) {
+func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Resource == nil:
@@ -291,10 +291,6 @@ func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resourc
 	// Check type exists.
 	reg, err := s.resolveType(req.Resource.Id.Type)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Resource.Id.Type); err != nil {
 		return nil, err
 	}
 

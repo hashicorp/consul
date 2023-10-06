@@ -26,7 +26,7 @@ var (
 	testData embed.FS
 )
 
-// RunCatalogV2Beta1IntegrationTest will push up a bunch of catalog related data and then
+// RunCatalogV1Alpha1IntegrationTest will push up a bunch of catalog related data and then
 // verify that all the expected reconciliations happened correctly. This test is
 // intended to exercise a large swathe of behavior of the overall catalog package.
 // Besides just controller reconciliation behavior, the intent is also to verify
