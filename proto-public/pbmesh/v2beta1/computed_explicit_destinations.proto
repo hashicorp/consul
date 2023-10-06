@@ -8,7 +8,7 @@ package hashicorp.consul.mesh.v2beta1;
 import "pbmesh/v2beta1/destinations.proto";
 import "pbresource/annotations.proto";
 
-message ComputedDestinations {
+message ComputedExplicitDestinations {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
 
   // destinations is the list of explicit destinations to define for the selected workloads.

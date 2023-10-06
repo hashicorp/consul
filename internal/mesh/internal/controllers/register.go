@@ -54,5 +54,5 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(routes.Controller())
 
 	mgr.Register(proxyconfiguration.Controller(workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)))
-	mgr.Register(explicitdestinations.Controller(workloadselectionmapper.New[*pbmesh.Destinations](pbmesh.ComputedDestinationsType)))
+	mgr.Register(explicitdestinations.Controller(workloadselectionmapper.New[*pbmesh.Destinations](pbmesh.ComputedExplicitDestinationsType)))
 }

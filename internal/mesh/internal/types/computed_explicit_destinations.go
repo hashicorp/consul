@@ -8,10 +8,10 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
-func RegisterComputedDestinations(r resource.Registry) {
+func RegisterComputedExplicitDestinations(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbmesh.ComputedDestinationsType,
-		Proto: &pbmesh.ComputedDestinations{},
+		Type:  pbmesh.ComputedExplicitDestinationsType,
+		Proto: &pbmesh.ComputedExplicitDestinations{},
 		Scope: resource.ScopeNamespace,
 	})
 }

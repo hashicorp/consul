@@ -25,9 +25,9 @@ func Controller(destinationsMapper *workloadselectionmapper.Mapper[*pbmesh.Desti
 		panic("destinations mapper is required")
 	}
 
-	return controller.ForType(pbmesh.ComputedDestinationsType).
+	return controller.ForType(pbmesh.ComputedExplicitDestinationsType).
 		WithWatch(pbmesh.DestinationsType, destinationsMapper.MapToComputedType).
-		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedDestinationsType)).
+		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedExplicitDestinationsType)).
 		WithReconciler(&reconciler{destinations: destinationsMapper})
 }
 
@@ -56,7 +56,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Get existing ComputedDestinations resource (if any).
-	cpc, err := resource.GetDecodedResource[*pbmesh.ComputedDestinations](ctx, rt.Client, req.ID)
+	cpc, err := resource.GetDecodedResource[*pbmesh.ComputedExplicitDestinations](ctx, rt.Client, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching ComputedDestinations", "error", err)
 		return err
@@ -91,7 +91,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	newComputedDestinationsData := &pbmesh.ComputedDestinations{}
+	newComputedDestinationsData := &pbmesh.ComputedExplicitDestinations{}
 	for _, dst := range decodedDestinations {
 		valid, cond := validate(ctx, rt.Client, dst)
 
