@@ -31,9 +31,9 @@ type Config struct {
 	// Backend is the storage backend that will be used for resource persistence.
 	Backend     Backend
 	ACLResolver ACLResolver
-	// V1TenancyBridge temporarily allows us to use V1 implementations of
+	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
-	V1TenancyBridge TenancyBridge
+	TenancyBridge TenancyBridge
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -133,8 +133,6 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	switch {
 	case id.Type == nil:
 		field = "type"
-	case id.Tenancy == nil:
-		field = "tenancy"
 	case id.Name == "":
 		field = "name"
 	}
@@ -142,6 +140,18 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 	if field != "" {
 		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
 	}
+
+	// Better UX: Allow callers to pass in nil tenancy.  Defaulting and inheritance of tenancy
+	// from the request token will take place further down in the call flow.
+	if id.Tenancy == nil {
+		id.Tenancy = &pbresource.Tenancy{
+			Partition: "",
+			Namespace: "",
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+			PeerName: "local",
+		}
+	}
+
 	resource.Normalize(id.Tenancy)
 
 	return nil

@@ -23,6 +23,7 @@ Envoy extensions enable additional service mesh functionality in Consul by chang
 - External authorization
 - Lua
 - Lambda
+- OpenTelemetry Access Logging
 - Property override
 - WebAssembly (Wasm)
 
@@ -37,6 +38,10 @@ The `lambda` Envoy extension enables services to make requests to AWS Lambda fun
 ### Lua
 
 The `lua` Envoy extension enables HTTP Lua filters in your Consul Envoy proxies. It allows you to run Lua scripts during Envoy requests and responses from Consul-generated Envoy resources. Refer to the [Lua extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/lua) for more information.
+
+### OpenTelemetry Access Logging
+
+The `otel-access-logging` Envoy extension lets you configure Envoy proxies to send access logs to OpenTelemetry collector service. Refer to the [OpenTelemetry Access Logging extension documentation](/consul/docs/connect/proxies/envoy-extensions/usage/otel-access-logging) for more information.
 
 ### Property override
 

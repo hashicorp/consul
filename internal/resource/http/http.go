@@ -82,14 +82,18 @@ func (h *resourceHandler) handleWrite(w http.ResponseWriter, r *http.Request, ct
 	var req writeRequest
 	// convert req body to writeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request body", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body format is invalid"))
+		return
 	}
 	// convert data struct to proto message
 	data := h.reg.Proto.ProtoReflect().New().Interface()
 	if err := protojson.Unmarshal(req.Data, data); err != nil {
+		h.logger.Error("Failed to unmarshal to proto message", "error", err)
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Request body didn't follow schema."))
+		w.Write([]byte("Request body didn't follow the resource schema"))
+		return
 	}
 	// proto message to any
 	anyProtoMsg, err := anypb.New(data)
@@ -176,10 +180,18 @@ func (h *resourceHandler) handleDelete(w http.ResponseWriter, r *http.Request, c
 
 func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[string]string) {
 	query := r.URL.Query()
+	namespace := query.Get("namespace")
+	if namespace == "" {
+		namespace = query.Get("ns")
+	}
+	peer := query.Get("peer")
+	if peer == "" {
+		peer = query.Get("peer_name")
+	}
 	tenancy = &pbresource.Tenancy{
 		Partition: query.Get("partition"),
-		PeerName:  query.Get("peer_name"),
-		Namespace: query.Get("namespace"),
+		PeerName:  peer,
+		Namespace: namespace,
 	}
 
 	resourceName := path.Base(r.URL.Path)
@@ -191,6 +203,9 @@ func parseParams(r *http.Request) (tenancy *pbresource.Tenancy, params map[strin
 	params["resourceName"] = resourceName
 	params["version"] = query.Get("version")
 	params["namePrefix"] = query.Get("name_prefix")
+	// coming from command line
+	params["consistent"] = query.Get("RequireConsistent")
+	// coming from http client
 	if _, ok := query["consistent"]; ok {
 		params["consistent"] = "true"
 	}

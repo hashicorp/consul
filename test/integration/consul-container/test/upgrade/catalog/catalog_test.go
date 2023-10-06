@@ -9,15 +9,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/go-version"
 )
 
-var minCatalogResourceVersion = version.Must(version.NewVersion("v1.16.0"))
+var minCatalogResourceVersion = version.Must(version.NewVersion("v1.17.0"))
 
 const (
 	versionUndetermined = `
@@ -73,7 +74,7 @@ func TestCatalogUpgrade(t *testing.T) {
 	rscClient := pbresource.NewResourceServiceClient(leader.GetGRPCConn())
 
 	// Initialize some data
-	catalogtest.PublishCatalogV1Alpha1IntegrationTestData(t, rscClient)
+	catalogtest.PublishCatalogV2Beta1IntegrationTestData(t, rscClient)
 
 	// upgrade the cluster to the Target version
 	t.Logf("initiating standard upgrade to version=%q", utils.TargetVersion)
@@ -83,5 +84,5 @@ func TestCatalogUpgrade(t *testing.T) {
 	libcluster.WaitForLeader(t, cluster, client)
 	libcluster.WaitForMembers(t, client, numServers)
 
-	catalogtest.VerifyCatalogV1Alpha1IntegrationTestResults(t, rscClient)
+	catalogtest.VerifyCatalogV2Beta1IntegrationTestResults(t, rscClient)
 }

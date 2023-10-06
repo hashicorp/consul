@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxytracker
 
 import (
 	"github.com/hashicorp/consul/acl"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/internal/resource"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 // ProxyState is an implementation of the ProxySnapshot interface for pbmesh.ProxyState.
@@ -31,9 +35,13 @@ func (p *ProxyState) AllowEmptyClusters() bool {
 }
 
 func (p *ProxyState) Authorize(authz acl.Authorizer) error {
-	// TODO(proxystate): we'll need to implement this once identity policy is implemented
+	// authorize for mesh proxies.
+	// TODO(proxystate): implement differently for gateways
+	allow := authz.ToAllowAuthorizer()
+	if err := allow.IdentityWriteAllowed(p.Identity.Name, resource.AuthorizerContext(p.Identity.Tenancy)); err != nil {
+		return err
+	}
 
-	// Authed OK!
 	return nil
 }
 

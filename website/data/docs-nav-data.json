@@ -479,15 +479,19 @@
         ]
       },
       {
-        "title": "Supported Proxies",
+        "title": "Proxies",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/proxies"
           },
           {
-            "title": "Envoy",
-            "path": "connect/proxies/envoy"
+            "title": "Deploy service mesh proxies",
+            "path": "connect/proxies/deploy-service-mesh-proxies"
+          },
+          {
+            "title": "Deploy sidecar services",
+            "path": "connect/proxies/deploy-sidecar-services"
           },
           {
             "title": "Envoy Extensions",
@@ -500,6 +504,10 @@
                 "title": "Usage",
                 "routes": [
                   {
+                    "title": "Delegate authorization to Apigee",
+                    "path": "connect/proxies/envoy-extensions/usage/apigee-ext-authz"
+                  },
+                  {
                     "title": "Delegate authorization to external services",
                     "path": "connect/proxies/envoy-extensions/usage/ext-authz"
                   },
@@ -510,6 +518,10 @@
                   {
                     "title": "Invoke Lambda functions in Envoy proxies",
                     "path": "connect/proxies/envoy-extensions/usage/lambda"
+                  },
+                  {
+                    "title": "Send access logs to OpenTelemetry collector service",
+                    "path": "connect/proxies/envoy-extensions/usage/otel-access-logging"
                   },
                   {
                     "title": "Configure Envoy proxy properties",
@@ -529,6 +541,10 @@
                     "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
                   },
                   {
+                    "title": "OpenTelemetry Access Logging",
+                    "path": "connect/proxies/envoy-extensions/configuration/otel-access-logging"
+                  },
+                  {
                     "title": "Property override",
                     "path": "connect/proxies/envoy-extensions/configuration/property-override"
                   },
@@ -541,29 +557,24 @@
             ]
           },
           {
-            "title": "Built-in Proxy",
+            "title": "Proxy integration",
+            "path": "connect/proxies/integrate"
+          },
+          {
+            "title": "Proxy defaults configuration reference",
+            "href": "/consul/docs/connect/config-entries/proxy-defaults"
+          },
+          {
+            "title": "Envoy proxies reference",
+            "path": "connect/proxies/envoy"
+          },
+          {
+            "title": "Built-in proxy reference",
             "path": "connect/proxies/built-in"
           },
           {
-            "title": "Proxy Integration",
-            "path": "connect/proxies/integrate"
-          }
-        ]
-      },
-      {
-        "title": "Registering Proxies",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/registration"
-          },
-          {
-            "title": "Proxy Service Registration",
-            "path": "connect/registration/service-registration"
-          },
-          {
-            "title": "Sidecar Service Registration",
-            "path": "connect/registration/sidecar-service"
+            "title": "Service mesh proxy configuration reference",
+            "path": "connect/proxies/proxy-config-reference"
           }
         ]
       },
@@ -1529,62 +1540,62 @@
         "path": "ecs"
       },
       {
-        "title": "Requirements",
-        "path": "ecs/requirements"
-      },
-      {
-        "title": "Task Resource Usage",
-        "path": "ecs/task-resource-usage"
-      },
-      {
-        "title": "Install with Terraform",
-        "routes": [
-          {
-            "title": "Installation",
-            "path": "ecs/terraform/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/terraform/secure-configuration"
-          },
-          {
-            "title": "Migrate Existing Tasks",
-            "path": "ecs/terraform/migrate-existing-tasks"
-          }
-        ]
-      },
-      {
-        "title": "Install Manually",
-        "routes": [
-          {
-            "title": "Installation",
-            "path": "ecs/manual/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/manual/secure-configuration"
-          },
-          {
-            "title": "ACL Controller",
-            "path": "ecs/manual/acl-controller"
-          }
-        ]
-      },
-      {
         "title": "Architecture",
         "path": "ecs/architecture"
+      },
+      {
+        "title": "Technical specifications",
+        "path": "ecs/tech-specs"
+      },
+      {
+        "title": "Deploy Consul to ECS",
+        "routes": [
+          {
+            "title": "Deploy using the Terraform module",
+            "path": "ecs/deploy/terraform"
+          },
+          {
+            "title": "Deploy manually",
+            "path": "ecs/deploy/manual"
+          },
+          {
+            "title": "Configure the ECS task bind address",
+            "path": "ecs/deploy/bind-addresses"
+          },
+          {
+            "title": "Configure routes between ECS tasks",
+            "path": "ecs/deploy/configure-routes"
+          },
+          {
+            "title": "Migrate existing tasks",
+            "path": "ecs/deploy/migrate-existing-tasks"
+          }
+        ]
+      },
+      {
+        "title": "Upgrade to Consul dataplane architecture",
+        "path": "ecs/upgrade-to-dataplanes"
       },
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       },
       {
-        "title": "Configuration Reference",
-        "path": "ecs/configuration-reference"
-      },
-      {
-        "title": "Compatibility Matrix",
-        "path": "ecs/compatibility"
+        "title": "Reference",
+        "routes": [
+          {
+            "title": "ECS configuration reference",
+            "path": "ecs/reference/configuration-reference"
+          },
+          {
+            "title": "ECS compatibility matrix",
+            "path": "ecs/reference/compatibility"
+          },
+          {
+            "title": "ECS Consul server JSON schema",
+            "path": "ecs/reference/consul-server-json"
+          }
+        ]
       }
     ]
   },

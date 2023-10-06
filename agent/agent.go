@@ -22,6 +22,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/consul/lib/stringslice"
+
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -71,7 +73,6 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
@@ -656,13 +657,8 @@ func (a *Agent) Start(ctx context.Context) error {
 	// Create proxy config manager now because it is a dependency of creating the proxyWatcher
 	// which will be passed to consul.NewServer so that it is then passed to the
 	// controller registration for the XDS controller in v2 mode, and the xds server in v1 and v2 mode.
-	var intentionDefaultAllow bool
-	switch a.config.ACLResolverSettings.ACLDefaultPolicy {
-	case "allow":
-		intentionDefaultAllow = true
-	case "deny":
-		intentionDefaultAllow = false
-	default:
+	intentionDefaultAllow, err := a.config.ACLResolverSettings.IsDefaultAllow()
+	if err != nil {
 		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
 	}
 
@@ -873,12 +869,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
 
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
-
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
 		a.baseDeps.Logger.Debug("starting file watcher")
@@ -953,20 +943,28 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher) {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	if server, ok := a.delegate.(*consul.Server); ok {
-		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-			NodeName:          a.config.NodeName,
-			LocalState:        a.State,
-			LocalConfigSource: proxyWatcher,
-			Manager:           a.proxyConfig,
-			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-		})
-		go func() {
-			<-a.shutdownCh
-			catalogCfg.Shutdown()
-		}()
-		proxyWatcher = catalogCfg
+		switch proxyWatcher.(type) {
+		case *proxytracker.ProxyTracker:
+			go func() {
+				<-a.shutdownCh
+				proxyWatcher.(*proxytracker.ProxyTracker).Shutdown()
+			}()
+		default:
+			catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+				NodeName:          a.config.NodeName,
+				LocalState:        a.State,
+				LocalConfigSource: proxyWatcher,
+				Manager:           a.proxyConfig,
+				GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+				Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+				SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+			})
+			go func() {
+				<-a.shutdownCh
+				catalogCfg.Shutdown()
+			}()
+			proxyWatcher = catalogCfg
+		}
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
@@ -3066,14 +3064,20 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
+			var tlsClientConfig *tls.Config
+			if chkType.TCPUseTLS {
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
+			}
+
 			tcp := &checks.CheckTCP{
-				CheckID:       cid,
-				ServiceID:     sid,
-				TCP:           chkType.TCP,
-				Interval:      chkType.Interval,
-				Timeout:       chkType.Timeout,
-				Logger:        a.logger,
-				StatusHandler: statusHandler,
+				CheckID:         cid,
+				ServiceID:       sid,
+				TCP:             chkType.TCP,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 			tcp.Start()
 			a.checkTCPs[cid] = tcp
@@ -4348,6 +4352,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.enableDebug.Store(newCfg.EnableDebug)
 	a.config.EnableDebug = newCfg.EnableDebug
 
+	// update Agent config with new config
+	a.config = newCfg.DeepCopy()
+
 	return nil
 }
 
@@ -4617,7 +4624,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		// interact with ACLs and the streaming backend. See comments in `proxycfgglue.ServerHealthBlocking`
 		// for more details.
 		// sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
-		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth), server.FSM().State())
+		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)

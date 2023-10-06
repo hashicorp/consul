@@ -4,6 +4,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -13,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -139,7 +140,9 @@ func validatePortName(name string) error {
 
 func validateProtocol(protocol pbcatalog.Protocol) error {
 	switch protocol {
-	case pbcatalog.Protocol_PROTOCOL_TCP,
+	case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED,
+		// means pbcatalog.FailoverMode_FAILOVER_MODE_TCP
+		pbcatalog.Protocol_PROTOCOL_TCP,
 		pbcatalog.Protocol_PROTOCOL_HTTP,
 		pbcatalog.Protocol_PROTOCOL_HTTP2,
 		pbcatalog.Protocol_PROTOCOL_GRPC,
@@ -234,4 +237,82 @@ func validateHealth(health pbcatalog.Health) error {
 	default:
 		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", health))
 	}
+}
+
+// ValidateLocalServiceRefNoSection ensures the following:
+//
+// - ref is non-nil
+// - type is ServiceType
+// - section is empty
+// - tenancy is set and partition/namespace are both non-empty
+// - peer_name must be "local"
+//
+// Each possible validation error is wrapped in the wrapErr function before
+// being collected in a multierror.Error.
+func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
+	if ref == nil {
+		return wrapErr(resource.ErrMissing)
+	}
+
+	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
+		return wrapErr(resource.ErrInvalidField{
+			Name: "type",
+			Wrapped: resource.ErrInvalidReferenceType{
+				AllowedType: pbcatalog.ServiceType,
+			},
+		})
+	}
+
+	var merr error
+	if ref.Section != "" {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "section",
+			Wrapped: errors.New("section cannot be set here"),
+		}))
+	}
+
+	if ref.Tenancy == nil {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "tenancy",
+			Wrapped: resource.ErrMissing,
+		}))
+	} else {
+		// NOTE: these are Service specific, since that's a Namespace-scoped type.
+		if ref.Tenancy.Partition == "" {
+			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+				Name: "tenancy",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "partition",
+					Wrapped: resource.ErrEmpty,
+				},
+			}))
+		}
+		if ref.Tenancy.Namespace == "" {
+			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+				Name: "tenancy",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "namespace",
+					Wrapped: resource.ErrEmpty,
+				},
+			}))
+		}
+		if ref.Tenancy.PeerName != "local" {
+			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+				Name: "tenancy",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "peer_name",
+					Wrapped: errors.New(`must be set to "local"`),
+				},
+			}))
+		}
+	}
+
+	if ref.Name == "" {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "name",
+			Wrapped: resource.ErrMissing,
+		}))
+	}
+
+	return merr
 }

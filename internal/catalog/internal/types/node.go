@@ -4,30 +4,23 @@
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
-)
 
-const (
-	NodeKind = "Node"
-)
-
-var (
-	NodeV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         NodeKind,
-	}
-
-	NodeType = NodeV1Alpha1Type
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     NodeV1Alpha1Type,
-		Proto:    &pbcatalog.Node{},
+		Type:  pbcatalog.NodeType,
+		Proto: &pbcatalog.Node{},
+		// TODO: A node should be partition scoped. However its HealthStatus which is
+		// namespace scoped has Node as an owner. We do not support ownership between resources
+		// of differing scope at this time. HealthStatus will probably be split out into two different
+		// types, one for namespace scoped owners and the other for partition scoped owners.
+		// Until that time, Node will remain namespace scoped.
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateNode,
 	})
 }

@@ -36,7 +36,7 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 
 	// Check V1 tenancy exists for the V2 resource. Ignore "marked for deletion" since status updates
 	// should still work regardless.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -120,8 +120,6 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		field = "id"
 	case req.Id.Type == nil:
 		field = "id.type"
-	case req.Id.Tenancy == nil:
-		field = "id.tenancy"
 	case req.Id.Name == "":
 		field = "id.name"
 	case req.Id.Uid == "":
@@ -167,6 +165,17 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 
 	if _, err := ulid.ParseStrict(req.Status.ObservedGeneration); err != nil {
 		return nil, status.Error(codes.InvalidArgument, "status.observed_generation is not valid")
+	}
+
+	// Better UX: Allow callers to pass in nil tenancy.  Defaulting and inheritance of tenancy
+	// from the request token will take place further down in the call flow.
+	if req.Id.Tenancy == nil {
+		req.Id.Tenancy = &pbresource.Tenancy{
+			Partition: "",
+			Namespace: "",
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+			PeerName: "local",
+		}
 	}
 
 	// Lowercase

@@ -68,6 +68,8 @@ type consulContainerNode struct {
 	nextConnectPortOffset int
 
 	info AgentInfo
+
+	apiClientConfig api.Config
 }
 
 func (c *consulContainerNode) GetPod() testcontainers.Container {
@@ -330,6 +332,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		}
 
 		node.client = apiClient
+		node.apiClientConfig = *apiConfig
 		node.clientAddr = clientAddr
 		node.clientCACertFile = clientCACertFile
 	}
@@ -443,6 +446,10 @@ func (c *consulContainerNode) GetInfo() AgentInfo {
 
 func (c *consulContainerNode) GetIP() string {
 	return c.ip
+}
+
+func (c *consulContainerNode) GetAPIClientConfig() api.Config {
+	return c.apiClientConfig
 }
 
 func (c *consulContainerNode) RegisterTermination(f func() error) {
@@ -614,6 +621,7 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"8500/tcp", // Consul HTTP API
 			"8501/tcp", // Consul HTTPs API
 			"8502/tcp", // Consul gRPC API
+			"8600/udp", // Consul DNS API
 
 			"8443/tcp", // Envoy Gateway Listener
 

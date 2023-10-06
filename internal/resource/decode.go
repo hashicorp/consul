@@ -44,9 +44,11 @@ func (d *DecodedResource[T]) GetData() T {
 func Decode[T proto.Message](res *pbresource.Resource) (*DecodedResource[T], error) {
 	var zero T
 	data := zero.ProtoReflect().New().Interface().(T)
-
-	if err := res.Data.UnmarshalTo(data); err != nil {
-		return nil, NewErrDataParse(data, err)
+	// check that there is data to unmarshall
+	if res.Data != nil {
+		if err := res.Data.UnmarshalTo(data); err != nil {
+			return nil, NewErrDataParse(data, err)
+		}
 	}
 	return &DecodedResource[T]{
 		Resource: res,
@@ -64,6 +66,5 @@ func GetDecodedResource[T proto.Message](ctx context.Context, client pbresource.
 	case err != nil:
 		return nil, err
 	}
-
 	return Decode[T](rsp.Resource)
 }

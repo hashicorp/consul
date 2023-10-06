@@ -260,15 +260,15 @@ func TestTransformOTLP(t *testing.T) {
 	// MetricType Error Test Cases
 	_, err := metricTypeToPB(invalidHistTemporality)
 	require.Error(t, err)
-	require.ErrorIs(t, err, temporalityErr)
+	require.ErrorIs(t, err, errTemporality)
 
 	_, err = metricTypeToPB(invalidSumTemporality)
 	require.Error(t, err)
-	require.ErrorIs(t, err, temporalityErr)
+	require.ErrorIs(t, err, errTemporality)
 
 	_, err = metricTypeToPB(invalidSumAgg)
 	require.Error(t, err)
-	require.ErrorIs(t, err, aggregationErr)
+	require.ErrorIs(t, err, errAggregaton)
 
 	// Metrics Test Case
 	m := metricsToPB(inputMetrics)

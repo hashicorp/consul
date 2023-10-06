@@ -43,7 +43,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 	}
 
 	// Check v1 tenancy exists for the v2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -74,7 +74,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		}
 
 		// Filter out children that fail real ACL.
-		err = childReg.ACLs.Read(childAuthz, childAuthzContext, child.Id)
+		err = childReg.ACLs.Read(childAuthz, childAuthzContext, child.Id, child)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue

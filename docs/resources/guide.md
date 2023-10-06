@@ -17,10 +17,13 @@ $ mkdir proto-public/pbfoo/v1alpha1
 syntax = "proto3";
 
 import "pbresource/resource.proto";
+import "pbresource/annotations.proto";
 
 package hashicorp.consul.foo.v1alpha1;
 
 message Bar {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  
   string baz = 1;
   hashicorp.consul.resource.ID qux = 2;
 }
@@ -47,19 +50,17 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-var BarV1Alpha1Type = &pbresource.Type{
-	Group:        "foo",
-	GroupVersion: "v1alpha1",
-	Kind:         "bar",
-}
-
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  BarV1Alpha1Type,
+		Type:  pbv1alpha1.BarType, 
+		Scope: resource.ScopePartition,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
+Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
+mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
+and a partition.
 
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
 package's type registration method:
@@ -139,8 +140,9 @@ using a validation hook provided in the type registration:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     BarV1Alpha1Type,
-		Proto:    &pbv1alpha1.Bar{},
+		Type:     pbv1alpha1.BarType,
+		Proto:    &pbv1alpha1.Bar{}, 
+		Scope:    resource.ScopeNamespace,
 		Validate: validateBar,
 	})
 }
@@ -171,8 +173,9 @@ a set of ACL hooks:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  BarV1Alpha1Type,
-		Proto: &pbv1alpha1.Bar{},
+		Type:  pbv1alpha1.BarType,
+		Proto: &pbv1alpha1.Bar{}, 
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -181,19 +184,19 @@ func RegisterTypes(r resource.Registry) {
 	})
 }
 
-func authzReadBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID,  _ *pbresource.Resource) error {
 	return authz.ToAllowAuthorizer().
-		BarReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarReadAllowed(id.Name, authzContext)
 }
 
-func authzWriteBar(authz acl.Authorizer, id *pbresource.ID) error {
+func authzWriteBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authz.ToAllowAuthorizer().
-		BarWriteAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
+		BarWriteAllowed(res.ID().Name, authzContext)
 }
 
-func authzListBar(authz acl.Authorizer, ten *pbresource.Tenancy) error {
+func authzListBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 	return authz.ToAllowAuthorizer().
-		BarListAllowed(resource.AuthorizerContext(ten))
+		BarListAllowed(authzContext)
 }
 ```
 
@@ -209,8 +212,9 @@ by providing a mutation hook:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:   BarV1Alpha1Type,
-		Proto:  &pbv1alpha1.Bar{},
+		Type:   pbv1alpha1.BarType,
+		Proto:  &pbv1alpha1.Bar{}, 
+		Scope:  resource.ScopeNamespace,
 		Mutate: mutateBar,
 	})
 }
@@ -247,7 +251,7 @@ import (
 )
 
 func barController() controller.Controller {
-	return controller.ForType(BarV1Alpha1Type).
+	return controller.ForType(pbv1alpha1.BarType).
 		WithReconciler(barReconciler{})
 }
 
@@ -383,8 +387,8 @@ controller also watches workloads and services.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(BarV1Alpha1Type).
-		WithWatch(BazV1Alpha1Type, controller.MapOwner)
+	return controller.ForType(pbv1alpha1.BarType).
+		WithWatch(pbv1alpha1.BazType, controller.MapOwner)
 		WithReconciler(barReconciler{})
 }
 ```
@@ -409,7 +413,7 @@ the controller's placement.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(BarV1Alpha1Type).
+	return controller.ForType(pbv1alpha1.BarType).
 		WithPlacement(controller.PlacementEachServer)
 		WithReconciler(barReconciler{})
 }

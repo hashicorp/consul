@@ -12,11 +12,11 @@ import (
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
-
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 func (pr *ProxyResources) doesEnvoyClusterAlreadyExist(name string) bool {
@@ -125,7 +125,7 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 			cluster.AltStatName = name
 		}
 		cluster.ConnectTimeout = dynamic.Config.ConnectTimeout
-		if !dynamic.Config.DisablePanicThreshold {
+		if dynamic.Config.DisablePanicThreshold {
 			cluster.CommonLbConfig = &envoy_cluster_v3.Cluster_CommonLbConfig{
 				HealthyPanicThreshold: &envoy_type_v3.Percent{
 					Value: 0, // disable panic threshold
@@ -154,16 +154,23 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 }
 
 func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
-	endpointList, ok := pr.proxyState.Endpoints[name]
-	if !ok || endpointList == nil {
-		return nil, fmt.Errorf("static cluster %q is missing endpoints", name)
-	}
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
-		LoadAssignment:       makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints),
 	}
-	err := addHttpProtocolOptions(protocol, cluster)
+
+	// todo (ishustava/v2): we need to be able to handle the case when empty endpoints are allowed on a cluster.
+	endpointList, ok := pr.proxyState.Endpoints[name]
+	if ok {
+		cluster.LoadAssignment = makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints)
+	}
+
+	var err error
+	if name == xdscommon.LocalAppClusterName {
+		err = addLocalAppHttpProtocolOptions(protocol, cluster)
+	} else {
+		err = addHttpProtocolOptions(protocol, cluster)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -174,9 +181,11 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 	}
 	return cluster, nil
 }
+
 func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol string, dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	return nil, nil
 }
+
 func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol string, passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
@@ -201,10 +210,9 @@ func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol stri
 func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string, fg *pbproxystate.FailoverGroup) ([]*envoy_cluster_v3.Cluster, error) {
 	var clusters []*envoy_cluster_v3.Cluster
 	if fg != nil {
-
 		var egNames []string
 		for _, eg := range fg.EndpointGroups {
-			cluster, err := pr.makeEnvoyCluster(name, protocol, eg)
+			cluster, err := pr.makeEnvoyCluster(eg.Name, protocol, eg)
 			if err != nil {
 				return nil, err
 			}
@@ -221,7 +229,6 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 
 		c := &envoy_cluster_v3.Cluster{
 			Name:           name,
-			AltStatName:    name,
 			ConnectTimeout: fg.Config.ConnectTimeout,
 			LbPolicy:       envoy_cluster_v3.Cluster_CLUSTER_PROVIDED,
 			ClusterDiscoveryType: &envoy_cluster_v3.Cluster_ClusterType{
@@ -231,6 +238,9 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 				},
 			},
 		}
+		if fg.Config.UseAltStatName {
+			c.AltStatName = name
+		}
 		err = addHttpProtocolOptions(protocol, c)
 		if err != nil {
 			return nil, err
@@ -238,6 +248,30 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 		clusters = append(clusters, c)
 	}
 	return clusters, nil
+}
+
+func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == "http2" || protocol == "grpc") {
+		// do not error.  returning nil means it won't get set.
+		return nil
+	}
+	cfg := &envoy_upstreams_v3.HttpProtocolOptions{
+		UpstreamProtocolOptions: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamProtocolConfig{
+			UseDownstreamProtocolConfig: &envoy_upstreams_v3.HttpProtocolOptions_UseDownstreamHttpConfig{
+				HttpProtocolOptions:  &envoy_core_v3.Http1ProtocolOptions{},
+				Http2ProtocolOptions: &envoy_core_v3.Http2ProtocolOptions{},
+			},
+		},
+	}
+	any, err := anypb.New(cfg)
+	if err != nil {
+		return err
+	}
+	c.TypedExtensionProtocolOptions = map[string]*anypb.Any{
+		"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": any,
+	}
+
+	return nil
 }
 
 func addHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
@@ -343,6 +377,8 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 }
 
 // TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
-func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(name string) error {
+// Currently, we do not traverse the listener -> endpoint paths and instead just generate each resource by iterating
+// through its top level map. In the future we want to traverse these paths to ensure each listener has a cluster, etc.
+func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
 	return nil
 }

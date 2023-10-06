@@ -24,6 +24,7 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -31,14 +32,14 @@ concurrency:
 
 jobs:
   conditional-skip:
-    runs-on: ubuntu-latest 
+    runs-on: ubuntu-latest
     name: Get files changed and conditionally skip CI
     outputs:
-      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
       - name: Get changed files
         id: read-files
         run: ./.github/scripts/filter_changed_files_go_test.sh
@@ -47,7 +48,7 @@ jobs:
     needs: [conditional-skip]
     runs-on: ubuntu-latest
     name: Setup
-    if: needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
       compute-medium: ${{ steps.runners.outputs.compute-medium }}
@@ -63,7 +64,7 @@ jobs:
     needs: [setup]
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
     secrets:
@@ -79,7 +80,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        nomad-version: ['v1.3.3', 'v1.2.10', 'v1.1.16']
+        nomad-version: ['v1.6.1', 'v1.5.8', 'v1.4.12']
     steps:
       - name: Checkout Nomad
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -261,7 +262,7 @@ jobs:
           # multiplied by 8 based on these values:
           # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
           # xds-target: ["server", "client"]
-          TOTAL_RUNNERS: 4 
+          TOTAL_RUNNERS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -282,7 +283,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
   
   envoy-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - generate-envoy-job-matrices
@@ -374,7 +375,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   compatibility-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }} # NOTE: do not change without tuning the -p and -parallel flags in go test.
     needs:
       - setup
       - dev-build
@@ -383,6 +384,7 @@ jobs:
       contents: read
     env:
       ENVOY_VERSION: "1.25.4"
+      CONSUL_DATAPLANE_IMAGE: "docker.io/hashicorppreview/consul-dataplane:1.3-dev"
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
@@ -414,6 +416,8 @@ jobs:
       - name: Retry Build consul-envoy:target-version image
         if: steps.buildConsulEnvoyImage.outcome == 'failure'
         run: docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=${{ env.CONSUL_LATEST_IMAGE_NAME }}:local --build-arg ENVOY_VERSION=${{ env.ENVOY_VERSION }} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+      - name: Build consul-dataplane:local image
+        run: docker build -t consul-dataplane:local --build-arg CONSUL_DATAPLANE_IMAGE=${{ env.CONSUL_DATAPLANE_IMAGE }} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
       - name: Configure GH workaround for ipv6 loopback
         if: ${{ !endsWith(github.repository, '-enterprise') }}
         run: |
@@ -427,7 +431,7 @@ jobs:
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
-              --format=standard-verbose \
+              --format=pkgname-and-test-fails \
               --debug \
               --rerun-fails=3 \
               -- \
@@ -483,100 +487,9 @@ jobs:
           DD_ENV: ci
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
-  peering_commontopo-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
-    needs:
-      - setup
-      - dev-build
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    strategy:
-      fail-fast: false
-    env:
-      ENVOY_VERSION: "1.24.6"
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
-      - name: Setup Git
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          go-version-file: 'go.mod'
-      - run: go env
-
-      # Get go binary from workspace
-      - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: .
-      - name: restore mode+x
-        run: chmod +x consul
-      - name: Build consul:local image
-        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
-      - name: Peering commonTopo Integration Tests
-        run: |
-          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          cd ./test-integ/peering_commontopo
-          docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
-          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --raw-command \
-            --format=short-verbose \
-            --debug \
-            --packages="./..." \
-            -- \
-            go test \
-            -tags "${{ env.GOTAGS }}" \
-            -timeout=30m \
-            -json . \
-            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --target-version local \
-            --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --latest-version latest
-          ls -lrt
-        env:
-          # this is needed because of incompatibility between RYUK container and GHA
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          # tput complains if this isn't set to something.
-          TERM: ansi
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: vault-auth
-        run: vault-auth
-
-      # NOTE: ENT specific step as we store secrets in Vault.
-      - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
-        id: secrets
-        uses: hashicorp/vault-action@v2.5.0
-        with:
-          url: ${{ steps.vault-auth.outputs.addr }}
-          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
-          token: ${{ steps.vault-auth.outputs.token }}
-          secrets: |
-              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
-
-      - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
-        run: |
-          curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
-          chmod +x /usr/local/bin/datadog-ci
-
-      - name: upload coverage
-        # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        env:
-          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
-          DD_ENV: ci
-        run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   test-integrations-success:
-    needs: 
+    needs:
     - conditional-skip
     - setup
     - dev-build
@@ -585,9 +498,8 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
     - compatibility-integration-test
-    - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |

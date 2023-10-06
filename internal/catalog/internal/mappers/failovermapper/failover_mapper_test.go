@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
@@ -23,37 +23,43 @@ func TestMapper_Tracking(t *testing.T) {
 	types.Register(registry)
 
 	// Create an advance pointer to some services.
-	randoSvc := rtest.Resource(types.ServiceType, "rando").
+	randoSvc := rtest.Resource(pbcatalog.ServiceType, "rando").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, randoSvc)
 
-	apiSvc := rtest.Resource(types.ServiceType, "api").
+	apiSvc := rtest.Resource(pbcatalog.ServiceType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, apiSvc)
 
-	fooSvc := rtest.Resource(types.ServiceType, "foo").
+	fooSvc := rtest.Resource(pbcatalog.ServiceType, "foo").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, fooSvc)
 
-	barSvc := rtest.Resource(types.ServiceType, "bar").
+	barSvc := rtest.Resource(pbcatalog.ServiceType, "bar").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, barSvc)
 
-	wwwSvc := rtest.Resource(types.ServiceType, "www").
+	wwwSvc := rtest.Resource(pbcatalog.ServiceType, "www").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.Service{}).
 		Build()
 	rtest.ValidateAndNormalize(t, registry, wwwSvc)
 
-	fail1 := rtest.Resource(types.FailoverPolicyType, "api").
+	fail1 := rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "foo")},
-					{Ref: newRef(types.ServiceType, "bar")},
+					{Ref: newRef(pbcatalog.ServiceType, "foo")},
+					{Ref: newRef(pbcatalog.ServiceType, "bar")},
 				},
 			},
 		}).
@@ -61,12 +67,13 @@ func TestMapper_Tracking(t *testing.T) {
 	rtest.ValidateAndNormalize(t, registry, fail1)
 	failDec1 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail1)
 
-	fail2 := rtest.Resource(types.FailoverPolicyType, "www").
+	fail2 := rtest.Resource(pbcatalog.FailoverPolicyType, "www").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "www"), Datacenter: "dc2"},
-					{Ref: newRef(types.ServiceType, "foo")},
+					{Ref: newRef(pbcatalog.ServiceType, "www"), Datacenter: "dc2"},
+					{Ref: newRef(pbcatalog.ServiceType, "foo")},
 				},
 			},
 		}).
@@ -74,11 +81,12 @@ func TestMapper_Tracking(t *testing.T) {
 	rtest.ValidateAndNormalize(t, registry, fail2)
 	failDec2 := rtest.MustDecode[*pbcatalog.FailoverPolicy](t, fail2)
 
-	fail1_updated := rtest.Resource(types.FailoverPolicyType, "api").
+	fail1_updated := rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(types.ServiceType, "bar")},
+					{Ref: newRef(pbcatalog.ServiceType, "bar")},
 				},
 			},
 		}).
@@ -178,13 +186,7 @@ func requireServicesTracked(t *testing.T, mapper *Mapper, svc *pbresource.Resour
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
-}
-
-func defaultTenancy() *pbresource.Tenancy {
-	return &pbresource.Tenancy{
-		Partition: "default",
-		Namespace: "default",
-		PeerName:  "local",
-	}
+	return rtest.Resource(typ, name).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Reference("")
 }

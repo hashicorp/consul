@@ -36,11 +36,6 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					GroupVersion: rtype.GroupVersion,
 					Kind:         rtype.Kind,
 				},
-				Tenancy: &pbresource.Tenancy{
-					Partition: resource.DefaultPartitionName,
-					Namespace: resource.DefaultNamespaceName,
-					PeerName:  "local",
-				},
 				Name: name,
 			},
 		},
@@ -132,6 +127,10 @@ func (b *resourceBuilder) Reference(section string) *pbresource.Reference {
 	return resource.Reference(b.ID(), section)
 }
 
+func (b *resourceBuilder) ReferenceNoSection() *pbresource.Reference {
+	return resource.Reference(b.ID(), "")
+}
+
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
@@ -163,6 +162,9 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 			r.Stop(err)
 		}
 	})
+
+	require.NoError(t, err)
+	require.NotNil(t, rsp)
 
 	if !b.dontCleanup {
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)

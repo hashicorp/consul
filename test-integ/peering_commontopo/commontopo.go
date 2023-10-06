@@ -52,17 +52,21 @@ type commonTopo struct {
 	services map[string]map[topology.ServiceID]struct{}
 }
 
+const agentlessDC = "dc2"
+
 func NewCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
 
 	ct := commonTopo{}
 
+	const nServers = 3
+
 	// Make 3-server clusters in dc1 and dc2
 	// For simplicity, the Name and Datacenter of the clusters are the same.
 	// dc1 and dc2 should be symmetric.
-	dc1 := clusterWithJustServers("dc1", 3)
+	dc1 := clusterWithJustServers("dc1", nServers)
 	ct.DC1 = dc1
-	dc2 := clusterWithJustServers("dc2", 3)
+	dc2 := clusterWithJustServers("dc2", nServers)
 	ct.DC2 = dc2
 	// dc3 is a failover cluster for both dc1 and dc2
 	dc3 := clusterWithJustServers("dc3", 1)
@@ -84,11 +88,9 @@ func NewCommonTopo(t *testing.T) *commonTopo {
 	peerings = append(peerings, addPeerings(dc1, dc3)...)
 	peerings = append(peerings, addPeerings(dc2, dc3)...)
 
-	addMeshGateways(dc1, topology.NodeKindClient)
-	addMeshGateways(dc2, topology.NodeKindClient)
-	addMeshGateways(dc3, topology.NodeKindClient)
-	// TODO: consul-topology doesn't support this yet
-	// addMeshGateways(dc2, topology.NodeKindDataplane)
+	addMeshGateways(dc1)
+	addMeshGateways(dc2)
+	addMeshGateways(dc3)
 
 	setupGlobals(dc1)
 	setupGlobals(dc2)
@@ -131,7 +133,7 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 	)
 
 	// check that exports line up as expected
-	for _, clu := range ct.Sprawl.Config().Clusters {
+	for _, clu := range ct.Sprawl.Topology().Clusters {
 		// expected exports per peer
 		type key struct {
 			peer      string
@@ -191,9 +193,6 @@ func LocalPeerName(clu *topology.Cluster, partition string) string {
 type serviceExt struct {
 	*topology.Service
 
-	// default NodeKindClient
-	NodeKind topology.NodeKind
-
 	Exports    []api.ServiceConsumer
 	Config     *api.ServiceConfigEntry
 	Intentions *api.ServiceIntentionsConfigEntry
@@ -227,8 +226,15 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		return n
 	}
 
+	nodeKind := topology.NodeKindClient
+	// TODO: bug in deployer somewhere; it should guard against a KindDataplane node with
+	// DisableServiceMesh services on it; dataplane is only for service-mesh
+	if !svc.DisableServiceMesh && clu.Datacenter == agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
+
 	node := &topology.Node{
-		Kind:      topology.NodeKindClient,
+		Kind:      nodeKind,
 		Name:      serviceHostnameString(clu.Datacenter, svc.ID),
 		Partition: svc.ID.Partition,
 		Addresses: []*topology.Address{
@@ -238,9 +244,6 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 			svc.Service,
 		},
 		Cluster: clusterName,
-	}
-	if svc.NodeKind != "" {
-		node.Kind = svc.NodeKind
 	}
 	clu.Nodes = append(clu.Nodes, node)
 
@@ -265,7 +268,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 }
 
 func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *api.Client {
-	cl, err := ct.Sprawl.APIClientForNode(clu.Name, clu.FirstClient().ID(), "")
+	cl, err := ct.Sprawl.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
 	return cl
 }
@@ -366,16 +369,25 @@ func setupGlobals(clu *topology.Cluster) {
 					Mode: api.MeshGatewayModeLocal,
 				},
 			},
+			&api.MeshConfigEntry{
+				Peering: &api.PeeringMeshConfig{
+					PeerThroughMeshGateways: true,
+				},
+			},
 		)
 	}
 }
 
 // addMeshGateways adds a mesh gateway for every partition in the cluster.
 // Assumes that the LAN network name is equal to datacenter name.
-func addMeshGateways(c *topology.Cluster, kind topology.NodeKind) {
+func addMeshGateways(c *topology.Cluster) {
+	nodeKind := topology.NodeKindClient
+	if c.Datacenter == agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
 	for _, p := range c.Partitions {
 		c.Nodes = topology.MergeSlices(c.Nodes, newTopologyMeshGatewaySet(
-			kind,
+			nodeKind,
 			p.Name,
 			fmt.Sprintf("%s-%s-mgw", c.Name, p.Name),
 			1,
@@ -393,7 +405,7 @@ func clusterWithJustServers(name string, numServers int) *topology.Cluster {
 		Nodes: newTopologyServerSet(
 			name+"-server",
 			numServers,
-			[]string{name, "wan"},
+			[]string{name},
 			nil,
 		),
 	}

@@ -11,14 +11,15 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func createServiceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: ServiceType,
+			Type: pbcatalog.ServiceType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
@@ -32,6 +33,38 @@ func createServiceResource(t *testing.T, data protoreflect.ProtoMessage) *pbreso
 	res.Data, err = anypb.New(data)
 	require.NoError(t, err)
 	return res
+}
+
+func TestMutateServicePorts(t *testing.T) {
+	data := &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{
+			Names: []string{"foo", "bar"},
+		},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: "tcp",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_UNSPECIFIED,
+			},
+			{
+				TargetPort: "http",
+				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+			},
+		},
+		VirtualIps: []string{"198.18.0.1"},
+	}
+
+	res := createServiceResource(t, data)
+
+	err := MutateService(res)
+	require.NoError(t, err)
+
+	got := resourcetest.MustDecode[*pbcatalog.Service](t, res)
+
+	require.Len(t, got.Data.Ports, 2)
+	require.Equal(t, pbcatalog.Protocol_PROTOCOL_TCP, got.Data.Ports[0].Protocol)
+
+	// Check that specified protocol is not mutated.
+	require.Equal(t, data.Ports[1].Protocol, got.Data.Ports[1].Protocol)
 }
 
 func TestValidateService_Ok(t *testing.T) {

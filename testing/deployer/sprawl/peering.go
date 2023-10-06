@@ -5,7 +5,9 @@ package sprawl
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -71,7 +73,7 @@ func (s *Sprawl) initPeerings() error {
 		}
 
 		peeringToken := resp.PeeringToken
-		logger.Info("generated peering token", "peering", peering.String())
+		logger.Debug("generated peering token", "peering", peering.String())
 
 		req2 := api.PeeringEstablishRequest{
 			PeerName:     peering.Dialing.PeerName,
@@ -81,7 +83,7 @@ func (s *Sprawl) initPeerings() error {
 			req2.Partition = peering.Dialing.Partition
 		}
 
-		logger.Info("establishing peering with token", "peering", peering.String())
+		logger.Info("registering peering with token", "peering", peering.String())
 	ESTABLISH:
 		_, _, err = dialingClient.Peerings().Establish(context.Background(), req2, nil)
 		if err != nil {
@@ -89,10 +91,17 @@ func (s *Sprawl) initPeerings() error {
 				time.Sleep(50 * time.Millisecond)
 				goto ESTABLISH
 			}
-			return fmt.Errorf("error establishing peering with token for %q: %w", peering.String(), err)
+			// Establish and friends return an api.StatusError value, not pointer
+			// not sure if this is weird
+			var asStatusError api.StatusError
+			if errors.As(err, &asStatusError) && asStatusError.Code == http.StatusGatewayTimeout {
+				time.Sleep(50 * time.Millisecond)
+				goto ESTABLISH
+			}
+			return fmt.Errorf("error establishing peering with token for %q: %#v", peering.String(), err)
 		}
 
-		logger.Info("peering established", "peering", peering.String())
+		logger.Info("peering registered", "peering", peering.String())
 	}
 
 	return nil
@@ -102,6 +111,8 @@ func (s *Sprawl) waitForPeeringEstablishment() error {
 	var (
 		logger = s.logger.Named("peering")
 	)
+	logger.Info("awaiting peering establishment")
+	startTimeTotal := time.Now()
 
 	for _, peering := range s.topology.Peerings {
 		dialingCluster, ok := s.topology.Clusters[peering.Dialing.Name]
@@ -130,6 +141,7 @@ func (s *Sprawl) waitForPeeringEstablishment() error {
 		s.checkPeeringDirection(dialingLogger, dialingClient, peering.Dialing, dialingCluster.Enterprise)
 		s.checkPeeringDirection(acceptingLogger, acceptingClient, peering.Accepting, acceptingCluster.Enterprise)
 	}
+	logger.Info("peering established", "dur", time.Since(startTimeTotal).Round(time.Second))
 	return nil
 }
 
@@ -137,8 +149,11 @@ func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	startTime := time.Now()
+
 	for {
 		opts := &api.QueryOptions{}
+		logger2 := logger.With("dur", time.Since(startTime).Round(time.Second))
 		if enterprise {
 			opts.Partition = pc.Partition
 		}
@@ -148,21 +163,21 @@ func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, 
 			continue
 		}
 		if err != nil {
-			logger.Info("error looking up peering", "error", err)
+			logger2.Debug("error looking up peering", "error", err)
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 		if res == nil {
-			logger.Info("peering not found")
+			logger2.Debug("peering not found")
 			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 
 		if res.State == api.PeeringStateActive {
-			logger.Info("peering is active")
-			return
+			break
 		}
-		logger.Info("peering not active yet", "state", res.State)
+		logger2.Debug("peering not active yet", "state", res.State)
 		time.Sleep(500 * time.Millisecond)
 	}
+	logger.Debug("peering is active", "dur", time.Since(startTime).Round(time.Second))
 }

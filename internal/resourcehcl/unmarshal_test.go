@@ -23,6 +23,47 @@ import (
 
 var update = flag.Bool("update", false, "update golden files")
 
+func FuzzUnmarshall(f *testing.F) {
+	entries, err := os.ReadDir("./testdata")
+	require.NoError(f, err)
+
+	read := func(t *testing.F, path string) ([]byte, bool) {
+		t.Helper()
+
+		bytes, err := os.ReadFile(fmt.Sprintf("./testdata/%s", path))
+		switch {
+		case err == nil:
+			return bytes, true
+		case os.IsNotExist(err):
+			return nil, false
+		}
+
+		t.Fatalf("failed to read file %s %v", path, err)
+		return nil, false
+	}
+	for _, entry := range entries {
+		ext := path.Ext(entry.Name())
+
+		if ext != ".hcl" {
+			continue
+		}
+		input, _ := read(f, entry.Name())
+		f.Add(input)
+	}
+	registry := resource.NewRegistry()
+	demo.RegisterTypes(registry)
+	mesh.RegisterTypes(registry)
+
+	f.Fuzz(func(t *testing.T, input []byte) {
+		got, err := resourcehcl.Unmarshal(input, registry)
+		if err != nil {
+			return
+		}
+		require.NotNil(t, got)
+	})
+
+}
+
 func TestUnmarshal(t *testing.T) {
 	entries, err := os.ReadDir("./testdata")
 	require.NoError(t, err)

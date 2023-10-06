@@ -23,9 +23,10 @@ COPY --from=0 /bin/consul /bin/consul
 
 // FROM hashicorp/consul-dataplane:latest
 // COPY --from=busybox:uclibc /bin/sh /bin/sh
+// TODO: busybox:latest doesn't work, see https://hashicorp.slack.com/archives/C03EUN3QF1C/p1691784078972959
 const dockerfileDataplane = `
 ARG DATAPLANE_IMAGE
-FROM busybox:latest
+FROM busybox:1.34
 FROM ${DATAPLANE_IMAGE}
 COPY --from=0 /bin/busybox /bin/busybox
 USER 0:0
@@ -39,7 +40,7 @@ func DockerImages(
 	run *runner.Runner,
 	t *topology.Topology,
 ) error {
-	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Info})
+	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
 
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {

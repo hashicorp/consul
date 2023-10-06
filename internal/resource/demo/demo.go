@@ -44,6 +44,13 @@ var (
 		Kind:         "Album",
 	}
 
+	// TypeV1Concept represents an abstract concept that can be associated with any other resource.
+	TypeV1Concept = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v1",
+		Kind:         "Concept",
+	}
+
 	// TypeV2Artist represents a musician or group of musicians.
 	TypeV2Artist = &pbresource.Type{
 		Group:        "demo",
@@ -65,6 +72,8 @@ const (
 	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
 	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
+	LabelV1ReadPolicy   = `key_prefix "resource/demo.v1.Label/" { policy = "read" }`
+	LabelV1WritePolicy  = `key_prefix "resource/demo.v1.Label/" { policy = "write" }`
 )
 
 // RegisterTypes registers the demo types. Should only be called in tests and
@@ -73,7 +82,12 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID) error {
+	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
+		if resource.EqualType(TypeV1RecordLabel, id.Type) {
+			if res == nil {
+				return resource.ErrNeedData
+			}
+		}
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
 		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
 	}
@@ -128,40 +142,52 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TypeV1RecordLabel,
 		Proto: &pbdemov1.RecordLabel{},
+		Scope: resource.ScopePartition,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1RecordLabel),
 		},
-		Scope: resource.ScopePartition,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1Artist),
 		},
 		Validate: validateV1ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV1Album),
 		},
+	})
+
+	r.Register(resource.Registration{
+		Type:  TypeV1Concept,
+		Proto: &pbdemov1.Concept{},
 		Scope: resource.ScopeNamespace,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Concept),
+		},
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -169,18 +195,17 @@ func RegisterTypes(r resource.Registry) {
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
-		Scope:    resource.ScopeNamespace,
 	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
+		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
-		Scope: resource.ScopeNamespace,
 	})
 }
 
@@ -198,6 +223,21 @@ func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
 			Name:    name,
 		},
 		Data: data,
+		Metadata: map[string]string{
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}, nil
+}
+
+// GenerateV1Concept generates a named concept resource.
+func GenerateV1Concept(name string) (*pbresource.Resource, error) {
+	return &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    TypeV1Concept,
+			Tenancy: resource.DefaultPartitionedTenancy(),
+			Name:    name,
+		},
+		Data: nil,
 		Metadata: map[string]string{
 			"generated_at": time.Now().Format(time.RFC3339),
 		},

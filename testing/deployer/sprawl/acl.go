@@ -56,7 +56,7 @@ func (s *Sprawl) bootstrapACLs(cluster string) error {
 			return fmt.Errorf("management token no longer works: %w", err)
 		}
 
-		logger.Info("current management token", "token", mgmtToken)
+		logger.Debug("current management token", "token", mgmtToken)
 		return nil
 	}
 
@@ -65,7 +65,7 @@ TRYAGAIN2:
 	tok, _, err := ac.Bootstrap()
 	if err != nil {
 		if isACLNotBootstrapped(err) {
-			logger.Warn("system is rebooting", "error", err)
+			logger.Debug("system is rebooting", "error", err)
 			time.Sleep(250 * time.Millisecond)
 			goto TRYAGAIN2
 		}
@@ -74,7 +74,7 @@ TRYAGAIN2:
 	mgmtToken = tok.SecretID
 	s.secrets.SaveGeneric(cluster, secrets.BootstrapToken, mgmtToken)
 
-	logger.Info("current management token", "token", mgmtToken)
+	logger.Debug("current management token", "token", mgmtToken)
 
 	return nil
 
@@ -120,7 +120,7 @@ func (s *Sprawl) createAnonymousToken(cluster *topology.Cluster) error {
 		return err
 	}
 
-	logger.Info("created anonymous token",
+	logger.Debug("created anonymous token",
 		"token", token.SecretID,
 	)
 
@@ -138,7 +138,7 @@ func (s *Sprawl) createAnonymousPolicy(cluster *topology.Cluster) error {
 		return err
 	}
 
-	logger.Info("created anonymous policy",
+	logger.Debug("created anonymous policy",
 		"policy-name", op.Name,
 		"policy-id", op.ID,
 	)
@@ -164,7 +164,7 @@ func (s *Sprawl) createAgentTokens(cluster *topology.Cluster) error {
 				return err
 			}
 
-			logger.Info("created agent token",
+			logger.Debug("created agent token",
 				"node", node.ID(),
 				"token", token.SecretID,
 			)
@@ -193,7 +193,7 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 		return err
 	}
 
-	logger.Info("created cross-ns-catalog-read policy",
+	logger.Debug("created cross-ns-catalog-read policy",
 		"policy-name", op.Name,
 		"policy-id", op.ID,
 		"partition", partition,
@@ -244,7 +244,7 @@ func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
 				return fmt.Errorf("could not create token: %w", err)
 			}
 
-			logger.Info("created service token",
+			logger.Debug("created service token",
 				"service", svc.ID.Name,
 				"namespace", svc.ID.Namespace,
 				"partition", svc.ID.Partition,

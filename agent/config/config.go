@@ -423,6 +423,7 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
+	TCPUseTLS                      *bool               `mapstructure:"tcp_use_tls"`
 	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
@@ -777,6 +778,7 @@ type Tokens struct {
 	Default                *string `mapstructure:"default"`
 	Agent                  *string `mapstructure:"agent"`
 	ConfigFileRegistration *string `mapstructure:"config_file_service_registration"`
+	DNS                    *string `mapstructure:"dns"`
 
 	// Enterprise Only
 	ManagedServiceProvider []ServiceProviderToken `mapstructure:"managed_service_provider"`

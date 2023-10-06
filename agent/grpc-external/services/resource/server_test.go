@@ -86,11 +86,11 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:          testutil.Logger(t),
-		Registry:        resource.NewRegistry(),
-		Backend:         backend,
-		ACLResolver:     mockACLResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Logger:        testutil.Logger(t),
+		Registry:      resource.NewRegistry(),
+		Backend:       backend,
+		ACLResolver:   mockACLResolver,
+		TenancyBridge: mockTenancyBridge,
 	})
 }
 
@@ -246,6 +246,11 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 			id.Tenancy.Namespace = ""
 			return id
 		},
+		"namespaced resource inherits tokens partition and namespace when tenacy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy = nil
+			return id
+		},
 		"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			return recordLabelId
 		},
@@ -257,6 +262,11 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 		"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			id := clone(recordLabelId)
 			id.Tenancy.Partition = ""
+			return id
+		},
+		"partitioned resource inherits tokens partition when tenancy nil": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy = nil
 			return id
 		},
 	}
