@@ -780,8 +780,8 @@
                     "path": "connect/gateways/api-gateway/configuration/gatewaypolicy"
                   },
                   {
-                    "title": "HTTPRouteAuthFilter",
-                    "path": "connect/gateways/api-gateway/configuration/httprouteauthfilter"
+                    "title": "RouteAuthFilter",
+                    "path": "connect/gateways/api-gateway/configuration/routeauthfilter"
                   },
                   {
                     "title": "Routes",

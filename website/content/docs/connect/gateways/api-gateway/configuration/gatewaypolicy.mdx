@@ -18,7 +18,8 @@ The following list outlines field hierarchy, data types, and requirements in a g
    - [`name`](#metadata-name): string | required 
    - [`namespace`](#metadata-namespace): string  | `default`
 - [`spec`](#spec): map | required
-   - [`targetRef`](#spec-targetref): map | required 
+   - [`targetRef`](#spec-targetref): map | required
+      - [`namespace`](#spec-targetref): string | `default` 
       - [`name`](#spec-targetref): string | required 
       - [`kind`](#spec-targetref): string | required | must be set to `Gateway`
       - [`group`](#spec-targetref): string | required 
@@ -149,6 +150,7 @@ The following table describes the members of the `targetRef` map:
 
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
+| `namespace` | Specifies the namespace that the target reference is a member of. | String | `default` |
 | `name` | Specifies the name of the API gateway that the policy attaches to. | String | None |
 | `kind` | Specifies the type of resource that the policy attaches to. Must be set to `Gateway`. | String | None |
 | `group` | Specifies the resource group. Must be set to `gateway.networking.kuberenetes.io`. | String | None |
@@ -165,7 +167,7 @@ Map that contains configurations to apply to listeners when the policy is attach
 
 ### `spec.override.jwt`
 
-Map that contains JWT verification configurations to apply to listeners when the policy is attached to the gateway. The override settings have precedence over the [`default` configurations](#listeners-default) as well as any route-specific JWT configurations defined in [`HTTPRouteAuthFilter` configurations](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter).
+Map that contains JWT verification configurations to apply to listeners when the policy is attached to the gateway. The override settings have precedence over the [`default` configurations](#listeners-default) as well as any route-specific JWT configurations defined in [`RouteAuthFilter` configurations](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter).
 
 #### Values
 
@@ -174,7 +176,7 @@ Map that contains JWT verification configurations to apply to listeners when the
 
 ### `spec.override.jwt.providers`
 
-Specifies a list of JWT provider configurations to apply to listeners when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. The override settings have precedence over defaults as well as any listener specific configuration. 
+Specifies a list of JWT provider configurations to apply to listeners when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. The override settings have precedence over defaults as well as any listener specific configuration. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for additional information.
 
 #### Values
 
@@ -199,7 +201,7 @@ Map that contains default configurations to apply to listeners when the policy i
 
 ### `spec.default.jwt`
 
-Specifies default JWT configurations to apply to listeners when the policy is attached to the gateway. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT` block](#spec-override-jwt) or in an [`HTTPRouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter) attached to an  HTTP route. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
+Specifies default JWT configurations to apply to listeners when the policy is attached to the gateway. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT` block](#spec-override-jwt) or in an [`RouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter) attached to an  HTTP route. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
@@ -208,7 +210,7 @@ Specifies default JWT configurations to apply to listeners when the policy is at
 
 ### `spec.default.jwt.providers`
 
-Specifies default JWT provider configurations to apply to the listener when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT.providers` block](#spec-override-jwt) or in an [`HTTPRouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/httprouteauthfilter) attached to an  HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
+Specifies default JWT provider configurations to apply to the listener when the policy is attached to the gateway. A provider configuration contains the name of the provider and claims. Specify configurations that have precedence over the defaults in either the [`spec.override.JWT.providers` block](#spec-override-jwt) or in an [`RouteAuthFilter`](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter) attached to an  HTTP route configuration. Refer to [Use JWTs to verify requests to API gateways](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for order of precedence and other details about using JWT verification in API gateways.
 
 #### Values
 
