@@ -94,7 +94,7 @@ Map that contains the details about the HTTP route auth filter. The `apiVersion`
 
 ### `spec.jwt`
 
-Map that contains JWT verification configurations to apply to listeners when the filter is attached to the route. Route-specific settings have precedence over the `default` configurations, but not `override` JWT configurations, defined in the [`GatewayPolicy`](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy) resource.
+Map that contains JWT verification configurations to apply to listeners when the filter is attached to the route. These route-specific settings have precedence over the `default` configurations, but not `override` JWT configurations, that are defined in the [`GatewayPolicy`](/consul/docs/connect/gateways/api-gateway/configuration/gatewaypolicy) resource.
 
 #### Values
 

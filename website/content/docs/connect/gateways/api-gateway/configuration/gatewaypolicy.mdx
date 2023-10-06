@@ -6,7 +6,7 @@ description: Learn about the configuration options for the GatewayPolicy configu
 
 # GatewayPolicy
 
-This topic provides reference information for the API gateway policy resource, which defines API gateway policies for Consul service mesh on Kubernetes-orchestrated networks.
+This topic provides reference information for the API gateway policy resource. These resources define policies for listeners on API gateways deployed to Kubernetes-orchestrated networks.
 
 ## Configuration model
 
@@ -21,7 +21,7 @@ The following list outlines field hierarchy, data types, and requirements in a g
    - [`targetRef`](#spec-targetref): map | required 
       - [`name`](#spec-targetref): string | required 
       - [`kind`](#spec-targetref): string | required | must be set to `Gateway`
-      - [`group`](#spec-targetref): string | required | must be set to `gateway.networking.kuberenetes.io`
+      - [`group`](#spec-targetref): string | required 
       - [`sectionName`](#spec-targetref): string 
    - [`override`](#spec-override): map | required 
       - [`jwt`](#spec-override-jwt): map | required 
@@ -53,7 +53,7 @@ spec:
     name: gateway
     kind: Gateway
     group: gateway.networking.kuberenetes.io
-    sectionName: <name of a specific section the policy applies>
+    sectionName: <name of a specific listener the policy applies>
   override:
     jwt:
       providers:

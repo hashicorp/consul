@@ -583,7 +583,7 @@ The following table describes the settings you can configure in the `TimeoutFilt
 
 ### `Rules[].Filters{}.JWT`
 
-Specifies a block of JWT verification configurations to apply to the route. The route-specific settings have precedence over default configurations defined for listeners the route attaches to on the API gateway.  Refer to [`Listeners[].default{}.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) for additional information.
+Specifies a block of JWT verification configurations to apply to the route. These route-specific settings have precedence over default configurations defined for listeners the route attaches to on the API gateway.  Refer to [`Listeners[].default{}.JWT`](/consul/docs/connect/config-entries/api-gateway#listeners-default-jwt) for additional information.
 
 #### Values
 
@@ -913,7 +913,7 @@ Specifies a list of conditions for Consul to retry requests based on the respons
   - `resource-exhausted`
   - `unavailable`
 
-### ``Rules[].Services[].Filters{}.RetryFilters{}.RetryOnStatusCodes`
+### `Rules[].Services[].Filters{}.RetryFilters{}.RetryOnStatusCodes`
 
 Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request.
 
@@ -1022,7 +1022,7 @@ rules = [
       },
     "services": [
       {
-        "name": "bender"
+        "name": "okta-verified-service"
       }
     ]
   }]

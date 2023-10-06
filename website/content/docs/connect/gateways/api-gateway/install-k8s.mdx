@@ -26,14 +26,14 @@ The Consul API gateway ships with Consul and is automatically installed when you
 
   The Consul Helm chart deploys the API gateway using the configuration specified in the `values.yaml` file. Refer to [Helm Chart Configuration - `connectInject.apiGateway`](/consul/docs/k8s/helm#apigateway) for information about the Helm chart configuration options.
 
-1. If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `openShift.enabled` parameter and set it to `true`:
+1. If you are installing Consul on an OpenShift Kubernetes cluster, you must include the `global.openShift.enabled` parameter and set it to `true`:
 
    <CodeBlockConfig filename="values.yaml">
 
    ```yaml
-    openshift:
-      enabled: true
-  ```
+   global:
+     openshift:
+       enabled: true
   </CodeBlockConfig>
 
   Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information.

@@ -252,17 +252,17 @@ The pre-install checks may fail if existing `PersistentVolumeClaims` (PVC) are d
 You can create a values file and specify parameters to overwrite the default Helm chart installation. Add the `-f` and specify your values file to implement your configuration, for example:
 
 ```shell-session
-$ consul-k8s install -f consulValues.yaml
+$ consul-k8s install -f values.yaml
 ``` 
 
 ### Install Consul on OpenShift clusters
 
-Red Hat OpenShift is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, add the following parameters to the `global` field of your [custom installation](#custom-installation) values file:
+[Red Hat OpenShift](https://www.redhat.com/en/technologies/cloud-computing/openshift) is a security-conscious, opinionated wrapper for Kubernetes. To install Consul on OpenShift-managed Kubernetes, set `global.openshift.enabled=true` in your [custom installation](#custom-installation) values file:
 
 ```yaml
+global:
   openshift:
     enabled: true
- ```
  
 Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-global-openshift) for additional information.  
 

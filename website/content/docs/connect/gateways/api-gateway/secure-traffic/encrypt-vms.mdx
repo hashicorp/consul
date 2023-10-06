@@ -31,7 +31,7 @@ with Consul API gateway configurations.
 ## Define TLS certificates
 
 1. Create an [`inline-certificate` configuration entry](/consul/docs/connect/gateways/api-gateway/configuration/inline-certificate) and specify the following fields:
-   - `Kind`: Specifies the type of configuration entry. This must be set to `inline-certificate.
+   - `Kind`: Specifies the type of configuration entry. This must be set to `inline-certificate`.
    - `Name`: Specify the name in the [API gateway listener configuration](/consul/docs/connect/gateways/api-gateway/configuration/api-gateway#listeners) to bind the certificate to that listener.  
    - `Certificate`: Specifies the inline public certificate to use for TLS as plain text.
    - `PrivateKey`: Specifies the inline private key to use for TLS as plain text.
