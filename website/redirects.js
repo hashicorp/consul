@@ -137,4 +137,19 @@ module.exports = [
     destination: '/consul/docs/ecs/reference/compatibility',
     permanent: true,
   },
+  {
+    source: '/consul/docs/connect/failover',
+    destination: '/consul/docs/connect/manage-traffic/failover',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7',
+    destination: '/consul/docs/connect/manage-traffic',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7/:slug',
+    destination: '/consul/docs/connect/manage-traffic/:slug',
+    permanent: true,
+  },
 ]

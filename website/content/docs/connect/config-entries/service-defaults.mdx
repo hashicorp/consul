@@ -717,7 +717,7 @@ Specifies the peer name of the upstream service that the configuration applies t
 ### `UpstreamConfig.Overrides[].Protocol`
 Specifies the protocol to use for requests to the upstream listener.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -729,7 +729,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -805,7 +805,7 @@ Specifies configurations that set default upstream settings. For information abo
 
 Specifies default protocol for upstream listeners.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 - Default: None
 - Data type: String
@@ -814,7 +814,7 @@ We recommend configuring the protocol in the main [`Protocol`](#protocol) field 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 - Default: `5000`
 - Data type: Integer
@@ -1181,7 +1181,7 @@ Specifies the peer name of the upstream service that the configuration applies t
 
 ### `spec.upstreamConfig.overrides[].protocol`
 
-Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1193,7 +1193,7 @@ Specifies the protocol to use for requests to the upstream listener. We recommen
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1262,7 +1262,7 @@ Map of configurations that set default upstream configurations for the service. 
 
 ### `spec.upstreamConfig.defaults.protocol`
 
-Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
@@ -1273,7 +1273,7 @@ Specifies default protocol for upstream listeners. We recommend configuring the 
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
