@@ -30,7 +30,7 @@ In the following example, datacenter `dc1` has two partitions, `partition-1` and
 
 <Tabs>
 
-<Tab heading="HCL" group="HCL">
+<Tab heading="HCL" group="hcl">
 
 ```hcl
 Kind                     = "sameness-group"  
@@ -47,6 +47,93 @@ Members                = [
 
 </Tab>
 
-When a sameness group is configured to be the failover default, sameness group failover takes precedence over all other failover configurations in the cluster. You cannot choose subsets of services to use the sameness group for failover. All services registered in the admin partition must failover to another member of the sameness group. If groups do not have identical services, or if a service is registered to some group members but not all members, this failover strategy may produce errors.
+<Tab heading="JSON" group="json">
+
+```
+{
+    "Kind": "sameness-group", 
+    "Name": "example-sg", 
+    "Partition": "partition-1",
+    "DefaultForFailover": true,
+    "IncludeLocal": true,
+    "Members": [
+        {
+            "Partition": "partition-1"
+        },
+        {
+            "Partition": "partition-2"
+        },
+        {
+            "Peer": "dc2-partition-1"
+        }
+    ]
+}
+```
+
+<Tab heading="YAML" group="yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: SamenessGroup 
+metadata:
+  name: example-sg
+spec:
+  defaultForFailover: true
+  includeLocal: true
+  members:                                   
+    - partition: partition1
+    - partition: partition2
+    - peer: dc2-partition1
+```
+
+</Tab>
+
+When a sameness group is configured as the failover default, sameness group failover takes precedence over all other failover configurations in the cluster. You cannot choose subsets of services to use the sameness group for failover. All services registered in the admin partition must failover to another member of the sameness group. If groups do not have identical services, or if a service is registered to some group members but not all members, this failover strategy may produce errors.
 
 For more information about specifying sameness group members and failover, refer to [sameness group configuration entry reference](/consul/docs/connects/config-entries/sameness-group).
+
+### Failover with a service resolver configuration entry
+
+<Tabs>
+
+<Tab heading="HCL" group="hcl">
+
+```hcl
+Kind          = "service-resolver"
+Name          = "db"
+DefaultSubset = "v1"
+Subsets = {
+  v1 = {
+    Filter = "Service.Meta.version == v1"
+  }
+  v2 = {
+    Filter = "Service.Meta.version == v2"
+  }
+}
+Failover {
+  v1 = {
+    SamenessGroup = "local"
+  }
+  v2 = {
+    Service = "another-service"
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Failover with a prepared query
+
+
+```json
+{
+  "Name": "query-1",
+  "Service": {
+    "Service": "db",
+    "SamenessGroup": "local",
+    "Partition": "ap1",
+    "Namespace": "ns1"
+  }
+}
+```

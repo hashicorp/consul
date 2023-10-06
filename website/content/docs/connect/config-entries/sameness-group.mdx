@@ -146,9 +146,14 @@ Specifies the local admin partition that the sameness group applies to. Refer to
 
 ### `DefaultForFailover`
 
-Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
+Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios.
 
-When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `Members` list. It impacts all services on the partition.
+
+When this field is set to `false`:
+  
+  - You must specify `destination_sameness_group` in order to configure an upstream. Refer to [Upstream configuration reference](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) for more information. 
+  - You can use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
 
 #### Values
 
@@ -257,7 +262,10 @@ Map that contains the details about the `SamenessGroup` configuration entry. The
 
 Determines whether the sameness group should be used to establish connections to services with the same name during failover scenarios. When this field is set to `true`, DNS queries and upstream requests automatically failover to services in the sameness group according to the order of the members in the `spec.members` list. It impacts all services on the partition.
 
-When this field is set to `false`, you can still use a sameness group for failover by configuring the `Failover` block of a [service resolver configuration entry](/consul/docs/connect/config-entries/service-resolver).
+When this field is set to `false`,
+
+  - You must specify the sameness group in a `consul.hashicorp.com/connect-service-upstreams` annotation. Refer to [Kubernetes annotations](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for more information.
+  - You can use a sameness group for failover by configuring the `spec.failover` block of a [service resolver CRD](/consul/docs/connect/config-entries/service-resolver).
 
 #### Values
 
