@@ -62,8 +62,8 @@ func (m *Mapper) MapProxyConfiguration(ctx context.Context, rt controller.Runtim
 	return requests, nil
 }
 
-func (m *Mapper) ProxyConfigurationsForWorkload(name string) []*pbresource.ID {
-	return m.workloadSelectionTracker.GetIDsForName(name)
+func (m *Mapper) ProxyConfigurationsForWorkload(id *pbresource.ID) []*pbresource.ID {
+	return m.workloadSelectionTracker.GetIDsForWorkload(id)
 }
 
 func (m *Mapper) UntrackProxyConfiguration(id *pbresource.ID) {
