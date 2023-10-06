@@ -5,6 +5,7 @@ package proxyconfiguration
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -86,7 +87,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	proxyCfgIDs := r.proxyConfigMapper.IDsForWorkload(req.ID)
 	rt.Logger.Trace("cached proxy cfg IDs", "ids", proxyCfgIDs)
 
-	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs)
+	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching proxy configurations", "error", err)
 		return err
@@ -154,8 +155,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 func (r *reconciler) fetchProxyConfigs(
 	ctx context.Context,
 	client pbresource.ResourceServiceClient,
-	proxyCfgIds []*pbresource.ID) ([]*types.DecodedProxyConfiguration, error) {
-
+	proxyCfgIds []*pbresource.ID,
+	workload *types.DecodedWorkload,
+) ([]*types.DecodedProxyConfiguration, error) {
 	var decoded []*types.DecodedProxyConfiguration
 	for _, id := range proxyCfgIds {
 		res, err := resource.GetDecodedResource[*pbmesh.ProxyConfiguration](ctx, client, id)
@@ -167,6 +169,17 @@ func (r *reconciler) fetchProxyConfigs(
 			r.proxyConfigMapper.UntrackID(id)
 			continue
 		}
+
+		if res.Data.Workloads.Filter != "" {
+			match, err := resource.FilterMatchesResourceMetadata(workload.Resource, res.Data.Workloads.Filter)
+			if err != nil {
+				return nil, fmt.Errorf("error checking selector filters: %w", err)
+			}
+			if !match {
+				continue
+			}
+		}
+
 		decoded = append(decoded, res)
 	}
 

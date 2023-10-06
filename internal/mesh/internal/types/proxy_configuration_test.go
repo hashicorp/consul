@@ -8,10 +8,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/iptables"
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestMutateProxyConfiguration(t *testing.T) {
@@ -79,6 +82,77 @@ func TestMutateProxyConfiguration(t *testing.T) {
 
 			got := resourcetest.MustDecode[*pbmesh.ProxyConfiguration](t, res)
 			prototest.AssertDeepEqual(t, c.expData, got.GetData())
+		})
+	}
+}
+
+func TestValidateProxyConfiguration(t *testing.T) {
+	type testcase struct {
+		data      *pbmesh.ProxyConfiguration
+		expectErr string
+	}
+
+	run := func(t *testing.T, tc testcase) {
+		res := resourcetest.Resource(pbmesh.ProxyConfigurationType, "api").
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithData(t, tc.data).
+			Build()
+
+		// Ensure things are properly mutated and updated in the inputs.
+		err := MutateProxyConfiguration(res)
+		require.NoError(t, err)
+		{
+			mutated := resourcetest.MustDecode[*pbmesh.ProxyConfiguration](t, res)
+			tc.data = mutated.Data
+		}
+
+		err = ValidateProxyConfiguration(res)
+
+		// Verify that validate didn't actually change the object.
+		got := resourcetest.MustDecode[*pbmesh.ProxyConfiguration](t, res)
+		prototest.AssertDeepEqual(t, tc.data, got.Data)
+
+		if tc.expectErr == "" {
+			require.NoError(t, err)
+		} else {
+			testutil.RequireErrorContains(t, err, tc.expectErr)
+		}
+	}
+
+	cases := map[string]testcase{
+		// emptiness
+		"empty": {
+			data:      &pbmesh.ProxyConfiguration{},
+			expectErr: `invalid "workloads" field: cannot be empty`,
+		},
+		"empty selector": {
+			data: &pbmesh.ProxyConfiguration{
+				Workloads: &pbcatalog.WorkloadSelector{},
+			},
+			expectErr: `invalid "workloads" field: cannot be empty`,
+		},
+		"bad selector": {
+			data: &pbmesh.ProxyConfiguration{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names:  []string{"blah"},
+					Filter: "garbage.foo == bar",
+				},
+			},
+			expectErr: `invalid "filter" field: filter "garbage.foo == bar" is invalid: Selector "garbage" is not valid`,
+		},
+		"good selector": {
+			data: &pbmesh.ProxyConfiguration{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names:  []string{"blah"},
+					Filter: "metadata.foo == bar",
+				},
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
 		})
 	}
 }

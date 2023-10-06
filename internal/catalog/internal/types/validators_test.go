@@ -4,6 +4,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -281,11 +282,49 @@ func TestValidateSelector(t *testing.T) {
 				},
 			},
 		},
+		"filter-with-empty-query": {
+			selector: &pbcatalog.WorkloadSelector{
+				Filter: "garbage.value == zzz",
+			},
+			allowEmpty: true,
+			err: resource.ErrInvalidField{
+				Name: "filter",
+				Wrapped: errors.New(
+					`filter cannot be set unless there is a name or prefix selector`,
+				),
+			},
+		},
+		"bad-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "garbage.value == zzz",
+			},
+			allowEmpty: false,
+			err: &multierror.Error{
+				Errors: []error{
+					resource.ErrInvalidField{
+						Name: "filter",
+						Wrapped: fmt.Errorf(
+							`filter "garbage.value == zzz" is invalid: %w`,
+							errors.New(`Selector "garbage" is not valid`),
+						),
+					},
+				},
+			},
+		},
+		"good-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "metadata.zone == west1",
+			},
+			allowEmpty: false,
+			err:        nil,
+		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			err := validateSelector(tcase.selector, tcase.allowEmpty)
+			err := ValidateSelector(tcase.selector, tcase.allowEmpty)
 			if tcase.err == nil {
 				require.NoError(t, err)
 			} else {
