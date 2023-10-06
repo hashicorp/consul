@@ -1009,7 +1009,8 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 			return nil, fmt.Errorf("l7 destination on inbound listener should not be empty")
 		}
 
-		// TODO(proxystate): L7 Intentions and JWT Auth will be added in the future.
+		// TODO(proxystate): L7 traffic permissions and JWT Auth will be added in the future. For now, just add an empty traffic permission.
+		l7Dest.TrafficPermissions = &pbproxystate.TrafficPermissions{}
 		//jwtFilter, jwtFilterErr := makeJWTAuthFilter(cfgSnap.JWTProviders, cfgSnap.ConnectProxy.Intentions)
 		//if jwtFilterErr != nil {
 		//	return nil, jwtFilterErr
@@ -1036,7 +1037,12 @@ func (s *Converter) makeInboundListener(cfgSnap *proxycfg.ConfigSnapshot, name s
 
 		meshConfig := cfgSnap.MeshConfig()
 		includeXFCC := meshConfig == nil || meshConfig.HTTP == nil || !meshConfig.HTTP.SanitizeXForwardedClientCert
-		l7Dest.IncludeXfcc = includeXFCC
+		notGRPC := cfg.Protocol != "grpc"
+		if includeXFCC && notGRPC {
+			l7Dest.IncludeXfccPolicy = includeXFCC
+			l7Dest.XfccPolicy = pbproxystate.XFCCPolicy_XFCC_POLICY_APPEND_FORWARD
+			l7Dest.ParseXfccHeaders = true
+		}
 		l7Dest.Protocol = l7Protocols[cfg.Protocol]
 		if cfg.MaxInboundConnections > 0 {
 			l7Dest.MaxInboundConnections = uint64(cfg.MaxInboundConnections)
@@ -1227,14 +1233,14 @@ func (s *Converter) makeExposedCheckListener(cfgSnap *proxycfg.ConfigSnapshot, c
 
 type routerOpts struct {
 	//accessLogs           *structs.AccessLogsConfig
-	routeName   string
-	clusterName string
-	filterName  string
-	protocol    string
-	useRDS      bool
-	statPrefix  string
-	//forwardClientDetails bool
-	//forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	routeName            string
+	clusterName          string
+	filterName           string
+	protocol             string
+	useRDS               bool
+	statPrefix           string
+	forwardClientDetails bool
+	forwardClientPolicy  pbproxystate.XFCCPolicy
 	//tracing              *envoy_http_v3.HttpConnectionManager_Tracing
 }
 
@@ -1246,14 +1252,14 @@ func (g *Converter) makeUpstreamRouter(opts routerOpts) (*pbproxystate.Router, e
 	router := &pbproxystate.Router{}
 
 	err := g.addRouterDestination(destinationOpts{
-		useRDS:     opts.useRDS,
-		protocol:   opts.protocol,
-		filterName: opts.filterName,
-		routeName:  opts.routeName,
-		cluster:    opts.clusterName,
-		statPrefix: opts.statPrefix,
-		//forwardClientDetails: opts.forwardClientDetails,
-		//forwardClientPolicy:  opts.forwardClientPolicy,
+		useRDS:               opts.useRDS,
+		protocol:             opts.protocol,
+		filterName:           opts.filterName,
+		routeName:            opts.routeName,
+		cluster:              opts.clusterName,
+		statPrefix:           opts.statPrefix,
+		forwardClientDetails: opts.forwardClientDetails,
+		forwardClientPolicy:  opts.forwardClientPolicy,
 		//tracing:              opts.tracing,
 		//accessLogs:           opts.accessLogs,
 		logger: g.Logger,
@@ -1392,7 +1398,7 @@ type destinationOpts struct {
 
 	// HTTP listener filter options
 	forwardClientDetails bool
-	forwardClientPolicy  envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails
+	forwardClientPolicy  pbproxystate.XFCCPolicy
 	httpAuthzFilters     []*envoy_http_v3.HttpFilter
 	idleTimeoutMs        *int
 	requestTimeoutMs     *int
@@ -1557,18 +1563,11 @@ func (g *Converter) makeL7Destination(opts destinationOpts) (*pbproxystate.L7Des
 
 	dest.Protocol = l7Protocols[opts.protocol]
 
-	// TODO(proxystate) need to include xfcc policy in future L7 task
-	//// Note the default leads to setting HttpConnectionManager_SANITIZE
-	//if opts.forwardClientDetails {
-	//	cfg.ForwardClientCertDetails = opts.forwardClientPolicy
-	//	cfg.SetCurrentClientCertDetails = &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails{
-	//		Subject: &wrapperspb.BoolValue{Value: true},
-	//		Cert:    true,
-	//		Chain:   true,
-	//		Dns:     true,
-	//		Uri:     true,
-	//	}
-	//}
+	// Note the default leads to setting HttpConnectionManager_SANITIZE
+	if opts.forwardClientDetails {
+		dest.IncludeXfccPolicy = true
+		dest.XfccPolicy = opts.forwardClientPolicy
+	}
 
 	// Like injectConnectFilters for L4, here we ensure that the first filter
 	// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
