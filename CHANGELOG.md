@@ -5,9 +5,8 @@ BREAKING CHANGES:
 * api: RaftLeaderTransfer now requires an id string. An empty string can be specified to keep the old behavior. [[GH-17107](https://github.com/hashicorp/consul/issues/17107)]
 * audit-logging: **(Enterprise only)** allowing timestamp based filename only on rotation. initially the filename will be just file.json [[GH-18668](https://github.com/hashicorp/consul/issues/18668)]
 
-FEATURES:
+FEATURE PREVIEW: **Catalog v2**
 
-* # Catalog v2 feature preview
 This release provides the ability to preview Consul's v2 Catalog and Resource API if enabled. The new model supports
 multi-port application deployments with only a single Envoy proxy. Note that the v1 and v2 catalogs are not cross
 compatible, and not all Consul features are available within this v2 feature preview. See the [v2 Catalog and Resource
@@ -15,7 +14,7 @@ API documentation](https://developer.hashicorp.com/consul/docs/architecture/v2) 
 Resources API should be considered a feature preview within this release and should not be used in production
 environments.
 
-### Limitations
+Limitations
 * The v2 catalog API feature preview does not support connections with client agents. As a result, it is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
 * The v1 and v2 catalog APIs cannot run concurrently.
 * The Consul UI does not support multi-port services or the v2 catalog API in this release.
@@ -23,14 +22,17 @@ environments.
 * The v2 API only supports transparent proxy mode where services that have permissions to connect to each other can use
   Kube DNS to connect.
 
-### Known Issues
+Known Issues
 * When using the v2 API with transparent proxy, Kubernetes pods cannot use L7 liveness, readiness, or startup probes.
 
+Significant Pull Requests
+* [[Catalog resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/catalog/internal/controllers)
+* [[Mesh resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/mesh/internal/controllers)
+* [[Auth resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/auth/internal)
+* [[V2 Protobufs]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/proto-public)
 
-[[Catalog resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/catalog/internal/controllers)
-[[Mesh resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/mesh/internal/controllers)
-[[Auth resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/auth/internal)
-[[V2 Protobufs]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/proto-public) [[GH-18994](https://github.com/hashicorp/consul/issues/18994)]
+FEATURES:
+
 * Support custom watches on the Consul Controller framework. [[GH-18439](https://github.com/hashicorp/consul/issues/18439)]
 * Windows: support consul connect envoy command on Windows [[GH-17694](https://github.com/hashicorp/consul/issues/17694)]
 * acl: Add BindRule support for templated policies. Add new BindType: templated-policy and BindVar field for templated policy variables. [[GH-18719](https://github.com/hashicorp/consul/issues/18719)]
