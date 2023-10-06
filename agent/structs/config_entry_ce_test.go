@@ -102,3 +102,60 @@ func TestDecodeConfigEntry_CE(t *testing.T) {
 		})
 	}
 }
+
+func Test_GetLocalUpstreamIDs(t *testing.T) {
+	cases := map[string]struct {
+		input  *ServiceConfigRequest
+		expect []ServiceID
+	}{
+		"no_upstreams": {
+			input: &ServiceConfigRequest{
+				Name: "svc",
+			},
+			expect: nil,
+		},
+		"upstreams": {
+			input: &ServiceConfigRequest{
+				Name: "svc",
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("a", nil)},
+					{ServiceName: NewServiceName("b", nil)},
+					{ServiceName: NewServiceName("c", nil)},
+				},
+			},
+			expect: []ServiceID{
+				{ID: "a"},
+				{ID: "b"},
+				{ID: "c"},
+			},
+		},
+		"peer_upstream": {
+			input: &ServiceConfigRequest{
+				Name: "svc",
+				UpstreamServiceNames: []PeeredServiceName{
+					{Peer: "p", ServiceName: NewServiceName("a", nil)},
+				},
+			},
+			expect: nil,
+		},
+		"mixed_upstreams": {
+			input: &ServiceConfigRequest{
+				Name: "svc",
+				UpstreamServiceNames: []PeeredServiceName{
+					{ServiceName: NewServiceName("a", nil)},
+					{Peer: "p", ServiceName: NewServiceName("b", nil)},
+					{ServiceName: NewServiceName("c", nil)},
+				},
+			},
+			expect: []ServiceID{
+				{ID: "a"},
+				{ID: "c"},
+			},
+		},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			require.Equal(t, tc.expect, tc.input.GetLocalUpstreamIDs())
+		})
+	}
+}
