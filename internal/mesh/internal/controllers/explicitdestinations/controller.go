@@ -83,7 +83,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any destinations that we have in the cache that have selectors matching the name
 	// of this CD (name-aligned with workload).
-	destinationIDs := r.destinations.IDsForWorkload(req.ID.GetName())
+	destinationIDs := r.destinations.IDsForWorkload(req.ID)
 
 	decodedDestinations, err := r.fetchDestinations(ctx, rt.Client, destinationIDs)
 	if err != nil {
