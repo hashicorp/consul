@@ -10,15 +10,15 @@ This topic describes how to configure Consul to limit the request rate to servic
 
 ## Introduction
 
-Consul allows you to configure settings to limit the rate of HTTP requests a service receives from sources on  the mesh. Limiting request rates is one strategy for building a resilient and highly-available network.
+Consul allows you to configure settings to limit the rate of HTTP requests a service receives from sources in the mesh. Limiting request rates is one strategy for building a resilient and highly-available network.
 
 Consul applies rate limits per service instance. As an example, if you specify a rate limit of 100 requests per second (RPS) for a service and five instances of the service are available, the service accepts a total of 500 RPS, which equals 100 RPS per instance.
 
-You can limit request rates for all traffic to a service and set rate limits for specific URL paths on a service When multiple rate limits are configured on a service, the rate limit with the longest matching path will be applied to a request. This means that the theoretical maximum RPS for a service is the sum of the rate limits configured on that service times the number of that service’s instances deployed. 
+You can limit request rates for all traffic to a service, as well as set rate limits for specific URL paths on a service. When multiple rate limits are configured on a service, Consul applies the limit configured for the first matching path. As a result, the  maximum RPS for a service is potentially the rate limit configured for that service or path multiplied by the number instances deployed for that service. 
 
 ## Requirements
 
-Consul v.1.17.x or later
+Consul v1.17.x or later
 
 ## Limit request rates to a service on all paths
 
@@ -49,8 +49,8 @@ Specify request rate limits in the service defaults configuration entry. Create 
 <Tab heading="VMs">
 
 1. Add a `RateLimits.InstanceLevel.Routes` block to the configuration entry. The block contains the limits and matching criteria for determining which paths to set limits on. 
-1. In the `Routes` block, configure one of the following match criteria for enabling Consul to determine which path to set the limits on:
-   - PathExact`: Specifies the exact path to match on the request path. When using this field.
+1. In the `Routes` block, configure one of the following match criteria to determine which path to set the limits on:
+   - `PathExact`: Specifies the exact path to match on the request path.
    `PathPrefix`: Specifies the path prefix to match on the request path.
    `PathRegex`: Specifies a regular expression to match on the request path.
 1. Configure the limits you want to enforce in the `Routes` block as well. You can configure the following parameters:
