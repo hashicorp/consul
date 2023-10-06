@@ -164,9 +164,9 @@ You can configure the service mesh proxy to create listeners for upstream servic
 | Parameter | Description | Required | Default |
 | ---       | ---         | ---      | ---     |
 |`destination_name` | String value that specifies the name of the service or prepared query to route the service mesh to. The prepared query should be the name or the ID of the prepared query. | Required | None |
-| `destination_namespace` | String value that specifies the namespace containing the upstream service. <EnterpriseAlert inline /> | Optional | `default` |
+| `destination_namespace` | String value that specifies the namespace containing the upstream service. <EnterpriseAlert inline /> | Optional | Defaults to the local namespace |
 | `destination_peer` | String value that specifies the name of the peer cluster containing the upstream service. | Optional | None |
-| `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. If `destination_peer` is set, `destination_partition` refers to the local admin partition in which the peering was established. <EnterpriseAlert inline /> | Optional | `default` |
+| `destination_partition` | String value that specifies the name of the admin partition containing the upstream service. If `destination_peer` is set, `destination_partition` refers to the local admin partition in which the peering was established. <EnterpriseAlert inline /> | Optional | Defaults to the local partition |
 | `local_bind_port` | Integer value that specifies the port to bind a local listener to. The application will make outbound connections to the upstream from the local port. | Required | None |
 | `local_bind_address` | String value that specifies the address to bind a local listener to. The application will make outbound connections to the upstream service from the local bind address. | Optional | `127.0.0.1` |
 | `local_bind_socket_path` | String value that specifies the path at which to bind a Unix domain socket listener. The application will make outbound connections to the upstream from the local bind socket path. <br/>This parameter conflicts with the `local_bind_port` or `local_bind_address` parameters. <br/>Supported when using Envoy as a proxy. | Optional | None|
