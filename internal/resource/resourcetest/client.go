@@ -4,6 +4,7 @@
 package resourcetest
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"time"
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/slices"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/resource"
@@ -24,13 +26,19 @@ type Client struct {
 
 	timeout time.Duration
 	wait    time.Duration
+	token   string
 }
 
 func NewClient(client pbresource.ResourceServiceClient) *Client {
+	return NewClientWithACLToken(client, "")
+}
+
+func NewClientWithACLToken(client pbresource.ResourceServiceClient, token string) *Client {
 	return &Client{
 		ResourceServiceClient: client,
 		timeout:               7 * time.Second,
 		wait:                  25 * time.Millisecond,
+		token:                 token,
 	}
 }
 
@@ -46,7 +54,7 @@ func (client *Client) retry(t T, fn func(r *retry.R)) {
 }
 
 func (client *Client) PublishResources(t T, resources []*pbresource.Resource) {
-	ctx := testutil.TestContext(t)
+	ctx := client.Context(t)
 
 	// Randomize the order of insertion. Generally insertion order shouldn't matter as the
 	// controllers should eventually converge on the desired state. The exception to this
@@ -111,10 +119,23 @@ func (client *Client) PublishResources(t T, resources []*pbresource.Resource) {
 	require.Empty(t, resources, "Could not publish all resources - some resources have invalid owner references")
 }
 
+func (client *Client) Context(t T) context.Context {
+	ctx := testutil.TestContext(t)
+
+	if client.token != "" {
+		md := metadata.New(map[string]string{
+			"x-consul-token": client.token,
+		})
+		ctx = metadata.NewOutgoingContext(ctx, md)
+	}
+
+	return ctx
+}
+
 func (client *Client) RequireResourceNotFound(t T, id *pbresource.ID) {
 	t.Helper()
 
-	rsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{Id: id})
+	rsp, err := client.Read(client.Context(t), &pbresource.ReadRequest{Id: id})
 	require.Error(t, err)
 	require.Equal(t, codes.NotFound, status.Code(err))
 	require.Nil(t, rsp)
@@ -123,7 +144,7 @@ func (client *Client) RequireResourceNotFound(t T, id *pbresource.ID) {
 func (client *Client) RequireResourceExists(t T, id *pbresource.ID) *pbresource.Resource {
 	t.Helper()
 
-	rsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{Id: id})
+	rsp, err := client.Read(client.Context(t), &pbresource.ReadRequest{Id: id})
 	require.NoError(t, err, "error reading %s with type %s", id.Name, resource.ToGVK(id.Type))
 	require.NotNil(t, rsp)
 	return rsp.Resource
@@ -261,7 +282,7 @@ func (client *Client) ResolveResourceID(t T, id *pbresource.ID) *pbresource.ID {
 
 func (client *Client) MustDelete(t T, id *pbresource.ID) {
 	t.Helper()
-	ctx := testutil.TestContext(t)
+	ctx := client.Context(t)
 
 	client.retry(t, func(r *retry.R) {
 		_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: id})

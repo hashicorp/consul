@@ -190,6 +190,20 @@ module.exports = [
     source: '/consul/docs/api-gateway/configuration/:slug',
     destination:
       '/consul/docs/connect/gateways/api-gateway/configuration/:slug',
+  },
+  {
+    source: '/consul/docs/connect/failover',
+    destination: '/consul/docs/connect/manage-traffic/failover',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7',
+    destination: '/consul/docs/connect/manage-traffic',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7/:slug',
+    destination: '/consul/docs/connect/manage-traffic/:slug',
     permanent: true,
   },
 ]

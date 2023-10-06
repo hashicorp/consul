@@ -40,8 +40,9 @@ const (
 
 	// LogStoreBackend* are well-known string values used to configure different
 	// log store backends.
-	LogStoreBackendBoltDB = "boltdb"
-	LogStoreBackendWAL    = "wal"
+	LogStoreBackendDefault = "default"
+	LogStoreBackendBoltDB  = "boltdb"
+	LogStoreBackendWAL     = "wal"
 )
 
 var (
