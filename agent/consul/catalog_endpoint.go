@@ -561,8 +561,6 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 		return err
 	}
 
-	fmt.Println("in list services")
-
 	// Supporting querying by PeerName in this API would require modifying the return type or the ACL
 	// filtering logic so that it can be made aware that the data queried is coming from a peer.
 	// Currently the ACL filter will receive plain name strings with no awareness of the peer name,
@@ -596,7 +594,6 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			var err error
 			var serviceNodes structs.ServiceNodes
 			if len(args.NodeMetaFilters) > 0 {
-				fmt.Println("in node meta filters > 0")
 				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
 				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName, args.Filter != "")

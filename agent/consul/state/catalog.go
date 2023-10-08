@@ -1335,11 +1335,9 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 	var result structs.ServiceNodes
 	for node := nodes.Next(); node != nil; node = nodes.Next() {
 		n := node.(*structs.Node)
-		fmt.Println("fetched nodes = ", n.Node)
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
-		fmt.Println("after filter > 1 continue")
 		// List all the services on the node
 		services, err := catalogServiceListByNode(tx, n.Node, entMeta, n.PeerName, false)
 		if err != nil {
