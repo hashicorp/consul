@@ -599,8 +599,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 				fmt.Println("in node meta filters > 0")
 				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				fmt.Println("in node meta filters == 0")
-				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName, args.Filter != "")
 			}
 			if err != nil {
 				return err
