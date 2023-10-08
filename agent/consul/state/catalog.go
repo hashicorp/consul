@@ -1346,7 +1346,6 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		ws.AddWithLimit(watchLimit, services.WatchCh(), allServicesCh)
 
 		for service := services.Next(); service != nil; service = services.Next() {
-			fmt.Println("got services", service.(*structs.ServiceNode).ServiceID)
 			result = append(result, service.(*structs.ServiceNode))
 		}
 	}
