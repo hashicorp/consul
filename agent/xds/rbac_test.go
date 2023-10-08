@@ -739,32 +739,17 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 			intentionDefaultAllow:  true,
 			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{},
 		},
-		"v2-default-allow-one-allow": {
-			intentionDefaultAllow: true,
-			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
-				AllowPermissions: []*pbproxystate.Permission{
-					{
-						Principals: []*pbproxystate.Principal{
-							{
-								Spiffe: makeSpiffe("web", nil),
-							},
-						},
-					},
-				},
-			},
-		},
-		// In v2, having a single permission turns on default deny.
-		"v2-default-allow-one-deny": {
-			intentionDefaultAllow: true,
+		// This validates that we don't send xDS messages to Envoy that will fail validation.
+		// Traffic permissions validations prevent this from being written to the IR, so the thing
+		// that matters is that the snapshot is valid to Envoy.
+		"v2-ignore-empty-permissions": {
+			intentionDefaultAllow: false,
 			v2L4TrafficPermissions: &pbproxystate.TrafficPermissions{
 				DenyPermissions: []*pbproxystate.Permission{
-					{
-						Principals: []*pbproxystate.Principal{
-							{
-								Spiffe: makeSpiffe("web", nil),
-							},
-						},
-					},
+					{},
+				},
+				AllowPermissions: []*pbproxystate.Permission{
+					{},
 				},
 			},
 		},
@@ -1098,7 +1083,9 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 						return
 					}
 
-					filters, err := xdsv2.MakeL4RBAC(tt.intentionDefaultAllow, tt.v2L4TrafficPermissions)
+					tt.v2L4TrafficPermissions.DefaultAllow = tt.intentionDefaultAllow
+
+					filters, err := xdsv2.MakeL4RBAC(tt.v2L4TrafficPermissions)
 					require.NoError(t, err)
 
 					var gotJSON string

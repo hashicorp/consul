@@ -87,4 +87,69 @@ module.exports = [
     destination: '/consul/docs/connect/proxies/deploy-sidecar-services',
     permanent: true,
   },
+  {
+    source: '/consul/docs/ecs/terraform/install',
+    destination: '/consul/docs/ecs/deploy/terraform',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/terraform/secure-configuration',
+    destination: '/consul/docs/ecs/deploy/terraform',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/terraform/migrate-existing-tasks',
+    destination: '/consul/docs/ecs/deploy/migrate-existing-tasks',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/manual/install',
+    destination: '/consul/docs/ecs/deploy/manual',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/manual/secure-configuration',
+    destination: '/consul/docs/ecs/deploy/manual',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/manual/acl-controller',
+    destination: '/consul/docs/ecs/deploy/manual',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/task-resource-usage',
+    destination: '/consul/docs/ecs/tech-specs',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/requirements',
+    destination: '/consul/docs/ecs/tech-specs',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/configuration-reference',
+    destination: '/consul/docs/ecs/reference/configuration-reference',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/ecs/compatibility',
+    destination: '/consul/docs/ecs/reference/compatibility',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/failover',
+    destination: '/consul/docs/connect/manage-traffic/failover',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7',
+    destination: '/consul/docs/connect/manage-traffic',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/l7/:slug',
+    destination: '/consul/docs/connect/manage-traffic/:slug',
+    permanent: true,
+  },
 ]

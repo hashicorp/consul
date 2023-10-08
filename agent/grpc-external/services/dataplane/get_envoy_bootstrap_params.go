@@ -80,7 +80,10 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			return nil, status.Errorf(codes.InvalidArgument, "workload %q doesn't have identity associated with it", req.ProxyId)
 		}
 
-		// todo (ishustava): ACL enforcement ensuring there's identity:write permissions.
+		// verify identity:write is allowed.  if not, give permission denied error.
+		if err := authz.ToAllowAuthorizer().IdentityWriteAllowed(workload.Identity, &authzContext); err != nil {
+			return nil, err
+		}
 
 		// Get all proxy configurations for this workload. Currently we're only looking
 		// for proxy configurations in the same tenancy as the workload.

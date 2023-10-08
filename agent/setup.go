@@ -381,7 +381,9 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		gauges = append(gauges, verifierGauges)
 	}
 
-	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
 
 		walGauges := make([]prometheus.GaugeDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Gauges {
@@ -452,7 +454,9 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		}
 		counters = append(counters, verifierCounters)
 	}
-	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
+	if isServer &&
+		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
+			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
 		walCounters := make([]prometheus.CounterDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Counters {
 			walCounters = append(walCounters, prometheus.CounterDefinition{

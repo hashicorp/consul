@@ -621,15 +621,53 @@
         ]
       },
       {
-        "title": "L7 Traffic Management",
+        "title": "Manage traffic",
         "routes": [
           {
             "title": "Overview",
-            "path": "connect/l7-traffic"
+            "path": "connect/manage-traffic"
           },
           {
-            "title": "Discovery Chain",
-            "path": "connect/l7-traffic/discovery-chain"
+            "title": "Route traffic to local upstreams",
+            "path": "connect/manage-traffic/route-to-local-upstreams"
+          },
+          {
+            "title": "Limit request rates to services",
+            "path": "connect/manage-traffic/limit-request-rates"
+          },
+          {
+            "title": "Failover",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/manage-traffic/failover"
+              },
+              {
+                "title": "Configure failover services for Kubernetes",
+                "href": "/docs/k8s/l7-traffic/failover-tproxy"
+              },
+              {
+                "title": "Automate geo-failover with prepared queries",
+                "href": "/tutorials/developer-discovery/automate-geo-failover"
+              },
+              {
+                "title": "Configuration",
+                "routes": [
+                  {
+                    "title": "Service resolver",
+                    "href": "/consul/docs/connect/config-entries/service-resolver"
+                  },
+                  {
+                    "title": "Service intentions",
+                    "href": "/consul/docs/connect/config-entries/service-intentions"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "Discovery chain reference",
+            "path": "connect/manage-traffic/discovery-chain"
           }
         ]
       },
@@ -763,41 +801,6 @@
               {
                 "title": "Create Sameness Groups",
                 "path": "connect/cluster-peering/usage/create-sameness-groups"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Failover",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/failover"
-          },
-          {
-            "title": "Usage",
-            "routes": [
-              {
-                "title": "Configure failover services for Kubernetes",
-                "href": "/docs/k8s/l7-traffic/failover-tproxy"
-              },
-              {
-                "title": "Automate geo-failover with prepared queries",
-                "href": "/tutorials/developer-discovery/automate-geo-failover"
-              }
-            ]
-          },
-          {
-            "title": "Configuration",
-            "routes": [
-              {
-                "title": "Service resolver",
-                "href": "/consul/docs/connect/config-entries/service-resolver"
-              },
-              {
-                "title": "Service intentions",
-                "href": "/consul/docs/connect/config-entries/service-intentions"
               }
             ]
           }
@@ -1540,62 +1543,62 @@
         "path": "ecs"
       },
       {
-        "title": "Requirements",
-        "path": "ecs/requirements"
-      },
-      {
-        "title": "Task Resource Usage",
-        "path": "ecs/task-resource-usage"
-      },
-      {
-        "title": "Install with Terraform",
-        "routes": [
-          {
-            "title": "Installation",
-            "path": "ecs/terraform/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/terraform/secure-configuration"
-          },
-          {
-            "title": "Migrate Existing Tasks",
-            "path": "ecs/terraform/migrate-existing-tasks"
-          }
-        ]
-      },
-      {
-        "title": "Install Manually",
-        "routes": [
-          {
-            "title": "Installation",
-            "path": "ecs/manual/install"
-          },
-          {
-            "title": "Secure Configuration",
-            "path": "ecs/manual/secure-configuration"
-          },
-          {
-            "title": "ACL Controller",
-            "path": "ecs/manual/acl-controller"
-          }
-        ]
-      },
-      {
         "title": "Architecture",
         "path": "ecs/architecture"
+      },
+      {
+        "title": "Technical specifications",
+        "path": "ecs/tech-specs"
+      },
+      {
+        "title": "Deploy Consul to ECS",
+        "routes": [
+          {
+            "title": "Deploy using the Terraform module",
+            "path": "ecs/deploy/terraform"
+          },
+          {
+            "title": "Deploy manually",
+            "path": "ecs/deploy/manual"
+          },
+          {
+            "title": "Configure the ECS task bind address",
+            "path": "ecs/deploy/bind-addresses"
+          },
+          {
+            "title": "Configure routes between ECS tasks",
+            "path": "ecs/deploy/configure-routes"
+          },
+          {
+            "title": "Migrate existing tasks",
+            "path": "ecs/deploy/migrate-existing-tasks"
+          }
+        ]
+      },
+      {
+        "title": "Upgrade to Consul dataplane architecture",
+        "path": "ecs/upgrade-to-dataplanes"
       },
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       },
       {
-        "title": "Configuration Reference",
-        "path": "ecs/configuration-reference"
-      },
-      {
-        "title": "Compatibility Matrix",
-        "path": "ecs/compatibility"
+        "title": "Reference",
+        "routes": [
+          {
+            "title": "ECS configuration reference",
+            "path": "ecs/reference/configuration-reference"
+          },
+          {
+            "title": "ECS compatibility matrix",
+            "path": "ecs/reference/compatibility"
+          },
+          {
+            "title": "ECS Consul server JSON schema",
+            "path": "ecs/reference/consul-server-json"
+          }
+        ]
       }
     ]
   },

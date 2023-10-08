@@ -6,11 +6,14 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"io"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"strconv"
-	"time"
 )
 
 type ConsulDataplaneContainer struct {
@@ -27,6 +30,10 @@ func (g ConsulDataplaneContainer) GetAddr() (string, int) {
 	return g.ip, g.appPort[0]
 }
 
+func (g ConsulDataplaneContainer) GetServiceName() string {
+	return g.serviceName
+}
+
 // GetAdminAddr returns the external admin port
 func (g ConsulDataplaneContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.externalAdminPort
@@ -36,13 +43,28 @@ func (c ConsulDataplaneContainer) Terminate() error {
 	return TerminateContainer(c.ctx, c.container, true)
 }
 
+func (g ConsulDataplaneContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
+
 func (g ConsulDataplaneContainer) GetStatus() (string, error) {
 	state, err := g.container.State(g.ctx)
 	return state.Status, err
 }
 
 func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses string, grpcPort int, serviceBindPorts []int,
-	node Agent, containerArgs ...string) (*ConsulDataplaneContainer, error) {
+	node Agent, tproxy bool, bootstrapToken string, containerArgs ...string) (*ConsulDataplaneContainer, error) {
 	namePrefix := fmt.Sprintf("%s-consul-dataplane-%s", node.GetDatacenter(), proxyID)
 	containerName := utils.RandName(namePrefix)
 
@@ -70,7 +92,39 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 	copy(exposedPorts, appPortStrs)
 	exposedPorts = append(exposedPorts, adminPortStr)
 
-	command := []string{
+	req := testcontainers.ContainerRequest{
+		Image:      "consul-dataplane:local",
+		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
+		AutoRemove: false,
+		Name:       containerName,
+		Env:        map[string]string{},
+	}
+
+	var command []string
+
+	if tproxy {
+		req.Entrypoint = []string{"sh", "/bin/tproxy-startup.sh"}
+		req.Env["REDIRECT_TRAFFIC_ARGS"] = strings.Join(
+			[]string{
+				// TODO once we run this on a different pod from Consul agents, we can eliminate most of this.
+				"-exclude-inbound-port", fmt.Sprint(internalAdminPort),
+				"-exclude-inbound-port", "8300",
+				"-exclude-inbound-port", "8301",
+				"-exclude-inbound-port", "8302",
+				"-exclude-inbound-port", "8500",
+				"-exclude-inbound-port", "8502",
+				"-exclude-inbound-port", "8600",
+				"-proxy-inbound-port", "20000",
+				"-consul-dns-ip", "127.0.0.1",
+				"-consul-dns-port", "8600",
+			},
+			" ",
+		)
+		req.CapAdd = append(req.CapAdd, "NET_ADMIN")
+		command = append(command, "consul-dataplane")
+	}
+
+	command = append(command,
 		"-addresses", serverAddresses,
 		fmt.Sprintf("-grpc-port=%d", grpcPort),
 		fmt.Sprintf("-proxy-id=%s", proxyID),
@@ -81,18 +135,15 @@ func NewConsulDataplane(ctx context.Context, proxyID string, serverAddresses str
 		"-envoy-concurrency=2",
 		"-tls-disabled",
 		fmt.Sprintf("-envoy-admin-bind-port=%d", internalAdminPort),
+	)
+
+	if bootstrapToken != "" {
+		command = append(command,
+			"-credential-type=static",
+			fmt.Sprintf("-static-token=%s", bootstrapToken))
 	}
 
-	command = append(command, containerArgs...)
-
-	req := testcontainers.ContainerRequest{
-		Image:      "consul-dataplane:local",
-		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
-		AutoRemove: false,
-		Name:       containerName,
-		Cmd:        command,
-		Env:        map[string]string{},
-	}
+	req.Cmd = append(command, containerArgs...)
 
 	info, err := LaunchContainerOnNode(ctx, node, req, exposedPorts)
 	if err != nil {

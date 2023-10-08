@@ -20,7 +20,7 @@ const (
 	baseL4PermissionKey = "consul-intentions-layer4"
 )
 
-func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
+func MakeL4RBAC(trafficPermissions *pbproxystate.TrafficPermissions) ([]*envoy_listener_v3.Filter, error) {
 	var filters []*envoy_listener_v3.Filter
 
 	if trafficPermissions == nil {
@@ -41,7 +41,7 @@ func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermi
 	}
 
 	// Only include the allow RBAC when Consul is in default deny.
-	if includeAllowFilter(defaultAllow, trafficPermissions) {
+	if !trafficPermissions.DefaultAllow {
 		allowRBAC := &envoy_rbac_v3.RBAC{
 			Action:   envoy_rbac_v3.RBAC_ALLOW,
 			Policies: make(map[string]*envoy_rbac_v3.Policy),
@@ -56,13 +56,6 @@ func MakeL4RBAC(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermi
 	}
 
 	return filters, nil
-}
-
-// includeAllowFilter determines if an Envoy RBAC allow filter will be included in the filter chain.
-// We include this filter with default deny or whenever any permissions are configured.
-func includeAllowFilter(defaultAllow bool, trafficPermissions *pbproxystate.TrafficPermissions) bool {
-	hasPermissions := len(trafficPermissions.DenyPermissions)+len(trafficPermissions.AllowPermissions) > 0
-	return !defaultAllow || hasPermissions
 }
 
 func makeRBACFilter(rbac *envoy_rbac_v3.RBAC) (*envoy_listener_v3.Filter, error) {
@@ -84,13 +77,20 @@ func makeRBACPolicies(l4Permissions []*pbproxystate.Permission) map[string]*envo
 	policies := make(map[string]*envoy_rbac_v3.Policy, len(l4Permissions))
 
 	for i, permission := range l4Permissions {
-		policies[policyLabel(i)] = makeRBACPolicy(permission)
+		policy := makeRBACPolicy(permission)
+		if policy != nil {
+			policies[policyLabel(i)] = policy
+		}
 	}
 
 	return policies
 }
 
 func makeRBACPolicy(p *pbproxystate.Permission) *envoy_rbac_v3.Policy {
+	if len(p.Principals) == 0 {
+		return nil
+	}
+
 	var principals []*envoy_rbac_v3.Principal
 
 	for _, p := range p.Principals {

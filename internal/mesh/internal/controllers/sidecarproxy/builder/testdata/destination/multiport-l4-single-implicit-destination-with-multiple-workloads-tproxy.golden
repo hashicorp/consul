@@ -121,14 +121,12 @@
             }
           },
           {
-            "l4": {
-              "cluster": {
-                "name": "tcp2.api-app.default.dc1.internal.foo.consul"
-              },
-              "statPrefix": "upstream.tcp2.api-app.default.default.dc1"
+            "l7": {
+              "name": "outbound_listener",
+              "statPrefix": "upstream."
             },
             "match": {
-              "destinationPort": 8081,
+              "destinationPort": 8080,
               "prefixRanges": [
                 {
                   "addressPrefix": "1.1.1.1",
@@ -138,11 +136,14 @@
             }
           },
           {
-            "l7": {
-              "name": "outbound_listener",
-              "statPrefix": "upstream."
+            "l4": {
+              "cluster": {
+                "name": "tcp2.api-app.default.dc1.internal.foo.consul"
+              },
+              "statPrefix": "upstream.tcp2.api-app.default.default.dc1"
             },
             "match": {
+              "destinationPort": 8081,
               "prefixRanges": [
                 {
                   "addressPrefix": "1.1.1.1",
