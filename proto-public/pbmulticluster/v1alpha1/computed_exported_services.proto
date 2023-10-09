@@ -8,10 +8,10 @@ import "pbresource/resource.proto";
 package hashicorp.consul.multicluster.v1alpha1;
 
 message ComputedExportedServices {
-  repeated ComputedExportedServices consumers = 1;
+  repeated ComputedExportedService consumers = 1;
 }
 
-message ComputedExportedServices {
+message ComputedExportedService {
   repeated hashicorp.consul.resource.ID target_refs = 1;
   repeated ComputedExportedServicesConsumer consumers = 3;
 }
