@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+	"golang.org/x/exp/maps"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -141,36 +142,46 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 			listener := makeListener(listenerOpts)
 
-			route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(readyListener.routeReference)
 			foundJWT := false
-			if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
-				foundJWT = true
-			}
 
-			if !foundJWT && listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
-				foundJWT = true
-			}
+		FoundJwt:
+			for _, routeRef := range maps.Keys(readyListener.routeReferences) {
 
-			if !foundJWT {
-				for _, rule := range route.Rules {
-					if rule.Filters.JWT != nil {
-						foundJWT = true
-						break
-					}
-					for _, svc := range rule.Services {
-						if svc.Filters.JWT != nil {
+				routeRef := routeRef
+				route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+				if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
+					foundJWT = true
+					break FoundJwt
+				}
+
+				if !foundJWT && listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
+					foundJWT = true
+					break FoundJwt
+				}
+
+				if !foundJWT {
+					for _, rule := range route.Rules {
+						if rule.Filters.JWT != nil {
 							foundJWT = true
-							break
+							break FoundJwt
+						}
+						for _, svc := range rule.Services {
+							if svc.Filters.JWT != nil {
+								foundJWT = true
+								break FoundJwt
+							}
 						}
 					}
 				}
+
 			}
 
 			var authFilters []*envoy_http_v3.HttpFilter
 			if foundJWT {
 				builder := &GatewayAuthFilterBuilder{
-					listener:       listenerCfg,
-					route:          route,
+					listener: listenerCfg,
+					//TODO @Sarah and John fix before this is merged into enterprise
+					route:          nil,
 					providers:      cfgSnap.JWTProviders,
 					envoyProviders: make(map[string]*envoy_http_jwt_authn_v3.JwtProvider, len(cfgSnap.JWTProviders)),
 				}
@@ -179,6 +190,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
+
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
 				protocol:         listenerKey.Protocol,
