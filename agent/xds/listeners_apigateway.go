@@ -246,7 +246,7 @@ type readyListener struct {
 	listenerKey      proxycfg.APIGatewayListenerKey
 	listenerCfg      structs.APIGatewayListener
 	boundListenerCfg structs.BoundAPIGatewayListener
-	routeReference   structs.ResourceReference
+	routeReferences  map[structs.ResourceReference]struct{}
 	upstreams        []structs.Upstream
 }
 
@@ -285,10 +285,11 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 					r = readyListener{
 						listenerKey:      listenerKey,
 						listenerCfg:      l,
+						routeReferences:  map[structs.ResourceReference]struct{}{},
 						boundListenerCfg: boundListener,
-						routeReference:   routeRef,
 					}
 				}
+				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
 				ready[routeKey] = r
 			}
