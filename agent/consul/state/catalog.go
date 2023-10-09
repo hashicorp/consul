@@ -1218,7 +1218,7 @@ func terminatingGatewayVirtualIPsSupported(tx ReadTxn, ws memdb.WatchSet) (bool,
 }
 
 // Services returns all services along with a list of associated tags.
-func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string) (uint64, []*structs.ServiceNode, error) {
+func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerName string, joinServiceNodes bool) (uint64, structs.ServiceNodes, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -1235,6 +1235,13 @@ func (s *Store) Services(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta, peerNam
 	var result []*structs.ServiceNode
 	for service := services.Next(); service != nil; service = services.Next() {
 		result = append(result, service.(*structs.ServiceNode))
+	}
+	if joinServiceNodes {
+		parsedResult, err := parseServiceNodes(tx, ws, result, entMeta, peerName)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed querying and parsing services :%s", err)
+		}
+		return idx, parsedResult, nil
 	}
 	return idx, result, nil
 }
@@ -1311,6 +1318,7 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		EnterpriseMeta: *entMeta,
 		PeerName:       peerName,
 	})
+
 	if err != nil {
 		return 0, nil, fmt.Errorf("failed nodes lookup: %s", err)
 	}
@@ -1330,7 +1338,6 @@ func (s *Store) ServicesByNodeMeta(ws memdb.WatchSet, filters map[string]string,
 		if len(filters) > 1 && !structs.SatisfiesMetaFilters(n.Meta, filters) {
 			continue
 		}
-
 		// List all the services on the node
 		services, err := catalogServiceListByNode(tx, n.Node, entMeta, n.PeerName, false)
 		if err != nil {

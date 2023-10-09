@@ -2178,7 +2178,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, services, err := s.Services(ws, nil, "")
+	idx, services, err := s.Services(ws, nil, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2223,7 +2223,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Pull all the services.
 	ws = memdb.NewWatchSet()
-	idx, services, err = s.Services(ws, nil, "")
+	idx, services, err = s.Services(ws, nil, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2232,7 +2232,7 @@ func TestStateStore_Services(t *testing.T) {
 	}
 
 	// Verify the result.
-	expected := []*structs.ServiceNode{
+	expected := structs.ServiceNodes{
 		ns1Dogs.ToServiceNode("node1"),
 		ns1.ToServiceNode("node1"),
 		ns2.ToServiceNode("node2"),
