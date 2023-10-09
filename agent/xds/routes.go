@@ -15,7 +15,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"golang.org/x/exp/maps"
-
+	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -430,9 +430,17 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
+	// Build up the routes in a deterministic way
 	readyListeners := getReadyListeners(cfgSnap)
+	listenerNames := maps.Keys(readyListeners)
+	sort.Strings(listenerNames)
 
-	for _, readyListener := range readyListeners {
+	for _, listenerName := range listenerNames {
+		readyListener, ok := readyListeners[listenerName]
+		if !ok {
+			continue
+		}
+
 		// Do not create any route configuration for TCP listeners
 		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
 			continue
@@ -478,6 +486,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		if len(listenerRoute.VirtualHosts) > 0 {
+			// Build up the virtual hosts in a deterministic way
+			slices.SortStableFunc(listenerRoute.VirtualHosts, func(a, b *envoy_route_v3.VirtualHost) bool { return a.Name < b.Name })
 			result = append(result, listenerRoute)
 		}
 	}

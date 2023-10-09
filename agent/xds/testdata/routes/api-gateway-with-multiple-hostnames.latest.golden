@@ -6,26 +6,18 @@
       "name":  "8080",
       "virtualHosts":  [
         {
-          "name":  "api-gateway-http-aa289ce2",
+          "name":  "api-gateway-http-54620b06",
           "domains":  [
-            "*.example.com",
-            "*.example.com:8080"
+            "frontend.example.com",
+            "frontend.example.com:8080"
           ],
           "routes":  [
             {
               "match":  {
-                "prefix":  "/frontend"
+                "prefix":  "/"
               },
               "route":  {
                 "cluster":  "frontend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
-              }
-            },
-            {
-              "match":  {
-                "prefix":  "/backend"
-              },
-              "route":  {
-                "cluster":  "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -48,18 +40,26 @@
           ]
         },
         {
-          "name":  "api-gateway-http-54620b06",
+          "name":  "api-gateway-http-aa289ce2",
           "domains":  [
-            "frontend.example.com",
-            "frontend.example.com:8080"
+            "*.example.com",
+            "*.example.com:8080"
           ],
           "routes":  [
             {
               "match":  {
-                "prefix":  "/"
+                "prefix":  "/frontend"
               },
               "route":  {
                 "cluster":  "frontend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match":  {
+                "prefix":  "/backend"
+              },
+              "route":  {
+                "cluster":  "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
