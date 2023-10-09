@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -202,7 +203,7 @@ type readyListener struct {
 	listenerKey      proxycfg.APIGatewayListenerKey
 	listenerCfg      structs.APIGatewayListener
 	boundListenerCfg structs.BoundAPIGatewayListener
-	routeReference   structs.ResourceReference
+	routeReferences  map[structs.ResourceReference]struct{}
 	upstreams        []structs.Upstream
 }
 
@@ -240,10 +241,11 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 					r = readyListener{
 						listenerKey:      listenerKey,
 						listenerCfg:      l,
+						routeReferences:  map[structs.ResourceReference]struct{}{},
 						boundListenerCfg: boundListener,
-						routeReference:   routeRef,
 					}
 				}
+				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
 				ready[l.Name] = r
 			}

@@ -14,6 +14,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"golang.org/x/exp/maps"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -438,10 +439,9 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			continue
 		}
 
-		routeRef := readyUpstreams.routeReference
 		listenerKey := readyUpstreams.listenerKey
 
-		defaultRoute := &envoy_route_v3.RouteConfiguration{
+		listenerRoute := &envoy_route_v3.RouteConfiguration{
 			Name: listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
@@ -449,39 +449,41 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 			ValidateClusters: makeBoolValue(true),
 		}
 
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
-		}
-
-		// Reformat the route here since discovery chains were indexed earlier using the
-		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
-		// convert our route to use the same naming convention, we won't find any chains below.
-		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
-		for _, reformatedRoute := range reformatedRoutes {
-			reformatedRoute := reformatedRoute
-
-			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
-			uid := proxycfg.NewUpstreamID(&upstream)
-			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
-			if chain == nil {
-				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
-				continue
+		for _, routeRef := range maps.Keys(readyUpstreams.routeReferences) {
+			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+			if !ok {
+				return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
 			}
 
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
+			// Reformat the route here since discovery chains were indexed earlier using the
+			// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
+			// convert our route to use the same naming convention, we won't find any chains below.
+			reformattedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
 
-			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
-			if err != nil {
-				return nil, err
+			for _, reformattedRoute := range reformattedRoutes {
+				reformatedRoute := reformattedRoute
+
+				upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
+				uid := proxycfg.NewUpstreamID(&upstream)
+				chain := cfgSnap.APIGateway.DiscoveryChain[uid]
+				if chain == nil {
+					s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
+					continue
+				}
+
+				domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
+
+				virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
+				if err != nil {
+					return nil, err
+				}
+
+				listenerRoute.VirtualHosts = append(listenerRoute.VirtualHosts, virtualHost)
 			}
-
-			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
 		}
 
-		if len(defaultRoute.VirtualHosts) > 0 {
-			result = append(result, defaultRoute)
+		if len(listenerRoute.VirtualHosts) > 0 {
+			result = append(result, listenerRoute)
 		}
 	}
 
