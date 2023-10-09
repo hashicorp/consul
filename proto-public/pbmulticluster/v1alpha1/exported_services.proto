@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v1alpha1;
+
+import "pbresource/annotations.proto";
+import "pbmulticluster/v1alpha1/exported_services_consumer.proto";
+
+message ExportedServices {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  repeated string services = 1;
+  repeated  ExportedServicesConsumer consumers = 2;
+}
