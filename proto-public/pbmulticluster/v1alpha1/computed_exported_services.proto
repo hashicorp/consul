@@ -3,10 +3,10 @@
 
 syntax = "proto3";
 
-import "pbresource/resource.proto";
-import "pbresource/annotations.proto";
-
 package hashicorp.consul.multicluster.v1alpha1;
+
+import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
 
 message ComputedExportedServices {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};

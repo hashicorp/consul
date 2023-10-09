@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package hashicorp.consul.multicluster.v1alpha1;
 
-import "pbresource/annotations.proto";
 import "pbmulticluster/v1alpha1/exported_services_consumer.proto";
+import "pbresource/annotations.proto";
 
 message NamespaceExportedServices {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
