@@ -6,12 +6,15 @@ package xds
 import (
 	"fmt"
 
+	"golang.org/x/exp/maps"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
@@ -141,36 +144,48 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 			listener := makeListener(listenerOpts)
 
-			route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(readyListener.routeReference)
-			foundJWT := false
-			if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
-				foundJWT = true
+			routes := make([]*structs.HTTPRouteConfigEntry, 0, len(readyListener.routeReferences))
+			for _, routeRef := range maps.Keys(readyListener.routeReferences) {
+				route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+				routes = append(routes, route)
 			}
+			consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, routes...)
+			routesWithJWT := []*structs.HTTPRouteConfigEntry{}
+			for _, routeCfgEntry := range consolidatedRoutes {
+				routeCfgEntry := routeCfgEntry
+				route := &routeCfgEntry
+				routesWithJWT = append(routesWithJWT, route)
 
-			if !foundJWT && listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
-				foundJWT = true
-			}
+				if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
+					routesWithJWT = append(routesWithJWT, route)
+					continue
+				}
 
-			if !foundJWT {
+				if listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
+					routesWithJWT = append(routesWithJWT, route)
+					continue
+				}
+
 				for _, rule := range route.Rules {
 					if rule.Filters.JWT != nil {
-						foundJWT = true
-						break
+						routesWithJWT = append(routesWithJWT, route)
+						continue
 					}
 					for _, svc := range rule.Services {
 						if svc.Filters.JWT != nil {
-							foundJWT = true
-							break
+							routesWithJWT = append(routesWithJWT, route)
+							continue
 						}
 					}
 				}
+
 			}
 
 			var authFilters []*envoy_http_v3.HttpFilter
-			if foundJWT {
+			if len(routesWithJWT) > 0 {
 				builder := &GatewayAuthFilterBuilder{
 					listener:       listenerCfg,
-					route:          route,
+					routes:         routesWithJWT,
 					providers:      cfgSnap.JWTProviders,
 					envoyProviders: make(map[string]*envoy_http_jwt_authn_v3.JwtProvider, len(cfgSnap.JWTProviders)),
 				}
@@ -179,6 +194,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
+
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
 				protocol:         listenerKey.Protocol,
@@ -246,7 +262,7 @@ type readyListener struct {
 	listenerKey      proxycfg.APIGatewayListenerKey
 	listenerCfg      structs.APIGatewayListener
 	boundListenerCfg structs.BoundAPIGatewayListener
-	routeReference   structs.ResourceReference
+	routeReferences  map[structs.ResourceReference]struct{}
 	upstreams        []structs.Upstream
 }
 
@@ -285,10 +301,11 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 					r = readyListener{
 						listenerKey:      listenerKey,
 						listenerCfg:      l,
+						routeReferences:  map[structs.ResourceReference]struct{}{},
 						boundListenerCfg: boundListener,
-						routeReference:   routeRef,
 					}
 				}
+				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
 				ready[routeKey] = r
 			}
