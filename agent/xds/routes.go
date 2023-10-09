@@ -435,57 +435,53 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
-	readyUpstreamsList := getReadyListeners(cfgSnap)
+	readyListeners := getReadyListeners(cfgSnap)
 
-	for _, readyUpstreams := range readyUpstreamsList {
-		readyUpstreams := readyUpstreams
-		listenerCfg := readyUpstreams.listenerCfg
+	for _, readyListener := range readyListeners {
 		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
+		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
 			continue
 		}
 
-		listenerKey := readyUpstreams.listenerKey
-
 		listenerRoute := &envoy_route_v3.RouteConfiguration{
-			Name: listenerKey.RouteName(),
+			Name: readyListener.listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: response.MakeBoolValue(true),
 		}
 
-		for _, routeRef := range maps.Keys(readyUpstreams.routeReferences) {
+		// Consolidate all routes for this listener into the minimum possible set based on hostname matching.
+		allRoutesForListener := []*structs.HTTPRouteConfigEntry{}
+		for _, routeRef := range maps.Keys(readyListener.routeReferences) {
 			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
 			if !ok {
-				return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
+				return nil, fmt.Errorf("missing route for route routeRef %s:%s", routeRef.Name, routeRef.Kind)
+			}
+			allRoutesForListener = append(allRoutesForListener, route)
+		}
+		consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, allRoutesForListener...)
+
+		// Produce one virtual host per hostname. If no hostname is specified for a set of
+		// Gateway + HTTPRoutes, then the virtual host will be "*".
+		for _, consolidatedRoute := range consolidatedRoutes {
+			upstream := buildHTTPRouteUpstream(consolidatedRoute, readyListener.listenerCfg)
+			uid := proxycfg.NewUpstreamID(&upstream)
+			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
+			if chain == nil {
+				s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
+				continue
 			}
 
-			// Reformat the route here since discovery chains were indexed earlier using the
-			// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
-			// convert our route to use the same naming convention, we won't find any chains below.
-			reformattedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-			filterBuilder := perRouteFilterBuilder{providerMap: cfgSnap.JWTProviders, listener: &listenerCfg, route: route}
-			for _, reformattedRoute := range reformattedRoutes {
-				reformatedRoute := reformattedRoute
+			domains := generateUpstreamAPIsDomains(readyListener.listenerKey, upstream, consolidatedRoute.Hostnames)
 
-				upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
-				uid := proxycfg.NewUpstreamID(&upstream)
-				chain := cfgSnap.APIGateway.DiscoveryChain[uid]
-				if chain == nil {
-					s.Logger.Debug("Discovery chain not found for flattened route", "discovery chain ID", uid)
-					continue
-				}
-
-				domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
-
-				virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, filterBuilder)
-				if err != nil {
-					return nil, err
-				}
-
-				listenerRoute.VirtualHosts = append(listenerRoute.VirtualHosts, virtualHost)
+			filterBuilder := perRouteFilterBuilder{providerMap: cfgSnap.JWTProviders, listener: &readyListener.listenerCfg, route: &consolidatedRoute}
+			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false, filterBuilder)
+			if err != nil {
+				return nil, err
 			}
+
+			listenerRoute.VirtualHosts = append(listenerRoute.VirtualHosts, virtualHost)
 		}
 
 		if len(listenerRoute.VirtualHosts) > 0 {
