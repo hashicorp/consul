@@ -2,8 +2,6 @@ syntax = "proto3";
 
 package hashicorp.consul.multicluster.v1alpha1;
 
-import "pbresource/annotations.proto";
-
 message ExportedServicesConsumer {
   oneof consumer_tenancy {
     string peer = 1;
