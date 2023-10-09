@@ -15,4 +15,5 @@ const (
 
 func Register(r resource.Registry) {
 	RegisterExportedServices(r)
+	RegisterNamespaceExportedServices(r)
 }

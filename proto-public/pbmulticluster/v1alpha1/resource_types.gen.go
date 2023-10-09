@@ -10,12 +10,19 @@ const (
 	GroupName = "multicluster"
 	Version   = "v1alpha1"
 
+	ComputedExportedServicesKind  = "ComputedExportedServices"
 	ExportedServicesKind          = "ExportedServices"
 	NamespaceExportedServicesKind = "NamespaceExportedServices"
 	PartitionExportedServicesKind = "PartitionExportedServices"
 )
 
 var (
+	ComputedExportedServicesType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedExportedServicesKind,
+	}
+
 	ExportedServicesType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,

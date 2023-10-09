@@ -12,18 +12,6 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-const (
-	ExportedServicesKind = "ExportedServices"
-)
-
-var (
-	ExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         ExportedServicesKind,
-	}
-)
-
 func RegisterExportedServices(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmulticluster.ExportedServicesType,
