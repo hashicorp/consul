@@ -132,7 +132,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
           args:
             - -text="hello world"
             - -listen=:8080
@@ -140,7 +140,7 @@ spec:
             - containerPort: 8080
               name: api
         - name: api-admin
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
           args:
             - -text="hello world from 9090 admin"
             - -listen=:9090
@@ -207,7 +207,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
           args:
             - -text="hello world"
             - -listen=:8080
@@ -215,7 +215,7 @@ spec:
             - containerPort: 8080
               name: api
         - name: api-admin
-          image: docker.mirror.hashicorp.services/hashicorp/http-echo:alpine
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
           args:
             - -text="hello world from 9090 admin"
             - -listen=:9090
