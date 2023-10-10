@@ -1,0 +1,87 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "backend.example.com",
+            "backend.example.com:8080"
+          ],
+          "name": "api-gateway-http-5a84e719",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "frontend.example.com",
+            "frontend.example.com:8080"
+          ],
+          "name": "api-gateway-http-54620b06",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "frontend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "*.example.com",
+            "*.example.com:8080"
+          ],
+          "name": "api-gateway-http-aa289ce2",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/frontend"
+              },
+              "route": {
+                "cluster": "frontend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/backend"
+              },
+              "route": {
+                "cluster": "backend.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}
