@@ -131,7 +131,7 @@ func TestResourceWriteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -359,7 +359,7 @@ func TestResourceReadHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, ""), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -412,7 +412,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -489,7 +489,7 @@ func TestResourceListHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
