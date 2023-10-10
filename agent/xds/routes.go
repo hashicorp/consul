@@ -14,7 +14,8 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
 
@@ -429,40 +430,45 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
-	readyUpstreamsList := getReadyListeners(cfgSnap)
+	// Build up the routes in a deterministic way
+	readyListeners := getReadyListeners(cfgSnap)
+	listenerNames := maps.Keys(readyListeners)
+	sort.Strings(listenerNames)
 
-	for _, readyUpstreams := range readyUpstreamsList {
-		listenerCfg := readyUpstreams.listenerCfg
-		// Do not create any route configuration for TCP listeners
-		if listenerCfg.Protocol != structs.ListenerProtocolHTTP {
+	for _, listenerName := range listenerNames {
+		readyListener, ok := readyListeners[listenerName]
+		if !ok {
 			continue
 		}
 
-		routeRef := readyUpstreams.routeReference
-		listenerKey := readyUpstreams.listenerKey
+		// Do not create any route configuration for TCP listeners
+		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
+			continue
+		}
 
-		defaultRoute := &envoy_route_v3.RouteConfiguration{
-			Name: listenerKey.RouteName(),
+		listenerRoute := &envoy_route_v3.RouteConfiguration{
+			Name: readyListener.listenerKey.RouteName(),
 			// ValidateClusters defaults to true when defined statically and false
 			// when done via RDS. Re-set the reasonable value of true to prevent
 			// null-routing traffic.
 			ValidateClusters: makeBoolValue(true),
 		}
 
-		route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-		if !ok {
-			return nil, fmt.Errorf("missing route for route reference %s:%s", routeRef.Name, routeRef.Kind)
+		// Consolidate all routes for this listener into the minimum possible set based on hostname matching.
+		allRoutesForListener := []*structs.HTTPRouteConfigEntry{}
+		for _, routeRef := range maps.Keys(readyListener.routeReferences) {
+			route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+			if !ok {
+				return nil, fmt.Errorf("missing route for route routeRef %s:%s", routeRef.Name, routeRef.Kind)
+			}
+			allRoutesForListener = append(allRoutesForListener, route)
 		}
+		consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, allRoutesForListener...)
 
-		// Reformat the route here since discovery chains were indexed earlier using the
-		// specific naming convention in discoverychain.consolidateHTTPRoutes. If we don't
-		// convert our route to use the same naming convention, we won't find any chains below.
-		reformatedRoutes := discoverychain.ReformatHTTPRoute(route, &listenerCfg, cfgSnap.APIGateway.GatewayConfig)
-
-		for _, reformatedRoute := range reformatedRoutes {
-			reformatedRoute := reformatedRoute
-
-			upstream := buildHTTPRouteUpstream(reformatedRoute, listenerCfg)
+		// Produce one virtual host per hostname. If no hostname is specified for a set of
+		// Gateway + HTTPRoutes, then the virtual host will be "*".
+		for _, consolidatedRoute := range consolidatedRoutes {
+			upstream := buildHTTPRouteUpstream(consolidatedRoute, readyListener.listenerCfg)
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
@@ -470,18 +476,19 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				continue
 			}
 
-			domains := generateUpstreamAPIsDomains(listenerKey, upstream, reformatedRoute.Hostnames)
-
+			domains := generateUpstreamAPIsDomains(readyListener.listenerKey, upstream, consolidatedRoute.Hostnames)
 			virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, domains, false)
 			if err != nil {
 				return nil, err
 			}
 
-			defaultRoute.VirtualHosts = append(defaultRoute.VirtualHosts, virtualHost)
+			listenerRoute.VirtualHosts = append(listenerRoute.VirtualHosts, virtualHost)
 		}
 
-		if len(defaultRoute.VirtualHosts) > 0 {
-			result = append(result, defaultRoute)
+		if len(listenerRoute.VirtualHosts) > 0 {
+			// Build up the virtual hosts in a deterministic way
+			slices.SortStableFunc(listenerRoute.VirtualHosts, func(a, b *envoy_route_v3.VirtualHost) bool { return a.Name < b.Name })
+			result = append(result, listenerRoute)
 		}
 	}
 
