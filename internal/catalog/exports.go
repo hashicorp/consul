@@ -11,10 +11,10 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
