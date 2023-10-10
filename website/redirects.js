@@ -187,9 +187,11 @@ module.exports = [
     permanent: true,
   },
   {
+  {
     source: '/consul/docs/api-gateway/configuration/:slug',
     destination:
       '/consul/docs/connect/gateways/api-gateway/configuration/:slug',
+    permanent: true,
   },
   {
     source: '/consul/docs/connect/failover',
