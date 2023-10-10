@@ -395,7 +395,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
 		rejectCatalogV1Endpoint := false
-		if s.agent.useV2Resources() {
+		if s.agent.baseDeps.UseV2Resources() {
 			rejectCatalogV1Endpoint = isV1CatalogRequest(logURL)
 		}
 
@@ -1147,7 +1147,7 @@ func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 }
 
 func (s *HTTPHandlers) rejectV1RequestWhenV2Enabled() error {
-	if s.agent.useV2Resources() {
+	if s.agent.baseDeps.UseV2Resources() {
 		return newRejectV1RequestWhenV2EnabledError()
 	}
 	return nil

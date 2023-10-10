@@ -286,7 +286,7 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
-			if a.useV2Resources() {
+			if a.baseDeps.UseV2Resources() {
 				args := structs.DCSpecificRequest{
 					Datacenter: "dc1",
 				}
