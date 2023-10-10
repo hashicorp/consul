@@ -691,7 +691,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(); err != nil {
+	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -1032,7 +1032,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft() error {
+func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -1091,8 +1091,7 @@ func (s *Server) setupRaft() error {
 			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
 
-		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+		initWAL := func() error {
 			walDir := filepath.Join(path, "wal")
 			if err := os.MkdirAll(walDir, 0755); err != nil {
 				return err
@@ -1111,13 +1110,29 @@ func (s *Server) setupRaft() error {
 			s.raftStore = wal
 			log = wal
 			stable = wal
+			return nil
+		}
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
+			if !s.config.LogStoreConfig.Verification.Enabled {
+				s.config.LogStoreConfig.Verification.Enabled = true
+				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
+			}
+			if err = initWAL(); err != nil {
+				return err
+			}
+		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			if err = initWAL(); err != nil {
+				return err
+			}
 		} else {
 			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
 				// User configured the new storage, but still has old raft.db. Warn
 				// them!
 				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
 			}
-
+			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
 			// Create the backend raft store for logs and stable storage.
 			store, err := raftboltdb.New(raftboltdb.Options{
 				BoltOptions: &bbolt.Options{

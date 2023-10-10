@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
-// +build !consulent
 
 package structs
 
@@ -62,3 +61,16 @@ func validateRatelimit(rl *RateLimits) error {
 }
 
 func (rl RateLimits) ToEnvoyExtension() *EnvoyExtension { return nil }
+
+// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
+// This is often used for fetching service-defaults config entries.
+func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
+	var upstreams []ServiceID
+	for _, u := range s.UpstreamServiceNames {
+		if u.Peer != "" {
+			continue
+		}
+		upstreams = append(upstreams, u.ServiceName.ToServiceID())
+	}
+	return upstreams
+}

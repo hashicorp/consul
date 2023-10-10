@@ -1414,7 +1414,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 		// Raft LogStore validation
 		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
-			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL && rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendDefault {
 			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
 				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
 		}
@@ -2782,7 +2782,7 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
 	var cfg consul.RaftLogStoreConfig
 	if raw != nil {
-		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
 		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
 
 		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)

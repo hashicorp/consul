@@ -10,4 +10,5 @@ message ComputedTrafficPermissions {
 
   repeated Permission allow_permissions = 1;
   repeated Permission deny_permissions = 2;
+  bool is_default = 3;
 }

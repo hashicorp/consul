@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -30,21 +31,30 @@ import (
 func TestRead_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
+	tenancy.RegisterTypes(server.Registry)
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
-		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID { return nil },
-		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
+	testCases := map[string]func(artistId, recordlabelId, executiveId *pbresource.ID) *pbresource.ID{
+		"no id": func(_, _, _ *pbresource.ID) *pbresource.ID { return nil },
+		"no type": func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 			artistId.Type = nil
 			return artistId
 		},
-		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
+		"no name": func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 			artistId.Name = ""
 			return artistId
 		},
-		"partition scope with non-empty namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+		"partition scope with non-empty namespace": func(_, recordLabelId, _ *pbresource.ID) *pbresource.ID {
 			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
 			return recordLabelId
+		},
+		"cluster scope with non-empty partition": func(_, _, executiveId *pbresource.ID) *pbresource.ID {
+			executiveId.Tenancy = &pbresource.Tenancy{Partition: resource.DefaultPartitionName}
+			return executiveId
+		},
+		"cluster scope with non-empty namespace": func(_, _, executiveId *pbresource.ID) *pbresource.ID {
+			executiveId.Tenancy = &pbresource.Tenancy{Namespace: resource.DefaultNamespaceName}
+			return executiveId
 		},
 	}
 	for desc, modFn := range testCases {
@@ -55,8 +65,11 @@ func TestRead_InputValidation(t *testing.T) {
 			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
 			require.NoError(t, err)
 
+			executive, err := demo.GenerateV1Executive("MusicMan", "CEO")
+			require.NoError(t, err)
+
 			// Each test case picks which resource to use based on the resource type's scope.
-			req := &pbresource.ReadRequest{Id: modFn(artist.Id, recordLabel.Id)}
+			req := &pbresource.ReadRequest{Id: modFn(artist.Id, recordLabel.Id, executive.Id)}
 
 			_, err = client.Read(testContext(t), req)
 			require.Error(t, err)

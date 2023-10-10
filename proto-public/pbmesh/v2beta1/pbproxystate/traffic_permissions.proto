@@ -8,6 +8,10 @@ package hashicorp.consul.mesh.v2beta1.pbproxystate;
 message TrafficPermissions {
   repeated Permission allow_permissions = 1;
   repeated Permission deny_permissions = 2;
+  // default_allow determines if the workload is in default allow mode. This is determined
+  // by combining the cluster's default allow setting with the is_default property on
+  // computed traffic permissions.
+  bool default_allow = 4;
 }
 
 message Permission {
