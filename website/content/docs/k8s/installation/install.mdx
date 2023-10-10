@@ -112,7 +112,8 @@ NAME: consul
 global:
   openshift:
     enabled: true
- 
+```
+
 Refer to [`openshift` in the Helm chart reference](/consul/docs/k8s/helm#v-global-openshift) for additional information.  
 
 ### Enable the Consul CNI plugin
@@ -143,7 +144,7 @@ To configure the plugin to be installed, add the following configuration to your
       logLevel: info
       cniBinDir: "/opt/cni/bin"
       cniNetDir: "/etc/cni/net.d"
-```
+  ```
 
 </CodeBlockConfig>
 </Tab>
@@ -162,8 +163,7 @@ To configure the plugin to be installed, add the following configuration to your
       logLevel: info
       cniBinDir: "/home/kubernetes/bin"
       cniNetDir: "/etc/cni/net.d"
-```
-
+  ```
 </CodeBlockConfig>
 </Tab>
 
@@ -207,7 +207,7 @@ By default, Consul Service Mesh is enabled on almost all namespaces within a Kub
 
 1. specify a `namespaceSelector` that matches a label attached to each namespace where you want to deploy the service mesh. In order to default to enabling service mesh on select namespaces by label, the `connectInject.default` value must be set to `true`.
 
-<CodeBlockConfig filename="values.yaml">
+  <CodeBlockConfig filename="values.yaml">
 
   ```yaml
   global:
@@ -218,9 +218,9 @@ By default, Consul Service Mesh is enabled on almost all namespaces within a Kub
     namespaceSelector: |
       matchLabels:
         connect-inject : enabled
-```
+  ```
 
-</CodeBlockConfig>
+  </CodeBlockConfig>
 
 1. Label the namespaces where you would like to enable Consul Service Mesh.
 
