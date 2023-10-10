@@ -20,13 +20,13 @@ The following list outlines field hierarchy, language-specific data types, requi
 - [`Name`](#name): string | required
 - [`Namespace`](#namespace): string | `default` <EnterpriseAlert inline />
 - [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
-- [`Meta`](#meta): map 
+- [`Meta`](#meta): map
 - [`Protocol`](#protocol): string | `tcp`
-- [`BalanceInboundConnections`](#balanceinboundconnections): string 
+- [`BalanceInboundConnections`](#balanceinboundconnections): string
 - [`Mode`](#mode): string
 - [`RateLimits`](#ratelimits): map
   - [`InstanceLevel`](#ratelimits-instancelevel): map
-    - [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond): number 
+    - [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond): number
     - [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst): number
     - [`Routes`](#ratelimits-instancelevel-routes): list maps
       - [`PathExact`](#ratelimits-instancelevel-routes): string
@@ -34,65 +34,65 @@ The following list outlines field hierarchy, language-specific data types, requi
       - [`PathRegex`](#ratelimits-instancelevel-routes): string
       - [`RequestsPerSecond`](#ratelimits-instancelevel-routes): number | required
       - [`RequestsMaxBurst`](#ratelimits-instancelevel-routes): number
-- [`UpstreamConfig`](#upstreamconfig): map 
-  - [`Overrides`](#upstreamconfig-overrides): map 
-    - [`Name`](#upstreamconfig-overrides-name): string 
-    - [`Namespace`](#upstreamconfig-overrides-namespace): string 
-    - [`Peer`](#upstreamconfig-overrides-peer): string 
-    - [`Protocol`](#upstreamconfig-overrides-protocol): string 
+- [`UpstreamConfig`](#upstreamconfig): map
+  - [`Overrides`](#upstreamconfig-overrides): map
+    - [`Name`](#upstreamconfig-overrides-name): string
+    - [`Namespace`](#upstreamconfig-overrides-namespace): string
+    - [`Peer`](#upstreamconfig-overrides-peer): string
+    - [`Protocol`](#upstreamconfig-overrides-protocol): string
     - [`ConnectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | `5000`
-    - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map 
-      - [`mode`](#upstreamconfig-overrides-meshgateway): string 
-    - [`BalanceOutboundConnections`](#upstreamconfig-overrides-balanceoutboundconnections): string 
-    - [`Limits`](#upstreamconfig-overrides-limits): map 
+    - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map
+      - [`mode`](#upstreamconfig-overrides-meshgateway): string
+    - [`BalanceOutboundConnections`](#upstreamconfig-overrides-balanceoutboundconnections): string
+    - [`Limits`](#upstreamconfig-overrides-limits): map
       - [`MaxConnections`](#upstreamconfig-overrides-limits): number | `0`
       - [`MaxPendingRequests`](#upstreamconfig-overrides-limits): number | `0`
       - [`MaxConcurrentRequests`](#upstreamconfig-overrides-limits): number | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map 
+    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map
       - [`Interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
       - [`MaxFailures`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
       - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
       - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
       - [`BaseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
-  - [`Defaults`](#upstreamconfig-defaults): map 
-    - [`Protocol`](#upstreamconfig-defaults-protocol): string 
+  - [`Defaults`](#upstreamconfig-defaults): map
+    - [`Protocol`](#upstreamconfig-defaults-protocol): string
     - [`ConnectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | `5000`
-    - [`MeshGateway`](#upstreamconfig-defaults-meshgateway): map 
-      - [`mode`](#upstreamconfig-defaults-meshgateway): string 
-    - [`BalanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string 
-    - [`Limits`](#upstreamconfig-defaults-limits): map 
+    - [`MeshGateway`](#upstreamconfig-defaults-meshgateway): map
+      - [`mode`](#upstreamconfig-defaults-meshgateway): string
+    - [`BalanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string
+    - [`Limits`](#upstreamconfig-defaults-limits): map
       - [`MaxConnections`](#upstreamconfig-defaults-limits): number | `0`
       - [`MaxPendingRequests`](#upstreamconfig-defaults-limits): number | `0`
       - [`MaxConcurrentRequests`](#upstreamconfig-defaults-limits): number | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map 
+    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map
       - [`Interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
       - [`MaxFailures`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
       - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): number | `100`
       - [`MaxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
       - [`BaseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
-- [`TransparentProxy`](#transparentproxy): map 
+- [`TransparentProxy`](#transparentproxy): map
   - [`OutboundListenerPort`](#transparentproxy): number | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
-- [`MutualTLSMode`](#mutualtlsmode): string 
-- [`EnvoyExtensions`](#envoyextensions): list 
-  - [`Name`](#envoyextensions): string 
-  - [`Required`](#envoyextensions): string 
-  - [`Arguments`](#envoyextensions): map 
+- [`MutualTLSMode`](#mutualtlsmode): string
+- [`EnvoyExtensions`](#envoyextensions): list
+  - [`Name`](#envoyextensions): string
+  - [`Required`](#envoyextensions): string
+  - [`Arguments`](#envoyextensions): map
   - [`ConsulVersion`](#envoyextensions): string
   - [`EnvoyVersion`](#envoyextensions): string
-- [`Destination`](#destination): map 
-  - [`Addresses`](#destination): list 
+- [`Destination`](#destination): map
+  - [`Addresses`](#destination): list
   - [`Port`](#destination): integer | `0`
 - [`MaxInboundConnections`](#maxinboundconnections): number | `0`
 - [`LocalConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
 - [`LocalRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
-- [`MeshGateway`](#meshgateway): map 
-  - [`Mode`](#meshgateway): string 
-- [`ExternalSNI`](#externalsni): string 
-- [`Expose`](#expose): map 
+- [`MeshGateway`](#meshgateway): map
+  - [`Mode`](#meshgateway): string
+- [`ExternalSNI`](#externalsni): string
+- [`Expose`](#expose): map
   - [`Checks`](#expose-checks): boolean | `false`
-  - [`Paths`](#expose-paths): list 
-    - [`Path`](#expose-paths): string 
+  - [`Paths`](#expose-paths): list
+    - [`Path`](#expose-paths): string
     - [`LocalPathPort`](#expose-paths): integer | `0`
     - [`ListenerPort`](#expose-paths): integer | `0`
     - [`Protocol`](#expose-paths): string | `http`
@@ -101,83 +101,83 @@ The following list outlines field hierarchy, language-specific data types, requi
 <Tab heading="Kubernetes YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string 
-- [`metadata`](#metadata): map 
-  - [`name`](#name): string 
+- [`kind`](#kind): string
+- [`metadata`](#metadata): map
+  - [`name`](#name): string
   - [`namespace`](#namespace): string | `default`` | <EnterpriseAlert inline />
-- [`spec`](#spec): map 
+- [`spec`](#spec): map
   - [`protocol`](#protocol): string | `tcp`
-  - [`balanceInboundConnections`](#balanceinboundconnections): string 
+  - [`balanceInboundConnections`](#balanceinboundconnections): string
   - [`mode`](#mode): string
   - [`rateLimits`](#spec-ratelimits): map
     - [`instanceLevel`](#spec-ratelimits-instancelevel): map
-      - [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond): number 
+      - [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond): number
       - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst): number
       - [`routes`](#spec-ratelimits-instancelevel-routes): list maps
         - [`pathExact`](#spec-ratelimits-instancelevel-routes): string
         - [`pathPrefix`](#spec-ratelimits-instancelevel-routes): string
         - [`pathRegex`](#spec-ratelimits-instancelevel-routes): string
         - [`requestsPerSecond`](#spec-ratelimits-instancelevel-routes): number | required
-        - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-routes): number 
-  - [`upstreamConfig`](#upstreamconfig): map 
-    - [`overrides`](#upstreamconfig-overrides): list 
-      - [`name`](#upstreamconfig-overrides-name): string 
-      - [`namespace`](#upstreamconfig-overrides-namespace): string 
-      - [`peer`](#upstreamconfig-overrides-peer): string 
-      - [`protocol`](#upstreamconfig-overrides-protocol): string 
+        - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-routes): number
+  - [`upstreamConfig`](#upstreamconfig): map
+    - [`overrides`](#upstreamconfig-overrides): list
+      - [`name`](#upstreamconfig-overrides-name): string
+      - [`namespace`](#upstreamconfig-overrides-namespace): string
+      - [`peer`](#upstreamconfig-overrides-peer): string
+      - [`protocol`](#upstreamconfig-overrides-protocol): string
       - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): number | `5000`
-      - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map 
-        - [`mode`](#upstreamconfig-overrides-meshgateway): string 
-      - [`balanceOutboundConnections`](#overrides-balanceoutboundconnections): string 
-      - [`limits`](#upstreamconfig-overrides-limits): map 
+      - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map
+        - [`mode`](#upstreamconfig-overrides-meshgateway): string
+      - [`balanceOutboundConnections`](#overrides-balanceoutboundconnections): string
+      - [`limits`](#upstreamconfig-overrides-limits): map
         - [`maxConnections`](#upstreamconfig-overrides-limits): number | `0`
         - [`maxPendingRequests`](#upstreamconfig-overrides-limits): number | `0`
         - [`maxConcurrentRequests`](#upstreamconfig-overrides-limits): number | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map 
+      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map
         - [`interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
         - [`maxFailures`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
         - [`enforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number | `100`
         - [`maxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number | `10`
         - [`baseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
-    - [`defaults`](#upstreamconfig-defaults): map 
-      - [`protocol`](#upstreamconfig-defaults-protocol): string 
+    - [`defaults`](#upstreamconfig-defaults): map
+      - [`protocol`](#upstreamconfig-defaults-protocol): string
       - [`connectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): number | `5000`
-      - [`meshGateway`](#upstreamconfig-defaults-meshgateway): map 
-        - [`mode`](#upstreamconfig-defaults-meshgateway): string 
-      - [`balanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string 
-      - [`limits`](#upstreamconfig-defaults-limits): map 
+      - [`meshGateway`](#upstreamconfig-defaults-meshgateway): map
+        - [`mode`](#upstreamconfig-defaults-meshgateway): string
+      - [`balanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string
+      - [`limits`](#upstreamconfig-defaults-limits): map
         - [`maxConnections`](#upstreamconfig-defaults-limits): number | `0`
         - [`maxPendingRequests`](#upstreamconfig-defaults-limits): number | `0`
         - [`maxConcurrentRequests`](#upstreamconfig-defaults-limits): number | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map 
+      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map
         - [`interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
         - [`maxFailures`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
         - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): number | `100`
         - [`maxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): number | `10`
         - [`baseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
-  - [`transparentProxy`](#transparentproxy): map 
+  - [`transparentProxy`](#transparentproxy): map
     - [`outboundListenerPort`](#transparentproxy): number | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
-  - [`mutualTLSMode`](#mutualtlsmode): string 
-  - [`envoyExtensions`](#envoyextensions): list 
-    - [`name`](#envoyextensions): string 
-    - [`required`](#envoyextensions): string 
-    - [`arguments`](#envoyextensions): map 
-    - [`consulVersion`](#envoyextensions): string 
-    - [`envoyVersion`](#envoyextensions): string 
-  - [`destination`](#destination): map 
-    - [`addresses`](#destination): list 
+  - [`mutualTLSMode`](#mutualtlsmode): string
+  - [`envoyExtensions`](#envoyextensions): list
+    - [`name`](#envoyextensions): string
+    - [`required`](#envoyextensions): string
+    - [`arguments`](#envoyextensions): map
+    - [`consulVersion`](#envoyextensions): string
+    - [`envoyVersion`](#envoyextensions): string
+  - [`destination`](#destination): map
+    - [`addresses`](#destination): list
     - [`port`](#destination): number | `0`
   - [`maxInboundConnections`](#maxinboundconnections): number | `0`
   - [`localConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
   - [`localRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
-  - [`meshGateway`](#meshgateway): map 
-    - [`mode`](#meshgateway): string 
-  - [`externalSNI`](#externalsni): string 
-  - [`expose`](#expose): map 
+  - [`meshGateway`](#meshgateway): map
+    - [`mode`](#meshgateway): string
+  - [`externalSNI`](#externalsni): string
+  - [`expose`](#expose): map
     - [`checks`](#expose-checks): boolean | `false`
-    - [`paths`](#expose-paths): list 
-      - [`path`](#expose-paths): string 
+    - [`paths`](#expose-paths): list
+      - [`path`](#expose-paths): string
       - [`localPathPort`](#expose-paths): number | `0`
       - [`listenerPort`](#expose-paths): number | `0`
       - [`protocol`](#expose-paths): string | `http`
@@ -207,7 +207,7 @@ RateLimits = {
   InstanceLevel = {
     RequestsPerScond = <average number of requests allowed to the service per second>
     RequestsMaxBurst = <max number of concurrent requests allowed to the service>
-    Routes = [		# Configure RequestsPerSecond and one route matching parameter for each member of the list 
+    Routes = [		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       {
         PathExact = "<limits apply paths that match this value>"
         PathPrefix = "<limits apply to paths starting with this value>"
@@ -320,7 +320,7 @@ spec:
     instanceLevel:
       requestsPerScond: <average number of requests allowed to the service per second>
       requestsMaxBurst: <max number of concurrent requests allowed to the service>
-      routes: 		# Configure RequestsPerSecond and one route matching parameter for each member of the list 
+      routes: 		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       - pathExact: "<limits apply paths that match this value>"
         pathPrefix: "<limits apply to paths starting with this value>"
         pathRegex: "<limits apply to paths that match this expression>"
@@ -366,13 +366,13 @@ spec:
     outboundListenerPort: 15001
     dialedDirectly: false
   mutualTLSMode: strict
-  envoyExtensions: 
+  envoyExtensions:
   - name: <name of the extension>
     required: false
-    arguments: 
+    arguments:
     - <specific to each extension>
     consulVersion: <Consul version constraint for applying the extension>
-    envoyVersion: <Envoy version constraint for applying the extension> 
+    envoyVersion: <Envoy version constraint for applying the extension>
   destination:
     addresses:
     - <first hostname or IP address>
@@ -411,7 +411,7 @@ spec:
     "InstanceLevel": {
       "RequestsPerScond": 100,
       "RequestsMaxBurst": 200,
-      "Routes": [		
+      "Routes": [
         {
           "PathExact": "<limits apply paths that match this value>",
           "PathPrefix": "<limits apply to paths starting with this value>",
@@ -616,7 +616,7 @@ Map containing an instance-level configuration for limiting the service's traffi
 
 ### `RateLimits{}.InstanceLevel`
 
-Map containing a set of request rate limit configurations for instances of the service. 
+Map containing a set of request rate limit configurations for instances of the service.
 
 #### Values
 
@@ -625,7 +625,7 @@ Map containing a set of request rate limit configurations for instances of the s
 
 ### `RateLimits{}.InstanceLevel{}.RequestsPerScond`
 
-Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You may also specify the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `RequestsPerSecond` parameter, but not the `RequestsMaxBurst` parameter. 
+Specifies the average number of requests per second allowed to the service. If the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `RequestsPerSecond` up to the value specified in `RequestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
 
 #### Values
 
@@ -634,7 +634,7 @@ Specifies the average number of requests per second allowed to the service. Cons
 
 ### `RateLimits{}.InstanceLevel{}.RequestsMaxBurst`
 
-Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `RequestsPerSecond`.
+Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `RequestsPerSecond`. Internally, this is the maximum size of the token bucket used for rate limiting.
 
 #### Values
 
@@ -647,7 +647,7 @@ Specifies a list of rate limiting configurations to apply to specific routes to 
 
 - `PathExact`
 - `PathPrefix`
-- `PathRegex` 
+- `PathRegex`
 
 Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
 
@@ -663,7 +663,7 @@ The following table describes the parameters you can specify in the `Routes` map
 | `PathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same `Routes` map. | String | None |
 | `PathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `PathExact` or `PathRegex` in the same `Routes` map. | String | None |
 | `PathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same `Routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
-| `RequestsPerSecond` | Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. Overrides the  [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
+| `RequestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the  [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
 | `RequestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `Routes.RequestsPerSecond` parameter. Overrides the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `UpstreamConfig`
@@ -1082,7 +1082,7 @@ Map containing an instance-level configuration for limiting the service's traffi
 
 ### `spec.rateLimits{}.instanceLevel`
 
-Map containing a set of request rate limit configurations for instances of the service. 
+Map containing a set of request rate limit configurations for instances of the service.
 
 #### Values
 
@@ -1091,7 +1091,7 @@ Map containing a set of request rate limit configurations for instances of the s
 
 ### `spec.rateLimits{}.instanceLevel{}.requestsPerSecond`
 
-Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. You may also specify the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter. The number of requests per second to the service can exceed the limit specified in the `requestsPerSecond` parameter, but not the `requestsMaxBurst` parameter. 
+Specifies the average number of requests per second allowed to the service. If the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `requestsPerSecond` up to the value specified in `requestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
 
 #### Values
 
@@ -1100,7 +1100,7 @@ Specifies the average number of requests per second allowed to the service. Cons
 
 ### `spec.rateLimits{}.instanceLevel{}.requestsMaxBurst`
 
-Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `requestsPerSecond`.
+Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `requestsPerSecond`. Internally, this is the maximum size of the token bucket used for rate limiting.
 
 #### Values
 
@@ -1113,7 +1113,7 @@ Specifies a list of rate limiting configurations to apply to specific routes to 
 
 - `pathExact`
 - `pathPrefix`
-- `pathRegex` 
+- `pathRegex`
 
 Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
 
@@ -1129,7 +1129,7 @@ The following table describes the parameters you can specify in the `routes` map
 | `pathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same `routes` map. | String | None |
 | `pathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `pathExact` or `pathRegex` in the same `routes` map. | String | None |
 | `pathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same `routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
-| `requestsPerSecond` | Specifies the average number of requests per second allowed to the service. Consul allows requests to the service when the average number of requests per second exceeds this value, but it temporarily lowers the speed of the transactions. Overrides the  [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
+| `requestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
 | `requestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `routes.requestsPerSecond` parameter. Overrides the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `spec.upstreamConfig`
@@ -1760,7 +1760,7 @@ RateLimit {
 kind: ServiceDefaults
 name: service-foo
 protocol: http
-rateLimit: 
+rateLimit:
   instanceLevel:
     requestsPerSecond: 1000
     requestsMaxBurst: 1500
@@ -1776,14 +1776,14 @@ rateLimit:
     "InstanceLevel": {
       "RequestsPerSecond": 1000,
       "RequestsMaxBurst": 1500
-    } 
+    }
   }
 }
 ```
 </CodeTabs>
 
 ### Enable request rate limit on a prefixed path
- 
+
 The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests. Request paths that begin with `/admin`, however, are limited to `20` requests per second.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
@@ -1797,7 +1797,7 @@ RateLimit {
   InstanceLevel {
     RequestsPerSecond = 1000
     RequestsMaxBurst = 1500
-   
+
     Routes = [
       {
          PathPrefix = "/admin"
@@ -1844,11 +1844,11 @@ rateLimit:
 
 ### Enable request rate limits on multiple paths
 
-The following example limits the request rate to the `billing` service when requests begin with `/api` and `/login`. 
+The following example limits the request rate to the `billing` service when requests begin with `/api` and `/login`.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
-```hcl 
+```hcl
 Kind = "service-defaults"
 Name = "billing"
 Protocol = "http"
@@ -1870,7 +1870,7 @@ RateLimit {
 }
 ```
 
-```yaml 
+```yaml
 kind: service-defaults
 name: billing
 protocol: http
