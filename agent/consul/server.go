@@ -589,31 +589,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		return nil, fmt.Errorf("cannot initialize server with a nil RPC request recorder")
 	}
 
-	isV1CatalogRPC := func(name string) bool {
-		switch {
-		case strings.HasPrefix(name, "Catalog."),
-			strings.HasPrefix(name, "Health."),
-			strings.HasPrefix(name, "ConfigEntry."):
-			return true
-		}
-
-		switch name {
-		case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
-			return false
-		default:
-			if strings.HasPrefix(name, "Internal.") {
-				return true
-			}
-		}
-
-		return false
-	}
-
 	rpcServerOpts := []func(*rpc.Server){
 		rpc.WithPreBodyInterceptor(
 			middleware.ChainedRPCPreBodyInterceptor(
 				func(reqServiceMethod string, sourceAddr net.Addr) error {
-					if s.useV2Resources && isV1CatalogRPC(reqServiceMethod) {
+					if s.useV2Resources && isV1CatalogRequest(reqServiceMethod) {
 						return structs.ErrUsingV2CatalogExperiment
 					}
 					return nil
@@ -927,6 +907,25 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	return s, nil
+}
+
+func isV1CatalogRequest(rpcName string) bool {
+	switch {
+	case strings.HasPrefix(rpcName, "Catalog."),
+		strings.HasPrefix(rpcName, "Health."),
+		strings.HasPrefix(rpcName, "ConfigEntry."):
+		return true
+	}
+
+	switch rpcName {
+	case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
+		return false
+	default:
+		if strings.HasPrefix(rpcName, "Internal.") {
+			return true
+		}
+		return false
+	}
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
