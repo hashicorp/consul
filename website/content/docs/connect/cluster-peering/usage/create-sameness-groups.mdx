@@ -12,7 +12,7 @@ For information about configuring a failover strategy using sameness groups, ref
 
 ## Workflow
 
-Sameness groups are a user-defined set of partitions with established cluster peering connections between each other. These partitions should have identical configurations, including configuration entries for service and proxy defaults.
+Sameness groups are a user-defined set of partitions with identical configurations, including configuration entries for service and proxy defaults. Partitions on separate clusters should have an established cluster peering connection in order to recognize each other.
 
 To create and use sameness groups in your network, complete the following steps:
 
@@ -31,7 +31,7 @@ Before creating a sameness group, take the following actions to prepare your net
 
 #### Check namespace and service naming conventions
 
-Sameness groups are defined at the partition level. Consul assumes these partitions have identical configurations, including identical service names and identical namespaces. This behavior occurs even when two partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services both named `api` were registered to two members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
+Sameness groups are defined at the partition level. Consul assumes all partitions in the group have identical configurations, including identical service names and identical namespaces. This behavior occurs even when partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services named `api` were registered to different members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
 
 To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s names or deploy one of the services to a different namespace.
 
@@ -49,7 +49,7 @@ To establish cluster peering connections and define a group as part of the same 
 
 ## Create a sameness group
 
-The workflow to create a sameness group requires you to write and apply a set of three configuration entries for each partition that is a member of the group:
+To create a sameness group, you must write and apply a set of three configuration entries for each partition that is a member of the group:
 
 - Sameness group configuration entries: Defines the sameness group from each partition’s perspective.
 - Exported services configuration entries: Makes services available to other partitions in the group.
@@ -203,11 +203,11 @@ $ consul config write product-sg-export.hcl
 
 #### Export services for cluster peers and sameness groups as part of the same workflow
 
-If you separately follow the steps in this documentation to create a cluster peering connection between two partitions and then add those partitions to a sameness group, you write and apply two separate exported services configuration entries: one to export services to the peer, and a second to export services to other members of the group.
+Creating a cluster peering connection between two partitions and then adding the partitions to a sameness group requires that you write and apply two separate exported services configuration entries. One configuration entry exports services to the peer, and a second entry exports services to other members of the group.
 
-If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single exported services configuration entry.
+If your goal for peering clusters is to create a sameness group, you can write and apply a single exported services configuration entry by configuring the `Services[].Consumers` block with the `SamenessGroup` field instead of the `Peer` field.
 
-Configure the `Services[].Consumers` block with the `SamenessGroup` field instead of the `Peer` field. Be aware that this scenario requires you to write the `sameness-group` configuration entry to Consul before you apply the `exported-services` configuration entry that references the sameness group.
+Be aware that this scenario requires you to write the `sameness-group` configuration entry to Consul before you apply the `exported-services` configuration entry that references the sameness group.
 
 ### Create service intentions to authorize traffic between group members
 
@@ -291,7 +291,7 @@ $ consul config write api-intentions.hcl
 
 #### Create service intentions for cluster peers and sameness groups as part of the same workflow
 
-If you separately follow the steps in this documentation to create a cluster peering connection between two partitions and then add those partitions to a sameness group, you write and apply two separate service intentions configuration entries: one to authorize traffic to the peer, and a second to authorize traffic to other members of the group.
+Creating a cluster peering connection between two remote partitions and then adding the partitions to a sameness group requires that you write and apply two separate service intention configuration entries. One configuration entry authorizes services to the peer, and a second entry authorizes services to other members of the group.
 
 If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single service intentions configuration entry.
 
@@ -299,7 +299,7 @@ Configure the `Sources` block with the `SamenessGroup` field instead of the `Pee
 
 ## Next steps
 
-When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required. If the sameness group is not configured as the default for failover, you must specify `destination_sameness_group` in a connect-proxy upstream configuration to enable the sameness group to function as a service upstream. Refer to [upstream configuration reference](/consul/docs/connect/proxies/proxy-config-reference#upstream-configuration-reference) for more information.
+When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required. 
 
 After creating a sameness group, you can use them with static Consul DNS lookups and dynamic DNS lookups (prepared queries) for service discovery use cases. You can also set up failover between services in a sameness group. Refer to the following topics for more details:
 

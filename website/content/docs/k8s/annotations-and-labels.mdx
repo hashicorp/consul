@@ -105,13 +105,6 @@ The following Kubernetes resource annotations could be used on a pod to control 
           "consul.hashicorp.com/connect-service-upstreams":"[service-name].svc.[service-dc].dc:[port]"
         ```
 
-      - Sameness group: Place the sameness group name after the service name followed by `.sg` to specify a sameness group for an upstream service. When a sameness group CRD has `spec.defaultForFailover` set to `true`, this field is not required. Refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for more information
-
-        ```yaml
-        annotations:
-          "consul.hashicorp.com/connect-service-upstreams":"[service-name].[group-name].sg:[port]"
-        ```
-
       - Namespace (requires Consul Enterprise): Place the namespace after `svc.` followed by `ns` and the port number.
 
         ```yaml

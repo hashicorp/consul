@@ -6,13 +6,13 @@ description: |-
 
 # Create sameness groups on Kubernetes
 
-This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in a Consul deployment running Kubernetes. Adding an admin partition to a sameness group enables Consul to recognize services registered to different clusters as instances of the same service when they share a name and Consul namespace.
+This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in a Consul deployment running Kubernetes. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and Consul namespace.
 
 For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/connect/failover/sameness).
 
 ## Overview
 
-Sameness groups are a user-defined set of partitions with established cluster peering connections between each other. These partitions should have identical configurations, including configuration entries for service and proxy defaults.
+Sameness groups are a user-defined set of partitions with identical configurations, includingcustom resource definitions (CRDs) for service and proxy defaults. Partitions on separate clusters should have an established cluster peering connection in order to recognize each other.
 
 To create and use sameness groups in your network, complete the following steps:
 
@@ -31,7 +31,7 @@ Before creating a sameness group, take the following actions to prepare your net
 
 #### Check Consul namespaces and service naming conventions
 
-Sameness groups are defined at the partition level. Consul assumes these partitions have identical configurations, including identical service names and identical Consul namespaces. This behavior occurs even when two partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services both named `api` were registered to two members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
+Sameness groups are defined at the partition level. Consul assumes all partitions in the group have identical configurations, including identical service names and identical Consul namespaces. This behavior occurs even when two partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services both named `api` were registered to different members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
 
 To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s names or deploy one of the services to a different namespace.
 
@@ -49,7 +49,7 @@ To establish cluster peering connections and define a group as part of the same 
 
 ## Create a sameness group
 
-To create a sameness group, you must write and apply sets of three CRDs for each partition that is a member of the group:
+To create a sameness group, you must write and apply a set of three CRDs for each partition that is a member of the group:
 
 - Sameness group CRDs: Define the sameness group from each partition’s perspective.
 - Exported services CRDs: Make services available to other partitions in the group.
@@ -77,6 +77,7 @@ kind: SamenessGroup
 metadata:
   name: product-group
 spec:
+  defaultForFailover: true
   members:                                   
     - partition: partition-1
     - partition: partition-2
@@ -202,11 +203,9 @@ $ kubectl apply -f product-group-export.yaml
 
 #### Export services for cluster peers and sameness groups as part of the same workflow
 
-If you separately follow the steps in this documentation to create a cluster peering connection between two partitions and then add those partitions to a sameness group, you write and apply two separate exported services CRDs: one to export services to the peer, and a second to export services to other members of the group.
+Creating a cluster peering connection between two partitions and then adding the partitions to a sameness group requires that you write and apply two separate exported services CRDs. One CRD exports services to the peer, and a second CRD exports services to other members of the group.
 
-If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single exported services CRD.
-
-In this workflow, configure the `services[].consumers` block with the `samenessGroup` field instead of the `peer` field. Be aware that this scenario requires you to write the `SamenessGroup` CRD to Consul before you apply the `ExportedServices` CRD that references the sameness group.
+If your goal for peering clusters is to create a sameness group, you can write and apply a single exported services configuration entry by configuring the `services[].consumers` block with the `samenessGroup` field instead of the `peer` field. Be aware that this scenario requires you to write the `SamenessGroup` CRD to Kubernetes before you apply the `ExportedServices` CRD that references the sameness group.
 
 ### Create service intentions to authorize traffic between group members
 
@@ -284,12 +283,12 @@ $ kubectl apply -f api-intentions.yaml
 
 #### Create service intentions for cluster peers and sameness groups  as part of the same workflow
 
-If you separately follow the steps in this documentation to create a cluster peering connection between two partitions and then add those partitions to a sameness group, you write and apply two separate service intentions CRDs: one to authorize traffic to the peer, and a second to authorize traffic to other members of the group.
+Creating a cluster peering connection between two partitions and then adding the partitions to a sameness group requires that you write and apply two separate service intentions CRDs. One CRD authorizes services for the peer, and a second CRD authorizes services for other members of the group.
 
-If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single service intentions CRD.
-
-Configure the `sources` block with the `samenessGroup` field instead of the `peer` field. Be aware that this scenario requires you to apply the `samenessGroup` CRD before you apply the `serviceIntentions` CRD that references the sameness group.
+If your goal for peering clusters is to create a sameness group, you can write and apply a single service intentions CRD by configuring the `sources` block with the `samenessGroup` field instead of the `peer` field. Be aware that this scenario requires you to write the `SamenessGroup` CRD to Kubernetes before you apply the `ServiceIntentions` CRD that references the sameness group.
 
 ## Next steps
 
-When `defaultForFailover=true` in a sameness group CRD, additional upstream configuration is not required. If the sameness group is not configured as the default for failover, you must specify the sameness group in an upstream annotation when scheduling the workload. Refer to the specifications for `consul.hashicorp.com/connect-service-upstreams` in the [Kubernetes annotations and labels reference](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams) for more information.
+When `defaultForFailover=true` in a sameness group CRD, additional upstream configuration is not required.
+
+After creating a sameness group, you can also set up failover between services in a sameness group. Refer to [Failover with sameness groups](/consul/docs/connect/failover/sameness) for more information.
