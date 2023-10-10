@@ -30,8 +30,8 @@ Since then, the cloud networking needs for applications have evolved and the Con
 
 Consul v1.17 introduces a new version of the catalog API designed to bridge differences between the Consul and Kubernetes data models. The v2 catalog API still tracks services and nodes for Consul, but replaces service instances with _workloads_ and _workload identites_.
 
-- `Workload`, like [Kubernetes Workloads](https://kubernetes.io/docs/concepts/workloads/), is an application instance running in a set of one or more Pods scheduled according to a Workload resource such as a Deployment or StatefulSet.
-- `WorkloadIdentities`, like [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/), provide a distinct identity for a Workload to assume in a Kubernetes cluster.
+- `Workload` is an application instance running in a set of one or more Pods scheduled according to a Kubernetes Workload resource such as a Deployment or StatefulSet. It is similar to [Kubernetes Workloads](https://kubernetes.io/docs/concepts/workloads/).
+- `WorkloadIdentities` provide a distinct identity for a Workload to assume in a Kubernetes cluster. THey are similar to [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/).
 
 This catalog structure enables Consul to associate a single Kubernetes Workload with multiple services in its catalog.
 
