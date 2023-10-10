@@ -327,6 +327,25 @@ Rules = [
               }
             ]
           }
+        ],
+        "ResponseFilters": [
+          {
+            "Headers": [
+              {
+                "Add": [
+                  {
+                    "<name of header to add": "<value of header to add>"
+                  }
+                ],
+                "Remove": ["<header to remove from response>"],
+                "Set": [
+                  {
+                    "<name of header to set": "<value of header to set>"
+                  }
+                ]
+              }
+            ]
+          }
         ]
       }
     ]
