@@ -41,6 +41,11 @@ func TestResourceApplyCommand(t *testing.T) {
 			args:   []string{"-f=../testdata/nested_data.hcl"},
 			output: "mesh.v2beta1.Destinations 'api' created.",
 		},
+		{
+			name:   "file path with no flag",
+			args:   []string{"../testdata/nested_data.hcl"},
+			output: "mesh.v2beta1.Destinations 'api' created.",
+		},
 	}
 
 	for _, tc := range cases {
@@ -204,7 +209,7 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		"missing required flag": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must provide one argument to write the resource. Flag -f can be used to pass the file path or - to for stdin"),
+			expectedErr:  errors.New("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write"),
 		},
 		"file parsing failure": {
 			args:         []string{"-f=../testdata/invalid.hcl"},

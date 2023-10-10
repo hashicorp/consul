@@ -17,9 +17,6 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/helpers"
 	"github.com/hashicorp/consul/command/resource/client"

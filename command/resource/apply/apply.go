@@ -79,7 +79,7 @@ func (c *cmd) Run(args []string) int {
 
 	input := c.filePath
 
-	if input == "" && len(c.flags.Args()) > 0 && c.flags.Arg(0) == "-" {
+	if input == "" && len(c.flags.Args()) > 0 {
 		input = c.flags.Arg(0)
 	}
 
@@ -93,7 +93,7 @@ func (c *cmd) Run(args []string) int {
 		}
 		parsedResource = data
 	} else {
-		c.UI.Error("Incorrect argument format: Must provide one argument to write the resource. Flag -f can be used to pass the file path or - to for stdin")
+		c.UI.Error("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write")
 		return 1
 	}
 
@@ -160,31 +160,42 @@ func (c *cmd) Help() string {
 const synopsis = "Writes/updates resource information"
 
 const help = `
-Usage: consul resource apply -f=<file-path>
+Usage: consul resource apply [options] <resource>
 
-Write and/or update a resource by providing the definition in an hcl file as an argument
+	Write and/or update a resource by providing the definition. The configuration
+	argument is either a file path or '-' to indicate that the resource
+    should be read from stdin. The data should be either in HCL or
+	JSON form.
 
-Example:
+	Example (with flag):
 
-$ consul resource apply -f=demo.hcl
+	$ consul resource apply -f=demo.hcl
 
-Sample demo.hcl:
+	Example (from file):
 
-ID {
-	Type = gvk("group.version.kind")
-	Name = "resource-name"
-	Tenancy {
-	  Namespace = "default"
-	  Partition = "default"
-	  PeerName = "local"
+	$ consul resource apply demo.hcl
+
+	Example (from stdin):
+
+	$ consul resource apply -
+
+	Sample demo.hcl:
+
+	ID {
+		Type = gvk("group.version.kind")
+		Name = "resource-name"
+		Tenancy {
+		Namespace = "default"
+		Partition = "default"
+		PeerName = "local"
+		}
 	}
-  }
 
-  Data {
-	Name = "demo"
-  }
+	Data {
+		Name = "demo"
+	}
 
-  Metadata = {
-	"foo" = "bar"
-  }
+	Metadata = {
+		"foo" = "bar"
+	}
 `
