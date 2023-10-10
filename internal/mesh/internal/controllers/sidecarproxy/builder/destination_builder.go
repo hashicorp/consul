@@ -383,7 +383,7 @@ func (b *Builder) addL4ClusterForDirect(clusterName string) *Builder {
 				Group: &pbproxystate.EndpointGroup_Passthrough{
 					Passthrough: &pbproxystate.PassthroughEndpointGroup{
 						Config: &pbproxystate.PassthroughEndpointGroupConfig{
-							ConnectTimeout: durationpb.New(10 * time.Second),
+							ConnectTimeout: durationpb.New(5 * time.Second),
 						},
 					},
 				},
