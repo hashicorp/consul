@@ -42,13 +42,13 @@ Refer to the following topics for additional information:
 
 OpenShift requires a security context constraint (SCC) configuration, which restricts pods to specific groups. You can create a custom SCC or use one of the default constraints. Refer to the [OpenShift documentation](https://docs.openshift.com/container-platform/4.13/authentication/managing-security-context-constraints.html) for additional information. 
 
-By default, the SCC is set to `restricted-v2` for the `managedGatewayClass` that Consul automatically creates. The `restricted-v2` SCC is one of OpenShifts default SCCs, but you can specify a different SCC in the `openshiftSccName` parameter:
+By default, the SCC is set to `restricted-v2` for the `managedGatewayClass` that Consul automatically creates. The `restricted-v2` SCC is one of OpenShifts default SCCs, but you can specify a different SCC in the `openshiftSCCName` parameter:
 
 ```yaml
 connectInject:
   apiGateway:
     managedGatewayClass:
-      openshiftSccName: "restricted-v2"
+      openshiftSCCName: "restricted-v2"
 ```
 
 ### Privileged container ports
@@ -74,7 +74,7 @@ Refer to the [release notes](/consul/docs/release-notes) for your version of Con
 
 ## Supported Kubernetes gateway specification features
 
-Consul API gateways for Kuberentes support the following subset of the Kubernetes [v1alpha2 Gateway API specification](https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/). For a complete list of features, including the list of gateway and route statuses and an explanation on how they
+Consul API gateways for Kuberentes support a subset of the Kubernetes Gateway API specification. For a complete list of features, including the list of gateway and route statuses and an explanation on how they
 are used, refer to the [documentation in our GitHub repo](https://github.com/hashicorp/consul-api-gateway/blob/main/dev/docs/supported-features.md): 
 
 ### `GatewayClass`
@@ -113,7 +113,7 @@ Refer to [Kubernetes `TCPRoute` documentation](https://gateway-api.sigs.k8s.io/v
 
 `ReferenceGrant` resources allow resources to reference resources in other namespaces. They are required to allow references from a `Gateway` to a Kubernetes `core/v1/Secret` in a different namespace. Without a `ReferenceGrant`, `backendRefs` attached to the gateway may not be permitted. As a result, the `ReferenceGrant` sets a `ResolvedRefs` status to `False` with the reason `InvalidCertificateRef`, which prevents the gateway from becoming ready.
 
-`ReferenceGrant` resources are also required to references from an `HTTPRoute` or `TCPRoute` to a Kubernetes `core/v1/Service` in a different namespace. Without a `ReferenceGrant`, `backendRefs` attached to the route may hot be permitted. As a result, Kubernetes sets a `ResolvedRefs` status to `False` with the reason `RefNotPermitted`, which causes the gateway listener to reject the route.
+`ReferenceGrant` resources are also required for references from an `HTTPRoute` or `TCPRoute` to a Kubernetes `core/v1/Service` in a different namespace. Without a `ReferenceGrant`, `backendRefs` attached to the route may not be permitted. As a result, Kubernetes sets a `ResolvedRefs` status to `False` with the reason `RefNotPermitted`, which causes the gateway listener to reject the route.
 
 If a route `backendRefs` becomes unpermitted, the entire route is removed from the gateway listener. A `backendRefs` can become unpermitted when you delete a `ReferenceGrant` or add a new unpermitted `backendRefs` to an existing route.
 
@@ -121,7 +121,7 @@ Refer to the [Kubernetes `ReferenceGrant` documentation](https://gateway-api.sig
 
 ## Consul server deployments
 
-- Consul Editions supported: Community edition and Enterprise
+- Consul Enterprise and the free community edition are both supported.
 - Supported Consul Server deployment types:
   - Self-Managed
   - HCP Consul
