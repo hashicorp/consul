@@ -111,6 +111,23 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 			req.Id.Tenancy.Namespace,
 		)
 	}
-
+	if reg.Scope == resource.ScopeCluster {
+		if req.Id.Tenancy.Partition != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Partition,
+			)
+		}
+		if req.Id.Tenancy.Namespace != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Namespace,
+			)
+		}
+	}
 	return reg, nil
 }
