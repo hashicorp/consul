@@ -5,6 +5,7 @@ package types
 
 import (
 	"errors"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
@@ -14,13 +15,9 @@ import (
 )
 
 func createComputedExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage, name string) *pbresource.Resource {
-	res := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type: multiclusterv1alpha1.ComputedExportedServicesType,
-			Name: name,
-		},
-	}
-
+	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, name).
+		WithData(t, data).
+		Build()
 	var err error
 	res.Data, err = anypb.New(data)
 	require.NoError(t, err)

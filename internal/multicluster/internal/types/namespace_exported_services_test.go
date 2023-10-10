@@ -4,6 +4,7 @@
 package types
 
 import (
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
@@ -13,12 +14,9 @@ import (
 )
 
 func createNamespaceExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type: multiclusterv1alpha1.NamespaceExportedServicesType,
-			Name: "namespace-exported-services-1",
-		},
-	}
+	res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services-1").
+		WithData(t, data).
+		Build()
 
 	var err error
 	res.Data, err = anypb.New(data)
