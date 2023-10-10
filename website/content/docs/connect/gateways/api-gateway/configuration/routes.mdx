@@ -2,7 +2,7 @@
 layout: docs
 page_title: Route resource configuration reference
 description: >-
-  Learn about the configuration fields for `HTTPRoute` and `TCPRoute` resources for Consul API gateway. Apply routes to configure how Consul routes traffic into the service mesh according. 
+  Learn about the configuration fields for `HTTPRoute` and `TCPRoute` resources for Consul API gateway. Apply routes to configure how Consul routes traffic into the service mesh according.
 ---
 
 # Route resource configuration reference
@@ -37,14 +37,22 @@ The following outline shows how to format the configurations for the `Route` obj
         - [`name`](#rules-filters-requestheadermodifier): string | required
         - [`value`](#rules-filters-requestheadermodifier): string | required
       - [`remove`](#rules-filters-requestheadermodifier): array of strings | optional
+    - [`responseHeaderModifier`](#rules-filters-responseheadermodifier): object | optional
+      - [`set`](#rules-filters-responseheadermodifier): array of objects | optional
+        - [`name`](#rules-filters-responseheadermodifier): string | required
+        - [`value`](#rules-filters-responseheadermodifier): string | required
+      - [`add`](#rules-filters-responseheadermodifier): array of objects | optional
+        - [`name`](#rules-filters-responseheadermodifier): string | required
+        - [`value`](#rules-filters-responseheadermodifier): string | required
+      - [`remove`](#rules-filters-responseheadermodifier): array of strings | optional
     - [`urlRewrite`](#rules-filters-urlrewrite): object | optional
       - [`path`](#rules-filters-urlrewrite-path): object | required
         - [`replacePrefixMatch`](#rules-filters-urlrewrite-path): string | required
         - [`type`](#rules-filters-urlrewrite-path): string | required
-    - [`extensionRef`](#rules-filters-extensionref): map 
-      - [`group`](#rultes-filters-extensionref): string | must be set to `consul.hashicorp.com` 
+    - [`extensionRef`](#rules-filters-extensionref): map
+      - [`group`](#rultes-filters-extensionref): string | must be set to `consul.hashicorp.com`
       - [`kind`](#rultes-filters-extensionref): string | must be set to `RouteAuthFilter`
-      - [`name`](#rultes-filters-extensionref): string | must be set to `consul.hashicorp.com`  
+      - [`name`](#rultes-filters-extensionref): string | must be set to `consul.hashicorp.com`
   - [`matches`](#rules-matches): array of objects | optional
     - [`path`](#rules-matches-path): list of objects | optional
       - [`type`](#rules-matches-path): string | required
@@ -118,9 +126,12 @@ You can specify the following values:
 
 - `RequestHeaderModifier`: The `RequestHeaderModifier` type modifies the HTTP headers on the incoming request. You must define the [`rules.filters.requestHeaderModifier`](#rules-filters-requestheadermodifier) configurations to use this filter type.
 
+- `ResponseHeaderModifier`: The `ResponseHeaderModifier` type modifies the HTTP headers on the outgoing response to the caller. You must define the [`rules.filters.requestHeaderModifier`](#rules-filters-requestheadermodifier) configurations to use this filter type.
+
+
 - `URLRewrite`: The `URLRewrite` type  modifies the URL path on the incoming request. You must define the [`rules.filters.urlRewrite`](#rules-filters-urlrewrite) configurations to use this filter type.
 
-- `ExtensionRef`: Attaches an extension reference to an HTTP route. You can create extensions that enable different behaviors, such as defining JWT verification for requests to the route, and attach them to the route. You must define the [`rules.filters.extensionRef`](#rules-filters-extensionref) configuration to use this filter type. 
+- `ExtensionRef`: Attaches an extension reference to an HTTP route. You can create extensions that enable different behaviors, such as defining JWT verification for requests to the route, and attach them to the route. You must define the [`rules.filters.extensionRef`](#rules-filters-extensionref) configuration to use this filter type.
 
 ### `rules.filters.requestHeaderModifier`
 
@@ -132,6 +143,15 @@ Defines operations to perform on matching request headers when `rules.filters.ty
 | `add` | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of objects | Optional |
 | `remove` | Configure this field to specify an array of header names to remove from the request header. | Array of strings | Optional |
 
+### `rules.filters.responseHeaderModifier`
+
+Defines operations to perform on matching response headers when `rules.filters.type` is configured to `ResponseHeaderModifier`. This field contains the following configuration objects:
+
+| Parameter | Description | Type | Required |
+| ---       | ---         | ---  | ---      |
+| `set` | Configure this field to rewrite the HTTP response header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of objects | Optional |
+| `add` | Configure this field to append the response header with a new value. It specifies the name of an HTTP header to append and the value(s) to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul> | List of objects | Optional |
+| `remove` | Configure this field to specify an array of header names to remove from the response header. | Array of strings | Optional |
 
 ### `rules.filters.urlRewrite`
 
@@ -160,7 +180,7 @@ You can configure the following parameters:
 | Parameter | Description | Data type | Default |
 | ---       | ---         | ---       | ---     |
 | `group`   | Specifies the resource group.           | String    | None    |
-| `kind`    | Specifies the type of extension reference. You can specify the following types: <ul><li>`RouteAuthFilter`: Contains JWT verification settings. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for additional information.</li><li>`RouteRetryFilter`: Defines retry logic for the route if the request is unsuccessful. Refer to [RouteRetryFilter configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeretryfilter) for additional information.</li><li>`RouteTimeoutFilter`: Specifies timeout settings for specific routes. Refer to [RouteTimeoutFilter configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routetimeoutfilter) for additional information. </li> </ul> | String | None | 
+| `kind`    | Specifies the type of extension reference. You can specify the following types: <ul><li>`RouteAuthFilter`: Contains JWT verification settings. Refer to [Use JWTs to verify requests to API gateways on Kubernetes](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) for additional information.</li><li>`RouteRetryFilter`: Defines retry logic for the route if the request is unsuccessful. Refer to [RouteRetryFilter configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeretryfilter) for additional information.</li><li>`RouteTimeoutFilter`: Specifies timeout settings for specific routes. Refer to [RouteTimeoutFilter configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routetimeoutfilter) for additional information. </li> </ul> | String | None |
 | `name` | Specifies the name of the filter to attach to the route. | String | None |
 
 ### `rules.matches`
