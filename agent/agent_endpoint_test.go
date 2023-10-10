@@ -79,6 +79,34 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	return svcToken.SecretID
 }
 
+func TestAgentEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
+		})
+	}
+
+	checkRequest("PUT", "/v1/agent/maintenance")
+	checkRequest("GET", "/v1/agent/services")
+	checkRequest("GET", "/v1/agent/service/web")
+	checkRequest("GET", "/v1/agent/checks")
+	checkRequest("GET", "/v1/agent/health/service/id/web")
+	checkRequest("GET", "/v1/agent/health/service/name/web")
+	checkRequest("PUT", "/v1/agent/check/register")
+	checkRequest("PUT", "/v1/agent/check/deregister/web")
+	checkRequest("PUT", "/v1/agent/check/pass/web")
+	checkRequest("PUT", "/v1/agent/check/warn/web")
+	checkRequest("PUT", "/v1/agent/check/fail/web")
+	checkRequest("PUT", "/v1/agent/check/update/web")
+	checkRequest("PUT", "/v1/agent/service/register")
+	checkRequest("PUT", "/v1/agent/service/deregister/web")
+	checkRequest("PUT", "/v1/agent/service/maintenance/web")
+}
+
 func TestAgent_Services(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

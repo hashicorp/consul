@@ -35,7 +35,7 @@ func TestHealthEndpointsFailInV2(t *testing.T) {
 
 	checkRequest := func(method, url string) {
 		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url)
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
 		})
 	}
 

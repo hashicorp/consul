@@ -32,7 +32,7 @@ func TestCatalogEndpointsFailInV2(t *testing.T) {
 
 	checkRequest := func(method, url string) {
 		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url)
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
 		})
 	}
 
@@ -48,11 +48,11 @@ func TestCatalogEndpointsFailInV2(t *testing.T) {
 	checkRequest("GET", "/v1/catalog/gateway-services/")
 }
 
-func assertV1CatalogEndpointDoesNotWorkWithV2(t *testing.T, a *TestAgent, method, url string) {
+func assertV1CatalogEndpointDoesNotWorkWithV2(t *testing.T, a *TestAgent, method, url string, requestBody string) {
 	var body io.Reader
 	switch method {
 	case http.MethodPost, http.MethodPut:
-		body = strings.NewReader("{}\n")
+		body = strings.NewReader(requestBody + "\n")
 	}
 
 	req, err := http.NewRequest(method, url, body)

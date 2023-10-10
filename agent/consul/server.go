@@ -590,7 +590,10 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	isV1CatalogRPC := func(name string) bool {
-		if strings.HasPrefix(name, "Catalog.") || strings.HasPrefix(name, "Health.") {
+		switch {
+		case strings.HasPrefix(name, "Catalog."),
+			strings.HasPrefix(name, "Health."),
+			strings.HasPrefix(name, "ConfigEntry."):
 			return true
 		}
 
