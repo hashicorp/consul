@@ -396,41 +396,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 		rejectCatalogV1Endpoint := false
 		if s.agent.useV2Resources() {
-			switch {
-			case strings.HasPrefix(logURL, "/v1/catalog/"),
-				strings.HasPrefix(logURL, "/v1/health/"),
-				strings.HasPrefix(logURL, "/v1/config/"):
-				rejectCatalogV1Endpoint = true
-
-			case strings.HasPrefix(logURL, "/v1/agent/token/"),
-				logURL == "/v1/agent/self",
-				logURL == "/v1/agent/host",
-				logURL == "/v1/agent/version",
-				logURL == "/v1/agent/reload",
-				logURL == "/v1/agent/monitor",
-				logURL == "/v1/agent/metrics",
-				logURL == "/v1/agent/metrics/stream",
-				logURL == "/v1/agent/members",
-				strings.HasPrefix(logURL, "/v1/agent/join/"),
-				logURL == "/v1/agent/leave",
-				strings.HasPrefix(logURL, "/v1/agent/force-leave/"),
-				logURL == "/v1/agent/connect/authorize",
-				logURL == "/v1/agent/connect/ca/roots",
-				strings.HasPrefix(logURL, "/v1/agent/connect/ca/leaf/"):
-				rejectCatalogV1Endpoint = false
-
-			case strings.HasPrefix(logURL, "/v1/agent/"):
-				rejectCatalogV1Endpoint = true
-
-			case logURL == "/v1/internal/acl/authorize",
-				logURL == "/v1/internal/service-virtual-ip",
-				logURL == "/v1/internal/ui/oidc-auth-methods",
-				strings.HasPrefix(logURL, "/v1/internal/ui/metrics-proxy/"):
-				rejectCatalogV1Endpoint = false
-
-			case strings.HasPrefix(logURL, "/v1/internal/"):
-				rejectCatalogV1Endpoint = true
-			}
+			rejectCatalogV1Endpoint = isV1CatalogRequest(logURL)
 		}
 
 		if s.denylist.Block(req.URL.Path) {
@@ -661,6 +627,46 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		resp.Header().Set("Content-Type", contentType)
 		resp.WriteHeader(httpCode)
 		resp.Write(buf)
+	}
+}
+
+func isV1CatalogRequest(logURL string) bool {
+	switch {
+	case strings.HasPrefix(logURL, "/v1/catalog/"),
+		strings.HasPrefix(logURL, "/v1/health/"),
+		strings.HasPrefix(logURL, "/v1/config/"):
+		return true
+
+	case strings.HasPrefix(logURL, "/v1/agent/token/"),
+		logURL == "/v1/agent/self",
+		logURL == "/v1/agent/host",
+		logURL == "/v1/agent/version",
+		logURL == "/v1/agent/reload",
+		logURL == "/v1/agent/monitor",
+		logURL == "/v1/agent/metrics",
+		logURL == "/v1/agent/metrics/stream",
+		logURL == "/v1/agent/members",
+		strings.HasPrefix(logURL, "/v1/agent/join/"),
+		logURL == "/v1/agent/leave",
+		strings.HasPrefix(logURL, "/v1/agent/force-leave/"),
+		logURL == "/v1/agent/connect/authorize",
+		logURL == "/v1/agent/connect/ca/roots",
+		strings.HasPrefix(logURL, "/v1/agent/connect/ca/leaf/"):
+		return false
+
+	case strings.HasPrefix(logURL, "/v1/agent/"):
+		return true
+
+	case logURL == "/v1/internal/acl/authorize",
+		logURL == "/v1/internal/service-virtual-ip",
+		logURL == "/v1/internal/ui/oidc-auth-methods",
+		strings.HasPrefix(logURL, "/v1/internal/ui/metrics-proxy/"):
+		return false
+
+	case strings.HasPrefix(logURL, "/v1/internal/"):
+		return true
+	default:
+		return false
 	}
 }
 
