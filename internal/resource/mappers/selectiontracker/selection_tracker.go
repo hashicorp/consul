@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"sync"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
 	"github.com/hashicorp/consul/internal/resource"
@@ -176,14 +178,10 @@ func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID,
 		if foundIdx != -1 {
 			l := len(ids)
 
-			if l == 1 {
-				ids = nil
-			} else if foundIdx == l-1 {
+			if foundIdx == l-1 {
 				ids = ids[:foundIdx]
-			} else if foundIdx == 0 {
-				ids = ids[1:]
 			} else {
-				ids = append(ids[:foundIdx], ids[foundIdx+1:]...)
+				ids = slices.Delete(ids, foundIdx, foundIdx+1)
 			}
 
 			if len(ids) > 0 {
