@@ -71,7 +71,6 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
@@ -622,7 +621,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
-	if a.useV2Resources() {
+	if a.baseDeps.UseV2Resources() {
 		a.sync.HardDisableSync()
 	}
 
@@ -726,7 +725,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		)
 
 		var pt *proxytracker.ProxyTracker
-		if a.useV2Resources() {
+		if a.baseDeps.UseV2Resources() {
 			pt = proxyWatcher.(*proxytracker.ProxyTracker)
 		}
 		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, pt)
@@ -913,20 +912,11 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-// useV2Resources returns true if "resource-apis" is present in the Experiments
-// array of the agent config.
-func (a *Agent) useV2Resources() bool {
-	if stringslice.Contains(a.baseDeps.Experiments, consul.CatalogResourceExperimentName) {
-		return true
-	}
-	return false
-}
-
 // getProxyWatcher returns the proper implementation of the ProxyWatcher interface.
 // It will return a ProxyTracker if "resource-apis" experiment is active.  Otherwise,
 // it will return a ConfigSource.
 func (a *Agent) getProxyWatcher() xds.ProxyWatcher {
-	if a.useV2Resources() {
+	if a.baseDeps.UseV2Resources() {
 		a.logger.Trace("returning proxyTracker for getProxyWatcher")
 		return proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
 			Logger:         a.logger.Named("proxy-tracker"),

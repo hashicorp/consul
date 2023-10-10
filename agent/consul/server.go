@@ -555,6 +555,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		registry:                flat.Registry,
+		useV2Resources:          flat.UseV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -929,9 +930,7 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
-		s.useV2Resources = true
-
+	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
 
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
