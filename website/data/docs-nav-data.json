@@ -651,6 +651,10 @@
                 "href": "/tutorials/developer-discovery/automate-geo-failover"
               },
               {
+                "title": "Failover with sameness groups",
+                "path": "connect/manage-traffic/failover/sameness"
+              },
+              {
                 "title": "Configuration",
                 "routes": [
                   {
@@ -888,45 +892,6 @@
               {
                 "title": "Create Sameness Groups",
                 "path": "connect/cluster-peering/usage/create-sameness-groups"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "Failover",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/manage-traffic/failover"
-          },
-          {
-            "title": "Usage",
-            "routes": [
-              {
-                "title": "Configure failover services for Kubernetes",
-                "href": "/docs/k8s/l7-traffic/failover-tproxy"
-              },
-              {
-                "title": "Automate geo-failover with prepared queries",
-                "href": "/tutorials/developer-discovery/automate-geo-failover"
-              },
-              {
-                "title": "Failover with sameness groups",
-                "path": "connect/manage-traffic/failover/sameness"
-              }
-            ]
-          },
-          {
-            "title": "Configuration",
-            "routes": [
-              {
-                "title": "Service resolver",
-                "href": "/consul/docs/connect/config-entries/service-resolver"
-              },
-              {
-                "title": "Service intentions",
-                "href": "/consul/docs/connect/config-entries/service-intentions"
               }
             ]
           }
