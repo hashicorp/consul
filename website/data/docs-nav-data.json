@@ -1511,6 +1511,19 @@
         ]
       },
       {
+        "title": "Multi-port services",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/multiport"
+          },
+          {
+            "title": "Configure multi-port services",
+            "path": "k8s/multiport/configure"
+          }
+        ]
+      },
+      {
         "title": "L7 traffic management",
         "routes": [
           {
