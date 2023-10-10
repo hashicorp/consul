@@ -483,7 +483,7 @@ Specifies the list of HTTP-based routing rules that this route uses to construct
   - `Matches`
   - `Services`
 
-### `Rules[].Filters`
+### `Rules[].Filters[]`
 
 Specifies the list of HTTP-based filters used to modify a request prior to routing it to the upstream service.
 
@@ -496,7 +496,7 @@ Specifies the list of HTTP-based filters used to modify a request prior to routi
   - `RetryFilter`
   - `TimeoutFilter`
 
-### `Rules[].Filters.Headers[]`
+### `Rules[].Filters[].Headers[]`
 
 Defines operations to perform on matching request headers when an incoming request matches the `Rules.Matches` configuration.
 
@@ -510,7 +510,7 @@ This field contains the following configuration objects:
 | `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
-### `Rules[].Filters.URLRewrite`
+### `Rules[].Filters[].URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests when an incoming request matches the `Rules.Matches` configuration.
 
@@ -519,7 +519,7 @@ Specifies rule for rewriting the URL of incoming requests when an incoming reque
 - Default: none
 - This field is a map that contains a `Path` field.
 
-### `Rules[].Filters.URLRewrite.Path`
+### `Rules[].Filters[].URLRewrite.Path`
 
 Specifies a path that determines how Consul API Gateway rewrites a URL path. Refer to [Reroute HTTP requests](/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests) for additional information.
 
@@ -532,7 +532,7 @@ The following table describes the parameters for `path`:
 | `replacePrefixMatch` | Specifies a value that replaces the path prefix for incoming HTTP requests. The operation only affects the path prefix. The rest of the path is unchanged.                                       | String |
 | `type`               | Specifies the type of replacement to use for the URL path. You can specify the following values: <ul><li>`ReplacePrefixMatch`: Replaces the matched prefix of the URL path (default). </li></ul> | String |
 
-### `Rules[].Filters{}.RetryFilter`
+### `Rules[].Filters[].RetryFilter`
 
 Specifies a block of settings Consul uses to retry a request if it fails.
 
@@ -545,7 +545,7 @@ Specifies a block of settings Consul uses to retry a request if it fails.
   - `RetryOn`
   - `RetryOnStatusCodes`
 
-### `Rules[].Filters{}.RetryFilter{}.NumRetries`
+### `Rules[].Filters[].RetryFilter{}.NumRetries`
 
 Specifies the number of times to retry the request when a retry condition occurs.
 
@@ -554,7 +554,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 - Default: `1`
 - Data type: Integer
 
-### `Rules[].Filters{}.RetryFilter{}.RetryOnConnectFailure`
+### `Rules[].Filters[].RetryFilter{}.RetryOnConnectFailure`
 
 Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route.
 
@@ -563,7 +563,7 @@ Enables Consul to retry the request if the connection fails. Define the one or m
 - Default: `false`
 - Data type: Boolean
 
-### `Rules[].Filters{}.RetryFilter{}.RetryOn`
+### `Rules[].Filters[].RetryFilter{}.RetryOn`
 
 Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. The following retry conditions are supported:
 
@@ -600,7 +600,7 @@ Specifies a list of conditions for Consul to retry requests based on the respons
   - `resource-exhausted`
   - `unavailable`
 
-### `Rules[].Filters{}.RetryFilter{}.RetryOnStatusCodes`
+### `Rules[].Filters[].RetryFilter{}.RetryOnStatusCodes`
 
 Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request.
 
@@ -609,7 +609,7 @@ Specifies a list of integers for [HTTP response status codes](https://developer.
 - Default: None
 - Data type: List of integers
 
-### `Rules[].Filters{}.TimeoutFilter`
+### `Rules[].Filters[].TimeoutFilter`
 
 Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh.
 
@@ -634,7 +634,7 @@ Specifies a block of JWT verification configurations to apply to the route. Thes
 - Default: None
 - Data type: Map
 
-### `Rules[].Filters{}.JWT{}.Providers`
+### `Rules[].Filters[].JWT{}.Providers`
 
 Specifies a list of JWT provider configurations to apply to the route. A provider configuration contains the name of the provider and claims.
 
@@ -652,7 +652,7 @@ The following table describes the parameters you can specify in a member of the 
 
 Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration.
 
-### `Rules[].ResponseFilters`
+### `Rules[].ResponseFilters[]`
 
 Specifies the list of HTTP-based filters used to modify a response prior to routing it to the calling client.
 
@@ -662,7 +662,7 @@ Specifies the list of HTTP-based filters used to modify a response prior to rout
 - Data type: Map that contains the following fields:
   - `Headers`
 
-### `Rules[].ResponseFilters.Headers[]`
+### `Rules[].ResponseFilters[].Headers[]`
 
 Defines operations to perform on matching response headers when an incoming request matches the `Rules.Matches` configuration.
 
@@ -879,7 +879,7 @@ equal 100.
 - Default: none
 - Data type: integer
 
-### `Rules[].Services[].Filters`
+### `Rules[].Services[].Filters[]`
 
 Specifies the list of HTTP-based filters used to modify a request prior to
 routing it to this upstream service.
@@ -891,7 +891,7 @@ routing it to this upstream service.
   - `Headers`
   - `UrlRewrite`
 
-### `Rules[].Services[].Filters.Headers[]`
+### `Rules[].Services[].Filters[].Headers[]`
 
 Defines operations to perform on matching request headers.
 
@@ -905,7 +905,7 @@ This field contains the following configuration objects:
 | `add`     | Configure this field to append the request header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
 | `remove`  | Configure this field to specify an array of header names to remove from the request header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
-### `Rules[].Services[].Filters.URLRewrite`
+### `Rules[].Services[].Filters[].URLRewrite`
 
 Specifies rule for rewriting the URL of incoming requests.
 
@@ -914,7 +914,7 @@ Specifies rule for rewriting the URL of incoming requests.
 - Default: none
 - This field is a map that contains a `Path` field.
 
-### `Rules[].Services[].Filters{}.RetryFilters`
+### `Rules[].Services[].Filters[].RetryFilters`
 
 Specifies a block of settings Consul uses to retry a request if it fails.
 
@@ -927,7 +927,7 @@ Specifies a block of settings Consul uses to retry a request if it fails.
   - `RetryOn`
   - `RetryOnStatusCodes`
 
-### `Rules[].Services[].Filters{}.RetryFilters{}.NumRetries`
+### `Rules[].Services[].Filters[].RetryFilters{}.NumRetries`
 
 Specifies the number of times to retry the request when a retry condition occurs.
 
@@ -936,7 +936,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 - Default: `1`
 - Data type: Integer
 
-### `Rules[].Services[].Filters{}.RetryFilters{}.RetryOnConnectFailure`
+### `Rules[].Services[].Filters[].RetryFilters{}.RetryOnConnectFailure`
 
 Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route.
 
@@ -945,7 +945,7 @@ Enables Consul to retry the request if the connection fails. Define the one or m
 - Default: `false`
 - Data type: Boolean
 
-### `Rules[].Services[].Filters{}.RetryFilters{}.RetryOn`
+### `Rules[].Services[].Filters[].RetryFilters{}.RetryOn`
 
 Specifies a list of conditions for Consul to retry requests based on the response from an upstream service. The following retry conditions are supported:
 
@@ -982,7 +982,7 @@ Specifies a list of conditions for Consul to retry requests based on the respons
   - `resource-exhausted`
   - `unavailable`
 
-### `Rules[].Services[].Filters{}.RetryFilters{}.RetryOnStatusCodes`
+### `Rules[].Services[].Filters[].RetryFilters{}.RetryOnStatusCodes`
 
 Specifies a list of integers for [HTTP response status codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status) that trigger a retry request.
 
@@ -991,7 +991,7 @@ Specifies a list of integers for [HTTP response status codes](https://developer.
 - Default: None
 - Data type: List of integers
 
-### `Rules[].Services[].Filters{}.TimeoutFilter`
+### `Rules[].Services[].Filters[].TimeoutFilter`
 
 Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh.
 
@@ -1008,7 +1008,7 @@ The following table describes the settings you can configure in the `TimeoutFilt
 | `RequestTimeout` | Specifies the total amount of time in nanoseconds, including retry attempts, Consul permits for the entire downstream request to be processed. | Integer | `0` |
 
 
-### `Rules[].Services[].ResponseFilters`
+### `Rules[].Services[].ResponseFilters[]`
 
 Specifies the list of HTTP-based filters used to modify a response prior to routing it to the calling client.
 
@@ -1018,7 +1018,7 @@ Specifies the list of HTTP-based filters used to modify a response prior to rout
 - Data type: Map that contains the following fields:
   - `Headers`
 
-### `Rules[].Services[].ResponseFilters.Headers[]`
+### `Rules[].Services[].ResponseFilters[].Headers[]`
 
 Defines operations to perform on matching response headers when an incoming request matches the `Rules.Matches` configuration.
 
