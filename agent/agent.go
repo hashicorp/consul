@@ -22,8 +22,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/lib/stringslice"
-
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/hashicorp/go-connlimit"
@@ -73,6 +71,7 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
@@ -623,6 +622,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	if a.useV2Resources() {
+		a.sync.HardDisableSync()
+	}
 
 	err = validateFIPSConfig(a.config)
 	if err != nil {
