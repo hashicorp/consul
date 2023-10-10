@@ -29,7 +29,7 @@ There are additional requirements for service mesh proxies in transparent proxy 
 
 ## Enable the v2 catalog
 
-To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]`. The following example includes this parameter in a Helm chart with minimal required configurations for the Consul installation:
+To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]` and `ui.enabled: false`. The following example includes these parameter in a Helm chart with minimal required configurations for the Consul installation:
 
 <CodeBlockConfig name="values.yaml">
 
@@ -47,6 +47,8 @@ server:
   replicas: 1
 connectInject:
   enabled: true
+ui:
+  enabled: false
 ```
 
 </CodeBlockConfig>
@@ -81,7 +83,7 @@ Consul's v2 catalog supports two methods for defining multi-port services in Kub
 
 These methods affect how the Services are addressed in Kubernetes.
 
-Each tab in the following example contains a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers that each support traffic to one of the ports exposed by the Service.
+Each tab in the following example contains a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers that each support traffic to one of the ports exposed by the Service. In `Method 1`, both services are addressed using `api` because both services are exposed by a single service. In `Method 2`, `api` and `api-admin` are defined as separate services and can be addressed using distinct names.
 
 <Tabs>
 
@@ -266,7 +268,7 @@ spec:
         'consul.hashicorp.com/transparent-proxy': 'true'
     spec:
       containers:
-        - name: static-client
+        - name: web
           image: curlimages/curl:latest
           # Just spin & wait forever, we'll use `kubectl exec` to demo
           command: ['/bin/sh', '-c', '--']
@@ -279,7 +281,7 @@ spec:
 To apply these services to your Kubernetes deployment and register them with Consul, run the following command:
 
 ```shell-session
-$ kubectl apply -f api.yaml -f web.yaml
+$ kubectl apply -f api.yaml -f web.yaml --namespace consul
 ```
 
 ## Configure traffic permissions
@@ -296,7 +298,7 @@ The following examples create Consul CRDs that allow traffic to only one port of
 apiVersion: auth.consul.hashicorp.com/v2beta1
 kind: TrafficPermissions
 metadata:
-  name: web-to-api-admin-port-allow
+  name: web-to-api-port-deny
 spec:
   destination:
     identityName: api
@@ -316,7 +318,7 @@ spec:
 apiVersion: auth.consul.hashicorp.com/v2beta1
 kind: TrafficPermissions
 metadata:
-  name: web-to-api-port-allow
+  name: web-to-admin-port-deny
 spec:
   destination:
     identityName: api
@@ -344,7 +346,7 @@ web-7bc5786747-b5pzl   1/1     Running   0          23s
 
 ### Validate both ports
 
-Use the `web` Pod's name to open a shell session and test the `api` service.
+Use the `web` Pod's name to open a shell session and test the `api` service on port 80.
 
 <Tabs>
 
@@ -355,7 +357,7 @@ $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 hello world
 ```
 
-Then test the `api-admin` service.
+Then test the `api` service on port 90.
 
 ```shell-session
 $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:90
@@ -371,7 +373,7 @@ $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 hello world
 ```
 
-Then test the `api-admin` service.
+Then test the `api-admin` service on port 90.
 
 ```shell-session
 $ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
@@ -386,7 +388,7 @@ hello world from 9090 admin
 Apply the CRD to allow traffic to port 80 only:
 
 ```shell-session
-$ kubectl apply -f deny-90.yaml
+$ kubectl apply -f deny-90.yaml --namespace consul
 ```
 
 <Tabs>
@@ -400,7 +402,7 @@ $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 hello world
 ```
 
-Test the `admin` service on port 90. This command should fail, indicating that the traffic permission is in effect.
+Test the `api` service on port 90. This command should fail, indicating that the traffic permission is in effect.
 
 ```shell-session
 $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:90
@@ -429,7 +431,7 @@ $ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
 Before testing the other port, remove the `TrafficPermissions` CRD.
 
 ```shell-session
-$ kubectl delete -f deny-90.yaml
+$ kubectl delete -f deny-90.yaml --namespace consul
 ```
 
 ### Validate port 90
@@ -437,14 +439,14 @@ $ kubectl delete -f deny-90.yaml
 Apply the CRD to allow traffic to port 90 only:
 
 ```shell-session
-$ kubectl apply -f deny-80.yaml
+$ kubectl apply -f deny-80.yaml --namespace consul
 ```
 
 <Tabs>
 
 <Tab heading="Method 1" group="method1">
 
-Then, open a shell session in the `web` container and test the `admin` service on port 90.
+Then, open a shell session in the `web` container and test the `api` service on port 90.
 
 ```shell-session
 $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:90
@@ -461,7 +463,7 @@ $ kubectl exec -it web-7bc5786747-b5pzl -- curl api:80
 
 <Tab heading="Method 2" group="method2">
 
-Then, open a shell session in the `web` container and test the `admin` service on port 90.
+Then, open a shell session in the `web` container and test the `api-admin` service on port 90.
 
 ```shell-session
 $ kubectl exec -it web-7bc5786747-b5pzl -- curl api-admin:90
