@@ -34,7 +34,7 @@ to view additional details, including default values.
       - [`Set`](#rules-filters-headers-set): map | no default
     - [`URLRewrite`](#rules-filters-urlrewrite): map | no default
       - [`Path`](#rules-filters-urlrewrite-path): string | no default
-    - [`RetryFilter`](#rules-filters-retryfilter): map 
+    - [`RetryFilter`](#rules-filters-retryfilter): map
       - [`NumRetries`](#rules-filters-retryfilter-numretries): number | `1`
       - [`RetryOnConnectionFailure`](#rules-filters-retryfilter-retryonconnectionfailure): boolean | `false`
       - [`RetryOn`](#rules-filters-retryfilter-retryon): list of strings
@@ -48,6 +48,11 @@ to view additional details, including default values.
             - [`VerifyClaims`](#rules-filters-jwt-providers): map
                - [`Path`](#rules-filters-jwt-providers): list
                - [`Value`](#rules-filters-jwt-providers): string
+  - [`ResponseFilters`](#rules-responsefilters)
+    - [`Headers`](#rules-responsefilters-headers): list | no default
+      - [`Add`](#rules-responsefilters-headers-add): map | no default
+      - [`Remove`](#rules-responsefilters-headers-remove): list | no default
+      - [`Set`](#rules-responsefilters-headers-set): map | no default
   - [`Matches`](#rules-matches): list | no default
     - [`Headers`](#rules-matches-headers): list | no default
       - [`Match`](#rules-matches-headers-match): string | no default
@@ -73,14 +78,19 @@ to view additional details, including default values.
         - [`Set`](#rules-services-filters-headers-set): map | no default
       - [`URLRewrite`](#rules-services-filters-urlrewrite): map | no default
         - [`Path`](#rules-services-filters-urlrewrite-path): string | no default
-      - [`RetryFilter`](#rules-filters-retryfilter): map 
-        - [`NumRetries`](#rules-filters-retryfilter-numretries): number | `1`
-        - [`RetryOnConnectionFailure`](#rules-filters-retryfilter-retryonconnectionfailure): boolean | `false`
-        - [`RetryOn`](#rules-filters-retryfilter-retryon): list of strings
-        - [`RetryOnStatusCodes`](#rules-filters-retryfilter-retryon): list of numbers
-      - [`TimeoutFilter`](#rules-filters-timeoutfilter): map
-        -[`IdleTimeout`](#rules-filters-timeoutfilter): number | `0`
-        -[`RequestTimeout`](#rules-filters-timeoutfilter): number | `0`
+      - [`RetryFilter`](#rules-services-filters-retryfilter): map
+        - [`NumRetries`](#rules-services-filters-retryfilter-numretries): number | `1`
+        - [`RetryOnConnectionFailure`](#rules-services-filters-retryfilter-retryonconnectionfailure): boolean | `false`
+        - [`RetryOn`](#rules-services-filters-retryfilter-retryon): list of strings
+        - [`RetryOnStatusCodes`](#rules-services-filters-retryfilter-retryon): list of numbers
+      - [`TimeoutFilter`](#rules-services-filters-timeoutfilter): map
+        -[`IdleTimeout`](#rules-services-filters-timeoutfilter): number | `0`
+        -[`RequestTimeout`](#rules-services-filters-timeoutfilter): number | `0`
+    - [`ResponseFilters`](#rules-services-responsefilters)
+      - [`Headers`](#rules-services-responsefilters-headers): list | no default
+        - [`Add`](#rules-services-responsefilters-headers-add): map | no default
+        - [`Remove`](#rules-services-responsefilters-headers-remove): list | no default
+        - [`Set`](#rules-services-responsefilters-headers-set): map | no default
 
 
 ## Complete configuration
@@ -137,6 +147,21 @@ Rules = [
           }
         ]
       }
+    }
+    ResponseFilters = {
+      Headers = [
+        {
+          Add = {
+            "<name of header to add>" = "<value of header to add>"
+          }
+          Remove = [
+            "<name of header to remove from response>"
+          ]
+          Set = {
+            "<name of header to set>" = "<value of header to set>"
+          }
+        }
+      ]
     }
     Matches = [
       {
@@ -236,7 +261,7 @@ Rules = [
             {
               "Path": "<path to rewrite request to>"
             }
-          ],        
+          ],
         "JWT": {
           "Providers": [{
             "Name": "okta",
@@ -490,7 +515,7 @@ The following table describes the parameters for `path`:
 
 ### `Rules[].Filters{}.RetryFilter`
 
-Specifies a block of settings Consul uses to retry a request if it fails.  
+Specifies a block of settings Consul uses to retry a request if it fails.
 
 ### Values
 
@@ -503,7 +528,7 @@ Specifies a block of settings Consul uses to retry a request if it fails.
 
 ### `Rules[].Filters{}.RetryFilter{}.NumRetries`
 
-Specifies the number of times to retry the request when a retry condition occurs. 
+Specifies the number of times to retry the request when a retry condition occurs.
 
 #### Values
 
@@ -512,7 +537,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 
 ### `Rules[].Filters{}.RetryFilter{}.RetryOnConnectFailure`
 
-Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route. 
+Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route.
 
 #### Values
 
@@ -567,7 +592,7 @@ Specifies a list of integers for [HTTP response status codes](https://developer.
 
 ### `Rules[].Filters{}.TimeoutFilter`
 
-Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh. 
+Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh.
 
 #### Values
 
@@ -592,7 +617,7 @@ Specifies a block of JWT verification configurations to apply to the route. Thes
 
 ### `Rules[].Filters{}.JWT{}.Providers`
 
-Specifies a list of JWT provider configurations to apply to the route. A provider configuration contains the name of the provider and claims.  
+Specifies a list of JWT provider configurations to apply to the route. A provider configuration contains the name of the provider and claims.
 
 #### Values
 
@@ -606,7 +631,32 @@ The following table describes the parameters you can specify in a member of the 
 | `Name` | Specifies the name of the provider. | String | None |
 | `VerifyClaims` | Specifies a list of paths and a value that define the claim. Consul verifies requests that match the claims declared in the listener JWT configuration and allow the request through the gateway. The `VerifyClaims` map specifies the following settings: <ul><li>`Path`: Specifies a list of one or more registered or custom claims.</li><li>`Value`: Specifies the expected value of the claim.</li></ul> | Map | None |
 
-Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration. 
+Refer to [Configure JWT verification settings](#configure-jwt-verification-settings) for an example configuration.
+
+### `Rules[].ResponseFilters`
+
+Specifies the list of HTTP-based filters used to modify a response prior to routing it to the calling client.
+
+#### Values
+
+- Default: none
+- Data type: Map that contains the following fields:
+  - `Headers`
+
+### `Rules[].ResponseFilters.Headers[]`
+
+Defines operations to perform on matching response headers when an incoming request matches the `Rules.Matches` configuration.
+
+#### Values
+
+This field contains the following configuration objects:
+
+| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `set`     | Configure this field to rewrite the HTTP response header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
+| `add`     | Configure this field to append the response header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
+| `remove`  | Configure this field to specify an array of header names to remove from the response header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
+
 
 ### `Rules[].Matches[]`
 
@@ -695,10 +745,10 @@ Specifies the HTTP method to match.
 
 Specifies type of match for the path: `"exact"`, `"prefix"`, or `"regex"`.
 
-If set to `prefix`, Consul uses simple string matching to identify incoming request prefixes. For example, if the route is configured to match incoming requests to services prefixed with `/dev`, then the gateway would match requests to `/dev-` and `/deviate` and route to the upstream.  
+If set to `prefix`, Consul uses simple string matching to identify incoming request prefixes. For example, if the route is configured to match incoming requests to services prefixed with `/dev`, then the gateway would match requests to `/dev-` and `/deviate` and route to the upstream.
 
 This deviates from the
-[Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.PathMatchType), which matches on full path elements. In the previous example, _only_ requests to `/dev` or `/dev/` would match. 
+[Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io%2fv1beta1.PathMatchType), which matches on full path elements. In the previous example, _only_ requests to `/dev` or `/dev/` would match.
 
 #### Values
 
@@ -847,7 +897,7 @@ Specifies rule for rewriting the URL of incoming requests.
 
 ### `Rules[].Services[].Filters{}.RetryFilters`
 
-Specifies a block of settings Consul uses to retry a request if it fails.  
+Specifies a block of settings Consul uses to retry a request if it fails.
 
 ### Values
 
@@ -860,7 +910,7 @@ Specifies a block of settings Consul uses to retry a request if it fails.
 
 ### `Rules[].Services[].Filters{}.RetryFilters{}.NumRetries`
 
-Specifies the number of times to retry the request when a retry condition occurs. 
+Specifies the number of times to retry the request when a retry condition occurs.
 
 #### Values
 
@@ -869,7 +919,7 @@ Specifies the number of times to retry the request when a retry condition occurs
 
 ### `Rules[].Services[].Filters{}.RetryFilters{}.RetryOnConnectFailure`
 
-Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route. 
+Enables Consul to retry the request if the connection fails. Define the one or more retry configurations to define the retry logic for the route.
 
 #### Values
 
@@ -922,9 +972,9 @@ Specifies a list of integers for [HTTP response status codes](https://developer.
 - Default: None
 - Data type: List of integers
 
-### `Rules[].Service[].Filters{}.TimeoutFilter`
+### `Rules[].Services[].Filters{}.TimeoutFilter`
 
-Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh. 
+Specifies timeout settings for routes from an API gateway listener to the destination service in Consul service mesh.
 
 #### Values
 
@@ -937,6 +987,31 @@ The following table describes the settings you can configure in the `TimeoutFilt
 | ---       | ---         | ---       | ---     |
 | `IdleTimeout` | Specifies the total amount of time permitted for the request stream to be idle. | Integer | `0` |
 | `RequestTimeout` | Specifies the total amount of time in nanoseconds, including retry attempts, Consul permits for the entire downstream request to be processed. | Integer | `0` |
+
+
+### `Rules[].Services[].ResponseFilters`
+
+Specifies the list of HTTP-based filters used to modify a response prior to routing it to the calling client.
+
+#### Values
+
+- Default: none
+- Data type: Map that contains the following fields:
+  - `Headers`
+
+### `Rules[].Services[].ResponseFilters.Headers[]`
+
+Defines operations to perform on matching response headers when an incoming request matches the `Rules.Matches` configuration.
+
+#### Values
+
+This field contains the following configuration objects:
+
+| Parameter | Description                                                                                                                                                                                                                                                                                                                                                                                                                                  | Type            |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `set`     | Configure this field to rewrite the HTTP response header. It specifies the name of an HTTP header to overwrite and the new value to set. Any existing values associated with the header name are overwritten. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to set.</li><li>`value`: Required string that specifies the value of the HTTP header to set.</li></ul> | List of maps    |
+| `add`     | Configure this field to append the response header with a new value. It specifies the name of an HTTP header to append and the values to add. You can specify the following configurations: <ul><li>`name`: Required string that specifies the name of the HTTP header to append.</li><li>`value`: Required string that specifies the value of the HTTP header to add.</li></ul>                                                              | List of maps    |
+| `remove`  | Configure this field to specify an array of header names to remove from the response header.                                                                                                                                                                                                                                                                                                                                                  | List of strings |
 
 
 ## Examples
@@ -1011,7 +1086,7 @@ rules = [
         "JWT": {
           "Providers": [
             {
-              "Name": "okta", 
+              "Name": "okta",
               "VerifyClaims": {
                 "Path": ["perms", "role"],
                 "Value": "admin"
