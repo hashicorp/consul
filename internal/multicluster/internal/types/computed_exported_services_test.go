@@ -25,14 +25,15 @@ func createComputedExportedServicesResource(t *testing.T, data protoreflect.Prot
 }
 
 func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ComputedExportedService, 1)
-	consumers[0] = new(multiclusterv1alpha1.ComputedExportedService)
-	var computedExportedServicePeer *multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer
-	computedExportedServicePeer = new(multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer)
-	computedExportedServicePeer.Peer = "peer"
-	consumers[0].Consumers = []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+	consumers := []*multiclusterv1alpha1.ComputedExportedService{
 		{
-			ConsumerTenancy: computedExportedServicePeer,
+			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+				{
+					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
+						Peer: "peer",
+					},
+				},
+			},
 		},
 	}
 	return &multiclusterv1alpha1.ComputedExportedServices{
@@ -41,14 +42,15 @@ func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExpor
 }
 
 func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ComputedExportedService, 1)
-	consumers[0] = new(multiclusterv1alpha1.ComputedExportedService)
-	var computedExportedServicePartition *multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition
-	computedExportedServicePartition = new(multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition)
-	computedExportedServicePartition.Partition = "partition"
-	consumers[0].Consumers = []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+	consumers := []*multiclusterv1alpha1.ComputedExportedService{
 		{
-			ConsumerTenancy: computedExportedServicePartition,
+			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+				{
+					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
+						Partition: "partition",
+					},
+				},
+			},
 		},
 	}
 	return &multiclusterv1alpha1.ComputedExportedServices{
@@ -56,32 +58,31 @@ func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.Computed
 	}
 }
 
-func TestValidateComputedExportedServicesWithPeer_Ok(t *testing.T) {
-	res := createComputedExportedServicesResource(t, validComputedExportedServicesWithPeer(), ComputedExportedServicesName)
+func TestValidateComputedExportedServices(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		err := ValidateComputedExportedServices(tc.Resource)
+		require.NoError(t, err)
 
-	err := ValidateComputedExportedServices(res)
-	require.NoError(t, err)
+		resourcetest.MustDecode[*multiclusterv1alpha1.ComputedExportedServices](t, tc.Resource)
+	}
 
-	var resDecoded multiclusterv1alpha1.ComputedExportedServices
-	err = res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, 1, len(resDecoded.Consumers[0].Consumers))
-	require.Equal(t, "peer", resDecoded.Consumers[0].Consumers[0].GetPeer())
-}
+	cases := map[string]testcase{
+		"computed exported services with peer": {
+			Resource: createComputedExportedServicesResource(t, validComputedExportedServicesWithPeer(), ComputedExportedServicesName),
+		},
+		"computed exported services with partition": {
+			Resource: createComputedExportedServicesResource(t, validComputedExportedServicesWithPartition(), ComputedExportedServicesName),
+		},
+	}
 
-func TestValidateComputedExportedServicesWithPartition_Ok(t *testing.T) {
-	res := createComputedExportedServicesResource(t, validComputedExportedServicesWithPartition(), ComputedExportedServicesName)
-
-	err := ValidateComputedExportedServices(res)
-	require.NoError(t, err)
-
-	var resDecoded multiclusterv1alpha1.ComputedExportedServices
-	err = res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, 1, len(resDecoded.Consumers[0].Consumers))
-	require.Equal(t, "partition", resDecoded.Consumers[0].Consumers[0].GetPartition())
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
 
 func TestValidateComputedExportedServices_InvalidName(t *testing.T) {
