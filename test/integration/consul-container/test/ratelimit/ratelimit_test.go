@@ -32,6 +32,7 @@ const (
 //     - logs for exceeding
 
 func TestServerRequestRateLimit(t *testing.T) {
+
 	type action struct {
 		function           func(client *api.Client) error
 		rateLimitOperation string
@@ -166,12 +167,12 @@ func TestServerRequestRateLimit(t *testing.T) {
 			for _, op := range tc.operations {
 				timer := &retry.Timer{Timeout: 15 * time.Second, Wait: 500 * time.Millisecond}
 				retry.RunWith(timer, t, func(r *retry.R) {
-					checkForMetric(t, cluster, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode, op.expectMetric)
+					checkForMetric(r, cluster, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode, op.expectMetric)
 
 					// validate logs
 					// putting this last as there are cases where logs
 					// were not present in consumer when assertion was made.
-					checkLogsForMessage(t, clusterConfig.LogConsumer.Msgs,
+					checkLogsForMessage(r, clusterConfig.LogConsumer.Msgs,
 						fmt.Sprintf("[DEBUG] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
 
@@ -190,7 +191,7 @@ func setupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isSe
 	return cluster, client
 }
 
-func checkForMetric(t *testing.T, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
+func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
 	// validate metrics
 	server, err := cluster.GetClient(nil, true)
 	require.NoError(t, err)
@@ -228,7 +229,7 @@ func checkForMetric(t *testing.T, cluster *libcluster.Cluster, operationName str
 	}
 }
 
-func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+func checkLogsForMessage(t require.TestingT, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	if logShouldExist {
 		found := false
 		for _, log := range logs {

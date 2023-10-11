@@ -146,6 +146,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.17.x",
+            "path": "release-notes/consul/v1_17_x"
+          },
+          {
             "title": "v1.16.x",
             "path": "release-notes/consul/v1_16_x"
           },

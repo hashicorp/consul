@@ -394,6 +394,11 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
+		rejectCatalogV1Endpoint := false
+		if s.agent.baseDeps.UseV2Resources() {
+			rejectCatalogV1Endpoint = isV1CatalogRequest(logURL)
+		}
+
 		if s.denylist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
 			httpLogger.Error("Request error",
@@ -455,6 +460,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return strings.Contains(err.Error(), rate.ErrRetryLater.Error())
 		}
 
+		isUsingV2CatalogExperiment := func(err error) bool {
+			if err == nil {
+				return false
+			}
+
+			return structs.IsErrUsingV2CatalogExperiment(err)
+		}
+
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
 			return ok
@@ -488,6 +501,10 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			msg := err.Error()
 			if s, ok := status.FromError(err); ok {
 				msg = s.Message()
+			}
+
+			if isUsingV2CatalogExperiment(err) && !isHTTPError(err) {
+				err = newRejectV1RequestWhenV2EnabledError()
 			}
 
 			switch {
@@ -566,7 +583,12 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 			if err == nil {
 				// Invoke the handler
-				obj, err = handler(resp, req)
+				if rejectCatalogV1Endpoint {
+					obj = nil
+					err = s.rejectV1RequestWhenV2Enabled()
+				} else {
+					obj, err = handler(resp, req)
+				}
 			}
 		}
 		contentType := "application/json"
@@ -605,6 +627,46 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		resp.Header().Set("Content-Type", contentType)
 		resp.WriteHeader(httpCode)
 		resp.Write(buf)
+	}
+}
+
+func isV1CatalogRequest(logURL string) bool {
+	switch {
+	case strings.HasPrefix(logURL, "/v1/catalog/"),
+		strings.HasPrefix(logURL, "/v1/health/"),
+		strings.HasPrefix(logURL, "/v1/config/"):
+		return true
+
+	case strings.HasPrefix(logURL, "/v1/agent/token/"),
+		logURL == "/v1/agent/self",
+		logURL == "/v1/agent/host",
+		logURL == "/v1/agent/version",
+		logURL == "/v1/agent/reload",
+		logURL == "/v1/agent/monitor",
+		logURL == "/v1/agent/metrics",
+		logURL == "/v1/agent/metrics/stream",
+		logURL == "/v1/agent/members",
+		strings.HasPrefix(logURL, "/v1/agent/join/"),
+		logURL == "/v1/agent/leave",
+		strings.HasPrefix(logURL, "/v1/agent/force-leave/"),
+		logURL == "/v1/agent/connect/authorize",
+		logURL == "/v1/agent/connect/ca/roots",
+		strings.HasPrefix(logURL, "/v1/agent/connect/ca/leaf/"):
+		return false
+
+	case strings.HasPrefix(logURL, "/v1/agent/"):
+		return true
+
+	case logURL == "/v1/internal/acl/authorize",
+		logURL == "/v1/internal/service-virtual-ip",
+		logURL == "/v1/internal/ui/oidc-auth-methods",
+		strings.HasPrefix(logURL, "/v1/internal/ui/metrics-proxy/"):
+		return false
+
+	case strings.HasPrefix(logURL, "/v1/internal/"):
+		return true
+	default:
+		return false
 	}
 }
 
@@ -1082,6 +1144,20 @@ func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 	s.parseTokenWithDefault(req, token)
+}
+
+func (s *HTTPHandlers) rejectV1RequestWhenV2Enabled() error {
+	if s.agent.baseDeps.UseV2Resources() {
+		return newRejectV1RequestWhenV2EnabledError()
+	}
+	return nil
+}
+
+func newRejectV1RequestWhenV2EnabledError() error {
+	return HTTPError{
+		StatusCode: http.StatusBadRequest,
+		Reason:     structs.ErrUsingV2CatalogExperiment.Error(),
+	}
 }
 
 func sourceAddrFromRequest(req *http.Request) string {
