@@ -146,6 +146,10 @@
         "title": "Consul",
         "routes": [
           {
+            "title": "v1.17.x",
+            "path": "release-notes/consul/v1_17_x"
+          },
+          {
             "title": "v1.16.x",
             "path": "release-notes/consul/v1_16_x"
           },
@@ -649,6 +653,10 @@
               {
                 "title": "Automate geo-failover with prepared queries",
                 "href": "/tutorials/developer-discovery/automate-geo-failover"
+              },
+              {
+                "title": "Failover with sameness groups",
+                "path": "connect/manage-traffic/failover/sameness"
               },
               {
                 "title": "Configuration",
@@ -1503,6 +1511,19 @@
                 "path": "k8s/connect/observability/metrics"
               }
             ]
+          }
+        ]
+      },
+      {
+        "title": "Multi-port services",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "k8s/multiport"
+          },
+          {
+            "title": "Configure multi-port services",
+            "path": "k8s/multiport/configure"
           }
         ]
       },

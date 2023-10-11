@@ -5,7 +5,10 @@ package selectiontracker
 
 import (
 	"context"
+	"fmt"
 	"sync"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/radix"
@@ -17,45 +20,53 @@ import (
 
 type WorkloadSelectionTracker struct {
 	lock     sync.Mutex
-	prefixes *radix.Tree[[]controller.Request]
-	exact    *radix.Tree[[]controller.Request]
+	prefixes *radix.Tree[[]*pbresource.ID]
+	exact    *radix.Tree[[]*pbresource.ID]
 
-	// workloadSelectors contains a map keyed on resource names with values
+	// workloadSelectors contains a map keyed on resource references with values
 	// being the selector that resource is currently associated with. This map
 	// is kept mainly to make tracking removal operations more efficient.
 	// Generally any operation that could take advantage of knowing where
 	// in the trees the resource id is referenced can use this to prevent
 	// needing to search the whole tree.
-	workloadSelectors map[string]*pbcatalog.WorkloadSelector
+	workloadSelectors map[resource.ReferenceKey]*pbcatalog.WorkloadSelector
 }
 
 func New() *WorkloadSelectionTracker {
 	return &WorkloadSelectionTracker{
-		prefixes:          radix.New[[]controller.Request](),
-		exact:             radix.New[[]controller.Request](),
-		workloadSelectors: make(map[string]*pbcatalog.WorkloadSelector),
+		prefixes:          radix.New[[]*pbresource.ID](),
+		exact:             radix.New[[]*pbresource.ID](),
+		workloadSelectors: make(map[resource.ReferenceKey]*pbcatalog.WorkloadSelector),
 	}
 }
 
 // MapWorkload will return a slice of controller.Requests with 1 resource for
 // each resource that selects the specified Workload resource.
 func (t *WorkloadSelectionTracker) MapWorkload(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	resIds := t.GetIDsForWorkload(res.Id)
+
+	return controller.MakeRequests(nil, resIds), nil
+}
+
+func (t *WorkloadSelectionTracker) GetIDsForWorkload(id *pbresource.ID) []*pbresource.ID {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	var reqs []controller.Request
+	var result []*pbresource.ID
+
+	workloadTreeKey := treePathFromNameOrPrefix(id.GetTenancy(), id.GetName())
 
 	// gather the list of all resources that select the specified workload using a prefix match
-	t.prefixes.WalkPath(res.Id.Name, func(path string, requests []controller.Request) bool {
-		reqs = append(reqs, requests...)
+	t.prefixes.WalkPath(workloadTreeKey, func(path string, ids []*pbresource.ID) bool {
+		result = append(result, ids...)
 		return false
 	})
 
 	// gather the list of all resources that select the specified workload using an exact match
-	exactReqs, _ := t.exact.Get(res.Id.Name)
+	exactReqs, _ := t.exact.Get(workloadTreeKey)
 
 	// return the combined list of all resources that select the specified workload
-	return append(reqs, exactReqs...), nil
+	return append(result, exactReqs...)
 }
 
 // TrackIDForSelector will associate workloads matching the specified workload
@@ -64,7 +75,8 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	if previousSelector, found := t.workloadSelectors[id.Name]; found {
+	ref := resource.NewReferenceKey(id)
+	if previousSelector, found := t.workloadSelectors[ref]; found {
 		if stringslice.Equal(previousSelector.Names, selector.Names) &&
 			stringslice.Equal(previousSelector.Prefixes, selector.Prefixes) {
 			// the selector is unchanged so do nothing
@@ -81,24 +93,28 @@ func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selecto
 	// loop over all the exact matching rules and associate those workload names
 	// with the given resource id
 	for _, name := range selector.GetNames() {
+		key := treePathFromNameOrPrefix(id.GetTenancy(), name)
+
 		// lookup any resource id associations for the given workload name
-		leaf, _ := t.exact.Get(name)
+		leaf, _ := t.exact.Get(key)
 
 		// append the ID to the existing request list
-		t.exact.Insert(name, append(leaf, controller.Request{ID: id}))
+		t.exact.Insert(key, append(leaf, id))
 	}
 
 	// loop over all the prefix matching rules and associate those prefixes
 	// with the given resource id.
 	for _, prefix := range selector.GetPrefixes() {
+		key := treePathFromNameOrPrefix(id.GetTenancy(), prefix)
+
 		// lookup any resource id associations for the given workload name prefix
-		leaf, _ := t.prefixes.Get(prefix)
+		leaf, _ := t.prefixes.Get(key)
 
 		// append the new resource ID to the existing request list
-		t.prefixes.Insert(prefix, append(leaf, controller.Request{ID: id}))
+		t.prefixes.Insert(key, append(leaf, id))
 	}
 
-	t.workloadSelectors[id.Name] = selector
+	t.workloadSelectors[ref] = selector
 }
 
 // UntrackID causes the tracker to stop tracking the given resource ID
@@ -108,56 +124,82 @@ func (t *WorkloadSelectionTracker) UntrackID(id *pbresource.ID) {
 	t.untrackID(id)
 }
 
+// GetSelector returns the currently stored selector for the given ID.
+func (t *WorkloadSelectionTracker) GetSelector(id *pbresource.ID) *pbcatalog.WorkloadSelector {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	return t.workloadSelectors[resource.NewReferenceKey(id)]
+}
+
 // untrackID should be called to stop tracking a resource ID.
 // This method assumes the lock is already held. Besides modifying
 // the prefix & name trees to not reference this ID, it will also
 // delete any corresponding entry within the workloadSelectors map
 func (t *WorkloadSelectionTracker) untrackID(id *pbresource.ID) {
-	selector, found := t.workloadSelectors[id.Name]
+	ref := resource.NewReferenceKey(id)
+	selector, found := t.workloadSelectors[ref]
 	if !found {
 		return
 	}
 
-	removeIDFromTreeAtPaths(t.exact, id, selector.Names)
-	removeIDFromTreeAtPaths(t.prefixes, id, selector.Prefixes)
+	exactTreePaths := make([]string, len(selector.GetNames()))
+	for i, name := range selector.GetNames() {
+		exactTreePaths[i] = treePathFromNameOrPrefix(id.GetTenancy(), name)
+	}
+
+	prefixTreePaths := make([]string, len(selector.GetPrefixes()))
+	for i, prefix := range selector.GetPrefixes() {
+		prefixTreePaths[i] = treePathFromNameOrPrefix(id.GetTenancy(), prefix)
+	}
+
+	removeIDFromTreeAtPaths(t.exact, id, exactTreePaths)
+	removeIDFromTreeAtPaths(t.prefixes, id, prefixTreePaths)
 
 	// If we don't do this deletion then reinsertion of the id for
 	// tracking in the future could prevent selection criteria from
 	// being properly inserted into the radix trees.
-	delete(t.workloadSelectors, id.Name)
+	delete(t.workloadSelectors, ref)
 }
 
 // removeIDFromTree will remove the given resource ID from all leaf nodes in the radix tree.
-func removeIDFromTreeAtPaths(t *radix.Tree[[]controller.Request], id *pbresource.ID, paths []string) {
+func removeIDFromTreeAtPaths(t *radix.Tree[[]*pbresource.ID], id *pbresource.ID, paths []string) {
 	for _, path := range paths {
-		requests, _ := t.Get(path)
+		ids, _ := t.Get(path)
 
 		foundIdx := -1
-		for idx, req := range requests {
-			if resource.EqualID(req.ID, id) {
+		for idx, resID := range ids {
+			if resource.EqualID(resID, id) {
 				foundIdx = idx
 				break
 			}
 		}
 
 		if foundIdx != -1 {
-			l := len(requests)
+			l := len(ids)
 
-			if l == 1 {
-				requests = nil
-			} else if foundIdx == l-1 {
-				requests = requests[:foundIdx]
-			} else if foundIdx == 0 {
-				requests = requests[1:]
+			if foundIdx == l-1 {
+				ids = ids[:foundIdx]
 			} else {
-				requests = append(requests[:foundIdx], requests[foundIdx+1:]...)
+				ids = slices.Delete(ids, foundIdx, foundIdx+1)
 			}
 
-			if len(requests) > 1 {
-				t.Insert(path, requests)
+			if len(ids) > 0 {
+				t.Insert(path, ids)
 			} else {
 				t.Delete(path)
 			}
 		}
 	}
+}
+
+// treePathFromNameOrPrefix computes radix tree key from the resource tenancy and a selector name or prefix.
+// The keys will be computed in the following form:
+// <partition>/<peer>/<namespace>/<name or prefix>.
+func treePathFromNameOrPrefix(tenancy *pbresource.Tenancy, nameOrPrefix string) string {
+	return fmt.Sprintf("%s/%s/%s/%s",
+		tenancy.GetPartition(),
+		tenancy.GetPeerName(),
+		tenancy.GetNamespace(),
+		nameOrPrefix)
 }
