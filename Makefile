@@ -258,6 +258,15 @@ lint/%:
 	@echo "--> Running enumcover ($*)"
 	@cd $* && GOWORK=off enumcover ./...
 
+.PHONY: lint-consul-retry
+lint-consul-retry: $(foreach mod,$(GO_MODULES),lint-consul-retry/$(mod))
+
+.PHONY: lint-consul-retry/%
+lint-consul-retry/%:
+	@echo "--> Running lint-consul-retry ($*)"
+	@cd $* && GOWORK=off lint-consul-retry
+
+
 # check that the test-container module only imports allowlisted packages
 # from the root consul module. Generally we don't want to allow these imports.
 # In a few specific instances though it is okay to import test definitions and
