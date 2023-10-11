@@ -31,7 +31,7 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
 		hasSetEnterpriseFeatures = true
 	}
 
@@ -62,7 +62,7 @@ func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
 
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
 		hasSetEnterpriseFeatures = true
 	}
 
@@ -93,7 +93,7 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
 		hasSetEnterpriseFeatures = true
 	}
 
@@ -131,7 +131,7 @@ func ValidateComputedExportedServices(res *pbresource.Resource) error {
 
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
 		hasSetEnterpriseFeatures = true
 	}
 

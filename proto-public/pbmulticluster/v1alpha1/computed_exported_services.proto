@@ -9,7 +9,7 @@ import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message ComputedExportedServices {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
 
   repeated ComputedExportedService consumers = 1;
 }

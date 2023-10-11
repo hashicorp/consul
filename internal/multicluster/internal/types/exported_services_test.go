@@ -46,7 +46,7 @@ func validExportedServicesWithPartition() *multiclusterv1alpha1.ExportedServices
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "partition",
+				Partition: "",
 			},
 		},
 	}
@@ -60,7 +60,7 @@ func validExportedServicesWithSamenessGroup() *multiclusterv1alpha1.ExportedServ
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "sameness_group",
+				SamenessGroup: "",
 			},
 		},
 	}
@@ -154,10 +154,9 @@ func TestExportedServicesACLs(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		exportedServiceData := &multiclusterv1alpha1.ExportedServices{
-			Services: []string{"api"},
+			Services: []string{"api", "backend"},
 		}
 		res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exps").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
 			WithData(t, exportedServiceData).
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, res)
