@@ -14,7 +14,7 @@ import (
 )
 
 func createNamespaceExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services-1").
+	res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
 		WithData(t, data).
 		Build()
 
@@ -25,55 +25,67 @@ func createNamespaceExportedServicesResource(t *testing.T, data protoreflect.Pro
 }
 
 func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_Peer{Peer: "peer"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.NamespaceExportedServices{
 		Consumers: consumers,
 	}
 }
 
 func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_Partition{Partition: "partition"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
+				Partition: "partition",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.NamespaceExportedServices{
 		Consumers: consumers,
 	}
 }
 
 func validNamespaceExportedServicesWithSamenessGroup() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{SamenessGroup: "sameness_group"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
+				SamenessGroup: "sameness_group",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.NamespaceExportedServices{
 		Consumers: consumers,
 	}
 }
 
-func TestValidateNamespaceExportedServicesWithPeer_Ok(t *testing.T) {
-	res := createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPeer())
-	var resDecoded multiclusterv1alpha1.NamespaceExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "peer", resDecoded.Consumers[0].GetPeer())
-}
+func TestNamespaceExportedServices(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		resourcetest.MustDecode[*multiclusterv1alpha1.NamespaceExportedServices](t, tc.Resource)
+	}
 
-func TestValidateNamespaceExportedServicesWithPartition_Ok(t *testing.T) {
-	res := createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPartition())
-	var resDecoded multiclusterv1alpha1.NamespaceExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "partition", resDecoded.Consumers[0].GetPartition())
-}
+	cases := map[string]testcase{
+		"namespace exported services with peer": {
+			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPeer()),
+		},
+		"namespace exported services with partition": {
+			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPartition()),
+		},
+		"namespace exported services with sameness_group": {
+			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithSamenessGroup()),
+		},
+	}
 
-func TestValidateNamespaceExportedServicesWithSamenessGroup_Ok(t *testing.T) {
-	res := createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithSamenessGroup())
-	var resDecoded multiclusterv1alpha1.NamespaceExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "sameness_group", resDecoded.Consumers[0].GetSamenessGroup())
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }

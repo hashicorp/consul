@@ -14,7 +14,7 @@ import (
 )
 
 func createPartitionExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services-1").
+	res := resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
 		WithData(t, data).
 		Build()
 
@@ -25,55 +25,67 @@ func createPartitionExportedServicesResource(t *testing.T, data protoreflect.Pro
 }
 
 func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_Peer{Peer: "peer"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.PartitionExportedServices{
 		Consumers: consumers,
 	}
 }
 
 func validPartitionExportedServicesWithPartition() *multiclusterv1alpha1.PartitionExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_Partition{Partition: "partition"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
+				Partition: "partition",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.PartitionExportedServices{
 		Consumers: consumers,
 	}
 }
 
 func validPartitionExportedServicesWithSamenessGroup() *multiclusterv1alpha1.PartitionExportedServices {
-	consumers := make([]*multiclusterv1alpha1.ExportedServicesConsumer, 1)
-	consumers[0] = new(multiclusterv1alpha1.ExportedServicesConsumer)
-	consumers[0].ConsumerTenancy = &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{SamenessGroup: "sameness_group"}
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
+				SamenessGroup: "sameness_group",
+			},
+		},
+	}
 	return &multiclusterv1alpha1.PartitionExportedServices{
 		Consumers: consumers,
 	}
 }
 
-func TestValidatePartitionExportedServicesWithPeer_Ok(t *testing.T) {
-	res := createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPeer())
-	var resDecoded multiclusterv1alpha1.PartitionExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "peer", resDecoded.Consumers[0].GetPeer())
-}
+func TestPartitionExportedServices(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		resourcetest.MustDecode[*multiclusterv1alpha1.PartitionExportedServices](t, tc.Resource)
+	}
 
-func TestValidatePartitionExportedServicesWithPartition_Ok(t *testing.T) {
-	res := createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPartition())
-	var resDecoded multiclusterv1alpha1.PartitionExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "partition", resDecoded.Consumers[0].GetPartition())
-}
+	cases := map[string]testcase{
+		"partition exported services with peer": {
+			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPeer()),
+		},
+		"partition exported services with partition": {
+			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPartition()),
+		},
+		"partition exported services with sameness_group": {
+			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithSamenessGroup()),
+		},
+	}
 
-func TestValidatePartitionExportedServicesWithSamenessGroup_Ok(t *testing.T) {
-	res := createPartitionExportedServicesResource(t, validPartitionExportedServicesWithSamenessGroup())
-	var resDecoded multiclusterv1alpha1.PartitionExportedServices
-	err := res.Data.UnmarshalTo(&resDecoded)
-	require.NoError(t, err)
-	require.Equal(t, 1, len(resDecoded.Consumers))
-	require.Equal(t, "sameness_group", resDecoded.Consumers[0].GetSamenessGroup())
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
 }
