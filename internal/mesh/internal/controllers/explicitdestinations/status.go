@@ -40,7 +40,7 @@ func ConditionDestinationsAccepted() *pbresource.Condition {
 		Type:    StatusConditionDestinationsAccepted,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonMeshProtocolFound,
-		Message: fmt.Sprintf("all destination services are valid."),
+		Message: "all destination services are valid.",
 	}
 }
 

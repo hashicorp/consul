@@ -55,8 +55,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	// Get existing ComputedDestinations resource (if any).
-	cpc, err := resource.GetDecodedResource[*pbmesh.ComputedExplicitDestinations](ctx, rt.Client, req.ID)
+	// Get existing ComputedExplicitDestinations resource (if any).
+	ced, err := resource.GetDecodedResource[*pbmesh.ComputedExplicitDestinations](ctx, rt.Client, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching ComputedDestinations", "error", err)
 		return err
@@ -68,7 +68,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("workload is not on the mesh, skipping reconcile and deleting any corresponding ComputedDestinations", "id", workloadID)
 
 		// Delete CD only if it exists.
-		if cpc != nil {
+		if ced != nil {
 			_, err = rt.Client.Delete(ctx, &pbresource.DeleteRequest{Id: req.ID})
 			if err != nil {
 				// If there's an error deleting CD, we want to re-trigger reconcile again.
@@ -127,7 +127,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	if len(newComputedDestinationsData.GetDestinations()) == 0 {
 		rt.Logger.Trace("found no destinations associated with this workload")
 
-		if cpc != nil {
+		if ced != nil {
 			rt.Logger.Trace("deleting ComputedDestinations")
 			_, err = rt.Client.Delete(ctx, &pbresource.DeleteRequest{Id: req.ID})
 			if err != nil {
@@ -141,7 +141,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Lastly, write the resource.
-	if cpc == nil || !proto.Equal(cpc.GetData(), newComputedDestinationsData) {
+	if ced == nil || !proto.Equal(ced.GetData(), newComputedDestinationsData) {
 		rt.Logger.Trace("writing new ComputedDestinations")
 
 		// First encode the endpoints data as an Any type.
