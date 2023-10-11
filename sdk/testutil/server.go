@@ -26,7 +26,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -492,13 +491,13 @@ func (s *TestServer) waitForAPI() error {
 	return nil
 }
 
-// WaitForLeader waits for the Consul server's HTTP API to become
-// available, and then waits for a known leader and an index of
-// 2 or more to be observed to confirm leader election is done.
+// WaitForLeader waits for the Consul server's HTTP API to become available,
+// and then waits for a known leader to be observed to confirm leader election
+// is done.
 func (s *TestServer) WaitForLeader(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url("/v1/catalog/nodes")
+		url := s.url("/v1/status/leader")
 		resp, err := s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
@@ -508,16 +507,15 @@ func (s *TestServer) WaitForLeader(t testing.TB) {
 			r.Fatalf("failed OK response: %v", err)
 		}
 
-		// Ensure we have a leader and a node registration.
-		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			r.Fatalf("Consul leader status: %#v", leader)
+		var leader string
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&leader); err != nil {
+			r.Fatal(err)
 		}
-		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
-		if err != nil {
-			r.Fatalf("bad consul index: %v", err)
-		}
-		if index < 2 {
-			r.Fatal("consul index should be at least 2")
+
+		// Ensure we have a leader.
+		if leader == "" {
+			r.Fatal("no leader address")
 		}
 	})
 }
