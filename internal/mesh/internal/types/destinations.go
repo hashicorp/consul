@@ -20,6 +20,7 @@ func RegisterDestinations(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateDestinations,
 		Validate: ValidateDestinations,
+		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.Destinations](),
 	})
 }
 

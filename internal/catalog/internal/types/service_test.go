@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/testhelpers"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -274,4 +275,14 @@ func TestValidateService_InvalidVIP(t *testing.T) {
 	err := ValidateService(res)
 	require.Error(t, err)
 	require.ErrorIs(t, err, errNotIPAddress)
+}
+
+func TestServiceACLs(t *testing.T) {
+	testhelpers.RunWorkloadSelectingTypeACLsTests[*pbcatalog.Service](t, pbcatalog.ServiceType,
+		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.Service {
+			return &pbcatalog.Service{Workloads: selector}
+		},
+		func(registry resource.Registry) {
+			RegisterService(registry)
+		})
 }

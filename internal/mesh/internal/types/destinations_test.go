@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	catalogtesthelpers "github.com/hashicorp/consul/internal/catalog/catalogtest/helpers"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -17,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestMutateUpstreams(t *testing.T) {
+func TestMutateDestinations(t *testing.T) {
 	type testcase struct {
 		tenancy   *pbresource.Tenancy
 		data      *pbmesh.Destinations
@@ -247,4 +248,14 @@ func TestValidateUpstreams(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestDestinationsACLs(t *testing.T) {
+	catalogtesthelpers.RunWorkloadSelectingTypeACLsTests[*pbmesh.Destinations](t, pbmesh.DestinationsType,
+		func(selector *pbcatalog.WorkloadSelector) *pbmesh.Destinations {
+			return &pbmesh.Destinations{Workloads: selector}
+		},
+		func(registry resource.Registry) {
+			RegisterDestinations(registry)
+		})
 }

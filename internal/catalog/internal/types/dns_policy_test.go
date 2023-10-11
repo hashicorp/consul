@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/testhelpers"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -160,4 +161,21 @@ func TestValidateDNSPolicy_EmptySelector(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
+}
+
+func TestDNSPolicyACLs(t *testing.T) {
+	// Wire up a registry to generically invoke hooks
+	registry := resource.NewRegistry()
+	RegisterDNSPolicy(registry)
+
+	testhelpers.RunWorkloadSelectingTypeACLsTests[*pbcatalog.DNSPolicy](t, pbcatalog.DNSPolicyType,
+		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.DNSPolicy {
+			return &pbcatalog.DNSPolicy{
+				Workloads: selector,
+				Weights:   &pbcatalog.Weights{Passing: 1, Warning: 0},
+			}
+		},
+		func(registry resource.Registry) {
+			RegisterDNSPolicy(registry)
+		})
 }

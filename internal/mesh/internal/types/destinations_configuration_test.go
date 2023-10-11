@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	catalogtesthelpers "github.com/hashicorp/consul/internal/catalog/catalogtest/helpers"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -15,6 +16,16 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestDestinationsConfigurationACLs(t *testing.T) {
+	catalogtesthelpers.RunWorkloadSelectingTypeACLsTests[*pbmesh.DestinationsConfiguration](t, pbmesh.DestinationsConfigurationType,
+		func(selector *pbcatalog.WorkloadSelector) *pbmesh.DestinationsConfiguration {
+			return &pbmesh.DestinationsConfiguration{Workloads: selector}
+		},
+		func(registry resource.Registry) {
+			RegisterDestinationsConfiguration(registry)
+		})
+}
 
 func TestValidateDestinationsConfiguration(t *testing.T) {
 	type testcase struct {

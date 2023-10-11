@@ -136,6 +136,20 @@ type ErrOwnerTenantInvalid struct {
 }
 
 func (err ErrOwnerTenantInvalid) Error() string {
+	if err.ResourceTenancy == nil && err.OwnerTenancy != nil {
+		return fmt.Sprintf(
+			"empty resource tenancy cannot be owned by a resource in partition %s, namespace %s and peer %s",
+			err.OwnerTenancy.Partition, err.OwnerTenancy.Namespace, err.OwnerTenancy.PeerName,
+		)
+	}
+
+	if err.ResourceTenancy != nil && err.OwnerTenancy == nil {
+		return fmt.Sprintf(
+			"resource in partition %s, namespace %s and peer %s cannot be owned by a resource with empty tenancy",
+			err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
+		)
+	}
+
 	return fmt.Sprintf(
 		"resource in partition %s, namespace %s and peer %s cannot be owned by a resource in partition %s, namespace %s and peer %s",
 		err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
