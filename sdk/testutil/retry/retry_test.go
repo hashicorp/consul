@@ -62,7 +62,7 @@ func TestBasics(t *testing.T) {
 	t.Run("Fatal returns from func, but does not fail test", func(t *testing.T) {
 		i := 0
 		gotHere := false
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		Run(ft, func(r *R) {
 			i++
 			t.Logf("i: %d; r: %#v", i, r)
@@ -97,7 +97,7 @@ func TestBasics(t *testing.T) {
 
 func TestRunWith(t *testing.T) {
 	t.Run("calls FailNow after exceeding retries", func(t *testing.T) {
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		iter := 0
 		RunWith(&Counter{Count: 3, Wait: time.Millisecond}, ft, func(r *R) {
 			iter++
@@ -109,7 +109,7 @@ func TestRunWith(t *testing.T) {
 	})
 
 	t.Run("Stop ends the retrying", func(t *testing.T) {
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		iter := 0
 		RunWith(&Counter{Count: 5, Wait: time.Millisecond}, ft, func(r *R) {
 			iter++
@@ -130,7 +130,7 @@ func TestRunWith(t *testing.T) {
 
 func TestCleanup(t *testing.T) {
 	t.Run("basic", func(t *testing.T) {
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		cleanupsExecuted := 0
 		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
 			r.Cleanup(func() {
@@ -142,7 +142,7 @@ func TestCleanup(t *testing.T) {
 		require.Equal(t, 1, cleanupsExecuted)
 	})
 	t.Run("cleanup-panic-recovery", func(t *testing.T) {
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		cleanupsExecuted := 0
 		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
 			r.Cleanup(func() {
@@ -167,7 +167,7 @@ func TestCleanup(t *testing.T) {
 	})
 
 	t.Run("cleanup-per-retry", func(t *testing.T) {
-		ft := &fakeT{}
+		ft := &fakeT{T: t}
 		iter := 0
 		cleanupsExecuted := 0
 		RunWith(&Counter{Count: 3, Wait: time.Millisecond}, ft, func(r *R) {
@@ -194,6 +194,7 @@ func TestCleanup(t *testing.T) {
 type fakeT struct {
 	fails int
 	out   []string
+	*testing.T
 }
 
 func (f *fakeT) Helper() {}
@@ -206,4 +207,4 @@ func (f *fakeT) FailNow() {
 	f.fails++
 }
 
-var _ Failer = &fakeT{}
+var _ TestingTB = &fakeT{}
