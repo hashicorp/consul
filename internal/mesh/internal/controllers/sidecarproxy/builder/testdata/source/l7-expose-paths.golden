@@ -183,8 +183,7 @@
           }
         ]
       }
-    },
-    "trafficPermissionDefaultAllow": true
+    }
   },
   "requiredLeafCertificates": {
     "test-identity": {
