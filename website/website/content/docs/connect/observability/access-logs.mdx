@@ -1,0 +1,253 @@
+---
+layout: docs
+page_title: Service Mesh Observability - Access Logs
+description: >-
+  Consul can emit access logs for application connections and requests that pass through Envoy proxies in the service mesh. Learn how to configure access logs, including minimum configuration requirements and the default log format.
+---
+
+# Access Logs
+
+This topic describes configuration and usage for access logs. Consul can emit access logs to record application connections and requests that pass through proxies in a service mesh, including sidecar proxies and gateways.
+You can use the application traffic records in access to logs to help you performance the following operations:
+
+  - **Diagnosing and Troubleshooting Issues**: Operators and application owners can identify configuration issues in the service mesh or the application by analyzing failed connections and requests.
+  - **Threat Detection**: Operators can review details about unauthorized attempts to access the service mesh and their origins.
+  - **Audit Compliance**: Operators can use access less for security compliance requirements for traffic entering and exiting the service mesh through gateways.
+
+Consul supports access logs capture through Envoy proxies started through the [`consul connect envoy`](/consul/commands/connect/envoy) CLI command and [`consul-dataplane`](/consul/docs/connect/dataplane). Other proxies are not supported.
+
+## Enable access logs
+
+Access logs configurations are defined globally in the [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults#accesslogs) configuration entry. 
+
+The following example is a minimal configuration for enabling access logs:
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true
+  }
+}
+```
+
+</CodeTabs>
+
+All proxies, including sidecars and gateways, emit access logs when the behavior is enabled.
+Both inbound and outbound traffic through the proxy are logged, including requests made directly to [Envoy's administration interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin.html?highlight=administration%20logs#administration-interface). 
+
+If you enable access logs after the Envoy proxy was started, access logs for the administration interface are not captured until you restart the proxy.
+
+## Default log format
+
+Access logs use the following format when no additional customization is provided:
+
+~> **Security warning:** The following log format contains IP addresses which may be a data compliance issue, depending on your regulatory environment.
+Operators should carefully inspect their chosen access log format to prevent leaking sensitive or personally identifiable information. 
+
+```json
+{
+	"start_time":                        "%START_TIME%",
+	"route_name":                        "%ROUTE_NAME%",
+	"method":                            "%REQ(:METHOD)%",
+	"path":                              "%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%",
+	"protocol":                          "%PROTOCOL%",
+	"response_code":                     "%RESPONSE_CODE%",
+	"response_flags":                    "%RESPONSE_FLAGS%",
+	"response_code_details":             "%RESPONSE_CODE_DETAILS%",
+	"connection_termination_details":    "%CONNECTION_TERMINATION_DETAILS%",
+	"bytes_received":                    "%BYTES_RECEIVED%",
+	"bytes_sent":                        "%BYTES_SENT%",
+	"duration":                          "%DURATION%",
+	"upstream_service_time":             "%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%",
+	"x_forwarded_for":                   "%REQ(X-FORWARDED-FOR)%",
+	"user_agent":                        "%REQ(USER-AGENT)%",
+	"request_id":                        "%REQ(X-REQUEST-ID)%",
+	"authority":                         "%REQ(:AUTHORITY)%",
+	"upstream_host":                     "%UPSTREAM_HOST%",
+	"upstream_cluster":                  "%UPSTREAM_CLUSTER%",
+	"upstream_local_address":            "%UPSTREAM_LOCAL_ADDRESS%",
+	"downstream_local_address":          "%DOWNSTREAM_LOCAL_ADDRESS%",
+	"downstream_remote_address":         "%DOWNSTREAM_REMOTE_ADDRESS%",
+	"requested_server_name":             "%REQUESTED_SERVER_NAME%",
+	"upstream_transport_failure_reason": "%UPSTREAM_TRANSPORT_FAILURE_REASON%"
+}
+```
+
+Depending on the connection type, such TCP or HTTP, some of these fields may be empty.
+
+## Custom log format
+
+Envoy uses [command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators) to expose information about application traffic. 
+You can use these fields to customize the access logs that proxies emit. 
+
+Custom logs can be either JSON format or text format.
+
+### JSON format
+
+You can format access logs in JSON so that you can parse them with Application Monitoring Platforms (APMs).
+
+To use a custom access log, in the `proxy-defaults` configuration entry, set [`JSONFormat`](/consul/docs/connect/config-entries/proxy-defaults#jsonformat) to the string representation of the desired JSON.
+
+Nesting is supported.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+  JSONFormat = <<EOF
+{
+    "myCustomKey" : {
+        "myStartTime" : "%START_TIME%",
+        "myProtocol" : "%PROTOCOL%"
+    }
+}
+EOF
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+    jsonFormat: |
+      {
+        "myCustomKey" : {
+          "myStartTime" : "%START_TIME%",
+          "myProtocol" : "%PROTOCOL%"
+        }
+      }
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true,
+    "JSONFormat": "{ \"myCustomKey\" : { \"myStartTime\" : \"%START_TIME%\", \"myProtocol\" : \"%PROTOCOL%\"} }"
+  }
+}
+```
+
+</CodeTabs>
+
+### Text format
+
+To use a custom access log formatted in plaintext, in the `proxy-defaults` configuration entry, set [`TextFormat`](/consul/docs/connect/config-entries/proxy-defaults#textformat) to the desired customized string.
+
+New lines are automatically added to the end of the log to keep each access log on its own line in the output.
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+  TextFormat = "MY START TIME: %START_TIME%, THIS CONNECTIONS PROTOCOL IS %PROTOCOL%" 
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+    textFormat: "MY START TIME: %START_TIME%, THIS CONNECTIONS PROTOCOL IS %PROTOCOL%" 
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true,
+    "JSONFormat": "MY START TIME: %START_TIME%, THIS CONNECTIONS PROTOCOL IS %PROTOCOL%" 
+  }
+}
+```
+
+</CodeTabs>
+
+
+## Kubernetes
+
+As part of its normal operation, the Envoy debugging logs for the `consul-dataplane`, `envoy`, or `envoy-sidecar` containers are written to `stderr`.
+The access log [`Type`](/consul/docs/connect/config-entries/proxy-defaults#type) is set to `stdout` by default for access logs when enabled.
+Use a log aggregating solution to separate the machine-readable access logs from the Envoy process debug logs.
+
+## Write to a file
+
+You can configure Consul to write access logs to a file on the host where Envoy runs.
+
+Envoy does not rotate log files. A log rotation solution, such as [logrotate](https://www.redhat.com/sysadmin/setting-logrotate), can prevent access logs from consuming too much of the host's disk space when writing to a file. 
+
+<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+```hcl
+Kind      = "proxy-defaults"
+Name      = "global"
+AccessLogs {
+  Enabled = true
+  Type = "file"
+  Path = "/var/log/envoy/access-logs.txt" 
+}
+```
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ProxyDefaults
+metadata:
+  name: global
+spec:
+  accessLogs:
+    enabled: true
+    type: file
+    path: "/var/log/envoy/access-logs.txt" 
+```
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "AccessLogs": {
+    "Enabled": true,
+    "Type": "file",
+    "Path": "/var/log/envoy/access-logs.txt"
+  }
+}
+```
+
+</CodeTabs>

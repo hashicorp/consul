@@ -1,0 +1,105 @@
+---
+layout: commands
+page_title: 'Commands: KV Delete'
+description: >-
+  The `consul kv delete` command removes a value from Consul's key/value store.
+---
+
+# Consul KV Delete
+
+Command: `consul kv delete`
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/kv/:key](/consul/api-docs/kv#delete-key)
+
+The `kv delete` command removes the value from Consul's KV store at the
+given path. If no key exists at the path, no action is taken.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `key:write`  |
+
+## Usage
+
+Usage: `consul kv delete [options] KEY_OR_PREFIX`
+
+#### Command Options
+
+- `-cas` - Perform a Check-And-Set operation.
+  To use this option, the `-modify-index` flag must also be set.
+  The default value is `false`.
+
+- `-modify-index=<int>` - Specifies an unsigned integer that represents
+  the `ModifyIndex` of the key. Used in combination with the `-cas` flag.
+
+- `-recurse` - Recursively delete all keys with the path. The default value is
+  `false`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+To remove the value for the key named "redis/config/connections" in the
+KV store:
+
+```shell-session
+$ consul kv delete redis/config/connections
+Success! Deleted key: redis/config/connections
+```
+
+If the key does not exist, the command will not error, and a success message
+will be returned:
+
+```shell-session
+$ consul kv delete not-a-real-key
+Success! Deleted key: not-a-real-key
+```
+
+To only delete a key if it has not been modified since a given index, specify
+the `-cas` and `-modify-index` flags:
+
+```shell-session
+$ consul kv get -detailed redis/config/connections | grep ModifyIndex
+ModifyIndex      456
+
+$ consul kv delete -cas -modify-index=123 redis/config/connections
+Error! Did not delete key redis/config/connections: CAS failed
+
+$ consul kv delete -cas -modify-index=456 redis/config/connections
+Success! Deleted key: redis/config/connections
+```
+
+To recursively delete all keys that start with a given prefix, specify the
+`-recurse` flag:
+
+```shell-session
+$ consul kv delete -recurse redis/
+Success! Deleted keys with prefix: redis/
+```
+
+!> **Trailing slashes are important** in the recursive delete operation, since
+Consul performs a greedy match on the provided prefix. If you were to use "foo"
+as the key, this would recursively delete any key starting with those letters
+such as "foo", "food", and "football" not just "foo". To ensure you are deleting
+a folder, always use a trailing slash.
+
+It is not valid to combine the `-cas` option with `-recurse`, since you are
+deleting multiple keys under a prefix in a single operation:
+
+```shell-session
+$ consul kv delete -cas -recurse redis/
+Cannot specify both -cas and -recurse!
+```

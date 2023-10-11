@@ -1,0 +1,92 @@
+---
+layout: commands
+page_title: 'Commands: Connect Redirect Traffic'
+sidebar_title: redirect-traffic
+description: >
+  The connect redirect-traffic subcommand is used to apply traffic redirection rules
+  when using Connect in Transparent Proxy mode.
+---
+
+# Consul Connect Redirect Traffic
+
+Command: `consul connect redirect-traffic`
+
+The connect redirect-traffic command is used to apply traffic redirection rules to enforce
+all traffic to go through the [Envoy proxy](https://envoyproxy.io) when using [Consul
+service mesh](/consul/docs/connect/) in the Transparent Proxy mode.
+
+This command requires `iptables` command line utility to be installed,
+and as a result, this command can currently only run on linux.
+The user running the command needs to have `NET_ADMIN` capability.
+
+By default, this command will apply rules to intercept and redirect all inbound and outbound
+TCP traffic to the Envoy's inbound and outbound ports accordingly.
+
+When `proxy-id` is specified, additional exclusion rules will be applied based on proxy's
+configuration stored in the local Consul agent. This includes redirecting to the proxy's
+inbound and outbound ports specified in the service registration.
+
+## Usage
+
+Usage: `consul connect redirect-traffic [options]`
+
+#### Command Options
+
+- `-node-name` - The node name where the proxy service is registered. It requires proxy-id to be specified. This is needed if running in an environment without client agents.
+
+- `-consul-dns-ip` - The IP address of the Consul DNS resolver. If provided, DNS queries will be redirected to the provided IP address for name resolution.
+
+- `-consul-dns-port` - The port of the Consul DNS resolver. If provided, DNS queries will be redirected to the provided IP address for name resolution.
+
+- `-proxy-id` - The [proxy service](/consul/docs/connect/proxies/proxy-config-reference) ID.
+  This service ID must already be registered with the local agent.
+
+- `-proxy-inbound-port` - The inbound port that the proxy is listening on.
+
+- `-proxy-outbound-port` - The outbound port that the proxy is listening on. When not provided, 15001 is used by default.
+
+- `-proxy-uid` - The user ID of the proxy to exclude from traffic redirection.
+
+- `-exclude-inbound-port` - Inbound port to exclude from traffic redirection. May be provided multiple times.
+
+- `-exclude-outbound-cidr` -  Outbound CIDR to exclude from traffic redirection. May be provided multiple times.
+
+- `-exclude-outbound-port` - Outbound port to exclude from traffic redirection. May be provided multiple times.
+
+- `-exclude-uid` - Additional user ID to exclude from traffic redirection. May be provided multiple times.
+
+- `-netns` - The Linux network namespace where traffic redirection rules should apply.
+  This must be a path to the network namespace, e.g. /var/run/netns/foo.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+### Basic Rules
+
+The default traffic redirection rules can be applied with:
+
+```shell-session
+$ consul connect redirect-traffic \
+  -proxy-uid 1234 \
+  -proxy-inbound-port 20000
+```
+
+### Using Registered Proxy Configuration
+
+To automatically apply rules based on proxy's service registration, use the following command:
+
+```shell-session
+$ consul connect redirect-traffic -proxy-uid 1234 -proxy-id web
+```
+
+This command assumes that the proxy service is registered with the local agent
+and that the local agent is reachable.

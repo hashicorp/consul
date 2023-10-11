@@ -1,0 +1,87 @@
+---
+layout: docs
+page_title: Service mesh proxy overview
+description: >-
+  In Consul service mesh, each service has a sidecar proxy that secures connections with other services in the mesh without modifying the underlying application code. You can use the built-in proxy, Envoy, or a custom proxy to handle communication and verify TLS connections.
+---
+
+# Service mesh proxy overview
+
+This topic provides an overview of how Consul uses proxies in your service mesh. A proxy is a type of service that enables unmodified applications to connect to other services in the service mesh. Consul ships with a built-in L4 proxy and has first class support for Envoy. You can plug other proxies into your environment as well, and apply configurations in Consul to define proxy behavior.
+
+## Proxy use cases
+
+You can configure proxies to perform several different types of functions in Consul.
+
+### Service mesh proxies
+
+A _service mesh proxy_ is any type of proxy service that you use for communication in a service mesh. Specialized proxy implementations, such as sidecar proxies and gateways, are subsets of service mesh proxies. Refer to [Deploy service mesh proxy services](/consul/docs/connect/proxies/deploy-service-mesh-proxies) for instructions on how to deploy a service mesh proxy.
+
+### Sidecars
+
+Sidecar proxies are service mesh proxy implementations that transparently handles inbound and outbound service connections. Sidecars automatically wrap and verify TLS connections. In a non-containerized network, each service in your mesh should have its own sidecar proxy.   
+
+Refer to [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
+
+### Gateways
+
+You can configure service mesh proxies to operate as gateway services, which allow service-to-service traffic across different network areas, including peered clusters, WAN-federated datacenters, and nodes outside the mesh. Consul ships with several types of gateway capabilities, but gateways deliver the underlying functionality.
+
+Refer to [Gateways overview](/consul/docs/connect/gateways) for additional information.
+
+### Dynamic traffic control
+
+You can configure proxies to dynamically redirect or split traffic to implement a failover strategy, test new features, and roll out new versions of your applications. You can apply a combination of configurations to enable complex scenarios, such as failing over to the geographically nearest service or to services in different network areas that you have designated as being functionally identical.     
+
+Refer to the following topics for additional information:
+
+- [Service mesh traffic management overview](/consul/docs/connect/manage-traffic)
+- [Failover overview](/consul/docs/connect/manage-traffic/failover)
+
+
+## Supported proxies
+
+Consul has first-class support for Envoy proxies, which is a highly configurable open source edge service proxy. Consul configures Envoy by optionally exposing a gRPC service on the local agent that serves Envoy's xDS configuration API. Refer to the following documentation for additional information:
+
+- [Envoy proxy reference](/consul/docs/connect/proxies/envoy)
+- [Envoy API documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-docs/xds_protocol)
+ 
+You can use Consul's built-in proxy service that supports L4 network traffic, which is suitable for testing and development but not recommended for production environments. Refer to the [built-in proxy reference](/consul/docs/connect/proxies/built-in) for additional information.
+
+## Workflow
+
+The following procedure describes how to implement proxies:
+
+1. **Configure global proxy settings**. You can configure global passthrough settings for all proxies deployed to your service mesh in the proxy defaults configuration entry. This step is not required, but it enables you to define common behaviors in a central configuration.
+1. **Deploy your service mesh proxy**. Configure proxy behavior in a service definition and register the proxy with Consul. 
+1. **Start the proxy service**. Proxies appear in the list of services registered to Consul and must be started before they begin to route traffic in your service mesh.
+
+### Dynamic upstreams require native integration
+
+Service mesh proxies do not support dynamic upstreams. If an application requires dynamic dependencies that are only available at runtime, you must [natively integrate](/consul/docs/connect/native) the application with Consul service mesh. After integration, the application can use the HTTP API or [DNS interface](/consul/docs/services/discovery/dns-static-lookups#service-mesh-enabled-service-lookups) to connect to other services in the mesh.
+
+## Proxies in Kubernetes-orchestrated networks
+
+For Kubernetes-orchestrated environments, Consul deploys _dataplanes_ by default to manage sidecar proxies. Consul dataplanes are light-weight processes that leverage existing Kubernetes sidecar orchestration capabilities.  Refer to the [dataplanes documentation](/consul/docs/connect/dataplane) for additional information.
+
+## Guidance
+
+Refer to the following resources for help using service mesh proxies:
+
+### Tutorial
+
+- [Using Envoy with Consul service mesh](/consul/tutorials/developer-mesh/service-mesh-with-envoy-proxy)
+
+### Usage documentation
+
+- [Deploy service mesh proxies](/consul/docs/connect/proxies/deploy-service-mesh-proxies) 
+- [Deploy sidecar proxies](/consul/docs/connect/proxies/deploy-sidecar-services)
+- [Extend Envoy proxies](/consul/docs/connect/proxies/envoy-extensions)
+- [Integrate custom proxies](/consul/docs/connect/proxies/integrate)
+
+### Reference documentation
+
+- [Proxy defaults configuration entry reference](/consul/docs/connect/config-entries/proxy-defaults) for additional information. 
+- [Envoy proxies reference](/consul/docs/connect/proxies/envoy)
+- [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
+- [`consul connect envoy` command](/consul/commands/connect/envoy)

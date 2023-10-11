@@ -1,0 +1,377 @@
+---
+layout: docs
+page_title: Glossary
+description: >-
+  The glossary is a list of technical terms with a specific meaning in Consul. Use the glossary to understand Consul concepts and study for the certification exam.
+---
+
+# Consul Vocabulary
+
+This section collects brief definitions of some of the technical terms used in the documentation for Consul and Consul Enterprise, as well as some terms that come up frequently in conversations throughout the Consul community.
+
+## Agent
+
+An agent is the long running daemon on every member of the Consul cluster.
+It is started by running `consul agent`. The agent is able to run in either _client_
+or _server_ mode. Since all nodes must be running an agent, it is simpler to refer to
+the node as being either a client or server, but there are other instances of the agent. All
+agents can run the DNS or HTTP interfaces, and are responsible for running checks and
+keeping services in sync.
+
+## Client
+
+A client is an agent that forwards all RPCs to a server. The client is relatively
+stateless. The only background activity a client performs is taking part in the LAN gossip
+pool. This has a minimal resource overhead and consumes only a small amount of network
+bandwidth.
+
+## Server
+
+A server is an agent with an expanded set of responsibilities including
+participating in the Raft quorum, maintaining cluster state, responding to RPC queries,
+exchanging WAN gossip with other datacenters, and forwarding queries to leaders or
+remote datacenters.
+
+## Datacenter
+
+We define a datacenter to be a networking environment that is
+private, low latency, and high bandwidth. This excludes communication that would traverse
+the public internet, but for our purposes multiple availability zones within a single EC2
+region would be considered part of a single datacenter.
+
+## Consensus
+
+When used in our documentation we use consensus to mean agreement upon
+the elected leader as well as agreement on the ordering of transactions. Since these
+transactions are applied to a
+[finite-state machine](https://en.wikipedia.org/wiki/Finite-state_machine), our definition
+of consensus implies the consistency of a replicated state machine. Consensus is described
+in more detail on [Wikipedia](<https://en.wikipedia.org/wiki/Consensus_(computer_science)>),
+and our implementation is described [here](/consul/docs/architecture/consensus).
+
+## Gossip
+
+Consul is built on top of [Serf](https://www.serf.io/) which provides a full
+[gossip protocol](https://en.wikipedia.org/wiki/Gossip_protocol) that is used for multiple purposes.
+Serf provides membership, failure detection, and event broadcast. Our use of these
+is described more in the [gossip documentation](/consul/docs/architecture/gossip). It is enough to know
+that gossip involves random node-to-node communication, primarily over UDP.
+
+## LAN Gossip
+
+Refers to the LAN gossip pool which contains nodes that are all
+located on the same local area network or datacenter.
+
+## WAN Gossip
+
+Refers to the WAN gossip pool which contains only servers. These
+servers are primarily located in different datacenters and typically communicate
+over the internet or wide area network.
+
+## RPC
+
+Remote Procedure Call. This is a request / response mechanism allowing a
+client to make a request of a server.
+
+# Consul Glossary
+This section collects brief definitions of some of the terms used in the discussions around networking in a cloud-native world.
+
+
+## Access Control List (ACL)
+An Access Control List (ACL) is a list of user permissions for a file, folder, or 
+other object. It defines what users and groups can access the object and what 
+operations they can perform.
+
+Consul uses Access Control Lists (ACLs) to secure the UI, API, CLI, service
+communications, and agent communications.
+Visit [Consul ACL Documentation and Guides](/consul/docs/security/acl)
+
+## API Gateway	
+An Application Programming Interface (API) is a common software interface that 
+allows two applications to communicate.  Most modern applications are built using 
+APIs.  An API Gateway is a single point of entry into these modern applications 
+built using APIs.
+
+## Application Security	
+Application Security is the process of making applications secure by detecting 
+and fixing any threats or information leaks.  This can be done during or after 
+the app development lifecycle; although, it is easier for app teams and security 
+teams to incorporate security into an app even before the development process 
+begins.
+
+## Application Services	
+Application Services are a group of services, such as application performance 
+monitoring, load balancing, service discovery, service proxy, security, 
+autoscaling, etc. needed to deploy, run, and improve applications. 
+
+## Authentication and Authorization (AuthN and AuthZ)	
+Authentication (AuthN) deals with establishing user identity while Authorization
+(AuthZ) allows or denies access to the user based on user identity.
+
+## Auto Scaling Groups	
+An Auto Scaling Group is an AWS specific term that represents a collection of 
+Amazon EC2 instances that are treated as a logical grouping for the purposes of 
+automatic scaling and management.  
+Learn more about Auto Scaling Groups 
+[here](https://docs.aws.amazon.com/autoscaling/ec2/userguide/AutoScalingGroup.html).
+
+## Autoscaling	
+Autoscaling is the process of automatically scaling computational resources based 
+on network traffic requirements.  Autoscaling can be done either horizontally or 
+vertically. Horizontal scaling is done by adding more machines into the pool of 
+resources whereas vertical scaling means increasing the capacity of an existing 
+machine.
+
+## Blue-Green Deployments	
+Blue-Green Deployment is a deployment method designed to reduce downtime by 
+running two identical production environments labeled Blue and Green.  Blue is 
+the active while Green is the idle environment. 
+
+## Canary Deployments	
+Canary deployment is the pattern used for rolling out releases to a subset of 
+users or servers.  The goal is deploy the updates to a subset of users, test it, 
+and then roll out the changes to everyone. 
+
+## Client-side Load Balancing	
+Client-side load balancing is a load balancing approach that relies on clients' 
+decision to call the right servers.  As the name indicates, this approach is part 
+of the client application.  Servers can still have their own load balancer 
+alongside the client-side load balancer.
+
+## Cloud Native Computing Foundation	
+The [Cloud Native Computing Foundation (CNCF)](https://github.com/cncf/foundation) 
+is a Linux Foundation project that was founded in 2015 to help advance 
+container technology and align the tech industry around its evolution.
+
+HashiCorp joined Cloud Native Computing Foundation to further HashiCorp 
+product integrations with CNCF projects and to work more closely with the 
+broader cloud-native community of cloud engineers.  Read more 
+[here](https://www.hashicorp.com/blog/hashicorp-joins-the-cncf/).
+
+## Custom Resource Definition (CRD) 	
+Custom resources are the extensions of the Kubernetes API.  A Custom Resource 
+Definition (CRD) file allows users to define their own custom resources and 
+allows the API server to handle the lifecycle.
+
+## Egress Traffic	
+Egress traffic is network traffic that begins inside a network and proceeds 
+through its routers to a destination outside the network.
+
+## Elastic Provisioning	
+Elastic Provisioning is the ability to provision computing resources 
+dynamically to meet user demand.
+
+## Envoy Proxy	
+[Envoy Proxy](https://www.envoyproxy.io/) is a modern, high performance, 
+small footprint edge and service proxy.  Originally written and deployed at 
+[Lyft](https://eng.lyft.com/announcing-envoy-c-l7-proxy-and-communication-bus-92520b6c8191),
+ Envoy Proxy is now an official project at [Cloud Native Computing Foundation 
+ (CNCF)](https://www.cncf.io/cncf-envoy-project-journey/) 
+
+## Forward Proxy	
+A forward proxy is used to forward outgoing requests from inside the network 
+to the Internet, usually through a firewall. The objective is to provide a level 
+of security and to reduce network traffic.
+
+## Hybrid Cloud Architecture	
+A hybrid cloud architecture is an IT architectural approach that mixes 
+on-premises, private cloud, and public cloud services.  A hybrid cloud 
+environment incorporates workload portability, orchestration, and management 
+across the environments.
+
+A private cloud, traditionally on-premises, is referred to an infrastructure 
+environment managed by the user themselves.
+
+A public cloud, traditionally off-premises, is referred to an infrastructure 
+service provided by a third party.
+
+## Identity-based authorization	
+Identity-based authorization is a security approach to restrict or allow access 
+based on the authenticated identity of an individual.
+
+## Infrastructure as a Service	
+Infrastructure as a Service, often referred to as IaaS, is a cloud computing 
+approach where the computing resources are delivered online via APIs.  These 
+APIs communicate with underlying infrastructure like physical computing resources,
+ location, data partitioning, scaling, security, backup, etc. 
+
+IaaS is one of the four types of cloud services along with SaaS 
+(Software as a Service), PaaS (Platform as a Service), and Serverless.
+
+## Infrastructure as Code	
+Infrastructure as Code (IaC) is the process of developers and operations teams' 
+ability of provisioning and managing computing resources automatically through 
+software, instead of using configuration tools.
+
+## Ingress Controller	
+In Kubernetes, "ingress" is an object that allows access Kubernetes services 
+from outside the Kubernetes cluster.  An ingress controller is responsible for 
+ingress, generally with a load balancer or an edge router that can help with 
+traffic management.
+
+## Ingress Gateway	
+An Ingress Gateway is an edge of the mesh load balancer that provides secure and 
+reliable access from external networks to Kubernetes clusters. 
+
+## Ingress Traffic	
+Ingress Traffic is the network traffic that originates outside the network and 
+has a destination inside the network.
+
+## Key-Value Store	
+A Key-Value Store (or a KV Store) also referred to as a Key-Value Database is 
+a data model where each key is associated with one and only one value in 
+a collection.
+
+## L4 - L7 Services	
+L4-L7 Services are a set of functions such as load balancing, web application 
+firewalls, service discovery, and monitoring for network layers within the 
+Open Systems Interconnection (OSI) model.
+
+## Layer 7 Observability	
+Layer 7 Observability is a feature of Consul Service Mesh that enables a 
+unified workflow for metric collection, distributed tracking, and logging.  
+It also allows centralized configuration and management for a distributed 
+data plane. 
+
+## Load Balancer	
+A load balancer is a network appliance that acts as a [reverse proxy](#reverse-proxy) 
+and distributes network and application traffic across the servers.
+
+## Load Balancing	
+Load Balancing is the process of distributing network and application traffic 
+across multiple servers. 
+
+## Load Balancing Algorithms	
+Load balancers follow an algorithm to determine how to route the traffic across 
+the server farm.  Some of the commonly used algorithms are:
+1. Round Robin
+2. Least Connections
+3. Weighted Connections
+4. Source IP Hash
+5. Least Response Time Method
+6. Least Bandwidth Method
+
+## Multi-cloud 	
+A multi-cloud environment generally uses two or more cloud computing services 
+from different vendors in a single architecture.  This refers to the distribution 
+of compute resources, storage, and networking aspects across cloud environments.  
+A multi-cloud environment could be either all private cloud or all public cloud 
+or a combination of both. 
+
+## Multi-cloud Networking	
+Multi-cloud Networking provides network configuration and management across 
+multiple cloud providers via APIs.
+
+## Mutual Transport Layer Security (mTLS)	
+Mutual Transport Layer Security, also known as mTLS, is an authentication 
+mechanism that ensures network traffic security in both directions between 
+a client and server. 
+
+## Network Middleware Automation	
+The process of publishing service changes to network middleware such as 
+load balancers and firewalls and automating network tasks is called Network 
+Middleware Automation.
+
+## Network security	
+Network security is the process of protecting data and network.  It consists 
+of a set of policies and practices that are designed to prevent and monitor 
+unauthorized access, misuse, modification, or denial of a computer network 
+and network-accessible resources.
+
+## Network traffic management	
+Network Traffic Management is the process of ensuring optimal network operation 
+by using a set of network monitoring tools.  Network traffic management also 
+focuses on traffic management techniques such as bandwidth monitoring, deep 
+packet inspection, and application based routing.
+
+## Network Visualization	
+Network Visualization is the process of visually displaying networks and 
+connected entities in a "boxes and lines" kind of a diagram. 
+
+In the context of microservices architecture, visualization can provide a clear 
+picture of how services are connected to each other, the service-to-service 
+communication, and resource utilization of each service.
+
+## Observability	
+Observability is the process of logging, monitoring, and alerting on the 
+events of a deployment or an instance.
+
+## Elastic Scaling	
+Elastic Scaling is the ability to automatically add or remove compute or 
+networking resources based on the changes in application traffic patterns.
+
+## Platform as a Service	
+Platform-as-a-Service (PaaS) is a category of cloud computing that allows 
+users to develop, run, and manage applications without the complexity of 
+building and maintaining the infrastructure typically associated with 
+developing and launching the application. 
+
+## Reverse Proxy	
+A reverse proxy handles requests coming from outside, to the internal 
+network. Reverse Proxy provides a level of security that prevents the 
+external clients from having direct access to data on the corporate servers. 
+The reverse proxy is usually placed between the web server and the external 
+traffic.  
+
+## Role-based Access Controls	
+The act of restricting or provisioning access 
+to a user based on their specific role in the organization.
+
+## Server side load balancing	
+A Server-side Load Balancer sits between the client and the server farm, 
+accepts incoming traffic, and distributes the traffic across multiple backend 
+servers using various load balancing methods.
+
+## Service configuration	
+A service configuration includes the name, description, and the specific 
+function of a service.  In a microservices application architecture setting, 
+a service configuration file includes a service definition.
+
+## Service Catalog	
+A service catalog is an organized and curated collection of services that 
+are available for developers to bind to their applications.
+
+## Service Discovery	
+Service Discovery is the process of detecting services and devices on a 
+network.  In a microservices context, service discovery is how applications 
+and microservices locate each other on a network.
+
+## Service Mesh	
+Service Mesh is the infrastructure layer that facilitates service-to-service 
+communication between microservices, often using a sidecar proxy.  This 
+network of microservices make up microservice applications and the 
+interactions between them.
+
+## Service Networking	
+Service networking brings several entities together to deliver a particular 
+service.  Service Networking acts as the brain of an organization's 
+networking and monitoring operations.
+
+## Service Proxy	
+A service proxy is the client-side proxy for a microservice application. 
+It allows applications to send and receive messages over a proxy server. 
+
+## Service Registration	
+Service registration is the process of letting clients (of the service) 
+and routers know about the available instances of the service.  
+Service instances are registered with a service registry on startup and deregistered at shutdown.
+
+## Service Registry 	
+Service Registry is a database of service instances and information on 
+how to send requests to these service instances.
+
+## Microservice Segmentation	
+Microservice segmentation, sometimes visual, of microservices is the 
+segmentation in a microservices application architecture that enables 
+administrators to view their functions and interactions.
+
+## Service-to-service communication	
+Service-to-service communication, sometimes referred to as 
+inter-service communication, is the ability of a microservice 
+application instance to communicate with another to collaborate and 
+handle client requests.
+
+## Software as a Service	
+Software as a Service is a licensing and delivery approach to software 
+delivery where the software is hosted by a provider and licensed 
+to users on a subscription basis. 

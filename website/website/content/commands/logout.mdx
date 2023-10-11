@@ -1,0 +1,44 @@
+---
+layout: commands
+page_title: 'Commands: Logout'
+description: >
+  The `logout` command will destroy the provided token if it was created from
+  `consul login`.
+---
+
+# Consul Logout
+
+Command: `consul logout`
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/acl/logout](/consul/api-docs/acl#logout-from-auth-method)
+
+The `logout` command will destroy the provided token if it was created from
+`consul login`.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `none`       |
+
+## Usage
+
+Usage: `consul logout [options]`
+
+-> The token to delete should be specified with the `-token` argument, the
+`CONSUL_HTTP_TOKEN` environment variable, the `-token-file` argument, or the
+`CONSUL_HTTP_TOKEN_FILE` environment variable.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+### Examples
+
+Logout and delete a login token.
+
+```shell-session
+$ consul logout -token-file 'consul.token'
+```

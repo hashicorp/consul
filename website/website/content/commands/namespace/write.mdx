@@ -1,0 +1,88 @@
+---
+layout: commands
+page_title: 'Commands: Namespace Write'
+description: |
+  The `consul namespace write` command creates or updates a namespace's configuration in Consul Enterprise.
+---
+
+# Consul Namespace Write
+
+Command: `consul namespace write`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/namespace/:name](/consul/api-docs/namespaces#update-a-namespace)
+
+<EnterpriseAlert />
+
+This `namespace write` command creates or updates a namespace's configuration from its full definition. This was added in Consul Enterprise 1.7.0.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+## Usage
+
+Usage: `consul namespace write <namespace definition>`
+
+The `<namespace definition>` must either be a file path or `-` to indicate that
+the definition should be read from stdin. The definition can be in either JSON
+or HCL format. See [here](/consul/docs/enterprise/namespaces#namespace-definition) for a description of the namespace definition.
+
+#### Command Options
+
+- `-format=<string>` - How to output the results. The choices are: pretty or json
+
+- `-meta` - Indicates that namespace metadata such as the raft indices should be
+  shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Create a new Namespace:
+
+```shell-session
+$ consul namespace write - <<< 'Name = "team-1"'
+Name: team-1
+Description:
+```
+
+Showing Raft Metadata:
+
+```shell-session
+$ consul namespace write -meta - <<< 'Name = "team-1"'
+Name: team-1
+Description:
+Create Index: 339
+Modify Index: 344
+```
+
+JSON Format:
+
+```shell-session
+$ cat ns.hcl
+Name = "foo"
+Description = "Example Namespace"
+Meta {
+   team-id = "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+}
+$ consul namespace write -format=json ns.hcl
+{
+   "Name": "foo",
+   "Description": "Example Namespace",
+   "Meta": {
+      "team-id": "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+   },
+   "CreateIndex": 352,
+   "ModifyIndex": 352
+}
+```

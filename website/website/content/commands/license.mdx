@@ -1,0 +1,250 @@
+---
+layout: commands
+page_title: 'Commands: License'
+description: >
+  The license command provides a datacenter-level view of the Consul
+  Enterprise license.
+---
+
+# Consul License
+
+Command: `consul license`
+
+<EnterpriseAlert />
+
+The `license` command provides a list of all datacenters that use the Consul Enterprise license applied to the current datacenter.
+
+~> **Warning**: Consul 1.10.0 removed the ability to set and reset the license using the CLI.
+See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about
+Consul Enterprise license management.
+
+If ACLs are enabled then a token with operator privileges may be required in
+order to use this command. Requests are forwarded internally to the leader
+if required, so this can be run from any Consul node in a cluster. See the
+[ACL Guide](/consul/tutorials/security/access-control-setup-production) for more information.
+
+```text
+Usage: consul license <subcommand> [options] [args]
+
+  This command has subcommands for managing the Consul Enterprise license
+  Here are some simple examples, and more detailed examples are
+  available in the subcommands or the documentation.
+
+  Install a new license from a file:
+
+      $ consul license put @consul.license
+
+  Install a new license from stdin:
+
+      $ consul license put -
+
+  Install a new license from a string:
+
+      $ consul license put "<license blob>"
+
+  Retrieve the current license:
+
+      $ consul license get
+
+  Inspect a license:
+
+      $ consul license inspect "<path to license file>"
+
+  Reset the current license:
+
+      $ consul license reset
+
+  For more examples, ask for subcommand help or view the documentation.
+
+Subcommands:
+    get        Get the active license
+    inspect    Inspect a signed license
+    put        Puts a new license in the datacenter
+    reset      Resets the license in the datacenter
+
+```
+
+## inspect
+
+This command inspects and validates a license. Just like a Consul agent it
+can load the license from a file on disk or from the `CONSUL_LICENSE` and
+`CONSUL_LICENSE_PATH` environment variables.
+
+Usage: `consul license inspect [<options>] [<license file>]`
+
+Inspect a license contained in a file:
+
+```
+$ consul license inspect consul.hclic
+```
+
+Inspect a license loaded from the environment:
+
+```
+$ consul license inspect
+```
+
+This will look at the CONSUL_LICENSE environment variable first
+and if not present then we will look for the file specified
+by the CONSUL_LICENSE_PATH environment variable.
+
+The output looks like this:
+
+```
+Source: /consul/config/consul.hclic (path from the CONSUL_LICENSE_PATH environment variable)
+Product: consul
+License ID: 6089174b-a713-74cf-4c8d-856b86f1ce50
+Customer ID: 7c020610-60a2-7ccb-c210-20d899e5f3b4
+Installation ID: *
+Issue Time: 2020-09-14 19:45:56.212195875 +0000 UTC
+Start Time: 2020-09-14 00:00:00 +0000 UTC
+Expiration Time: 2021-09-14 23:59:59.999 +0000 UTC
+Termination Time: 2021-09-14 23:59:59.999 +0000 UTC
+Modules:
+        Global Visibility, Routing and Scale
+        Governance and Policy
+Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+        Namespaces
+        SSO
+        Audit Logging
+        Admin Partitions
+
+License is valid
+
+```
+
+## put
+
+-> **Deprecated** The ability to manage the cluster's license via the CLI
+was removed in Consul 1.10. While the CLI command still exists it will
+always return an error. This command will be fully removed in a future release.
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/license](/consul/api-docs/operator/license#updating-the-consul-license)
+
+This command sets the Consul Enterprise license.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul license put [options] LICENSE`
+
+The output looks like this:
+
+```text
+License is valid
+License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
+Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b
+Expires At: 2019-05-22 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+```
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## get
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/license](/consul/api-docs/operator/license#getting-the-consul-license)
+
+This command gets the Consul Enterprise license. If the leader hasn't been updated with the newer license, the followers
+will display the outdated license in their GET output.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `none`       |
+
+Usage: `consul license get [options]`
+
+The output looks like this:
+
+```text
+License is valid
+License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
+Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b
+Expires At: 2019-05-22 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+```
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## reset
+
+-> **Deprecated** The ability to manage the cluster's license via the CLI
+was removed in Consul 1.10. While the CLI command still exists it will
+always return an error. This command will be fully removed in a future release.
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/operator/license](/consul/api-docs/operator/license#resetting-the-consul-license)
+
+Resets license for the datacenter to the one builtin in Consul binary, if it is still valid.
+If the builtin license is invalid, the current one stays active.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul license reset [options]`
+
+The output looks like this:
+
+```text
+License is valid
+License ID: 2afbf681-0d1a-0649-cb6c-333ec9f0989c
+Customer ID: 0259271d-8ffc-e85e-0830-c0822c1f5f2b
+Expires At: 2019-05-22 03:59:59.999 +0000 UTC
+Datacenter: *
+Package: premium
+Licensed Features:
+        Automated Backups
+        Automated Upgrades
+        Enhanced Read Scalability
+        Network Segments
+        Redundancy Zone
+        Advanced Network Federation
+```
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

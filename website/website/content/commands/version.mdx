@@ -1,0 +1,46 @@
+---
+layout: commands
+page_title: 'Commands: Version'
+description: >-
+  The `version` command prints the version of Consul and the protocol versions
+  it understands for speaking to other agents.
+---
+
+# Consul Version
+
+Command: `consul version`
+
+The `version` command prints the version of Consul and the protocol versions it understands for speaking to other agents.
+
+## Usage
+
+Usage: `consul version [options]`
+
+#### Command Options
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+## Plain Output
+
+```shell-session
+$ consul version
+Consul v1.7.0
+Revision d1fc59061
+Protocol 2 spoken by default, understands 2 to 3 (agent will automatically use protocol >2 when speaking to compatible agents)
+```
+
+## JSON Output
+
+```shell-session
+$ consul version -format=json
+{
+   "Version": "1.8.0",
+   "Revision": "d1fc59061",
+   "Prerelease": "dev",
+   "RPC": {
+      "Default": 2,
+      "Min": 2,
+      "Max": 3
+   }
+}
+```

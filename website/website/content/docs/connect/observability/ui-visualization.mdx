@@ -1,0 +1,726 @@
+---
+layout: docs
+page_title: Service Mesh Observability - UI Visualization
+description: >-
+  Consul's UI can display a service's topology and associated metrics from the service mesh. Learn how to configure the UI to collect metrics from your metrics provider, modify access for metrics proxies, and integrate custom metrics providers.
+---
+
+# Service Mesh Observability: UI Visualization
+
+-> Coming here from "Configure metrics dashboard" or "Configure dashboard"? See [Configuring Dashboard URLs](#configuring-dashboard-urls).
+
+Since Consul 1.9.0, Consul's built in UI includes a topology visualization to
+show a service's immediate connectivity at a glance. It is not intended as a
+replacement for dedicated monitoring solutions, but rather as a quick overview
+of the state of a service and its connections within the Service Mesh.
+
+The topology visualization requires services to be using [service mesh](/consul/docs/connect) via [sidecar proxies](/consul/docs/connect/proxies).
+
+The visualization may optionally be configured to include a link to an external
+per-service dashboard. This is designed to provide convenient deep links to your
+existing monitoring or Application Performance Monitoring (APM) solution for
+each service. More information can be found in [Configuring Dashboard
+URLs](#configuring-dashboard-urls).
+
+It is possible to configure the UI to fetch basic metrics from your metrics
+provider storage to augment the visualization as displayed below.
+
+![Consul UI Service Mesh Visualization](/img/ui-service-topology-view-hover.png)
+
+Consul has built-in support for overlaying metrics from a
+[Prometheus](https://prometheus.io) backend. Alternative metrics providers may
+be supported using a new and experimental JavaScript API. See [Custom Metrics
+Providers](#custom-metrics-providers).
+
+## Kubernetes
+
+If running Consul in Kubernetes, the Helm chart can automatically configure Consul's UI to display topology
+visualizations. See our [Kubernetes observability docs](/consul/docs/k8s/connect/observability/metrics) for more information.
+
+## Configuring the UI To Display Metrics
+
+To configure Consul's UI to fetch metrics there are two required configuration settings.
+These need to be set on each Consul Agent that is responsible for serving the
+UI. If there are multiple clients with the UI enabled in a datacenter for
+redundancy these configurations must be added to all of them.
+
+We assume that the UI is already enabled by setting
+[`ui_config.enabled`](/consul/docs/agent/config/config-files#ui_config_enabled) to `true` in the
+agent's configuration file.
+
+To use the built-in Prometheus provider
+[`ui_config.metrics_provider`](/consul/docs/agent/config/config-files#ui_config_metrics_provider)
+must be set to `prometheus`.
+
+The UI must query the metrics provider through a proxy endpoint. This simplifies
+deployment where Prometheus is not exposed externally to UI user's browsers.
+
+To set this up, provide the URL that the _Consul agent_ should use to reach the
+Prometheus server in
+[`ui_config.metrics_proxy.base_url`](/consul/docs/agent/config/config-files#ui_config_metrics_proxy_base_url).
+For example in Kubernetes, the Prometheus helm chart by default installs a
+service named `prometheus-server` so each Consul agent can reach it on
+`http://prometheus-server` (using Kubernetes' DNS resolution).
+
+A full configuration to enable Prometheus is given below.
+
+<CodeTabs heading="UI metrics configuration" tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+ui_config {
+  enabled = true
+  metrics_provider = "prometheus"
+  metrics_proxy {
+    base_url = "http://prometheus-server"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="helm-values.yaml">
+
+```yaml
+ui:
+  enabled: true
+  metrics:
+    enabled: true # by default, this inherits from the value global.metrics.enabled
+    provider: "prometheus"
+    baseURL: http://prometheus-server
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "prometheus",
+    "metrics_proxy": {
+      "base_url": "http://prometheus-server"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+-> **Note**: For more information on configuring the observability UI on Kubernetes, use this [reference](/consul/docs/k8s/connect/observability/metrics).
+
+## Configuring Dashboard URLs
+
+Since Consul's visualization is intended as an overview of your mesh and not a
+comprehensive monitoring tool, you can configure a service dashboard URL
+template which allows users to click directly through to the relevant
+service-specific dashboard in an external tool like
+[Grafana](https://grafana.com) or a hosted provider.
+
+To configure this, you must provide a URL template in the [agent configuration
+file](/consul/docs/agent/config/config-files#ui_config_dashboard_url_templates) for all agents that
+have the UI enabled. The template is essentially the URL to the external
+dashboard, but can have placeholder values which will be replaced with the
+service name, namespace and datacenter where appropriate to allow deep-linking
+to the relevant information.
+
+An example with Grafana is shown below.
+
+<CodeTabs heading="Example dashboard URL template configuration for UI visualization"  tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
+
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+ui_config {
+  enabled = true
+  dashboard_url_templates {
+    service = "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{Service.Name}}&var-namespace={{Service.Namespace}}&var-partition={{Service.Partition}}&var-dc={{Datacenter}}"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="helm-values.yaml">
+
+```yaml
+# The UI is enabled by default so this stanza is not required.
+ui:
+  enabled: true
+  # This configuration requires version 0.40.0 or later of the Helm chart.
+  dashboardURLTemplates:
+    service: "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{Service.Name}}&var-namespace={{Service.Namespace}}&var-dc={{Datacenter}}"
+
+# If you are using a version of the Helm chart older than 0.40.0, you must
+# configure the dashboard URL template using the `server.extraConfig` parameter
+# in the Helm chart's values file.
+server:
+  extraConfig: |
+    {
+      "ui_config": {
+        "dashboard_url_templates": {
+          "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1&var-service={{ "{{" }}Service.Name}}&var-namespace={{ "{{" }}Service.Namespace}}&var-dc={{ "{{" }}Datacenter}}"
+        }
+      }
+    }
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "dashboard_url_templates": {
+      "service": "https://grafana.example.com/d/lDlaj-NGz/service-overview?orgId=1\u0026var-service={{Service.Name}}\u0026var-namespace={{Service.Namespace}}\u0026var-partition={{Service.Partition}}\u0026var-dc={{Datacenter}}"
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+~> **Note**: On Kubernetes, the Consul Server configuration set in the Helm config's
+[`server.extraConfig`](/consul/docs/k8s/helm#v-server-extraconfig) key must be specified
+as JSON.  The `{{` characters in the URL must be escaped using `{{ "{{" }}` so that Helm
+doesn't try to template them.
+
+![Consul UI Service Dashboard Link](/img/ui-dashboard-url-template.png)
+
+### Metrics Proxy
+
+In many cases the metrics backend may be inaccessible to UI user's browsers or
+may be on a different domain and so subject to CORS restrictions. To make it
+simpler to serve the metrics to the UI in these cases, the Consul agent can
+proxy requests for metrics from the UI to the backend.
+
+**This is intended to simplify setup in test and demo environments. Careful
+consideration should be given towards using this in production.**
+
+The simplest configuration is described in [Configuring the UI for
+metrics](#configuring-the-ui-for-metrics).
+
+#### Metrics Proxy Security
+
+~> **Security Note**: Exposing a backend metrics service to potentially
+un-authenticated network traffic via the proxy should be _carefully_ considered
+in production.
+
+The metrics proxy endpoint is internal and intended only for UI use. However by
+enabling it anyone with network access to the agent's API port may use it to
+access metrics from the backend.
+
+**If ACLs are not enabled, full access to metrics will be exposed to
+un-authenticated workloads on the network**.
+
+With ACLs enabled, the proxy endpoint requires a valid token with read access
+to all nodes and services (across all namespaces in Enterprise):
+
+<Tabs>
+<Tab heading="Consul CE">
+
+<CodeTabs heading="Example policy granting read-only access to all services and nodes">
+
+```hcl
+service_prefix "" {
+  policy = "read"
+}
+node_prefix "" {
+  policy = "read"
+}
+```
+
+```json
+{
+  "service_prefix": {
+    "": {
+      "policy": "read"
+    }
+  },
+  "node_prefix": {
+    "": {
+      "policy": "read"
+    }
+  }
+}
+```
+
+</CodeTabs>
+</Tab>
+
+<Tab heading="Consul Enterprise">
+<CodeTabs heading="Example policy granting read-only access to all services and nodes across all namespaces">
+
+```hcl
+namespace_prefix "" {
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+```
+
+```json
+{
+  "namespace_prefix": {
+    "": {
+      "service_prefix": {
+        "": {
+          "policy": "read"
+        }
+      },
+      "node_prefix": {
+        "": {
+          "policy": "read"
+        }
+      }
+    }
+  }
+}
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+It's typical for most authenticated users to have this level of access in Consul
+as it's required for viewing the catalog or discovering services. If you use a
+[Single Sign-On integration](/consul/docs/security/acl/auth-methods/oidc) (Consul
+Enterprise) users of the UI can be automatically issued an ACL token with the
+privileges above to be allowed access to the metrics through the proxy.
+
+Even with ACLs enabled, the proxy endpoint doesn't deeply understand the query
+language of the backend so there is no way it can enforce least-privilege access
+to only specific service-related metrics.
+
+_If you are not comfortable with all users of Consul having full access to the
+metrics backend, you should not use the proxy and find an alternative like using
+a custom provider that can query the metrics backend directly_.
+
+##### Path Allowlist
+
+To limit exposure of the metrics backend, paths must be explicitly added to an
+allowlist to avoid exposing unintended parts of the API. For example with
+Prometheus, both the `/api/v1/query_range` and `/api/v1/query` endpoints are
+needed to load time-series and individual stats. If the proxy had the `base_url`
+set to `http://prometheus-server` then the proxy would also expose read access
+to several other endpoints such as `/api/v1/status/config` which includes all
+Prometheus configuration which might include sensitive information.
+
+If you use the built-in `prometheus` provider the proxy is limited to the
+essential endpoints. The default value for `metrics_proxy.path_allowlist` is
+`["/api/v1/query_range", "/api/v1/query"]` as required by the built-in
+`prometheus` provider .
+
+If you use a custom provider that uses the metrics proxy, you'll need to
+explicitly set the allowlist based on the endpoints the provider needs to
+access.
+
+#### Adding Headers
+
+It is also possible to configure the proxy to add one or more headers to
+requests as they pass through. This is useful when the metrics backend requires
+authentication. For example if your metrics are shipped to a hosted provider,
+you could provision an API token specifically for the Consul UI and configure
+the proxy to add it as in the example below. This keeps the API token only
+visible to Consul operators in the configuration file while UI users can query
+the metrics they need without separately obtaining a token for that provider or
+having a token exposed to them that they might be able to use elsewhere.
+
+<CodeTabs heading="Example configuration to add additional HTTP headers to the metrics endpoint">
+
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+ui_config {
+  enabled = true
+  metrics_provider = "example-apm"
+  metrics_proxy {
+    base_url = "https://example-apm.com/api/v1/metrics"
+    add_headers = [
+      {
+        name = "Authorization"
+        value = "Bearer <token>"
+      }
+    ]
+  }
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "example-apm",
+    "metrics_proxy": {
+      "base_url": "https://example-apm.com/api/v1/metrics",
+      "add_headers": [
+        {
+          "name": "Authorization",
+          "value": "Bearer \u003ctoken\u003e"
+        }
+      ]
+    }
+  }
+}
+```
+
+</CodeBlockConfig>
+
+</CodeTabs>
+
+## Custom Metrics Providers
+
+Consul 1.9.0 includes a built-in provider for fetching metrics from
+[Prometheus](https://prometheus.io). To enable the UI visualization feature
+to work with other existing metrics stores and hosted services, we created a
+"metrics provider" interface in JavaScript. A custom provider may be written and
+the JavaScript file served by the Consul agent.
+
+~> **Note**: this interface is _experimental_ and may change in breaking ways or
+be removed entirely as we discover the needs of the community. Please provide
+feedback on [GitHub](https://github.com/hashicorp/consul) or
+[Discuss](https://discuss.hashicorp.com/) on how you'd like to use this.
+
+The template for a complete provider JavaScript file is given below.
+
+<CodeTabs heading="Example JavaScript class template for a custom metrics plugin">
+
+```javascript
+(function () {
+  var provider = {
+    /**
+     * init is called when the provider is first loaded.
+     *
+     * options.providerOptions contains any operator configured parameters
+     * specified in the `metrics_provider_options_json` field of the Consul
+     * agent configuration file.
+     *
+     * Consul will provide:
+     *
+     * 1. A boolean field options.metrics_proxy_enabled to indicate whether the
+     *    agent has a metrics proxy configured.
+     *
+     * 2. A function options.fetch which is a thin wrapper around the browser's
+     *    [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+     *    that prefixes any url with the url of Consul's internal metrics proxy
+     *    endpoint and adds your current Consul ACL token to the request
+     *    headers. Otherwise it functions like the browser's native fetch.
+     *
+     * The provider should throw an Exception if the options are not valid, for
+     * example because it requires a metrics proxy and one is not configured.
+     */
+    init: function(options) {},
+
+    /**
+     * serviceRecentSummarySeries should return time series for a recent time
+     * period summarizing the usage of the named service in the indicated
+     * datacenter. In Consul Enterprise a non-empty namespace is also provided.
+     *
+     * If these metrics aren't available then an empty series array may be
+     * returned.
+     *
+     * The period may (later) be specified in options.startTime and
+     * options.endTime.
+     *
+     * The service's protocol must be given as one of Consul's supported
+     * protocols e.g. "tcp", "http", "http2", "grpc". If it is empty or the
+     * provider doesn't recognize the protocol, it should treat it as "tcp" and
+     * provide basic connection stats.
+     *
+     * The expected return value is a JavaScript promise which resolves to an
+     * object that should look like the following:
+     *
+     *  {
+     *    // The unitSuffix is shown after the value in tooltips. Values will be
+     *    // rounded and shortened. Larger values will already have a suffix
+     *    // like "10k". The suffix provided here is concatenated directly
+     *    // allowing for suffixes like "mbps/kbps" by using a suffix of "bps".
+     *    // If the unit doesn't make sense in this format, include a
+     *    // leading space for example " rps" would show as "1.2k rps".
+     *    unitSuffix: " rps",
+     *
+     *    // The set of labels to graph. The key should exactly correspond to a
+     *    // property of every data point in the array below except for the
+     *    // special case "Total" which is used to show the sum of all the
+     *    // stacked graph values. The key is displayed in the tooltip so it
+     *    // should be human-friendly but as concise as possible. The value is a
+     *    // longer description that is displayed in the graph's key on request
+     *    // to explain exactly what the metrics mean.
+     *    labels: {
+     *      "Total": "Total inbound requests per second.",
+     *      "Successes": "Successful responses (with an HTTP response code ...",
+     *      "Errors": "Error responses (with an HTTP response code in the ...",
+     *    },
+     *
+     *    data: [
+     *      {
+     *        time: 1600944516286, // milliseconds since Unix epoch
+     *        "Successes": 1234.5,
+     *        "Errors": 2.3,
+     *      },
+     *      ...
+     *    ]
+     *  }
+     *
+     *  Every data point object should have a value for every series label
+     *  (except for "Total") otherwise it will be assumed to be "0".
+     */
+    serviceRecentSummarySeries: function(serviceDC, namespace, serviceName, protocol, options) {},
+
+    /**
+     * serviceRecentSummaryStats should return four summary statistics for a
+     * recent time period for the named service in the indicated datacenter. In
+     * Consul Enterprise a non-empty namespace is also provided.
+     *
+     * If these metrics aren't available then an empty array may be returned.
+     *
+     * The period may (later) be specified in options.startTime and
+     * options.endTime.
+     *
+     * The service's protocol must be given as one of Consul's supported
+     * protocols e.g. "tcp", "http", "http2", "grpc". If it is empty or the
+     * provider doesn't recognize it it should treat it as "tcp" and provide
+     * just basic connection stats.
+     *
+     * The expected return value is a JavaScript promise which resolves to an
+     * object that should look like the following:
+     *
+     *  {
+          // stats is an array of stats to show. The first four of these will be
+          // displayed. Fewer may be returned if not available.
+     *    stats: [
+     *      {
+     *        // label should be 3 chars or fewer as an abbreviation
+     *        label: "SR",
+     *
+     *        // desc describes the stat in a tooltip
+     *        desc: "Success Rate - the percentage of all requests that were not 5xx status",
+     *
+     *        // value is a string allowing the provider to format it and add
+     *        // units as appropriate. It should be as compact as possible.
+     *        value: "98%",
+     *      }
+     *    ]
+     *  }
+     */
+    serviceRecentSummaryStats: function(serviceDC, namespace, serviceName, protocol, options) {},
+
+    /**
+     * upstreamRecentSummaryStats should return four summary statistics for each
+     * upstream service over a recent time period, relative to the named service
+     * in the indicated datacenter. In Consul Enterprise a non-empty namespace
+     * is also provided.
+     *
+     * Note that the upstreams themselves might be in different datacenters but
+     * we only pass the target service DC since typically these metrics should
+     * be from the outbound listener of the target service in this DC even if
+     * the requests eventually end up in another DC.
+     *
+     * If these metrics aren't available then an empty array may be returned.
+     *
+     * The period may (later) be specified in options.startTime and
+     * options.endTime.
+     *
+     * The expected return value is a JavaScript promise which resolves to an
+     * object that should look like the following:
+     *
+     *   {
+     *     stats: {
+     *       // Each upstream will appear as an entry keyed by the upstream
+     *       // service name. The value is an array of stats with the same
+     *       // format as serviceRecentSummaryStats response.stats. Note that
+     *       // different upstreams might show different stats depending on
+     *       // their protocol.
+     *       "upstream_name": [
+     *         {label: "SR", desc: "...", value: "99%"},
+     *         ...
+     *       ],
+     *       ...
+     *     }
+     *   }
+     */
+    upstreamRecentSummaryStats: function(serviceDC, namespace, serviceName, upstreamName, options) {},
+
+    /**
+     * downstreamRecentSummaryStats should return four summary statistics for
+     * each downstream service over a recent time period, relative to the named
+     * service in the indicated datacenter. In Consul Enterprise a non-empty
+     * namespace is also provided.
+     *
+     * Note that the service may have downstreams in different datacenters. For
+     * some metrics systems which are per-datacenter this makes it hard to query
+     * for all downstream metrics from one source. For now the UI will only show
+     * downstreams in the same datacenter as the target service. In the future
+     * this method may be called multiple times, once for each DC that contains
+     * downstream services to gather metrics from each. In that case a separate
+     * option for target datacenter will be used since the target service's DC
+     * is still needed to correctly identify the outbound clusters that will
+     * route to it from the remote DC.
+     *
+     * If these metrics aren't available then an empty array may be returned.
+     *
+     * The period may (later) be specified in options.startTime and
+     * options.endTime.
+     *
+     * The expected return value is a JavaScript promise which resolves to an
+     * object that should look like the following:
+     *
+     *   {
+     *     stats: {
+     *       // Each downstream will appear as an entry keyed by the downstream
+     *       // service name. The value is an array of stats with the same
+     *       // format as serviceRecentSummaryStats response.stats. Different
+     *       // downstreams may display different stats if required although the
+     *       // protocol should be the same for all as it is the target
+     *       // service's protocol that matters here.
+     *       "downstream_name": [
+     *         {label: "SR", desc: "...", value: "99%"},
+     *         ...
+     *       ],
+     *       ...
+     *     }
+     *   }
+     */
+    downstreamRecentSummaryStats: function(serviceDC, namespace, serviceName, options) {}
+  }
+
+  // Register the provider with Consul for use. This example would be usable by
+  // configuring the agent with `ui_config.metrics_provider = "example-provider".
+  window.consul.registerMetricsProvider("example-provider", provider)
+
+}());
+```
+
+</CodeTabs>
+
+Additionally, the built in [Prometheus
+provider code](https://github.com/hashicorp/consul/blob/main/ui/packages/consul-ui/vendor/metrics-providers/prometheus.js)
+can be used as a reference.
+
+### Configuring the Agent With a Custom Metrics Provider.
+
+In the example below, we configure the Consul agent to use a metrics provider
+named `example-provider`, which is defined in
+`/usr/local/bin/example-metrics-provider.js`. The name `example-provider` must
+have been specified in the call to `consul.registerMetricsProvider` as in the
+code listing in the last section.
+
+<CodeTabs heading="Example configuration using a custom metrics provider">
+
+<CodeBlockConfig filename="agent-config.hcl">
+
+```hcl
+ui_config {
+  enabled = true
+  metrics_provider = "example-provider"
+  metrics_provider_files = ["/usr/local/bin/example-metrics-provider.js"]
+  metrics_provider_options_json = <<-EOT
+    {
+      "foo": "bar"
+    }
+  EOT
+}
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="agent-config.json">
+
+```json
+{
+  "ui_config": {
+    "enabled": true,
+    "metrics_provider": "example-provider",
+    "metrics_provide_files": ["/usr/local/bin/example-metrics-provider.js"],
+    "metrics_provider_options_json": "{\"foo\":\"bar\"}"
+  }
+}
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+More than one JavaScript file may be specified in
+[`metrics_provider_files`](/consul/docs/agent/config/config-files#ui_config_metrics_provider_files)
+and all will be served allowing flexibility if needed to include dependencies.
+Only one metrics provider can be configured and used at one time.
+
+The
+[`metrics_provider_options_json`](/consul/docs/agent/config/config-files#ui_config_metrics_provider_options_json)
+field is an optional literal JSON object which is passed to the provider's
+`init` method at startup time. This allows configuring arbitrary parameters for
+the provider in config rather than hard coding them into the provider itself to
+make providers more reusable.
+
+The provider may fetch metrics directly from another source although in this
+case the agent will probably need to serve the correct CORS headers to prevent
+browsers from blocking these requests. These may be configured with
+[`http_config.response_headers`](/consul/docs/agent/config/config-files#response_headers).
+
+Alternatively, the provider may choose to use the [built-in metrics
+proxy](#metrics-proxy) to avoid cross domain issues or to inject additional
+authorization headers without requiring each UI user to be separately
+authenticated to the metrics backend.
+
+A function that behaves like the browser's [Fetch
+API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) is provided to
+the metrics provider JavaScript during `init` as `options.fetch`. This is a thin
+wrapper that prefixes any url with the url of Consul's metrics proxy endpoint
+and adds your current Consul ACL token to the request headers. Otherwise it
+functions like the browser's native fetch and will forward your request on to the
+metrics backend. The response will be returned without any modification to be
+interpreted by the provider and converted into the format as described in the
+interface above.
+
+Provider authors should make it clear to users which paths are required so they
+can correctly configure the [path allowlist](#path-allowlist) in the metrics
+proxy to avoid exposing more than needed of the metrics backend.
+
+### Custom Provider Security Model
+
+Since the JavaScript file(s) are included in Consul's UI verbatim, the code in
+them must be treated as fully trusted by the operator. Typically they will have
+authored this or will need to carefully vet providers written by third parties.
+
+This is equivalent to using the existing `-ui-dir` flag to serve an alternative
+version of the UI - in either model the operator takes full responsibility for
+the provenance of the code being served since it has the power to intercept ACL
+tokens, access cookies and local storage for the Consul UI domain and possibly
+more.
+
+## Current Limitations
+
+Currently there are some limitations to this feature.
+
+- **No cross-datacenter support** The initial metrics provider integration is
+  with Prometheus which is popular and easy to setup within one Kubernetes
+  cluster. However, when using the Consul UI in a multi-datacenter deployment,
+  the UI allows users to select any datacenter to view.
+
+  This means that the Prometheus server that the Consul agent serving the UI can
+  access likely only has metrics for the local datacenter and a full solution
+  would need additional proxying or exposing remote Prometheus servers on the
+  network in remote datacenters. Later we may support an easy way to set this up
+  via Consul service mesh but initially we don't attempt to fetch metrics in the UI
+  if you are browsing a remote datacenter.
+
+- **Built-in provider requires metrics proxy** Initially the built-in
+  `prometheus` provider only support querying Prometheus via the [metrics
+  proxy](#metrics-proxy). Later it may be possible to configure it for direct
+  access to an expose Prometheus.

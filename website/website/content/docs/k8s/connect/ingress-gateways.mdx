@@ -1,0 +1,296 @@
+---
+layout: docs
+page_title: Configure Ingress Gateways for Consul on Kubernetes
+description: >-
+  Ingress gateways listen for external requests and route authorized traffic to instances in the service mesh running on Kubernetes. Learn how to configure ingress gateways, set intentions, and connect them to k8s applications.
+---
+
+# Configure Ingress Gateways for Consul on Kubernetes
+
+<Note>
+
+Ingress gateway is deprecated and will not be enhanced beyond its current capabilities. Ingress gateway is fully supported
+in this version but will be removed in a future release of Consul.
+
+Consul's API gateway is the recommended alternative to ingress gateway.
+
+</Note>
+
+~> This topic requires familiarity with [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway).
+
+This page describes how to enable external access through Consul ingress gateways to mesh services running inside Kubernetes.
+See [Ingress Gateways](/consul/docs/connect/gateways/ingress-gateway) for more information on use-cases and how it works.
+
+Adding an ingress gateway is a multi-step process that consists of the following steps:
+
+- Setting the Helm chart configuration
+- Deploying the Helm chart
+- Configuring the gateway
+- Defining an Intention (if ACLs are enabled)
+- Deploying your application to Kubernetes
+- Connecting to your application
+
+## Setting the helm chart configuration
+
+When deploying the Helm chart you must provide Helm with a custom YAML file that contains your environment configuration.
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+ingressGateways:
+  enabled: true
+  gateways:
+    - name: ingress-gateway
+      service:
+        type: LoadBalancer
+```
+
+</CodeBlockConfig>
+
+~> **Note:** this will create a public unauthenticated LoadBalancer in your cluster, please take appropriate security considerations.
+
+The YAML snippet is the launching point for a valid configuration that must be supplied when installing using the [official consul-helm chart](https://hub.helm.sh/charts/hashicorp/consul).
+Information on additional options can be found in the [Helm reference](/consul/docs/k8s/helm).
+Configuration options for ingress gateways reside under the [ingressGateways](/consul/docs/k8s/helm#v-ingressgateways) entry.
+
+The gateways stanza is where you will define and configure the set of ingress gateways you want deployed to your environment.
+The only required field for each entry is `name`, though entries may contain any of the fields found in the `defaults` stanza.
+Values in this section override the values from the defaults stanza for the given ingress gateway with one exception:
+the annotations from the defaults stanza will be _appended_ to any user-defined annotations defined in the gateways stanza rather than being overridden.
+Please refer to the ingress gateway configuration [documentation](/consul/docs/k8s/helm#v-ingressgateways-defaults) for a detailed explanation of each option.
+
+## Deploying the Helm chart
+
+Ensure you have the latest consul-helm chart and install Consul via helm using the following
+[guide](/consul/docs/k8s/installation/install#installing-consul) while being sure to provide the yaml configuration
+as previously discussed.
+
+The following example installs Consul 1.0.4 using the `values.yaml` configuration:
+
+```shell-session
+$ helm install consul -f values.yaml hashicorp/consul --version 1.0.4 --wait --debug
+```
+
+## Configuring the gateway
+
+Now that Consul has been installed with ingress gateways enabled,
+you can configure the gateways via the [`IngressGateway`](/consul/docs/connect/config-entries/ingress-gateway) custom resource.
+
+Here is an example `IngressGateway` resource:
+
+<CodeBlockConfig filename="ingress-gateway.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: IngressGateway
+metadata:
+  name: ingress-gateway
+spec:
+  listeners:
+    - port: 8080
+      protocol: http
+      services:
+        - name: static-server
+```
+
+</CodeBlockConfig>
+
+~> **Note:** The 'name' field for the IngressGateway resource must match the name
+specified when creating the gateway in the Helm chart. In the above example, the
+name "ingress-gateway" is the [default name](/consul/docs/k8s/helm#v-ingressgateways-gateways-name)
+used by the Helm chart when enabling ingress gateways.
+
+Apply the `IngressGateway` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename ingress-gateway.yaml
+ingressgateway.consul.hashicorp.com/ingress-gateway created
+```
+
+Since we're using `protocol: http`, we also need to set the protocol of our service
+`static-server` to http. To do that, we create a [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults) custom resource:
+
+<CodeBlockConfig filename="service-defaults.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceDefaults
+metadata:
+  name: static-server
+spec:
+  protocol: http
+```
+
+</CodeBlockConfig>
+
+Apply the `ServiceDefaults` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename service-defaults.yaml
+servicedefaults.consul.hashicorp.com/static-server created
+```
+
+Ensure both resources have synced to Consul successfully:
+
+```shell-session
+$ kubectl get servicedefaults
+NAME            SYNCED   AGE
+static-server   True     45s
+
+$ kubectl get ingressgateway
+NAME              SYNCED   AGE
+ingress-gateway   True     13m
+```
+
+### Viewing the UI
+
+You can confirm the ingress gateways have been configured as expected by viewing the ingress-gateway service instances
+in the Consul UI.
+
+To view the UI, use the `kubectl port-forward` command. See [Viewing The Consul UI](/consul/docs/k8s/installation/install#viewing-the-consul-ui)
+for full instructions.
+
+Once you've port-forwarded to the UI, navigate to the Ingress Gateway instances: [http://localhost:8500/ui/dc1/services/ingress-gateway/instances](http://localhost:8500/ui/dc1/services/ingress-gateway/instances)
+
+If TLS is enabled, use [https://localhost:8501/ui/dc1/services/ingress-gateway/instances](https://localhost:8501/ui/dc1/services/ingress-gateway/instances).
+
+## Defining an Intention
+
+If ACLs are enabled (via the `global.acls.manageSystemACLs` setting), you must define an [intention](/consul/docs/connect/intentions)
+to allow the ingress gateway to route to the upstream services defined in the `IngressGateway` resource (in the example above the upstream service is `static-server`).
+
+To create an intention that allows the ingress gateway to route to the service `static-server`, create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions)
+resource:
+
+<CodeBlockConfig filename="service-intentions.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: static-server
+spec:
+  destination:
+    name: static-server
+  sources:
+    - name: ingress-gateway
+      action: allow
+```
+
+</CodeBlockConfig>
+
+Apply the `ServiceIntentions` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename service-intentions.yaml
+serviceintentions.consul.hashicorp.com/ingress-gateway created
+```
+
+For detailed instructions on how to configure zero-trust networking with intentions please refer to this [guide](/consul/tutorials/kubernetes-features/service-mesh-zero-trust-network?utm_source=docs).
+
+## Deploying your application to Kubernetes
+
+Now you will deploy a sample application which echoes "hello world"
+
+<CodeBlockConfig filename="static-server.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: static-server
+```
+
+</CodeBlockConfig>
+
+```shell-session
+$ kubectl apply --filename static-server.yaml
+```
+
+## Connecting to your application
+
+You can validate the service is running and registered in the Consul UI by navigating to
+[http://localhost:8500/ui/dc1/services/static-server/instances](http://localhost:8500/ui/dc1/services/static-server/instances)
+
+If TLS is enabled, use: [https://localhost:8501/ui/dc1/services/static-server/instances](https://localhost:8501/ui/dc1/services/static-server/instances)
+
+You can also validate the connectivity of the application from the ingress gateway using `curl`:
+
+```shell-session
+$ EXTERNAL_IP=$(kubectl get services --selector component=ingress-gateway --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}")
+$ echo "Connecting to \"$EXTERNAL_IP\""
+$ curl --header "Host: static-server.ingress.consul" "http://$EXTERNAL_IP:8080"
+"hello world"
+```
+
+~> **Security Warning:** Please be sure to delete the application and services created here as they represent a security risk through
+leaving an open and unauthenticated load balancer alive in your cluster.
+
+To delete the ingress gateway, set enabled to `false` in your Helm configuration:
+
+<CodeBlockConfig filename="values.yaml" highlight="8">
+
+```yaml
+global:
+  name: consul
+connectInject:
+  enabled: true
+ingressGateways:
+  enabled: false # Set to false
+  gateways:
+    - name: ingress-gateway
+      service:
+        type: LoadBalancer
+```
+
+</CodeBlockConfig>
+
+And run Helm upgrade:
+
+```shell-session
+$ helm upgrade consul hashicorp/consul --values values.yaml
+```

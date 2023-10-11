@@ -1,0 +1,81 @@
+---
+layout: commands
+page_title: 'Commands: Intention Create'
+description: >-
+  The `consul intention create` command creates and updates L4 service intentions. It was deprecated in Consul v1.9.0; use `consul config` instead.
+---
+
+# Consul Intention Create
+
+-> **Deprecated** - This command is deprecated in Consul 1.9.0 in favor of
+using the [config entry CLI command](/consul/commands/config/write). To create an
+intention, create or modify a
+[`service-intentions`](/consul/docs/connect/config-entries/service-intentions) config
+entry for the destination.
+
+Command: `consul intention create`
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/connect/intentions](/consul/api-docs/connect/intentions#create-intention-with-id)
+
+The `intention create` command creates or updates an L4 intention.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required                   |
+| ------------------------------ |
+| `intentions:write`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
+
+## Usage
+
+- `consul intention create [options] SRC DST`
+- `consul intention create [options] -file FILE...`
+
+`SRC` and `DST` can both take [several forms](/consul/commands/intention#source-and-destination-naming).
+
+#### Command Options
+
+- `-allow` - Set the action to "allow" for intentions. This is the default.
+
+- `-deny` - Set the action to "deny" for intentions. This cannot be specified
+  with `-allow`.
+
+- `-file` - Read intention data one or more files specified by the command
+  line arguments, instead of source/destination pairs.
+
+- `-meta key=value` - Specify arbitrary KV metadata to associate with the
+  intention.
+
+- `-replace` - Replace any matching intention. The replacement is done
+  atomically per intention.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+Create an intention `web => db`:
+
+```shell-session
+$ consul intention create web db
+```
+
+Create intentions from a set of files:
+
+```shell-session
+$ consul intention create -file one.json two.json
+```
+
+Create intentions from a directory using shell expansion:
+
+```shell-session
+$ consul intention create -file intentions/*.json
+```

@@ -1,0 +1,837 @@
+---
+layout: api
+page_title: Service - Agent - HTTP API
+description: |-
+  The /agent/service endpoints interact with services on the local agent in
+  Consul.
+---
+
+# Service - Agent HTTP API
+
+The `/agent/service` endpoints interact with services on the local agent in
+Consul. These should not be confused with services in the catalog.
+
+## List Services
+
+This endpoint returns all the services that are registered with
+the local agent. These services were either provided through configuration files
+or added dynamically using the HTTP API.
+
+It is important to note that the services known by the agent may be different
+from those reported by the catalog. This is usually due to changes being made
+while there is no leader elected. The agent performs active
+[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+everything will be in sync within a few seconds.
+
+@include 'http_api_results_filtered_by_acls.mdx'
+
+| Method | Path              | Produces           |
+| ------ | ----------------- | ------------------ |
+| `GET`  | `/agent/services` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `service:read` |
+
+### Query Parameters
+
+- `filter` `(string: "")` - Specifies the expression used to filter the
+  queries results prior to returning the data.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Return only the services in the specified namespace.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/agent/services
+```
+
+### Sample Response
+
+```json
+{
+  "redis": {
+    "ID": "redis",
+    "Service": "redis",
+    "Tags": [],
+    "TaggedAddresses": {
+      "lan": {
+        "address": "127.0.0.1",
+        "port": 8000
+      },
+      "wan": {
+        "address": "198.51.100.53",
+        "port": 80
+      }
+    },
+    "Meta": {
+      "redis_version": "4.0"
+    },
+    "Namespace": "default",
+    "Port": 8000,
+    "Address": "",
+    "EnableTagOverride": false,
+    "Datacenter": "dc1",
+    "Weights": {
+      "Passing": 10,
+      "Warning": 1
+    }
+  }
+}
+```
+
+### Filtering
+
+The filter is executed against each value in the service mapping with the
+following selectors and filter operations being supported:
+
+| Selector                                      | Supported Operations                               |
+| --------------------------------------------- | -------------------------------------------------- |
+| `Address`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Connect.Native`                              | Equal, Not Equal                                   |
+| `EnableTagOverride`                           | Equal, Not Equal                                   |
+| `ID`                                          | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Kind`                                        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Meta`                                        | Is Empty, Is Not Empty, In, Not In                 |
+| `Meta.<any>`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Port`                                        | Equal, Not Equal                                   |
+| `Proxy.DestinationServiceID`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.DestinationServiceName`                | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServiceAddress`                   | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.LocalServicePort`                      | Equal, Not Equal                                   |
+| `Proxy.Mode`                                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.TransparentProxy.OutboundListenerPort` | Equal, Not Equal                                   |
+| `Proxy.MeshGateway.Mode`                      | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams`                             | Is Empty, Is Not Empty                             |
+| `Proxy.Upstreams.Datacenter`                  | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationName`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationNamespace`        | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.DestinationType`             | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindAddress`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Proxy.Upstreams.LocalBindPort`               | Equal, Not Equal                                   |
+| `Proxy.Upstreams.MeshGateway.Mode`            | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `Service`                                     | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses`                             | Is Empty, Is Not Empty, In, Not In                 |
+| `TaggedAddresses.<any>.Address`               | Equal, Not Equal, In, Not In, Matches, Not Matches |
+| `TaggedAddresses.<any>.Port`                  | Equal, Not Equal                                   |
+| `Tags`                                        | In, Not In, Is Empty, Is Not Empty                 |
+| `Weights.Passing`                             | Equal, Not Equal                                   |
+| `Weights.Warning`                             | Equal, Not Equal                                   |
+
+## Get Service Configuration
+
+This endpoint was added in Consul 1.3.0 and returns the full service definition
+for a single service instance registered on the local agent. It is used by
+[service mesh proxies](/consul/docs/connect/proxies) to discover the embedded proxy
+configuration that was registered with the instance.
+
+It is important to note that the services known by the agent may be different
+from those reported by the catalog. This is usually due to changes being made
+while there is no leader elected. The agent performs active
+[anti-entropy](/consul/docs/architecture/anti-entropy), so in most situations
+everything will be in sync within a few seconds.
+
+| Method | Path                         | Produces           |
+| ------ | ---------------------------- | ------------------ |
+| `GET`  | `/agent/service/:service_id` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries  | Consistency Modes | Agent Caching | ACL Required   |
+| ----------------- | ----------------- | ------------- | -------------- |
+| `YES`<sup>1</sup> | `none`            | `none`        | `service:read` |
+
+<sup>
+  1
+</sup> Supports <a href="/api/features/blocking#hash-based-blocking-queries">
+  hash-based blocking
+</a> only.
+
+### Path Parameters
+
+- `service_id` `(string: <required>)` - Specifies the ID of the service to fetch.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### Sample Request
+
+The following example request calls the `web-sidecar-proxy` service:
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/agent/service/web-sidecar-proxy
+```
+
+### Sample Response
+
+The response contains the fields specified in the [service
+definition](/consul/docs/services/configuration/services-configuration-reference), but it includes an extra `ContentHash` field that contains the [hash-based blocking
+query](/consul/api-docs/features/blocking#hash-based-blocking-queries) hash for the result. The
+same hash is also present in `X-Consul-ContentHash`.
+
+```json
+{
+  "Kind": "connect-proxy",
+  "ID": "web-sidecar-proxy",
+  "Service": "web-sidecar-proxy",
+  "Tags": null,
+  "Meta": null,
+  "Namespace": "default",
+  "Port": 18080,
+  "Address": "",
+  "TaggedAddresses": {
+    "lan": {
+      "address": "127.0.0.1",
+      "port": 8000
+    },
+    "wan": {
+      "address": "198.51.100.53",
+      "port": 80
+    }
+  },
+  "Weights": {
+    "Passing": 1,
+    "Warning": 1
+  },
+  "EnableTagOverride": false,
+  "Datacenter": "dc1",
+  "ContentHash": "4ecd29c7bc647ca8",
+  "Proxy": {
+    "DestinationServiceName": "web",
+    "DestinationServiceID": "web",
+    "LocalServiceAddress": "127.0.0.1",
+    "LocalServicePort": 8080,
+    "Mode": "transparent",
+    "TransparentProxy": {
+      "OutboundListenerPort": 22500
+    },
+    "Config": {
+      "foo": "bar"
+    },
+    "Upstreams": [
+      {
+        "DestinationType": "service",
+        "DestinationName": "db",
+        "LocalBindPort": 9191
+      }
+    ]
+  }
+}
+```
+
+## Get local service health
+
+Retrieve an aggregated state of service(s) on the local agent by name.
+
+This endpoints support JSON format and text/plain formats, JSON being the
+default. In order to get the text format, you can append `?format=text` to
+the URL or use Mime Content negotiation by specifying a HTTP Header
+`Accept` starting with `text/plain`.
+
+| Method | Path                                                   | Produces           |
+| ------ | ------------------------------------------------------ | ------------------ |
+| `GET`  | `/agent/health/service/name/:service_name`             | `application/json` |
+| `GET`  | `/agent/health/service/name/:service_name?format=text` | `text/plain`       |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required   |
+| ---------------- | ----------------- | ------------- | -------------- |
+| `NO`             | `none`            | `none`        | `service:read` |
+
+Those endpoints return the aggregated values of all health checks for the
+service instance(s) and will return the corresponding HTTP codes:
+
+| Result | Meaning                                                          |
+| ------ | ---------------------------------------------------------------- |
+| `200`  | All health checks of every matching service instance are passing |
+| `400`  | Bad parameter (missing service name of id)                       |
+| `404`  | No such service id or name                                       |
+| `429`  | Some health checks are passing, at least one is warning          |
+| `503`  | At least one of the health checks is critical                    |
+
+Those endpoints might be useful for the following use-cases:
+
+- a load-balancer wants to check IP connectivity with an agent and retrieve
+  the aggregated status of given service
+- create aliases for a given service (thus, the health check of alias uses
+  http://localhost:8500/v1/agent/service/id/aliased_service_id health check)
+
+##### Note
+
+If you know the ID of service you want to target, it is recommended to use
+[`/v1/agent/health/service/id/:service_id`](/consul/api-docs/agent/service#get-local-service-health-by-id)
+so you have the result for the service only. When requesting
+`/v1/agent/health/service/name/:service_name`, the caller will receive the
+worst state of all services having the given name.
+
+### Path Parameters
+
+- `service_name` `(string: <required>)` - Specifies the name of the service to retrieve.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you lookup.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### Sample Requests
+
+Given 2 services with name `web`, with web2 critical and web1 passing:
+
+#### List the worst status across all instances of the `web` service (HTTP 503)
+
+##### By Name, Text
+
+```shell-session
+$ curl "http://localhost:8500/v1/agent/health/service/name/web?format=text"
+critical
+```
+
+##### By Name, JSON
+
+For the JSON output, the response is an array containing the details of each
+passing, warning, or critical service.
+
+```shell
+curl localhost:8500/v1/agent/health/service/name/web
+```
+
+```json
+[
+  {
+    "AggregatedStatus": "passing",
+    "Service": {
+      "ID": "web1",
+      "Service": "web",
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
+      "Address": "",
+      "SocketPath": "",
+      "TaggedAddresses": {
+        "lan": {
+          "Address": "127.0.0.1",
+          "Port": 8000
+        },
+        "wan": {
+          "Address": "198.51.100.53",
+          "Port": 80
+        }
+      },
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": []
+  },
+  {
+    "AggregatedStatus": "critical",
+    "Service": {
+      "ID": "web2",
+      "Service": "web",
+      "Tags": [
+        "rails"
+      ],
+      "Meta": {},
+      "Port": 80,
+      "Address": "",
+      "SocketPath": "",
+      "TaggedAddresses": {
+        "lan": {
+          "Address": "127.0.0.1",
+          "Port": 8000
+        },
+        "wan": {
+          "Address": "198.51.100.54",
+          "Port": 80
+        }
+      },
+      "Weights": {
+        "Passing": 1,
+        "Warning": 1
+      },
+      "EnableTagOverride": false,
+      "Namespace": "default",
+      "Datacenter": "dc1"
+    },
+    "Checks": [
+      {
+        "Node": "server1",
+        "CheckID": "service:web2",
+        "Name": "Service 'web' check",
+        "Status": "critical",
+        "Notes": "",
+        "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+        "ServiceID": "web2",
+        "ServiceName": "web",
+        "ServiceTags": [
+          "rails"
+        ],
+        "Type": "",
+        "Namespace": "default",
+        "Definition": {
+          "Interval": "0s",
+          "Timeout": "0s",
+          "DeregisterCriticalServiceAfter": "0s",
+          "HTTP": "",
+          "Header": null,
+          "Method": "",
+          "Body": "",
+          "TLSServerName": "",
+          "TLSSkipVerify": false,
+          "TCP": ""
+        },
+        "CreateIndex": 0,
+        "ModifyIndex": 0
+      }
+    ]
+  }
+]
+```
+
+## Get local service health by ID ((#get-local-service-health-by-its-id))
+
+Retrieve the health state of a specific service on the local agent by ID.
+
+| Method | Path                                               | Produces           |
+| ------ | -------------------------------------------------- | ------------------ |
+| `GET`  | `/agent/health/service/id/:service_id`             | `application/json` |
+| `GET`  | `/agent/health/service/id/:service_id?format=text` | `text/plain`       |
+
+The supported request parameters are the same as
+[`/v1/agent/health/service/name/:service_name`](/consul/api-docs/agent/service#get-local-service-health).
+
+### Sample Requests
+
+Query the health status of the service with ID `web2`.
+
+#### List status of web2 (HTTP 503)
+
+##### Failure By ID, Text
+
+```shell-session
+$ curl "http://localhost:8500/v1/agent/health/service/id/web2?format=text"
+critical
+```
+
+##### Failure By ID, JSON
+
+In JSON, the output for a query by ID is an object containing only the details
+for that service.
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web2
+```
+
+```json
+{
+  "AggregatedStatus": "critical",
+  "Service": {
+    "ID": "web2",
+    "Service": "web",
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
+    "Address": "",
+    "SocketPath": "",
+    "TaggedAddresses": {
+      "lan": {
+        "Address": "127.0.0.1",
+        "Port": 8000
+      },
+      "wan": {
+        "Address": "198.51.100.54",
+        "Port": 80
+      }
+    },
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": [
+    {
+      "Node": "server1",
+      "CheckID": "service:web2",
+      "Name": "Service 'web' check",
+      "Status": "critical",
+      "Notes": "",
+      "Output": "Get \"http://localhost/health\": dial tcp [::1]:80: connect: connection refused",
+      "ServiceID": "web2",
+      "ServiceName": "web",
+      "ServiceTags": [
+        "rails"
+      ],
+      "Type": "",
+      "Namespace": "default",
+      "Definition": {
+        "Interval": "0s",
+        "Timeout": "0s",
+        "DeregisterCriticalServiceAfter": "0s",
+        "HTTP": "",
+        "Header": null,
+        "Method": "",
+        "Body": "",
+        "TLSServerName": "",
+        "TLSSkipVerify": false,
+        "TCP": ""
+      },
+      "CreateIndex": 0,
+      "ModifyIndex": 0
+    }
+  ]
+}
+```
+
+#### List status of web1 (HTTP 200)
+
+##### Success By ID, Text
+
+```shell
+$ curl "localhost:8500/v1/agent/health/service/id/web1?format=text"
+passing
+```
+
+#### Success By ID, JSON
+
+```shell
+curl localhost:8500/v1/agent/health/service/id/web1
+```
+
+```json
+{
+  "AggregatedStatus": "passing",
+  "Service": {
+    "ID": "web1",
+    "Service": "web",
+    "Tags": [
+      "rails"
+    ],
+    "Meta": {},
+    "Port": 80,
+    "Address": "",
+    "SocketPath": "",
+    "TaggedAddresses": {
+      "lan": {
+        "Address": "127.0.0.1",
+        "Port": 8000
+      },
+      "wan": {
+        "Address": "198.51.100.53",
+        "Port": 80
+      }
+    },
+    "Weights": {
+      "Passing": 1,
+      "Warning": 1
+    },
+    "EnableTagOverride": false,
+    "Namespace": "default",
+    "Datacenter": "dc1"
+  },
+  "Checks": []
+}
+```
+
+## Register Service
+
+This endpoint adds a new service, with optional health checks, to the local
+agent.
+
+The agent is responsible for managing the status of its local services, and for
+sending updates about its local services to the servers to keep the global
+catalog in sync.
+
+For "connect-proxy" kind services, the `service:write` ACL for the
+`Proxy.DestinationServiceName` value is also required to register the service.
+
+| Method | Path                      | Produces           |
+| ------ | ------------------------- | ------------------ |
+| `PUT`  | `/agent/service/register` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
+
+The corresponding CLI command is [`consul services register`](/consul/commands/services/register).
+
+### Query Parameters
+
+- `replace-existing-checks` - Missing health checks from the request will be deleted from the agent. Using this parameter allows to idempotently register a service and its checks without having to manually deregister checks.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you register.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON Request Body Schema
+
+The `/agent/service/register` endpoint supports camel case and _snake case_ for service definition keys. Snake case is a convention in which keys with two or more words have underscores between them. Snake case ensures compatibility with the agent configuration file format.
+
+- `Name` `(string: <required>)` - Specifies the logical name of the service.
+  Many service instances may share the same logical service name. We recommend using
+  valid DNS labels for service definition names. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Service names that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#name) for additional information.
+
+- `ID` `(string: "")` - Specifies a unique ID for this service. This must be
+  unique per _agent_. This defaults to the `Name` parameter if not provided.
+
+- `Tags` `(array<string>: nil)` - Specifies a list of tags to assign to the
+  service. Tags enable you to filter when querying for the services and are exposed in Consul APIs. We recommend using
+  valid DNS labels for tags. Refer to the Internet Engineering Task Force's [RFC 1123](https://datatracker.ietf.org/doc/html/rfc1123#page-72) for additional information. Tags that conform to standard usage ensures compatibility with external DNSs. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference#tags) for additional information.
+
+- `Address` `(string: "")` - Specifies the address of the service. If not
+  provided, the agent's address is used as the address for the service during
+  DNS queries.
+
+- `TaggedAddresses` `(map<string|object>: nil)` - Specifies a map of explicit LAN
+  and WAN addresses for the service instance. Both the address and port can be
+  specified within the map values.
+
+- `Meta` `(map<string|string>: nil)` - Specifies arbitrary KV metadata
+  linked to the service instance.
+
+- `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you register.
+  This field takes precedence over the `ns` query parameter,
+  one of several [other methods to specify the namespace](#methods-to-specify-namespace).
+
+- `Port` `(int: 0)` - Specifies the port of the service.
+
+- `Kind` `(string: "")` - The kind of service. Defaults to `""`, which is a
+  typical Consul service. You can specify the following values: 
+  - `"connect-proxy"` for [service mesh](/consul/docs/connect) proxies representing another service
+  - `"mesh-gateway"` for instances of a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
+  - `"terminating-gateway"` for instances of a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
+  - `"ingress-gateway"` for instances of an [ingress gateway](/consul/docs/connect/gateways/ingress-gateway)
+
+- `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
+  service mesh proxy instance. This is only valid if `Kind` defines a proxy or gateway.
+  Refer to the [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
+  for full details.
+
+- `Connect` `(Connect: nil)` - Specifies the
+  [configuration for service mesh](/consul/docs/connect/configuration). The connect subsystem provides Consul's service mesh capabilities. Refer to the
+  [Connect Structure](#connect-structure) section below for supported fields.
+
+- `Check` `(Check: nil)` - Specifies a check. Please see the
+  [check documentation](/consul/api-docs/agent/check) for more information about the
+  accepted fields. If you don't provide a name or id for the check then they
+  will be generated. To provide a custom id and/or name set the `CheckID`
+  and/or `Name` field.
+
+- `Checks` `(array<Check>: nil)` - Specifies a list of checks. Please see the
+  [check documentation](/consul/api-docs/agent/check) for more information about the
+  accepted fields. If you don't provide a name or id for the check then they
+  will be generated. To provide a custom id and/or name set the `CheckID`
+  and/or `Name` field. The automatically generated `Name` and `CheckID` depend
+  on the position of the check within the array, so even though the behavior is
+  deterministic, it is recommended for all checks to either let consul set the
+  `CheckID` by leaving the field empty/omitting it or to provide a unique value.
+
+- `EnableTagOverride` `(bool: false)` - Specifies to disable the anti-entropy
+  feature for this service's tags. If `EnableTagOverride` is set to `true` then
+  external agents can update this service in the [catalog](/consul/api-docs/catalog)
+  and modify the tags. Subsequent local sync operations by this agent will
+  ignore the updated tags. For instance, if an external agent modified both the
+  tags and the port for this service and `EnableTagOverride` was set to `true`
+  then after the next sync cycle the service's port would revert to the original
+  value but the tags would maintain the updated value. As a counter example, if
+  an external agent modified both the tags and port for this service and
+  `EnableTagOverride` was set to `false` then after the next sync cycle the
+  service's port _and_ the tags would revert to the original value and all
+  modifications would be lost.
+
+- `Weights` `(Weights: nil)` - Specifies weights for the service. Refer to 
+  [Services Configuration Reference](/consul/docs/services/configuraiton/services-configuration-reference#weights) for additional information. Default is
+  `{"Passing": 1, "Warning": 1}`.
+
+  Weights only apply to the locally registered service. 
+  If multiple nodes register the same service, each node implements `EnableTagOverride` and other service configuration items independently. Updating the tags for the service registered
+  on one node does not necessarily update the same tags on services with the same name registered on another node. If `EnableTagOverride` is not specified the default value is
+  `false`. See [anti-entropy syncs](/consul/docs/architecture/anti-entropy) for
+  additional information.
+
+#### Connect Structure
+
+For the `Connect` field, the parameters are:
+
+- `Native` `(bool: false)` - Specifies whether this service supports
+  the [Consul service mesh](/consul/docs/connect) protocol [natively](/consul/docs/connect/native).
+  If this is true, then service mesh proxies, DNS queries, etc. will be able to
+  service discover this service.
+- `Proxy` `(Proxy: nil)` -
+  **Deprecated** Specifies that a managed service mesh proxy should be started 
+  for this service instance, and optionally provides configuration for the proxy. 
+  Managed proxies (which have been deprecated since Consul v1.3.0) have been 
+  [removed](/consul/docs/connect/proxies) since v1.6.0.
+- `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
+  service definition to register. Refer to 
+  [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
+
+### Sample Payload
+
+```json
+{
+  "ID": "redis1",
+  "Name": "redis",
+  "Tags": ["primary", "v1"],
+  "Address": "127.0.0.1",
+  "Port": 8000,
+  "Meta": {
+    "redis_version": "4.0"
+  },
+  "EnableTagOverride": false,
+  "Check": {
+    "DeregisterCriticalServiceAfter": "90m",
+    "Args": ["/usr/local/bin/check_redis.py"],
+    "Interval": "10s",
+    "Timeout": "5s"
+  },
+  "Weights": {
+    "Passing": 10,
+    "Warning": 1
+  }
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/agent/service/register?replace-existing-checks=true
+```
+
+## Deregister Service
+
+This endpoint removes a service from the local agent. If the service does not
+exist, no action is taken.
+
+The agent will take care of deregistering the service with the catalog. If there
+is an associated check, that is also deregistered.
+
+| Method | Path                                    | Produces           |
+| ------ | --------------------------------------- | ------------------ |
+| `PUT`  | `/agent/service/deregister/:service_id` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
+
+The corresponding CLI command is [`consul services deregister`](/consul/commands/services/deregister).
+
+### Path Parameters
+
+- `service_id` `(string: <required>)` - Specifies the ID of the service to deregister.
+
+### Query Parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you deregister.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    http://127.0.0.1:8500/v1/agent/service/deregister/my-service-id
+```
+
+## Enable Maintenance Mode
+
+This endpoint places a given service into "maintenance mode". During maintenance
+mode, the service will be marked as unavailable and will not be present in DNS
+or API queries. This API call is idempotent. Maintenance mode is persistent and
+will be automatically restored on agent restart.
+
+| Method | Path                                     | Produces           |
+| ------ | ---------------------------------------- | ------------------ |
+| `PUT`  | `/agent/service/maintenance/:service_id` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required    |
+| ---------------- | ----------------- | ------------- | --------------- |
+| `NO`             | `none`            | `none`        | `service:write` |
+
+### Path Parameters
+
+- `service_id` `(string: <required>)` - Specifies the ID of the service to put in maintenance mode.
+
+### Query Parameters
+
+- `enable` `(bool: <required>)` - Specifies whether to enable or disable
+  maintenance mode. This is specified as part of the URL as a query string
+  parameter.
+
+- `reason` `(string: "")` - Specifies a text string explaining the reason for
+  placing the node into maintenance mode. This is simply to aid human operators.
+  If no reason is provided, a default value is used instead.
+  This parameter must be URI-encoded.
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the service you place into maintenance mode.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    http://127.0.0.1:8500/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
+```
+
+## Methods to Specify Namespace <EnterpriseAlert inline />
+
+Local agent service endpoints
+support several methods for specifying the namespace of service resources
+with the following order of precedence:
+1. `Namespace` field of the JSON request body -
+  only applies to the [register](#register-check) endpoint
+1. `ns` query parameter
+1. `X-Consul-Namespace` request header
+1. Namespace is inherited from the namespace of the request's ACL token (if any)
+1. The `default` namespace

@@ -1,0 +1,76 @@
+---
+layout: commands
+page_title: 'Commands: Config Delete'
+description: >-
+  The `consul config delete` command deletes a configuration entry specified by kind and name.
+---
+
+# Consul Config Delete
+
+Command: `consul config delete`
+
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/config/:kind/:name](/consul/api-docs/config#delete-configuration)
+
+The `config delete` command deletes the configuration entry specified by the
+kind and name. See the [configuration entries docs](/consul/docs/agent/config-entries)
+for more details about configuration entries.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required<sup>1</sup>                                      |
+| ------------------------------------------------------------- |
+| `service:write`<br />`operator:write`<br />`intentions:write` |
+
+<sup>1</sup> The ACL required depends on the config entry kind being deleted:
+
+| Config Entry Kind   | Required ACL       |
+| ------------------- | ------------------ |
+| api-gateway         | `mesh:write`       |
+| ingress-gateway     | `operator:write`   |
+| proxy-defaults      | `operator:write`   |
+| service-defaults    | `service:write`    |
+| service-intentions  | `intentions:write` |
+| service-resolver    | `service:write`    |
+| service-router      | `service:write`    |
+| service-splitter    | `service:write`    |
+| terminating-gateway | `operator:write `  |
+
+## Usage
+
+Usage: `consul config delete [options]`
+
+#### Command Options
+
+- `-kind` - Specifies the kind of the config entry to read.
+
+- `-name` - Specifies the name of the config entry to delete. The name of the
+`proxy-defaults` config entry must be `global`, and the name of the `mesh`
+config entry must be `mesh`.
+
+- `-filename` - Specifies the file describing the config entry to delete.
+
+- `-cas` - Perform a Check-And-Set operation. Specifying this value also
+requires the -modify-index flag to be set. The default value is false.
+
+- `-modify-index=<int>` - Unsigned integer representing the ModifyIndex of the
+config entry. This is used in combination with the -cas flag.
+
+#### Enterprise Options
+
+@include 'http_api_namespace_options.mdx'
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+    $ consul config delete -kind service-defaults -name web
+
+    $ consul config delete -kind service-defaults -name web -cas -modify-index 26
+
+    $ consul config delete -filename service-defaults-web.hcl

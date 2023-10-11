@@ -1,0 +1,108 @@
+---
+layout: commands
+page_title: 'Commands: Services Register'
+description: |
+  The `consul services register` command registers services with the Consul catalog.
+---
+
+# Consul Agent Service Registration
+
+Command: `consul services register`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/service/register](/consul/api-docs/agent/service#register-service)
+
+The `services register` command registers a service with the local agent.
+This command returns after registration and must be paired with explicit
+service deregistration. This command simplifies service registration from
+scripts. Refer to [Register Services and Health Checks](/consul/docs/services/usage/register-services-checks) for information about other service registration methods.
+
+The following table shows the [ACLs](/consul/api-docs/api-structure#authentication) required to use the `consul services register` command:
+
+| ACL Required    |
+| --------------- |
+| `service:write` |
+
+You cannot use the Consul command line to configure [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching), you can configure them from the corresponding HTTP endpoint.
+
+## Usage
+
+Usage: `consul services register [options] [FILE...]`
+
+This command can register either a single service using flags documented
+below, or one or more services using service definition files in HCL
+or JSON format. The service is registered against the specified Consul
+agent (defaults to the local agent). This agent will execute all registered
+health checks.
+
+This command returns after registration succeeds. It must be paired with
+a deregistration command or API call to remove the service. To ensure that
+services are properly deregistered, it is **highly recommended** that
+a check is created with the
+[`DeregisterCriticalServiceAfter`](/consul/api-docs/agent/check#deregistercriticalserviceafter)
+configuration set. This will ensure that even if deregistration failed for
+any reason, the agent will automatically deregister the service instance after
+it is unhealthy for the specified period of time.
+
+Registered services are persisted in the agent state directory. If the
+state directory remains unmodified, registered services will persist across
+restarts.
+
+~> **Warning for Consul operators:** The Consul agent persists registered
+services in the local state directory. If this state directory is deleted
+or lost, services registered with this command will need to be reregistered.
+
+#### Command Options
+
+The flags below should only be set if _no arguments_ are given. If no
+arguments are given, the flags below can be used to register a single
+service.
+
+The following fields specify identical parameters in a standard service definition file. Refer to [Services Configuration Reference](/consul/docs/services/configuration/services-configuration-reference) for details about each configuration option.
+
+- `-id` - The ID of the service. This will default to `-name` if not set.
+
+- `-name` - The name of the service to register.
+
+- `-address` - The address of the service. If this isn't specified,
+  it will default to the address registered with the local agent.
+
+- `-port` - The port of the service.
+
+- `-socket` - The Unix Domain socket of the service. Conflicts with address and port flags.
+
+- `-meta key=value` - Specify arbitrary KV metadata to associate with the
+  service instance. This can be specified multiple times.
+
+- `-tag value` - Associate a tag with the service instance. This flag can
+  be specified multiples times.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+To create a simple service:
+
+```shell-session
+$ consul services register -name=web
+```
+
+To create a service from a configuration file:
+
+```shell-session
+$ cat web.json
+{
+  "Service": {
+    "Name": "web"
+  }
+}
+
+$ consul services register web.json
+```

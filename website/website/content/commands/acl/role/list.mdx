@@ -1,0 +1,89 @@
+---
+layout: commands
+page_title: 'Commands: ACL Role List'
+description: |
+  The `consul acl role list` command outputs details for all ACL roles, including the policy IDs attached to each role.
+---
+
+# Consul ACL Role List
+
+Command: `consul acl role list`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/roles](/consul/api-docs/acl/roles#list-roles)
+
+The `acl role list` command lists all roles. By default it will not show metadata.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
+## Usage
+
+Usage: `consul acl role list`
+
+#### Command Options
+
+- `-meta` - Indicates that role metadata such as the content hash and
+  Raft indices should be shown for each entry.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Default listing.
+
+```shell-session
+$ consul acl role list
+web-crawler:
+   ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+   Description:  web crawler updated role
+   Policies:
+      2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+   Service Identities:
+      crawler (Datacenters: all)
+archiver:
+   ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
+   Description:  archiver role
+   Service Identities:
+      archiver (Datacenters: dc2)
+```
+
+Show Metadata.
+
+```shell-session
+$ consul acl role list -meta
+web-crawler:
+   ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+   Description:  web crawler updated role
+   Hash:         3bd7c15a77c8d1d45c515378f1176df2e6f76d9c96d541f96de8272ff4dba7b5
+   Create Index: 18
+   Modify Index: 39
+   Policies:
+      2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+   Service Identities:
+      crawler (Datacenters: all)
+archiver:
+   ID:           a365fdc9-ac71-e754-0645-7ab6bd747301
+   Description:  archiver role
+   Hash:         9af397ea92ee901366d6333c658195be16f4aee8aa64d2b529b921c879b70a58
+   Create Index: 22
+   Modify Index: 22
+   Service Identities:
+      archiver (Datacenters: dc2)
+```

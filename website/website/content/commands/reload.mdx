@@ -1,0 +1,42 @@
+---
+layout: commands
+page_title: 'Commands: Reload'
+description: The `reload` command triggers a reload of configuration files for the agent.
+---
+
+# Consul Reload
+
+Command: `consul reload`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/reload](/consul/api-docs/agent#reload-agent)
+
+The `reload` command triggers a reload of configuration files for the agent.
+
+The `SIGHUP` signal is usually used to trigger a reload of configurations,
+but in some cases it may be more convenient to trigger the CLI instead.
+
+This command operates the same as the signal, meaning that it will trigger
+a reload, but does not wait for the reload to complete. Any errors with the
+reload will be present in the agent logs and not in the output of this command.
+
+**NOTE**
+
+Not all configuration options are reloadable. See the
+[Reloadable Configuration](/consul/docs/agent/config#reloadable-configuration)
+section on the agent options page for details on which options are supported.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required  |
+| ------------- |
+| `agent:write` |
+
+## Usage
+
+Usage: `consul reload`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

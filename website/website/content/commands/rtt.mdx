@@ -1,0 +1,72 @@
+---
+layout: commands
+page_title: 'Commands: RTT'
+description: |
+  The rtt command estimates the network round trip time between two nodes.
+---
+
+# Consul RTT
+
+Command: `consul rtt`
+
+Corresponding HTTP API Endpoints: [\[GET\] /v1/coordinate/datacenters](/consul/api-docs/coordinate#read-wan-coordinates), [\[GET\] /v1/coordinate/nodes](/consul/api-docs/coordinate#read-lan-coordinates-for-all-nodes)
+
+The `rtt` command estimates the network round trip time between two nodes using
+Consul's network coordinate model of the cluster.
+
+See the [Network Coordinates](/consul/docs/architecture/coordinates) internals guide
+for more information on how these coordinates are computed.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required            |
+| ----------------------- |
+| `node:read`<sup>1</sup> |
+
+<p>
+  <sup>1</sup> When referencing WAN coordinates, no ACL permission is needed.
+</p>
+
+## Usage
+
+Usage: `consul rtt [options] node1 [node2]`
+
+At least one node name is required. If the second node name isn't given, it
+is set to the agent's node name. These are the node names as known to
+Consul as the `consul members` command would show, not IP addresses.
+
+## Sample Output
+
+If coordinates are available, the command will print the estimated round trip
+time between the given nodes:
+
+```shell-session
+$ consul rtt n1 n2
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
+
+$ consul rtt n2 # Running from n1
+Estimated n1 <-> n2 rtt: 0.610 ms (using LAN coordinates)
+
+$ consul rtt -wan n1.dc1 n2.dc2
+Estimated n1.dc1 <-> n2.dc2 rtt: 1.275 ms (using WAN coordinates)
+```
+
+#### Command Options
+
+- `-wan` - Instructs the command to use WAN coordinates instead of LAN
+  coordinates. By default, the two nodes are assumed to be nodes in the local
+  datacenter and the LAN coordinates are used. If the -wan option is given,
+  then the WAN coordinates are used, and the node names must be suffixed by a period
+  and the datacenter (eg. "myserver.dc1"). It is not possible to measure between
+  LAN coordinates and WAN coordinates, so both nodes must be in the same area.
+
+The following environment variables control accessing the HTTP server via SSL:
+
+- `CONSUL_HTTP_SSL` Set this to enable SSL
+- `CONSUL_HTTP_SSL_VERIFY` Set this to disable certificate checking (not recommended)
+
+#### API Options
+
+@include 'http_api_options_client.mdx'

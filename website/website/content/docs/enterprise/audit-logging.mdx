@@ -1,0 +1,234 @@
+---
+layout: docs
+page_title: Audit Logging (Enterprise)
+description: >-
+  Audit logging secures Consul by capturing a record of HTTP API access and usage. Learn how to format agent configuration files to enable audit logs and specify the path to save logs to.
+---
+
+# Audit Logging
+
+<EnterpriseAlert>
+
+This feature requires
+HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise.
+Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
+With Consul Enterprise v1.8.0+, audit logging can be used to capture a clear and
+actionable log of authenticated events (both attempted and committed) that Consul
+processes via its HTTP API. These events are then compiled into a JSON format for easy export
+and contain a timestamp, the operation performed, and the user who initiated the action.
+
+Audit logging enables security and compliance teams within an organization to get
+greater insight into Consul access and usage patterns.
+
+Complete the [Capture Consul Events with Audit Logging](/consul/tutorials/datacenter-operations/audit-logging) tutorial to learn more about Consul's audit logging functionality, 
+
+For detailed configuration information on configuring the Consul Enterprise's audit
+logging, review the Consul [Audit Log](/consul/docs/agent/config/config-files#audit)
+documentation.
+
+## Example Configuration
+
+Audit logging must be enabled on every agent in order to accurately capture all
+operations performed through the HTTP API. To enable logging, add
+the [`audit`](/consul/docs/agent/config/config-files#audit) stanza to the agent's configuration.
+
+-> **Note**: Consul only logs operations which are initiated via the HTTP API.
+The audit log does not record operations that take place over the internal RPC
+communication channel used for agent communication.
+
+<Tabs>
+<Tab heading="Log to file">
+
+The following example configures a destination called "My Sink". Since rotation is enabled,
+audit events will be stored at files named: `/tmp/audit-<TIMESTAMP>.json`. The log file will
+be rotated either every 24 hours, or when the log file size is greater than 25165824 bytes
+(24 megabytes).
+
+<CodeTabs>
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/tmp/audit.json"
+    delivery_guarantee = "best-effort"
+    rotate_duration = "24h"
+    rotate_max_files = 15
+    rotate_bytes = 25165824
+  }
+}
+```
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/tmp/audit.json",
+        "delivery_guarantee": "best-effort",
+        "rotate_duration": "24h",
+        "rotate_max_files": 15,
+        "rotate_bytes": 25165824
+      }
+    }
+  }
+}
+```
+
+```yaml
+server:
+  auditLogs:
+      enabled: true
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /tmp/audit.json
+          delivery_guarantee: best-effort
+          rotate_duration: 24h
+          rotate_max_files: 15
+          rotate_bytes: 25165824
+```
+</CodeTabs>
+
+</Tab>
+
+<Tab heading="Log to standard out">
+
+
+The following example configures a destination called "My Sink" which emits audit
+logs to standard out.
+
+<CodeTabs>
+
+```hcl
+audit {
+  enabled = true
+  sink "My sink" {
+    type   = "file"
+    format = "json"
+    path   = "/dev/stdout"
+    delivery_guarantee = "best-effort"
+  }
+}
+```
+
+```json
+{
+  "audit": {
+    "enabled": true,
+    "sink": {
+      "My sink": {
+        "type": "file",
+        "format": "json",
+        "path": "/dev/stdout",
+        "delivery_guarantee": "best-effort"
+      }
+    }
+  }
+}
+```
+
+```yaml
+server:
+  auditLogs:
+      enabled: true
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /dev/stdout
+          delivery_guarantee: best-effort
+```
+
+</CodeTabs>
+
+</Tab>
+</Tabs>
+
+## Example Audit Log
+
+In this example a client has issued an HTTP GET request to look up the `ssh`
+service in the `/v1/catalog/service/` endpoint.
+
+Details from the HTTP request are recorded in the audit log. The `stage` field
+is set to `OperationStart` which indicates the agent has begun processing the
+request.
+
+The value of the `payload.auth.accessor_id` field is the accessor ID of the
+[ACL token](/consul/docs/security/acl#tokens) which issued the request.
+
+<CodeBlockConfig highlight="10">
+
+```json
+{
+  "created_at": "2020-12-08T12:30:29.196365-05:00",
+  "event_type": "audit",
+  "payload": {
+    "id": "e4a20aec-d250-72c4-2aea-454fe8ae8051",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-08T12:30:29.196206-05:00",
+    "auth": {
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
+      "host": "127.0.0.1:8500"
+    },
+    "stage": "OperationStart"
+  }
+}
+```
+
+</CodeBlockConfig>
+
+After the request is processed, a corresponding log entry is written for the HTTP
+response. The `stage` field is set to `OperationComplete` which indicates the agent
+has completed processing the request.
+
+<CodeBlockConfig highlight="24">
+
+```json
+{
+  "created_at": "2020-12-08T12:30:29.202935-05:00",
+  "event_type": "audit",
+  "payload": {
+    "id": "1f85053f-badb-4567-d239-abc0ecee1570",
+    "version": "1",
+    "type": "HTTPEvent",
+    "timestamp": "2020-12-08T12:30:29.202863-05:00",
+    "auth": {
+      "accessor_id": "08f05787-3609-8001-65b4-922e5d52e84c",
+      "description": "Bootstrap Token (Global Management)",
+      "create_time": "2020-12-01T11:01:51.652566-05:00"
+    },
+    "request": {
+      "operation": "GET",
+      "endpoint": "/v1/catalog/service/ssh",
+      "remote_addr": "127.0.0.1:64015",
+      "user_agent": "curl/7.54.0",
+      "host": "127.0.0.1:8500"
+    },
+    "response": {
+      "status": "200"
+    },
+    "stage": "OperationComplete"
+  }
+}
+```
+
+</CodeBlockConfig>

@@ -1,0 +1,109 @@
+---
+layout: commands
+page_title: 'Commands: ACL Auth Method Update'
+description: |
+  The `consul acl auth-method update` command updates auth method configuration information.
+---
+
+# Consul ACL Auth Method Update
+
+Command: `consul acl auth-method update`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/auth-method/:name](/consul/api-docs/acl/auth-methods#update-an-auth-method)
+
+The `acl auth-method update` command is used to update an auth method. The
+default operations is to merge the current auth method with those values
+provided to the command invocation. Therefore to update just one field, only
+the `-name` options and the option to modify must be provided.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:write`  |
+
+## Usage
+
+Usage: `consul acl auth-method update [options] [args]`
+
+#### Command Options
+
+- `-description=<string>` - A description of the auth method.
+
+- `-display-name=<string>` - An optional name to use instead of the name when
+  displaying this auth method in a UI. Added in Consul 1.8.0.
+
+- `-max-token-ttl=<duration>` - Duration of time all tokens created by this
+  auth method should be valid for. Added in Consul 1.8.0.
+
+- `-token-locality=<string>` - Defines the kind of token that this auth method
+  should produce. This can be either 'local' or 'global'. If empty the value of
+  'local' is assumed. Added in Consul 1.8.0.
+
+- `-config=<string>` - The configuration for the auth method. Must be JSON. May
+  be prefixed with '@' to indicate that the value is a file path to load the
+  config from. '-' may also be given to indicate that the config is available on
+  stdin. Added in Consul 1.8.0.
+
+- `-kubernetes-ca-cert=<string>` - PEM encoded CA cert for use by the TLS
+  client used to talk with the Kubernetes API. May be prefixed with '@' to
+  indicate that the value is a file path to load the cert from. This flag is
+  required for `-type=kubernetes`.
+
+- `-kubernetes-host=<string>` - Address of the Kubernetes API server. This flag
+  is required for `-type=kubernetes`.
+
+- `-kubernetes-service-account-jwt=<string>` - A Kubernetes service account JWT
+  used to access the TokenReview API to validate other JWTs during login. This
+  flag is required for `-type=kubernetes`.
+
+- `-meta` - Indicates that auth method metadata such as the raft
+  indices should be shown for each entry
+
+- `-name=<string>` - The name of the auth method to update.
+
+- `-no-merge` - Do not merge the current auth method information with what is provided
+  to the command. Instead overwrite all fields with the exception of the auth method
+  ID which is immutable.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+- `-namespace-rule-bind-namespace=<value>` - Namespace to bind on match. Can
+  use `${var}` interpolation. Added in Consul 1.8.0.
+
+- `-namespace-rule-selector=<value>` - An expression that matches against
+  verified identity attributes returned from the auth method during login to
+  determine if the namespace rule applies. Added in Consul 1.8.0.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Update an auth method:
+
+```shell-session
+$ consul acl auth-method update -name minikube \
+    -description 'dev cluster' \
+    -kubernetes-host 'https://192.0.2.44:8443'
+Name:         minikube
+Type:         kubernetes
+Description:  dev cluster
+Config:
+{
+  "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",
+  "Host": "https://192.0.2.44:8443",
+  "ServiceAccountJWT": "eyJhbGciOiJSUzI1NiIsImtpZCI..."
+}
+```

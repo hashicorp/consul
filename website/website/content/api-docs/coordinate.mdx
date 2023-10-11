@@ -1,0 +1,245 @@
+---
+layout: api
+page_title: Coordinate - HTTP API
+description: |-
+  The /coordinate endpoints query for the network coordinates for nodes in the
+  local datacenter as well as Consul servers in the local datacenter and remote
+  datacenters.
+---
+
+# Coordinate HTTP Endpoint
+
+The `/coordinate` endpoints query for the network coordinates for nodes in the
+local datacenter as well as Consul servers in the local datacenter and remote
+datacenters.
+
+Please see the [Network Coordinates](/consul/docs/architecture/coordinates) internals
+guide for more information on how these coordinates are computed, and for
+details on how to perform calculations with them.
+
+## Read WAN Coordinates
+
+This endpoint returns the WAN network coordinates for all Consul servers,
+organized by datacenters. It serves data out of the server's local Serf data, so
+its results may vary as requests are handled by different servers in the
+cluster.
+
+| Method | Path                      | Produces           |
+| ------ | ------------------------- | ------------------ |
+| `GET`  | `/coordinate/datacenters` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `none`       |
+
+The corresponding CLI command is [`consul rtt -wan`](/consul/commands/rtt#wan).
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/coordinate/datacenters
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "Datacenter": "dc1",
+    "AreaID": "WAN",
+    "Coordinates": [
+      {
+        "Node": "agent-one",
+        "Coord": {
+          "Adjustment": 0,
+          "Error": 1.5,
+          "Height": 0,
+          "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+        }
+      }
+    ]
+  }
+]
+```
+
+In **Consul Enterprise**, this will include coordinates for user-added network
+areas as well, as indicated by the `AreaID`. Coordinates are only compatible
+within the same area.
+
+## Read LAN Coordinates for all nodes
+
+This endpoint returns the LAN network coordinates for all nodes in a given
+datacenter.
+
+@include 'http_api_results_filtered_by_acls.mdx'
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/coordinate/nodes` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `node:read`  |
+
+The corresponding CLI command is [`consul rtt`](/consul/commands/rtt).
+
+### Query Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried.
+
+- `segment` `(string: "")` <EnterpriseAlert inline /> - Specifies the segment to list members for.
+  If left blank, this will query for the default segment when connecting to a server and
+  the agent's own segment when connecting to a client (clients can only be part of one
+  network segment). When querying a server, setting this to the special string `_all`
+  will show members in all segments.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/coordinate/nodes
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "Node": "agent-one",
+    "Segment": "",
+    "Coord": {
+      "Adjustment": 0,
+      "Error": 1.5,
+      "Height": 0,
+      "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+    }
+  }
+]
+```
+
+In **Consul Enterprise**, this may include multiple coordinates for the same node,
+each marked with a different `Segment`. Coordinates are only compatible within the same
+segment.
+
+## Read LAN Coordinates for a node
+
+This endpoint returns the LAN network coordinates for the given node.
+
+| Method | Path                          | Produces           |
+| ------ | ----------------------------- | ------------------ |
+| `GET`  | `/coordinate/node/:node_name` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `node:read`  |
+
+### Path Parameters
+
+- `node_name` `(string: <required>)` - Specifies the name of the node to return LAN network coordinates for.
+
+### Query Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried.
+
+- `segment` `(string: "")` <EnterpriseAlert inline /> - Specifies the segment to list members for.
+  If left blank, this will query for the default segment when connecting to a server and
+  the agent's own segment when connecting to a client (clients can only be part of one
+  network segment). When querying a server, setting this to the special string `_all`
+  will show members in all segments.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/coordinate/node/agent-one
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "Node": "agent-one",
+    "Segment": "",
+    "Coord": {
+      "Adjustment": 0,
+      "Error": 1.5,
+      "Height": 0,
+      "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+    }
+  }
+]
+```
+
+In **Consul Enterprise**, this may include multiple coordinates for the same node,
+each marked with a different `Segment`. Coordinates are only compatible within the same
+segment.
+
+## Update LAN Coordinates for a node
+
+This endpoint updates the LAN network coordinates for a node in a given
+datacenter.
+
+| Method | Path                 | Produces           |
+| ------ | -------------------- | ------------------ |
+| `PUT`  | `/coordinate/update` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `node:write` |
+
+### Query Parameters
+
+- `dc` `(string: "")` - Specifies the datacenter to query. This will default to
+  the datacenter of the agent being queried.
+
+### Sample Payload
+
+```json
+{
+  "Node": "agent-one",
+  "Segment": "",
+  "Coord": {
+    "Adjustment": 0,
+    "Error": 1.5,
+    "Height": 0,
+    "Vec": [0, 0, 0, 0, 0, 0, 0, 0]
+  }
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/coordinate/update
+```

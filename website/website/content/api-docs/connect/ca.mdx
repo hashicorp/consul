@@ -1,0 +1,219 @@
+---
+layout: api
+page_title: Certificate Authority - Connect - HTTP API
+description: |-
+  The /connect/ca endpoints provide tools for interacting with Connect's
+  Certificate Authority mechanism via Consul's HTTP API.
+---
+
+# Certificate Authority (CA) - Connect HTTP API
+
+The `/connect/ca` endpoints provide tools for interacting with the service mesh's
+Certificate Authority mechanism.
+
+## List CA Root Certificates
+
+This endpoint returns the current list of trusted CA root certificates in
+the cluster.
+
+| Method | Path                | Produces           |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/connect/ca/roots` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `YES`            | `all`             | `none`        | `none`       |
+
+### Query Parameters
+
+- `pem` `(boolean: false)` - Specifies that the return body should be a PEM encoded
+  certificate chain suitable for use by applications needing to trust service mesh CA
+  signed certificates. The Content-Type will be set to `application/pem-certificate-chain`
+  to indicate the format of the response.
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/connect/ca/roots
+```
+
+### Sample Response
+
+```json
+{
+  "ActiveRootID": "c7:bd:55:4b:64:80:14:51:10:a4:b9:b9:d7:e0:75:3f:86:ba:bb:24",
+  "TrustDomain": "7f42f496-fbc7-8692-05ed-334aa5340c1e.consul",
+  "Roots": [
+    {
+      "ID": "c7:bd:55:4b:64:80:14:51:10:a4:b9:b9:d7:e0:75:3f:86:ba:bb:24",
+      "Name": "Consul CA Root Cert",
+      "SerialNumber": 7,
+      "SigningKeyID": "2d:09:5d:84:b9:89:4b:dd:e3:88:bb:9c:e2:b2:69:81:1f:4b:a6:fd:4d:df:ee:74:63:f3:74:55:ca:b0:b5:65",
+      "ExternalTrustDomain": "a1499528-fbf6-df7b-05e5-ae81e1873fc4",
+      "NotBefore": "2018-05-25T21:39:23Z",
+      "NotAfter": "2028-05-22T21:39:23Z",
+      "RootCert": "-----BEGIN CERTIFICATE-----\nMIICmDCCAj6gAwIBAgIBBzAKBggqhkjOPQQDAjAWMRQwEgYDVQQDEwtDb25zdWwg\nQ0EgNzAeFw0xODA1MjUyMTM5MjNaFw0yODA1MjIyMTM5MjNaMBYxFDASBgNVBAMT\nC0NvbnN1bCBDQSA3MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEq4S32Pu0/VL4\nG75gvdyQuAhqMZFsfBRwD3pgvblgZMeJc9KDosxnPR+W34NXtMD/860NNVJIILln\n9lLhIjWPQqOCAXswggF3MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTADAQH/\nMGgGA1UdDgRhBF8yZDowOTo1ZDo4NDpiOTo4OTo0YjpkZDplMzo4ODpiYjo5Yzpl\nMjpiMjo2OTo4MToxZjo0YjphNjpmZDo0ZDpkZjplZTo3NDo2MzpmMzo3NDo1NTpj\nYTpiMDpiNTo2NTBqBgNVHSMEYzBhgF8yZDowOTo1ZDo4NDpiOTo4OTo0YjpkZDpl\nMzo4ODpiYjo5YzplMjpiMjo2OTo4MToxZjo0YjphNjpmZDo0ZDpkZjplZTo3NDo2\nMzpmMzo3NDo1NTpjYTpiMDpiNTo2NTA/BgNVHREEODA2hjRzcGlmZmU6Ly83ZjQy\nZjQ5Ni1mYmM3LTg2OTItMDVlZC0zMzRhYTUzNDBjMWUuY29uc3VsMD0GA1UdHgEB\n/wQzMDGgLzAtgis3ZjQyZjQ5Ni1mYmM3LTg2OTItMDVlZC0zMzRhYTUzNDBjMWUu\nY29uc3VsMAoGCCqGSM49BAMCA0gAMEUCIBBBDOWXWApx4S6bHJ49AW87Nw8uQ/gJ\nJ6lvm3HzEQw2AiEA4PVqWt+z8fsQht0cACM42kghL97SgDSf8rgCqfLYMng=\n-----END CERTIFICATE-----\n",
+      "IntermediateCerts": null,
+      "Active": true,
+      "PrivateKeyType": "ec",
+      "PrivateKeyBits": 256,
+      "CreateIndex": 8,
+      "ModifyIndex": 8
+    }
+  ]
+}
+```
+
+### Sample PEM Encoded Response
+
+```
+-----BEGIN CERTIFICATE-----
+MIICDzCCAbWgAwIBAgIBCDAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWNq
+OHphbW0uY29uc3VsLmNhLjA3OTMzYTEzLmNvbnN1bDAeFw0yMDEwMDgxOTQ4MzZa
+Fw0zMDEwMDgxOTQ4MzZaMDExLzAtBgNVBAMTJnByaS0xY2o4emFtbS5jb25zdWwu
+Y2EuMDc5MzNhMTMuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEDCkT
+IIxSDhA3XCKIuDcj4s9IVjf0NQT6QHPAzFBb964/4fTtX/J8x2n6A1lOXowFIWtx
+GvAD/IJF74zn5ZA/wqOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUw
+AwEB/zApBgNVHQ4EIgQguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcw
+KwYDVR0jBCQwIoAguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcwPwYD
+VR0RBDgwNoY0c3BpZmZlOi8vMDc5MzNhMTMtYTYyYi1iZTkwLTQ0ZjEtZGVkOWE2
+NjczNzZlLmNvbnN1bDAKBggqhkjOPQQDAgNIADBFAiEA0ExkvLESG1I1TMFVronr
+2fjoORukgzBgRMbWAEC2DJ0CIACsxeFS6tprHiRv4cEa2Md75h1iIisb2V2U7dvY
+Z7Rr
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIICEzCCAbigAwIBAgIBCTAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktMWNq
+OHphbW0uY29uc3VsLmNhLjA3OTMzYTEzLmNvbnN1bDAeFw0yMDEwMDgxOTQ3Mzda
+Fw0yMTEwMDgxOTQ3MzdaMDExLzAtBgNVBAMTJnNlYy0xbmIxMHZ0by5jb25zdWwu
+Y2EuMDc5MzNhMTMuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9zWs
+UxEYvLZUySoflz6e+HqLcaXM8heNRRkAiLiGkmn6nan6olnnrVBLyHAfHaHWJQ9W
+wI8HwSZf0g4Ms16LWKOBwDCBvTAOBgNVHQ8BAf8EBAMCAYYwEgYDVR0TAQH/BAgw
+BgEB/wIBADApBgNVHQ4EIgQg+csK9Sg6odIfLLk3aiRY2OB4O0DiOa1XRTVdOVDE
+t6QwKwYDVR0jBCQwIoAguPlAkrIkOnLr9+8DZ4afZWrYZUd2LB6nMJP72jDVxmcw
+PwYDVR0RBDgwNoY0c3BpZmZlOi8vMDc5MzNhMTMtYTYyYi1iZTkwLTQ0ZjEtZGVk
+OWE2NjczNzZlLmNvbnN1bDAKBggqhkjOPQQDAgNJADBGAiEAqJ60KJepAP4Xe4Ak
+5UYB1huu/B8Lyz5yEYUpUplgdD4CIQCrrkoXoD4SGJ4HaIjy6a5eNf3YkhLpmbXO
+6DL6FXVa1Q==
+-----END CERTIFICATE-----
+```
+
+## Get CA Configuration
+
+This endpoint returns the current CA configuration.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `GET`  | `/connect/ca/configuration` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required                  |
+| ---------------- | ----------------- | ------------- | ----------------------------- |
+| `YES`            | `all`             | `none`        | `operator:write` <sup>1</sup> |
+
+<sup>1</sup> ACL required was <code>operator:read</code> prior to versions 1.8.6,
+1.7.10, and 1.6.10.
+
+The corresponding CLI command is [`consul connect ca get-config`](/consul/commands/connect/ca#get-config).
+
+### Sample Request
+
+```shell-session
+$ curl \
+    http://127.0.0.1:8500/v1/connect/ca/configuration
+```
+
+### Sample Response
+
+```json
+{
+  "Provider": "consul",
+  "Config": {
+    "LeafCertTTL": "72h",
+    "IntermediateCertTTL": "8760h"
+  },
+  "CreateIndex": 5,
+  "ModifyIndex": 5
+}
+```
+
+## Update CA Configuration
+
+This endpoint updates the configuration for the CA. If this results in a
+new root certificate being used, the [Root Rotation](/consul/docs/connect/ca#root-certificate-rotation) process will be triggered.
+
+| Method | Path                        | Produces           |
+| ------ | --------------------------- | ------------------ |
+| `PUT`  | `/connect/ca/configuration` | `application/json` |
+
+The table below shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required     |
+| ---------------- | ----------------- | ------------- | ---------------- |
+| `NO`             | `none`            | `none`        | `operator:write` |
+
+The corresponding CLI command is [`consul connect ca set-config`](/consul/commands/connect/ca#set-config).
+
+~> **If currently using Vault CA provider:**
+   If you intend to change the CA provider from Vault to another,
+   or to change the Vault provider's [`RootPKIPath`](/consul/docs/connect/ca/vault#rootpkipath),
+   you must temporarily elevate the privileges of the Vault token
+   or auth method in use as described in the
+   [Vault CA provider documentation](/consul/docs/connect/ca/vault#additional-vault-acl-policies-for-sensitive-operations).
+
+### JSON Request Body Schema
+
+- `Provider` `(string: <required>)` - Specifies the CA provider type to use.
+
+- `Config` `(map[string]string: <required>)` - The raw configuration to use
+  for the chosen provider. For more information on configuring the service mesh CA
+  providers, see [Provider Config](/consul/docs/connect/ca).
+
+- `ForceWithoutCrossSigning` `(bool: false)` - Indicates that the CA change
+  should be forced to complete even if the current CA doesn't support root cross-signing.
+
+  ~> **Caution:** Setting this field to `true` will cause temporary connection failures
+  until service mesh proxies and/or Consul client agents receive a new certificate
+  that establishes trust with the new root.
+  Do not use this field unless you are sure you need it.
+  Refer to [Forced Rotation Without Cross-Signing](/consul/docs/connect/ca#forced-rotation-without-cross-signing)
+  for more detail.
+
+### Sample Payload
+
+```json
+{
+  "Provider": "consul",
+  "Config": {
+    "LeafCertTTL": "72h",
+    "PrivateKey": "-----BEGIN RSA PRIVATE KEY-----...",
+    "RootCert": "-----BEGIN CERTIFICATE-----...",
+    "IntermediateCertTTL": "8760h"
+  },
+  "ForceWithoutCrossSigning": false
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl \
+    --request PUT \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/connect/ca/configuration
+```

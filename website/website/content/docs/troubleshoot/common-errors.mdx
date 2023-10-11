@@ -1,0 +1,277 @@
+---
+layout: docs
+page_title: Common Error Messages - Troubleshoot
+description: >-
+  Troubleshoot issues based on the error message. Common errors result from failed actions, timeouts, multiple entries, bad and expired certificates, invalid characters, syntax parsing, malformed responses, and exceeded deadlines.
+---
+
+# Common error messages
+
+This topic describes common messages that may appear when installing and running Consul. Errors usually they indicate an issue in your network or in your server's configuration. Refer to the [Troubleshooting Guide][troubleshooting] for help resolving error messages that do not appear on this page.
+
+For common errors messages related to Kubernetes, refer to [Common errors on Kubernetes](#common-errors-on-kubernetes).
+
+## Configuration file errors
+
+The following errors are related to misconfigured files.
+
+### Multiple network interfaces
+
+```text
+Multiple private IPv4 addresses found. Please configure one with 'bind' and/or 'advertise'.
+```
+
+Your server has multiple active network interfaces. Consul needs to know which interface to use for local LAN communications. Add the [`bind`][bind] option to your configuration.
+
+-> **Tip**: If your server does not have a static IP address, you can use a [go-sockaddr template][go-sockaddr] as the argument to the `bind` option, e.g. `"bind_addr": "{{GetInterfaceIP \"eth0\"}}"`.
+
+### Configuration syntax errors
+
+```text
+Error parsing config.hcl: At 1:12: illegal char
+```
+
+```text
+Error parsing config.hcl: At 1:32: key 'foo' expected start of object ('{') or assignment ('=')
+```
+
+```text
+Error parsing server.json: invalid character '`' looking for beginning of value
+```
+
+There is a syntax error in your configuration file. If the error message doesn't identify the exact location in the file where the problem is, try using [jq] to find it, for example:
+
+```shell-session
+$ consul agent -server -config-file server.json
+==> Error parsing server.json: invalid character '`' looking for beginning of value
+$ jq . server.json
+parse error: Invalid numeric literal at line 3, column 29
+```
+
+## Invalid host name
+
+```text
+Node name "consul_client.internal" will not be discoverable via DNS due to invalid characters.
+```
+
+Add the [`node name`][node_name] option to your agent configuration and provide a valid DNS name.
+
+## I/O timeouts
+
+```text
+Failed to join 10.0.0.99: dial tcp 10.0.0.99:8301: i/o timeout
+```
+
+```text
+Failed to sync remote state: No cluster leader
+```
+
+If the Consul client and server are on the same LAN, then most likely, a firewall is blocking connections to the Consul server.
+
+If they are not on the same LAN, check the [`retry_join`][retry_join] settings in the Consul client configuration. The client should be configured to join a cluster inside its local network.
+
+## Deadline exceeded
+
+```text
+Error getting server health from "XXX": context deadline exceeded
+```
+
+These error messages indicate a general performance problem on the Consul server. Make sure you are monitoring Consul telemetry and system metrics according to our [monitoring guide][monitoring]. Increase the CPU or memory allocation to the server if needed. Check the performance of the network between Consul nodes.
+
+## Too many open files
+
+```text
+Error accepting TCP connection: accept tcp [::]:8301: too many open files in system
+```
+
+```text
+Get http://localhost:8500/: dial tcp 127.0.0.1:31643: socket: too many open files
+```
+
+On a busy cluster, the operating system may not provide enough file descriptors to the Consul process. You will need to increase the limit for the Consul user, and maybe the system-wide limit as well. A good guide for Linux can be found [here][files].
+
+Or, if you are starting Consul from `systemd`, you could add `LimitNOFILE=65536` to the unit file for Consul. You can see our example unit file [here][systemd].
+
+## Snapshot close error
+
+Our RPC protocol requires support for a TCP half-close in order to signal the other side that they are done reading the stream, since we don't know the size in advance. This saves us from having to buffer just to calculate the size.
+
+If a host does not properly implement half-close you may see an error message `[ERR] consul: Failed to close snapshot: write tcp <source>-><destination>: write: broken pipe` when saving snapshots. This should not affect saving and restoring snapshots.
+
+This has been a [known issue](https://github.com/docker/libnetwork/issues/1204) in Docker, but may manifest in other environments as well.
+
+## ACL not found
+
+```text
+RPC error making call: rpc error making call: ACL not found
+```
+
+This indicates that you have ACL enabled in your cluster, but you aren't passing a valid token. Make sure that when creating your tokens that they have the correct permissions set. In addition, you would want to make sure that an agent token is provided on each call.
+
+## TLS and certificates
+
+The follow errors are related to TLS and certificate issues.
+
+### Incorrect certificate or certificate name
+
+```text
+Remote error: tls: bad certificate
+```
+
+```text
+X509: certificate signed by unknown authority
+```
+
+Make sure that your Consul clients and servers are using the correct certificates, and that they've been signed by the same CA. The easiest way to do this is to follow [our guide][certificates].
+
+If you generate your own certificates, make sure the server certificates include the special name `server.dc1.consul` in the Subject Alternative Name (SAN) field. (If you change the values of `datacenter` or `domain` in your configuration, update the SAN accordingly.)
+
+### HTTP instead of HTTPS
+
+```text
+Error querying agent: malformed HTTP response
+```
+
+```text
+Net/http: HTTP/1.x transport connection broken: malformed HTTP response "\x15\x03\x01\x00\x02\x02"
+```
+
+You are attempting to connect to a Consul agent with HTTP on a port that has been configured for HTTPS.
+
+If you are using the Consul CLI, make sure you are specifying "https" in the `-http-addr` flag or the `CONSUL_HTTP_ADDR` environment variable.
+
+If you are interacting with the API, change the URI scheme to "https".
+
+## License warnings
+
+```text
+License: expiration time: YYYY-MM-DD HH:MM:SS -0500 EST, time left: 29m0s
+```
+
+You have installed an Enterprise version of Consul. If you are an Enterprise customer, [provide a license key][license] to Consul before it shuts down. Otherwise, install the open-source Consul binary instead.
+
+-> **Note:** Enterprise binaries can be identified on our [download site][releases] by the `+ent` suffix.
+
+## Rate limit reached on the server
+
+You may receive a `RESOURCE_EXHAUSTED` error from the Consul server if the maximum number of read or write requests per second have been reached. Refer to [Set a global limit on traffic rates](/consul/docs/agent/limits/set-global-traffic-rate-limits) for additional information. You can retry another server unless the number of retries is exhausted. If the number of retries is exhausted, you should implement an exponential backoff.
+
+The RESOURCE_EXHAUSTED RPC response is translated into a `429 Too Many Requests` error code on the HTTP interface. 
+
+The server may respond as `UNAVAILABLE` if it is the leader node and the global write request rate limit is reached. The solution is to apply an exponential backoff until the leader has capacity to serve those requests. 
+
+The `UNAVAILABLE` RPC response is translated into a `503 Service Unavailable` error code on the  RPC requests sent through HTTP interface.
+
+## Common errors on Kubernetes
+
+The following error messages are specific to Kubernetes issues.
+
+### Unable to connect to the Consul client on the same host
+
+If the pods are unable to connect to a Consul client running on the same host,
+first check if the Consul clients are up and running with `kubectl get pods`.
+
+```shell-session
+$ kubectl get pods --selector="component=client"
+NAME           READY   STATUS    RESTARTS   AGE
+consul-kzws6   1/1     Running   0          58s
+```
+
+If you are still unable to connect
+and see `i/o timeout` or `connection refused` errors when connecting to the Consul client on the Kubernetes worker,
+this could be because the CNI (Container Networking Interface)
+does not [support](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#support-hostport)
+the use of `hostPort`.
+
+```text
+Put http://10.0.0.10:8500/v1/catalog/register: dial tcp 10.0.0.10:8500: connect: connection refused
+```
+
+```text
+Put http://10.0.0.10:8500/v1/agent/service/register: dial tcp 10.0.0.10:8500: connect: connection refused
+```
+
+```text
+Get http://10.0.0.10:8500/v1/status/leader: dial tcp 10.0.0.10:8500: i/o timeout
+```
+
+The IP `10.0.0.10` above refers to the IP of the host where the Consul client pods are running.
+
+To work around this issue,
+enable [`hostNetwork`](/consul/docs/k8s/helm#v-client-hostnetwork) in your Helm values.
+Using the host network will enable the pod to use the host's network namespace without
+the need for CNI to support port mappings between containers and the host.
+
+```yaml
+client:
+  hostNetwork: true
+  dnsPolicy: ClusterFirstWithHostNet
+```
+
+-> **Note:** Using host network has security implications
+as doing so gives the Consul client unnecessary access to all network traffic on the host.
+We recommend raising an issue with the CNI you're using to add support for `hostPort`
+and switching back to `hostPort` eventually.
+
+### consul-server-connection-manager: ACL auth method login failed: error="rpc error: code = PermissionDenied desc = Permission denied"
+
+If you see this error in the init container logs of service mesh pods, check that the pod has a service account name that matches its Service.
+For example, this deployment:
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  # This name will be the service name in Consul.
+  name: static-server
+spec:
+  selector:
+    app: static-server
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-server
+  template:
+    metadata:
+      name: static-server
+      labels:
+        app: static-server
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+    spec:
+      containers:
+        - name: static-server
+          image: hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: http
+      serviceAccountName: does-not-match
+```
+
+Will fail because the `serviceAccountName` is `does-not-match` instead of `static-server`.
+
+[troubleshooting]: /consul/tutorials/datacenter-operations/troubleshooting
+[node_name]: /consul/docs/agent/config/config-files#node_name
+[retry_join]: /consul/docs/agent/config/cli-flags#retry-join
+[license]: /consul/commands/license
+[releases]: https://releases.hashicorp.com/consul/
+[files]: https://easyengine.io/tutorials/linux/increase-open-files-limit
+[certificates]: /consul/tutorials/security/tls-encryption-secure
+[systemd]: /consul/tutorials/production-deploy/deployment-guide#configure-systemd
+[monitoring]: /consul/tutorials/day-2-operations/monitor-datacenter-health
+[bind]: /consul/docs/agent/config/cli-flags#_bind
+[jq]: https://stedolan.github.io/jq/
+[go-sockaddr]: https://godoc.org/github.com/hashicorp/go-sockaddr/template

@@ -1,0 +1,31 @@
+---
+layout: docs
+page_title: Consul server configuration JSON schema reference
+description: Learn about the fields available in the JSON scheme for configuring ECS task connections to Consul servers.
+---
+
+# Consul server configuration JSON schema reference
+
+This topic provides reference information about the JSON schema used to build the `config.tf` file. Refer to [Configure Consul server settings](/consul/docs/ecs/deploy/terraform#configure-consul-server-settings) for information about how Consul on ECS uses the JSON schema. 
+
+```json  
+`consulServers`
+	`hosts`: string
+    	`skipServerWatch`: boolean; set to true if the Consul server is already behind a load balancer 
+	`defaults`: map - applies to both gRPC and HTTP
+		`caCertFile`: string path to the certificate .pem file
+		`tlsServerName`: string name of the TLS server
+		`tls`: boolean that enables TLS 
+	`grpc`: map - overrides for gRPC traffic
+		`port`: number specifying the port for gRPC communication
+		`caCertFile`: string path to the certificate .pem file for authorizing gRPC
+		`tlsServerName`: string name of the TLS server
+		`tls`: boolean that enables TLS for gRPC
+	`http`: map - overrides for HTTP traffic
+		`https`: boolean that enables HTTPS
+		`port`: number specifying the port for HTTPS communication
+		`caCertFile`: string path to the certificate .pem file for authorizing HTTPS
+		`tlsServerName`: string name of the TLS server
+		`tls`: boolean that enables TLS for HTTPS
+
+```

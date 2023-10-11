@@ -1,0 +1,73 @@
+---
+layout: commands
+page_title: 'Commands: Maint'
+description: |
+  The `maint` command provides control of both service and node maintenance mode
+---
+
+# Consul Maint
+
+Command: `consul maint`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/agent/maintenance](/consul/api-docs/agent#enable-maintenance-mode)
+
+The `maint` command provides control of service maintenance mode.
+Using the command, it is possible to mark a service provided by a node or all the services on the
+node as a whole as "under maintenance". In this mode of operation, the service
+will not appear in DNS query results, or API results. This effectively
+takes the service out of the pool of available "healthy" nodes of a service.
+
+Under the hood, maintenance mode is activated by registering a health check in
+critical status against a service, and deactivated by deregistering the
+health check.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `node:write` |
+
+## Usage
+
+Usage: `consul maint [options]`
+
+#### Command Options
+
+- `-enable` - Enable node-wide maintenance mode flag. If combined with the
+  `-service` flag, we operate on a specific service ID instead. Node and
+  service maintenance flags are independent.
+
+- `-disable` - Disable the node-wide maintenance flag. If combined with the
+  `-service` flag, we operate on a specific service ID instead. Node and
+  service maintenance flags are independent.
+
+- `-reason` - An optional reason for placing the service into
+  maintenance mode. If provided, this reason will be visible in the newly-
+  registered critical check's "Notes" field.
+
+- `-service` - An optional service ID to control maintenance mode for a given service. By
+  providing this flag, the `-enable` and `-disable` flags functionality is
+  modified to operate on the given service ID.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## List mode
+
+If neither `-enable` nor `-disable` are passed, the `maint` command will
+switch to "list mode", displaying any current maintenances. This may return
+blank if nothing is currently under maintenance. The output will look like:
+
+```shell-session
+$ consul maint
+Node:
+  Name:   node1.local
+  Reason: This node is broken.
+
+Service:
+  ID:     redis
+  Reason: Redis is currently offline.
+```

@@ -1,0 +1,115 @@
+---
+layout: commands
+page_title: 'Commands: Namespace List'
+description: |
+  The `consul namespace list` command outputs all existing namespaces in Consul Enterprise.
+---
+
+# Consul Namespace List
+
+Command: `consul namespace list`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/namespaces](/consul/api-docs/namespaces#list-all-namespaces)
+
+<EnterpriseAlert />
+
+This `namespace list` command lists all namespace configurations. This was added in Consul Enterprise 1.7.0. If
+ACLs are enabled then this command will require a token with `operator:read` privileges or any `read` privileges
+within the target namespaces. The results will be filtered based on the ACL token and therefore it is possible to
+see a partial list.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required                                      |
+| ------------------------------------------------- |
+| `operator:read` or `namespace:*:read`<sup>1</sup> |
+
+<sup>1</sup> Access can be granted to list the Namespace if the token used when making
+the request has been granted any access in the namespace (read, list or write).
+
+## Usage
+
+Usage: `consul namespace list`
+
+#### Command Options
+
+- `-format=<string>` - How to output the results. The choices are: pretty or json
+
+- `-meta` - Indicates that namespace metadata such as the raft indices should be
+  shown for the namespace
+
+#### API Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+List Namespaces:
+
+```shell-session
+$ consul namespace list
+default:
+   Description:
+      Builtin Default Namespace
+foo:
+   Description:
+      Example Namespace
+team-1:
+   Description:
+
+```
+
+Showing Raft Metadata:
+
+```shell-session
+$ consul namespace list -meta
+default:
+   Description:
+      Builtin Default Namespace
+   Create Index: 4
+   Modify Index: 4
+foo:
+   Description:
+      Example Namespace
+   Create Index: 352
+   Modify Index: 352
+team-1:
+   Description:
+   Create Index: 339
+   Modify Index: 344
+
+```
+
+JSON Format:
+
+```shell-session
+$ consul namespace list -format=json
+[
+   {
+      "Name": "default",
+      "Description": "Builtin Default Namespace",
+      "CreateIndex": 4,
+      "ModifyIndex": 4
+   },
+   {
+      "Name": "foo",
+      "Description": "Example Namespace",
+      "Meta": {
+         "team-id": "574407f3-8b26-4c84-8e51-028bb8cbdd37"
+      },
+      "CreateIndex": 352,
+      "ModifyIndex": 352
+   },
+   {
+      "Name": "team-1",
+      "CreateIndex": 339,
+      "ModifyIndex": 344
+   }
+]
+```

@@ -1,0 +1,397 @@
+---
+layout: docs
+page_title: Configure Terminating Gateways for Consul on Kubernetes
+description: >-
+  Terminating gateways send secure requests from the service mesh to locations outside of the Kubernetes cluster. Learn how to configure terminating gateways for k8s, register external services in Consul’s service catalog, and define external sources as upstreams in your service mesh.
+---
+
+# Configure Terminating Gateways for Consul on Kubernetes
+
+Adding a terminating gateway is a multi-step process:
+
+- Update the Helm chart with terminating gateway configuration options
+- Deploy the Helm chart
+- Access the Consul agent
+- Register external services with Consul
+
+## Requirements
+
+- [Consul](/consul/docs/install#install-consul)
+- [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli)
+- Familiarity with [Terminating Gateways](/consul/docs/connect/gateways/terminating-gateway)
+
+## Update the Helm chart with terminating gateway configuration options
+
+Minimum required Helm options:
+
+<CodeBlockConfig filename="values.yaml">
+
+```yaml
+global:
+  name: consul
+terminatingGateways:
+  enabled: true
+```
+
+</CodeBlockConfig>
+
+## Deploying the Helm chart
+
+The Helm chart may be deployed using the [Consul on Kubernetes CLI](/consul/docs/k8s/k8s-cli).
+
+```shell-session
+$ consul-k8s install --config-file values.yaml
+```
+
+## Accessing the Consul agent
+
+You can access the Consul server directly from your host by running `kubectl port-forward`. This is helpful for interacting with your Consul UI locally as well as for validating the connectivity of the application.
+
+<Tabs>
+
+<Tab heading="Without TLS">
+
+```shell-session
+$ kubectl port-forward service/consul-server 8500 &
+```
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=http://localhost:8500
+```
+</Tab>
+
+<Tab heading="With TLS">
+
+If TLS is enabled use port 8501:
+
+```shell-session
+$ kubectl port-forward service/consul-server 8501 &
+```
+
+```shell-session
+$ export CONSUL_HTTP_ADDR=https://localhost:8501
+$ export CONSUL_HTTP_SSL_VERIFY=false
+```
+</Tab>
+
+</Tabs>
+
+If ACLs are enabled also set:
+
+```shell-session
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token --template='{{.data.token | base64decode }}')
+```
+
+## Register external services with Consul
+
+Registering the external services with Consul is a multi-step process:
+
+- Register external services with Consul
+- Update the terminating gateway ACL token if ACLs are enabled
+- Create a [`TerminatingGateway`](/consul/docs/connect/config-entries/terminating-gateway) resource to configure the terminating gateway
+- Create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to external service
+- Define upstream annotations for any services that need to talk to the external services
+
+### Register external services with Consul
+
+You may register an external service with Consul using `ServiceDefaults` if
+[`TransparentProxy`](/consul/docs/connect/transparent-proxy) is enabled. Otherwise,
+you may register the service as a node in the Consul catalog.
+
+<Tabs>
+<Tab heading="Using ServiceDefaults and TransparentProxy">
+
+The [`destination`](/consul/docs/connect/config-entries/service-defaults#terminating-gateway-destination) field of the `ServiceDefaults` Custom Resource Definition (CRD) allows clients to dial an external service directly. For this method to work, [`TransparentProxy`](/consul/docs/connect/transparent-proxy) must be enabled.
+
+The following table describes traffic behaviors when using the `destination` field to route traffic through a terminating gateway:
+
+| <nobr>External Services Layer</nobr> | <nobr>Client dials</nobr> | <nobr>Client uses TLS</nobr> | Allowed                  | Notes                                                                                         |
+|--------------------------------------|---------------------------|------------------------------|--------------------------|-----------------------------------------------------------------------------------------------|
+| L4                                   | Hostname                  | Yes                          | <nobr>Allowed</nobr>     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
+| L4                                   | IP                        | Yes                          | <nobr>Allowed</nobr>     | `CAFiles` are not allowed because traffic is already end-to-end encrypted by the client.      |
+| L4                                   | Hostname                  | No                           | <nobr>Not allowed</nobr> | The sidecar is not protocol aware and can not identify traffic going to the external service. |
+| L4                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
+| L7                                   | Hostname                  | Yes                          | <nobr>Not allowed</nobr> | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
+| L7                                   | IP                        | Yes                          | <nobr>Not allowed</nobr> | Because traffic is already encrypted before the sidecar, it cannot route as L7 traffic.       |
+| L7                                   | Hostname                  | No                           | <nobr>Allowed</nobr>     | A `Host` or `:authority` header is required.                                                  |
+| L7                                   | IP                        | No                           | <nobr>Allowed</nobr>     | There are no limitations on dialing IPs without TLS.                                          |
+
+You can provide a `caFile` to secure traffic that connect to external services through the terminating gateway.
+Refer to [Create the configuration entry for the terminating gateway](#create-the-configuration-entry-for-the-terminating-gateway) for details.
+
+-> **Note:** Regardless of the `protocol` specified in the `ServiceDefaults`, [L7 intentions](/consul/docs/connect/config-entries/service-intentions#permissions) are not currently supported with `ServiceDefaults` destinations.
+
+Create a `ServiceDefaults` custom resource for the external service:
+
+<CodeBlockConfig filename="service-defaults.yaml">
+
+```yaml
+  apiVersion: consul.hashicorp.com/v1alpha1
+  kind: ServiceDefaults
+  metadata:
+    name: example-https
+  spec:
+    protocol: tcp
+    destination:
+      addresses:
+        - "example.com"
+      port: 443
+```
+
+</CodeBlockConfig>
+
+Apply the `ServiceDefaults` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename service-defaults.yaml
+```
+
+All other terminating gateway operations can use the name of the `ServiceDefaults` component, in this case "example-https", as a Consul service name.
+
+</Tab>
+
+<Tab heading="Using Consul catalog">
+
+Normally, Consul services are registered on the node that
+they're running on. Since this service is an external service, there is no Consul node
+to register it onto. Instead, we must make up a node name and register the
+service to that node.
+
+Create a sample external service and register it with Consul.
+
+<CodeBlockConfig filename="external.json">
+
+```json
+{
+  "Node": "example_com",
+  "Address": "example.com",
+  "NodeMeta": {
+    "external-node": "true",
+    "external-probe": "true"
+  },
+  "Service": {
+    "Address": "example.com",
+    "ID": "example-https",
+    "Service": "example-https",
+    "Port": 443
+  }
+}
+```
+
+</CodeBlockConfig>
+
+- `"Node": "example_com"` is our made up node name.
+- `"Address": "example.com"` is the address of our node. Services registered to that node will use this address if
+  their own address isn't specified. If you're registering multiple external services, ensure you
+  use different node names with different addresses or set the `Service.Address` key.
+- `"Service": { "Address": "example.com" ... }` is the address of our service. In this example this doesn't need to be set
+  since the address of the node is the same, but if there were two services registered to that same node
+  then this should be set.
+
+Register the external service with Consul:
+
+```shell-session
+$ curl --request PUT --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
+true
+```
+
+If ACLs and TLS are enabled:
+
+```shell-session
+$ curl --request PUT --header "X-Consul-Token: $CONSUL_HTTP_TOKEN" --data @external.json --insecure $CONSUL_HTTP_ADDR/v1/catalog/register
+true
+```
+</Tab>
+</Tabs>
+
+### Update terminating gateway ACL role if ACLs are enabled
+
+If ACLs are enabled, update the terminating gateway ACL role to have `service:write` permissions on all of the services
+being represented by the gateway.
+
+Create a new policy that includes the write permission for the service you created.
+
+<CodeBlockConfig filename="write-policy.hcl">
+
+```hcl
+service "example-https" {
+  policy = "write"
+}
+```
+
+</CodeBlockConfig>
+
+```shell-session
+$ consul acl policy create -name "example-https-write-policy" -rules @write-policy.hcl
+ID:           xxxxxxxxxxxxxxx
+Name:         example-https-write-policy
+Description:
+Datacenters:
+Rules:
+service "example-https" {
+  policy = "write"
+}
+```
+
+Obtain the ID of the terminating gateway role.
+
+```shell-session
+$ consul acl role list -format=json | jq --raw-output '[.[] | select(.Name | endswith("-terminating-gateway-acl-role"))] | if (. | length) == 1 then (. | first | .ID) else "Unable to determine the role ID because there are multiple roles matching this name.\n" | halt_error end'
+<role id>
+```
+
+Update the terminating gateway ACL role with the new policy.
+
+```shell-session
+$ consul acl role update -id <role id> -policy-name example-https-write-policy
+AccessorID:       <role id>
+SecretID:         <secret id>
+Description:      RELEASE_NAME-terminating-gateway-acl-role
+Local:            true
+Create Time:      2021-01-08 21:18:47.957450486 +0000 UTC
+Policies:
+   63bf1d9b-a87d-8672-ddcb-d25e2d88adb8 - RELEASE_NAME-terminating-gateway-policy
+   f63d1ae6-ffe7-44bd-bf7a-704a86939a63 - example-https-write-policy
+```
+
+### Create the configuration entry for the terminating gateway
+
+Once the roles have been updated, create the [TerminatingGateway](/consul/docs/connect/config-entries/terminating-gateway)
+resource to configure the terminating gateway:
+
+<CodeBlockConfig filename="terminating-gateway.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: TerminatingGateway
+metadata:
+  name: terminating-gateway
+spec:
+  services:
+    - name: example-https
+```
+
+</CodeBlockConfig>
+
+If TLS is enabled for external services registered through the Consul catalog and you are not using [transparent proxy `destination`](#register-an-external-service-as-a-destination), you must include the [`caFile`](/consul/docs/connect/config-entries/terminating-gateway#cafile) parameter that points to the system trust store of the terminating gateway container.
+By default, the trust store is located in the `/etc/ssl/certs/ca-certificates.crt` directory.
+Configure the [`caFile`](/consul/docs/connect/config-entries/terminating-gateway#cafile) parameter in the `TerminatingGateway` config entry to point to the `/etc/ssl/cert.pem` directory if TLS is enabled and you are using one of the following components:
+- Consul Helm chart 0.43 or older
+- An Envoy image with an alpine base image
+
+Apply the `TerminatingGateway` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename terminating-gateway.yaml
+```
+
+If using ACLs and TLS, create a [`ServiceIntentions`](/consul/docs/connect/config-entries/service-intentions) resource to allow access from services in the mesh to the external service:
+
+<CodeBlockConfig filename="service-intentions.yaml">
+
+```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
+kind: ServiceIntentions
+metadata:
+  name: example-https
+spec:
+  destination:
+    name: example-https
+  sources:
+    - name: static-client
+      action: allow
+```
+
+</CodeBlockConfig>
+
+-> **NOTE**: [L7 Intentions](/consul/docs/connect/config-entries/service-intentions#permissions) are not currently supported for `ServiceDefaults` destinations.
+
+Apply the `ServiceIntentions` resource with `kubectl apply`:
+
+```shell-session
+$ kubectl apply --filename service-intentions.yaml
+```
+
+### Define the external services as upstreams for services in the mesh
+
+As a final step, you may define and deploy the external services as upstreams for the internal mesh services that wish to talk to them.
+An example deployment is provided which will serve as a static client for the terminating gateway service.
+
+<CodeBlockConfig filename="static-client.yaml">
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: static-client
+spec:
+  selector:
+    app: static-client
+  ports:
+    - port: 80
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: static-client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: static-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: static-client
+  template:
+    metadata:
+      name: static-client
+      labels:
+        app: static-client
+      annotations:
+        'consul.hashicorp.com/connect-inject': 'true'
+        'consul.hashicorp.com/connect-service-upstreams': 'example-https:1234'
+    spec:
+      containers:
+        - name: static-client
+          image: curlimages/curl:latest
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      serviceAccountName: static-client
+```
+
+</CodeBlockConfig>
+
+Deploy the service with `kubectl apply`.
+
+```shell-session
+$ kubectl apply --filename static-client.yaml
+```
+
+Wait for the service to be ready.
+
+```shell-session
+$ kubectl rollout status deploy static-client --watch
+deployment "static-client" successfully rolled out
+```
+
+You can verify connectivity of the static-client and terminating gateway via a curl command.
+
+<Tabs>
+<Tab heading="Registered with ServiceDefaults destinations">
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl -vvvs https://example.com/
+```
+
+</Tab>
+<Tab heading="Registered with the Consul catalog">
+
+```shell-session
+$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
+```
+
+</Tab>
+</Tabs>
+

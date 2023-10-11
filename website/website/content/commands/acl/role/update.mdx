@@ -1,0 +1,105 @@
+---
+layout: commands
+page_title: 'Commands: ACL Role Update'
+description: |
+  The `consul acl role update` command updates existing ACL roles. Roles consist of one or more ACL policies authorizing communication in the service mesh.
+---
+
+# Consul ACL Role Update
+
+Command: `consul acl role update`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/role/:id](/consul/api-docs/acl/roles#update-a-role)
+
+The `acl role update` command is used to update a role. The default operations is to merge the
+current role with those values provided to the command invocation. Therefore to
+update just one field, only the `-id` or `-name` options and the option to
+modify must be provided. Note that renaming roles requires both the `-id` and
+`-name` as the new name cannot yet be used to lookup the role.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:write`  |
+
+## Usage
+
+Usage: `consul acl role update [options] [args]`
+
+#### Command Options
+
+- `-description=<string>` - A description of the role.
+
+- `-id=<string>` - The ID of the role to update. It may be specified as a
+  unique ID prefix but will error if the prefix matches multiple role IDs
+
+- `-meta` - Indicates that role metadata such as the content hash and raft
+  indices should be shown for each entry
+
+- `-name=<string>` - The role name.
+
+- `-node-identity=<value>` - Name of a node identity to use for this role. May
+  be specified multiple times. Format is `NODENAME:DATACENTER`. Added in Consul
+  1.8.1.
+
+- `-no-merge` - Do not merge the current role information with what is provided
+  to the command. Instead overwrite all fields with the exception of the role
+  ID which is immutable.
+
+- `-policy-id=<value>` - ID of a policy to use for this role. May be specified
+  multiple times
+
+- `-policy-name=<value>` - Name of a policy to use for this role. May be
+  specified multiple times
+
+- `-service-identity=<value>` - Name of a service identity to use for this
+  role. May be specified multiple times. Format is the `SERVICENAME` or
+  `SERVICENAME:DATACENTER1,DATACENTER2,...`
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Update a role:
+
+```shell-session
+$ consul acl role update -id 57147d87-6bf7-f794-1a6e-7d038c4e4ae9 \
+    -description 'web crawler updated role' -service-identity 'crawler'
+Role updated successfully
+ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+Name:         crawler
+Description:  web crawler updated role
+Policies:
+   2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+Service Identities:
+   crawler (Datacenters: all)
+```
+
+Rename a role by prefix:
+
+```shell-session
+$ consul acl role update -id 57147 -name web-crawler
+Role updated successfully
+ID:           57147d87-6bf7-f794-1a6e-7d038c4e4ae9
+Name:         web-crawler
+Description:  web crawler updated role
+Policies:
+   2f8f99c7-edd9-2f09-7e4b-a1f519eb4fc2 - crawler-kv
+Service Identities:
+   crawler (Datacenters: all)
+```

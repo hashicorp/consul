@@ -1,0 +1,206 @@
+[
+  {
+    "title": "Overview",
+    "path": "index",
+    "hidden": true
+  },
+  {
+    "title": "API Structure",
+    "path": "api-structure"
+  },
+  {
+    "title": "API Features",
+    "routes": [
+      {
+        "title": "Consistency Modes",
+        "path": "features/consistency"
+      },
+      {
+        "title": "Blocking Queries",
+        "path": "features/blocking"
+      },
+      {
+        "title": "Filtering",
+        "path": "features/filtering"
+      },
+      {
+        "title": "Agent Caching",
+        "path": "features/caching"
+      }
+    ]
+  },
+  {
+    "divider": true
+  },
+  {
+    "title": "ACLs",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "acl"
+      },
+      {
+        "title": "Tokens",
+        "path": "acl/tokens"
+      },
+      {
+        "title": "Policies",
+        "path": "acl/policies"
+      },
+      {
+        "title": "Roles",
+        "path": "acl/roles"
+      },
+      {
+        "title": "Auth Methods",
+        "path": "acl/auth-methods"
+      },
+      {
+        "title": "Binding Rules",
+        "path": "acl/binding-rules"
+      }
+    ]
+  },
+  {
+    "title": "Admin Partitions",
+    "path": "admin-partitions"
+  },
+  {
+    "title": "Agent",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "agent"
+      },
+      {
+        "title": "Checks",
+        "path": "agent/check"
+      },
+      {
+        "title": "Services",
+        "path": "agent/service"
+      },
+      {
+        "title": "Connect",
+        "path": "agent/connect"
+      }
+    ]
+  },
+  {
+    "title": "Catalog",
+    "path": "catalog"
+  },
+  {
+    "title": "Cluster Peering",
+    "path": "peering"
+  },
+  {
+    "title": "Config",
+    "path": "config"
+  },
+  {
+    "title": "Connect",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "connect"
+      },
+      {
+        "title": "Certificate Authority (CA)",
+        "path": "connect/ca"
+      },
+      {
+        "title": "Intentions",
+        "path": "connect/intentions"
+      }
+    ]
+  },
+  {
+    "title": "Coordinates",
+    "path": "coordinate"
+  },
+  {
+    "title": "Discovery Chain",
+    "path": "discovery-chain"
+  },
+  {
+    "title": "Events",
+    "path": "event"
+  },
+  {
+    "title": "Health",
+    "path": "health"
+  },
+  {
+    "title": "KV Store",
+    "path": "kv"
+  },
+  {
+    "title": "Operator",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "operator"
+      },
+      {
+        "title": "Area",
+        "path": "operator/area"
+      },
+      {
+        "title": "Autopilot",
+        "path": "operator/autopilot"
+      },
+      {
+        "title": "Keyring",
+        "path": "operator/keyring"
+      },
+      {
+        "title": "License",
+        "path": "operator/license"
+      },
+      {
+        "title": "Raft",
+        "path": "operator/raft"
+      },
+      {
+        "title": "Segment",
+        "path": "operator/segment"
+      },
+      {
+        "title": "Usage",
+        "path": "operator/usage"
+      }
+    ]
+  },
+  {
+    "title": "Namespaces",
+    "path": "namespaces"
+  },
+  {
+    "title": "Prepared Queries",
+    "path": "query"
+  },
+  {
+    "title": "Sessions",
+    "path": "session"
+  },
+  {
+    "title": "Snapshots",
+    "path": "snapshot"
+  },
+  {
+    "title": "Status",
+    "path": "status"
+  },
+  {
+    "title": "Transactions",
+    "path": "txn"
+  },
+  {
+    "divider": true
+  },
+  {
+    "title": "Libraries &amp; SDKs",
+    "path": "libraries-and-sdks"
+  }
+]

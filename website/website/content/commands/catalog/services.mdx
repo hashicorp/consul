@@ -1,0 +1,80 @@
+---
+layout: commands
+page_title: 'Commands: Catalog List Services'
+description: >-
+  The `consul catalog services` command returns all known services. It can also get a list of services on a particular node and query services that contain specific metadata.
+---
+
+# Consul Catalog List Services
+
+Command: `consul catalog services`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/catalog/services](/consul/api-docs/catalog#list-services)
+
+The `catalog services` command prints all known services. It can also query
+for services that match particular metadata or list the services that a
+particular node provides.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required   |
+| -------------- |
+| `service:read` |
+
+## Examples
+
+List all services:
+
+```shell-session
+$ consul catalog services
+consul
+postgresql
+redis
+```
+
+Show all services with their tags:
+
+```shell-session
+$ consul catalog services -tags
+consul
+postgresql  leader
+redis       primary,v1
+```
+
+List services for the node "worker-01":
+
+```shell-session
+$ consul catalog services -node=worker-01
+consul
+redis
+```
+
+## Usage
+
+Usage: `consul catalog services [options]`
+
+#### Command Options
+
+- `-node=<id or name>` - Node `id or name` for which to list services.
+
+- `-node-meta=<key=value>` - Metadata to filter nodes with the given
+  `key=value` pairs. If specified, only services running on nodes matching the
+  given metadata will be returned. This flag may be specified multiple times to
+  filter on multiple sources of metadata.
+
+- `-tags` - Display each service's tags as a comma-separated list beside each
+  service entry.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'

@@ -1,0 +1,62 @@
+---
+layout: commands
+page_title: 'Commands: ACL Binding Rule Read'
+description: |
+  The `consul acl binding-rule read` command outputs the details of an ACL binding rule of a specified ID.
+---
+
+# Consul ACL Binding Rule Read
+
+Command: `consul acl binding-rule read`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/binding-rule/:id](/consul/api-docs/acl/binding-rules#read-a-binding-rule)
+
+The `acl binding-rule read` command reads and displays a binding rules details.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
+## Usage
+
+Usage: `consul acl binding-rule read [options] [args]`
+
+#### Command Options
+
+- `-id=<string>` - The ID of the binding rule to read. It may be specified as a unique ID
+  prefix but will error if the prefix matches multiple binding rule IDs.
+
+- `-meta` - Indicates that binding rule metadata such as the raft
+  indices should be shown for each entry.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Get binding rule details:
+
+```shell-session
+$ consul acl binding-rule read -id '0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890'
+ID:           0ec1bd2f-1d3b-bafb-d9bf-90ef04ab1890
+AuthMethod:   minikube
+Description:  wildcard service
+BindType:     service
+BindName:     k8s-${serviceaccount.name}
+Selector:     serviceaccount.namespace==default and serviceaccount.name!=vault
+```

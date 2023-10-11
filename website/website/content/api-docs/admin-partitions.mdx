@@ -1,0 +1,244 @@
+---
+layout: api
+page_title: Admin Partition - HTTP API
+description: The /partition endpoints allow for managing Consul Enterprise Admin Partitions.
+---
+
+@include 'http_api_and_cli_characteristics_links.mdx'
+
+# Admin Partition - HTTP API
+
+<EnterpriseAlert />
+
+The functionality described here is available only in
+[Consul Enterprise](https://www.hashicorp.com/products/consul/) version 1.11.0 and later.
+
+## Create a Partition
+
+This endpoint creates a new partition and has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| HTTP method | `PUT` |
+| URL path | `/v1/partition` |
+| Response type | `application/json` |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI command | [`consul partition create`](/consul/commands/partition#create) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
+
+### JSON Request Body Schema
+
+- `Name` `(string: <required>)` - The partition name. This field must be a valid
+  DNS hostname label.
+
+- `Description` `(string: "")` - Free form partition description.
+
+### Sample Payload
+
+```json
+{
+  "Name": "na-west",
+  "Description": "Partition for North America West"
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl ---request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+   --data @payload.json \
+   http://127.0.0.1:8500/v1/partition
+```
+
+### Sample Response
+
+```json
+{
+  "Name": "na-west",
+  "Description": "Partition for North America West",
+  "CreateIndex": 55,
+  "ModifyIndex": 55
+}
+```
+
+## Read a Partition
+
+This endpoint reads a partition with the given name and has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| HTTP method | `GET` |
+| URL path | `/v1/partition/:name` |
+| Response type | `application/json` |
+| [Required ACLs] | `operator:read`; however, a non-anonymous token can always read its own partition |
+| Corresponding CLI command | [`consul partition read`](/consul/commands/partition#read) |
+| [Consistency modes] | `default`, `consistent` |
+| [Blocking queries] | No |
+| [Agent caching] | No |
+
+### Path Parameters
+
+- `name` `(string: <required>)` - Specifies the partition to read.
+
+### Sample Request
+
+```shell-session
+$ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+   http://127.0.0.1:8500/v1/partition/na-west
+```
+
+### Sample Response
+
+```json
+{
+  "Name": "na-west",
+  "Description": "Partition for North America West",
+  "CreateIndex": 55,
+  "ModifyIndex": 55
+}
+```
+
+## Update a Partition
+
+This endpoint updates a partition description and has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| HTTP method | `PUT` |
+| URL path | `/v1/partition/:name` |
+| Response type | `application/json` |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI command | [`consul partition write`](/consul/commands/partition#write) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
+
+### Path Parameters
+
+- `name` `(string: <required>)` - Specifies the partition to update.
+  This parameter must be a valid DNS hostname label.
+
+### JSON Request Body Schema
+
+- `Name` `(string: <optional>)` - If specified, this field must be an exact match
+  with the `name` path parameter.
+
+- `Description` `(string: "")` - Free form partition description.
+
+### Sample Payload
+
+```json
+{
+  "Description": "North America West Partition"
+}
+```
+
+### Sample Request
+
+```shell-session
+$ curl --request PUT \
+   --header "X-Consul-Token: 5cdcae6c-0cce-4210-86fe-5dff3b984a6e" \
+   --data @payload.json \
+   http://127.0.0.1:8500/v1/partition/na-west
+```
+
+### Sample Response
+
+```json
+{
+  "Name": "na-west",
+  "Description": "North America West Partition",
+  "CreateIndex": 55,
+  "ModifyIndex": 60
+}
+```
+
+## Delete a Partition
+
+This endpoint marks a partition for deletion. Once marked Consul will
+deleted all the associated partitioned data in the background. Only once
+all associated data has been deleted will the partition actually disappear.
+Until then, further reads can be performed on the partition and a `DeletedAt`
+field will now be populated with the timestamp of when the partition was
+marked for deletion.
+
+This endpoint has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| HTTP method | `DELETE` |
+| URL path | `/v1/partition/:name` |
+| Response type | none; success or failure is indicated by the HTTP response status code |
+| [Required ACLs] | `operator:write` |
+| Corresponding CLI command | [`consul partition delete`](/consul/commands/partition#delete) |
+| [Consistency modes] | N/A |
+| [Blocking queries] | N/A |
+| [Agent caching] | N/A |
+
+### Path Parameters
+
+- `name` `(string: <required>)` - Specifies the partition to delete.
+
+### Sample Request
+
+```shell-session
+$ curl --request DELETE \
+   --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
+   http://127.0.0.1:8500/v1/partition/na-west
+```
+
+### Sample Read Output After Deletion Prior to Removal
+
+```json
+{
+  "Name": "na-west",
+  "Description": "North America West Partition",
+  "DeletedAt": "2021-12-14T23:00:00Z",
+  "CreateIndex": 55,
+  "ModifyIndex": 100
+}
+```
+
+## List all Partitions
+
+This endpoint lists all the partitions and has the following characteristics:
+
+| Characteristic | Value |
+| -------------- | ----- |
+| HTTP method | `GET` |
+| URL path | `/v1/partitions` |
+| Response type | `application/json` |
+| [Required ACLs] | `operator:read` |
+| Corresponding CLI command | [`consul partition list`](/consul/commands/partition#list) |
+| [Consistency modes] | `default`, `consistent` |
+| [Blocking queries] | No |
+| [Agent caching] | No |
+
+### Sample Request
+
+```shell-session
+$ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
+   http://127.0.0.1:8500/v1/partitions
+```
+
+### Sample Response
+
+```json
+[
+  {
+    "Name": "default",
+    "Description": "Builtin Default Partition",
+    "CreateIndex": 6,
+    "ModifyIndex": 6
+  },
+  {
+    "Name": "na-west",
+    "Description": "North America West Partition",
+    "CreateIndex": 55,
+    "ModifyIndex": 55
+  }
+]
+```

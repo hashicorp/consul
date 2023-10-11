@@ -1,0 +1,84 @@
+---
+layout: commands
+page_title: 'Commands: TLS Cert Create'
+description: |
+  The `consul tls cert create` command creates certificates for servers, clients, and CLIs to secure their communication.
+---
+
+# Consul TLS Cert Create
+
+Command: `consul tls cert create`
+
+The `tls cert create` command is used to create certificates for your Consul TLS
+setup.
+
+## Examples
+
+Create a certificate for servers:
+
+```shell-session
+$ consul tls cert create -server
+==> WARNING: Server Certificates grants authority to become a
+    server and access all state in the cluster including root keys
+    and all ACL tokens. Do not distribute them to production hosts
+    that are not server nodes. Store them as securely as CA keys.
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved dc1-server-consul-0.pem
+==> Saved dc1-server-consul-0-key.pem
+```
+
+Create a certificate for clients:
+
+```shell-session
+$ consul tls cert create -client
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved consul-client-0.pem
+==> Saved consul-client-0-key.pem
+```
+
+Create a certificate for cli:
+
+```shell-session
+$ consul tls cert create -cli
+==> Using consul-ca.pem and consul-ca-key.pem
+==> Saved consul-cli-0.pem
+==> Saved consul-cli-0-key.pem
+```
+
+## Usage
+
+Usage: `consul tls cert create [filename-prefix] [options]`
+
+#### Command Options
+
+- `-additional-dnsname=<string>` - Provide an additional dnsname for Subject
+  Alternative Names. localhost is always included. This flag may be provided
+  multiple times.
+
+- `-additional-ipaddress=<string>` - Provide an additional ipaddress for
+  Subject Alternative Names. `127.0.0.1` is always included. This flag may be
+  provided multiple times.
+
+- `-ca=<string>` - Provide path to the ca. Defaults to `#DOMAIN#-agent-ca.pem`.
+
+- `-cli` - Generate cli certificate.
+
+- `-client` - Generate client certificate.
+
+- `-days=<int>` - Provide number of days the certificate is valid for from now
+  on. Defaults to 1 year.
+
+- `-dc=<string>` - Provide the datacenter. Matters only for `-server`
+  certificates. Defaults to `dc1`.
+
+- `-domain=<string>` - Provide the domain. Matters only for `-server`
+  certificates.
+
+- `-key=<string>` - Provide path to the key. Defaults to
+  `#DOMAIN#-agent-ca-key.pem`.
+
+- `-node=<string>` - When generating a server cert and this is set an
+  additional dns name is included of the form
+  `<node>.server.<datacenter>.<domain>`.
+
+- `-server` - Generate server certificate.

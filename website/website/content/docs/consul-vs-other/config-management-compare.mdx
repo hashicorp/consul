@@ -1,0 +1,23 @@
+---
+layout: docs
+page_title: Consul Compared to Other Configuration Management Tools
+description: >-
+  Chef, Puppet, and other configuration management tools build service discovery mechanisms by querying global state and constructing configuration files on each node during a periodic convergence run.
+---
+
+# Consul Compared to Other Configuration Management Tools
+
+**Examples**: Chef, Puppet
+
+There are many configuration management tools, however, they typically focus on static provisioning. Consul enables you to dynamically configure your services based on service and node state. Both static and dynamic configuration are important and work well together. Since Consul offers a number of different capabilities, there are times when its functionality overlaps with other configuration management tools.
+
+For example, Chef and Puppet are configuration management tools that can build service discovery mechanisms. However, they only support configuration information that is static. As a result, the time it takes to implement updates depends on the frequency of conversion runs (several minutes to hours). Additionally, these tools do not let you incorporate the system state in the configuration. This could lead to load balancers sending traffic to unhealthy nodes, further exacerbating issues. Supporting multiple datacenters is also challenging with these tools, since a central group of servers must manage all datacenters.
+
+Consul's service discovery layer is specifically designed to dynamically track and respond to your service's state. By using the integrated health checking, Consul can route traffic away from unhealthy nodes, allowing systems and services to gracefully recover. In addition, Consul’s service discovery layer works with Terraform. Consul-Terraform-Sync (CTS) automates updates to network infrastructure based on dynamic changes to each service. For example, as services scale up or down, CTS can trigger Terraform to update firewalls or load balancers to reflect the latest changes. Also, since each datacenter runs independently, supporting multiple datacenters is no different than supporting a single datacenter.
+
+Consul is not a replacement for other configuration management tools. These tools are still critical for setting up applications, including Consul. Static provisioning is best managed by existing tools, while Consul enables you to leverage dynamic configuration and service discovery. 
+
+By separating configuration management and cluster management tools, you can take advantage of simpler workflows: 
+- Periodic runs are no longer required for service or configuration changes.
+- Chef recipes and Puppet manifests are simpler because they do not require a global state. 
+- Infrastructure can become immutable because configuration management runs do not require global state. 

@@ -1,0 +1,113 @@
+---
+layout: commands
+page_title: 'Commands: Config Write'
+description: >-
+  The `consul config write` command creates or updates a configuration entry and applies it to your deployment.
+---
+
+# Consul Config Write
+
+Command: `consul config write`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/config](/consul/api-docs/config#apply-configuration)
+
+The `config write` command creates or updates a centralized config entry.
+See the [configuration entries docs](/consul/docs/agent/config-entries) for more
+details about configuration entries.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required<sup>1</sup>                                      |
+| ------------------------------------------------------------- |
+| `service:write`<br />`operator:write`<br />`intentions:write` |
+
+<p>
+  <sup>1</sup> The actual ACL required depends on the config entry kind being
+  updated:
+</p>
+
+| Config Entry Kind   | Required ACL       |
+| ------------------- | ------------------ |
+| api-gateway         | `mesh:write`       |
+| ingress-gateway     | `operator:write`   |
+| proxy-defaults      | `operator:write`   |
+| service-defaults    | `service:write`    |
+| service-intentions  | `intentions:write` |
+| service-resolver    | `service:write`    |
+| service-router      | `service:write`    |
+| service-splitter    | `service:write`    |
+| terminating-gateway | `operator:write`   |
+
+## Usage
+
+Usage: `consul config write [options] FILE`
+
+#### Command Options
+
+- `-cas` - Specifies to use a Check-And-Set operation. If the index is
+  0, Consul will only store the entry if it does not already exist. If the index is
+  non-zero, the entry is only set if the current index matches the `ModifyIndex`
+  of that entry.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+From file:
+
+    $ consul config write web-defaults.json
+
+From stdin:
+
+    $ consul config write -
+
+### Config Entry examples
+
+All config entries must have a `Kind` when registered. See
+[Service Mesh - Config Entries](/consul/docs/connect/config-entries) for the list of
+supported config entries.
+
+#### Service defaults
+
+Service defaults control default global values for a service in the service mesh.
+For example, the following configuration defines that all instances of the `web`
+service use the `http` protocol.
+
+```json
+{
+  "Kind": "service-defaults",
+  "Name": "web",
+  "Protocol": "http"
+}
+```
+
+For more information, refer to the [service defaults configuration reference](/consul/docs/connect/config-entries/service-defaults).
+
+#### Proxy defaults
+
+Proxy defaults lets you configure global config defaults across all proxies
+in the service mesh. Currently, it supports only one global entry.
+For example, the following configuration overrides a default timeout for all
+Envoy proxies.
+
+```json
+{
+  "Kind": "proxy-defaults",
+  "Name": "global",
+  "Config": {
+    "local_idle_timeout_ms": 20000
+  }
+}
+```
+
+For more information, refer to the [proxy defaults configuration reference](/consul/docs/connect/config-entries/proxy-defaults).

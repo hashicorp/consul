@@ -1,0 +1,65 @@
+---
+layout: commands
+page_title: 'Commands: ACL Token Clone'
+description: |
+  The `consul acl token clone` command makes a copy of the ACL token of a specified ID.
+---
+
+# Consul ACL Token Clone
+
+Command: `consul acl token clone`
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/acl/token/:AccessorID/clone](/consul/api-docs/acl/tokens#clone-a-token)
+
+The `acl token clone` command clones an existing token.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:write`  |
+
+## Usage
+
+Usage: `consul acl token clone [options]`
+
+#### Command Options
+
+- `-description=<string>` - A description of the new cloned token.
+
+- `-id=<string>` - The Accessor ID of the token to clone. It may be specified
+  as a unique ID prefix but will error if the prefix matches multiple token
+  Accessor IDs. The special value of 'anonymous' may be provided instead of
+  the anonymous tokens accessor ID
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Clone a token:
+
+```shell-session
+$ consul acl token clone -id 59f8 -description "Clone of Super User"
+Token cloned successfully.
+AccessorID:   dcfa52ed-9288-b3ff-056d-255ef69d2d88
+SecretID:     0005d17e-5bb2-7e8b-7bfa-15f2eee9ad14
+Description:  Clone of Super User
+Local:        false
+Create Time:  2018-10-22 16:26:02.909096 -0400 EDT
+Policies:
+   00000000-0000-0000-0000-000000000001 - global-management
+```

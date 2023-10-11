@@ -1,0 +1,60 @@
+---
+layout: commands
+page_title: 'Commands: Intention Check'
+description: >-
+  The `consul intention check` command tests whether a connection between two services is authorized under the current set of intentions.
+---
+
+# Consul Intention Check
+
+Command: `consul intention check`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/connect/intentions/check](/consul/api-docs/connect/intentions#check-intention-result)
+
+The `intention check` command checks whether a connection attempt between
+two services would be authorized given the current set of intentions and
+Consul configuration.
+
+This command requires less ACL permissions than other intention-related
+tasks because no information about the intention is revealed. Therefore,
+callers only need to have `service:read` access for the destination. Richer
+commands like [match](/consul/commands/intention/match) require full
+intention read permissions and don't evaluate the result.
+
+-> **Note:** This command will always treat intentions with `Permissions`
+defined as _deny_ intentions during evaluation, as this endpoint is only suited
+for networking layer 4 (e.g. TCP) integration.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required                  |
+| ----------------------------- |
+| `intentions:read`<p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
+
+## Usage
+
+Usage: `consul intention check [options] SRC DST`
+
+`SRC` and `DST` can both take [several forms](/consul/commands/intention#source-and-destination-naming).
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+```shell-session
+$ consul intention check web db
+Denied
+
+$ consul intention check web billing
+Allowed
+```

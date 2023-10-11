@@ -1,0 +1,200 @@
+---
+layout: commands
+page_title: 'Commands: Operator Autopilot'
+description: >
+  The operator autopilot subcommand is used to view and modify Consul's
+  Autopilot configuration.
+---
+
+# Consul Operator Autopilot
+
+Command: `consul operator autopilot`
+
+The Autopilot operator command is used to interact with Consul's Autopilot subsystem. The
+command can be used to view or modify the current Autopilot configuration. See the
+[Autopilot Guide](/consul/tutorials/datacenter-operations/autopilot-datacenter-operations) for more information about Autopilot.
+
+```text
+Usage: consul operator autopilot <subcommand> [options]
+
+The Autopilot operator command is used to interact with Consul's Autopilot
+subsystem. The command can be used to view or modify the current configuration.
+
+Subcommands:
+
+    get-config    Display the current Autopilot configuration
+    set-config    Modify the current Autopilot configuration
+```
+
+## get-config
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/configuration](/consul/api-docs/operator/autopilot#read-configuration)
+
+This command displays the current autopilot configuration.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `operator:read` |
+
+Usage: `consul operator autopilot get-config [options]`
+
+#### Sample Output
+
+```sh
+$ consul operator autopilot get-config
+CleanupDeadServers = true
+LastContactThreshold = 200ms
+MaxTrailingLogs = 250
+ServerStabilizationTime = 10s
+RedundancyZoneTag = ""
+DisableUpgradeMigration = false
+UpgradeMigrationTag = ""
+```
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## set-config
+
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/operator/autopilot/configuration](/consul/api-docs/operator/autopilot#update-configuration)
+
+Modifies the current Autopilot configuration.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required     |
+| ---------------- |
+| `operator:write` |
+
+Usage: `consul operator autopilot set-config [options]`
+
+#### Sample Output
+
+```sh
+$ consul operator autopilot set-config -min-quorum=3
+Configuration updated!
+```
+
+The return code indicates success or failure.
+
+#### Command Options
+
+- `-cleanup-dead-servers` - Specifies whether to enable automatic removal of dead servers
+  upon the successful joining of new servers to the cluster. Must be one of `[true|false]`.
+
+- `-last-contact-threshold` - Controls the maximum amount of time a server can go without contact
+  from the leader before being considered unhealthy. Must be a duration value such as `200ms`.
+
+- `-max-trailing-logs` - Controls the maximum number of log entries that a server can trail
+  the leader by before being considered unhealthy.
+
+- `-min-quorum` - Sets the minimum number of servers required in a cluster
+  before autopilot is allowed to prune dead servers.
+
+- `-server-stabilization-time` - Controls the minimum amount of time a server must be stable in
+  the 'healthy' state before being added to the cluster. Only takes effect if all servers are
+  running Raft protocol version 3 or higher. Must be a duration value such as `10s`.
+
+- `-disable-upgrade-migration` <EnterpriseAlert inline /> - Controls whether Consul will avoid promoting
+  new servers until it can perform a migration. Must be one of `[true|false]`.
+
+- `-redundancy-zone-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta)
+  key name used for separating servers into different redundancy zones.
+
+- `-upgrade-version-tag` <EnterpriseAlert inline /> - Controls the [`-node-meta`](/consul/docs/agent/config/cli-flags#_node_meta)
+  tag to use for version info when performing upgrade migrations. If left blank, the Consul version will be used.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## state
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/operator/autopilot/state](/consul/api-docs/operator/autopilot#read-the-autopilot-state)
+
+This command displays the current autopilot state.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required    |
+| --------------- |
+| `operator:read` |
+
+Usage: `consul operator autopilot state [options]`
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+#### Command Options
+
+- `-format` - Specifies the output format. Must be one of `[pretty|json]` and it defaults to `pretty`.
+
+#### Command Output
+
+```sh
+$ consul operator autopilot state
+Healthy:                      true
+Failure Tolerance:            1
+Optimistic Failure Tolerance: 0
+Leader:                       79324811-9588-4311-b208-f272e38aaabf
+Voters:
+   79324811-9588-4311-b208-f272e38aaabf
+   ef8aee9a-f9d6-4ec4-b383-aac956bdb80f
+   ae84aefb-a303-4734-8739-5c102d4ee2d9
+Servers:
+   79324811-9588-4311-b208-f272e38aaabf
+      Name:            node1
+      Address:         198.18.0.1:8300
+      Version:         1.9.0
+      Status:          leader
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    0s
+      Last Term:       3
+      Last Index:      42
+      Meta
+         "foo": "bar"
+   ae84aefb-a303-4734-8739-5c102d4ee2d9
+      Name:            node3
+      Address:         198.18.0.3:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    2ms
+      Last Term:       3
+      Last Index:      39
+      Meta
+         "baz": "foo"
+   ef8aee9a-f9d6-4ec4-b383-aac956bdb80f
+      Name:            node2
+      Address:         198.18.0.2:8300
+      Version:         1.9.0
+      Status:          voter
+      Node Type:       voter
+      Node Status:     alive
+      Healthy:         true
+      Last Contact:    1ms
+      Last Term:       3
+      Last Index:      41
+      Meta
+         "bar": "baz"
+```
