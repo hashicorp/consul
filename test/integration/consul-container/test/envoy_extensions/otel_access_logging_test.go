@@ -85,10 +85,12 @@ func TestOTELAccessLogging(t *testing.T) {
 	}
 	consul.ConfigEntries().Set(&defaults, nil)
 
+	// doRequest does its own retrying and doesn't need to be within the next retry.RunWith block
+	doRequest(t, fmt.Sprintf("http://localhost:%d", port), http.StatusOK)
+
 	// Make requests from the static-client to the static-server and look for the access logs
 	// to show up in the `otel-collector` container logs.
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
-		doRequest(t, fmt.Sprintf("http://localhost:%d", port), http.StatusOK)
 		reader, err := launchInfo.Container.Logs(context.Background())
 		require.NoError(r, err)
 		log, err := io.ReadAll(reader)
