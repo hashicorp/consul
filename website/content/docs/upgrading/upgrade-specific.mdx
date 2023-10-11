@@ -21,11 +21,19 @@ After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 ## Consul 1.16.x
 
-#### Known issues
+### Known issues
 
 Service mesh in Consul versions 1.16.0 and 1.16.1 may have issues when a snapshot restore is performed and the servers are hosting xDS streams.
-When this bug triggers, it will cause Envoy to incorrectly populate upstream endpoints. Due to this issue, it is currently not recommended for
-service mesh users running agent-less workloads to upgrade Consul to these versions.
+When this bug triggers, it causes Envoy to incorrectly populate upstream endpoints. To prevent this issue, service mesh users who run agent-less workloads should upgrade Consul to v1.16.2 or later.
+
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-16))
+Using Vault as CA with Consul version 1.16.2 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### API health endpoints return different status code
 
@@ -45,9 +53,10 @@ This change removes the backward-compatibility behavior introduced in Consul 1.1
 
 ## Consul 1.15.x
 
-#### Service mesh compatibility ((#service-mesh-compatibility-1-15))
+### Service mesh compatibility ((#service-mesh-compatibility-1-15))
 
 Upgrade to **Consul version 1.15.2 or later**.
+If using [Vault Enterprise as CA](#vault-enterprise-as-ca-1-15), **avoid Consul version 1.15.6**.
 
 Consul versions 1.15.0 - 1.15.1 contain a race condition that can cause
 some service instances to lose their ability to communicate in the mesh after
@@ -55,6 +64,15 @@ some service instances to lose their ability to communicate in the mesh after
 due to a problem with leaf certificate rotation.
 
 This bug is fixed in Consul versions 1.15.2 and newer.
+
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-15))
+Using Vault as CA with Consul version 1.15.6 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Removing configuration options
 
@@ -197,6 +215,14 @@ to use TLS for contacting the HTTP API, it will also incorrectly enable TLS for 
 Users should not upgrade to 1.14.0 if they are using plaintext gRPC connections in
 conjunction with TLS-encrypted HTTP APIs.
 
+#### Vault Enterprise as CA ((#vault-enterprise-as-ca-1-14))
+Using Vault as CA with Consul version 1.14.10 will fail to initialize the CA if [`namespace`](/consul/docs/connect/ca/vault#namespace) is set
+but [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) or [`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace)
+are empty. This is a bug which will be fixed in a future version.
+
+To work around this issue, users must explicitly set [`intermediate_pki_namespace`](/consul/docs/connect/ca/vault#intermediatepkinamespace) and
+[`root_pki_namespace`](/consul/docs/connect/ca/vault#rootpkinamespace) to the same value as [`namespace`](/consul/docs/connect/ca/vault#namespace).
+Set your configuration by calling [set-config](/consul/commands/connect/ca#set-config) then use [get-config](/consul/commands/connect/ca#get-config) to check.
 
 #### Changes to gRPC TLS configuration
 
@@ -757,11 +783,11 @@ fields which are those documented in the example payloads in the API documentati
 
 ### DNS PTR Record Output
 
-Consul will now return the canonical service name in response to PTR queries. For OSS users the
+Consul will now return the canonical service name in response to PTR queries. For CE users, the
 change is that the datacenter will be present where it was not before. For Consul Enterprise
 users, both the datacenter and the services namespace will be present. For example, where a
 PTR record would previously have contained `web.service.consul`, it will now be `web.service.dc1.consul`
-in OSS or `web.service.ns1.dc1.consul` for Enterprise.
+in CE, or `web.service.ns1.dc1.consul` for Enterprise.
 
 ### Telemetry: semantics of `consul.rpc.query` changed, see `consul.rpc.queries_blocking`
 
@@ -896,7 +922,7 @@ datacenters monitor this periodically (every few minutes) and will
 automatically upgrade service mesh to use a federated Certificate Authority when
 they do.
 
-In general, migrating a Consul cluster from OSS to Enterprise will update the
+In general, migrating a Consul cluster from CE to Enterprise will update the
 CA to be federated automatically and without impact on service mesh traffic. When
 upgrading Consul Enterprise 1.3.x to Consul Enterprise 1.4.0 upgrades the CA
 upgrade is seamless, however depending on the size of the cluster, _new_

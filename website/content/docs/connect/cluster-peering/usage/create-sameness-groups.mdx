@@ -6,23 +6,19 @@ description: |-
 
 # Create sameness groups
 
-This topic describes how to designate groups of services as functionally identical in your network. Sameness groups are the preferred failover strategy for deployments with cluster peering connections. For more information about sameness groups and failover, refer to [Failover overview](/consul/docs/connect/failover).
+This topic describes how to create a sameness group, which designates a set of admin partitions as functionally identical in your network. Adding an admin partition to a sameness group enables Consul to recognize services registered to remote partitions with cluster peering connections as instances of the same service when they share a name and namespace.
 
-<Warning>
-
-Sameness groups are a beta feature for all Consul v1.16.x releases. Functionality is subject to change. You should never use the beta release in secure environments or production scenarios. Features in beta may experience performance issues, scaling issues, and limited support.
-
-</Warning>
+For information about configuring a failover strategy using sameness groups, refer to [Failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness).
 
 ## Workflow
 
-Sameness groups are a user-defined set of partitions that Consul uses to identify services in different administrative partitions with the same name and namespace as being the same service. One of the use cases for sameness groups is to create a blanket failover policy for deployments with cluster peering connections.
+Sameness groups are a user-defined set of partitions with identical configurations, including configuration entries for service and proxy defaults. Partitions on separate clusters should have an established cluster peering connection in order to recognize each other.
 
 To create and use sameness groups in your network, complete the following steps:
 
 - **Create sameness group configuration entries for each member of the group**. For each partition that you want to include in the sameness group, you must write and apply a sameness group configuration entry that defines the group’s members from that partition’s perspective. Refer to the [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for details on configuration hierarchy, default values, and specifications.
 - **Export services to members of the sameness group**. You must write and apply an exported services configuration entry that makes the partition’s services available to other members of the group. Refer to [exported services configuration entry reference](/consul/docs/connect/config-entries/exported-services) for additional specification information.
-- **Create service intentions for each member of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions configuration entries to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional specification information.
+- **Create service intentions to authorize other members of the sameness group**. For each partition that you want to include in the sameness group, you must write and apply service intentions configuration entries to authorize traffic to your services from all members of the group. Refer to the [service intentions configuration entry reference](/consul/docs/connect/config-entries/service-intentions) for additional specification information.
 
 ## Requirements
 
@@ -35,9 +31,9 @@ Before creating a sameness group, take the following actions to prepare your net
 
 #### Check namespace and service naming conventions
 
-Sameness groups are defined at the partition level. As a result, Consul assumes that namespaces and services in a sameness group that have the same name are identical. This behavior occurs even when two different partitions in the group contain functionally different services that share a name and namespace. This situation would lead to errors, as requests will be sent to the incorrect service.
+Sameness groups are defined at the partition level. Consul assumes all partitions in the group have identical configurations, including identical service names and identical namespaces. This behavior occurs even when partitions in the group contain functionally different services that share a common name and namespace. For example, if distinct services named `api` were registered to different members of a sameness group, it could lead to errors because requests may be sent to the incorrect service.
 
-To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s name or deploy one of the services to a different namespace. After adding the partition to the sameness group, differentiating the names of services or namespaces enables Consul to correctly assume which services are identical.
+To prevent errors, check the names of the services deployed to your network and the namespaces they are deployed in. Pay particular attention to the default namespace to confirm that services have unique names. If different services share a name, you should either change one of the service’s names or deploy one of the services to a different namespace.
 
 #### Deploy mesh gateways for each partition
 
@@ -47,45 +43,38 @@ Mesh gateways are required for cluster peering connections and recommended to se
 
 You must establish connections with cluster peers before you can create a sameness group that includes them. A cluster peering connection exists between two admin partitions in different datacenters, and each connection between two partitions must be established separately with each peer. Refer to [establish cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering) for step-by-step instructions.
 
-To establish cluster peering connections and define a define group as part of the same workflow, follow instructions up to [Export services between clusters](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters). You can use the same exported services and service intention configuration entries to establish the cluster peering connection and create the sameness group.
+You can establish and manage cluster peering relationships between all of your self-managed clusters using [HCP Consul Central](/hcp/docs/consul/concepts/consul-central). For more information, refer to [cluster peering global view](/hcp/docs/consul/monitor/consul-central/global-views#cluster-peering) in the HCP documentation.
+
+To establish cluster peering connections and define a group as part of the same workflow, follow instructions up to [Export services between clusters](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters). You can use the same exported services and service intention configuration entries to establish the cluster peering connection and create the sameness group.
 
 ## Create a sameness group
 
-To create a sameness group, you must write and apply sets of three configuration entries for each partition that is a member of the group:
+To create a sameness group, you must write and apply a set of three configuration entries for each partition that is a member of the group:
 
-- Sameness group configuration entries: Define the sameness group from each partition’s perspective.
-- Exported services configuration entries: Make services available to other partitions in the group.
-- Service intentions configuration entries: Authorize traffic between services across partitions.
+- Sameness group configuration entries: Defines the sameness group from each partition’s perspective.
+- Exported services configuration entries: Makes services available to other partitions in the group.
+- Service intentions configuration entries: Authorizes traffic between services across partitions.
 
 ### Define the sameness group from each partition’s perspective
 
-To define a sameness group for a partition, create a [sameness group configuration entry](/consul/docs/connect/config-entries/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, this order follows this pattern:
+To define a sameness group for a partition, create a [sameness group configuration entry](/consul/docs/connect/config-entries/sameness-group) that describes the partitions and cluster peers that are part of the group. Typically, the order follows this pattern:
 
 1. The local partition
 1. Other partitions in the same datacenter
 1. Partitions with established cluster peering relationships
 
-If you want all services to failover to other instances in the sameness group by default, set `DefaultForFailover=true` and list the group members in the order you want to use in a failover scenario.
+If you want all services to failover to other instances in the sameness group by default, set `DefaultForFailover=true` and list the group members in the order you want to use in a failover scenario. Refer to [failover with sameness groups](/consul/docs/connect/manage-traffic/failover/sameness) for more information.
 
-After you create the configuration entry, apply it to the Consul server with the following CLI command:
-
-```shell-session
-$ consul config write sameness-group-a.hcl
-```
-
-Then, repeat the process to create and apply a configuration entry for every partition that is a member of the sameness group.
-
-Be aware that the sameness group configuration entries are different for each partition. The following example demonstrates how to format three different configuration entries for three partitions that are part of the sameness group `sameness-group-a` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
+Be aware that the sameness group configuration entries are different for each partition. The following example demonstrates how to format three different configuration entries for three partitions that are part of the sameness group `product-group` when Partition 1 and Partition 2 are in DC1, and the third partition is Partition 1 in DC2:
 
 <CodeTabs tabs={[ "dc1-partition-1", "dc1-partition-2", "dc2-partition-1" ]}>
 
-<CodeBlockConfig filename="sameness-group-a.hcl" hideClipboard lineNumbers highlight="3,6-8">
+<CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
 Kind                     = "sameness-group"  
-Name                   = "sameness-group-a"
+Name                   = "product-group"
 Partition                = "partition-1" 
-DefaultForFailover = true
 Members                = [
       {Partition = "partition-1"},
       {Partition = "partition-2"},
@@ -95,13 +84,12 @@ Members                = [
 
 </CodeBlockConfig>
 
-<CodeBlockConfig filename="sameness-group-a.hcl" hideClipboard lineNumbers highlight="3,6-8">
+<CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
 Kind                     = "sameness-group"  
-Name                   = "sameness-group-a"
+Name                   = "product-group"
 Partition                = "partition-2" 
-DefaultForFailover = true
 Members                = [
       {Partition = "partition-2"},
       {Partition = "partition-1"},
@@ -111,13 +99,12 @@ Members                = [
 
 </CodeBlockConfig>
 
-<CodeBlockConfig filename="sameness-group-a.hcl" hideClipboard lineNumbers highlight="3,6-8">
+<CodeBlockConfig filename="product-group.hcl" hideClipboard lineNumbers highlight="3,6-8">
 
 ```hcl
 Kind                     = "sameness-group"  
-Name                   = "sameness-group-a"
+Name                   = "product-group"
 Partition                = "partition-1" 
-DefaultForFailover = true
 Members                = [
       {Partition = "partition-1"},
       {Peer = "dc1-partition-1"},
@@ -128,6 +115,14 @@ Members                = [
 </CodeBlockConfig>
 
 </CodeTabs>
+
+After you create the configuration entry, apply it to the Consul server with the following CLI command:
+
+```shell-session
+$ consul config write product-group.hcl
+```
+
+Then, repeat the process to create and apply a configuration entry for every partition that is a member of the sameness group.
 
 ### Export services to other partitions in the sameness group
 
@@ -143,14 +138,14 @@ The following example demonstrates how to format three different `exported-servi
 
 ```hcl
 Kind                     = "exported-services"  
-Name                   = "group-a-export"
+Name                   = "product-sg-export"
 Partition                = "partition-1" 
 Services = [
   {
     Name = "api"
     Namespace = "store"
     Consumers = [
-        {SamenessGroup="sameness-group-a"}
+        {SamenessGroup="product-group"}
       ]
     }
  ]
@@ -162,14 +157,14 @@ Services = [
 
 ```hcl
 Kind                     = "exported-services"  
-Name                   = "group-a-export"
+Name                   = "product-sg-export"
 Partition                = "partition-2" 
 Services = [
   {
     Name = "api"
     Namespace = "store"
     Consumers = [
-        {SamenessGroup="sameness-group-a"}
+        {SamenessGroup="product-group"}
       ]
     }
  ]
@@ -181,14 +176,14 @@ Services = [
 
 ```hcl
 Kind                     = "exported-services"  
-Name                   = "group-a-export"
+Name                   = "product-sg-export"
 Partition                = "partition-1" 
 Services = [
   {
     Name = "api"
     Namespace = "store"
     Consumers = [
-        {SamenessGroup="sameness-group-a"}
+        {SamenessGroup="product-group"}
       ]
     }
  ]
@@ -203,18 +198,20 @@ For more information about exporting services, including examples of configurati
 After you create each exported services configuration entry, apply it to the Consul server with the following CLI command:
 
 ```shell-session
-$ consul config write group-a-export.hcl
+$ consul config write product-sg-export.hcl
 ```
 
-#### Export services for cluster peers and sameness groups at the same time
+#### Export services for cluster peers and sameness groups as part of the same workflow
 
-It is possible to combine the exported services configuration entry for creating sameness groups with the entry required to [export services when establishing cluster peering connections](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#export-services-between-clusters).
+Creating a cluster peering connection between two partitions and then adding the partitions to a sameness group requires that you write and apply two separate exported services configuration entries. One configuration entry exports services to the peer, and a second entry exports services to other members of the group.
 
-In this workflow, configure the `Services[].Consumers` block with the `SamenessGroup` field instead of the `Peer` field. You should write the `sameness-group` configuration entry to Consul before referencing it in the `exported-services` configuration entry.
+If your goal for peering clusters is to create a sameness group, you can write and apply a single exported services configuration entry by configuring the `Services[].Consumers` block with the `SamenessGroup` field instead of the `Peer` field.
+
+Be aware that this scenario requires you to write the `sameness-group` configuration entry to Consul before you apply the `exported-services` configuration entry that references the sameness group.
 
 ### Create service intentions to authorize traffic between group members
 
-While exporting the service to each member of the sameness group makes the services visible to remote partitions, you must also create service intentions so that local services are authorized to send and receive traffic from a member of the sameness group.
+Exporting the service to other members of the sameness group makes the services visible to remote partitions, but you must also create service intentions so that local services are authorized to send and receive traffic from a member of the sameness group.
 
 For each partition that is member of the group, write and apply a [service intentions configuration entry](/consul/docs/connect/config-entries/service-intentions) that defines intentions for the services that are part of the group. In the `Sources` block of the configuration entry, include the service name, its namespace, the sameness group, and grant `allow` permissions.
 
@@ -229,7 +226,7 @@ The following example demonstrates how to format three different `service-intent
 
 ```hcl
 Kind      = "service-intentions"
-Name      = "api"
+Name      = "api-intentions"
 Namespace = "store"
 Partition = "partition-1"
 Sources   = [
@@ -237,7 +234,7 @@ Sources   = [
     Name          = "api"
     Action        = "allow"
     Namespace     = "store"
-    SamenessGroup = "sameness-group-a"
+    SamenessGroup = "product-group"
   }
 ]
 ```
@@ -248,7 +245,7 @@ Sources   = [
 
 ```hcl
 Kind      = "service-intentions"
-Name      = "api"
+Name      = "api-intentions"
 Namespace = "store"
 Partition = "partition-2"
 Sources   = [
@@ -256,7 +253,7 @@ Sources   = [
     Name          = "api"
     Action        = "allow"
     Namespace     = "store"
-    SamenessGroup = "sameness-group-a"
+    SamenessGroup = "product-group"
   }
 ]
 ```
@@ -267,7 +264,7 @@ Sources   = [
 
 ```hcl
 Kind      = "service-intentions"
-Name      = "api"
+Name      = "api-intentions"
 Namespace = "store"
 Partition = "partition-1"
 Sources   = [
@@ -275,7 +272,7 @@ Sources   = [
     Name          = "api"
     Action        = "allow"
     Namespace     = "store"
-    SamenessGroup = "sameness-group-a"
+    SamenessGroup = "product-group"
   }
 ]
 ```
@@ -289,19 +286,23 @@ Refer to [create and manage intentions](/consul/docs/connect/intentions/create-m
 After you create each service intentions configuration entry, apply it to the Consul server with the following CLI command:
 
 ```shell-session
-$ consul config write api.hcl
+$ consul config write api-intentions.hcl
 ```
 
-#### Create service intentions for cluster peers and sameness groups at the same time
+#### Create service intentions for cluster peers and sameness groups as part of the same workflow
 
-It is possible to combine the service intentions configuration entry for creating sameness groups with the entry required to [authorize services for peers](/consul/docs/connect/cluster-peering/usage/establish-cluster-peering#authorize-services-for-peers).
+Creating a cluster peering connection between two remote partitions and then adding the partitions to a sameness group requires that you write and apply two separate service intention configuration entries. One configuration entry authorizes services to the peer, and a second entry authorizes services to other members of the group.
 
-In this workflow, configure the `Sources` block with the `SamenessGroup` field instead of the `Peer` field. You should write the `sameness-group` configuration entry to Consul before referencing it in the `service-intentions` configuration entry.
+If you are peering clusters with the goal of creating a sameness group, it is possible to combine these workflows by using a single service intentions configuration entry.
+
+Configure the `Sources` block with the `SamenessGroup` field instead of the `Peer` field. Be aware that this scenario requires you to write the `sameness-group` configuration entry to Consul before you apply the `service-intentions` configuration entry that references the sameness group.
 
 ## Next steps
+
+When `DefaultForFailover=true` in a sameness group configuration entry, additional upstream configuration is not required. 
 
 After creating a sameness group, you can use them with static Consul DNS lookups and dynamic DNS lookups (prepared queries) for service discovery use cases. You can also set up failover between services in a sameness group. Refer to the following topics for more details:
 
 - [Static Consul DNS lookups](/consul/docs/services/discovery/dns-static-lookups)
 - [Dynamic Consul DNS lookups](/consul/docs/services/discovery/dns-dynamic-lookups)
-- [Failover overview](/consul/docs/connect/failover)
+- [Failover overview](/consul/docs/connect/manage-traffic/failover)
