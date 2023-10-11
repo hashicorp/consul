@@ -5,7 +5,6 @@
 if [[ ${GITHUB_BASE_REF} == release/1.14.* ]] || [[ ${GITHUB_BASE_REF} == release/1.15.* ]] || [[ ${GITHUB_BASE_REF} == release/1.16.* ]]; then
     busl_files=$(grep -r 'SPDX-License-Identifier: BUSL' . --exclude-dir .github)
 
-    # If we do not find a file in .changelog/, we fail the check
     if [ -n "$busl_files" ]; then
         echo "Found BUSL occurrences in the PR branch! (See NET-5258 for details)"
         echo -n "$busl_files"
