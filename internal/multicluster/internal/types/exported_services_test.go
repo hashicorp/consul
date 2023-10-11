@@ -154,7 +154,7 @@ func TestExportedServicesACLs(t *testing.T) {
 
 	run := func(t *testing.T, tc testcase) {
 		exportedServiceData := &multiclusterv1alpha1.ExportedServices{
-			Services: []string{"api", "backend"},
+			Services: []string{"api"},
 		}
 		res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exps").
 			WithTenancy(resource.DefaultNamespacedTenancy()).
@@ -170,7 +170,7 @@ func TestExportedServicesACLs(t *testing.T) {
 		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
 
 		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
+			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, res)
 			checkF(t, tc.readOK, err)
 		})
 		t.Run("write", func(t *testing.T) {
@@ -190,22 +190,28 @@ func TestExportedServicesACLs(t *testing.T) {
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"service api read": {
-			rules:   `service "api" { policy = "read" }`,
+		"all services has read policy": {
+			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,
 			readOK:  ALLOW,
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"service api write": {
-			rules:   `service "api" { policy = "write" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api write and api-backup read": {
-			rules:   `service "api" { policy = "write" } service "api-backup" { policy = "read" }`,
+		"all services has write policy": {
+			rules:   `service "api" { policy = "write" } service "backend" {policy = "write"}`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
+			listOK:  DEFAULT,
+		},
+		"only one services has read policy": {
+			rules:   `service "api" { policy = "read" }`,
+			readOK:  DENY,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"only one services has write policy": {
+			rules:   `service "api" { policy = "write" }`,
+			readOK:  DENY,
+			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
 	}
