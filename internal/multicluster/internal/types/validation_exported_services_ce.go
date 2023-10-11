@@ -74,8 +74,8 @@ func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
 
 	if hasSetEnterpriseFeatures {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "namespace or partition",
-			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+			Name:    "partition or sameness group",
+			Wrapped: fmt.Errorf("partition or sameness group can only be set in Enterprise"),
 		})
 	}
 
@@ -105,8 +105,8 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 
 	if hasSetEnterpriseFeatures {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "namespace or partition",
-			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+			Name:    "partition or sameness group",
+			Wrapped: fmt.Errorf("partition or sameness group can only be set in Enterprise"),
 		})
 	}
 
