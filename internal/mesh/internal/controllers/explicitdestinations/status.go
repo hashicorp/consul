@@ -6,6 +6,7 @@ package explicitdestinations
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -24,7 +25,28 @@ const (
 	StatusReasonDestinationComputedRoutesReadError = "ComputedRoutesReadError"
 
 	StatusReasonDestinationComputedRoutesPortNotFound = "ComputedRoutesPortNotFound"
+
+	StatusConditionConflictFound         = "ConflictFound"
+	StatusReasonDuplicateListenAddress   = "ConflictingListenAddress"
+	StatusReasonNoDuplicateListenAddress = "AllListenAddressesAreUnique"
 )
+
+var ConditionConflictNotFound = &pbresource.Condition{
+	Type:    StatusConditionConflictFound,
+	State:   pbresource.Condition_STATE_FALSE,
+	Reason:  StatusReasonNoDuplicateListenAddress,
+	Message: "All mapper have unique listen addresses.",
+}
+
+func ConditionConflictFound(workloadID *pbresource.ID) *pbresource.Condition {
+	return &pbresource.Condition{
+		Type:   StatusConditionConflictFound,
+		State:  pbresource.Condition_STATE_TRUE,
+		Reason: StatusReasonDuplicateListenAddress,
+		Message: fmt.Sprintf("Another Destinations resource selecting workload %q configures the same listen address as one of the mapper in this resource. "+
+			"This resource will be skipped.", resource.IDToString(workloadID)),
+	}
+}
 
 func ConditionMeshProtocolNotFound(serviceRef string) *pbresource.Condition {
 	return &pbresource.Condition{
