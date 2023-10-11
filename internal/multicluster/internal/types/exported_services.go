@@ -44,18 +44,38 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 	return merr
 }
 
-func aclReadHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
-	serviceName := id.Name
+func aclReadHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	var exportedService pbmulticluster.ExportedServices
 
-	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext)
+	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
+		return resource.NewErrDataParse(&exportedService, err)
+	}
+
+	for _, serviceName := range exportedService.Services {
+		if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func aclWriteHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	serviceName := res.Id.Name
+	var exportedService pbmulticluster.ExportedServices
 
-	return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext)
+	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
+		return resource.NewErrDataParse(&exportedService, err)
+	}
+
+	for _, serviceName := range exportedService.Services {
+		if err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func aclListHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement.
 	return nil
 }

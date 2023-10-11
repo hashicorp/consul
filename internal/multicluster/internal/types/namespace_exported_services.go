@@ -32,5 +32,7 @@ func aclWriteHookNamespaceExportedServices(authorizer acl.Authorizer, authzConte
 }
 
 func aclListHookNamespaceExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	// No-op List permission as we want to default to filtering resources
+	// from the list using the Read enforcement.
 	return nil
 }
