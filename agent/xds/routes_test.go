@@ -265,30 +265,25 @@ func TestRoutesFromSnapshot(t *testing.T) {
 		{
 			name: "api-gateway-with-multiple-hostnames",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotAPIGateway(
-					t,
-					"default",
-					nil,
-					func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
-						entry.Listeners = []structs.APIGatewayListener{
-							{
-								Name:     "http",
-								Protocol: structs.ListenerProtocolHTTP,
-								Port:     8080,
-								Hostname: "*.example.com",
-							},
-						}
-						bound.Listeners = []structs.BoundAPIGatewayListener{
-							{
-								Name: "http",
-								Routes: []structs.ResourceReference{
-									{Kind: structs.HTTPRoute, Name: "backend-route"},
-									{Kind: structs.HTTPRoute, Name: "frontend-route"},
-									{Kind: structs.HTTPRoute, Name: "generic-route"},
-								},
-							},
-						}
-					},
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+							Hostname: "*.example.com",
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http",
+							Routes: []structs.ResourceReference{
+								{Kind: structs.HTTPRoute, Name: "backend-route"},
+								{Kind: structs.HTTPRoute, Name: "frontend-route"},
+								{Kind: structs.HTTPRoute, Name: "generic-route"},
+							}},
+					}
+				},
 					[]structs.BoundRoute{
 						&structs.HTTPRouteConfigEntry{
 							Kind:      structs.HTTPRoute,
@@ -314,23 +309,16 @@ func TestRoutesFromSnapshot(t *testing.T) {
 							Parents: []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
 							Rules: []structs.HTTPRouteRule{
 								{
-									Matches: []structs.HTTPMatch{
-										{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/frontend"}},
-									},
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/frontend"}}},
 									Services: []structs.HTTPService{{Name: "frontend"}},
 								},
 								{
-									Matches: []structs.HTTPMatch{
-										{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/backend"}},
-									},
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/backend"}}},
 									Services: []structs.HTTPService{{Name: "backend"}},
 								},
 							},
 						},
-					},
-					nil,
-					nil,
-				)
+					}, nil, nil)
 			},
 		},
 	}
