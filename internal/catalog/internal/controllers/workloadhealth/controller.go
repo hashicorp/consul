@@ -95,16 +95,26 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	nodeHealth := pbcatalog.Health_HEALTH_PASSING
 	if workload.NodeName != "" {
 		nodeID := r.nodeMap.NodeIDFromWorkload(res, &workload)
-		r.nodeMap.TrackWorkload(res.Id, nodeID)
+		rspNode, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: nodeID})
+		switch {
+		case status.Code(err) == codes.NotFound:
+			rt.Logger.Trace("node has been deleted")
+			r.nodeMap.UntrackWorkload(req.ID)
+			return nil
+		case err != nil:
+			rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
+			return err
+		}
+		r.nodeMap.TrackWorkload(res.Id, rspNode.Resource.Id)
 
 		// It is important that getting the nodes health happens after tracking the
 		// Workload with the node mapper. If the order were reversed we could
 		// potentially miss events for data that changes after we read the node but
 		// before we configured the node mapper to map subsequent events to this
 		// workload.
-		nodeHealth, err = getNodeHealth(ctx, rt, nodeID)
+		nodeHealth, err = getNodeHealth(ctx, rt, rspNode.Resource.Id)
 		if err != nil {
-			rt.Logger.Error("error looking up node health", "error", err, "node-id", nodeID)
+			rt.Logger.Error("error looking up node health", "error", err, "node-id", rspNode.Resource.Id)
 			return err
 		}
 	} else {
@@ -112,7 +122,7 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		r.nodeMap.UntrackWorkload(res.Id)
 	}
 
-	workloadHealth, err := getWorkloadHealth(ctx, rt, req.ID)
+	workloadHealth, err := getWorkloadHealth(ctx, rt, rsp.Resource.Id)
 	if err != nil {
 		// This should be impossible under normal operations and will not be exercised
 		// within the unit tests. This can only fail if the resource service fails
@@ -202,6 +212,7 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 }
 
 func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *pbresource.ID) (pbcatalog.Health, error) {
+	rt.Logger.Trace("getWorkloadHealth", "workloadRef", workloadRef)
 	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
 		Owner: workloadRef,
 	})

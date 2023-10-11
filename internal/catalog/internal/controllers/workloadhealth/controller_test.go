@@ -6,7 +6,11 @@ package workloadhealth
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/internal/resource"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -14,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -44,13 +49,9 @@ var (
 
 func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
 	return &pbresource.ID{
-		Type: rtype,
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
+		Type:    rtype,
+		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name:    name,
 	}
 }
 
@@ -83,7 +84,7 @@ type controllerSuite struct {
 }
 
 func (suite *controllerSuite) SetupTest() {
-	suite.client = svctest.RunResourceService(suite.T(), types.Register)
+	suite.client = svctest.RunResourceService(suite.T(), types.Register, auth.RegisterTypes)
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
 }
 
@@ -167,7 +168,8 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 	reqs, err := suite.mapper.MapNodeToWorkloads(context.Background(), suite.runtime, node)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), reqs, 1)
-	prototest.AssertDeepEqual(suite.T(), reqs[0].ID, workload.Id)
+	protocmp.Transform()
+	prototest.AssertDeepEqual(suite.T(), workload.Id, reqs[0].ID, protocmp.IgnoreFields(workload.Id, "uid"))
 
 	suite.T().Cleanup(func() {
 		// future calls to reconcile would normally have done this as the resource was
@@ -388,6 +390,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 		WithData(suite.T(), workloadData("test-node")).
 		// don't write this because then in the call to reconcile the resource
 		// would be found and defeat the purpose of the tes
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		Build()
 
 	node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
@@ -500,15 +503,22 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	// create a node to link things with
 	node := suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_PASSING)
 
+	owner := resourcetest.ResourceID(&pbresource.ID{
+		Name: "test-identity",
+		Type: pbauth.WorkloadIdentityType,
+	}).
+		Write(suite.T(), suite.client)
+
 	// create the workload
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData(node.Id.Name)).
+		WithOwner(owner.Id).
 		Write(suite.T(), suite.client)
 
 	// Wait for reconciliation to occur and mark the workload as passing.
 	suite.waitForReconciliation(workload.Id, "HEALTH_PASSING")
 
-	// Simulate a node unhealty
+	// Simulate a node unhealthy
 	suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_WARNING)
 
 	// Wait for reconciliation to occur and mark the workload as warning
@@ -533,6 +543,7 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 		Write(suite.T(), suite.client)
 	workload = resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData("")).
+		WithOwner(owner.Id).
 		Write(suite.T(), suite.client)
 
 	// Now that the workload health is passing and its not associated with the node its status should
@@ -545,18 +556,19 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 func (suite *workloadHealthControllerTestSuite) waitForReconciliation(id *pbresource.ID, reason string) {
 	suite.T().Helper()
 
-	retry.Run(suite.T(), func(r *retry.R) {
-		rsp, err := suite.client.Read(context.Background(), &pbresource.ReadRequest{
-			Id: id,
-		})
-		require.NoError(r, err)
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 5 * time.Second},
+		suite.T(), func(r *retry.R) {
+			rsp, err := suite.client.Read(context.Background(), &pbresource.ReadRequest{
+				Id: id,
+			})
+			require.NoError(r, err)
 
-		status, found := rsp.Resource.Status[StatusKey]
-		require.True(r, found)
-		require.Equal(r, rsp.Resource.Generation, status.ObservedGeneration)
-		require.Len(r, status.Conditions, 1)
-		require.Equal(r, reason, status.Conditions[0].Reason)
-	})
+			status, found := rsp.Resource.Status[StatusKey]
+			require.True(r, found)
+			require.Equal(r, rsp.Resource.Generation, status.ObservedGeneration)
+			require.Len(r, status.Conditions, 1)
+			require.Equal(r, reason, status.Conditions[0].Reason)
+		})
 }
 
 func TestWorkloadHealthController(t *testing.T) {
