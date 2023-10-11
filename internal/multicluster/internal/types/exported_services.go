@@ -4,12 +4,10 @@
 package types
 
 import (
-	"fmt"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
 )
 
 func RegisterExportedServices(r resource.Registry) {
@@ -24,24 +22,6 @@ func RegisterExportedServices(r resource.Registry) {
 			List:  aclListHookExportedServices,
 		},
 	})
-}
-
-func ValidateExportedServices(res *pbresource.Resource) error {
-	var exportedService pbmulticluster.ExportedServices
-
-	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
-		return resource.NewErrDataParse(&exportedService, err)
-	}
-
-	var merr error
-
-	if exportedService.Services == nil || len(exportedService.Services) == 0 {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "services",
-			Wrapped: fmt.Errorf("at least one service must be set"),
-		})
-	}
-	return merr
 }
 
 func aclReadHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {

@@ -13,6 +13,106 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+func ValidateExportedServices(res *pbresource.Resource) error {
+	var exportedService pbmulticluster.ExportedServices
+
+	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
+		return resource.NewErrDataParse(&exportedService, err)
+	}
+
+	var merr error
+
+	if exportedService.Services == nil || len(exportedService.Services) == 0 {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "services",
+			Wrapped: fmt.Errorf("at least one service must be set"),
+		})
+	}
+
+	var hasSetEnterpriseFeatures bool
+
+	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+		hasSetEnterpriseFeatures = true
+	}
+
+	for _, consumer := range exportedService.Consumers {
+		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
+			hasSetEnterpriseFeatures = true
+		}
+	}
+
+	if hasSetEnterpriseFeatures {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "namespace or partition",
+			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+		})
+	}
+
+	return merr
+}
+
+func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
+	var exportedService pbmulticluster.NamespaceExportedServices
+
+	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
+		return resource.NewErrDataParse(&exportedService, err)
+	}
+
+	var merr error
+
+	var hasSetEnterpriseFeatures bool
+
+	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+		hasSetEnterpriseFeatures = true
+	}
+
+	for _, consumer := range exportedService.Consumers {
+		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
+			hasSetEnterpriseFeatures = true
+		}
+	}
+
+	if hasSetEnterpriseFeatures {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "namespace or partition",
+			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+		})
+	}
+
+	return merr
+}
+
+func ValidatePartitionExportedServices(res *pbresource.Resource) error {
+	var exportedService pbmulticluster.PartitionExportedServices
+
+	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
+		return resource.NewErrDataParse(&exportedService, err)
+	}
+
+	var merr error
+
+	var hasSetEnterpriseFeatures bool
+
+	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
+		hasSetEnterpriseFeatures = true
+	}
+
+	for _, consumer := range exportedService.Consumers {
+		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
+			hasSetEnterpriseFeatures = true
+		}
+	}
+
+	if hasSetEnterpriseFeatures {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "namespace or partition",
+			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+		})
+	}
+
+	return merr
+}
+
 func ValidateComputedExportedServices(res *pbresource.Resource) error {
 	var computedExportedServices pbmulticluster.ComputedExportedServices
 
@@ -29,22 +129,22 @@ func ValidateComputedExportedServices(res *pbresource.Resource) error {
 		})
 	}
 
-	var hasPartitionOrNamespaceSet bool
+	var hasSetEnterpriseFeatures bool
 
 	if res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "" {
-		hasPartitionOrNamespaceSet = true
+		hasSetEnterpriseFeatures = true
 	}
 
 	for _, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
 			if computedExportedServiceConsumer.GetPartition() != "" || computedExportedServiceConsumer.GetNamespace() != "" {
-				hasPartitionOrNamespaceSet = true
+				hasSetEnterpriseFeatures = true
 				break
 			}
 		}
 	}
 
-	if hasPartitionOrNamespaceSet {
+	if hasSetEnterpriseFeatures {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "namespace or partition",
 			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
