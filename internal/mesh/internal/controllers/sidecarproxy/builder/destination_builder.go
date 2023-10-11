@@ -5,6 +5,7 @@ package builder
 
 import (
 	"fmt"
+	"github.com/hashicorp/consul/agent/xds/naming"
 	"time"
 
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -27,6 +28,8 @@ func (b *Builder) BuildDestinations(destinations []*intermediate.Destination) *B
 	var lb *ListenerBuilder
 	if b.proxyCfg.IsTransparentProxy() {
 		lb = b.addTransparentProxyOutboundListener(b.proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort)
+		lb.listener.DefaultRouter = lb.addL4RouterForDirect(naming.OriginalDestinationClusterName, fmt.Sprintf("upstream.%s", naming.OriginalDestinationClusterName)).router
+		b.addL4ClusterForDirect(naming.OriginalDestinationClusterName)
 	}
 
 	for _, destination := range destinations {
@@ -370,6 +373,26 @@ func (b *ListenerBuilder) addL4RouterForDirect(clusterName, statPrefix string) *
 	}
 
 	return b.NewRouterBuilder(router)
+}
+
+func (b *Builder) addL4ClusterForDirect(clusterName string) *Builder {
+	cluster := &pbproxystate.Cluster{
+		Name: clusterName,
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Passthrough{
+					Passthrough: &pbproxystate.PassthroughEndpointGroup{
+						Config: &pbproxystate.PassthroughEndpointGroupConfig{
+							ConnectTimeout: durationpb.New(5 * time.Second),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
+	return b
 }
 
 func (b *ListenerBuilder) addL4RouterForSplit(
