@@ -32,6 +32,9 @@ type NodeMapper interface {
 	// for all Workloads associated with the Node.
 	MapNodeToWorkloads(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
 
+	// WorkloadIDsByNode will take a Node resource and all Workloads associated with the Node.
+	WorkloadIDsByNode(nodeID *pbresource.ID) []*pbresource.ID
+
 	// TrackWorkload instructs the NodeMapper to associate the given workload
 	// ID with the given node ID.
 	TrackWorkload(workloadID *pbresource.ID, nodeID *pbresource.ID)
