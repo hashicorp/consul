@@ -31,7 +31,7 @@ func TestMutateUpstreams(t *testing.T) {
 			WithData(t, tc.data).
 			Build()
 
-		err := MutateUpstreams(res)
+		err := MutateDestinations(res)
 
 		got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
 
@@ -100,14 +100,14 @@ func TestValidateUpstreams(t *testing.T) {
 			Build()
 
 		if !tc.skipMutate {
-			require.NoError(t, MutateUpstreams(res))
+			require.NoError(t, MutateDestinations(res))
 
 			// Verify that mutate didn't actually change the object.
 			got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
 			prototest.AssertDeepEqual(t, tc.data, got.Data)
 		}
 
-		err := ValidateUpstreams(res)
+		err := ValidateDestinations(res)
 
 		// Verify that validate didn't actually change the object.
 		got := resourcetest.MustDecode[*pbmesh.Destinations](t, res)
