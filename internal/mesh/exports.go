@@ -8,23 +8,12 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
 
 var (
 	// Controller statuses.
-
-	// Sidecar-proxy controller.
-	SidecarProxyStatusKey                                  = sidecarproxy.ControllerName
-	SidecarProxyStatusConditionMeshDestination             = status.StatusConditionDestinationAccepted
-	SidecarProxyStatusReasonNonMeshDestination             = status.StatusReasonMeshProtocolNotFound
-	SidecarProxyStatusReasonMeshDestination                = status.StatusReasonMeshProtocolFound
-	SidecarProxyStatusReasonDestinationServiceNotFound     = status.StatusReasonDestinationServiceNotFound
-	SidecarProxyStatusReasonDestinationServiceFound        = status.StatusReasonDestinationServiceFound
-	SidecarProxyStatusReasonMeshProtocolDestinationPort    = status.StatusReasonMeshProtocolDestinationPort
-	SidecarProxyStatusReasonNonMeshProtocolDestinationPort = status.StatusReasonNonMeshProtocolDestinationPort
 
 	// Routes controller
 	RoutesStatusKey                                                = routes.StatusKey

@@ -497,7 +497,7 @@ func TestBuildImplicitDestinations(t *testing.T) {
 	)
 	require.NotNil(t, api2ComputedRoutes)
 
-	proxyCfg := &pbmesh.ProxyConfiguration{
+	proxyCfg := &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
 			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
 			TransparentProxy: &pbmesh.TransparentProxy{

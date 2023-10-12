@@ -17,21 +17,21 @@ import (
 
 func TestBuildExposePaths_NilChecks(t *testing.T) {
 	testutil.RunStep(t, "proxy cfg is nil", func(t *testing.T) {
-		b := New(nil, nil, "foo.consul", "dc1", true, nil)
+		b := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, nil)
 		require.NotPanics(t, func() {
 			b.buildExposePaths(nil)
 		})
 	})
 
 	testutil.RunStep(t, "dynamic cfg is nil", func(t *testing.T) {
-		b := New(nil, nil, "foo.consul", "dc1", true, &pbmesh.ProxyConfiguration{})
+		b := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, &pbmesh.ComputedProxyConfiguration{})
 		require.NotPanics(t, func() {
 			b.buildExposePaths(nil)
 		})
 	})
 
 	testutil.RunStep(t, "expose cfg is nil", func(t *testing.T) {
-		b := New(nil, nil, "foo.consul", "dc1", true, &pbmesh.ProxyConfiguration{
+		b := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, &pbmesh.ComputedProxyConfiguration{
 			DynamicConfig: &pbmesh.DynamicConfig{},
 		})
 		require.NotPanics(t, func() {
@@ -51,7 +51,7 @@ func TestBuildExposePaths_NoExternalMeshWorkloadAddress(t *testing.T) {
 		},
 	}
 
-	proxycfg := &pbmesh.ProxyConfiguration{
+	proxycfg := &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
 			ExposeConfig: &pbmesh.ExposeConfig{
 				ExposePaths: []*pbmesh.ExposePath{
@@ -65,7 +65,7 @@ func TestBuildExposePaths_NoExternalMeshWorkloadAddress(t *testing.T) {
 		},
 	}
 
-	b := New(nil, nil, "foo.consul", "dc1", true, proxycfg)
+	b := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, proxycfg)
 	b.buildExposePaths(workload)
 	require.Empty(t, b.proxyStateTemplate.ProxyState.Listeners)
 }
@@ -81,7 +81,7 @@ func TestBuildExposePaths_InvalidProtocol(t *testing.T) {
 		},
 	}
 
-	proxycfg := &pbmesh.ProxyConfiguration{
+	proxycfg := &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
 			ExposeConfig: &pbmesh.ExposeConfig{
 				ExposePaths: []*pbmesh.ExposePath{
@@ -96,7 +96,7 @@ func TestBuildExposePaths_InvalidProtocol(t *testing.T) {
 		},
 	}
 
-	b := New(nil, nil, "foo.consul", "dc1", true, proxycfg)
+	b := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, proxycfg)
 	require.PanicsWithValue(t, "unsupported expose paths protocol", func() {
 		b.buildExposePaths(workload)
 	})

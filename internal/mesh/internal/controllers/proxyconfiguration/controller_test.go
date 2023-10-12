@@ -24,6 +24,7 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -102,7 +103,8 @@ func (suite *controllerTestSuite) SetupTest() {
 
 	suite.expComputedProxyCfg = &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
-			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			Mode:             pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			TransparentProxy: &pbmesh.TransparentProxy{OutboundListenerPort: iptables.DefaultTProxyOutboundPort},
 			LocalConnection: map[string]*pbmesh.ConnectionConfig{
 				"tcp": {ConnectTimeout: durationpb.New(2 * time.Second)},
 			},
@@ -264,7 +266,8 @@ func (suite *controllerTestSuite) TestController() {
 			// The "test-workload" computed proxy configurations should now be updated to use only proxy cfg 1 and 3.
 			expProxyCfg := &pbmesh.ComputedProxyConfiguration{
 				DynamicConfig: &pbmesh.DynamicConfig{
-					Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+					Mode:             pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+					TransparentProxy: &pbmesh.TransparentProxy{OutboundListenerPort: iptables.DefaultTProxyOutboundPort},
 				},
 				BootstrapConfig: &pbmesh.BootstrapConfig{
 					PrometheusBindAddr: "0.0.0.0:9000",

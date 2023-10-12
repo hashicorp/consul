@@ -51,7 +51,7 @@ func TestGetMeshPort(t *testing.T) {
 	}
 }
 
-func TestIsMeshEnabled(t *testing.T) {
+func TestWorkloadIsMeshEnabled(t *testing.T) {
 	cases := map[string]struct {
 		ports map[string]*WorkloadPort
 		exp   bool

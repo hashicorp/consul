@@ -32,7 +32,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		trustDomain = "foo.consul"
 		datacenter  = "dc1"
 	)
-	proxyCfg := &pbmesh.ProxyConfiguration{
+	proxyCfg := &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
 			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
 			TransparentProxy: &pbmesh.TransparentProxy{
