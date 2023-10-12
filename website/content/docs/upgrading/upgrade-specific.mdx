@@ -25,7 +25,7 @@ that did not explicitly specify a namespace or partition would incorrectly use s
 from the `default` partition and namespace, rather than the local partition and namespace.
 
 This bug is fixed starting in Consul 1.17.0, and the service-defaults from the local partition and namespace are now fetched instead.
-If using non-default partitions and namespaces with Consul-k8s, it is advised to explicitly define these fields for all upstreams and to
+If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams. Doing so
 ensure proper service-defaults entries exist in each namespace / partition before upgrading so that no unexpected protocol changes occur.
 
 
