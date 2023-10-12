@@ -15,15 +15,15 @@ import (
 	"testing"
 	"time"
 
+	goretry "github.com/avast/retry-go"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/serf/serf"
-
-	goretry "github.com/avast/retry-go"
 	"github.com/stretchr/testify/require"
 	"github.com/teris-io/shortid"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // Cluster provides an interface for creating and controlling a Consul cluster
@@ -93,11 +93,12 @@ func New(t TestingT, configs []Config, ports ...int) (*Cluster, error) {
 	}
 
 	cluster := &Cluster{
-		ID:          id,
-		Network:     network,
-		NetworkName: name,
-		ScratchDir:  scratchDir,
-		ACLEnabled:  configs[0].ACLEnabled,
+		ID:             id,
+		Network:        network,
+		NetworkName:    name,
+		ScratchDir:     scratchDir,
+		ACLEnabled:     configs[0].ACLEnabled,
+		TokenBootstrap: configs[0].TokenBootstrap,
 	}
 	t.Cleanup(func() {
 		_ = cluster.Terminate()
@@ -193,8 +194,8 @@ func (c *Cluster) join(agents []Agent, skipSerfJoin bool) error {
 	}
 
 	if len(c.Agents) == 0 {
-		// if acl enabled, generate the bootstrap tokens at the first agent
-		if c.ACLEnabled {
+		// if acl enabled and bootstrap token is null, generate the bootstrap tokens at the first agent
+		if c.ACLEnabled && c.TokenBootstrap == "" {
 			var (
 				output string
 				err    error
@@ -598,6 +599,7 @@ func (c *Cluster) PeerWithCluster(acceptingClient *api.Client, acceptingPeerName
 }
 
 const retryTimeout = 90 * time.Second
+
 const retryFrequency = 500 * time.Millisecond
 
 func LongFailer() *retry.Timer {
