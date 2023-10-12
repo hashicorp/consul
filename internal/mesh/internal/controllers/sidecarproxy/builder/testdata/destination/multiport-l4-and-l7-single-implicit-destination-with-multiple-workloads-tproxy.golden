@@ -146,7 +146,7 @@
           {
             "l7": {
               "route": {
-                "name": "outbound_listener"
+                "name": "default/local/default/api-app"
               },
               "statPrefix": "upstream."
             },

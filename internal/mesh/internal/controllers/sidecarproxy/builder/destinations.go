@@ -5,8 +5,9 @@ package builder
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/agent/xds/naming"
 	"time"
+
+	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -245,7 +246,7 @@ func (b *Builder) buildDestination(
 			panic(fmt.Sprintf("it should not be possible to have a tcp protocol here: %v", effectiveProtocol))
 		}
 
-		rb := lb.addL7Router("", effectiveProtocol)
+		rb := lb.addL7Router(routeName, "", effectiveProtocol)
 		if destination.Explicit == nil {
 			rb.addIPAndPortMatch(destination.VirtualIPs, virtualPortNumber)
 		}
@@ -425,14 +426,13 @@ func (b *ListenerBuilder) addL4RouterForSplit(
 	return b.NewRouterBuilder(router)
 }
 
-func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Protocol) *RouterBuilder {
+func (b *ListenerBuilder) addL7Router(routeName string, statPrefix string, protocol pbcatalog.Protocol) *RouterBuilder {
 	// For explicit destinations, we have no filter chain match, and filters
 	// are based on port protocol.
 	router := &pbproxystate.Router{}
 
-	listenerName := b.listener.Name
-	if listenerName == "" {
-		panic("listenerName is required")
+	if routeName == "" {
+		panic("routeName is required")
 	}
 
 	if statPrefix == "" {
@@ -446,7 +446,7 @@ func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Prot
 	router.Destination = &pbproxystate.Router_L7{
 		L7: &pbproxystate.L7Destination{
 			Route: &pbproxystate.L7DestinationRoute{
-				Name: listenerName,
+				Name: routeName,
 			},
 			StatPrefix:  statPrefix,
 			StaticRoute: false,
