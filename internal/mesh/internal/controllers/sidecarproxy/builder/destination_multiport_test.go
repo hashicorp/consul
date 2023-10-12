@@ -193,17 +193,17 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		getDestinations func() []*intermediate.Destination
 	}{
 		// Most basic test that multiport configuration works
-		"destination/multiport-l4-single-implicit-destination-tproxy": {
+		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy": {
 			getDestinations: func() []*intermediate.Destination { return apiAppDestinations },
 		},
 		// Test shows that with multiple workloads for a service exposing the same ports, the routers
 		// and clusters do not get duplicated.
-		"destination/multiport-l4-single-implicit-destination-with-multiple-workloads-tproxy": {
+		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy": {
 			getDestinations: func() []*intermediate.Destination { return mwDestinations },
 		},
 		// Test shows that with multiple workloads for a service exposing the same ports, the routers
 		// and clusters do not get duplicated.
-		"destination/multiport-l4-multiple-implicit-destinations-tproxy": {
+		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy": {
 			getDestinations: func() []*intermediate.Destination { return twoImplicitDestinations },
 		},
 	}

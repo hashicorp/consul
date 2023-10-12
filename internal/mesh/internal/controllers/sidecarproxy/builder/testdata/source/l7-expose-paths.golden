@@ -113,7 +113,9 @@
         "routers": [
           {
             "l7": {
-              "name": "exposed_path_filter_health_1234",
+              "route": {
+                "name": "exposed_path_filter_health_1234"
+              },
               "statPrefix": "exposed_path_filter_health_1234",
               "staticRoute": true
             }
@@ -130,8 +132,10 @@
         "routers": [
           {
             "l7": {
-              "name": "exposed_path_filter_GetHealth_1235",
               "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "exposed_path_filter_GetHealth_1235"
+              },
               "statPrefix": "exposed_path_filter_GetHealth_1235",
               "staticRoute": true
             }

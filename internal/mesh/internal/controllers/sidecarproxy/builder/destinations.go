@@ -445,7 +445,9 @@ func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Prot
 
 	router.Destination = &pbproxystate.Router_L7{
 		L7: &pbproxystate.L7Destination{
-			Name:        listenerName,
+			Route: &pbproxystate.L7DestinationRoute{
+				Name: listenerName,
+			},
 			StatPrefix:  statPrefix,
 			StaticRoute: false,
 		},

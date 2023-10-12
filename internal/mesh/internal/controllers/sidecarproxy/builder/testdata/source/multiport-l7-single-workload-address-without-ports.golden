@@ -84,7 +84,9 @@
               }
             },
             "l7": {
-              "name": "public_listener:admin-port",
+              "route": {
+                "name": "public_listener:admin-port"
+              },
               "statPrefix": "public_listener",
               "staticRoute": true,
               "trafficPermissions": {}
@@ -107,8 +109,10 @@
               }
             },
             "l7": {
-              "name": "public_listener:api-port",
               "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "public_listener:api-port"
+              },
               "statPrefix": "public_listener",
               "staticRoute": true,
               "trafficPermissions": {}
@@ -131,8 +135,10 @@
               }
             },
             "l7": {
-              "name": "public_listener:grpc-port",
               "protocol": "L7_PROTOCOL_GRPC",
+              "route": {
+                "name": "public_listener:grpc-port"
+              },
               "statPrefix": "public_listener",
               "staticRoute": true,
               "trafficPermissions": {}

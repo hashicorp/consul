@@ -847,7 +847,8 @@ func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *p
 					// care here.
 					foundByName = true
 				case *pbproxystate.Router_L7:
-					routerName := x.L7.Name
+					require.NotNil(t, x.L7.Route)
+					routerName := x.L7.Route.Name
 					foundByName = strings.Contains(routerName, name)
 				default:
 					t.Fatalf("unexpected type of destination: %T", r.Destination)

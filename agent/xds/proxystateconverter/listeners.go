@@ -1475,7 +1475,9 @@ func (g *Converter) makeL7Destination(opts destinationOpts) (*pbproxystate.L7Des
 	//}
 
 	// An L7 Destination's name will be the route name, so during xds generation the route can be looked up.
-	dest.Name = opts.routeName
+	dest.Route = &pbproxystate.L7DestinationRoute{
+		Name: opts.routeName,
+	}
 	dest.StatPrefix = makeStatPrefix(opts.statPrefix, opts.filterName)
 
 	// TODO(proxystate) tracing will be added at the top level proxystate and xds generation

@@ -298,8 +298,10 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
 					Protocol:           protocolMap[port.Protocol],
 					TrafficPermissions: tp,
 					StaticRoute:        true,
-					// routeName for l7 local app destinations differentiates between routes for each port.
-					Name: routeName,
+					// Route name for l7 local app destinations differentiates between routes for each port.
+					Route: &pbproxystate.L7DestinationRoute{
+						Name: routeName,
+					},
 				},
 			},
 			Match: &pbproxystate.Match{
@@ -354,9 +356,7 @@ func (b *Builder) addLocalAppRoute(routeName string, clusterName string) {
 			},
 		},
 	}
-	// Usually route names and listener names are 1:1 and the name of the route matches the name of the listener
-	// exactly. In the case of a local app with multiple ports, there would be multiple routes for a single listener,
-	// one for each port/cluster, so we need to use the route name here instead.
+	// Each route name for the local app is listenerName:port since there is a route per port on the local app listener.
 	b.addRoute(routeName, &pbproxystate.Route{
 		VirtualHosts: []*pbproxystate.VirtualHost{{
 			Name:       routeName,

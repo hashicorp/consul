@@ -247,7 +247,9 @@
           },
           {
             "l7": {
-              "name": "outbound_listener",
+              "route": {
+                "name": "outbound_listener"
+              },
               "statPrefix": "upstream."
             },
             "match": {
@@ -262,7 +264,9 @@
           },
           {
             "l7": {
-              "name": "outbound_listener",
+              "route": {
+                "name": "outbound_listener"
+              },
               "statPrefix": "upstream."
             },
             "match": {

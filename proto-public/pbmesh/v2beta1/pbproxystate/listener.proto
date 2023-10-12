@@ -102,9 +102,14 @@ message L4Destination {
   uint64 max_inbound_connections = 5;
 }
 
-message L7Destination {
+message L7DestinationRoute {
   // name is a key in the top level routes map. This specifies which route to go to in this L7 destination.
   string name = 1;
+}
+
+message L7Destination {
+  // route specifies which route to go to in this L7 destination.
+  L7DestinationRoute route = 1;
   // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
   string stat_prefix = 2;
   // protocol for the destination.

@@ -427,7 +427,10 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			},
 		}
 
-		routeConfig := pr.makeEnvoyRouteConfigFromProxystateRoute(l7.Name, pr.proxyState.Routes[l7.Name])
+		if l7.Route == nil {
+			return nil, fmt.Errorf("route should not be nil")
+		}
+		routeConfig := pr.makeEnvoyRouteConfigFromProxystateRoute(l7.Route.Name, pr.proxyState.Routes[l7.Route.Name])
 		if err != nil {
 			return nil, err
 		}
@@ -443,7 +446,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 
 			httpConnMgr.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
 				Rds: &envoy_http_v3.Rds{
-					RouteConfigName: l7.Name,
+					RouteConfigName: l7.Route.Name,
 					ConfigSource: &envoy_core_v3.ConfigSource{
 						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
