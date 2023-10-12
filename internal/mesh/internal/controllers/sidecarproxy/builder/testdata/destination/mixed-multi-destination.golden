@@ -172,7 +172,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "api-1:tcp:1.1.1.1:1234",
+        "name": "default/local/default/dc1/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -199,7 +199,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp:/path/to/socket",
+        "name": "default/local/default/dc1/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -221,11 +221,11 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "api-1:http:1.1.1.1:1234",
+        "name": "default/local/default/dc1/api-1:http:1.1.1.1:1234",
         "routers": [
           {
             "l7": {
-              "name": "api-1:http:1.1.1.1:1234",
+              "name": "default/local/default/dc1/api-1:http:1.1.1.1:1234",
               "statPrefix": "upstream."
             }
           }
@@ -233,10 +233,10 @@
       }
     ],
     "routes": {
-      "api-1:http:1.1.1.1:1234": {
+      "default/local/default/dc1/api-1:http:1.1.1.1:1234": {
         "virtualHosts": [
           {
-            "name": "api-1:http:1.1.1.1:1234",
+            "name": "default/local/default/dc1/api-1:http:1.1.1.1:1234",
             "routeRules": [
               {
                 "destination": {

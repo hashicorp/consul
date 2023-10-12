@@ -54,9 +54,20 @@ func (b *Builder) buildDestination(
 
 	cpr := destination.ComputedPortRoutes
 
+	defaultDC := func(dc string) string {
+		if destination.Explicit != nil {
+			dc = orDefault(dc, destination.Explicit.Datacenter)
+		}
+		dc = orDefault(dc, b.localDatacenter)
+		if dc != b.localDatacenter {
+			panic("cross datacenter service discovery clusters are not supported in v2")
+		}
+		return dc
+	}
+
 	var lb *ListenerBuilder
 	if destination.Explicit != nil {
-		lb = b.addExplicitOutboundListener(destination.Explicit)
+		lb = b.addExplicitOutboundListener(destination.Explicit, defaultDC(""))
 	} else {
 		lb = tproxyOutboundListenerBuilder
 	}
@@ -72,22 +83,18 @@ func (b *Builder) buildDestination(
 		}
 	}
 
-	defaultDC := func(dc string) string {
-		if destination.Explicit != nil {
-			dc = orDefault(dc, destination.Explicit.Datacenter)
-		}
-		dc = orDefault(dc, b.localDatacenter)
-		if dc != b.localDatacenter {
-			panic("cross datacenter service discovery clusters are not supported in v2")
-		}
-		return dc
-	}
-
 	statPrefix := DestinationStatPrefix(
 		cpr.ParentRef.Ref,
 		cpr.ParentRef.Port,
 		defaultDC(""),
 	)
+
+	var routeName string
+	if destination.Explicit != nil {
+		routeName = lb.listener.Name
+	} else {
+		routeName = DestinationResourceID(cpr.ParentRef.Ref, defaultDC(""))
+	}
 
 	var (
 		useRDS                bool
@@ -99,8 +106,6 @@ func (b *Builder) buildDestination(
 		useRDS = true
 
 		route := config.Http
-
-		listenerName := lb.listener.Name
 
 		// this corresponds to roughly "makeUpstreamRouteForDiscoveryChain"
 
@@ -134,9 +139,9 @@ func (b *Builder) buildDestination(
 			}
 		}
 
-		b.addRoute(listenerName, &pbproxystate.Route{
+		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
-				Name:       listenerName,
+				Name:       routeName,
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -144,8 +149,6 @@ func (b *Builder) buildDestination(
 	case *pbmesh.ComputedPortRoutes_Grpc:
 		useRDS = true
 		route := config.Grpc
-
-		listenerName := lb.listener.Name
 
 		var proxyRouteRules []*pbproxystate.RouteRule
 		for _, routeRule := range route.Rules {
@@ -178,9 +181,9 @@ func (b *Builder) buildDestination(
 			}
 		}
 
-		b.addRoute(listenerName, &pbproxystate.Route{
+		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
-				Name:       listenerName,
+				Name:       routeName,
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -452,13 +455,13 @@ func (b *ListenerBuilder) addL7Router(statPrefix string, protocol pbcatalog.Prot
 }
 
 // addExplicitOutboundListener creates an outbound listener for an explicit destination.
-func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Destination) *ListenerBuilder {
-	listener := makeExplicitListener(explicit, pbproxystate.Direction_DIRECTION_OUTBOUND)
+func (b *Builder) addExplicitOutboundListener(explicit *pbmesh.Destination, datacenter string) *ListenerBuilder {
+	listener := makeExplicitListener(explicit, datacenter, pbproxystate.Direction_DIRECTION_OUTBOUND)
 
 	return b.NewListenerBuilder(listener)
 }
 
-func makeExplicitListener(explicit *pbmesh.Destination, direction pbproxystate.Direction) *pbproxystate.Listener {
+func makeExplicitListener(explicit *pbmesh.Destination, datacenter string, direction pbproxystate.Direction) *pbproxystate.Listener {
 	if explicit == nil {
 		panic("explicit upstream required")
 	}
@@ -479,7 +482,7 @@ func makeExplicitListener(explicit *pbmesh.Destination, direction pbproxystate.D
 				Port: destinationAddr.IpPort.Port,
 			},
 		}
-		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.IpPort.Ip, destinationAddr.IpPort.Port)
+		listener.Name = DestinationListenerName(explicit.DestinationRef, datacenter, explicit.DestinationPort, destinationAddr.IpPort.Ip, destinationAddr.IpPort.Port)
 	case *pbmesh.Destination_Unix:
 		destinationAddr := explicit.ListenAddr.(*pbmesh.Destination_Unix)
 		listener.BindAddress = &pbproxystate.Listener_UnixSocket{
@@ -488,7 +491,7 @@ func makeExplicitListener(explicit *pbmesh.Destination, direction pbproxystate.D
 				Mode: destinationAddr.Unix.Mode,
 			},
 		}
-		listener.Name = DestinationListenerName(explicit.DestinationRef.Name, explicit.DestinationPort, destinationAddr.Unix.Path, 0)
+		listener.Name = DestinationListenerName(explicit.DestinationRef, datacenter, explicit.DestinationPort, destinationAddr.Unix.Path, 0)
 	}
 
 	return listener

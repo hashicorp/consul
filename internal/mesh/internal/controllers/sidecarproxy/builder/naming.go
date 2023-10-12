@@ -28,10 +28,19 @@ func DestinationStatPrefix(serviceRef *pbresource.Reference, portName, datacente
 		datacenter)
 }
 
-func DestinationListenerName(name, portName string, address string, port uint32) string {
+func DestinationListenerName(destinationRef *pbresource.Reference, datacenter, portName string, address string, port uint32) string {
 	if port != 0 {
-		return fmt.Sprintf("%s:%s:%s:%d", name, portName, address, port)
+		return fmt.Sprintf("%s:%s:%s:%d", DestinationResourceID(destinationRef, datacenter), portName, address, port)
 	}
 
-	return fmt.Sprintf("%s:%s:%s", name, portName, address)
+	return fmt.Sprintf("%s:%s:%s", DestinationResourceID(destinationRef, datacenter), portName, address)
+}
+
+// XDSResourceID returns a string representation that uniquely identifies the
+// upstream in a canonical but human readable way.
+func DestinationResourceID(destinationRef *pbresource.Reference, datacenter string) string {
+	tenancyPrefix := fmt.Sprintf("%s/%s/%s/%s", destinationRef.Tenancy.Partition,
+		destinationRef.Tenancy.PeerName, destinationRef.Tenancy.Namespace,
+		datacenter)
+	return fmt.Sprintf("%s/%s", tenancyPrefix, destinationRef.Name)
 }

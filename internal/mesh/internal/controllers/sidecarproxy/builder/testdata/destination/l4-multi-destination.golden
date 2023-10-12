@@ -140,7 +140,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "api-1:tcp:1.1.1.1:1234",
+        "name": "default/local/default/dc1/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -167,7 +167,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp:/path/to/socket",
+        "name": "default/local/default/dc1/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -189,7 +189,7 @@
           "host": "1.1.1.1",
           "port": 2345
         },
-        "name": "api-1:tcp2:1.1.1.1:2345",
+        "name": "default/local/default/dc1/api-1:tcp2:1.1.1.1:2345",
         "routers": [
           {
             "l4": {
@@ -216,7 +216,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp2:/path/to/socket",
+        "name": "default/local/default/dc1/api-2:tcp2:/path/to/socket",
         "routers": [
           {
             "l4": {
