@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
