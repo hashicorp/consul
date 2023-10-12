@@ -7,34 +7,29 @@
   class="consul-lock-session-list"
   ...attributes
   @items={{@items}}
-as |item index|>
+  as |item index|
+>
   <BlockSlot @name="header">
-  {{#if item.Name}}
-    <span>{{item.Name}}</span>
-  {{else}}
-    <span>
-      {{item.ID}}
-      <CopyButton
-        @value={{item.ID}}
-        @name="ID"
-      />
-    </span>
-  {{/if}}
+    {{#if item.Name}}
+      <span>{{item.Name}}</span>
+    {{else}}
+      <span>
+        {{item.ID}}
+        <ConsulCopyButton @value={{item.ID}} @name="ID" />
+      </span>
+    {{/if}}
   </BlockSlot>
   <BlockSlot @name="details">
     {{#if item.Name}}
-    <dl>
-      <dt>
-        ID
-      </dt>
-      <dd>
-        <CopyButton
-          @value={{item.ID}}
-          @name="ID"
-        />
-        {{item.ID}}
-      </dd>
-    </dl>
+      <dl>
+        <dt>
+          ID
+        </dt>
+        <dd>
+          <ConsulCopyButton @value={{item.ID}} @name="ID" />
+          {{item.ID}}
+        </dd>
+      </dl>
     {{/if}}
     <dl class="lock-delay">
       <dt {{tooltip}}>
@@ -43,43 +38,37 @@ as |item index|>
       <dd data-test-session-delay>{{duration-from item.LockDelay}}</dd>
     </dl>
     <dl class="ttl">
-      <dt
-        {{tooltip}}
-      >
+      <dt {{tooltip}}>
         TTL
       </dt>
-    {{#if (eq item.TTL "")}}
-      <dd data-test-session-ttl={{item.TTL}}>-</dd>
-    {{else}}
-      <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
-    {{/if}}
+      {{#if (eq item.TTL "")}}
+        <dd data-test-session-ttl={{item.TTL}}>-</dd>
+      {{else}}
+        <dd data-test-session-ttl={{item.TTL}}>{{item.TTL}}</dd>
+      {{/if}}
     </dl>
     <dl class="behavior">
-      <dt
-        {{tooltip}}
-      >
+      <dt {{tooltip}}>
         Behavior
       </dt>
       <dd>{{item.Behavior}}</dd>
     </dl>
-{{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
-    <dl class="checks">
-      <dt
-        {{tooltip}}
-      >
-        Checks
-      </dt>
-      <dd>
-{{#if (gt checks.length 0)}}
-      {{#each checks as |item|}}
-        <span>{{item}}</span>
-      {{/each}}
-{{else}}
-        -
-{{/if}}
-      </dd>
-    </dl>
-{{/let}}
+    {{#let (union item.NodeChecks item.ServiceChecks) as |checks|}}
+      <dl class="checks">
+        <dt {{tooltip}}>
+          Checks
+        </dt>
+        <dd>
+          {{#if (gt checks.length 0)}}
+            {{#each checks as |item|}}
+              <span>{{item}}</span>
+            {{/each}}
+          {{else}}
+            -
+          {{/if}}
+        </dd>
+      </dl>
+    {{/let}}
   </BlockSlot>
   <BlockSlot @name="actions">
     <ConfirmationDialog
@@ -87,10 +76,10 @@ as |item index|>
     >
       <BlockSlot @name="action" as |confirm|>
         <Hds::Button
-          @text='Invalidate'
-          @color='critical'
+          @text="Invalidate"
+          @color="critical"
           data-test-delete
-          {{on 'click' (fn confirm (fn @ondelete item))}}
+          {{on "click" (fn confirm (fn @ondelete item))}}
         />
       </BlockSlot>
       <BlockSlot @name="dialog" as |execute cancel message|>
@@ -99,15 +88,15 @@ as |item index|>
         </p>
         <Hds::ButtonSet>
           <Hds::Button
-            @text='Confirm Invalidate'
-            @color='critical'
+            @text="Confirm Invalidate"
+            @color="critical"
             data-test-delete
-            {{on 'click' (fn execute)}}
+            {{on "click" (fn execute)}}
           />
           <Hds::Button
-            @text='Cancel'
-            @color='secondary'
-            {{on 'click' (fn cancel)}}
+            @text="Cancel"
+            @color="secondary"
+            {{on "click" (fn cancel)}}
           />
         </Hds::ButtonSet>
       </BlockSlot>

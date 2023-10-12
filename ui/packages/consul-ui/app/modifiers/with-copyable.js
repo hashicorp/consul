@@ -6,6 +6,7 @@
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
+import { registerDestructor } from '@ember/destroyable';
 
 const typeAssertion = (type, value, withDefault) => {
   return typeof value === type ? value : withDefault;
@@ -16,7 +17,7 @@ export default class WithCopyableModifier extends Modifier {
   hash = null;
   source = null;
 
-  connect([value], _hash) {
+  connect(value, _hash) {
     value = typeAssertion('string', value, this.element.innerText);
     const hash = {
       success: (e) => {
@@ -39,6 +40,13 @@ export default class WithCopyableModifier extends Modifier {
     this.hash = hash;
   }
 
+  modify(element, [value], namedArgs) {
+    this.element = element;
+    this.disconnect();
+    this.connect(value, namedArgs);
+    registerDestructor(this, this.disconnect);
+  }
+
   disconnect() {
     if (this.source && this.hash) {
       this.source.off('success', this.hash.success).off('error', this.hash.error);
@@ -50,12 +58,9 @@ export default class WithCopyableModifier extends Modifier {
   }
 
   // lifecycle hooks
-  didReceiveArguments() {
-    this.disconnect();
-    this.connect(this.args.positional, this.args.named);
-  }
-
-  willRemove() {
-    this.disconnect();
-  }
+  // didReceiveArguments() {
+  //   console.log('we out here');
+  //   this.disconnect();
+  //   this.connect(this.args.positional, this.args.named);
+  // }
 }

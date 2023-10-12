@@ -3,144 +3,132 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<Route
-  @name={{routeName}}
-as |route|>
-  <DataSource @src={{uri '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
-    (hash
-      partition=route.params.partition
-      nspace=route.params.nspace
-      dc=route.params.dc
-      name=route.params.name
-    )
-  }} as |tomography|>
-  <DataLoader
-    @src={{uri '/${partition}/${nspace}/${dc}/node/${name}/${peer}'
+<Route @name={{routeName}} as |route|>
+  <DataSource
+    @src={{uri
+      '/${partition}/${nspace}/${dc}/coordinates/for-node/${name}'
       (hash
         partition=route.params.partition
         nspace=route.params.nspace
         dc=route.params.dc
         name=route.params.name
-        peer=route.params.peer
       )
     }}
-  as |loader|>
-    <BlockSlot @name="error">
-      <AppError
-        @error={{loader.error}}
-        @login={{route.model.app.login.open}}
-      />
-    </BlockSlot>
+    as |tomography|
+  >
+    <DataLoader
+      @src={{uri
+        '/${partition}/${nspace}/${dc}/node/${name}/${peer}'
+        (hash
+          partition=route.params.partition
+          nspace=route.params.nspace
+          dc=route.params.dc
+          name=route.params.name
+          peer=route.params.peer
+        )
+      }}
+      as |loader|
+    >
+      <BlockSlot @name='error'>
+        <AppError @error={{loader.error}} @login={{route.model.app.login.open}} />
+      </BlockSlot>
 
-    <BlockSlot @name="disconnected" as |after|>
-      {{#if (eq loader.error.status "404")}}
-        <Hds::Toast
-          @color='warning'
-          {{notification
-            sticky=true
-          }} as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>This node no longer exists in the catalog.</T.Description>
-        </Hds::Toast>
-      {{else if (eq loader.error.status "403")}}
-        <Hds::Toast
-          @color='critical'
-          {{notification
-            sticky=true
-          }} as |T|>
-          <T.Title>Error!</T.Title>
-          <T.Description>You no longer have access to this node.</T.Description>
-        </Hds::Toast>
-      {{else}}
-        <Hds::Toast
-          @color='warning'
-          {{notification
-            sticky=true
-          }} as |T|>
-          <T.Title>Warning!</T.Title>
-          <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
-        </Hds::Toast>
-      {{/if}}
-    </BlockSlot>
-    <BlockSlot @name="loaded">
-{{#let
-  loader.data
-  tomography.data
-as |item tomography|}}
-      <AppView>
-          <BlockSlot @name="notification" as |status type|>
-            <Consul::LockSession::Notifications
-              @type={{type}}
-              @status={{status}}
-            />
-          </BlockSlot>
-          <BlockSlot @name="breadcrumbs">
+      <BlockSlot @name='disconnected' as |after|>
+        {{#if (eq loader.error.status '404')}}
+          <Hds::Toast @color='warning' {{notification sticky=true}} as |T|>
+            <T.Title>Warning!</T.Title>
+            <T.Description>This node no longer exists in the catalog.</T.Description>
+          </Hds::Toast>
+        {{else if (eq loader.error.status '403')}}
+          <Hds::Toast @color='critical' {{notification sticky=true}} as |T|>
+            <T.Title>Error!</T.Title>
+            <T.Description>You no longer have access to this node.</T.Description>
+          </Hds::Toast>
+        {{else}}
+          <Hds::Toast @color='warning' {{notification sticky=true}} as |T|>
+            <T.Title>Warning!</T.Title>
+            <T.Description>An error was returned whilst loading this data, refresh to try again.</T.Description>
+          </Hds::Toast>
+        {{/if}}
+      </BlockSlot>
+      <BlockSlot @name='loaded'>
+        {{#let loader.data tomography.data as |item tomography|}}
+          <AppView>
+            <BlockSlot @name='notification' as |status type|>
+              <Consul::LockSession::Notifications @type={{type}} @status={{status}} />
+            </BlockSlot>
+            <BlockSlot @name='breadcrumbs'>
               <ol>
-                  <li><a data-test-back href={{href-to 'dc.nodes' params=(hash peer=undefined)}}>All Nodes</a></li>
+                <li><a data-test-back href={{href-to 'dc.nodes' params=(hash peer=undefined)}}>All
+                    Nodes</a></li>
               </ol>
-          </BlockSlot>
-          <BlockSlot @name="header">
+            </BlockSlot>
+            <BlockSlot @name='header'>
               <h1>
                 <route.Title @title={{item.Node}} />
               </h1>
-              <label for="toolbar-toggle"></label>
+              <label for='toolbar-toggle'></label>
               <Consul::Peer::Info @item={{item}} />
-          </BlockSlot>
-          <BlockSlot @name="nav">
-            <TabNav @items={{
-              compact
-                (array
-                  (hash
-                    label=(t 'routes.dc.nodes.show.healthchecks.title')
-                    href=(href-to "dc.nodes.show.healthchecks")
-                    selected=(is-href "dc.nodes.show.healthchecks")
+            </BlockSlot>
+            <BlockSlot @name='nav'>
+              <TabNav
+                @items={{compact
+                  (array
+                    (hash
+                      label=(t 'routes.dc.nodes.show.healthchecks.title')
+                      href=(href-to 'dc.nodes.show.healthchecks')
+                      selected=(is-href 'dc.nodes.show.healthchecks')
+                    )
+                    (hash
+                      label=(t 'routes.dc.nodes.show.services.title')
+                      href=(href-to 'dc.nodes.show.services')
+                      selected=(is-href 'dc.nodes.show.services')
+                    )
+                    (if
+                      tomography.distances
+                      (hash
+                        label=(t 'routes.dc.nodes.show.rtt.title')
+                        href=(href-to 'dc.nodes.show.rtt')
+                        selected=(is-href 'dc.nodes.show.rtt')
+                      )
+                      ''
+                    )
+                    (if
+                      (can 'read sessions')
+                      (hash
+                        label=(t 'routes.dc.nodes.show.sessions.title')
+                        href=(href-to 'dc.nodes.show.sessions')
+                        selected=(is-href 'dc.nodes.show.sessions')
+                      )
+                      ''
+                    )
+                    (hash
+                      label=(t 'routes.dc.nodes.show.metadata.title')
+                      href=(href-to 'dc.nodes.show.metadata')
+                      selected=(is-href 'dc.nodes.show.metadata')
+                    )
                   )
-                  (hash
-                    label=(t 'routes.dc.nodes.show.services.title')
-                    href=(href-to "dc.nodes.show.services")
-                    selected=(is-href "dc.nodes.show.services")
-                  )
-(if tomography.distances
-                  (hash
-                    label=(t 'routes.dc.nodes.show.rtt.title')
-                    href=(href-to "dc.nodes.show.rtt")
-                    selected=(is-href "dc.nodes.show.rtt")
-                  )
-'')
-(if (can 'read sessions')
-                  (hash
-                    label=(t 'routes.dc.nodes.show.sessions.title')
-                    href=(href-to "dc.nodes.show.sessions")
-                    selected=(is-href "dc.nodes.show.sessions")
-                  )
-'')
-                  (hash
-                    label=(t 'routes.dc.nodes.show.metadata.title')
-                    href=(href-to "dc.nodes.show.metadata")
-                    selected=(is-href "dc.nodes.show.metadata")
-                  )
-                )
-            }}/>
-          </BlockSlot>
-          <BlockSlot @name="actions">
-            <CopyButton @value={{item.Address}} @name="Address">{{item.Address}}</CopyButton>
-          </BlockSlot>
-          <BlockSlot @name="content">
-            <Outlet
-              @name={{routeName}}
-              @model={{assign
-                (hash
-                  item=item
-                  tomography=tomography
-                ) route.model
-              }}
-            as |o|>
-              {{outlet}}
-            </Outlet>
-          </BlockSlot>
-      </AppView>
-{{/let}}
-    </BlockSlot>
-  </DataLoader>
+                }}
+              />
+            </BlockSlot>
+            <BlockSlot @name='actions'>
+              <ConsulCopyButton
+                @value={{item.Address}}
+                @name='Address'
+              >{{item.Address}}</ConsulCopyButton>
+            </BlockSlot>
+            <BlockSlot @name='content'>
+              <Outlet
+                @name={{routeName}}
+                @model={{assign (hash item=item tomography=tomography) route.model}}
+                as |o|
+              >
+                {{outlet}}
+              </Outlet>
+            </BlockSlot>
+          </AppView>
+        {{/let}}
+      </BlockSlot>
+    </DataLoader>
   </DataSource>
 </Route>

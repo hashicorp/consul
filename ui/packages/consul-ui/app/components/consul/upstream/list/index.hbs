@@ -4,20 +4,19 @@
 }}
 
 <ListCollection
-  class="consul-upstream-list"
+  class='consul-upstream-list'
   ...attributes
   @items={{@items}}
-  @linkable="linkable upstream"
-as |item index|>
-  <BlockSlot @name="header">
-{{#if (gt item.InstanceCount 0)}}
-    <dl class={{item.MeshStatus}}>
-      <dt>
-        Health
-      </dt>
-      <dd
-        {{tooltip}}
-      >
+  @linkable='linkable upstream'
+  as |item index|
+>
+  <BlockSlot @name='header'>
+    {{#if (gt item.InstanceCount 0)}}
+      <dl class={{item.MeshStatus}}>
+        <dt>
+          Health
+        </dt>
+        <dd {{tooltip}}>
           {{#if (eq 'critical' item.MeshStatus)}}
             At least one health check on one instance is failing.
           {{else if (eq 'warning' item.MeshStatus)}}
@@ -27,52 +26,40 @@ as |item index|>
           {{else}}
             There are no health checks.
           {{/if}}
-      </dd>
-    </dl>
-    <a
-      data-test-service-name
-      href={{href-to "dc.services.show" item.Name
-        params=(if (not-eq item.Partition @partition)
-          (hash
-            partition=item.Partition
-            nspace=item.Namespace
+        </dd>
+      </dl>
+      <a
+        data-test-service-name
+        href={{href-to
+          'dc.services.show'
+          item.Name
+          params=(if
+            (not-eq item.Partition @partition)
+            (hash partition=item.Partition nspace=item.Namespace)
+            (if (not-eq item.Namespace @nspace) (hash nspace=item.Namespace) (hash))
           )
-          (if (not-eq item.Namespace @nspace)
-            (hash
-              nspace=item.Namespace
-            )
-            (hash)
-          )
-        )
-      }}
-    >
-      {{item.Name}}
-    </a>
-{{else}}
-    <p data-test-service-name>
-      {{item.Name}}
-    </p>
-{{/if}}
+        }}
+      >
+        {{item.Name}}
+      </a>
+    {{else}}
+      <p data-test-service-name>
+        {{item.Name}}
+      </p>
+    {{/if}}
   </BlockSlot>
-  <BlockSlot @name="details">
-    <Consul::Bucket::List
-      @item={{item}}
-      @nspace={{@nspace}}
-      @partition={{@partition}}
-    />
-{{#each item.GatewayConfig.Addresses as |address|}}
-    <dl>
-      <dt>
-        Address
-      </dt>
-      <dd>
-        <CopyButton
-          @value={{address}}
-          @name="Address"
-        />
-        {{address}}
-      </dd>
-    </dl>
-{{/each}}
+  <BlockSlot @name='details'>
+    <Consul::Bucket::List @item={{item}} @nspace={{@nspace}} @partition={{@partition}} />
+    {{#each item.GatewayConfig.Addresses as |address|}}
+      <dl>
+        <dt>
+          Address
+        </dt>
+        <dd>
+          <ConsulCopyButton @value={{address}} @name='Address' />
+          {{address}}
+        </dd>
+      </dl>
+    {{/each}}
   </BlockSlot>
 </ListCollection>

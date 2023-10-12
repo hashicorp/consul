@@ -26,30 +26,21 @@
 
     <BlockSlot @name='disconnected' as |after|>
       {{#if (eq loader.error.status '404')}}
-        <Hds::Toast
-          @color='warning'
-          {{notification sticky=true}}
-          as |T|>
+        <Hds::Toast @color='warning' {{notification sticky=true}} as |T|>
           <T.Title>Warning!</T.Title>
           <T.Description>
             This service has been deregistered and no longer exists in the catalog.
           </T.Description>
         </Hds::Toast>
       {{else if (eq loader.error.status '403')}}
-        <Hds::Toast
-          @color='critical'
-          {{notification sticky=true}}
-          as |T|>
+        <Hds::Toast @color='critical' {{notification sticky=true}} as |T|>
           <T.Title>Error!</T.Title>
           <T.Description>
             You no longer have access to this service.
           </T.Description>
         </Hds::Toast>
       {{else}}
-        <Hds::Toast
-          @color='critical'
-          {{notification sticky=true}}
-          as |T|>
+        <Hds::Toast @color='critical' {{notification sticky=true}} as |T|>
           <T.Title>Warning!</T.Title>
           <T.Description>
             An error was returned whilst loading this data, refresh to try again.
@@ -162,7 +153,7 @@
           </BlockSlot>
           <BlockSlot @name='actions'>
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
-              <CopyButton @value={{address}} @name='Address'>{{address}}</CopyButton>
+              <ConsulCopyButton @value={{address}} @name='Address'>{{address}}</ConsulCopyButton>
             {{/let}}
           </BlockSlot>
           <BlockSlot @name='content'>

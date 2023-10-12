@@ -1,6 +1,7 @@
 ---
 class: css
 ---
+
 # horizontal-kv-list
 
 Provides a horizontally stacked list of key/value pairs, commonly used with a
@@ -19,7 +20,7 @@ to provide a textual tooltip for the icon. Using the `{{tooltip}}` modifier
 with no arguments will make it use the text/DOM content of the DOM element it
 is attached to, see below for a full usage example.
 
-`<CopyButton />` components are commonly added to the value, and can be added
+`<ConsulCopyButtton />` components are commonly added to the value, and can be added
 to the left or right of the value.
 
 ```hbs preview-template
@@ -29,30 +30,21 @@ to the left or right of the value.
   </figcaption>
 
   <dl>
-    <dt class="kind-terminating-gateway">Kind</dt>
+    <dt class='kind-terminating-gateway'>Kind</dt>
     <dd>
       Terminating Gateway
     </dd>
-{{#if true}}
-    <dt
-      {{tooltip}}
-      class="lock-delay"
-    >
-      Lock Delay
-    </dt>
-    <dd>10ms</dd>
-{{/if}}
-    <dt
-      {{tooltip}}
-      class="ttl"
-    >
+    {{#if true}}
+      <dt {{tooltip}} class='lock-delay'>
+        Lock Delay
+      </dt>
+      <dd>10ms</dd>
+    {{/if}}
+    <dt {{tooltip}} class='ttl'>
       TTL
     </dt>
     <dd>
-      <CopyButton
-        @value={{"1m30s10ms"}}
-        @name="TTL"
-      />
+      <ConsulCopyButtton @value={{'1m30s10ms'}} @name='TTL' />
       1m30s10ms
     </dd>
     <dt>
@@ -70,36 +62,26 @@ to the left or right of the value.
 </figure>
 <hr />
 <figure>
-  <figcaption>...or they can all be specified as individual lists (for if you have a component that is already wrapped in a dl, such as our TagList)</figcaption>
+  <figcaption>...or they can all be specified as individual lists (for if you have a component that
+    is already wrapped in a dl, such as our TagList)</figcaption>
 
   <dl>
-    <dt
-      class="service-identity"
-    >
+    <dt class='service-identity'>
       Service Identity
     </dt>
     <dd>service-0</dd>
   </dl><dl>
-    <dt
-      {{tooltip}}
-      class="lock-delay"
-    >
+    <dt {{tooltip}} class='lock-delay'>
       Lock Delay
     </dt>
     <dd>10ms</dd>
   </dl><dl>
-    <dt
-      {{tooltip}}
-      class="ttl"
-    >
+    <dt {{tooltip}} class='ttl'>
       TTL
     </dt>
     <dd>
       1m30s10ms
-      <CopyButton
-        @value={{"1m30s10ms"}}
-        @name="TTL"
-      />
+      <ConsulCopyButtton @value={{'1m30s10ms'}} @name='TTL' />
     </dd>
   </dl><dl>
     <dt>
@@ -115,42 +97,32 @@ to the left or right of the value.
 
 </figure>
 <hr />
-<figure class="reversed">
-  <figcaption>When reversing, you'll probably want to use indiviudual dl's so as to not reverse the order of the KV pairs</figcaption>
+<figure class='reversed'>
+  <figcaption>When reversing, you'll probably want to use indiviudual dl's so as to not reverse the
+    order of the KV pairs</figcaption>
   <dl>
-      <dt class="kind-terminating-gateway">Kind</dt>
-      <dd>
-        Terminating Gateway
-      </dd>
+    <dt class='kind-terminating-gateway'>Kind</dt>
+    <dd>
+      Terminating Gateway
+    </dd>
   </dl>
   <dl>
-    <dt
-      class="service-identity"
-    >
+    <dt class='service-identity'>
       Service Identity
     </dt>
     <dd>service-0</dd>
   </dl>
   <dl>
-    <dt
-      {{tooltip}}
-      class="lock-delay"
-    >
+    <dt {{tooltip}} class='lock-delay'>
       Lock Delay
     </dt>
     <dd>10ms</dd>
   </dl><dl>
-    <dt
-      {{tooltip}}
-      class="ttl"
-    >
+    <dt {{tooltip}} class='ttl'>
       TTL
     </dt>
     <dd>
-      <CopyButton
-        @value={{"1m30s10ms"}}
-        @name="TTL"
-      />
+      <ConsulCopyButtton @value={{'1m30s10ms'}} @name='TTL' />
       1m30s10ms
     </dd>
   </dl><dl>
@@ -165,6 +137,7 @@ to the left or right of the value.
 
 </figure>
 ```
+
 When conditionally listing key/values within a single `dl`, be aware that if no key/values should be shown, then you will be left with an empty `dl`. If you collapse the whitespace using handlebars whitespace collapsing `~`, then this empty `dl` will be removed from the flow via CSS. Alternatively consider using multiple `dl`s which can be wrapped with conditionals individually and therefore leave no empty DOM.
 
 When using as individual `dl` lists be aware of whitespace between `dl`s. There are various ways you can counter this:
@@ -179,7 +152,8 @@ Depending on your exact usecase one of the above options may be more suited than
 ```hbs preview-template
 <figure>
   <figcaption>
-    Conditionally showing multiple key/values sometimes means that you insert an empty `dl` into the DOM
+    Conditionally showing multiple key/values sometimes means that you insert an empty `dl` into the
+    DOM
   </figcaption>
 
   <dl>
@@ -194,7 +168,6 @@ Depending on your exact usecase one of the above options may be more suited than
   </dl>
 </figure>
 ```
-
 
 ```css
 dl {
@@ -230,9 +203,9 @@ dl {
 
 ## Properties
 
-| Property | Type | Default | Description |
-| --- | --- | --- | --- |
-| `--horizontal-kv-list-separator-width` | `length-percentage` | `18px` | The width of the whitespace between two sets of key/value pairs |
-| `--horizontal-kv-list-key-separator` | `string` | `:` | Separator used for between `Key: Value` for textual key/values |
-| `--horizontal-kv-list-key-wrapper-start` | `string` | `(` | Starting wrapper used for wrapping `Value (Key)` for reversed textual key/values |
-| `--horizontal-kv-list-key-wrapper-end` | `string` | `)` | Ending wrapper used for wrapping `Value (Key)` for reversed textual key/values |
+| Property                                 | Type                | Default | Description                                                                      |
+| ---------------------------------------- | ------------------- | ------- | -------------------------------------------------------------------------------- |
+| `--horizontal-kv-list-separator-width`   | `length-percentage` | `18px`  | The width of the whitespace between two sets of key/value pairs                  |
+| `--horizontal-kv-list-key-separator`     | `string`            | `:`     | Separator used for between `Key: Value` for textual key/values                   |
+| `--horizontal-kv-list-key-wrapper-start` | `string`            | `(`     | Starting wrapper used for wrapping `Value (Key)` for reversed textual key/values |
+| `--horizontal-kv-list-key-wrapper-end`   | `string`            | `)`     | Ending wrapper used for wrapping `Value (Key)` for reversed textual key/values   |

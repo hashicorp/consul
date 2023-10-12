@@ -3,90 +3,85 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<div
-  class="consul-upstream-instance-list"
-  ...attributes
->
+<div class='consul-upstream-instance-list' ...attributes>
   <ul>
-{{#each @items as |item|}}
-    <li>
+    {{#each @items as |item|}}
+      <li>
 
-      <div class="header">
-        <p>
-          {{item.DestinationName}}
-        </p>
-      </div>
+        <div class='header'>
+          <p>
+            {{item.DestinationName}}
+          </p>
+        </div>
 
-      <div class="detail">
+        <div class='detail'>
 
-{{#if (not-eq item.DestinationType 'prepared_query')}}
-        <Consul::Bucket::List
-          @item={{hash
-            Namespace=(or item.DestinationNamespace @nspace)
-            Partition=(or item.DestinationPartition @partition)
-          }}
-          @partition={{@partition}}
-          @nspace={{@nspace}}
-        />
-{{/if}}
-
-{{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ""))}}
-        <dl class="datacenter">
-          <dt
-            {{tooltip}}
-          >
-            Datacenter
-          </dt>
-          <dd>
-            {{item.Datacenter}}
-          </dd>
-        </dl>
-{{/if}}
-
-{{#if item.LocalBindSocketPath}}
-        <dl class="local-bind-socket-path">
-          <dt>
-              Local bind socket path
-          </dt>
-          <dd>
-            <CopyButton
-              @value={{item.LocalBindSocketPath}}
-              @name="Local bind socket path"
+          {{#if (not-eq item.DestinationType 'prepared_query')}}
+            <Consul::Bucket::List
+              @item={{hash
+                Namespace=(or item.DestinationNamespace @nspace)
+                Partition=(or item.DestinationPartition @partition)
+              }}
+              @partition={{@partition}}
+              @nspace={{@nspace}}
             />
-            {{item.LocalBindSocketPath}}
-          </dd>
-        </dl>
-        <dl class="local-bind-socket-mode">
-          <dt>
-            Mode
-          </dt>
-          <dd>
-            {{or item.LocalBindSocketMode '-'}}
-          </dd>
-        </dl>
-{{else}}
+          {{/if}}
 
-  {{#if (gt item.LocalBindPort 0)}}
-    {{#let (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort) as |combinedAddress|}}
-        <dl class="local-bind-address">
-          <dt>
-            Address
-          </dt>
-          <dd>
-            <CopyButton
-              @value={{combinedAddress}}
-              @name="Address"
-            />
-              {{combinedAddress}}
-          </dd>
-        </dl>
-    {{/let}}
-  {{/if}}
+          {{#if (and (not-eq item.Datacenter @dc) (not-eq item.Datacenter ''))}}
+            <dl class='datacenter'>
+              <dt {{tooltip}}>
+                Datacenter
+              </dt>
+              <dd>
+                {{item.Datacenter}}
+              </dd>
+            </dl>
+          {{/if}}
 
-{{/if}}
+          {{#if item.LocalBindSocketPath}}
+            <dl class='local-bind-socket-path'>
+              <dt>
+                Local bind socket path
+              </dt>
+              <dd>
+                <ConsulCopyButton
+                  @value={{item.LocalBindSocketPath}}
+                  @name='Local bind socket path'
+                />
+                {{item.LocalBindSocketPath}}
+              </dd>
+            </dl>
+            <dl class='local-bind-socket-mode'>
+              <dt>
+                Mode
+              </dt>
+              <dd>
+                {{or item.LocalBindSocketMode '-'}}
+              </dd>
+            </dl>
+          {{else}}
 
-      </div>
-    </li>
-{{/each}}
+            {{#if (gt item.LocalBindPort 0)}}
+              {{#let
+                (concat (or item.LocalBindAddress '127.0.0.1') ':' item.LocalBindPort)
+                as |combinedAddress|
+              }}
+                <dl class='local-bind-address'>
+                  <dt>
+                    Address
+                  </dt>
+                  <dd>
+                    <ConsulCopyButton @value={{combinedAddress}} @name='Address' />
+                    {{combinedAddress}}
+                  </dd>
+                </dl>
+              {{/let}}
+            {{/if}}
+
+          {{/if}}
+
+        </div>
+      </li>
+    {{/each}}
   </ul>
 </div>
