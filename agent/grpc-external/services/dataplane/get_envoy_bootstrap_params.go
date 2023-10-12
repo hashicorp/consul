@@ -15,17 +15,16 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/consul/state"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/accesslogs"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.GetEnvoyBootstrapParamsRequest) (*pbdataplane.GetEnvoyBootstrapParamsResponse, error) {
@@ -218,7 +217,7 @@ func makeAccessLogs(logs structs.AccessLogs, logger hclog.Logger) []string {
 
 func isWorkloadSelected(name string, selector *pbcatalog.WorkloadSelector) bool {
 	for _, prefix := range selector.Prefixes {
-		if strings.Contains(name, prefix) {
+		if strings.HasPrefix(name, prefix) {
 			return true
 		}
 	}
