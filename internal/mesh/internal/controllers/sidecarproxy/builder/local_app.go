@@ -27,12 +27,16 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 	foundInboundNonMeshPorts := false
 	for portName, port := range workload.Ports {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
+		routeName := fmt.Sprintf("%s:%s", lb.listener.Name, portName)
 
 		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
 			foundInboundNonMeshPorts = true
-			lb.addInboundRouter(clusterName, port, portName, trafficPermissions[portName]).
+			lb.addInboundRouter(clusterName, routeName, port, portName, trafficPermissions[portName]).
 				addInboundTLS()
 
+			if isL7(port.Protocol) {
+				b.addLocalAppRoute(routeName, clusterName)
+			}
 			b.addLocalAppCluster(clusterName).
 				addLocalAppStaticEndpoints(clusterName, port.GetPort())
 		}
@@ -263,7 +267,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 	return b.NewListenerBuilder(listener)
 }
 
-func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort, portName string, tp *pbproxystate.TrafficPermissions) *ListenerBuilder {
+func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string, port *pbcatalog.WorkloadPort, portName string, tp *pbproxystate.TrafficPermissions) *ListenerBuilder {
 	if l.listener == nil {
 		return l
 	}
@@ -279,6 +283,25 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 					},
 					StatPrefix:         l.listener.Name,
 					TrafficPermissions: tp,
+				},
+			},
+			Match: &pbproxystate.Match{
+				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
+			},
+		}
+		l.listener.Routers = append(l.listener.Routers, r)
+	} else if isL7(port.Protocol) {
+		r := &pbproxystate.Router{
+			Destination: &pbproxystate.Router_L7{
+				L7: &pbproxystate.L7Destination{
+					StatPrefix:         l.listener.Name,
+					Protocol:           protocolMap[port.Protocol],
+					TrafficPermissions: tp,
+					StaticRoute:        true,
+					// Route name for l7 local app destinations differentiates between routes for each port.
+					Route: &pbproxystate.L7DestinationRoute{
+						Name: routeName,
+					},
 				},
 			},
 			Match: &pbproxystate.Match{
@@ -314,6 +337,40 @@ func (l *ListenerBuilder) addBlackHoleRouter() *ListenerBuilder {
 
 func getAlpnProtocolFromPortName(portName string) string {
 	return fmt.Sprintf("consul~%s", portName)
+}
+
+func (b *Builder) addLocalAppRoute(routeName string, clusterName string) {
+	proxyRouteRule := &pbproxystate.RouteRule{
+		Match: &pbproxystate.RouteMatch{
+			PathMatch: &pbproxystate.PathMatch{
+				PathMatch: &pbproxystate.PathMatch_Prefix{
+					Prefix: "/",
+				},
+			},
+		},
+		Destination: &pbproxystate.RouteDestination{
+			Destination: &pbproxystate.RouteDestination_Cluster{
+				Cluster: &pbproxystate.DestinationCluster{
+					Name: clusterName,
+				},
+			},
+		},
+	}
+	// Each route name for the local app is listenerName:port since there is a route per port on the local app listener.
+	b.addRoute(routeName, &pbproxystate.Route{
+		VirtualHosts: []*pbproxystate.VirtualHost{{
+			Name:       routeName,
+			Domains:    []string{"*"},
+			RouteRules: []*pbproxystate.RouteRule{proxyRouteRule},
+		}},
+	})
+}
+
+func isL7(protocol pbcatalog.Protocol) bool {
+	if protocol == pbcatalog.Protocol_PROTOCOL_HTTP || protocol == pbcatalog.Protocol_PROTOCOL_HTTP2 || protocol == pbcatalog.Protocol_PROTOCOL_GRPC {
+		return true
+	}
+	return false
 }
 
 func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
@@ -382,4 +439,10 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 		l.listener.Routers[i].InboundTls = inboundTLS
 	}
 	return l
+}
+
+var protocolMap = map[pbcatalog.Protocol]pbproxystate.L7Protocol{
+	pbcatalog.Protocol_PROTOCOL_HTTP:  pbproxystate.L7Protocol_L7_PROTOCOL_HTTP,
+	pbcatalog.Protocol_PROTOCOL_HTTP2: pbproxystate.L7Protocol_L7_PROTOCOL_HTTP2,
+	pbcatalog.Protocol_PROTOCOL_GRPC:  pbproxystate.L7Protocol_L7_PROTOCOL_GRPC,
 }

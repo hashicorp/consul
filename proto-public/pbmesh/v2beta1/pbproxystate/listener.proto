@@ -102,22 +102,49 @@ message L4Destination {
   uint64 max_inbound_connections = 5;
 }
 
-message L7Destination {
+message L7DestinationRoute {
   // name is a key in the top level routes map. This specifies which route to go to in this L7 destination.
   string name = 1;
+}
+
+message L7Destination {
+  // route specifies which route to go to in this L7 destination.
+  L7DestinationRoute route = 1;
   // stat_prefix is for compatibility with v1 xds configuration, so it is generated in exactly the same way.
   string stat_prefix = 2;
   // protocol for the destination.
   L7Protocol protocol = 3;
   // traffic_permissions is a list of intentions for this destination.
   TrafficPermissions traffic_permissions = 4;
-  // include_xfcc specifies whether to add xfcc header.
-  bool include_xfcc = 5;
+  // include_xfcc specifies whether to add an xfcc policy for handling xfcc headers.
+  bool include_xfcc_policy = 5;
+  // xfcc_policy determines how to handle xfcc headers.
+  XFCCPolicy xfcc_policy = 6;
+  // parse_xfcc_headers determines whether to add filters to parse xfcc headers on incoming connections.
+  bool parse_xfcc_headers = 7;
   // static_route specifies whether this is a static route that is inlined in the listener filter. This is required to
   // match existing xds config.
-  bool static_route = 6;
+  bool static_route = 8;
   // max_inbound_connections specifies how many connections this destination can accept.
-  uint64 max_inbound_connections = 7;
+  uint64 max_inbound_connections = 9;
+}
+
+enum XFCCPolicy {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  // Do not send the XFCC header to the next hop. This is the default value.
+  XFCC_POLICY_SANITIZE = 0;
+  // When the client connection is mTLS (Mutual TLS), forward the XFCC header
+  // in the request.
+  XFCC_POLICY_FORWARD_ONLY = 1;
+  // When the client connection is mTLS, append the client certificate
+  // information to the request’s XFCC header and forward it.
+  XFCC_POLICY_APPEND_FORWARD = 2;
+  // When the client connection is mTLS, reset the XFCC header with the client
+  // certificate information and send it to the next hop.
+  XFCC_POLICY_SANITIZE_SET = 3;
+  // Always forward the XFCC header in the request, regardless of whether the
+  // client connection is mTLS.
+  XFCC_POLICY_ALWAYS_FORWARD_ONLY = 4;
 }
 
 enum L7Protocol {

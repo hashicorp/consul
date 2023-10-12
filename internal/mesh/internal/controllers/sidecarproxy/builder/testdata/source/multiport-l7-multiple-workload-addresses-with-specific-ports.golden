@@ -1,52 +1,36 @@
 {
   "proxyState": {
     "clusters": {
-      "exposed_cluster_9090": {
+      "local_app:admin-port": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "exposed_cluster_9090"
+        "name": "local_app:admin-port"
       },
-      "exposed_cluster_9091": {
+      "local_app:api-port": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "exposed_cluster_9091"
-      },
-      "local_app:port1": {
-        "endpointGroup": {
-          "static": {}
-        },
-        "name": "local_app:port1"
+        "name": "local_app:api-port"
       }
     },
     "endpoints": {
-      "exposed_cluster_9090": {
-        "endpoints": [
-          {
-            "hostPort": {
-              "host": "127.0.0.1",
-              "port": 9090
-            }
-          }
-        ]
-      },
-      "exposed_cluster_9091": {
-        "endpoints": [
-          {
-            "hostPort": {
-              "host": "127.0.0.1",
-              "port": 9091
-            }
-          }
-        ]
-      },
-      "local_app:port1": {
+      "local_app:admin-port": {
         "endpoints": [
           {
             "hostPort": {
               "host": "127.0.0.1",
               "port": 8080
+            }
+          }
+        ]
+      },
+      "local_app:api-port": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 9090
             }
           }
         ]
@@ -72,7 +56,7 @@
         ],
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
-          "host": "10.0.0.1",
+          "host": "10.0.0.3",
           "port": 20000
         },
         "name": "public_listener",
@@ -88,79 +72,67 @@
                 }
               }
             },
-            "l4": {
-              "cluster": {
-                "name": "local_app:port1"
+            "l7": {
+              "route": {
+                "name": "public_listener:admin-port"
               },
               "statPrefix": "public_listener",
+              "staticRoute": true,
               "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
-                "consul~port1"
+                "consul~admin-port"
               ]
             }
-          }
-        ]
-      },
-      {
-        "direction": "DIRECTION_INBOUND",
-        "hostPort": {
-          "host": "10.0.0.1",
-          "port": 9090
-        },
-        "name": "exposed_path_health",
-        "routers": [
+          },
           {
-            "l7": {
-              "route": {
-                "name": "exposed_path_filter_health_1234"
-              },
-              "statPrefix": "exposed_path_filter_health_1234",
-              "staticRoute": true
-            }
-          }
-        ]
-      },
-      {
-        "direction": "DIRECTION_INBOUND",
-        "hostPort": {
-          "host": "10.0.0.1",
-          "port": 9091
-        },
-        "name": "exposed_path_GetHealth",
-        "routers": [
-          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
             "l7": {
               "protocol": "L7_PROTOCOL_HTTP2",
               "route": {
-                "name": "exposed_path_filter_GetHealth_1235"
+                "name": "public_listener:api-port"
               },
-              "statPrefix": "exposed_path_filter_GetHealth_1235",
-              "staticRoute": true
+              "statPrefix": "public_listener",
+              "staticRoute": true,
+              "trafficPermissions": {}
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~api-port"
+              ]
             }
           }
         ]
       }
     ],
     "routes": {
-      "exposed_path_filter_GetHealth_1235": {
+      "public_listener:admin-port": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "exposed_path_filter_GetHealth_1235",
+            "name": "public_listener:admin-port",
             "routeRules": [
               {
                 "destination": {
                   "cluster": {
-                    "name": "exposed_cluster_9091"
+                    "name": "local_app:admin-port"
                   }
                 },
                 "match": {
                   "pathMatch": {
-                    "exact": "GetHealth"
+                    "prefix": "/"
                   }
                 }
               }
@@ -168,23 +140,23 @@
           }
         ]
       },
-      "exposed_path_filter_health_1234": {
+      "public_listener:api-port": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "exposed_path_filter_health_1234",
+            "name": "public_listener:api-port",
             "routeRules": [
               {
                 "destination": {
                   "cluster": {
-                    "name": "exposed_cluster_9090"
+                    "name": "local_app:api-port"
                   }
                 },
                 "match": {
                   "pathMatch": {
-                    "exact": "/health"
+                    "prefix": "/"
                   }
                 }
               }

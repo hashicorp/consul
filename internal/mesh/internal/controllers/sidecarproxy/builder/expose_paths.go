@@ -69,7 +69,9 @@ func (b *ListenerBuilder) addExposePathsRouter(exposePath *pbmesh.ExposePath) *L
 	}
 	routerDestination := &pbproxystate.Router_L7{
 		L7: &pbproxystate.L7Destination{
-			Name:        destinationName,
+			Route: &pbproxystate.L7DestinationRoute{
+				Name: destinationName,
+			},
 			StatPrefix:  destinationName,
 			StaticRoute: true,
 			Protocol:    l7Protocol,
