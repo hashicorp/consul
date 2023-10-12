@@ -70,7 +70,7 @@
     "@glimmer/component": "^1.0.4",
     "@glimmer/tracking": "^1.0.4",
     "@hashicorp/design-system-components": "^1.6.0",
-    "@hashicorp/design-system-tokens": "^1.0.0",
+    "@hashicorp/design-system-tokens": "^1.9.0",
     "@hashicorp/ember-cli-api-double": "^4.0.0",
     "@hashicorp/ember-flight-icons": "^3.0.2",
     "@html-next/vertical-collection": "^4.0.0",
