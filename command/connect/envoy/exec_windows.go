@@ -49,7 +49,7 @@ func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {
 	}
 
 	if n < len(bootstrapJSON) {
-		return pipeFile, fmt.Errorf("failed writing boostrap to child STDIN: %s", err)
+		return pipeFile, fmt.Errorf("failed writing bootstrap to child STDIN: %s", err)
 	}
 
 	// We can't wait for the process since we need to exec into Envoy before it
