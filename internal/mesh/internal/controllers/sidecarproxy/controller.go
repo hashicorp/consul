@@ -247,9 +247,9 @@ func (r *reconciler) workloadPortProtocolsFromService(
 	// Fetch all services for this workload.
 	serviceIDs := r.cache.ServicesForWorkload(workload.GetResource().GetId())
 
-	services := make([]*types.DecodedService, len(serviceIDs))
+	var services []*types.DecodedService
 
-	for i, serviceID := range serviceIDs {
+	for _, serviceID := range serviceIDs {
 		svc, err := fetcher.FetchService(ctx, serviceID)
 		if err != nil {
 			return nil, err
@@ -261,7 +261,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 			continue
 		}
 
-		services[i] = svc
+		services = append(services, svc)
 	}
 
 	// Now walk through all workload ports.
@@ -276,6 +276,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 			continue
 		}
 
+		// Check if we have any service IDs or fetched services.
 		if len(serviceIDs) == 0 || len(services) == 0 {
 			result[portName] = &pbcatalog.WorkloadPort{
 				Port:     port.GetPort(),
