@@ -7,10 +7,12 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
-	"testing"
-
+	"fmt"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/encoding/protojson"
+	"testing"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -994,4 +996,74 @@ func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
 
 func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
+}
+
+func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
+	path := "../sidecarproxy/builder/testdata"
+	cases := []string{
+		"destination/l4-single-destination-ip-port-bind-address",
+		"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-multi-destination",
+		"destination/mixed-multi-destination",
+	}
+
+	for _, name := range cases {
+		suite.Run(name, func() {
+			// Create ProxyStateTemplate from the golden file.
+			pst := JSONToProxyTemplate(suite.T(),
+				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
+
+			// Store the initial ProxyStateTemplate and track it in the mapper.
+			proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
+				WithData(suite.T(), pst).
+				Write(suite.T(), suite.client)
+
+			suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
+			for idx, ep := range pst.ProxyState.Endpoints {
+				resourcetest.Resource(pbcatalog.ServiceEndpointsType, fmt.Sprintf("test-%d", idx)).
+					WithData(suite.T(), ep).
+					Write(suite.T(), suite.client)
+			}
+
+			// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
+			err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+				ID: proxyStateTemplate.Id,
+			})
+			require.NoError(suite.T(), err)
+
+			require.NotNil(suite.T(), proxyStateTemplate)
+			//require.JSONEq(suite.T(), expected, actual)
+		})
+	}
+}
+
+func (suite *xdsControllerTestSuite) TestBuildImplicitDestinations() {
+
+	cases := []string{
+		"destination/l4-single-implicit-destination-tproxy",
+		"destination/l4-multiple-implicit-destinations-tproxy",
+		"destination/l4-implicit-and-explicit-destinations-tproxy",
+	}
+
+	for _, name := range cases {
+		suite.Run(name, func() {
+			//proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, proxyCfg).
+			//	BuildDestinations(c.destinations).
+			//	Build()
+			//
+			//actual := protoToJSON(t, proxyTmpl)
+			//expected := golden.Get(t, actual, name+".golden")
+			//
+			//require.JSONEq(t, expected, actual)
+		})
+	}
+}
+
+func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
+	t.Helper()
+	proxyTemplate := &pbmesh.ProxyStateTemplate{}
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal(json, proxyTemplate)
+	require.NoError(t, err)
+	return proxyTemplate
 }
