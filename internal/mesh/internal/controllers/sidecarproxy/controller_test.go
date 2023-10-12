@@ -247,7 +247,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoService
 		Build()
 
 	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
-	workloadPorts, err := suite.ctl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload)
+	workloadPorts, err := suite.ctl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
 	require.NoError(suite.T(), err)
 	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
 }
@@ -282,7 +282,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_ServiceNo
 
 	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
 
-	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload)
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
 	require.NoError(suite.T(), err)
 	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
 	// Check that the service is no longer in cache.
@@ -374,7 +374,7 @@ func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService() {
 		"mesh":               {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 	}
 
-	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload)
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
 	require.NoError(suite.T(), err)
 
 	prototest.AssertDeepEqual(suite.T(), expWorkloadPorts, workloadPorts)

@@ -6,6 +6,7 @@ package sidecarproxy
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -179,7 +180,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		ctp = trafficPermissions.Data
 	}
 
-	workloadPorts, err := r.workloadPortProtocolsFromService(ctx, dataFetcher, workload)
+	workloadPorts, err := r.workloadPortProtocolsFromService(ctx, dataFetcher, workload, rt.Logger)
 	if err != nil {
 		rt.Logger.Error("error determining workload ports", "error", err)
 		return err
@@ -242,6 +243,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 	ctx context.Context,
 	fetcher *fetcher.Fetcher,
 	workload *types.DecodedWorkload,
+	logger hclog.Logger,
 ) (map[string]*pbcatalog.WorkloadPort, error) {
 
 	// Fetch all services for this workload.
@@ -278,6 +280,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 
 		// Check if we have any service IDs or fetched services.
 		if len(serviceIDs) == 0 || len(services) == 0 {
+			logger.Trace("found no services for this workload's port; using default TCP protocol", "port", portName)
 			result[portName] = &pbcatalog.WorkloadPort{
 				Port:     port.GetPort(),
 				Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
@@ -291,17 +294,18 @@ func (r *reconciler) workloadPortProtocolsFromService(
 			// Find workload's port as the target port.
 			svcPort := svc.GetData().FindServicePort(portName)
 
-			// If this service doesn't select this port, skip.
+			// If this service doesn't select this port, go to the next service.
 			if svcPort == nil {
 				continue
 			}
 
 			// Check for conflicts.
 			// If protocols between services selecting this workload on this port do not match,
-			// we need to report this mismatch to the user and use the default protocol (tcp) instead.
+			// we use the default protocol (tcp) instead.
 			if inheritedProtocol != pbcatalog.Protocol_PROTOCOL_UNSPECIFIED &&
 				svcPort.GetProtocol() != inheritedProtocol {
 
+				logger.Trace("found conflicting service protocols that select this workload port; using default TCP protocol", "port", portName)
 				inheritedProtocol = pbcatalog.Protocol_PROTOCOL_TCP
 
 				// We won't check any remaining services as there's already a conflict.
@@ -313,6 +317,7 @@ func (r *reconciler) workloadPortProtocolsFromService(
 
 		// If after going through all services, we haven't found a protocol, use the default.
 		if inheritedProtocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			logger.Trace("no services select this workload port; using default TCP protocol", "port", portName)
 			result[portName] = &pbcatalog.WorkloadPort{
 				Port:     port.GetPort(),
 				Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
