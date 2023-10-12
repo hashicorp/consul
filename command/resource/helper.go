@@ -8,10 +8,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/types/known/anypb"
 	"net/http"
 	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/command/helpers"
@@ -34,11 +37,13 @@ type Tenancy struct {
 	Partition string `json:"partition"`
 	PeerName  string `json:"peerName"`
 }
+
 type Type struct {
 	Group        string `json:"group"`
 	GroupVersion string `json:"groupVersion"`
 	Kind         string `json:"kind"`
 }
+
 type ID struct {
 	Name    string  `json:"name"`
 	Tenancy Tenancy `json:"tenancy"`
@@ -95,15 +100,39 @@ func ParseResourceFromFile(filePath string) (*pbresource.Resource, error) {
 		return nil, fmt.Errorf("Failed to load data: %v", err)
 	}
 	var parsedResource *pbresource.Resource
-	parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
-	if err != nil {
+	if isHCL([]byte(data)) {
+		parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+	} else {
 		parsedResource, err = parseJson(data)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
 	}
 
 	return parsedResource, nil
+}
+
+// this is an inlined variant of hcl.lexMode()
+func isHCL(v []byte) bool {
+	var (
+		r      rune
+		w      int
+		offset int
+	)
+
+	for {
+		r, w = utf8.DecodeRune(v[offset:])
+		offset += w
+		if unicode.IsSpace(r) {
+			continue
+		}
+		if r == '{' {
+			return false
+		}
+		break
+	}
+
+	return true
 }
 
 func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {

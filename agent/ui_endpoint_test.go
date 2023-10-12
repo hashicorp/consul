@@ -32,6 +32,28 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestUIEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
+		})
+	}
+
+	checkRequest("GET", "/v1/internal/ui/nodes")
+	checkRequest("GET", "/v1/internal/ui/node/web")
+	checkRequest("GET", "/v1/internal/ui/services")
+	checkRequest("GET", "/v1/internal/ui/exported-services")
+	checkRequest("GET", "/v1/internal/ui/catalog-overview")
+	checkRequest("GET", "/v1/internal/ui/gateway-services-nodes/web")
+	checkRequest("GET", "/v1/internal/ui/gateway-intentions/web")
+	checkRequest("GET", "/v1/internal/ui/service-topology/web")
+	checkRequest("PUT", "/v1/internal/service-virtual-ip")
+}
+
 func TestUIIndex(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

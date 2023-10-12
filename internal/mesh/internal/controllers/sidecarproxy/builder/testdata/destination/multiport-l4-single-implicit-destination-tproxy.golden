@@ -28,6 +28,16 @@
         },
         "name": "http.api-app.default.dc1.internal.foo.consul"
       },
+      "original-destination": {
+        "endpointGroup": {
+          "passthrough": {
+            "config": {
+              "connectTimeout": "5s"
+            }
+          }
+        },
+        "name": "original-destination"
+      },
       "tcp.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-app.default.dc1.internal.foo.consul",
         "endpointGroup": {
@@ -96,6 +106,14 @@
         "capabilities": [
           "CAPABILITY_TRANSPARENT"
         ],
+        "defaultRouter": {
+          "l4": {
+            "cluster": {
+              "name": "original-destination"
+            },
+            "statPrefix": "upstream.original-destination"
+          }
+        },
         "direction": "DIRECTION_OUTBOUND",
         "hostPort": {
           "host": "127.0.0.1",

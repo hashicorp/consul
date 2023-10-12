@@ -286,6 +286,22 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
+			if a.baseDeps.UseV2Resources() {
+				args := structs.DCSpecificRequest{
+					Datacenter: "dc1",
+				}
+				var leader string
+				if err := a.RPC(context.Background(), "Status.Leader", args, &leader); err != nil {
+					retErr = fmt.Errorf("Status.Leader failed: %v", err)
+					continue // fail, try again
+				}
+				if leader == "" {
+					retErr = fmt.Errorf("No leader")
+					continue // fail, try again
+				}
+				return nil // success
+			}
+
 			// Ensure we have a leader and a node registration.
 			args := &structs.DCSpecificRequest{
 				Datacenter: a.Config.Datacenter,
