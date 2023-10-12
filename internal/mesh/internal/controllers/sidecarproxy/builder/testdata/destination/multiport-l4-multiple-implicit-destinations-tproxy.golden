@@ -316,31 +316,10 @@
       }
     ],
     "routes": {
-      "default/local/default/api-app": {
+      "outbound_listener": {
         "virtualHosts": [
           {
-            "name": "default/local/default/api-app",
-            "routeRules": [
-              {
-                "destination": {
-                  "cluster": {
-                    "name": "http.api-app.default.dc1.internal.foo.consul"
-                  }
-                },
-                "match": {
-                  "pathMatch": {
-                    "prefix": "/"
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
-      "default/local/default/api-app2": {
-        "virtualHosts": [
-          {
-            "name": "default/local/default/api-app2",
+            "name": "outbound_listener",
             "routeRules": [
               {
                 "destination": {

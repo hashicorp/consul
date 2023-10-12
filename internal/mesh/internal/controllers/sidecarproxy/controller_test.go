@@ -388,30 +388,30 @@ func (suite *meshControllerTestSuite) TestController() {
 		})
 	})
 
-	// Write a default ComputedRoutes for api.
-	routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-		resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.apiService),
-	)
+	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
+		// Write a default ComputedRoutes for api.
+		routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
+			resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
+		)
 
-	// Add a source service and check that a new proxy state is generated.
-	webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
-		WithData(suite.T(), &pbmesh.Destinations{
-			Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
-			Destinations: []*pbmesh.Destination{
-				{
-					DestinationRef:  resource.Reference(suite.apiService.Id, ""),
-					DestinationPort: "tcp",
-					ListenAddr: &pbmesh.Destination_IpPort{
-						IpPort: &pbmesh.IPPortAddress{
-							Ip:   "127.0.0.1",
-							Port: 1234,
+		// Add a source service and check that a new proxy state is generated.
+		webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
+			WithData(suite.T(), &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
+				Destinations: []*pbmesh.Destination{
+					{
+						DestinationRef:  resource.Reference(suite.apiService.Id, ""),
+						DestinationPort: "tcp",
+						ListenAddr: &pbmesh.Destination_IpPort{
+							IpPort: &pbmesh.IPPortAddress{
+								Ip:   "127.0.0.1",
+								Port: 1234,
+							},
 						},
 					},
 				},
-			},
-		}).Write(suite.T(), suite.client)
+			}).Write(suite.T(), suite.client)
 
-	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
 		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)

@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/mappers/workloadselectionmapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration/mapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -20,19 +20,19 @@ import (
 
 const ControllerName = "consul.io/proxy-configuration-controller"
 
-func Controller(proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]) controller.Controller {
+func Controller(proxyConfigMapper *mapper.Mapper) controller.Controller {
 	if proxyConfigMapper == nil {
 		panic("proxy config mapper is required")
 	}
 
 	return controller.ForType(pbmesh.ComputedProxyConfigurationType).
-		WithWatch(pbmesh.ProxyConfigurationType, proxyConfigMapper.MapToComputedType).
+		WithWatch(pbmesh.ProxyConfigurationType, proxyConfigMapper.MapProxyConfiguration).
 		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedProxyConfigurationType)).
 		WithReconciler(&reconciler{proxyConfigMapper: proxyConfigMapper})
 }
 
 type reconciler struct {
-	proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]
+	proxyConfigMapper *mapper.Mapper
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -83,7 +83,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any proxy configurations IDs that we have in the cache that have selectors matching the name
 	// of this CPC (name-aligned with the workload).
-	proxyCfgIDs := r.proxyConfigMapper.IDsForWorkload(req.ID)
+	proxyCfgIDs := r.proxyConfigMapper.ProxyConfigurationsForWorkload(req.ID)
 	rt.Logger.Trace("cached proxy cfg IDs", "ids", proxyCfgIDs)
 
 	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs)
@@ -164,7 +164,7 @@ func (r *reconciler) fetchProxyConfigs(
 		}
 		if res == nil || res.GetResource() == nil || res.GetData() == nil {
 			// If resource is not found, we should untrack it.
-			r.proxyConfigMapper.UntrackID(id)
+			r.proxyConfigMapper.UntrackProxyConfiguration(id)
 			continue
 		}
 		decoded = append(decoded, res)

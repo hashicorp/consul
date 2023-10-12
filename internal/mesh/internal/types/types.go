@@ -10,8 +10,7 @@ import (
 func Register(r resource.Registry) {
 	RegisterProxyConfiguration(r)
 	RegisterComputedProxyConfiguration(r)
-	RegisterDestinations(r)
-	RegisterComputedExplicitDestinations(r)
+	RegisterUpstreams(r)
 	RegisterUpstreamsConfiguration(r)
 	RegisterProxyStateTemplate(r)
 	RegisterHTTPRoute(r)
