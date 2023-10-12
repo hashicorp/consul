@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
-	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
@@ -230,7 +229,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		c.TrackComputedDestinations(resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, compDest))
 
 		// We will try to fetch explicit destinations for a proxy that doesn't have one.
-		destinations, _, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 
@@ -255,17 +254,12 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, suite.client)
 
-		destinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 		cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(notFoundServiceRef))
 		compDest.Id.Uid = ""
 		prototest.AssertElementsMatch(t, []*pbresource.ID{compDest.Id}, cachedCompDestIDs)
-
-		// Check that the status is created.
-		prototest.AssertContainsElement(t, status.Conditions,
-			ctrlStatus.ConditionDestinationServiceNotFound(resource.ReferenceToString(notFoundServiceRef)))
-
 	})
 
 	testutil.RunStep(suite.T(), "invalid destinations: service not on mesh", func(t *testing.T) {
@@ -289,15 +283,12 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, suite.client)
 
-		destinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 		cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
 		compDest.Id.Uid = ""
 		prototest.AssertElementsMatch(t, []*pbresource.ID{compDest.Id}, cachedCompDestIDs)
-
-		prototest.AssertContainsElement(t, status.Conditions,
-			ctrlStatus.ConditionMeshProtocolNotFound(resource.ReferenceToString(api1ServiceRef)))
 	})
 
 	testutil.RunStep(suite.T(), "invalid destinations: destination port not found", func(t *testing.T) {
@@ -321,15 +312,12 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, suite.client)
 
-		destinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
 		require.Nil(t, destinations)
 		cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
 		compDest.Id.Uid = ""
 		prototest.AssertElementsMatch(t, []*pbresource.ID{compDest.Id}, cachedCompDestIDs)
-
-		prototest.AssertContainsElement(t, status.Conditions,
-			ctrlStatus.ConditionDestinationPortNotFound(resource.ReferenceToString(api1ServiceRef), "tcp"))
 	})
 
 	suite.api1Service = resourcetest.ResourceID(suite.api1Service.Id).
@@ -354,17 +342,13 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, suite.client)
 
-		destinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
 		require.Empty(t, destinations)
 
 		cachedCompDestIDs := c.ComputedDestinationsByService(resource.IDFromReference(api1ServiceRef))
 		compDest.Id.Uid = ""
 		prototest.AssertElementsMatch(t, []*pbresource.ID{compDest.Id}, cachedCompDestIDs)
-
-		serviceRef := resource.ReferenceToString(api1ServiceRef)
-		prototest.AssertContainsElement(t, status.Conditions,
-			ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, "mesh"))
 	})
 
 	compDest := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.webProxy.Id.Name).
@@ -389,15 +373,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 		)
 		require.NotNil(suite.T(), api1ComputedRoutes)
 
-		serviceRef := resource.ReferenceToString(api1ServiceRef)
-
 		// This destination points to TCP, but the computed routes is stale and only knows about HTTP.
-		destinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		destinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
-
-		// Check that the status is generated correctly.
-		prototest.AssertContainsElement(t, status.Conditions,
-			ctrlStatus.ConditionDestinationComputedRoutesPortNotFound(serviceRef, "tcp"))
 
 		// Check that we didn't return any destinations.
 		require.Nil(t, destinations)
@@ -476,13 +454,9 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExplicitDestinationsData() {
 				}),
 			},
 		}
-		expectedConditions := []*pbresource.Condition{ctrlStatus.ConditionAllDestinationsValid()}
 
-		actualDestinations, status, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
+		actualDestinations, err := f.FetchExplicitDestinationsData(suite.ctx, suite.webProxy.Id)
 		require.NoError(t, err)
-
-		// Check that all statuses have "happy" conditions.
-		prototest.AssertElementsMatch(t, expectedConditions, status.Conditions)
 
 		// Check that we've computed expanded destinations correctly.
 		prototest.AssertElementsMatch(t, expectedDestinations, actualDestinations)

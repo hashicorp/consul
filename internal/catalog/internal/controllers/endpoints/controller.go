@@ -394,22 +394,7 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 }
 
 func workloadIdentityStatusFromEndpoints(endpoints *pbcatalog.ServiceEndpoints) *pbresource.Condition {
-	gatherIdentities := func(endpoints *pbcatalog.ServiceEndpoints) []string {
-		if endpoints == nil {
-			return nil
-		}
-
-		var identities []string
-		for _, ep := range endpoints.GetEndpoints() {
-			identities = append(identities, ep.GetIdentity())
-		}
-
-		sort.Strings(identities)
-
-		return identities
-	}
-
-	identities := gatherIdentities(endpoints)
+	identities := endpoints.GetIdentities()
 
 	if len(identities) > 0 {
 		return ConditionIdentitiesFound(identities)

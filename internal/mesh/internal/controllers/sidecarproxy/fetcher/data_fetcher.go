@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
-	ctrlStatus "github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	intermediateTypes "github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/resource"
@@ -87,7 +86,7 @@ func (f *Fetcher) FetchComputedRoutes(ctx context.Context, id *pbresource.ID) (*
 func (f *Fetcher) FetchExplicitDestinationsData(
 	ctx context.Context,
 	proxyID *pbresource.ID,
-) ([]*intermediateTypes.Destination, *intermediateTypes.Status, error) {
+) ([]*intermediateTypes.Destination, error) {
 
 	var destinations []*intermediateTypes.Destination
 
@@ -95,40 +94,31 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 	cdID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, proxyID)
 	cd, err := resource.GetDecodedResource[*pbmesh.ComputedExplicitDestinations](ctx, f.client, cdID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if cd == nil {
 		f.cache.UntrackComputedDestinations(cdID)
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// Otherwise, track this resource in the destinations cache.
 	f.cache.TrackComputedDestinations(cd)
 
-	status := &intermediateTypes.Status{
-		ID:         cd.GetResource().GetId(),
-		OldStatus:  cd.GetResource().GetStatus(),
-		Generation: cd.GetResource().GetGeneration(),
-	}
-
 	for _, dest := range cd.GetData().GetDestinations() {
 		d := &intermediateTypes.Destination{}
 
 		var (
-			serviceID  = resource.IDFromReference(dest.DestinationRef)
-			serviceRef = resource.ReferenceToString(dest.DestinationRef)
+			serviceID = resource.IDFromReference(dest.DestinationRef)
 		)
 
 		// Fetch Service
 		svc, err := f.FetchService(ctx, serviceID)
 		if err != nil {
-			return nil, status, err
+			return nil, err
 		}
 
 		if svc == nil {
-			// If the Service resource is not found, then we update the status
-			// of the ComputedDestinations resource.
-			status.Conditions = append(status.Conditions, ctrlStatus.ConditionDestinationServiceNotFound(serviceRef))
+			// If the Service resource is not found, skip this destination.
 			continue
 		}
 
@@ -136,42 +126,34 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 
 		// Check if this service is mesh-enabled. If not, update the status.
 		if !svc.GetData().IsMeshEnabled() {
-			// Add invalid status.
-			status.Conditions = append(status.Conditions, ctrlStatus.ConditionMeshProtocolNotFound(serviceRef))
-
 			// This error should not cause the execution to stop, as we want to make sure that this non-mesh destination
 			// service gets removed from the proxy state.
 			continue
 		}
 
-		// Check if the desired port exists on the service and update the status if it doesn't.
+		// Check if the desired port exists on the service and skip it doesn't.
 		if svc.GetData().FindServicePort(dest.DestinationPort) == nil {
-			status.Conditions = append(status.Conditions, ctrlStatus.ConditionDestinationPortNotFound(serviceRef, dest.DestinationPort))
 			continue
 		}
 
 		// No destination port should point to a port with "mesh" protocol,
-		// so check if destination port has the mesh protocol and update the status.
+		// so check if destination port has the mesh protocol and skip it if it does.
 		if svc.GetData().FindServicePort(dest.DestinationPort).GetProtocol() == pbcatalog.Protocol_PROTOCOL_MESH {
-			status.Conditions = append(status.Conditions, ctrlStatus.ConditionMeshProtocolDestinationPort(serviceRef, dest.DestinationPort))
 			continue
 		}
 
 		// Fetch ComputedRoutes.
 		cr, err := f.FetchComputedRoutes(ctx, resource.ReplaceType(pbmesh.ComputedRoutesType, serviceID))
 		if err != nil {
-			return nil, status, err
+			return nil, err
 		} else if cr == nil {
 			// This is required, so wait until it exists.
-			status.Conditions = append(status.Conditions, ctrlStatus.ConditionDestinationComputedRoutesNotFound(serviceRef))
 			continue
 		}
 
 		portConfig, ok := cr.Data.PortedConfigs[dest.DestinationPort]
 		if !ok {
 			// This is required, so wait until it exists.
-			status.Conditions = append(status.Conditions,
-				ctrlStatus.ConditionDestinationComputedRoutesPortNotFound(serviceRef, dest.DestinationPort))
 			continue
 		}
 
@@ -189,7 +171,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 			// Fetch ServiceEndpoints.
 			se, err := f.FetchServiceEndpoints(ctx, resource.ReplaceType(pbcatalog.ServiceEndpointsType, targetServiceID))
 			if err != nil {
-				return nil, status, err
+				return nil, err
 			}
 
 			if se != nil {
@@ -198,9 +180,9 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 
 				// Gather all identities.
 				var identities []*pbresource.Reference
-				for _, ep := range se.Data.Endpoints {
+				for _, identity := range se.GetData().GetIdentities() {
 					identities = append(identities, &pbresource.Reference{
-						Name:    ep.Identity,
+						Name:    identity,
 						Tenancy: se.Resource.Id.Tenancy,
 					})
 				}
@@ -211,13 +193,7 @@ func (f *Fetcher) FetchExplicitDestinationsData(
 		destinations = append(destinations, d)
 	}
 
-	// If we fetched and validated all destinations and ended up with no status conditions,
-	// that means all destinations are valid, and we should set the status to a "happy" one.
-	if len(status.Conditions) == 0 {
-		status.Conditions = append(status.Conditions, ctrlStatus.ConditionAllDestinationsValid())
-	}
-
-	return destinations, status, nil
+	return destinations, nil
 }
 
 type PortReferenceKey struct {

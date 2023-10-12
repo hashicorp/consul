@@ -17,16 +17,16 @@ const (
 	StatusReasonSelectorNotFound = "SelectorNotFound"
 	StatusReasonSelectorFound    = "SelectorFound"
 
-	SelectorFoundMessage    = "A valid workload selector is present within the service."
-	SelectorNotFoundMessage = "Either the workload selector was not present or contained no selection criteria."
+	selectorFoundMessage    = "A valid workload selector is present within the service."
+	selectorNotFoundMessage = "Either the workload selector was not present or contained no selection criteria."
 
 	StatusConditionBoundIdentities = "BoundIdentities"
 
 	StatusReasonWorkloadIdentitiesFound   = "WorkloadIdentitiesFound"
 	StatusReasonNoWorkloadIdentitiesFound = "NoWorkloadIdentitiesFound"
 
-	IdentitiesFoundMessageFormat     = "Found workload identities associated with this service: %q."
-	IdentitiesNotFoundChangedMessage = "No associated workload identities found."
+	identitiesFoundMessageFormat     = "Found workload identities associated with this service: %q."
+	identitiesNotFoundChangedMessage = "No associated workload identities found."
 )
 
 var (
@@ -34,21 +34,21 @@ var (
 		Type:    StatusConditionEndpointsManaged,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonSelectorFound,
-		Message: SelectorFoundMessage,
+		Message: selectorFoundMessage,
 	}
 
 	ConditionUnmanaged = &pbresource.Condition{
 		Type:    StatusConditionEndpointsManaged,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonSelectorNotFound,
-		Message: SelectorNotFoundMessage,
+		Message: selectorNotFoundMessage,
 	}
 
 	ConditionIdentitiesNotFound = &pbresource.Condition{
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_FALSE,
 		Reason:  StatusReasonNoWorkloadIdentitiesFound,
-		Message: IdentitiesNotFoundChangedMessage,
+		Message: identitiesNotFoundChangedMessage,
 	}
 )
 
@@ -57,6 +57,6 @@ func ConditionIdentitiesFound(identities []string) *pbresource.Condition {
 		Type:    StatusConditionBoundIdentities,
 		State:   pbresource.Condition_STATE_TRUE,
 		Reason:  StatusReasonWorkloadIdentitiesFound,
-		Message: fmt.Sprintf(IdentitiesFoundMessageFormat, strings.Join(identities, ",")),
+		Message: fmt.Sprintf(identitiesFoundMessageFormat, strings.Join(identities, ",")),
 	}
 }

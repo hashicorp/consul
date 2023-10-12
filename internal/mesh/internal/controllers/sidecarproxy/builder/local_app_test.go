@@ -104,7 +104,7 @@ func TestBuildLocalApp(t *testing.T) {
 func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
-		proxyCfg *pbmesh.ProxyConfiguration
+		proxyCfg *pbmesh.ComputedProxyConfiguration
 	}{
 		"source/l7-expose-paths": {
 			workload: &pbcatalog.Workload{
@@ -118,7 +118,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
-			proxyCfg: &pbmesh.ProxyConfiguration{
+			proxyCfg: &pbmesh.ComputedProxyConfiguration{
 				DynamicConfig: &pbmesh.DynamicConfig{
 					ExposeConfig: &pbmesh.ExposeConfig{
 						ExposePaths: []*pbmesh.ExposePath{
@@ -139,7 +139,6 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				},
 			},
 		},
-		Type: pbauth.WorkloadIdentityType,
 	}
 
 	for name, c := range cases {
@@ -489,5 +488,6 @@ func testIdentityRef() *pbresource.Reference {
 			Partition: "default",
 			PeerName:  "local",
 		},
+		Type: pbauth.WorkloadIdentityType,
 	}
 }

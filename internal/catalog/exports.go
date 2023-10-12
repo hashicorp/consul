@@ -34,6 +34,9 @@ var (
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
+	StatusConditionBoundIdentities           = endpoints.StatusConditionBoundIdentities
+	StatusReasonWorkloadIdentitiesFound      = endpoints.StatusReasonWorkloadIdentitiesFound
+	StatusReasonNoWorkloadIdentitiesFound    = endpoints.StatusReasonNoWorkloadIdentitiesFound
 
 	FailoverStatusKey                                              = failover.StatusKey
 	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted

@@ -183,7 +183,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		BuildLocalApp(workload.Data, ctp)
 
 	// Get all destinationsData.
-	destinationsData, status, err := dataFetcher.FetchExplicitDestinationsData(ctx, req.ID)
+	destinationsData, err := dataFetcher.FetchExplicitDestinationsData(ctx, req.ID)
 	if err != nil {
 		rt.Logger.Error("error fetching explicit destinations for this proxy", "error", err)
 		return err
@@ -227,27 +227,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template data has not changed, skipping update")
 	}
 
-	// Update status if needed.
-	if status != nil {
-		updatedStatus := &pbresource.Status{
-			ObservedGeneration: status.Generation,
-			Conditions:         status.Conditions,
-		}
-
-		// If the status is unchanged then we should return and avoid the unnecessary write
-		if !resource.EqualStatus(status.OldStatus[ControllerName], updatedStatus, false) {
-			rt.Logger.Trace("updating status", "id", status.ID)
-			_, err = rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
-				Id:     status.ID,
-				Key:    ControllerName,
-				Status: updatedStatus,
-			})
-			if err != nil {
-				rt.Logger.Error("error writing new status", "id", status.ID, "error", err)
-				return err
-			}
-		}
-	}
 	return nil
 }
 

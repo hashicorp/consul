@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -463,11 +462,6 @@ func (suite *meshControllerTestSuite) TestController() {
 			suite.client.RequireResourceNotFound(r, apiProxyStateTemplateID)
 		})
 
-		// Check status on the pbmesh.Destinations resource.
-		serviceRef := resource.ReferenceToString(resource.Reference(suite.apiService.Id, ""))
-		suite.client.WaitForStatusCondition(t, webComputedDestinations.Id, ControllerName,
-			status.ConditionMeshProtocolNotFound(serviceRef))
-
 		// We should get a new web proxy template resource because this destination should be removed.
 		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
 
@@ -495,9 +489,6 @@ func (suite *meshControllerTestSuite) TestController() {
 		routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
 			resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
 		)
-
-		suite.client.WaitForStatusCondition(t, webComputedDestinations.Id, ControllerName,
-			status.ConditionAllDestinationsValid())
 
 		// We should also get a new web proxy template resource as this destination should be added again.
 		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
