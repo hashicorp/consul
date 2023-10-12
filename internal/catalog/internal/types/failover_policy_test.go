@@ -253,15 +253,30 @@ func TestValidateFailoverPolicy(t *testing.T) {
 			// TODO(v2): remove after this is supported
 			expectErr: `invalid "sameness_group" field: not supported in this release`,
 		},
-		"mode: invalid": {
+		"regions without dest": {
 			config: &pbcatalog.FailoverConfig{
-				Mode: 99,
-				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
-				},
+				Regions: []string{"us-east1", "us-west2"},
 			},
-			expectErr: `invalid "mode" field: not a supported enum value: 99`,
+			// TODO(v2): remove after this is supported
+			expectErr: `invalid "regions" field: not supported in this release`,
 		},
+		"mode without dest": {
+			config: &pbcatalog.FailoverConfig{
+				Mode: pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
+			},
+			// TODO(v2): remove after this is supported
+			expectErr: `invalid "mode" field: not supported in this release`,
+		},
+		// TODO(v2): uncomment after this is supported
+		// "mode: invalid": {
+		// 	config: &pbcatalog.FailoverConfig{
+		// 		Mode: 99,
+		// 		Destinations: []*pbcatalog.FailoverDestination{
+		// 			{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
+		// 		},
+		// 	},
+		// 	expectErr: `invalid "mode" field: not a supported enum value: 99`,
+		// },
 		"dest: no ref": {
 			config: &pbcatalog.FailoverConfig{
 				Destinations: []*pbcatalog.FailoverDestination{
