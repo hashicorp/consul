@@ -268,7 +268,7 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 		return l
 	}
 
-	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP || port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
 		r := &pbproxystate.Router{
 			Destination: &pbproxystate.Router_L4{
 				L4: &pbproxystate.L4Destination{

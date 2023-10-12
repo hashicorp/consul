@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -32,7 +33,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-type meshControllerTestSuite struct {
+type controllerTestSuite struct {
 	suite.Suite
 
 	client  *resourcetest.Client
@@ -60,7 +61,7 @@ type meshControllerTestSuite struct {
 	proxyStateTemplate *pbmesh.ProxyStateTemplate
 }
 
-func (suite *meshControllerTestSuite) SetupTest() {
+func (suite *controllerTestSuite) SetupTest() {
 	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes, auth.RegisterTypes)
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
@@ -234,7 +235,152 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		Build()
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NoWorkload() {
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoServicesInCache() {
+	dataFetcher := fetcher.New(suite.client, suite.ctl.cache)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp": {Port: 8080},
+			},
+		}).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+	workloadPorts, err := suite.ctl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
+}
+
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_ServiceNotFound() {
+	c := cache.New()
+	dataFetcher := fetcher.New(suite.client, c)
+	ctrl := &reconciler{
+		cache: c,
+		getTrustDomain: func() (string, error) {
+			return "test.consul", nil
+		},
+	}
+	svc := resourcetest.Resource(pbcatalog.ServiceType, "not-found").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+		}).
+		Build()
+
+	decSvc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc)
+	c.TrackService(decSvc)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp": {Port: 8080},
+			},
+		}).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
+	// Check that the service is no longer in cache.
+	require.Nil(suite.T(), c.ServicesForWorkload(workload.Id))
+}
+
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService() {
+	c := cache.New()
+	dataFetcher := fetcher.New(suite.client, c)
+	ctrl := &reconciler{
+		cache: c,
+		getTrustDomain: func() (string, error) {
+			return "test.consul", nil
+		},
+	}
+	svc1 := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{
+					TargetPort: "http1",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+				},
+				{
+					TargetPort: "conflict",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+				},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	decSvc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc1)
+	c.TrackService(decSvc)
+
+	svc2 := resourcetest.Resource(pbcatalog.ServiceType, "api-2").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{
+					TargetPort: "http2",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP2,
+				},
+				{
+					TargetPort: "conflict",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_GRPC,
+				},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	decSvc = resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc2)
+	c.TrackService(decSvc)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"http1":              {Port: 8080},
+				"http2":              {Port: 9090},
+				"conflict":           {Port: 9091},
+				"not-selected":       {Port: 8081},
+				"specified-protocol": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+				"mesh":               {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			},
+		}).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+
+	expWorkloadPorts := map[string]*pbcatalog.WorkloadPort{
+		// This protocol should be inherited from service 1.
+		"http1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+
+		// this protocol should be inherited from service 2.
+		"http2": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+
+		// This port is not selected by the service and should default to tcp.
+		"not-selected": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+
+		// This port has conflicting protocols in each service and so it should default to tcp.
+		"conflict": {Port: 9091, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+
+		// These port should keep its existing protocol.
+		"specified-protocol": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+		"mesh":               {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+	}
+
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+
+	prototest.AssertDeepEqual(suite.T(), expWorkloadPorts, workloadPorts)
+}
+
+func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 	// This test ensures that removed workloads are ignored and don't result
 	// in the creation of the proxy state template.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -245,7 +391,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NoWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "not-found"))
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
+func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 	// This test ensures that non-mesh workloads are ignored by the controller.
 
 	nonMeshWorkload := &pbcatalog.Workload{
@@ -271,7 +417,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "test-non-mesh-api-workload"))
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
+func (suite *controllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 		ID: resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name),
 	})
@@ -283,7 +429,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate
 	prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID, res.Owner)
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
+func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
 	// This test ensures that we write a new proxy state template when there are changes.
 
 	// Write the original.
@@ -292,8 +438,9 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 		WithOwner(suite.apiWorkloadID).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
-	// Update the apiWorkload.
-	suite.apiWorkload.Ports["mesh"].Port = 21000
+	// Update the apiWorkload and check that we default the port to tcp if it's unspecified.
+	suite.apiWorkload.Ports["tcp"].Protocol = pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
+
 	updatedWorkloadID := resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		Write(suite.T(), suite.client.ResourceServiceClient).Id
@@ -313,12 +460,15 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 	require.NoError(suite.T(), err)
 
 	// Check that our value is updated in the proxy state template.
-	inboundListenerPort := updatedProxyStateTemplate.ProxyState.Listeners[0].
-		BindAddress.(*pbproxystate.Listener_HostPort).HostPort.Port
-	require.Equal(suite.T(), uint32(21000), inboundListenerPort)
+	require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners, 1)
+	require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners[0].Routers, 1)
+
+	l4InboundRouter := updatedProxyStateTemplate.ProxyState.Listeners[0].
+		Routers[0].GetL4()
+	require.NotNil(suite.T(), l4InboundRouter)
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
+func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
 	// This test ensures that we skip writing of the proxy state template when there are no changes to it.
 
 	// Write the original.
@@ -342,7 +492,7 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_N
 	resourcetest.RequireVersionUnchanged(suite.T(), updatedProxyState, originalProxyState.Version)
 }
 
-func (suite *meshControllerTestSuite) TestController() {
+func (suite *controllerTestSuite) TestController() {
 	// This is a comprehensive test that checks the overall controller behavior as various resources change state.
 	// This should test interactions between the reconciler, the mappers, and the destinationsCache to ensure they work
 	// together and produce expected result.
@@ -611,7 +761,7 @@ func (suite *meshControllerTestSuite) TestController() {
 	})
 }
 
-func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
+func (suite *controllerTestSuite) TestControllerDefaultAllow() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
 
@@ -640,7 +790,7 @@ func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
 }
 
 func TestMeshController(t *testing.T) {
-	suite.Run(t, new(meshControllerTestSuite))
+	suite.Run(t, new(controllerTestSuite))
 }
 
 func requireExplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {

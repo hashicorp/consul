@@ -6,6 +6,7 @@ package sidecarproxy
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
@@ -179,8 +180,16 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		ctp = trafficPermissions.Data
 	}
 
+	workloadPorts, err := r.workloadPortProtocolsFromService(ctx, dataFetcher, workload, rt.Logger)
+	if err != nil {
+		rt.Logger.Error("error determining workload ports", "error", err)
+		return err
+	}
+	workloadDataWithInheritedPorts := proto.Clone(workload.Data).(*pbcatalog.Workload)
+	workloadDataWithInheritedPorts.Ports = workloadPorts
+
 	b := builder.New(req.ID, identityRefFromWorkload(workload), trustDomain, r.dc, r.defaultAllow, proxyCfg.GetData()).
-		BuildLocalApp(workload.Data, ctp)
+		BuildLocalApp(workloadDataWithInheritedPorts, ctp)
 
 	// Get all destinationsData.
 	destinationsData, err := dataFetcher.FetchExplicitDestinationsData(ctx, req.ID)
@@ -228,6 +237,100 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	return nil
+}
+
+func (r *reconciler) workloadPortProtocolsFromService(
+	ctx context.Context,
+	fetcher *fetcher.Fetcher,
+	workload *types.DecodedWorkload,
+	logger hclog.Logger,
+) (map[string]*pbcatalog.WorkloadPort, error) {
+
+	// Fetch all services for this workload.
+	serviceIDs := r.cache.ServicesForWorkload(workload.GetResource().GetId())
+
+	var services []*types.DecodedService
+
+	for _, serviceID := range serviceIDs {
+		svc, err := fetcher.FetchService(ctx, serviceID)
+		if err != nil {
+			return nil, err
+		}
+
+		// If service is not found, we should untrack it.
+		if svc == nil {
+			r.cache.UntrackService(serviceID)
+			continue
+		}
+
+		services = append(services, svc)
+	}
+
+	// Now walk through all workload ports.
+	// For ports that don't have a protocol explicitly specified, inherit it from the service.
+
+	result := make(map[string]*pbcatalog.WorkloadPort)
+
+	for portName, port := range workload.GetData().GetPorts() {
+		if port.GetProtocol() != pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			// Add any specified protocols as is.
+			result[portName] = port
+			continue
+		}
+
+		// Check if we have any service IDs or fetched services.
+		if len(serviceIDs) == 0 || len(services) == 0 {
+			logger.Trace("found no services for this workload's port; using default TCP protocol", "port", portName)
+			result[portName] = &pbcatalog.WorkloadPort{
+				Port:     port.GetPort(),
+				Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+			}
+			continue
+		}
+
+		// Otherwise, look for port protocol in the service.
+		inheritedProtocol := pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
+		for _, svc := range services {
+			// Find workload's port as the target port.
+			svcPort := svc.GetData().FindServicePort(portName)
+
+			// If this service doesn't select this port, go to the next service.
+			if svcPort == nil {
+				continue
+			}
+
+			// Check for conflicts.
+			// If protocols between services selecting this workload on this port do not match,
+			// we use the default protocol (tcp) instead.
+			if inheritedProtocol != pbcatalog.Protocol_PROTOCOL_UNSPECIFIED &&
+				svcPort.GetProtocol() != inheritedProtocol {
+
+				logger.Trace("found conflicting service protocols that select this workload port; using default TCP protocol", "port", portName)
+				inheritedProtocol = pbcatalog.Protocol_PROTOCOL_TCP
+
+				// We won't check any remaining services as there's already a conflict.
+				break
+			}
+
+			inheritedProtocol = svcPort.GetProtocol()
+		}
+
+		// If after going through all services, we haven't found a protocol, use the default.
+		if inheritedProtocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			logger.Trace("no services select this workload port; using default TCP protocol", "port", portName)
+			result[portName] = &pbcatalog.WorkloadPort{
+				Port:     port.GetPort(),
+				Protocol: pbcatalog.Protocol_PROTOCOL_TCP,
+			}
+		} else {
+			result[portName] = &pbcatalog.WorkloadPort{
+				Port:     port.GetPort(),
+				Protocol: inheritedProtocol,
+			}
+		}
+	}
+
+	return result, nil
 }
 
 func identityRefFromWorkload(w *types.DecodedWorkload) *pbresource.Reference {

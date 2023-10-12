@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
+	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/storage"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -18,16 +19,26 @@ import (
 )
 
 type Cache struct {
-	computedRoutes       *bimapper.Mapper
-	identities           *bimapper.Mapper
+	// computedRoutes keeps track of computed routes IDs to service references it applies to.
+	computedRoutes *bimapper.Mapper
+
+	// identities keeps track of which identity a workload is mapped to.
+	identities *bimapper.Mapper
+
+	// computedDestinations keeps track of the computed explicit destinations IDs to service references that are
+	// referenced in that resource.
 	computedDestinations *bimapper.Mapper
+
+	// serviceSelectorTracker keeps track of which workload selectors a service is currently using.
+	serviceSelectorTracker *selectiontracker.WorkloadSelectionTracker
 }
 
 func New() *Cache {
 	return &Cache{
-		computedRoutes:       bimapper.New(pbmesh.ComputedRoutesType, pbcatalog.ServiceType),
-		identities:           bimapper.New(pbcatalog.WorkloadType, pbauth.WorkloadIdentityType),
-		computedDestinations: bimapper.New(pbmesh.ComputedExplicitDestinationsType, pbcatalog.ServiceType),
+		computedRoutes:         bimapper.New(pbmesh.ComputedRoutesType, pbcatalog.ServiceType),
+		identities:             bimapper.New(pbcatalog.WorkloadType, pbauth.WorkloadIdentityType),
+		computedDestinations:   bimapper.New(pbmesh.ComputedExplicitDestinationsType, pbcatalog.ServiceType),
+		serviceSelectorTracker: selectiontracker.New(),
 	}
 }
 
@@ -87,6 +98,14 @@ func (c *Cache) WorkloadsByWorkloadIdentity(id *pbresource.ID) []*pbresource.ID 
 	return c.identities.ItemIDsForLink(id)
 }
 
+func (c *Cache) ServicesForWorkload(id *pbresource.ID) []*pbresource.ID {
+	return c.serviceSelectorTracker.GetIDsForWorkload(id)
+}
+
+func (c *Cache) UntrackService(id *pbresource.ID) {
+	c.serviceSelectorTracker.UntrackID(id)
+}
+
 func (c *Cache) MapComputedRoutes(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
 	computedRoutes, err := resource.Decode[*pbmesh.ComputedRoutes](res)
 	if err != nil {
@@ -111,7 +130,18 @@ func (c *Cache) mapComputedRoutesToProxyStateTemplate(ctx context.Context, rt co
 	return c.mapServiceThroughDestinations(ctx, rt, serviceRef)
 }
 
+func (c *Cache) TrackService(svc *types.DecodedService) {
+	c.serviceSelectorTracker.TrackIDForSelector(svc.Resource.GetId(), svc.GetData().GetWorkloads())
+}
+
 func (c *Cache) MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
+	// Record workload selector in the cache every time we see an event for a service.
+	decodedService, err := resource.Decode[*pbcatalog.Service](res)
+	if err != nil {
+		return nil, err
+	}
+	c.TrackService(decodedService)
+
 	serviceRef := resource.Reference(res.Id, "")
 
 	pstIDs, err := c.mapServiceThroughDestinations(ctx, rt, serviceRef)

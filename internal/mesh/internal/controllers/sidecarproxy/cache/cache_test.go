@@ -136,6 +136,9 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 	)
 
 	anyServiceData := &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{
+			Prefixes: []string{"src-workload"},
+		},
 		Ports: []*pbcatalog.ServicePort{
 			{
 				TargetPort: "tcp1",
@@ -315,6 +318,26 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 			}
 
 			prototest.AssertElementsMatch(t, expRequests, requests)
+
+			// Check that service's workload selector is tracked.
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy1)))
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy2)))
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy3)))
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy4)))
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy5)))
+			prototest.AssertElementsMatch(t,
+				[]*pbresource.ID{destService.Id},
+				cache.serviceSelectorTracker.GetIDsForWorkload(resource.ReplaceType(pbcatalog.WorkloadType, sourceProxy6)))
 		})
 
 		t.Run("map target endpoints (TCPRoute)", func(t *testing.T) {
