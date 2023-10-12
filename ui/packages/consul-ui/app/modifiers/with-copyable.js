@@ -11,6 +11,17 @@ import { registerDestructor } from '@ember/destroyable';
 const typeAssertion = (type, value, withDefault) => {
   return typeof value === type ? value : withDefault;
 };
+
+function cleanup(instance) {
+  console.log(instance);
+  if (instance?.source && instance?.hash) {
+    instance.source?.off('success', instance.hash.success)?.off('error', instance.hash.error);
+
+    instance.source?.destroy();
+    instance.hash = null;
+    instance.source = null;
+  }
+}
 export default class WithCopyableModifier extends Modifier {
   @service('clipboard/os') clipboard;
 
@@ -44,23 +55,10 @@ export default class WithCopyableModifier extends Modifier {
     this.element = element;
     this.disconnect();
     this.connect(value, namedArgs);
-    registerDestructor(this, this.disconnect);
+    registerDestructor(this, cleanup);
   }
 
   disconnect() {
-    if (this.source && this.hash) {
-      this.source.off('success', this.hash.success).off('error', this.hash.error);
-
-      this.source.destroy();
-      this.hash = null;
-      this.source = null;
-    }
+    cleanup.call(this);
   }
-
-  // lifecycle hooks
-  // didReceiveArguments() {
-  //   console.log('we out here');
-  //   this.disconnect();
-  //   this.connect(this.args.positional, this.args.named);
-  // }
 }
