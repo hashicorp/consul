@@ -20,9 +20,6 @@ message ComputedExportedService {
 }
 
 message ComputedExportedServicesConsumer {
-  string name = 1;
-  string namespace = 2;
-
   // no sameness group
   oneof consumer_tenancy {
     string peer = 3;
