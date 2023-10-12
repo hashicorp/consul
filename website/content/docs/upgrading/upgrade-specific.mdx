@@ -20,13 +20,12 @@ Prior to Consul 1.17.0, audit logs contained timestamps on both the original log
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
 #### Service-defaults upstream config (Enterprise)
-Prior to Consul 1.17.0, [Consul-k8s upstreams](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-that did not explicitly specify a namespace or partition would incorrectly use service-defaults configurations, such as the incorrect protocol,
-from the `default` partition and namespace, rather than the local partition and namespace.
+Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
+that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults#set-the-default-protocol) from the default partition and namespace instead of the local partition and namespace.
 
-This bug is fixed starting in Consul 1.17.0, and the service-defaults from the local partition and namespace are now fetched instead.
-If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams. Doing so
-ensures that proper service-defaults entries exist in each namespace and partition prior to upgrading, which prevents unexpected protocol changes.
+This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
+If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
+service-defaults are configured in each partition and namespace before upgrading. Doing so will ensure that no unexpected protocol changes occur during the upgrade.
 
 
 ## Consul 1.16.x
