@@ -11,21 +11,8 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 )
-
-func createPartitionExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
-		WithData(t, data).
-		Build()
-
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
 
 func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
@@ -76,13 +63,19 @@ func TestPartitionExportedServices(t *testing.T) {
 
 	cases := map[string]testcase{
 		"partition exported services with peer": {
-			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPeer()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithPeer()).
+				Build(),
 		},
 		"partition exported services with partition": {
-			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithPartition()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithPartition()).
+				Build(),
 		},
 		"partition exported services with sameness_group": {
-			Resource: createPartitionExportedServicesResource(t, validPartitionExportedServicesWithSamenessGroup()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithSamenessGroup()).
+				Build(),
 		},
 	}
 

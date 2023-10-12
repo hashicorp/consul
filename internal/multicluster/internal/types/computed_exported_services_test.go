@@ -12,20 +12,8 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 )
-
-func createComputedExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage, name string) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, name).
-		WithData(t, data).
-		Build()
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
 
 func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
 	consumers := []*multiclusterv1alpha1.ComputedExportedService{
@@ -74,10 +62,14 @@ func TestValidateComputedExportedServices(t *testing.T) {
 
 	cases := map[string]testcase{
 		"computed exported services with peer": {
-			Resource: createComputedExportedServicesResource(t, validComputedExportedServicesWithPeer(), ComputedExportedServicesName),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPeer()).
+				Build(),
 		},
 		"computed exported services with partition": {
-			Resource: createComputedExportedServicesResource(t, validComputedExportedServicesWithPartition(), ComputedExportedServicesName),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPartition()).
+				Build(),
 		},
 	}
 
@@ -89,7 +81,9 @@ func TestValidateComputedExportedServices(t *testing.T) {
 }
 
 func TestValidateComputedExportedServices_InvalidName(t *testing.T) {
-	res := createComputedExportedServicesResource(t, validComputedExportedServicesWithPartition(), "computed-service")
+	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "computed-exported-services").
+		WithData(t, validComputedExportedServicesWithPeer()).
+		Build()
 
 	err := ValidateComputedExportedServices(res)
 	require.Error(t, err)

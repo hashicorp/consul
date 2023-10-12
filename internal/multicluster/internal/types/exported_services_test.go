@@ -12,21 +12,8 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 )
-
-func createExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
-		WithData(t, data).
-		Build()
-
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
 
 func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
@@ -87,13 +74,19 @@ func TestValidateExportedServices(t *testing.T) {
 
 	cases := map[string]testcase{
 		"exported services with peer": {
-			Resource: createExportedServicesResource(t, validExportedServicesWithPeer()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithPeer()).
+				Build(),
 		},
 		"exported services with partition": {
-			Resource: createExportedServicesResource(t, validExportedServicesWithPartition()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithPartition()).
+				Build(),
 		},
 		"exported services with sameness_group": {
-			Resource: createExportedServicesResource(t, validExportedServicesWithSamenessGroup()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithSamenessGroup()).
+				Build(),
 		},
 	}
 
@@ -105,7 +98,9 @@ func TestValidateExportedServices(t *testing.T) {
 }
 
 func TestValidateExportedServices_NoServices(t *testing.T) {
-	res := createExportedServicesResource(t, inValidExportedServices())
+	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+		WithData(t, inValidExportedServices()).
+		Build()
 
 	err := ValidateExportedServices(res)
 	require.Error(t, err)

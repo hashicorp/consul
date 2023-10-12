@@ -11,21 +11,8 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 	"testing"
 )
-
-func createNamespaceExportedServicesResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-		WithData(t, data).
-		Build()
-
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
 
 func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
@@ -76,13 +63,19 @@ func TestNamespaceExportedServices(t *testing.T) {
 
 	cases := map[string]testcase{
 		"namespace exported services with peer": {
-			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPeer()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithPeer()).
+				Build(),
 		},
 		"namespace exported services with partition": {
-			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithPartition()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithPartition()).
+				Build(),
 		},
 		"namespace exported services with sameness_group": {
-			Resource: createNamespaceExportedServicesResource(t, validNamespaceExportedServicesWithSamenessGroup()),
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
+				Build(),
 		},
 	}
 
