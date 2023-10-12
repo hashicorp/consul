@@ -137,7 +137,7 @@ func ValidateComputedExportedServices(res *pbresource.Resource) error {
 
 	for _, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
-			if computedExportedServiceConsumer.GetPartition() != "" || computedExportedServiceConsumer.GetNamespace() != "" {
+			if computedExportedServiceConsumer.GetPartition() != "" {
 				hasSetEnterpriseFeatures = true
 				break
 			}
