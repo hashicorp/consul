@@ -22,7 +22,7 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 
 	var merr error
 
-	if exportedService.Services == nil || len(exportedService.Services) == 0 {
+	if len(exportedService.Services) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "services",
 			Wrapped: fmt.Errorf("at least one service must be set"),
