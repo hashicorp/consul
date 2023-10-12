@@ -1804,10 +1804,15 @@
     ember-truth-helpers "^3.0.0"
     sass "^1.58.3"
 
-"@hashicorp/design-system-tokens@^1.0.0", "@hashicorp/design-system-tokens@^1.4.1":
+"@hashicorp/design-system-tokens@^1.4.1":
   version "1.4.1"
   resolved "https://registry.yarnpkg.com/@hashicorp/design-system-tokens/-/design-system-tokens-1.4.1.tgz#461ee2ff7ccc46eb83098c30c20c6bba33e49cd0"
   integrity sha512-e5bolI2Ch1+AW2/tQrkHG6QPx4g1oONum36CfhBmX4gDChpAVoBbTG2BT+XnlBJOM5vk1uuL39ysM5QSn/BZYQ==
+
+"@hashicorp/design-system-tokens@^1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@hashicorp/design-system-tokens/-/design-system-tokens-1.9.0.tgz#1cfd2627d838214c609f25ff6696b3f3d516d9e5"
+  integrity sha512-zmMpnKv4vulhVFVCpqf3oAAR5fQeDDnMxbeJIZllLFCgF2JFoL6C/Irghx4WnBAG8GkLs8CbxjPVtFjSYq+V8w==
 
 "@hashicorp/ember-cli-api-double@^4.0.0":
   version "4.0.0"
@@ -6095,7 +6100,7 @@ ember-auto-import@^2.2.3, ember-auto-import@^2.4.2, ember-auto-import@^2.6.0:
     typescript-memoize "^1.0.0-alpha.3"
     walk-sync "^3.0.0"
 
-ember-basic-dropdown@3.0.21, ember-basic-dropdown@^3.0.21:
+ember-basic-dropdown@^3.0.21:
   version "3.0.21"
   resolved "https://registry.yarnpkg.com/ember-basic-dropdown/-/ember-basic-dropdown-3.0.21.tgz#5711d071966919c9578d2d5ac2c6dcadbb5ea0e0"
   integrity sha512-Wu9hJWyqorKo+ZT2PMSIO1BxAeAdaiIC2IjSic0+HcKjmMU47botvG0xbxlprimOWaS9vM+nHat6Pt3xPvcB0A==
@@ -15384,11 +15389,6 @@ xmlchars@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/xmlchars/-/xmlchars-2.2.0.tgz#060fe1bcb7f9c76fe2a17db86a9bc3ab894210cb"
   integrity sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==
-
-xmlhttprequest-ssl@^1.6.3:
-  version "1.6.3"
-  resolved "https://registry.yarnpkg.com/xmlhttprequest-ssl/-/xmlhttprequest-ssl-1.6.3.tgz#03b713873b01659dfa2c1c5d056065b27ddc2de6"
-  integrity sha512-3XfeQE/wNkvrIktn2Kf0869fC0BN6UpydVasGIeSm2B1Llihf7/0UfZM+eCkOw3P7bP4+qPgqhm7ZoxuJtFU0Q==
 
 xtend@^4.0.0, xtend@^4.0.2, xtend@~4.0.1:
   version "4.0.2"
