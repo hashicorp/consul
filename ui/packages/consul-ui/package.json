@@ -140,7 +140,7 @@
     "ember-load-initializers": "^2.1.2",
     "ember-math-helpers": "^2.4.0",
     "ember-maybe-import-regenerator": "^0.1.6",
-    "ember-modifier": "^2.1.1",
+    "ember-modifier": "^4.1.0",
     "ember-named-blocks-polyfill": "^0.2.5",
     "ember-on-helper": "^0.1.0",
     "ember-on-resize-modifier": "^0.3.0",
