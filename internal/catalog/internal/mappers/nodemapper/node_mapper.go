@@ -46,11 +46,9 @@ func (m *NodeMapper) WorkloadIDsByNode(nodeID *pbresource.ID) []*pbresource.ID {
 // TrackWorkload instructs the NodeMapper to associate the given workload
 // ID with the given node ID.
 func (m *NodeMapper) TrackWorkload(workloadID *pbresource.ID, nodeID *pbresource.ID) {
-	nodesAsIDsOrRefs := []resource.ReferenceOrID{
+	m.b.TrackItem(workloadID, []resource.ReferenceOrID{
 		nodeID,
-	}
-
-	m.b.TrackItem(workloadID, nodesAsIDsOrRefs)
+	})
 }
 
 // UntrackWorkload will cause the node mapper to forget about the specified

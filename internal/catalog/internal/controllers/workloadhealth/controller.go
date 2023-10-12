@@ -95,26 +95,16 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	nodeHealth := pbcatalog.Health_HEALTH_PASSING
 	if workload.NodeName != "" {
 		nodeID := r.nodeMap.NodeIDFromWorkload(res, &workload)
-		rspNode, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: nodeID})
-		switch {
-		case status.Code(err) == codes.NotFound:
-			rt.Logger.Trace("node has been deleted")
-			r.nodeMap.UntrackWorkload(req.ID)
-			return nil
-		case err != nil:
-			rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
-			return err
-		}
-		r.nodeMap.TrackWorkload(res.Id, rspNode.Resource.Id)
+		r.nodeMap.TrackWorkload(res.Id, nodeID)
 
 		// It is important that getting the nodes health happens after tracking the
 		// Workload with the node mapper. If the order were reversed we could
 		// potentially miss events for data that changes after we read the node but
 		// before we configured the node mapper to map subsequent events to this
 		// workload.
-		nodeHealth, err = getNodeHealth(ctx, rt, rspNode.Resource.Id)
+		nodeHealth, err = getNodeHealth(ctx, rt, nodeID)
 		if err != nil {
-			rt.Logger.Error("error looking up node health", "error", err, "node-id", rspNode.Resource.Id)
+			rt.Logger.Error("error looking up node health", "error", err, "node-id", nodeID)
 			return err
 		}
 	} else {
@@ -122,6 +112,9 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		r.nodeMap.UntrackWorkload(res.Id)
 	}
 
+	// passing the workload from the response because getWorkloadHealth uses
+	// resourceClient.ListByOwner which requires ownerID have a Uid and this is the
+	// safest way for application and test code to ensure Uid is provided.
 	workloadHealth, err := getWorkloadHealth(ctx, rt, rsp.Resource.Id)
 	if err != nil {
 		// This should be impossible under normal operations and will not be exercised
