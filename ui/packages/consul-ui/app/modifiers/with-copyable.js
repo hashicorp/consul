@@ -10,6 +10,16 @@ import { runInDebug } from '@ember/debug';
 const typeAssertion = (type, value, withDefault) => {
   return typeof value === type ? value : withDefault;
 };
+
+function cleanup(instance) {
+  if (instance?.source && instance?.hash) {
+    instance.source?.off('success', instance.hash.success)?.off('error', instance.hash.error);
+
+    instance.source?.destroy();
+    instance.hash = null;
+    instance.source = null;
+  }
+}
 export default class WithCopyableModifier extends Modifier {
   @service('clipboard/os') clipboard;
 
@@ -39,23 +49,14 @@ export default class WithCopyableModifier extends Modifier {
     this.hash = hash;
   }
 
+  modify(element, [value], namedArgs) {
+    this.element = element;
+    this.disconnect();
+    this.connect(value, namedArgs);
+    registerDestructor(this, cleanup);
+  }
+
   disconnect() {
-    if (this.source && this.hash) {
-      this.source.off('success', this.hash.success).off('error', this.hash.error);
-
-      this.source.destroy();
-      this.hash = null;
-      this.source = null;
-    }
-  }
-
-  // lifecycle hooks
-  didReceiveArguments() {
-    this.disconnect();
-    this.connect(this.args.positional, this.args.named);
-  }
-
-  willRemove() {
-    this.disconnect();
+    cleanup.call(this);
   }
 }
