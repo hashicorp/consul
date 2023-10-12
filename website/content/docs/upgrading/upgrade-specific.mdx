@@ -24,7 +24,7 @@ Prior to Consul 1.17.0, [Consul-k8s upstreams](/consul/docs/k8s/annotations-and-
 that did not explicitly specify a namespace or partition would incorrectly use service-defaults configurations, such as the incorrect protocol,
 from the `default` partition and namespace, rather than the local partition and namespace.
 
-This bug is fixed starting in Consul 1.17.0, and the service-defaults from the local partition and namespace will now be fetched instead.
+This bug is fixed starting in Consul 1.17.0, and the service-defaults from the local partition and namespace are now fetched instead.
 If using non-default partitions and namespaces with Consul-k8s, it is advised to explicitly define these fields for all upstreams and to
 ensure proper service-defaults entries exist in each namespace / partition before upgrading so that no unexpected protocol changes occur.
 
