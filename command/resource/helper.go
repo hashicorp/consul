@@ -143,12 +143,13 @@ func ParseResourceInput(filePath string, stdin io.Reader) (*pbresource.Resource,
 		return nil, fmt.Errorf("Failed to load data: %v", err)
 	}
 	var parsedResource *pbresource.Resource
-	parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
-	if err != nil {
+	if isHCL([]byte(data)) {
+		parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+	} else {
 		parsedResource, err = parseJson(data)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode resource from input: %v", err)
 	}
 
 	return parsedResource, nil
