@@ -19,6 +19,16 @@ upgrade flow.
 Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
 After Consul 1.17.0, only timestamps will be included in rotated log file names.
 
+#### Service-defaults upstream config (Enterprise)
+Prior to Consul 1.17.0, [Consul-k8s upstreams](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
+that did not explicitly specify a namespace or partition would incorrectly use service-defaults configuration (such as protocol)
+from the default partition / namespace, rather than the local partition / namespace.
+
+This bug is fixed starting in Consul 1.17.0, and the service-defaults from the local partition and namespace will now be fetched instead.
+If using non-default partitions and namespaces with Consul-k8s, it is advised to explicitly define these fields for all upstreams and to
+ensure proper service-defaults entries exist in each namespace / partition before upgrading so that no unexpected protocol changes occur.
+
+
 ## Consul 1.16.x
 
 ### Known issues
