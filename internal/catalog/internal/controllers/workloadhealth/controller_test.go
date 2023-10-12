@@ -6,7 +6,10 @@ package workloadhealth
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/consul/internal/resource"
+	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -44,13 +47,9 @@ var (
 
 func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
 	return &pbresource.ID{
-		Type: rtype,
-		Tenancy: &pbresource.Tenancy{
-			Partition: "default",
-			Namespace: "default",
-			PeerName:  "local",
-		},
-		Name: name,
+		Type:    rtype,
+		Tenancy: resource.DefaultNamespacedTenancy(),
+		Name:    name,
 	}
 }
 
@@ -167,7 +166,8 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 	reqs, err := suite.mapper.MapNodeToWorkloads(context.Background(), suite.runtime, node)
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), reqs, 1)
-	prototest.AssertDeepEqual(suite.T(), reqs[0].ID, workload.Id)
+	protocmp.Transform()
+	prototest.AssertDeepEqual(suite.T(), workload.Id, reqs[0].ID, protocmp.IgnoreFields(workload.Id, "uid"))
 
 	suite.T().Cleanup(func() {
 		// future calls to reconcile would normally have done this as the resource was
@@ -388,6 +388,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 		WithData(suite.T(), workloadData("test-node")).
 		// don't write this because then in the call to reconcile the resource
 		// would be found and defeat the purpose of the tes
+		WithTenancy(resource.DefaultNamespacedTenancy()).
 		Build()
 
 	node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
@@ -508,7 +509,7 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	// Wait for reconciliation to occur and mark the workload as passing.
 	suite.waitForReconciliation(workload.Id, "HEALTH_PASSING")
 
-	// Simulate a node unhealty
+	// Simulate a node unhealthy
 	suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_WARNING)
 
 	// Wait for reconciliation to occur and mark the workload as warning
@@ -545,18 +546,19 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 func (suite *workloadHealthControllerTestSuite) waitForReconciliation(id *pbresource.ID, reason string) {
 	suite.T().Helper()
 
-	retry.Run(suite.T(), func(r *retry.R) {
-		rsp, err := suite.client.Read(context.Background(), &pbresource.ReadRequest{
-			Id: id,
-		})
-		require.NoError(r, err)
+	retry.RunWith(&retry.Timer{Wait: 100 * time.Millisecond, Timeout: 5 * time.Second},
+		suite.T(), func(r *retry.R) {
+			rsp, err := suite.client.Read(context.Background(), &pbresource.ReadRequest{
+				Id: id,
+			})
+			require.NoError(r, err)
 
-		status, found := rsp.Resource.Status[StatusKey]
-		require.True(r, found)
-		require.Equal(r, rsp.Resource.Generation, status.ObservedGeneration)
-		require.Len(r, status.Conditions, 1)
-		require.Equal(r, reason, status.Conditions[0].Reason)
-	})
+			status, found := rsp.Resource.Status[StatusKey]
+			require.True(r, found)
+			require.Equal(r, rsp.Resource.Generation, status.ObservedGeneration)
+			require.Len(r, status.Conditions, 1)
+			require.Equal(r, reason, status.Conditions[0].Reason)
+		})
 }
 
 func TestWorkloadHealthController(t *testing.T) {

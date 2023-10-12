@@ -242,6 +242,8 @@ spec:
 
 Additional services can query the [KubeDNS](https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/) at `sample-app.default.svc.cluster.local` to reach `sample-app`. If ACLs are enabled and configured with default `deny` policies, the configuration also requires a [`ServiceIntention`](/consul/docs/connect/config-entries/service-intentions) to allow it to talk to `sample-app`.
 
+You can query the KubeDNS for a service that belongs to a sameness group at `sample-app.virtual.group-name.sg.consul`. This syntax is required when failover is desired and `spec.defaultForFailover` is set to `false` in the sameness group CRD. Refer to [sameness group configuration entry reference](/consul/docs/connect/config-entries/sameness-group) for more information.
+
 ### Headless services
 For services that are not addressed using a virtual cluster IP, you must configure the upstream service using the [DialedDirectly](/consul/docs/connect/config-entries/service-defaults#dialeddirectly) option. Then, use DNS to discover individual instance addresses and dial them through the transparent proxy. When this mode is enabled on the upstream, services present service mesh certificates for mTLS and intentions are enforced at the destination.
 

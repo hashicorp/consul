@@ -19,6 +19,23 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 )
 
+func TestConfigEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{"kind":"service-defaults", "name":"web"}`)
+		})
+	}
+
+	checkRequest("GET", "/v1/config/service-defaults")
+	checkRequest("GET", "/v1/config/service-defaults/web")
+	checkRequest("DELETE", "/v1/config/service-defaults/web")
+	checkRequest("PUT", "/v1/config")
+}
+
 func TestConfig_Get(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

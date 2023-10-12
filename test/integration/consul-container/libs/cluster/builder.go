@@ -273,6 +273,11 @@ func (b *Builder) Peering(enable bool) *Builder {
 	return b
 }
 
+func (b *Builder) SetACLToken(token string) *Builder {
+	b.conf.Set("acl.tokens.agent", token)
+	return b
+}
+
 func (b *Builder) NodeID(nodeID string) *Builder {
 	b.conf.Set("node_id", nodeID)
 	return b

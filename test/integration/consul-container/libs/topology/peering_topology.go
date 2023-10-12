@@ -272,6 +272,9 @@ func NewClusterWithConfig(
 		Client().
 		Peering(true).
 		RetryJoin(retryJoin...)
+	if cluster.TokenBootstrap != "" {
+		configBuilder.SetACLToken(cluster.TokenBootstrap)
+	}
 	clientConf := configBuilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
 	if clientHclConfig != "" {
