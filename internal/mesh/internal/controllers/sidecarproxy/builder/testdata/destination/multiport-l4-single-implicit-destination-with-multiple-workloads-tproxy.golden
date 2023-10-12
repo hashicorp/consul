@@ -179,10 +179,10 @@
       }
     ],
     "routes": {
-      "outbound_listener": {
+      "default/local/default/api-app": {
         "virtualHosts": [
           {
-            "name": "outbound_listener",
+            "name": "default/local/default/api-app",
             "routeRules": [
               {
                 "destination": {

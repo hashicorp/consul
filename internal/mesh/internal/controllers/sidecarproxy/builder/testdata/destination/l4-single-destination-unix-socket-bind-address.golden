@@ -45,7 +45,7 @@
     "listeners": [
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp:/path/to/socket",
+        "name": "default/local/default/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
