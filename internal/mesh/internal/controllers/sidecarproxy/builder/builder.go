@@ -89,7 +89,9 @@ func (b *Builder) NewListenerBuilder(l *pbproxystate.Listener) *ListenerBuilder 
 }
 
 func (l *ListenerBuilder) buildListener() {
-	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+	if l.listener != nil {
+		l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+	}
 }
 
 type RouterBuilder struct {
