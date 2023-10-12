@@ -1280,6 +1280,15 @@
     ember-cli-babel "^7.26.11"
     ember-modifier-manager-polyfill "^1.2.0"
 
+"@ember/render-modifiers@^2.0.5":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@ember/render-modifiers/-/render-modifiers-2.1.0.tgz#f4fff95a8b5cfbe947ec46644732d511711c5bf9"
+  integrity sha512-LruhfoDv2itpk0fA0IC76Sxjcnq/7BC6txpQo40hOko8Dn6OxwQfxkPIbZGV0Cz7df+iX+VJrcYzNIvlc3w2EQ==
+  dependencies:
+    "@embroider/macros" "^1.0.0"
+    ember-cli-babel "^7.26.11"
+    ember-modifier-manager-polyfill "^1.2.0"
+
 "@ember/string@^3.0.0":
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/@ember/string/-/string-3.0.1.tgz#42cf032031a4432c2dd69c327ae1876d2c13df9c"
@@ -1783,11 +1792,12 @@
     faker "^4.1.0"
     js-yaml "^3.13.1"
 
-"@hashicorp/design-system-components@^1.6.0":
-  version "1.7.3"
-  resolved "https://registry.yarnpkg.com/@hashicorp/design-system-components/-/design-system-components-1.7.3.tgz#27c15baf2abec67a7126cb63e7126da867196a9d"
-  integrity sha512-c6p8bl6BqWK4sx1EgKB0/Il2deIDy7CCwFFWrOkXHLHMLZQDL5IUXOrqcAQl5Q0L2MkoSc8P6cC90DU4kCbihg==
+"@hashicorp/design-system-components@^1.8.1":
+  version "1.8.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/design-system-components/-/design-system-components-1.8.1.tgz#16ba53d6099ac3c54bf56f1cbd28a67320f123e4"
+  integrity sha512-Bs2kD31Oh3s5kbichpHr8Dok2JVzGYlfEJecZLK6l2OQU4W7Jd6Z4aIfgB8RzYre2aniysyHVi5El2WkkcKSJA==
   dependencies:
+    "@ember/render-modifiers" "^2.0.5"
     "@hashicorp/design-system-tokens" "^1.4.1"
     "@hashicorp/ember-flight-icons" "^3.0.2"
     dialog-polyfill "^0.5.6"
