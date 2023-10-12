@@ -368,11 +368,11 @@ func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), id)
 
 	// Check that we're not tracking services for this workload anymore.
-	reqs, err := suite.ctl.mapper.MapService(nil, controller.Runtime{}, suite.destService1)
+	reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), reqs)
 
-	reqs, err = suite.ctl.mapper.MapService(nil, controller.Runtime{}, suite.destService2)
+	reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), reqs)
 }
@@ -404,11 +404,11 @@ func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), cdID)
 
 	// Check that we're not tracking services for this workload anymore.
-	reqs, err := suite.ctl.mapper.MapService(nil, controller.Runtime{}, suite.destService1)
+	reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), reqs)
 
-	reqs, err = suite.ctl.mapper.MapService(nil, controller.Runtime{}, suite.destService2)
+	reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
 	require.NoError(suite.T(), err)
 	require.Nil(suite.T(), reqs)
 }
