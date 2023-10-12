@@ -491,7 +491,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		)
 
 		// We should also get a new web proxy template resource as this destination should be added again.
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
 	})
@@ -512,7 +512,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: webComputedDestinations.Id})
 		require.NoError(t, err)
 
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		// Write a default ComputedRoutes for db, so it's eligible.
 		dbCR := routestest.ReconcileComputedRoutes(suite.T(), suite.client, dbComputedRoutesID,
@@ -532,7 +532,7 @@ func (suite *meshControllerTestSuite) TestController() {
 			}).Write(suite.T(), suite.client)
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
-		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
@@ -548,7 +548,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		require.NoError(t, err)
 		suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions.Id)
 
-		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		suite.runtime.Logger.Trace("creating computed traffic permissions")
 		resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
@@ -604,7 +604,7 @@ func (suite *meshControllerTestSuite) TestController() {
 		)
 		require.NotNil(t, dbCR, "computed routes for db was deleted instead of created")
 
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
