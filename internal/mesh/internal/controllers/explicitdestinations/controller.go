@@ -6,6 +6,7 @@ package explicitdestinations
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -103,7 +104,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		r.mapper.UntrackComputedExplicitDestinations(req.ID)
 	}
 
-	duplicates := findConflicts(decodedDestinations)
+	conflicts := findConflicts(decodedDestinations)
 
 	newComputedDestinationsData := &pbmesh.ComputedExplicitDestinations{}
 	for _, dst := range decodedDestinations {
@@ -111,8 +112,8 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			ObservedGeneration: dst.GetResource().GetGeneration(),
 		}
 
-		// First check if this resource has a conflict. If it does, update status and move to the next resource.
-		if _, ok := duplicates[resource.NewReferenceKey(dst.GetResource().GetId())]; ok {
+		// First check if this resource has a conflict. If it does, update status and don't include it in the computed resource.
+		if _, ok := conflicts[resource.NewReferenceKey(dst.GetResource().GetId())]; ok {
 			rt.Logger.Trace("skipping this Destinations resource because it has conflicts with others", "id", dst.GetResource().GetId())
 			updatedStatus.Conditions = append(updatedStatus.Conditions, ConditionConflictFound(workload.GetResource().GetId()))
 		} else {
@@ -241,6 +242,11 @@ func (r *reconciler) fetchDestinations(
 	ctx context.Context,
 	client pbresource.ResourceServiceClient,
 	destinationIDs []*pbresource.ID) ([]*types.DecodedDestinations, error) {
+
+	// Sort all configs alphabetically.
+	sort.Slice(destinationIDs, func(i, j int) bool {
+		return destinationIDs[i].GetName() < destinationIDs[j].GetName()
+	})
 
 	var decoded []*types.DecodedDestinations
 	for _, id := range destinationIDs {

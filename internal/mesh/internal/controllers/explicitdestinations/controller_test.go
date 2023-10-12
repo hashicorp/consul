@@ -440,16 +440,17 @@ func (suite *controllerTestSuite) writeComputedRoutes(t *testing.T) {
 }
 
 func (suite *controllerTestSuite) TestReconcile_HappyPath() {
-	d1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d1)
-	require.NoError(suite.T(), err)
-
+	// Add configs in reverse alphabetical order.
 	d2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
 		WithData(suite.T(), suite.dest2).
 		Write(suite.T(), suite.client)
-	_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d2)
+	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d2)
+	require.NoError(suite.T(), err)
+
+	d1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+		WithData(suite.T(), suite.dest1).
+		Write(suite.T(), suite.client)
+	_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d1)
 	require.NoError(suite.T(), err)
 
 	suite.writeServices(suite.T())
