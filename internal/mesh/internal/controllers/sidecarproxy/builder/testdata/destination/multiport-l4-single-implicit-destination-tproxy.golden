@@ -179,10 +179,10 @@
       }
     ],
     "routes": {
-      "default/local/default/dc1/api-app": {
+      "default/local/default/api-app": {
         "virtualHosts": [
           {
-            "name": "default/local/default/dc1/api-app",
+            "name": "default/local/default/api-app",
             "routeRules": [
               {
                 "destination": {
