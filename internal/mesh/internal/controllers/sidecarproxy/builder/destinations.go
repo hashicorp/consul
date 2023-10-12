@@ -71,7 +71,7 @@ func (b *Builder) buildDestination(
 			}
 		}
 	}
-	
+
 	defaultDC := func(dc string) string {
 		if destination.Explicit != nil {
 			dc = orDefault(dc, destination.Explicit.Datacenter)

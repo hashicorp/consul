@@ -37,7 +37,7 @@ func DestinationListenerName(destinationRef *pbresource.Reference, portName stri
 	return name
 }
 
-// XDSResourceID returns a string representation that uniquely identifies the
+// DestinationResourceID returns a string representation that uniquely identifies the
 // upstream in a canonical but human readable way.
 func DestinationResourceID(destinationRef *pbresource.Reference) string {
 	tenancyPrefix := fmt.Sprintf("%s/%s/%s", destinationRef.Tenancy.Partition,
