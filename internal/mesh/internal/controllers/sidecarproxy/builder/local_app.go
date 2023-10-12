@@ -298,7 +298,7 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
 					Protocol:           protocolMap[port.Protocol],
 					TrafficPermissions: tp,
 					StaticRoute:        true,
-					// routeName is only used by l7 local app destinations to differentiate between routes for each port.
+					// routeName for l7 local app destinations differentiates between routes for each port.
 					Name: routeName,
 				},
 			},

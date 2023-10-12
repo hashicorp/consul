@@ -10,11 +10,9 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	envoy_grpc_http1_bridge_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_http1_bridge/v3"
 	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
 	envoy_http_header_to_meta_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_to_metadata/v3"
-	envoy_http_rbac_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/rbac/v3"
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
@@ -339,7 +337,7 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
-		rbacFilters, err := MakeL4RBAC(l4.TrafficPermissions)
+		rbacFilters, err := MakeRBACNetworkFilters(l4.TrafficPermissions)
 		if err != nil {
 			return nil, err
 		}
@@ -478,11 +476,12 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 		// Add traffic permission filters.
 		// Currently only adds the empty filter since L7 traffic permissions are not yet implemented.
 		if l7.TrafficPermissions != nil {
-			l7TrafficPermsFilter, err := makeRBACHTTPFilter()
+			// For now, MakeRBACHTTPFilters only has L4 granularity traffic permissions in it.
+			l7TrafficPermsFilters, err := MakeRBACHTTPFilters(l7.TrafficPermissions)
 			if err != nil {
 				return nil, err
 			}
-			httpAuthzFilters = append(httpAuthzFilters, l7TrafficPermsFilter)
+			httpAuthzFilters = append(httpAuthzFilters, l7TrafficPermsFilters...)
 		}
 
 		if l7.ParseXfccHeaders {
@@ -1141,15 +1140,4 @@ func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
 	cfg := &envoy_http_header_to_meta_v3.Config{RequestRules: rules}
 
 	return makeEnvoyHTTPFilter("envoy.filters.http.header_to_metadata", cfg)
-}
-
-const (
-	envoyHTTPRBACFilterKey = "envoy.filters.http.rbac"
-)
-
-func makeRBACHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
-	cfg := &envoy_http_rbac_v3.RBAC{
-		Rules: &envoy_rbac_v3.RBAC{},
-	}
-	return makeEnvoyHTTPFilter(envoyHTTPRBACFilterKey, cfg)
 }
