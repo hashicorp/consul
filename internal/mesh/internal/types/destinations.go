@@ -13,17 +13,17 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func RegisterUpstreams(r resource.Registry) {
+func RegisterDestinations(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.DestinationsType,
 		Proto:    &pbmesh.Destinations{},
 		Scope:    resource.ScopeNamespace,
-		Mutate:   MutateUpstreams,
-		Validate: ValidateUpstreams,
+		Mutate:   MutateDestinations,
+		Validate: ValidateDestinations,
 	})
 }
 
-func MutateUpstreams(res *pbresource.Resource) error {
+func MutateDestinations(res *pbresource.Resource) error {
 	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
@@ -64,7 +64,7 @@ func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
 }
 
-func ValidateUpstreams(res *pbresource.Resource) error {
+func ValidateDestinations(res *pbresource.Resource) error {
 	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
