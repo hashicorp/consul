@@ -35,12 +35,8 @@ func (m *NodeMapper) NodeIDFromWorkload(workload *pbresource.Resource, workloadD
 // MapNodeToWorkloads will take a Node resource and return controller requests
 // for all Workloads associated with the Node.
 func (m *NodeMapper) MapNodeToWorkloads(_ context.Context, _ controller.Runtime, res *pbresource.Resource) ([]controller.Request, error) {
-	ids := m.WorkloadIDsByNode(res.Id)
+	ids := m.b.ItemIDsForLink(res.Id)
 	return controller.MakeRequests(pbcatalog.WorkloadType, ids), nil
-}
-
-func (m *NodeMapper) WorkloadIDsByNode(nodeID *pbresource.ID) []*pbresource.ID {
-	return m.b.ItemIDsForLink(nodeID)
 }
 
 // TrackWorkload instructs the NodeMapper to associate the given workload

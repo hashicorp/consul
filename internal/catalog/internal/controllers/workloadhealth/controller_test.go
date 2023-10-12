@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
-	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 	"time"
@@ -18,7 +17,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -84,7 +82,7 @@ type controllerSuite struct {
 }
 
 func (suite *controllerSuite) SetupTest() {
-	suite.client = svctest.RunResourceService(suite.T(), types.Register, auth.RegisterTypes)
+	suite.client = svctest.RunResourceService(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
 }
 
@@ -503,16 +501,9 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	// create a node to link things with
 	node := suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_PASSING)
 
-	owner := resourcetest.ResourceID(&pbresource.ID{
-		Name: "test-identity",
-		Type: pbauth.WorkloadIdentityType,
-	}).
-		Write(suite.T(), suite.client)
-
 	// create the workload
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData(node.Id.Name)).
-		WithOwner(owner.Id).
 		Write(suite.T(), suite.client)
 
 	// Wait for reconciliation to occur and mark the workload as passing.
@@ -543,7 +534,6 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 		Write(suite.T(), suite.client)
 	workload = resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData("")).
-		WithOwner(owner.Id).
 		Write(suite.T(), suite.client)
 
 	// Now that the workload health is passing and its not associated with the node its status should
