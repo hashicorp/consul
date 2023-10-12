@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsMeshEnabled(t *testing.T) {
+func TestServiceIsMeshEnabled(t *testing.T) {
 	cases := map[string]struct {
 		service *Service
 		exp     bool
