@@ -25,8 +25,7 @@ that did not explicitly specify a namespace or partition incorrectly used servic
 
 This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
 If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
-service-defaults are configured in each partition and namespace before upgrading. Doing so will ensure that no unexpected protocol changes occur during the upgrade.
-
+service-defaults are configured in each partition and namespace before upgrading. Doing so ensures that no unexpected protocol changes occur during the upgrade.
 
 ## Consul 1.16.x
 
