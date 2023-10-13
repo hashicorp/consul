@@ -438,6 +438,9 @@ codegen: codegen-tools ## Deep copy
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/config/deep-copy.sh
 	copywrite headers
+	# Special case for MPL headers in /api and /sdk
+	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
 
 print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make print-GOPATH')
 
