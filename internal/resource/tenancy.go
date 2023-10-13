@@ -103,6 +103,27 @@ func DefaultNamespacedTenancy() *pbresource.Tenancy {
 	}
 }
 
+// DefaultIDTenancy will default/normalize the Tenancy of the provided
+// ID in the context of some parent resource containing that ID.
+// The default tenancy for the ID's type is also provided in cases where
+// "default" is needed selectively or the parent is more precise than the
+// child.
+func DefaultIDTenancy(id *pbresource.ID, parentTenancy, scopeTenancy *pbresource.Tenancy) {
+	if id == nil {
+		return
+	}
+	if id.Tenancy == nil {
+		id.Tenancy = &pbresource.Tenancy{}
+	}
+
+	if parentTenancy != nil {
+		dup := proto.Clone(parentTenancy).(*pbresource.Tenancy)
+		parentTenancy = dup
+	}
+
+	defaultTenancy(id.Tenancy, parentTenancy, scopeTenancy)
+}
+
 // DefaultReferenceTenancy will default/normalize the Tenancy of the provided
 // Reference in the context of some parent resource containing that Reference.
 // The default tenancy for the Reference's type is also provided in cases where
