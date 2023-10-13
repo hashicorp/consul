@@ -41,7 +41,6 @@ export default class OnOutsideModifier extends Modifier {
 
   @action
   listen(e) {
-    debugger;
     if (this.element && this.dom.isOutside(this.element, e.target)) {
       const dispatch = typeof this.params[1] === 'function' ? this.params[1] : (_) => {};
       dispatch.apply(this.element, [e]);
