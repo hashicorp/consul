@@ -56,7 +56,7 @@ func isValidDNSLabel(label string) bool {
 	return dnsLabelMatcher.Match([]byte(label))
 }
 
-func isValidUnixSocketPath(host string) bool {
+func IsValidUnixSocketPath(host string) bool {
 	if len(host) > maxUnixSocketPathLen || !strings.HasPrefix(host, "unix://") || strings.Contains(host, "\000") {
 		return false
 	}
@@ -71,7 +71,7 @@ func validateWorkloadHost(host string) error {
 	}
 
 	// Check if the host represents an IP address, unix socket path or a DNS name
-	if !isValidIPAddress(host) && !isValidUnixSocketPath(host) && !isValidDNSName(host) {
+	if !isValidIPAddress(host) && !IsValidUnixSocketPath(host) && !isValidDNSName(host) {
 		return errInvalidWorkloadHostFormat{Host: host}
 	}
 
@@ -139,7 +139,7 @@ func validateIPAddress(ip string) error {
 	return nil
 }
 
-func validatePortName(name string) error {
+func ValidatePortName(name string) error {
 	if name == "" {
 		return resource.ErrEmpty
 	}
@@ -184,7 +184,7 @@ func validateWorkloadAddress(addr *pbcatalog.WorkloadAddress, ports map[string]*
 
 	// Ensure that unix sockets reference exactly 1 port. They may also indirectly reference 1 port
 	// by the workload having only a single port and omitting any explicit port assignment.
-	if isValidUnixSocketPath(addr.Host) &&
+	if IsValidUnixSocketPath(addr.Host) &&
 		(len(addr.Ports) > 1 || (len(addr.Ports) == 0 && len(ports) > 1)) {
 		err = multierror.Append(err, errUnixSocketMultiport)
 	}
