@@ -34,6 +34,7 @@ message FailoverGroup {
 
 message FailoverGroupConfig {
   bool use_alt_stat_name = 1;
+  // +kubebuilder:validation:Type=string
   google.protobuf.Duration connect_timeout = 2;
 }
 
@@ -108,6 +109,7 @@ message L7WeightedDestinationCluster {
 }
 
 message DynamicEndpointGroupConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
   bool disable_panic_threshold = 2;
   oneof lb_policy {
@@ -148,10 +150,12 @@ message UpstreamLimits {
 }
 
 message OutlierDetection {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration interval = 1;
   google.protobuf.UInt32Value consecutive_5xx = 2;
   google.protobuf.UInt32Value enforcing_consecutive_5xx = 3;
   google.protobuf.UInt32Value max_ejection_percent = 4;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration base_ejection_time = 5;
 }
 
@@ -162,10 +166,12 @@ message UpstreamConnectionOptions {
 }
 
 message PassthroughEndpointGroupConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
 }
 
 message DNSEndpointGroupConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
   bool disable_panic_threshold = 2;
   DiscoveryType discovery_type = 3;
@@ -175,6 +181,8 @@ message DNSEndpointGroupConfig {
   bool use_alt_stat_name = 7;
 }
 
+// +kubebuilder:validation:Enum=DISCOVERY_TYPE_LOGICAL;DISCOVERY_TYPE_STRICT
+// +kubebuilder:validation:Type=string
 enum DiscoveryType {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   DISCOVERY_TYPE_LOGICAL = 0;
@@ -182,6 +190,7 @@ enum DiscoveryType {
 }
 
 message StaticEndpointGroupConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
   CircuitBreakers circuit_breakers = 2;
 }

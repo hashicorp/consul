@@ -23,6 +23,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=MESH_GATEWAY_MODE_UNSPECIFIED;MESH_GATEWAY_MODE_NONE;MESH_GATEWAY_MODE_LOCAL;MESH_GATEWAY_MODE_REMOTE
+// +kubebuilder:validation:Type=string
 type MeshGatewayMode int32
 
 const (

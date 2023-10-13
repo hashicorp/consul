@@ -24,6 +24,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=BALANCE_CONNECTIONS_DEFAULT;BALANCE_CONNECTIONS_EXACT
+// +kubebuilder:validation:Type=string
 type BalanceConnections int32
 
 const (
@@ -77,7 +79,9 @@ type ConnectionConfig struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
+	// +kubebuilder:validation:Format=duration
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
+	// +kubebuilder:validation:Format=duration
 	RequestTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=request_timeout,json=requestTimeout,proto3" json:"request_timeout,omitempty"`
 }
 

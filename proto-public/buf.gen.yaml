@@ -28,3 +28,9 @@ plugins:
     out: .
     opt:
       - paths=source_relative
+  - name: deepcopy
+    out: .
+    opt: paths=source_relative
+  - name: json-shim
+    out: .
+    opt: paths=source_relative

@@ -23,6 +23,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=EXPOSE_PATH_PROTOCOL_HTTP;EXPOSE_PATH_PROTOCOL_HTTP2
+// +kubebuilder:validation:Type=string
 type ExposePathProtocol int32
 
 const (

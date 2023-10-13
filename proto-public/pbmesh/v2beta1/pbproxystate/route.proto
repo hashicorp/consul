@@ -98,7 +98,9 @@ message RetryPolicy {
 }
 
 message TimeoutConfig {
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration timeout = 1;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration idle_timeout = 2;
 }
 
@@ -113,6 +115,7 @@ message LoadBalancerHashPolicy {
 
 message CookiePolicy {
   string name = 1;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration ttl = 2;
   string path = 3;
   bool terminal = 4;

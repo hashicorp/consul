@@ -23,6 +23,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD;APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD
+// +kubebuilder:validation:Type=string
 type AppendAction int32
 
 const (
