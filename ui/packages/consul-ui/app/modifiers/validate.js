@@ -103,10 +103,10 @@ export default class ValidateModifier extends Modifier {
         dispatch: (state) => {
           switch (state) {
             case 'ERROR':
-              _hash.onchange(this.hash.chart.state.context.errors);
+              this.hash.onchange(this.hash.chart.state.context.errors);
               break;
             case 'RESET':
-              _hash.onchange();
+              this.hash.onchange();
               break;
           }
         },
