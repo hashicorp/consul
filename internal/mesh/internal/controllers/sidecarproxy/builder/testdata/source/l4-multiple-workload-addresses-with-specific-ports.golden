@@ -26,6 +26,11 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [
@@ -78,8 +83,7 @@
           }
         ]
       }
-    ],
-    "trafficPermissionDefaultAllow": true
+    ]
   },
   "requiredLeafCertificates": {
     "test-identity": {

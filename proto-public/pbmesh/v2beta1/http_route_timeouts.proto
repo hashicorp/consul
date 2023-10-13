@@ -12,8 +12,10 @@ import "google/protobuf/duration.proto";
 message HTTPRouteTimeouts {
   // RequestTimeout is the total amount of time permitted for the entire
   // downstream request (and retries) to be processed.
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration request = 1;
 
   // Idle specifies the total amount of time permitted for the request stream to be idle.
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration idle = 2;
 }

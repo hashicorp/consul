@@ -40,6 +40,8 @@ message Header {
   string value = 2;
 }
 
+// +kubebuilder:validation:Enum=APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD;APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD
+// +kubebuilder:validation:Type=string
 enum AppendAction {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD = 0;

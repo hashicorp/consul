@@ -21,6 +21,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=ACTION_ALLOW;ACTION_DENY;ACTION_UNKNOWN
+// +kubebuilder:validation:Type=string
 type Action int32
 
 const (
@@ -75,25 +77,22 @@ type TrafficPermissions struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// destination is a configuration of the destination proxies
+	// Destination is a configuration of the destination proxies
 	// where these traffic permissions should apply.
 	Destination *Destination `protobuf:"bytes,1,opt,name=destination,proto3" json:"destination,omitempty"`
 	// Action can be either allow or deny for the entire object. It will default to allow.
 	//
-	// If action is allow,
-	// we will allow the connection if one of the rules in Rules matches, in other words, we will deny
+	// If action is allow, we will allow the connection if one of the rules in Rules matches, in other words, we will deny
 	// all requests except for the ones that match Rules. If Consul is in default allow mode, then allow
 	// actions have no effect without a deny permission as everything is allowed by default.
 	//
-	// If action is deny,
-	// we will deny the connection if one of the rules in Rules match, in other words,
+	// If action is deny, we will deny the connection if one of the rules in Rules match, in other words,
 	// we will allow all requests except for the ones that match Rules. If Consul is default deny mode,
 	// then deny permissions have no effect without an allow permission as everything is denied by default.
 	//
 	// Action unspecified is reserved for compatibility with the addition of future actions.
 	Action Action `protobuf:"varint,2,opt,name=action,proto3,enum=hashicorp.consul.auth.v2beta1.Action" json:"action,omitempty"`
-	// permissions is a list of permissions to match on.
-	// They are applied using OR semantics.
+	// Permissions is a list of permissions to match on. They are applied using OR semantics.
 	Permissions []*Permission `protobuf:"bytes,3,rep,name=permissions,proto3" json:"permissions,omitempty"`
 }
 
@@ -261,8 +260,7 @@ func (x *PartitionTrafficPermissions) GetPermissions() []*Permission {
 }
 
 // Destination contains the name or name-prefix of the WorkloadIdentity.
-// The WorkloadIdentity resource must
-// be in the same tenancy as the TrafficPermissions resource.
+// The WorkloadIdentity resource must be in the same tenancy as the TrafficPermissions resource.
 type Destination struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -310,15 +308,15 @@ func (x *Destination) GetIdentityName() string {
 	return ""
 }
 
-// permissions is a list of permissions to match on.
+// Permissions is a list of permissions to match on.
 type Permission struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// sources is a list of sources in this traffic permission.
+	// Sources is a list of sources in this traffic permission.
 	Sources []*Source `protobuf:"bytes,1,rep,name=sources,proto3" json:"sources,omitempty"`
-	// destination_rules is a list of rules to apply for matching sources in this Permission.
+	// DestinationRules is a list of rules to apply for matching sources in this Permission.
 	// These rules are specific to the request or connection that is going to the destination(s)
 	// selected by the TrafficPermissions resource.
 	DestinationRules []*DestinationRule `protobuf:"bytes,2,rep,name=destination_rules,json=destinationRules,proto3" json:"destination_rules,omitempty"`
@@ -383,7 +381,7 @@ type Source struct {
 	Partition     string `protobuf:"bytes,3,opt,name=partition,proto3" json:"partition,omitempty"`
 	Peer          string `protobuf:"bytes,4,opt,name=peer,proto3" json:"peer,omitempty"`
 	SamenessGroup string `protobuf:"bytes,5,opt,name=sameness_group,json=samenessGroup,proto3" json:"sameness_group,omitempty"`
-	// exclude is a list of sources to exclude from this source.
+	// Exclude is a list of sources to exclude from this source.
 	Exclude []*ExcludeSource `protobuf:"bytes,6,rep,name=exclude,proto3" json:"exclude,omitempty"`
 }
 
@@ -462,7 +460,7 @@ func (x *Source) GetExclude() []*ExcludeSource {
 }
 
 // ExcludeSource is almost the same as source but it prevents the addition of
-// matchiing sources.
+// matching sources.
 type ExcludeSource struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -551,12 +549,12 @@ type DestinationRule struct {
 	PathExact  string `protobuf:"bytes,1,opt,name=path_exact,json=pathExact,proto3" json:"path_exact,omitempty"`
 	PathPrefix string `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
 	PathRegex  string `protobuf:"bytes,3,opt,name=path_regex,json=pathRegex,proto3" json:"path_regex,omitempty"`
-	// methods is the list of HTTP methods. If no methods are specified,
+	// Methods is the list of HTTP methods. If no methods are specified,
 	// this rule will apply to all methods.
 	Methods   []string               `protobuf:"bytes,4,rep,name=methods,proto3" json:"methods,omitempty"`
 	Header    *DestinationRuleHeader `protobuf:"bytes,5,opt,name=header,proto3" json:"header,omitempty"`
 	PortNames []string               `protobuf:"bytes,6,rep,name=port_names,json=portNames,proto3" json:"port_names,omitempty"`
-	// exclude contains a list of rules to exclude when evaluating rules for the incoming connection.
+	// Exclude contains a list of rules to exclude when evaluating rules for the incoming connection.
 	Exclude []*ExcludePermissionRule `protobuf:"bytes,7,rep,name=exclude,proto3" json:"exclude,omitempty"`
 }
 
@@ -649,10 +647,10 @@ type ExcludePermissionRule struct {
 	PathExact  string `protobuf:"bytes,1,opt,name=path_exact,json=pathExact,proto3" json:"path_exact,omitempty"`
 	PathPrefix string `protobuf:"bytes,2,opt,name=path_prefix,json=pathPrefix,proto3" json:"path_prefix,omitempty"`
 	PathRegex  string `protobuf:"bytes,3,opt,name=path_regex,json=pathRegex,proto3" json:"path_regex,omitempty"`
-	// methods is the list of HTTP methods.
+	// Methods is the list of HTTP methods.
 	Methods []string               `protobuf:"bytes,4,rep,name=methods,proto3" json:"methods,omitempty"`
 	Header  *DestinationRuleHeader `protobuf:"bytes,5,opt,name=header,proto3" json:"header,omitempty"`
-	// port_names is a list of workload ports to apply this rule to. The ports specified here
+	// PortNames is a list of workload ports to apply this rule to. The ports specified here
 	// must be the ports used in the connection.
 	PortNames []string `protobuf:"bytes,6,rep,name=port_names,json=portNames,proto3" json:"port_names,omitempty"`
 }

@@ -60,7 +60,7 @@ func mutateXRouteRef(xrouteTenancy *pbresource.Tenancy, ref *pbresource.Referenc
 	return !proto.Equal(orig, ref)
 }
 
-func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
+func validateParentRefs(id *pbresource.ID, parentRefs []*pbmesh.ParentReference) error {
 	var merr error
 	if len(parentRefs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
@@ -92,6 +92,12 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 		if err := catalog.ValidateLocalServiceRefNoSection(parent.Ref, wrapRefErr); err != nil {
 			merr = multierror.Append(merr, err)
 		} else {
+			if !resource.EqualTenancy(id.Tenancy, parent.Ref.Tenancy) {
+				merr = multierror.Append(merr, wrapRefErr(resource.ErrInvalidField{
+					Name:    "tenancy",
+					Wrapped: resource.ErrReferenceTenancyNotEqual,
+				}))
+			}
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,

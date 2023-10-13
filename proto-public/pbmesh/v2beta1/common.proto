@@ -9,19 +9,18 @@ import "pbresource/resource.proto";
 
 // NOTE: roughly equivalent to structs.ResourceReference
 message ParentReference {
-  // For east/west configuration, this should point to a pbcatalog.Service.
-  // For north/south it should point to a gateway (TBD)
+  // For east/west configuration, this should point to a Service.
+  // For north/south it should point to a Gateway.
   hashicorp.consul.resource.Reference ref = 1;
 
   // For east/west this is the name of the Consul Service port to direct traffic to
   // or empty to imply all.
-  //
   // For north/south this is TBD.
   string port = 2;
 }
 
 message BackendReference {
-  // For east/west configuration, this should point to a pbcatalog.Service.
+  // For east/west configuration, this should point to a Service.
   hashicorp.consul.resource.Reference ref = 1;
 
   // For east/west this is the name of the Consul Service port to direct traffic to

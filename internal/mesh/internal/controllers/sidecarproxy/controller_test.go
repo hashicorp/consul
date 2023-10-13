@@ -16,11 +16,10 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/cache/sidecarproxycache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/status"
-	"github.com/hashicorp/consul/internal/mesh/internal/mappers/sidecarproxymapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -34,7 +33,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-type meshControllerTestSuite struct {
+type controllerTestSuite struct {
 	suite.Suite
 
 	client  *resourcetest.Client
@@ -43,15 +42,15 @@ type meshControllerTestSuite struct {
 	ctl *reconciler
 	ctx context.Context
 
-	apiWorkloadID                  *pbresource.ID
-	apiWorkload                    *pbcatalog.Workload
-	computedTrafficPermissions     *pbresource.Resource
-	computedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
-	apiService                     *pbresource.Resource
-	apiServiceData                 *pbcatalog.Service
-	apiEndpoints                   *pbresource.Resource
-	apiEndpointsData               *pbcatalog.ServiceEndpoints
-	webWorkload                    *pbresource.Resource
+	apiWorkloadID                     *pbresource.ID
+	apiWorkload                       *pbcatalog.Workload
+	apiComputedTrafficPermissions     *pbresource.Resource
+	apiComputedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
+	apiService                        *pbresource.Resource
+	apiServiceData                    *pbcatalog.Service
+	apiEndpoints                      *pbresource.Resource
+	apiEndpointsData                  *pbcatalog.ServiceEndpoints
+	webWorkload                       *pbresource.Resource
 
 	dbWorkloadID    *pbresource.ID
 	dbWorkload      *pbcatalog.Workload
@@ -62,16 +61,14 @@ type meshControllerTestSuite struct {
 	proxyStateTemplate *pbmesh.ProxyStateTemplate
 }
 
-func (suite *meshControllerTestSuite) SetupTest() {
+func (suite *controllerTestSuite) SetupTest() {
 	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes, auth.RegisterTypes)
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
 
 	suite.ctl = &reconciler{
-		destinationsCache: sidecarproxycache.NewDestinationsCache(),
-		proxyCfgCache:     sidecarproxycache.NewProxyConfigurationCache(),
-		identitiesCache:   sidecarproxycache.NewIdentitiesCache(),
+		cache: cache.New(),
 		getTrustDomain: func() (string, error) {
 			return "test.consul", nil
 		},
@@ -147,7 +144,8 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.computedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+	suite.apiComputedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+		IsDefault: false,
 		AllowPermissions: []*pbauth.Permission{
 			{
 				Sources: []*pbauth.Source{
@@ -162,8 +160,8 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.computedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-		WithData(suite.T(), suite.computedTrafficPermissionsData).
+	suite.apiComputedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+		WithData(suite.T(), suite.apiComputedTrafficPermissionsData).
 		Write(suite.T(), resourceClient)
 
 	suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
@@ -200,6 +198,10 @@ func (suite *meshControllerTestSuite) SetupTest() {
 		WithData(suite.T(), webWorkloadData).
 		Write(suite.T(), suite.client)
 
+	resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, webWorkloadData.Identity).
+		WithData(suite.T(), &pbauth.ComputedTrafficPermissions{IsDefault: true}).
+		Write(suite.T(), resourceClient)
+
 	resourcetest.Resource(pbcatalog.ServiceType, "web").
 		WithData(suite.T(), &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
@@ -224,14 +226,161 @@ func (suite *meshControllerTestSuite) SetupTest() {
 	identityRef := &pbresource.Reference{
 		Name:    suite.apiWorkload.Identity,
 		Tenancy: suite.apiWorkloadID.Tenancy,
+		Type:    pbauth.WorkloadIdentityType,
 	}
 
-	suite.proxyStateTemplate = builder.New(suite.apiWorkloadID, identityRef, "test.consul", "dc1", false, nil).
-		BuildLocalApp(suite.apiWorkload, suite.computedTrafficPermissionsData).
+	suite.proxyStateTemplate = builder.New(resource.ReplaceType(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID),
+		identityRef, "test.consul", "dc1", false, nil).
+		BuildLocalApp(suite.apiWorkload, suite.apiComputedTrafficPermissionsData).
 		Build()
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NoWorkload() {
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoServicesInCache() {
+	dataFetcher := fetcher.New(suite.client, suite.ctl.cache)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp": {Port: 8080},
+			},
+		}).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+	workloadPorts, err := suite.ctl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
+}
+
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_ServiceNotFound() {
+	c := cache.New()
+	dataFetcher := fetcher.New(suite.client, c)
+	ctrl := &reconciler{
+		cache: c,
+		getTrustDomain: func() (string, error) {
+			return "test.consul", nil
+		},
+	}
+	svc := resourcetest.Resource(pbcatalog.ServiceType, "not-found").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+		}).
+		Build()
+
+	decSvc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc)
+	c.TrackService(decSvc)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp": {Port: 8080},
+			},
+		}).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+	prototest.AssertDeepEqual(suite.T(), pbcatalog.Protocol_PROTOCOL_TCP, workloadPorts["tcp"].GetProtocol())
+	// Check that the service is no longer in cache.
+	require.Nil(suite.T(), c.ServicesForWorkload(workload.Id))
+}
+
+func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService() {
+	c := cache.New()
+	dataFetcher := fetcher.New(suite.client, c)
+	ctrl := &reconciler{
+		cache: c,
+		getTrustDomain: func() (string, error) {
+			return "test.consul", nil
+		},
+	}
+	svc1 := resourcetest.Resource(pbcatalog.ServiceType, "api-1").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{
+					TargetPort: "http1",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+				},
+				{
+					TargetPort: "conflict",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
+				},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	decSvc := resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc1)
+	c.TrackService(decSvc)
+
+	svc2 := resourcetest.Resource(pbcatalog.ServiceType, "api-2").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"api-workload"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{
+					TargetPort: "http2",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP2,
+				},
+				{
+					TargetPort: "conflict",
+					Protocol:   pbcatalog.Protocol_PROTOCOL_GRPC,
+				},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	decSvc = resourcetest.MustDecode[*pbcatalog.Service](suite.T(), svc2)
+	c.TrackService(decSvc)
+
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "api-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"http1":              {Port: 8080},
+				"http2":              {Port: 9090},
+				"conflict":           {Port: 9091},
+				"not-selected":       {Port: 8081},
+				"specified-protocol": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+				"mesh":               {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			},
+		}).
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+
+	decWorkload := resourcetest.MustDecode[*pbcatalog.Workload](suite.T(), workload)
+
+	expWorkloadPorts := map[string]*pbcatalog.WorkloadPort{
+		// This protocol should be inherited from service 1.
+		"http1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+
+		// this protocol should be inherited from service 2.
+		"http2": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+
+		// This port is not selected by the service and should default to tcp.
+		"not-selected": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+
+		// This port has conflicting protocols in each service and so it should default to tcp.
+		"conflict": {Port: 9091, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+
+		// These port should keep its existing protocol.
+		"specified-protocol": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+		"mesh":               {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+	}
+
+	workloadPorts, err := ctrl.workloadPortProtocolsFromService(suite.ctx, dataFetcher, decWorkload, suite.runtime.Logger)
+	require.NoError(suite.T(), err)
+
+	prototest.AssertDeepEqual(suite.T(), expWorkloadPorts, workloadPorts)
+}
+
+func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 	// This test ensures that removed workloads are ignored and don't result
 	// in the creation of the proxy state template.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -242,7 +391,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NoWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "not-found"))
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
+func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 	// This test ensures that non-mesh workloads are ignored by the controller.
 
 	nonMeshWorkload := &pbcatalog.Workload{
@@ -268,7 +417,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NonMeshWorkload() {
 	suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "test-non-mesh-api-workload"))
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
+func (suite *controllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
 		ID: resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name),
 	})
@@ -280,7 +429,7 @@ func (suite *meshControllerTestSuite) TestReconcile_NoExistingProxyStateTemplate
 	prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID, res.Owner)
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
+func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
 	// This test ensures that we write a new proxy state template when there are changes.
 
 	// Write the original.
@@ -289,8 +438,9 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 		WithOwner(suite.apiWorkloadID).
 		Write(suite.T(), suite.client.ResourceServiceClient)
 
-	// Update the apiWorkload.
-	suite.apiWorkload.Ports["mesh"].Port = 21000
+	// Update the apiWorkload and check that we default the port to tcp if it's unspecified.
+	suite.apiWorkload.Ports["tcp"].Protocol = pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
+
 	updatedWorkloadID := resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
 		WithData(suite.T(), suite.apiWorkload).
 		Write(suite.T(), suite.client.ResourceServiceClient).Id
@@ -310,12 +460,15 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_W
 	require.NoError(suite.T(), err)
 
 	// Check that our value is updated in the proxy state template.
-	inboundListenerPort := updatedProxyStateTemplate.ProxyState.Listeners[0].
-		BindAddress.(*pbproxystate.Listener_HostPort).HostPort.Port
-	require.Equal(suite.T(), uint32(21000), inboundListenerPort)
+	require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners, 1)
+	require.Len(suite.T(), updatedProxyStateTemplate.ProxyState.Listeners[0].Routers, 1)
+
+	l4InboundRouter := updatedProxyStateTemplate.ProxyState.Listeners[0].
+		Routers[0].GetL4()
+	require.NotNil(suite.T(), l4InboundRouter)
 }
 
-func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
+func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
 	// This test ensures that we skip writing of the proxy state template when there are no changes to it.
 
 	// Write the original.
@@ -339,7 +492,7 @@ func (suite *meshControllerTestSuite) TestReconcile_ExistingProxyStateTemplate_N
 	resourcetest.RequireVersionUnchanged(suite.T(), updatedProxyState, originalProxyState.Version)
 }
 
-func (suite *meshControllerTestSuite) TestController() {
+func (suite *controllerTestSuite) TestController() {
 	// This is a comprehensive test that checks the overall controller behavior as various resources change state.
 	// This should test interactions between the reconciler, the mappers, and the destinationsCache to ensure they work
 	// together and produce expected result.
@@ -348,16 +501,10 @@ func (suite *meshControllerTestSuite) TestController() {
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
 
 	// Initialize controller dependencies.
-	var (
-		destinationsCache   = sidecarproxycache.NewDestinationsCache()
-		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
-		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
-		identitiesCache     = sidecarproxycache.NewIdentitiesCache()
-		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache)
-	)
+	c := cache.New()
 	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
 
-	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, trustDomainFetcher, "dc1", false))
+	mgr.Register(Controller(c, trustDomainFetcher, "dc1", false))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -369,9 +516,9 @@ func (suite *meshControllerTestSuite) TestController() {
 		apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.apiService.Id)
 		dbComputedRoutesID  = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService.Id)
 
-		apiProxyStateTemplate *pbresource.Resource
-		webProxyStateTemplate *pbresource.Resource
-		webDestinations       *pbresource.Resource
+		apiProxyStateTemplate   *pbresource.Resource
+		webProxyStateTemplate   *pbresource.Resource
+		webComputedDestinations *pbresource.Resource
 	)
 
 	testutil.RunStep(suite.T(), "proxy state template generation", func(t *testing.T) {
@@ -383,30 +530,29 @@ func (suite *meshControllerTestSuite) TestController() {
 		})
 	})
 
-	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
-		// Write a default ComputedRoutes for api.
-		routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-			resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
-		)
+	// Write a default ComputedRoutes for api.
+	routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
+		resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.apiService),
+	)
 
-		// Add a source service and check that a new proxy state is generated.
-		webDestinations = resourcetest.Resource(pbmesh.DestinationsType, "web-destinations").
-			WithData(suite.T(), &pbmesh.Destinations{
-				Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
-				Destinations: []*pbmesh.Destination{
-					{
-						DestinationRef:  resource.Reference(suite.apiService.Id, ""),
-						DestinationPort: "tcp",
-						ListenAddr: &pbmesh.Destination_IpPort{
-							IpPort: &pbmesh.IPPortAddress{
-								Ip:   "127.0.0.1",
-								Port: 1234,
-							},
+	// Add a source service and check that a new proxy state is generated.
+	webComputedDestinations = resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.webWorkload.Id.Name).
+		WithData(suite.T(), &pbmesh.ComputedExplicitDestinations{
+			Destinations: []*pbmesh.Destination{
+				{
+					DestinationRef:  resource.Reference(suite.apiService.Id, ""),
+					DestinationPort: "tcp",
+					ListenAddr: &pbmesh.Destination_IpPort{
+						IpPort: &pbmesh.IPPortAddress{
+							Ip:   "127.0.0.1",
+							Port: 1234,
 						},
 					},
 				},
-			}).Write(suite.T(), suite.client)
+			},
+		}).Write(suite.T(), suite.client)
 
+	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
 		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
@@ -466,11 +612,6 @@ func (suite *meshControllerTestSuite) TestController() {
 			suite.client.RequireResourceNotFound(r, apiProxyStateTemplateID)
 		})
 
-		// Check status on the pbmesh.Destinations resource.
-		serviceRef := resource.ReferenceToString(resource.Reference(suite.apiService.Id, ""))
-		suite.client.WaitForStatusCondition(t, webDestinations.Id, ControllerName,
-			status.ConditionMeshProtocolNotFound(serviceRef))
-
 		// We should get a new web proxy template resource because this destination should be removed.
 		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
 
@@ -499,12 +640,8 @@ func (suite *meshControllerTestSuite) TestController() {
 			resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
 		)
 
-		serviceRef := resource.ReferenceToString(resource.Reference(suite.apiService.Id, ""))
-		suite.client.WaitForStatusCondition(t, webDestinations.Id, ControllerName,
-			status.ConditionMeshProtocolFound(serviceRef))
-
 		// We should also get a new web proxy template resource as this destination should be added again.
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
 	})
@@ -522,7 +659,7 @@ func (suite *meshControllerTestSuite) TestController() {
 	testutil.RunStep(suite.T(), "add implicit upstream and enable tproxy", func(t *testing.T) {
 		// Delete explicit destinations resource.
 		suite.runtime.Logger.Trace("deleting web destinations")
-		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: webDestinations.Id})
+		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: webComputedDestinations.Id})
 		require.NoError(t, err)
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
@@ -534,11 +671,8 @@ func (suite *meshControllerTestSuite) TestController() {
 		require.NotNil(t, dbCR)
 
 		// Enable transparent proxy for the web proxy.
-		resourcetest.Resource(pbmesh.ProxyConfigurationType, "proxy-config").
-			WithData(t, &pbmesh.ProxyConfiguration{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{"web"},
-				},
+		resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, suite.webWorkload.Id.Name).
+			WithData(t, &pbmesh.ComputedProxyConfiguration{
 				DynamicConfig: &pbmesh.DynamicConfig{
 					Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
 					TransparentProxy: &pbmesh.TransparentProxy{
@@ -548,26 +682,27 @@ func (suite *meshControllerTestSuite) TestController() {
 			}).Write(suite.T(), suite.client)
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
-		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
 	})
 
 	testutil.RunStep(suite.T(), "traffic permissions", func(t *testing.T) {
-		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, apiProxyStateTemplate)
-		require.False(t, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
+		// Global default deny applies to all identities.
+		assertTrafficPermissionDefaultPolicy(t, false, apiProxyStateTemplate)
+		assertTrafficPermissionDefaultPolicy(t, false, webProxyStateTemplate)
 
 		suite.runtime.Logger.Trace("deleting computed traffic permissions")
-		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.computedTrafficPermissions.Id})
+		_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.apiComputedTrafficPermissions.Id})
 		require.NoError(t, err)
-		suite.client.WaitForDeletion(t, suite.computedTrafficPermissions.Id)
+		suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions.Id)
 
-		apiProxyStateTemplate = suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
+		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 		suite.runtime.Logger.Trace("creating computed traffic permissions")
 		resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-			WithData(t, suite.computedTrafficPermissionsData).
+			WithData(t, suite.apiComputedTrafficPermissionsData).
 			Write(t, suite.client)
 
 		suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
@@ -619,46 +754,43 @@ func (suite *meshControllerTestSuite) TestController() {
 		)
 		require.NotNil(t, dbCR, "computed routes for db was deleted instead of created")
 
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
 		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
 	})
 }
 
-func (suite *meshControllerTestSuite) TestControllerDefaultAllow() {
+func (suite *controllerTestSuite) TestControllerDefaultAllow() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
 
 	// Initialize controller dependencies.
-	var (
-		destinationsCache   = sidecarproxycache.NewDestinationsCache()
-		proxyCfgCache       = sidecarproxycache.NewProxyConfigurationCache()
-		computedRoutesCache = sidecarproxycache.NewComputedRoutesCache()
-		identitiesCache     = sidecarproxycache.NewIdentitiesCache()
-		m                   = sidecarproxymapper.New(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache)
-	)
+	c := cache.New()
 	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
 
-	mgr.Register(Controller(destinationsCache, proxyCfgCache, computedRoutesCache, identitiesCache, m, trustDomainFetcher, "dc1", true))
+	mgr.Register(Controller(c, trustDomainFetcher, "dc1", true))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
 	var (
 		// Create proxy state template IDs to check against in this test.
+		apiProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").ID()
 		webProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "web-def").ID()
 	)
 
 	retry.Run(suite.T(), func(r *retry.R) {
-		suite.client.RequireResourceExists(r, webProxyStateTemplateID)
 		webProxyStateTemplate := suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-		dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](r, webProxyStateTemplate)
-		require.True(r, dec.Data.ProxyState.TrafficPermissionDefaultAllow)
+		apiProxyStateTemplate := suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+
+		// Default deny because api has non-empty computed traffic permissions.
+		assertTrafficPermissionDefaultPolicy(r, false, apiProxyStateTemplate)
+		assertTrafficPermissionDefaultPolicy(r, true, webProxyStateTemplate)
 	})
 }
 
 func TestMeshController(t *testing.T) {
-	suite.Run(t, new(meshControllerTestSuite))
+	suite.Run(t, new(controllerTestSuite))
 }
 
 func requireExplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
@@ -715,7 +847,8 @@ func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *p
 					// care here.
 					foundByName = true
 				case *pbproxystate.Router_L7:
-					routerName := x.L7.Name
+					require.NotNil(t, x.L7.Route)
+					routerName := x.L7.Route.Name
 					foundByName = strings.Contains(routerName, name)
 				default:
 					t.Fatalf("unexpected type of destination: %T", r.Destination)
@@ -770,4 +903,19 @@ func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
 		},
 		Name: name,
 	}
+}
+
+func assertTrafficPermissionDefaultPolicy(t resourcetest.T, defaultAllow bool, resource *pbresource.Resource) {
+	dec := resourcetest.MustDecode[*pbmesh.ProxyStateTemplate](t, resource)
+	var listener *pbproxystate.Listener
+	for _, l := range dec.Data.ProxyState.Listeners {
+		if l.Name == "public_listener" {
+			listener = l
+			break
+		}
+	}
+	require.Len(t, listener.Routers, 1)
+	l4 := listener.Routers[0].GetL4()
+	require.NotNil(t, l4)
+	require.Equal(t, defaultAllow, l4.TrafficPermissions.DefaultAllow)
 }

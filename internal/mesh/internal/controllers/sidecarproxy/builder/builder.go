@@ -4,6 +4,10 @@
 package builder
 
 import (
+	"fmt"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -13,7 +17,7 @@ import (
 type Builder struct {
 	id                 *pbresource.ID
 	proxyStateTemplate *pbmesh.ProxyStateTemplate
-	proxyCfg           *pbmesh.ProxyConfiguration
+	proxyCfg           *pbmesh.ComputedProxyConfiguration
 	trustDomain        string
 	localDatacenter    string
 	defaultAllow       bool
@@ -25,8 +29,15 @@ func New(
 	trustDomain string,
 	dc string,
 	defaultAllow bool,
-	proxyCfg *pbmesh.ProxyConfiguration,
+	proxyCfg *pbmesh.ComputedProxyConfiguration,
 ) *Builder {
+	if !resource.EqualType(pbmesh.ProxyStateTemplateType, id.GetType()) {
+		panic(fmt.Sprintf("wrong type: expected pbmesh.ProxyStateTemplate, but got %T", id.Type))
+	}
+
+	if !resource.EqualType(pbauth.WorkloadIdentityType, identity.GetType()) {
+		panic(fmt.Sprintf("wrong type: expected pbauth.WorkloadIdentityType, but got %T", identity.Type))
+	}
 	return &Builder{
 		id:              id,
 		trustDomain:     trustDomain,
@@ -58,7 +69,6 @@ func (b *Builder) Build() *pbmesh.ProxyStateTemplate {
 	b.proxyStateTemplate.RequiredTrustBundles[b.id.Tenancy.PeerName] = &pbproxystate.TrustBundleRef{
 		Peer: b.id.Tenancy.PeerName,
 	}
-	b.proxyStateTemplate.ProxyState.TrafficPermissionDefaultAllow = b.defaultAllow
 
 	finalCleanupOfProxyStateTemplate(b.proxyStateTemplate)
 
@@ -90,7 +100,9 @@ func (b *Builder) NewListenerBuilder(l *pbproxystate.Listener) *ListenerBuilder 
 }
 
 func (l *ListenerBuilder) buildListener() {
-	l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+	if l.listener != nil {
+		l.builder.proxyStateTemplate.ProxyState.Listeners = append(l.builder.proxyStateTemplate.ProxyState.Listeners, l.listener)
+	}
 }
 
 type RouterBuilder struct {

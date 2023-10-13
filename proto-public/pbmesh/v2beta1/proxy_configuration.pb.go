@@ -26,6 +26,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=PROXY_MODE_DEFAULT;PROXY_MODE_TRANSPARENT;PROXY_MODE_DIRECT
+// +kubebuilder:validation:Type=string
 type ProxyMode int32
 
 const (
@@ -83,6 +85,8 @@ func (ProxyMode) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_proxy_configuration_proto_rawDescGZIP(), []int{0}
 }
 
+// +kubebuilder:validation:Enum=LOG_SINK_TYPE_DEFAULT;LOG_SINK_TYPE_FILE;LOG_SINK_TYPE_STDERR;LOG_SINK_TYPE_STDOUT
+// +kubebuilder:validation:Type=string
 type LogSinkType int32
 
 const (
@@ -136,6 +140,8 @@ func (LogSinkType) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_proxy_configuration_proto_rawDescGZIP(), []int{1}
 }
 
+// +kubebuilder:validation:Enum=MUTUAL_TLS_MODE_DEFAULT;MUTUAL_TLS_MODE_STRICT;MUTUAL_TLS_MODE_PERMISSIVE
+// +kubebuilder:validation:Type=string
 type MutualTLSMode int32
 
 const (
@@ -203,6 +209,10 @@ type ProxyConfiguration struct {
 	BootstrapConfig *BootstrapConfig `protobuf:"bytes,3,opt,name=bootstrap_config,json=bootstrapConfig,proto3" json:"bootstrap_config,omitempty"`
 	// deprecated: prevent usage when using v2 APIs directly.
 	// needed for backwards compatibility
+	//
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	//
 	// Deprecated: Marked as deprecated in pbmesh/v2beta1/proxy_configuration.proto.
 	OpaqueConfig *structpb.Struct `protobuf:"bytes,4,opt,name=opaque_config,json=opaqueConfig,proto3" json:"opaque_config,omitempty"`
@@ -673,7 +683,7 @@ type AccessLogsConfig struct {
 	// Path is the output file to write logs
 	Path string `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
 	// The presence of one format string or the other implies the access log string encoding.
-	// Defining Both is invalid.
+	// Defining both is invalid.
 	JsonFormat string `protobuf:"bytes,5,opt,name=json_format,json=jsonFormat,proto3" json:"json_format,omitempty"`
 	TextFormat string `protobuf:"bytes,6,opt,name=text_format,json=textFormat,proto3" json:"text_format,omitempty"`
 }
@@ -758,8 +768,11 @@ type EnvoyExtension struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Name          string           `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	Required      bool             `protobuf:"varint,2,opt,name=required,proto3" json:"required,omitempty"`
+	Name     string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Required bool   `protobuf:"varint,2,opt,name=required,proto3" json:"required,omitempty"`
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:validation:Schemaless
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Arguments     *structpb.Struct `protobuf:"bytes,3,opt,name=arguments,proto3" json:"arguments,omitempty"`
 	ConsulVersion string           `protobuf:"bytes,4,opt,name=consul_version,json=consulVersion,proto3" json:"consul_version,omitempty"`
 	EnvoyVersion  string           `protobuf:"bytes,5,opt,name=envoy_version,json=envoyVersion,proto3" json:"envoy_version,omitempty"`

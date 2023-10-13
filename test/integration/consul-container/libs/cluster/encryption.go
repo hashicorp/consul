@@ -8,6 +8,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"io"
 	"path/filepath"
 	"testing"
@@ -47,89 +48,98 @@ func (c *BuildContext) createTLSCAFiles(t *testing.T) {
 
 	// TODO: cleanup anything with the prefix?
 
-	// Create a volume to hold the data.
-	err = utils.DockerExec([]string{"volume", "create", c.certVolume}, io.Discard)
-	require.NoError(t, err, "could not create docker volume to hold cert data: %s", c.certVolume)
+	retry.Run(t, func(r *retry.R) {
+		// Create a volume to hold the data.
+		err = utils.DockerExec([]string{"volume", "create", c.certVolume}, io.Discard)
+		require.NoError(r, err, "could not create docker volume to hold cert data: %s", c.certVolume)
+	})
 	t.Cleanup(func() {
 		_ = utils.DockerExec([]string{"volume", "rm", c.certVolume}, io.Discard)
 	})
 
-	err = utils.DockerExec([]string{"run",
-		"--rm",
-		"-i",
-		"--net=none",
-		"-v", c.certVolume + ":/data",
-		"busybox:latest",
-		"sh", "-c",
-		// Need this so the permissions stick; docker seems to treat unused volumes differently.
-		`touch /data/VOLUME_PLACEHOLDER && chown -R ` + consulUserArg + ` /data`,
-	}, io.Discard)
-	require.NoError(t, err, "could not initialize docker volume for cert data: %s", c.certVolume)
-
-	err = utils.DockerExec([]string{"run",
-		"--rm",
-		"-i",
-		"--net=none",
-		"-u", consulUserArg,
-		"-v", c.certVolume + ":/data",
-		"-w", "/data",
-		"--entrypoint", "",
-		c.DockerImage(),
-		"consul", "tls", "ca", "create",
-	}, io.Discard)
-	require.NoError(t, err, "could not create TLS certificate authority in docker volume: %s", c.certVolume)
-
+	retry.Run(t, func(r *retry.R) {
+		err := utils.DockerExec([]string{"run",
+			"--rm",
+			"-i",
+			"--net=none",
+			"-v", c.certVolume + ":/data",
+			"busybox:latest",
+			"sh", "-c",
+			// Need this so the permissions stick; docker seems to treat unused volumes differently.
+			`touch /data/VOLUME_PLACEHOLDER && chown -R ` + consulUserArg + ` /data`,
+		}, io.Discard)
+		require.NoError(r, err, "could not initialize docker volume for cert data: %s", c.certVolume)
+	})
+	retry.Run(t, func(r *retry.R) {
+		err = utils.DockerExec([]string{"run",
+			"--rm",
+			"-i",
+			"--net=none",
+			"-u", consulUserArg,
+			"-v", c.certVolume + ":/data",
+			"-w", "/data",
+			"--entrypoint", "",
+			c.DockerImage(),
+			"consul", "tls", "ca", "create",
+		}, io.Discard)
+		require.NoError(r, err, "could not create TLS certificate authority in docker volume: %s", c.certVolume)
+	})
 	var w bytes.Buffer
-	err = utils.DockerExec([]string{"run",
-		"--rm",
-		"-i",
-		"--net=none",
-		"-u", consulUserArg,
-		"-v", c.certVolume + ":/data",
-		"-w", "/data",
-		"--entrypoint", "",
-		c.DockerImage(),
-		"cat", filepath.Join("/data", ConsulCACertPEM),
-	}, &w)
-	require.NoError(t, err, "could not extract TLS CA certificate authority public key from docker volume: %s", c.certVolume)
+	retry.Run(t, func(r *retry.R) {
+		err = utils.DockerExec([]string{"run",
+			"--rm",
+			"-i",
+			"--net=none",
+			"-u", consulUserArg,
+			"-v", c.certVolume + ":/data",
+			"-w", "/data",
+			"--entrypoint", "",
+			c.DockerImage(),
+			"cat", filepath.Join("/data", ConsulCACertPEM),
+		}, &w)
+		require.NoError(r, err, "could not extract TLS CA certificate authority public key from docker volume: %s", c.certVolume)
+	})
 
 	c.caCert = w.String()
 }
 
 func (c *BuildContext) createTLSCertFiles(t *testing.T, dc string) (keyFileName, certFileName string) {
 	require.NotEmpty(t, "the CA has not been initialized yet")
-
-	err := utils.DockerExec([]string{"run",
-		"--rm",
-		"-i",
-		"--net=none",
-		"-u", consulUserArg,
-		"-v", c.certVolume + ":/data",
-		"-w", "/data",
-		"--entrypoint", "",
-		c.DockerImage(),
-		"consul", "tls", "cert", "create", "-server", "-dc", dc,
-	}, io.Discard)
-	require.NoError(t, err, "could not create TLS server certificate dc=%q in docker volume: %s", dc, c.certVolume)
+	retry.Run(t, func(r *retry.R) {
+		err := utils.DockerExec([]string{"run",
+			"--rm",
+			"-i",
+			"--net=none",
+			"-u", consulUserArg,
+			"-v", c.certVolume + ":/data",
+			"-w", "/data",
+			"--entrypoint", "",
+			c.DockerImage(),
+			"consul", "tls", "cert", "create", "-server", "-dc", dc,
+		}, io.Discard)
+		require.NoError(r, err, "could not create TLS server certificate dc=%q in docker volume: %s", dc, c.certVolume)
+	})
 
 	prefix := fmt.Sprintf("%s-server-%s", dc, "consul")
 	certFileName = fmt.Sprintf("%s-%d.pem", prefix, c.tlsCertIndex)
 	keyFileName = fmt.Sprintf("%s-%d-key.pem", prefix, c.tlsCertIndex)
 
-	for _, fn := range []string{certFileName, keyFileName} {
-		err = utils.DockerExec([]string{"run",
-			"--rm",
-			"-i",
-			"--net=none",
-			"-u", consulUserArg,
-			"-v", c.certVolume + ":/data:ro",
-			"-w", "/data",
-			"--entrypoint", "",
-			c.DockerImage(),
-			"stat", filepath.Join("/data", fn),
-		}, io.Discard)
-		require.NoError(t, err, "Generated TLS cert file %q does not exist in volume", fn)
-	}
+	retry.Run(t, func(r *retry.R) {
+		for _, fn := range []string{certFileName, keyFileName} {
+			err := utils.DockerExec([]string{"run",
+				"--rm",
+				"-i",
+				"--net=none",
+				"-u", consulUserArg,
+				"-v", c.certVolume + ":/data:ro",
+				"-w", "/data",
+				"--entrypoint", "",
+				c.DockerImage(),
+				"stat", filepath.Join("/data", fn),
+			}, io.Discard)
+			require.NoError(r, err, "Generated TLS cert file %q does not exist in volume", fn)
+		}
+	})
 
 	return keyFileName, certFileName
 }

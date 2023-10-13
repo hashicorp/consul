@@ -109,7 +109,10 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		r.nodeMap.UntrackWorkload(res.Id)
 	}
 
-	workloadHealth, err := getWorkloadHealth(ctx, rt, req.ID)
+	// passing the workload from the response because getWorkloadHealth uses
+	// resourceClient.ListByOwner which requires ownerID have a Uid and this is the
+	// safest way for application and test code to ensure Uid is provided.
+	workloadHealth, err := getWorkloadHealth(ctx, rt, rsp.Resource.Id)
 	if err != nil {
 		// This should be impossible under normal operations and will not be exercised
 		// within the unit tests. This can only fail if the resource service fails
@@ -199,6 +202,7 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 }
 
 func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *pbresource.ID) (pbcatalog.Health, error) {
+	rt.Logger.Trace("getWorkloadHealth", "workloadRef", workloadRef)
 	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
 		Owner: workloadRef,
 	})

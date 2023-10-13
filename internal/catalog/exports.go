@@ -11,10 +11,10 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -34,6 +34,9 @@ var (
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
+	StatusConditionBoundIdentities           = endpoints.StatusConditionBoundIdentities
+	StatusReasonWorkloadIdentitiesFound      = endpoints.StatusReasonWorkloadIdentitiesFound
+	StatusReasonNoWorkloadIdentitiesFound    = endpoints.StatusReasonNoWorkloadIdentitiesFound
 
 	FailoverStatusKey                                              = failover.StatusKey
 	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted

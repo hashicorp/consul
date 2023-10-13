@@ -24,7 +24,7 @@ Consul can configure Envoy sidecars to proxy traffic over the following protocol
 
 On Consul 1.5.0 and older, Envoy proxies can only proxy TCP traffic at L4.
 
-You can configure some [L7 features](/consul/docs/connect/l7-traffic) in [configuration entries](/consul/docs/agent/config-entries). You can add [custom Envoy configurations](#advanced-configuration) to the [proxy service definition](/consul/docs/connect/proxies/proxy-config-reference), which enables you to leverage Envoy features that are not exposed through configuration entries. You can also use the [Consul Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) to implement Envoy features.
+You can configure some [L7 features](/consul/docs/connect/manage-traffic) in [configuration entries](/consul/docs/agent/config-entries). You can add [custom Envoy configurations](#advanced-configuration) to the [proxy service definition](/consul/docs/connect/proxies/proxy-config-reference), which enables you to leverage Envoy features that are not exposed through configuration entries. You can also use the [Consul Envoy extensions](/consul/docs/connect/proxies/envoy-extensions) to implement Envoy features.
 
 ~> **Note:** When using Envoy with Consul and not using the [`consul connect envoy` command](/consul/commands/connect/envoy)
 Envoy must be run with the `--max-obj-name-len` option set to `256` or greater for Envoy versions prior to 1.11.0.
@@ -322,7 +322,7 @@ defaults that are inherited by all services.
     [`service-defaults`](/consul/docs/connect/config-entries/service-defaults)
     config entry for the service. Configuring it in a
     proxy config will not fully enable some [L7
-    features](/consul/docs/connect/l7-traffic).
+    features](/consul/docs/connect/manage-traffic).
     It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 - `bind_address` - Override the address Envoy's public listener binds to. By
@@ -372,7 +372,7 @@ definition](/consul/docs/connect/proxies/proxy-config-reference) or
   [`service-defaults`](/consul/docs/connect/config-entries/service-defaults)
   config entry for the upstream destination service. Configuring it in a
   proxy upstream config will not fully enable some [L7
-  features](/consul/docs/connect/l7-traffic).
+  features](/consul/docs/connect/manage-traffic).
   It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
 
 - `connect_timeout_ms` - The number of milliseconds to allow when making upstream

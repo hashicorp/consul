@@ -1280,6 +1280,10 @@ subsystem that provides Consul's service mesh capabilities.
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
 
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+  - `region`:  String value that specifies the region where the Consul agent is running. Consul matches this value to regions defined for services in the network. When service agent regions match, Consul is able to prioritize routes between the agent and the service in the same region over healthy service instances in other regions. When multiple healthy service instances are available in the local region, Consul prioritizes services that match the agent's `zone`. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
+  - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul matches this value to zones defined for services in the region. When service agent zones match, Consul is able to prioritize routes between the agent and the service in the same zone over healthy service instances in other zones. When multiple healthy service instances are available in the local zone, Consul distributes traffic equally the services. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.    
+
 ## DNS and Domain Parameters
 
 - `dns_config` This object allows a number of sub-keys

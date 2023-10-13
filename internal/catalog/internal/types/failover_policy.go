@@ -173,6 +173,14 @@ func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapE
 			Wrapped: fmt.Errorf("not supported in this release"),
 		}))
 	}
+
+	if len(config.Regions) > 0 {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "regions",
+			Wrapped: fmt.Errorf("not supported in this release"),
+		}))
+	}
+
 	// TODO(peering/v2): remove this bypass when we know what to do with
 
 	if (len(config.Destinations) > 0) == (config.SamenessGroup != "") {
@@ -194,17 +202,25 @@ func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapE
 		}
 	}
 
-	switch config.Mode {
-	case pbcatalog.FailoverMode_FAILOVER_MODE_UNSPECIFIED:
-		// means pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL
-	case pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL:
-	case pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY:
-	default:
+	if config.Mode != pbcatalog.FailoverMode_FAILOVER_MODE_UNSPECIFIED {
 		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 			Name:    "mode",
-			Wrapped: fmt.Errorf("not a supported enum value: %v", config.Mode),
+			Wrapped: fmt.Errorf("not supported in this release"),
 		}))
 	}
+
+	// TODO(v2): uncomment after this is supported
+	// switch config.Mode {
+	// case pbcatalog.FailoverMode_FAILOVER_MODE_UNSPECIFIED:
+	// 	// means pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL
+	// case pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL:
+	// case pbcatalog.FailoverMode_FAILOVER_MODE_ORDER_BY_LOCALITY:
+	// default:
+	// 	merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+	// 		Name:    "mode",
+	// 		Wrapped: fmt.Errorf("not a supported enum value: %v", config.Mode),
+	// 	}))
+	// }
 
 	// TODO: validate sameness group requirements
 

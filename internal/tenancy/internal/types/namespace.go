@@ -32,6 +32,7 @@ func RegisterNamespace(r resource.Registry) {
 		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
 		Mutate:   MutateNamespace,
+		// ACLs: TODO
 	})
 }
 

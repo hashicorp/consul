@@ -17,9 +17,9 @@ import (
 	"text/template"
 	"time"
 
-	metrics "github.com/armon/go-metrics"
+	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -286,6 +286,22 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
+			if a.baseDeps.UseV2Resources() {
+				args := structs.DCSpecificRequest{
+					Datacenter: "dc1",
+				}
+				var leader string
+				if err := a.RPC(context.Background(), "Status.Leader", args, &leader); err != nil {
+					retErr = fmt.Errorf("Status.Leader failed: %v", err)
+					continue // fail, try again
+				}
+				if leader == "" {
+					retErr = fmt.Errorf("No leader")
+					continue // fail, try again
+				}
+				return nil // success
+			}
+
 			// Ensure we have a leader and a node registration.
 			args := &structs.DCSpecificRequest{
 				Datacenter: a.Config.Datacenter,
@@ -405,6 +421,19 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
+// Using sdk/freeport with *retry.R is not possible without changing
+// function signatures. We use this shim instead to save the headache
+// of syncing sdk submodule updates.
+type retryShim struct {
+	*retry.R
+
+	name string
+}
+
+func (r *retryShim) Name() string {
+	return r.name
+}
+
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significantly with little overhead. Furthermore, asking
@@ -414,12 +443,15 @@ func (a *TestAgent) consulConfig() *consul.Config {
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
 func randomPortsSource(t *testing.T, useHTTPS bool) string {
-	ports := freeport.GetN(t, 8)
+	var ports []int
+	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
+		ports = freeport.GetN(&retryShim{r, t.Name()}, 7)
+	})
 
 	var http, https int
 	if useHTTPS {
 		http = -1
-		https = ports[2]
+		https = ports[1]
 	} else {
 		http = ports[1]
 		https = -1
@@ -430,11 +462,11 @@ func randomPortsSource(t *testing.T, useHTTPS bool) string {
 			dns = ` + strconv.Itoa(ports[0]) + `
 			http = ` + strconv.Itoa(http) + `
 			https = ` + strconv.Itoa(https) + `
-			serf_lan = ` + strconv.Itoa(ports[3]) + `
-			serf_wan = ` + strconv.Itoa(ports[4]) + `
-			server = ` + strconv.Itoa(ports[5]) + `
-			grpc = ` + strconv.Itoa(ports[6]) + `
-			grpc_tls = ` + strconv.Itoa(ports[7]) + `
+			serf_lan = ` + strconv.Itoa(ports[2]) + `
+			serf_wan = ` + strconv.Itoa(ports[3]) + `
+			server = ` + strconv.Itoa(ports[4]) + `
+			grpc = ` + strconv.Itoa(ports[5]) + `
+			grpc_tls = ` + strconv.Itoa(ports[6]) + `
 		}
 	`
 }

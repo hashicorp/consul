@@ -1,35 +1,35 @@
 {
-  "filters":  [
+  "filters": [
     {
-      "name":  "envoy.filters.network.rbac",
-      "typedConfig":  {
-        "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-        "rules":  {
-          "action":  "DENY",
-          "policies":  {
-            "consul-intentions-layer4":  {
-              "permissions":  [
+      "name": "envoy.filters.network.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+        "rules": {
+          "action": "DENY",
+          "policies": {
+            "consul-intentions-layer4": {
+              "permissions": [
                 {
-                  "any":  true
+                  "any": true
                 }
               ],
-              "principals":  [
+              "principals": [
                 {
-                  "authenticated":  {
-                    "principalName":  {
-                      "safeRegex":  {
-                        "googleRe2":  {},
-                        "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/db$"
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/db$"
                       }
                     }
                   }
                 },
                 {
-                  "authenticated":  {
-                    "principalName":  {
-                      "safeRegex":  {
-                        "googleRe2":  {},
-                        "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
                       }
                     }
                   }
@@ -38,52 +38,52 @@
             }
           }
         },
-        "statPrefix":  "connect_authz"
+        "statPrefix": "connect_authz"
       }
     },
     {
-      "name":  "envoy.filters.network.rbac",
-      "typedConfig":  {
-        "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-        "rules":  {
-          "policies":  {
-            "consul-intentions-layer4-0":  {
-              "permissions":  [
+      "name": "envoy.filters.network.rbac",
+      "typedConfig": {
+        "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+        "rules": {
+          "policies": {
+            "consul-intentions-layer4-0": {
+              "permissions": [
                 {
-                  "any":  true
+                  "any": true
                 }
               ],
-              "principals":  [
+              "principals": [
                 {
-                  "authenticated":  {
-                    "principalName":  {
-                      "safeRegex":  {
-                        "googleRe2":  {},
-                        "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/api$"
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/api$"
                       }
                     }
                   }
                 },
                 {
-                  "andIds":  {
-                    "ids":  [
+                  "andIds": {
+                    "ids": [
                       {
-                        "authenticated":  {
-                          "principalName":  {
-                            "safeRegex":  {
-                              "googleRe2":  {},
-                              "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
+                        "authenticated": {
+                          "principalName": {
+                            "safeRegex": {
+                              "googleRe2": {},
+                              "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
                             }
                           }
                         }
                       },
                       {
-                        "notId":  {
-                          "authenticated":  {
-                            "principalName":  {
-                              "safeRegex":  {
-                                "googleRe2":  {},
-                                "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/unsafe$"
+                        "notId": {
+                          "authenticated": {
+                            "principalName": {
+                              "safeRegex": {
+                                "googleRe2": {},
+                                "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/unsafe$"
                               }
                             }
                           }
@@ -94,19 +94,19 @@
                 }
               ]
             },
-            "consul-intentions-layer4-1":  {
-              "permissions":  [
+            "consul-intentions-layer4-1": {
+              "permissions": [
                 {
-                  "any":  true
+                  "any": true
                 }
               ],
-              "principals":  [
+              "principals": [
                 {
-                  "authenticated":  {
-                    "principalName":  {
-                      "safeRegex":  {
-                        "googleRe2":  {},
-                        "regex":  "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                  "authenticated": {
+                    "principalName": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                       }
                     }
                   }
@@ -115,7 +115,7 @@
             }
           }
         },
-        "statPrefix":  "connect_authz"
+        "statPrefix": "connect_authz"
       }
     }
   ]
