@@ -282,7 +282,6 @@ func TestServiceACLs(t *testing.T) {
 		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.Service {
 			return &pbcatalog.Service{Workloads: selector}
 		},
-		func(registry resource.Registry) {
-			RegisterService(registry)
-		})
+		RegisterService,
+	)
 }

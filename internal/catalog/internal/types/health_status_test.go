@@ -292,6 +292,24 @@ func TestHealthStatusACLs(t *testing.T) {
 			WriteOK: resourcetest.ALLOW,
 			ListOK:  resourcetest.DEFAULT,
 		},
+		"node test read with workload owner": {
+			Rules:   `node "test" { policy = "read" }`,
+			Data:    healthStatusData,
+			Owner:   workload,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"node test write with workload owner": {
+			Rules:   `node "test" { policy = "write" }`,
+			Data:    healthStatusData,
+			Owner:   workload,
+			Typ:     pbcatalog.HealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
 	}
 
 	for name, tc := range cases {

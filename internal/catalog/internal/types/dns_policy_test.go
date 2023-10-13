@@ -175,7 +175,6 @@ func TestDNSPolicyACLs(t *testing.T) {
 				Weights:   &pbcatalog.Weights{Passing: 1, Warning: 0},
 			}
 		},
-		func(registry resource.Registry) {
-			RegisterDNSPolicy(registry)
-		})
+		RegisterDNSPolicy,
+	)
 }

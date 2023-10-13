@@ -22,9 +22,8 @@ func TestDestinationsConfigurationACLs(t *testing.T) {
 		func(selector *pbcatalog.WorkloadSelector) *pbmesh.DestinationsConfiguration {
 			return &pbmesh.DestinationsConfiguration{Workloads: selector}
 		},
-		func(registry resource.Registry) {
-			RegisterDestinationsConfiguration(registry)
-		})
+		RegisterDestinationsConfiguration,
+	)
 }
 
 func TestValidateDestinationsConfiguration(t *testing.T) {

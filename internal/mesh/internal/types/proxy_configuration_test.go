@@ -24,11 +24,13 @@ import (
 func TestProxyConfigurationACLs(t *testing.T) {
 	catalogtesthelpers.RunWorkloadSelectingTypeACLsTests[*pbmesh.ProxyConfiguration](t, pbmesh.ProxyConfigurationType,
 		func(selector *pbcatalog.WorkloadSelector) *pbmesh.ProxyConfiguration {
-			return &pbmesh.ProxyConfiguration{Workloads: selector}
+			return &pbmesh.ProxyConfiguration{
+				Workloads:     selector,
+				DynamicConfig: &pbmesh.DynamicConfig{},
+			}
 		},
-		func(registry resource.Registry) {
-			RegisterProxyConfiguration(registry)
-		})
+		RegisterProxyConfiguration,
+	)
 }
 
 func TestMutateProxyConfiguration(t *testing.T) {

@@ -52,11 +52,15 @@ func RunACLTestCase(t *testing.T, tc ACLTestCase, registry resource.Registry) {
 	reg, ok := registry.Resolve(tc.Typ)
 	require.True(t, ok)
 
+	resolvedType, ok := registry.Resolve(tc.Typ)
+	require.True(t, ok)
+
 	res := Resource(tc.Typ, "test").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(DefaultTenancyForType(t, resolvedType)).
 		WithOwner(tc.Owner).
 		WithData(t, tc.Data).
 		Build()
+
 	ValidateAndNormalize(t, registry, res)
 
 	config := acl.Config{

@@ -93,6 +93,16 @@ func RunWorkloadSelectingTypeACLsTests[T WorkloadSelecting](t *testing.T, typ *p
 			WriteOK: resourcetest.ALLOW,
 			ListOK:  resourcetest.DEFAULT,
 		},
+		"service test write with prefixed selectors and a policy with a specific service": {
+			Rules:  `service "test" { policy = "write" } service "workload" { policy = "read" }`,
+			Data:   getData(&pbcatalog.WorkloadSelector{Prefixes: []string{"workload"}}),
+			Typ:    typ,
+			ReadOK: resourcetest.ALLOW,
+			// TODO (ishustava): this is wrong and should be fixed in a follow up PR. We should not allow
+			// a policy for a specific service when only prefixes are specified in the selector.
+			WriteOK: resourcetest.ALLOW,
+			ListOK:  resourcetest.DEFAULT,
+		},
 	}
 
 	for name, tc := range cases {

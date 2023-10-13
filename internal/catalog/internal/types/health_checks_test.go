@@ -203,7 +203,6 @@ func TestHealthChecksACLs(t *testing.T) {
 		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.HealthChecks {
 			return &pbcatalog.HealthChecks{Workloads: selector}
 		},
-		func(registry resource.Registry) {
-			RegisterHealthChecks(registry)
-		})
+		RegisterHealthChecks,
+	)
 }

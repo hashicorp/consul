@@ -255,7 +255,6 @@ func TestDestinationsACLs(t *testing.T) {
 		func(selector *pbcatalog.WorkloadSelector) *pbmesh.Destinations {
 			return &pbmesh.Destinations{Workloads: selector}
 		},
-		func(registry resource.Registry) {
-			RegisterDestinations(registry)
-		})
+		RegisterDestinations,
+	)
 }
