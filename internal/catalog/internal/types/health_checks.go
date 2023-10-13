@@ -17,6 +17,7 @@ func RegisterHealthChecks(r resource.Registry) {
 		Proto:    &pbcatalog.HealthChecks{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,
+		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.HealthChecks](),
 	})
 }
 

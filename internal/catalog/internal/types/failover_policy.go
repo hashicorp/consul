@@ -25,7 +25,7 @@ func RegisterFailoverPolicy(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookFailoverPolicy,
 			Write: aclWriteHookFailoverPolicy,
-			List:  aclListHookFailoverPolicy,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -370,10 +370,4 @@ func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.Aut
 
 	return nil
 
-}
-
-func aclListHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return nil
 }

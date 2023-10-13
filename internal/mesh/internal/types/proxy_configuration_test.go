@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	catalogtesthelpers "github.com/hashicorp/consul/internal/catalog/catalogtest/helpers"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -19,6 +20,18 @@ import (
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func TestProxyConfigurationACLs(t *testing.T) {
+	catalogtesthelpers.RunWorkloadSelectingTypeACLsTests[*pbmesh.ProxyConfiguration](t, pbmesh.ProxyConfigurationType,
+		func(selector *pbcatalog.WorkloadSelector) *pbmesh.ProxyConfiguration {
+			return &pbmesh.ProxyConfiguration{
+				Workloads:     selector,
+				DynamicConfig: &pbmesh.DynamicConfig{},
+			}
+		},
+		RegisterProxyConfiguration,
+	)
+}
 
 func TestMutateProxyConfiguration(t *testing.T) {
 	cases := map[string]struct {

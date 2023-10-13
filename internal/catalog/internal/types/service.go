@@ -20,6 +20,7 @@ func RegisterService(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
 		Mutate:   MutateService,
+		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.Service](),
 	})
 }
 

@@ -82,8 +82,8 @@ func TestWorkloadIdentityACLs(t *testing.T) {
 			checkF(t, tc.listOK, err)
 		})
 		t.Run("errors", func(t *testing.T) {
-			require.ErrorIs(t, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, nil, nil), resource.ErrNeedData)
-			require.ErrorIs(t, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, nil), resource.ErrNeedData)
+			require.ErrorIs(t, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, nil, nil), resource.ErrNeedResource)
+			require.ErrorIs(t, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, nil), resource.ErrNeedResource)
 		})
 	}
 
