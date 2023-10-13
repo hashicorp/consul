@@ -81,7 +81,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "api-1:tcp:1.1.1.1:1234",
+        "name": "default/local/default/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
