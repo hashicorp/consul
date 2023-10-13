@@ -13,7 +13,6 @@ const typeAssertion = (type, value, withDefault) => {
 };
 
 function cleanup(instance) {
-  console.log(instance);
   if (instance?.source && instance?.hash) {
     instance.source?.off('success', instance.hash.success)?.off('error', instance.hash.error);
 
