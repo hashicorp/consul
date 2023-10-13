@@ -110,3 +110,11 @@ func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(er
 func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	return types.ValidateSelector(sel, allowEmpty)
 }
+
+func ValidatePortName(name string) error {
+	return types.ValidatePortName(name)
+}
+
+func IsValidUnixSocketPath(host string) bool {
+	return types.IsValidUnixSocketPath(host)
+}

@@ -44,7 +44,7 @@ func ValidateWorkload(res *pbresource.Resource) error {
 
 	// Validate the Workload Ports
 	for portName, port := range workload.Ports {
-		if portNameErr := validatePortName(portName); portNameErr != nil {
+		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
 				Key:     portName,
