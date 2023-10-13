@@ -8,30 +8,24 @@ package types
 import (
 	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
+	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
+	"strings"
 )
 
-func ValidateExportedServices(res *pbresource.Resource) error {
-	var exportedService pbmulticluster.ExportedServices
-
-	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
-		return resource.NewErrDataParse(&exportedService, err)
-	}
-
-	var merr error
-
-	if exportedService.Services == nil || len(exportedService.Services) == 0 {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "services",
-			Wrapped: fmt.Errorf("at least one service must be set"),
-		})
-	}
-
+func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedService *multiclusterv1alpha1.ExportedServices) error {
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
+	invalidFields := make([]string, 0)
+
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
+		if res.Id.Tenancy.Namespace != "default" {
+			invalidFields = append(invalidFields, "namespace")
+		}
+		if res.Id.Tenancy.Partition != "default" {
+			invalidFields = append(invalidFields, "partition")
+		}
 		hasSetEnterpriseFeatures = true
 	}
 
@@ -41,64 +35,43 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 		}
 	}
 
+	var merr error
+
 	if hasSetEnterpriseFeatures {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "namespace or partition",
-			Wrapped: fmt.Errorf("namespace or partition can only be set in Enterprise"),
+			Name:    strings.Join(invalidFields, ","),
+			Wrapped: fmt.Errorf("namespace and partition can only be set in Enterprise"),
 		})
 	}
 
 	return merr
 }
 
-func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
-	var exportedService pbmulticluster.NamespaceExportedServices
-
-	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
-		return resource.NewErrDataParse(&exportedService, err)
-	}
-
+func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, exportedService *multiclusterv1alpha1.NamespaceExportedServices) error {
 	var merr error
 
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
-		hasSetEnterpriseFeatures = true
-	}
+	invalidFields := make([]string, 0)
 
-	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
-			hasSetEnterpriseFeatures = true
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
+		if res.Id.Tenancy.Namespace != "default" {
+			invalidFields = append(invalidFields, "namespace")
 		}
-	}
-
-	if hasSetEnterpriseFeatures {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "partition or sameness group",
-			Wrapped: fmt.Errorf("partition or sameness group can only be set in Enterprise"),
-		})
-	}
-
-	return merr
-}
-
-func ValidatePartitionExportedServices(res *pbresource.Resource) error {
-	var exportedService pbmulticluster.PartitionExportedServices
-
-	if err := res.Data.UnmarshalTo(&exportedService); err != nil {
-		return resource.NewErrDataParse(&exportedService, err)
-	}
-
-	var merr error
-
-	var hasSetEnterpriseFeatures bool
-
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
+		if res.Id.Tenancy.Partition != "default" {
+			invalidFields = append(invalidFields, "partition")
+		}
 		hasSetEnterpriseFeatures = true
 	}
 
 	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
+		if consumer.GetPartition() != "default" || consumer.GetSamenessGroup() != "default" {
+			if consumer.GetPartition() != "default" {
+				invalidFields = append(invalidFields, "namespace")
+			}
+			if res.Id.Tenancy.Partition != "default" {
+				invalidFields = append(invalidFields, "partition")
+			}
 			hasSetEnterpriseFeatures = true
 		}
 	}
@@ -113,25 +86,10 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 	return merr
 }
 
-func ValidateComputedExportedServices(res *pbresource.Resource) error {
-	var computedExportedServices pbmulticluster.ComputedExportedServices
-
-	if err := res.Data.UnmarshalTo(&computedExportedServices); err != nil {
-		return resource.NewErrDataParse(&computedExportedServices, err)
-	}
-
-	var merr error
-
-	if res.Id.Name != ComputedExportedServicesName {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "name",
-			Wrapped: fmt.Errorf("name can only be \"global\""),
-		})
-	}
-
+func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, computedExportedServices *multiclusterv1alpha1.ComputedExportedServices) error {
 	var hasSetEnterpriseFeatures bool
 
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "" || res.Id.Tenancy.Partition != "") {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
 		hasSetEnterpriseFeatures = true
 	}
 
@@ -143,6 +101,8 @@ func ValidateComputedExportedServices(res *pbresource.Resource) error {
 			}
 		}
 	}
+
+	var merr error
 
 	if hasSetEnterpriseFeatures {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
