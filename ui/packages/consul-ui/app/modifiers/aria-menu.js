@@ -6,6 +6,7 @@
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import { registerDestructor } from '@ember/destroyable';
 
 const TAB = 9;
 const ESC = 27;
@@ -37,6 +38,12 @@ const keys = {
 };
 
 const MENU_ITEMS = '[role^="menuitem"]';
+
+function cleanup(instance) {
+  if (instance) {
+    instance?.doc?.removeEventListener('keydown', instance?.keydown);
+  }
+}
 
 export default class AriaMenuModifier extends Modifier {
   @service('-document') doc;
@@ -85,28 +92,19 @@ export default class AriaMenuModifier extends Modifier {
     }
   }
 
-  connect(params, named) {
-    this.$trigger = this.doc.getElementById(this.element.getAttribute('aria-labelledby'));
-    if (typeof named.openEvent !== 'undefined') {
-      this.focus(named.openEvent);
+  modify(element, positional, named) {
+    this.params = positional;
+    this.options = named;
+
+    if (!this.$trigger) {
+      this.element = element;
+      this.$trigger = this.doc.getElementById(element.getAttribute('aria-labelledby'));
+      if (typeof named.openEvent !== 'undefined') {
+        this.focus(named.openEvent);
+      }
+
+      this.doc.addEventListener('keydown', this.keydown);
     }
-    this.doc.addEventListener('keydown', this.keydown);
-  }
-
-  disconnect() {
-    this.doc.removeEventListener('keydown', this.keydown);
-  }
-
-  didReceiveArguments() {
-    this.params = this.args.positional;
-    this.options = this.args.named;
-  }
-
-  didInstall() {
-    this.connect(this.args.positional, this.args.named);
-  }
-
-  willRemove() {
-    this.disconnect();
+    registerDestructor(this, cleanup);
   }
 }
