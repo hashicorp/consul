@@ -1017,48 +1017,47 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 			//get service data
 			serviceData := &pbcatalog.Service{}
 			var vp uint32 = 7000
-			svcNames := map[string]map[string]string
+			requiredEps := make(map[string]*pbproxystate.EndpointRef)
 
 			// get service name and ports
-			for name := range pst.RequiredEndpoints {
+			for name := range pst.ProxyState.Clusters {
+				if name == "null_route_cluster" {
+					continue
+				}
 				vp++
 				nameSplit := strings.Split(name, ".")
 				port := nameSplit[0]
-				svcNames[nameSplit[1]] = name
+				svcName := nameSplit[1]
 				serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
 					TargetPort:  port,
 					VirtualPort: vp,
 					Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 				})
-			}
 
-			svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
-				WithData(suite.T(), &pbcatalog.Service{}).
-				Write(suite.T(), suite.client)
+				svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
+					WithData(suite.T(), &pbcatalog.Service{}).
+					Write(suite.T(), suite.client)
 
-			eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
-				WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
-					{
-						Ports: map[string]*pbcatalog.WorkloadPort{
-							"mesh": {
-								Port:     20000,
-								Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+				eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
+					WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
+						{
+							Ports: map[string]*pbcatalog.WorkloadPort{
+								"mesh": {
+									Port:     20000,
+									Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+								},
+							},
+							Addresses: []*pbcatalog.WorkloadAddress{
+								{
+									Host:  "10.1.1.1",
+									Ports: []string{"mesh"},
+								},
 							},
 						},
-						Addresses: []*pbcatalog.WorkloadAddress{
-							{
-								Host:  "10.1.1.1",
-								Ports: []string{"mesh"},
-							},
-						},
-					},
-				}}).
-				WithOwner(svc.Id).
-				Write(suite.T(), suite.client)
-			//
-			requiredEps := make(map[string]*pbproxystate.EndpointRef)
-			for epName := range pst.RequiredEndpoints {
-				requiredEps[epName] = &pbproxystate.EndpointRef{
+					}}).
+					WithOwner(svc.Id).
+					Write(suite.T(), suite.client)
+				requiredEps[name] = &pbproxystate.EndpointRef{
 					Id:   eps.Id,
 					Port: "mesh",
 				}
@@ -1090,7 +1089,9 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 
 			require.NotNil(suite.T(), proxyStateTemplate)
 
-			actual := prototest.ProtoToJSON(suite.T(), proxyStateTemplate.Data)
+			reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
+			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
+
 			expected := golden.Get(suite.T(), actual, name+".golden")
 
 			require.JSONEq(suite.T(), expected, actual)
