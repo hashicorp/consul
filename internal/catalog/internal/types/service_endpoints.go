@@ -126,7 +126,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
 		// Port names must be DNS labels
-		if portNameErr := validatePortName(portName); portNameErr != nil {
+		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
 				Key:     portName,

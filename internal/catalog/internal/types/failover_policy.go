@@ -145,7 +145,7 @@ func ValidateFailoverPolicy(res *pbresource.Resource) error {
 				Wrapped: err,
 			}
 		}
-		if portNameErr := validatePortName(portName); portNameErr != nil {
+		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			merr = multierror.Append(merr, resource.ErrInvalidMapKey{
 				Map:     "port_configs",
 				Key:     portName,
@@ -245,7 +245,7 @@ func validateFailoverPolicyDestination(dest *pbcatalog.FailoverDestination, port
 	// assumed and will be reconciled.
 	if dest.Port != "" {
 		if ported {
-			if portNameErr := validatePortName(dest.Port); portNameErr != nil {
+			if portNameErr := ValidatePortName(dest.Port); portNameErr != nil {
 				merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 					Name:    "port",
 					Wrapped: portNameErr,

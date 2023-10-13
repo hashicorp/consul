@@ -89,7 +89,7 @@ func ValidateService(res *pbresource.Resource) error {
 		}
 
 		// validate the target port
-		if nameErr := validatePortName(port.TargetPort); nameErr != nil {
+		if nameErr := ValidatePortName(port.TargetPort); nameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ports",
 				Index: idx,

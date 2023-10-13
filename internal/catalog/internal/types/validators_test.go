@@ -178,7 +178,7 @@ func TestIsValidUnixSocketPath(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tcase.valid, isValidUnixSocketPath(tcase.name))
+			require.Equal(t, tcase.valid, IsValidUnixSocketPath(tcase.name))
 		})
 	}
 }
@@ -361,15 +361,15 @@ func TestValidatePortName(t *testing.T) {
 	// test for the isValidDNSLabel function.
 
 	t.Run("empty", func(t *testing.T) {
-		require.Equal(t, resource.ErrEmpty, validatePortName(""))
+		require.Equal(t, resource.ErrEmpty, ValidatePortName(""))
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		require.Equal(t, errNotDNSLabel, validatePortName("foo.com"))
+		require.Equal(t, errNotDNSLabel, ValidatePortName("foo.com"))
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		require.NoError(t, validatePortName("http"))
+		require.NoError(t, ValidatePortName("http"))
 	})
 }
 

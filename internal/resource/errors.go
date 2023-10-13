@@ -14,6 +14,7 @@ import (
 
 var (
 	ErrMissing                  = NewConstError("missing required field")
+	ErrMissingOneOf             = NewConstError("missing one of the required fields")
 	ErrEmpty                    = NewConstError("cannot be empty")
 	ErrReferenceTenancyNotEqual = NewConstError("resource tenancy and reference tenancy differ")
 	ErrUnsupported              = NewConstError("field is currently not supported")
