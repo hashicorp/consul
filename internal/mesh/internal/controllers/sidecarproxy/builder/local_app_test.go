@@ -142,6 +142,9 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				},
 			},
 		},
+		// source/local-and-inbound-connections shows that configuring LocalCOnnection
+		// and InboundConnections in DynamicConfig will set fields on standard clusters and routes,
+		// but will not set fields on exposed path clusters and routes.
 		"source/local-and-inbound-connections": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
@@ -152,7 +155,7 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-					"port3": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"port3": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 				},
 			},
 			proxyCfg: &pbmesh.ComputedProxyConfiguration{
@@ -168,6 +171,22 @@ func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
 					InboundConnections: &pbmesh.InboundConnectionsConfig{
 						MaxInboundConnections:     123,
 						BalanceInboundConnections: pbmesh.BalanceConnections(pbproxystate.BalanceConnections_BALANCE_CONNECTIONS_EXACT),
+					},
+					ExposeConfig: &pbmesh.ExposeConfig{
+						ExposePaths: []*pbmesh.ExposePath{
+							{
+								ListenerPort:  1234,
+								Path:          "/health",
+								LocalPathPort: 9090,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP,
+							},
+							{
+								ListenerPort:  1235,
+								Path:          "GetHealth",
+								LocalPathPort: 9091,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP2,
+							},
+						},
 					},
 				},
 			},

@@ -40,7 +40,7 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 			if isL7(port.Protocol) {
 				b.addLocalAppRoute(routeName, clusterName)
 			}
-			b.addLocalAppCluster(clusterName, portName).
+			b.addLocalAppCluster(clusterName, &portName).
 				addLocalAppStaticEndpoints(clusterName, port.GetPort())
 		}
 	}
@@ -267,7 +267,7 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 	// Add TLS inspection capability to be able to parse ALPN and/or SNI information from inbound connections.
 	listener.Capabilities = append(listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 
-	if b.proxyCfg != nil && b.proxyCfg.DynamicConfig != nil && b.proxyCfg.DynamicConfig.InboundConnections != nil {
+	if b.proxyCfg.GetDynamicConfig() != nil && b.proxyCfg.GetDynamicConfig().InboundConnections != nil {
 		listener.BalanceConnections = pbproxystate.BalanceConnections(b.proxyCfg.DynamicConfig.InboundConnections.BalanceInboundConnections)
 	}
 	return b.NewListenerBuilder(listener)
@@ -301,9 +301,9 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
 
 		if ic != nil {
 			// MaxInboundConnections is uint32 that is used on:
-			// - router destinations MaxInboundConnection (uint64)
-			// - cluster circuit breakers UpstreamLimits.MaxConnections (uint32)
-			// It is cast to a uint64 here similarly as it is to the proxystateconverter code
+			// - router destinations MaxInboundConnection (uint64).
+			// - cluster circuit breakers UpstreamLimits.MaxConnections (uint32).
+			// It is cast to a uint64 here similarly as it is to the proxystateconverter code.
 			r.GetL4().MaxInboundConnections = uint64(ic.MaxInboundConnections)
 		}
 
@@ -326,6 +326,13 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
 				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 			},
 		}
+
+		if ic != nil {
+			// MaxInboundConnections is cast to a uint64 here similarly as it is to the
+			// as the L4 case statement above and in proxystateconverter code.
+			r.GetL7().MaxInboundConnections = uint64(ic.MaxInboundConnections)
+		}
+
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
 	return l
@@ -391,7 +398,7 @@ func isL7(protocol pbcatalog.Protocol) bool {
 	return false
 }
 
-func (b *Builder) addLocalAppCluster(clusterName, portName string) *Builder {
+func (b *Builder) addLocalAppCluster(clusterName string, portName *string) *Builder {
 	// Make cluster for this router destination.
 	cluster := &pbproxystate.Cluster{
 		Group: &pbproxystate.Cluster_EndpointGroup{
@@ -404,8 +411,8 @@ func (b *Builder) addLocalAppCluster(clusterName, portName string) *Builder {
 	}
 
 	// configure inbound connections or connection timeout if either is defined
-	if b.proxyCfg.GetDynamicConfig() != nil {
-		lc, lcOK := b.proxyCfg.DynamicConfig.LocalConnection[portName]
+	if b.proxyCfg.GetDynamicConfig() != nil && portName != nil {
+		lc, lcOK := b.proxyCfg.DynamicConfig.LocalConnection[*portName]
 
 		if lcOK || b.proxyCfg.DynamicConfig.InboundConnections != nil {
 			cluster.GetEndpointGroup().GetStatic().Config = &pbproxystate.StaticEndpointGroupConfig{}
@@ -429,7 +436,7 @@ func (b *Builder) addLocalAppCluster(clusterName, portName string) *Builder {
 }
 
 func (b *Builder) addBlackHoleCluster() *Builder {
-	return b.addLocalAppCluster(xdscommon.BlackHoleClusterName, "")
+	return b.addLocalAppCluster(xdscommon.BlackHoleClusterName, nil)
 }
 
 func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port uint32) {

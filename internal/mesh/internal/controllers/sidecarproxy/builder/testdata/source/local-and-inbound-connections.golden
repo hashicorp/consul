@@ -1,6 +1,18 @@
 {
   "proxyState": {
     "clusters": {
+      "exposed_cluster_9090": {
+        "endpointGroup": {
+          "static": {}
+        },
+        "name": "exposed_cluster_9090"
+      },
+      "exposed_cluster_9091": {
+        "endpointGroup": {
+          "static": {}
+        },
+        "name": "exposed_cluster_9091"
+      },
       "local_app:port1": {
         "endpointGroup": {
           "static": {
@@ -33,6 +45,26 @@
       }
     },
     "endpoints": {
+      "exposed_cluster_9090": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 9090
+            }
+          }
+        ]
+      },
+      "exposed_cluster_9091": {
+        "endpoints": [
+          {
+            "hostPort": {
+              "host": "127.0.0.1",
+              "port": 9091
+            }
+          }
+        ]
+      },
       "local_app:port1": {
         "endpoints": [
           {
@@ -116,12 +148,13 @@
                 }
               }
             },
-            "l4": {
-              "cluster": {
-                "name": "local_app:port3"
+            "l7": {
+              "route": {
+                "name": "public_listener:port3"
               },
               "maxInboundConnections": 123,
               "statPrefix": "public_listener",
+              "staticRoute": true,
               "trafficPermissions": {}
             },
             "match": {
@@ -131,8 +164,121 @@
             }
           }
         ]
+      },
+      {
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 9090
+        },
+        "name": "exposed_path_health",
+        "routers": [
+          {
+            "l7": {
+              "route": {
+                "name": "exposed_path_filter_health_1234"
+              },
+              "statPrefix": "exposed_path_filter_health_1234",
+              "staticRoute": true
+            }
+          }
+        ]
+      },
+      {
+        "direction": "DIRECTION_INBOUND",
+        "hostPort": {
+          "host": "10.0.0.1",
+          "port": 9091
+        },
+        "name": "exposed_path_GetHealth",
+        "routers": [
+          {
+            "l7": {
+              "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "exposed_path_filter_GetHealth_1235"
+              },
+              "statPrefix": "exposed_path_filter_GetHealth_1235",
+              "staticRoute": true
+            }
+          }
+        ]
       }
-    ]
+    ],
+    "routes": {
+      "exposed_path_filter_GetHealth_1235": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "exposed_path_filter_GetHealth_1235",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "exposed_cluster_9091"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "exact": "GetHealth"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "exposed_path_filter_health_1234": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "exposed_path_filter_health_1234",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "exposed_cluster_9090"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "exact": "/health"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "public_listener:port3": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "public_listener:port3",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "local_app:port3"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
   },
   "requiredLeafCertificates": {
     "test-identity": {
