@@ -5,15 +5,18 @@ package resource
 
 import (
 	"fmt"
+	"strings"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
 	ErrMissing                  = NewConstError("missing required field")
 	ErrEmpty                    = NewConstError("cannot be empty")
 	ErrReferenceTenancyNotEqual = NewConstError("resource tenancy and reference tenancy differ")
+	ErrUnsupported              = NewConstError("field is currently not supported")
 )
 
 // ConstError is more or less equivalent to the stdlib errors.errorstring. However, having
@@ -146,4 +149,18 @@ type ErrInvalidReferenceType struct {
 
 func (err ErrInvalidReferenceType) Error() string {
 	return fmt.Sprintf("reference must have type %s", ToGVK(err.AllowedType))
+}
+
+type ErrInvalidFields struct {
+	Names   []string
+	Wrapped error
+}
+
+func (err ErrInvalidFields) Error() string {
+	allFields := strings.Join(err.Names, ",")
+	return fmt.Sprintf("invalid %q fields: %v", allFields, err.Wrapped)
+}
+
+func (err ErrInvalidFields) Unwrap() error {
+	return err.Wrapped
 }
