@@ -6,29 +6,21 @@ package workloadselectionmapper
 import (
 	"context"
 
-	"google.golang.org/protobuf/proto"
-
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/mappers/common"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
 	"github.com/hashicorp/consul/lib/stringslice"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// WorkloadSelecting denotes a resource type that uses workload selectors.
-type WorkloadSelecting interface {
-	proto.Message
-	GetWorkloads() *pbcatalog.WorkloadSelector
-}
-
-type Mapper[T WorkloadSelecting] struct {
+type Mapper[T catalog.WorkloadSelecting] struct {
 	workloadSelectionTracker *selectiontracker.WorkloadSelectionTracker
 	computedType             *pbresource.Type
 }
 
-func New[T WorkloadSelecting](computedType *pbresource.Type) *Mapper[T] {
+func New[T catalog.WorkloadSelecting](computedType *pbresource.Type) *Mapper[T] {
 	if computedType == nil {
 		panic("computed type is required")
 	}

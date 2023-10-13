@@ -19,6 +19,7 @@ func RegisterDNSPolicy(r resource.Registry) {
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
+		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.DNSPolicy](),
 	})
 }
 

@@ -5,6 +5,7 @@ package resourcetest
 
 import (
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -33,5 +34,19 @@ func Tenancy(s string) *pbresource.Tenancy {
 		return v
 	default:
 		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
+	}
+}
+
+func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.Tenancy {
+	switch reg.Scope {
+	case resource.ScopeNamespace:
+		return resource.DefaultNamespacedTenancy()
+	case resource.ScopePartition:
+		return resource.DefaultPartitionedTenancy()
+	case resource.ScopeCluster:
+		return resource.DefaultClusteredTenancy()
+	default:
+		t.Fatalf("unsupported resource scope: %v", reg.Scope)
+		return nil
 	}
 }
