@@ -18,7 +18,7 @@ func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedServic
 
 	invalidFields := make([]string, 0)
 
-	if res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
 		if res.Id.Tenancy.Namespace != "default" {
 			invalidFields = append(invalidFields, "namespace")
 		} else {
@@ -61,7 +61,7 @@ func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, expor
 
 	invalidFields := make([]string, 0)
 
-	if res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
 		if res.Id.Tenancy.Namespace != "default" {
 			invalidFields = append(invalidFields, "namespace")
 		}
@@ -102,7 +102,7 @@ func ValidatePartitionExportedServicesEnterprise(res *pbresource.Resource, expor
 
 	invalidFields := make([]string, 0)
 
-	if res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
 		if res.Id.Tenancy.Namespace != "default" {
 			invalidFields = append(invalidFields, "namespace")
 		}
@@ -140,7 +140,7 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 	var hasSetEnterpriseFeatures bool
 
 	invalidFields := make([]string, 0)
-	if res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default" {
+	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
 		if res.Id.Tenancy.Namespace != "default" {
 			invalidFields = append(invalidFields, "namespace")
 		} else {

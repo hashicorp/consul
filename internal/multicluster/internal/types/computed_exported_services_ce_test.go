@@ -178,7 +178,7 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			rules:   `mesh = "write"`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 	}
 
