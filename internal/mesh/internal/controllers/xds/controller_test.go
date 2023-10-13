@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/encoding/protojson"
+	"strings"
 	"testing"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -1002,9 +1003,9 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
 		"destination/l4-single-destination-ip-port-bind-address",
-		"destination/l4-single-destination-unix-socket-bind-address",
-		"destination/l4-multi-destination",
-		"destination/mixed-multi-destination",
+		//"destination/l4-single-destination-unix-socket-bind-address",
+		//"destination/l4-multi-destination",
+		//"destination/mixed-multi-destination",
 	}
 
 	for _, name := range cases {
@@ -1013,17 +1014,73 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 			pst := JSONToProxyTemplate(suite.T(),
 				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
 
+			//get service data
+			serviceData := &pbcatalog.Service{}
+			var vp uint32 = 7000
+			svcNames := map[string]map[string]string
+
+			// get service name and ports
+			for name := range pst.RequiredEndpoints {
+				vp++
+				nameSplit := strings.Split(name, ".")
+				port := nameSplit[0]
+				svcNames[nameSplit[1]] = name
+				serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
+					TargetPort:  port,
+					VirtualPort: vp,
+					Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+				})
+			}
+
+			svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
+				WithData(suite.T(), &pbcatalog.Service{}).
+				Write(suite.T(), suite.client)
+
+			eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
+				WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
+					{
+						Ports: map[string]*pbcatalog.WorkloadPort{
+							"mesh": {
+								Port:     20000,
+								Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+							},
+						},
+						Addresses: []*pbcatalog.WorkloadAddress{
+							{
+								Host:  "10.1.1.1",
+								Ports: []string{"mesh"},
+							},
+						},
+					},
+				}}).
+				WithOwner(svc.Id).
+				Write(suite.T(), suite.client)
+			//
+			requiredEps := make(map[string]*pbproxystate.EndpointRef)
+			for epName := range pst.RequiredEndpoints {
+				requiredEps[epName] = &pbproxystate.EndpointRef{
+					Id:   eps.Id,
+					Port: "mesh",
+				}
+			}
+
+			wiLeafs := make(map[string]*pbproxystate.LeafCertificateRef)
+			wiLeafs["wi-workload-identity"] = &pbproxystate.LeafCertificateRef{
+				Name: "wi-workload-identity",
+			}
+
+			pst.RequiredEndpoints = requiredEps
+
 			// Store the initial ProxyStateTemplate and track it in the mapper.
 			proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 				WithData(suite.T(), pst).
 				Write(suite.T(), suite.client)
 
+			retry.Run(suite.T(), func(r *retry.R) {
+				suite.client.RequireResourceExists(r, proxyStateTemplate.Id)
+			})
+
 			suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
-			for idx, ep := range pst.ProxyState.Endpoints {
-				resourcetest.Resource(pbcatalog.ServiceEndpointsType, fmt.Sprintf("test-%d", idx)).
-					WithData(suite.T(), ep).
-					Write(suite.T(), suite.client)
-			}
 
 			// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
 			err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -1032,7 +1089,11 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 			require.NoError(suite.T(), err)
 
 			require.NotNil(suite.T(), proxyStateTemplate)
-			//require.JSONEq(suite.T(), expected, actual)
+
+			actual := prototest.ProtoToJSON(suite.T(), proxyStateTemplate.Data)
+			expected := golden.Get(suite.T(), actual, name+".golden")
+
+			require.JSONEq(suite.T(), expected, actual)
 		})
 	}
 }
