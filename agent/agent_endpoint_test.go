@@ -90,6 +90,18 @@ func TestAgentEndpointsFailInV2(t *testing.T) {
 		})
 	}
 
+	t.Run("agent-self-with-params", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	})
+
 	checkRequest("PUT", "/v1/agent/maintenance")
 	checkRequest("GET", "/v1/agent/services")
 	checkRequest("GET", "/v1/agent/service/web")
