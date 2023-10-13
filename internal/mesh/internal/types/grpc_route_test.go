@@ -81,6 +81,7 @@ func TestMutateGRPCRoute(t *testing.T) {
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		err := MutateGRPCRoute(res)
 		require.NoError(t, err)
@@ -103,14 +104,17 @@ func TestMutateGRPCRoute(t *testing.T) {
 
 func TestValidateGRPCRoute(t *testing.T) {
 	type testcase struct {
-		route     *pbmesh.GRPCRoute
-		expectErr string
+		routeTenancy *pbresource.Tenancy
+		route        *pbmesh.GRPCRoute
+		expectErr    string
 	}
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(pbmesh.GRPCRouteType, "api").
+			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		// Ensure things are properly mutated and updated in the inputs.
 		err := MutateGRPCRoute(res)
@@ -582,6 +586,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 	// Add common parent refs test cases.
 	for name, parentTC := range getXRouteParentRefTestCases() {
 		cases["parent-ref: "+name] = testcase{
+			routeTenancy: parentTC.routeTenancy,
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: parentTC.refs,
 			},
@@ -597,6 +602,7 @@ func TestValidateGRPCRoute(t *testing.T) {
 			})
 		}
 		cases["backend-ref: "+name] = testcase{
+			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.GRPCRoute{
 				ParentRefs: []*pbmesh.ParentReference{
 					newParentRef(pbcatalog.ServiceType, "web", ""),
