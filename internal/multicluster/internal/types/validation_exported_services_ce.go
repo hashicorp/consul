@@ -28,7 +28,9 @@ func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedServic
 	}
 
 	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "default" {
+		// in case partition is not default and for the case when consumer has peer
+		// and blank partition
+		if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 			hasSetEnterpriseFeatures = true
 			invalidFields = append(invalidFields, "partition")
 			break
@@ -72,11 +74,11 @@ func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, expor
 	}
 
 	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "default" || consumer.GetSamenessGroup() != "default" {
-			if consumer.GetPartition() != "default" {
-				invalidFields = append(invalidFields, "namespace")
-			} else {
+		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
+			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
+			} else {
+				invalidFields = append(invalidFields, "sameness group")
 			}
 			hasSetEnterpriseFeatures = true
 			break
@@ -113,11 +115,11 @@ func ValidatePartitionExportedServicesEnterprise(res *pbresource.Resource, expor
 	}
 
 	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "default" || consumer.GetSamenessGroup() != "default" {
-			if consumer.GetPartition() != "default" {
-				invalidFields = append(invalidFields, "namespace")
-			} else {
+		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
+			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
+			} else {
+				invalidFields = append(invalidFields, "sameness group")
 			}
 			hasSetEnterpriseFeatures = true
 			break
@@ -151,12 +153,12 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 
 	for _, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
-			if computedExportedServiceConsumer.GetPartition() != "default" {
+			if computedExportedServiceConsumer.GetPartition() != "default" && computedExportedServiceConsumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
 				hasSetEnterpriseFeatures = true
 				break
 			}
-			if computedExportedServiceConsumer.GetPeer() != "default" {
+			if computedExportedServiceConsumer.GetPeer() != "" {
 				invalidFields = append(invalidFields, "peer")
 				hasSetEnterpriseFeatures = true
 				break

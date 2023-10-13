@@ -166,7 +166,7 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"mesh read policy": {
 			rules:   `mesh = "read"`,
@@ -178,7 +178,7 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			rules:   `mesh = "write"`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 	}
 

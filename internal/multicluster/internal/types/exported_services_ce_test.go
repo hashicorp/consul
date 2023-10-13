@@ -185,31 +185,31 @@ func TestExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"all services has read policy": {
 			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,
 			readOK:  ALLOW,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"all services has write policy": {
 			rules:   `service "api" { policy = "write" } service "backend" {policy = "write"}`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"only one services has read policy": {
 			rules:   `service "api" { policy = "read" }`,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"only one services has write policy": {
 			rules:   `service "api" { policy = "write" }`,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 	}
 

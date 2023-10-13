@@ -164,19 +164,19 @@ func TestPartitionExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"mesh read policy": {
 			rules:   `mesh = "read"`,
 			readOK:  ALLOW,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"mesh write policy": {
 			rules:   `mesh = "write"`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 	}
 

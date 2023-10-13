@@ -24,7 +24,7 @@ func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExpor
 			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
 				{
 					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
-						Peer: "peer",
+						Peer: "",
 					},
 				},
 			},
@@ -41,7 +41,7 @@ func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.Computed
 			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
 				{
 					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
-						Partition: "",
+						Partition: "default",
 					},
 				},
 			},
@@ -166,13 +166,13 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"mesh read policy": {
 			rules:   `mesh = "read"`,
 			readOK:  ALLOW,
 			writeOK: DENY,
-			listOK:  DEFAULT,
+			listOK:  ALLOW,
 		},
 		"mesh write policy": {
 			rules:   `mesh = "write"`,
