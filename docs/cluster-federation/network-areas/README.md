@@ -29,7 +29,7 @@ In versions of Consul prior to v1.8, network areas would establish a new TCP con
 ## Implementation Overview
 
 ### Area creation
-Network areas are created with requests to the `/operator/area` HTTP endpoint. The area defined in the request is then commited through RAFT and persisted on Consul servers.
+Network areas are created with requests to the `/operator/area` HTTP endpoint. The area defined in the request is then committed through RAFT and persisted on Consul servers.
 
 Every Consul Enterprise server maintains a reconciliation routine where every 30s it will query the list of areas in the state store, and then join or leave gossip pools to reflect that state.
 
