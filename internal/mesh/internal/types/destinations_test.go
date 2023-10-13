@@ -227,6 +227,19 @@ func TestValidateUpstreams(t *testing.T) {
 				},
 			},
 		},
+		"normal with selector": {
+			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names:  []string{"blah"},
+					Filter: "metadata.foo == bar",
+				},
+				Destinations: []*pbmesh.Destination{
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.zim", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "gir.zim", "api")},
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
