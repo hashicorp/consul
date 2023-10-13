@@ -17,7 +17,7 @@ message ConnectionConfig {
 
 // Referenced by ProxyConfiguration
 message InboundConnectionsConfig {
-  uint64 max_inbound_connections = 12;
+  uint32 max_inbound_connections = 12;
   BalanceConnections balance_inbound_connections = 13;
 }
 
