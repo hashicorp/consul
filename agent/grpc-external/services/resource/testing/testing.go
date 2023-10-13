@@ -92,8 +92,10 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 	if config.TenancyBridge == nil {
 		mockTenancyBridge := &svc.MockTenancyBridge{}
 		mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
+		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+		mockTenancyBridge.On("IsPartitionMarkedForDeletion", "foo").Return(false, nil)
 		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 		config.TenancyBridge = mockTenancyBridge
 	}
