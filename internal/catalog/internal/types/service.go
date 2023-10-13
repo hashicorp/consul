@@ -61,7 +61,7 @@ func ValidateService(res *pbresource.Resource) error {
 	// ServiceEndpoints objects for this service such as when desiring to
 	// configure endpoint information for external services that are not
 	// registered as workloads
-	if selErr := validateSelector(service.Workloads, true); selErr != nil {
+	if selErr := ValidateSelector(service.Workloads, true); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,

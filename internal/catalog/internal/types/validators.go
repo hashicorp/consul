@@ -78,7 +78,7 @@ func validateWorkloadHost(host string) error {
 	return nil
 }
 
-func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	if sel == nil {
 		if allowEmpty {
 			return nil
@@ -88,14 +88,20 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	}
 
 	if len(sel.Names) == 0 && len(sel.Prefixes) == 0 {
-		if allowEmpty {
-			return nil
+		if !allowEmpty {
+			return resource.ErrEmpty
 		}
 
-		return resource.ErrEmpty
+		if sel.Filter != "" {
+			return resource.ErrInvalidField{
+				Name:    "filter",
+				Wrapped: errors.New("filter cannot be set unless there is a name or prefix selector"),
+			}
+		}
+		return nil
 	}
 
-	var err error
+	var merr error
 
 	// Validate that all the exact match names are non-empty. This is
 	// mostly for the sake of not admitting values that should always
@@ -103,7 +109,7 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	// This is because workloads must have non-empty names.
 	for idx, name := range sel.Names {
 		if name == "" {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
+			merr = multierror.Append(merr, resource.ErrInvalidListElement{
 				Name:    "names",
 				Index:   idx,
 				Wrapped: resource.ErrEmpty,
@@ -111,7 +117,14 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 		}
 	}
 
-	return err
+	if err := resource.ValidateMetadataFilter(sel.GetFilter()); err != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "filter",
+			Wrapped: err,
+		})
+	}
+
+	return merr
 }
 
 func validateIPAddress(ip string) error {

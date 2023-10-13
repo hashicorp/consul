@@ -73,6 +73,14 @@ func ValidateDestinations(res *pbresource.Resource) error {
 
 	var merr error
 
+	// Validate the workload selector
+	if selErr := catalog.ValidateSelector(destinations.Workloads, false); selErr != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "workloads",
+			Wrapped: selErr,
+		})
+	}
+
 	for i, dest := range destinations.Destinations {
 		wrapDestErr := func(err error) error {
 			return resource.ErrInvalidListElement{
@@ -96,8 +104,6 @@ func ValidateDestinations(res *pbresource.Resource) error {
 		// TODO(v2): validate port name using catalog validator
 		// TODO(v2): validate ListenAddr
 	}
-
-	// TODO(v2): validate workload selectors
 
 	return merr
 }

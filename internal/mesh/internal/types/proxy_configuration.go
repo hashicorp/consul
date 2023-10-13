@@ -4,6 +4,9 @@
 package types
 
 import (
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -12,12 +15,11 @@ import (
 
 func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbmesh.ProxyConfigurationType,
-		Proto: &pbmesh.ProxyConfiguration{},
-		Scope: resource.ScopeNamespace,
-		// TODO(rb): add validation for proxy configuration
-		Validate: nil,
+		Type:     pbmesh.ProxyConfigurationType,
+		Proto:    &pbmesh.ProxyConfiguration{},
+		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateProxyConfiguration,
+		Validate: ValidateProxyConfiguration,
 	})
 }
 
@@ -48,4 +50,26 @@ func MutateProxyConfiguration(res *pbresource.Resource) error {
 	}
 
 	return res.Data.MarshalFrom(&proxyCfg)
+}
+
+func ValidateProxyConfiguration(res *pbresource.Resource) error {
+	var cfg pbmesh.ProxyConfiguration
+
+	if err := res.Data.UnmarshalTo(&cfg); err != nil {
+		return resource.NewErrDataParse(&cfg, err)
+	}
+
+	var merr error
+
+	// Validate the workload selector
+	if selErr := catalog.ValidateSelector(cfg.Workloads, false); selErr != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "workloads",
+			Wrapped: selErr,
+		})
+	}
+
+	// TODO(rb): add more validation for proxy configuration
+
+	return merr
 }

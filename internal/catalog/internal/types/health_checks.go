@@ -30,7 +30,7 @@ func ValidateHealthChecks(res *pbresource.Resource) error {
 	var err error
 
 	// Validate the workload selector
-	if selErr := validateSelector(checks.Workloads, false); selErr != nil {
+	if selErr := ValidateSelector(checks.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,

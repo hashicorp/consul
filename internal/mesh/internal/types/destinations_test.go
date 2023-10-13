@@ -123,11 +123,30 @@ func TestValidateUpstreams(t *testing.T) {
 	cases := map[string]testcase{
 		// emptiness
 		"empty": {
-			data: &pbmesh.Destinations{},
+			data:      &pbmesh.Destinations{},
+			expectErr: `invalid "workloads" field: cannot be empty`,
+		},
+		"empty selector": {
+			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{},
+			},
+			expectErr: `invalid "workloads" field: cannot be empty`,
+		},
+		"bad selector": {
+			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names:  []string{"blah"},
+					Filter: "garbage.foo == bar",
+				},
+			},
+			expectErr: `invalid "filter" field: filter "garbage.foo == bar" is invalid: Selector "garbage" is not valid`,
 		},
 		"dest/nil ref": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: nil},
 				},
@@ -137,6 +156,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"dest/bad type": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.WorkloadType, "default.default", "api")},
 				},
@@ -146,6 +168,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"dest/nil tenancy": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: &pbresource.Reference{Type: pbcatalog.ServiceType, Name: "api"}},
 				},
@@ -155,6 +180,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"dest/bad dest tenancy/partition": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, ".bar", "api")},
 				},
@@ -164,6 +192,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"dest/bad dest tenancy/namespace": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo", "api")},
 				},
@@ -173,6 +204,9 @@ func TestValidateUpstreams(t *testing.T) {
 		"dest/bad dest tenancy/peer_name": {
 			skipMutate: true,
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: resourcetest.Resource(pbcatalog.ServiceType, "api").
 						WithTenancy(&pbresource.Tenancy{Partition: "foo", Namespace: "bar"}).
@@ -183,6 +217,22 @@ func TestValidateUpstreams(t *testing.T) {
 		},
 		"normal": {
 			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names: []string{"blah"},
+				},
+				Destinations: []*pbmesh.Destination{
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.zim", "api")},
+					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "gir.zim", "api")},
+				},
+			},
+		},
+		"normal with selector": {
+			data: &pbmesh.Destinations{
+				Workloads: &pbcatalog.WorkloadSelector{
+					Names:  []string{"blah"},
+					Filter: "metadata.foo == bar",
+				},
 				Destinations: []*pbmesh.Destination{
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.bar", "api")},
 					{DestinationRef: newRefWithTenancy(pbcatalog.ServiceType, "foo.zim", "api")},

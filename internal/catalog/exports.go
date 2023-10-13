@@ -101,3 +101,12 @@ func NewFailoverPolicyMapper() FailoverPolicyMapper {
 func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
 	return types.ValidateLocalServiceRefNoSection(ref, wrapErr)
 }
+
+// ValidateSelector ensures that the selector has at least one exact or prefix
+// match constraint, and that if a filter is present it is valid.
+//
+// The selector can be nil, and have zero exact/prefix matches if allowEmpty is
+// set to true.
+func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+	return types.ValidateSelector(sel, allowEmpty)
+}
