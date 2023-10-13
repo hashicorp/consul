@@ -75,7 +75,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 	}
 
 	var merr error
-	if err := validateParentRefs(route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
