@@ -1868,7 +1868,7 @@
     faker "^4.1.0"
     js-yaml "^3.13.1"
 
-"@hashicorp/design-system-components@^2.0.0":
+"@hashicorp/design-system-components@^2.14.1":
   version "2.14.1"
   resolved "https://registry.yarnpkg.com/@hashicorp/design-system-components/-/design-system-components-2.14.1.tgz#4e8aa8f8740c151a3bad56ba9aadada540805201"
   integrity sha512-EgUpKUAQlTXKnJfv98RHFz1rqcb3xWE8CiLgiEcjN8RuX5P05D0llHKMlbdhsuzqe0D72c//wesk9Mlbb9tngw==
