@@ -396,7 +396,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 		rejectCatalogV1Endpoint := false
 		if s.agent.baseDeps.UseV2Resources() {
-			rejectCatalogV1Endpoint = isV1CatalogRequest(logURL)
+			rejectCatalogV1Endpoint = isV1CatalogRequest(req.URL.Path)
 		}
 
 		if s.denylist.Block(req.URL.Path) {
