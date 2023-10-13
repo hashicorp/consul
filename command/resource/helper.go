@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"unicode"
@@ -133,6 +134,25 @@ func isHCL(v []byte) bool {
 	}
 
 	return true
+}
+
+func ParseResourceInput(filePath string, stdin io.Reader) (*pbresource.Resource, error) {
+	data, err := helpers.LoadDataSourceNoRaw(filePath, stdin)
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load data: %v", err)
+	}
+	var parsedResource *pbresource.Resource
+	if isHCL([]byte(data)) {
+		parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
+	} else {
+		parsedResource, err = parseJson(data)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("Failed to decode resource from input: %v", err)
+	}
+
+	return parsedResource, nil
 }
 
 func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
