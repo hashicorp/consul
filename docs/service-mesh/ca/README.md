@@ -68,9 +68,9 @@ operations that provide the full behaviour of the CA subsystem.
 
 ### Periodic Operations
 
-Periodic (or background) opeartions are started automatically by the Consul leader. They run at some interval (often 1 hour).
+Periodic (or background) operations are started automatically by the Consul leader. They run at some interval (often 1 hour).
 
-- `CAManager.InitializeCA` - attempts to initialize the CA when a leader is ellected. If the synchronous InitializeCA fails, `CAManager.backgroundCAInitialization` runs `InitializeCA` periodically in a goroutine until it succeeds.
+- `CAManager.InitializeCA` - attempts to initialize the CA when a leader is elected. If the synchronous InitializeCA fails, `CAManager.backgroundCAInitialization` runs `InitializeCA` periodically in a goroutine until it succeeds.
 - `CAManager.RenewIntermediate` - (called by `CAManager.intermediateCertRenewalWatch`) runs in the primary if the provider uses a separate signing cert (the Vault provider). The operation always runs in the secondary. Renews the signing cert once half its lifetime has passed.
 - `CAManager.secondaryCARootWatch` - runs in secondary only. Performs a blocking query to the primary to retrieve any updates to the CA roots and stores them locally.
 - `Server.runCARootPruning` - removes non-active and expired roots from state.CARoots
