@@ -119,7 +119,6 @@ func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
 			MutualTlsMode:           pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_PERMISSIVE,
 			MeshGatewayMode:         pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL,
 			AccessLogs:              &pbmesh.AccessLogsConfig{},
-			EnvoyExtensions:         []*pbmesh.EnvoyExtension{{Name: "foo"}},
 			PublicListenerJson:      "listener-json",
 			ListenerTracingJson:     "tracing-json",
 			LocalClusterJson:        "cluster-json",
@@ -157,7 +156,6 @@ func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
 		"mutual_tls_mode",
 		"mesh_gateway_mode",
 		"access_logs",
-		"envoy_extensions",
 		"public_listener_json",
 		"listener_tracing_json",
 		"local_cluster_json",
@@ -338,6 +336,7 @@ func TestValidateProxyConfiguration_WorkloadSelector(t *testing.T) {
 					Names:  []string{"blah"},
 					Filter: "metadata.foo == bar",
 				},
+				DynamicConfig: &pbmesh.DynamicConfig{},
 			},
 		},
 	}

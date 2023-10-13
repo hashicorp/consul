@@ -4,14 +4,12 @@
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/hashicorp/consul/internal/catalog"
 	"math"
 
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/catalog"
+
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -20,9 +18,9 @@ import (
 
 func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbmesh.ProxyConfigurationType,
-		Proto: &pbmesh.ProxyConfiguration{},
-		Scope: resource.ScopeNamespace,
+		Type:     pbmesh.ProxyConfigurationType,
+		Proto:    &pbmesh.ProxyConfiguration{},
+		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateProxyConfiguration,
 		Validate: ValidateProxyConfiguration,
 	})
@@ -123,13 +121,6 @@ func validateDynamicProxyConfiguration(cfg *pbmesh.DynamicConfig) error {
 	if cfg.GetAccessLogs() != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "access_logs",
-			Wrapped: resource.ErrUnsupported,
-		})
-	}
-
-	if cfg.GetEnvoyExtensions() != nil {
-		err = multierror.Append(err, resource.ErrInvalidField{
-			Name:    "envoy_extensions",
 			Wrapped: resource.ErrUnsupported,
 		})
 	}
