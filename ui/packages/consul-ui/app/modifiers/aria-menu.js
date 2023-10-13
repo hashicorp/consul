@@ -53,7 +53,7 @@ export default class AriaMenuModifier extends Modifier {
   async keydown(e) {
     if (e.keyCode === ESC) {
       this.options.onclose(e);
-      this.$trigger.focus();
+      this.$trigger?.focus();
       return;
     }
     const $items = [...this.element.querySelectorAll(MENU_ITEMS)];
@@ -62,7 +62,7 @@ export default class AriaMenuModifier extends Modifier {
       if (e.shiftKey) {
         if (pos === 0) {
           this.options.onclose(e);
-          this.$trigger.focus();
+          this.$trigger?.focus();
         }
       } else {
         if (pos === $items.length - 1) {
@@ -75,7 +75,7 @@ export default class AriaMenuModifier extends Modifier {
     if (typeof keys[this.orientation][e.keyCode] === 'undefined') {
       return;
     }
-    $items[keys[this.orientation][e.keyCode]($items, pos)].focus();
+    $items[keys[this.orientation][e.keyCode]($items, pos)]?.focus();
     e.stopPropagation();
     e.preventDefault();
   }
