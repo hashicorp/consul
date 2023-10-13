@@ -1,6 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
+//go:build consulent
+// +build consulent
+
 package types
 
 import (
@@ -33,7 +36,7 @@ func validExportedServicesWithPartition() *multiclusterv1alpha1.ExportedServices
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "",
+				Partition: "partition",
 			},
 		},
 	}
@@ -47,7 +50,7 @@ func validExportedServicesWithSamenessGroup() *multiclusterv1alpha1.ExportedServ
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "",
+				SamenessGroup: "sameness_group",
 			},
 		},
 	}
@@ -61,7 +64,7 @@ func inValidExportedServices() *multiclusterv1alpha1.ExportedServices {
 	return &multiclusterv1alpha1.ExportedServices{}
 }
 
-func TestValidateExportedServices(t *testing.T) {
+func TestExportedServicesValidation(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
@@ -97,7 +100,7 @@ func TestValidateExportedServices(t *testing.T) {
 	}
 }
 
-func TestValidateExportedServices_NoServices(t *testing.T) {
+func TestExportedServicesValidation_NoServices(t *testing.T) {
 	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
 		WithData(t, inValidExportedServices()).
 		Build()

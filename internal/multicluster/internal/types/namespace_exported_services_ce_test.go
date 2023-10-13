@@ -1,10 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
+//go:build !consulent
+// +build !consulent
+
 package types
 
 import (
-	"errors"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
@@ -15,60 +17,70 @@ import (
 	"testing"
 )
 
-func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
-			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
-				{
-					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
-						Peer: "peer",
-					},
-				},
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "",
 			},
 		},
 	}
-	return &multiclusterv1alpha1.ComputedExportedServices{
+	return &multiclusterv1alpha1.NamespaceExportedServices{
 		Consumers: consumers,
 	}
 }
 
-func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
-			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
-				{
-					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
-						Partition: "",
-					},
-				},
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
+				Partition: "default",
 			},
 		},
 	}
-	return &multiclusterv1alpha1.ComputedExportedServices{
+	return &multiclusterv1alpha1.NamespaceExportedServices{
 		Consumers: consumers,
 	}
 }
 
-func TestValidateComputedExportedServices(t *testing.T) {
+func validNamespaceExportedServicesWithSamenessGroup() *multiclusterv1alpha1.NamespaceExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
+				SamenessGroup: "",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.NamespaceExportedServices{
+		Consumers: consumers,
+	}
+}
+
+func TestNamespaceExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidateComputedExportedServices(tc.Resource)
+		err := ValidateNamespaceExportedServices(tc.Resource)
 		require.NoError(t, err)
 
-		resourcetest.MustDecode[*multiclusterv1alpha1.ComputedExportedServices](t, tc.Resource)
+		resourcetest.MustDecode[*multiclusterv1alpha1.NamespaceExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{
-		"computed exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPeer()).
+		"namespace exported services with peer": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithPeer()).
 				Build(),
 		},
-		"computed exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPartition()).
+		"namespace exported services with partition": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithPartition()).
+				Build(),
+		},
+		"namespace exported services with sameness_group": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
 				Build(),
 		},
 	}
@@ -80,18 +92,7 @@ func TestValidateComputedExportedServices(t *testing.T) {
 	}
 }
 
-func TestValidateComputedExportedServices_InvalidName(t *testing.T) {
-	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "computed-exported-services").
-		WithData(t, validComputedExportedServicesWithPeer()).
-		Build()
-
-	err := ValidateComputedExportedServices(res)
-	require.Error(t, err)
-	expectedError := errors.New("invalid \"name\" field: name can only be \"global\"")
-	require.ErrorAs(t, err, &expectedError)
-}
-
-func TestComputedExportedServicesACLs(t *testing.T) {
+func TestNamespaceExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
 	Register(registry)
@@ -127,12 +128,12 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(multiclusterv1alpha1.ComputedExportedServicesType)
+	reg, ok := registry.Resolve(multiclusterv1alpha1.NamespaceExportedServicesType)
 	require.True(t, ok)
 
 	run := func(t *testing.T, tc testcase) {
-		exportedServiceData := &multiclusterv1alpha1.ComputedExportedServices{}
-		res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "global").
+		exportedServiceData := &multiclusterv1alpha1.NamespaceExportedServices{}
+		res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
 			WithData(t, exportedServiceData).
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, res)

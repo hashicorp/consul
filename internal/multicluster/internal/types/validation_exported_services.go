@@ -20,7 +20,7 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 
 	var merr error
 
-	if exportedService.Services == nil || len(exportedService.Services) == 0 {
+	if len(exportedService.Services) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "services",
 			Wrapped: fmt.Errorf("at least one service must be set"),
@@ -53,28 +53,7 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&exportedService, err)
 	}
 
-	var merr error
-
-	var hasSetEnterpriseFeatures bool
-
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
-		hasSetEnterpriseFeatures = true
-	}
-
-	for _, consumer := range exportedService.Consumers {
-		if consumer.GetPartition() != "" || consumer.GetSamenessGroup() != "" {
-			hasSetEnterpriseFeatures = true
-		}
-	}
-
-	if hasSetEnterpriseFeatures {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "partition or sameness group",
-			Wrapped: fmt.Errorf("partition or sameness group can only be set in Enterprise"),
-		})
-	}
-
-	return merr
+	return ValidatePartitionExportedServicesEnterprise(res, &exportedService)
 }
 
 func ValidateComputedExportedServices(res *pbresource.Resource) error {

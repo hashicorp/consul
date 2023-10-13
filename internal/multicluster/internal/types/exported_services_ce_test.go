@@ -1,9 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
+//go:build !consulent
+// +build !consulent
+
 package types
 
 import (
+	"errors"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
@@ -14,7 +18,7 @@ import (
 	"testing"
 )
 
-func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
+func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
@@ -22,59 +26,69 @@ func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExp
 			},
 		},
 	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
+	return &multiclusterv1alpha1.ExportedServices{
+		Services:  []string{"api", "frontend", "backend"},
 		Consumers: consumers,
 	}
 }
 
-func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
+func validExportedServicesWithPartition() *multiclusterv1alpha1.ExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "partition",
+				Partition: "",
 			},
 		},
 	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
+	return &multiclusterv1alpha1.ExportedServices{
+		Services:  []string{"api", "frontend", "backend"},
 		Consumers: consumers,
 	}
 }
 
-func validNamespaceExportedServicesWithSamenessGroup() *multiclusterv1alpha1.NamespaceExportedServices {
+func validExportedServicesWithSamenessGroup() *multiclusterv1alpha1.ExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "sameness_group",
+				SamenessGroup: "",
 			},
 		},
 	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
+	return &multiclusterv1alpha1.ExportedServices{
+		Services:  []string{"api", "frontend", "backend"},
 		Consumers: consumers,
 	}
 }
 
-func TestNamespaceExportedServices(t *testing.T) {
+func inValidExportedServices() *multiclusterv1alpha1.ExportedServices {
+	return &multiclusterv1alpha1.ExportedServices{}
+}
+
+func TestExportedServicesValidation(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		resourcetest.MustDecode[*multiclusterv1alpha1.NamespaceExportedServices](t, tc.Resource)
+		err := ValidateExportedServices(tc.Resource)
+		require.NoError(t, err)
+
+		resourcetest.MustDecode[*multiclusterv1alpha1.ExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{
-		"namespace exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPeer()).
+		"exported services with peer": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithPeer()).
 				Build(),
 		},
-		"namespace exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPartition()).
+		"exported services with partition": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithPartition()).
 				Build(),
 		},
-		"namespace exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
+		"exported services with sameness_group": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+				WithData(t, validExportedServicesWithSamenessGroup()).
 				Build(),
 		},
 	}
@@ -86,7 +100,18 @@ func TestNamespaceExportedServices(t *testing.T) {
 	}
 }
 
-func TestNamespaceExportedServicesACLs(t *testing.T) {
+func TestExportedServicesValidation_NoServices(t *testing.T) {
+	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+		WithData(t, inValidExportedServices()).
+		Build()
+
+	err := ValidateExportedServices(res)
+	require.Error(t, err)
+	expectedError := errors.New("invalid \"services\" field: at least one service must be set")
+	require.ErrorAs(t, err, &expectedError)
+}
+
+func TestExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
 	Register(registry)
@@ -122,12 +147,14 @@ func TestNamespaceExportedServicesACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(multiclusterv1alpha1.NamespaceExportedServicesType)
+	reg, ok := registry.Resolve(multiclusterv1alpha1.ExportedServicesType)
 	require.True(t, ok)
 
 	run := func(t *testing.T, tc testcase) {
-		exportedServiceData := &multiclusterv1alpha1.NamespaceExportedServices{}
-		res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+		exportedServiceData := &multiclusterv1alpha1.ExportedServices{
+			Services: []string{"api", "backend"},
+		}
+		res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exps").
 			WithData(t, exportedServiceData).
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, res)
@@ -160,16 +187,28 @@ func TestNamespaceExportedServicesACLs(t *testing.T) {
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"mesh read policy": {
-			rules:   `mesh = "read"`,
+		"all services has read policy": {
+			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,
 			readOK:  ALLOW,
 			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
-		"mesh write policy": {
-			rules:   `mesh = "write"`,
+		"all services has write policy": {
+			rules:   `service "api" { policy = "write" } service "backend" {policy = "write"}`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
+			listOK:  DEFAULT,
+		},
+		"only one services has read policy": {
+			rules:   `service "api" { policy = "read" }`,
+			readOK:  DENY,
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"only one services has write policy": {
+			rules:   `service "api" { policy = "write" }`,
+			readOK:  DENY,
+			writeOK: DENY,
 			listOK:  DEFAULT,
 		},
 	}
