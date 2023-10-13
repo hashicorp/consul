@@ -1,7 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-
 // The /v1/operator/audit-hash endpoint is available only in Consul Enterprise and
 // interact with its audit logging subsystem.
 
