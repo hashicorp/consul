@@ -12,7 +12,7 @@ const typeAssertion = (type, value, withDefault) => {
 };
 
 function cleanup(instance) {
-  if (instance?.source && instance?.hash) {
+  if (instance && instance?.source && instance?.hash) {
     instance.source?.off('success', instance.hash.success)?.off('error', instance.hash.error);
 
     instance.source?.destroy();
@@ -49,11 +49,15 @@ export default class WithCopyableModifier extends Modifier {
     this.hash = hash;
   }
 
+  constructor() {
+    super(...arguments);
+    registerDestructor(this, cleanup);
+  }
+
   modify(element, [value], namedArgs) {
     this.element = element;
     this.disconnect();
     this.connect(value, namedArgs);
-    registerDestructor(this, cleanup);
   }
 
   disconnect() {
