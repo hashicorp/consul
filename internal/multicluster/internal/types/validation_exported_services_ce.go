@@ -29,7 +29,7 @@ func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedServic
 
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
-		// and blank partition
+		// and non blank partition
 		if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 			hasSetEnterpriseFeatures = true
 			invalidFields = append(invalidFields, "partition")
@@ -74,6 +74,8 @@ func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, expor
 	}
 
 	for _, consumer := range exportedService.Consumers {
+		// in case partition is not default and for the case when consumer has peer
+		// and non blank partition
 		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
 			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
@@ -115,6 +117,8 @@ func ValidatePartitionExportedServicesEnterprise(res *pbresource.Resource, expor
 	}
 
 	for _, consumer := range exportedService.Consumers {
+		// in case partition is not default and for the case when consumer has peer
+		// and non blank partition
 		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
 			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
@@ -153,6 +157,8 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 
 	for _, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
+			// in case partition is not default and for the case when consumer has peer
+			// and non blank partition
 			if computedExportedServiceConsumer.GetPartition() != "default" && computedExportedServiceConsumer.GetPartition() != "" {
 				invalidFields = append(invalidFields, "partition")
 				hasSetEnterpriseFeatures = true
