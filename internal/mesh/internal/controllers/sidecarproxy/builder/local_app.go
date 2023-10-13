@@ -38,7 +38,7 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 				addInboundTLS()
 
 			if isL7(port.Protocol) {
-				b.addLocalAppRoute(routeName, clusterName)
+				b.addLocalAppRoute(routeName, clusterName, portName)
 			}
 			b.addLocalAppCluster(clusterName, &portName).
 				addLocalAppStaticEndpoints(clusterName, port.GetPort())
@@ -364,7 +364,7 @@ func getAlpnProtocolFromPortName(portName string) string {
 	return fmt.Sprintf("consul~%s", portName)
 }
 
-func (b *Builder) addLocalAppRoute(routeName string, clusterName string) {
+func (b *Builder) addLocalAppRoute(routeName, clusterName, portName string) {
 	proxyRouteRule := &pbproxystate.RouteRule{
 		Match: &pbproxystate.RouteMatch{
 			PathMatch: &pbproxystate.PathMatch{
@@ -381,6 +381,18 @@ func (b *Builder) addLocalAppRoute(routeName string, clusterName string) {
 			},
 		},
 	}
+	if b.proxyCfg.GetDynamicConfig() != nil && b.proxyCfg.GetDynamicConfig().LocalConnection != nil {
+		lc, lcOK := b.proxyCfg.GetDynamicConfig().LocalConnection[portName]
+		if lcOK {
+			proxyRouteRule.Destination.DestinationConfiguration =
+				&pbproxystate.DestinationConfiguration{
+					TimeoutConfig: &pbproxystate.TimeoutConfig{
+						Timeout: lc.RequestTimeout,
+					},
+				}
+		}
+	}
+
 	// Each route name for the local app is listenerName:port since there is a route per port on the local app listener.
 	b.addRoute(routeName, &pbproxystate.Route{
 		VirtualHosts: []*pbproxystate.VirtualHost{{
