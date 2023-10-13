@@ -4,9 +4,12 @@
 package types
 
 import (
+	"math"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -86,7 +89,196 @@ func TestMutateProxyConfiguration(t *testing.T) {
 	}
 }
 
-func TestValidateProxyConfiguration(t *testing.T) {
+func TestValidateProxyConfiguration_MissingBothDynamicAndBootstrapConfig(t *testing.T) {
+	proxyCfg := &pbmesh.ProxyConfiguration{
+		Workloads: &pbcatalog.WorkloadSelector{Names: []string{"foo"}},
+	}
+
+	res := resourcetest.Resource(pbmesh.ProxyConfigurationType, "test").
+		WithData(t, proxyCfg).
+		Build()
+
+	err := ValidateProxyConfiguration(res)
+
+	var expError error
+	expError = multierror.Append(expError,
+		resource.ErrInvalidFields{
+			Names:   []string{"dynamic_config", "bootstrap_config"},
+			Wrapped: errMissingProxyConfigData,
+		},
+	)
+	require.Equal(t, err, expError)
+}
+
+func TestValidateProxyConfiguration_AllFieldsInvalid(t *testing.T) {
+	proxyCfg := &pbmesh.ProxyConfiguration{
+		// Omit workload selector.
+
+		DynamicConfig: &pbmesh.DynamicConfig{
+			// Set unsupported fields.
+			MutualTlsMode:           pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_PERMISSIVE,
+			MeshGatewayMode:         pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_LOCAL,
+			AccessLogs:              &pbmesh.AccessLogsConfig{},
+			EnvoyExtensions:         []*pbmesh.EnvoyExtension{{Name: "foo"}},
+			PublicListenerJson:      "listener-json",
+			ListenerTracingJson:     "tracing-json",
+			LocalClusterJson:        "cluster-json",
+			LocalWorkloadAddress:    "1.1.1.1",
+			LocalWorkloadPort:       1234,
+			LocalWorkloadSocketPath: "/foo/bar",
+
+			TransparentProxy: &pbmesh.TransparentProxy{
+				DialedDirectly:       true,               // unsupported
+				OutboundListenerPort: math.MaxUint16 + 1, // invalid
+			},
+
+			// Create invalid expose paths config.
+			ExposeConfig: &pbmesh.ExposeConfig{
+				ExposePaths: []*pbmesh.ExposePath{
+					{
+						ListenerPort:  0,
+						LocalPathPort: math.MaxUint16 + 1,
+					},
+				},
+			},
+		},
+
+		OpaqueConfig: &structpb.Struct{},
+	}
+
+	res := resourcetest.Resource(pbmesh.ProxyConfigurationType, "test").
+		WithData(t, proxyCfg).
+		Build()
+
+	err := ValidateProxyConfiguration(res)
+
+	var dynamicCfgErr error
+	unsupportedFields := []string{
+		"mutual_tls_mode",
+		"mesh_gateway_mode",
+		"access_logs",
+		"envoy_extensions",
+		"public_listener_json",
+		"listener_tracing_json",
+		"local_cluster_json",
+		"local_workload_address",
+		"local_workload_port",
+		"local_workload_socket_path",
+	}
+	for _, f := range unsupportedFields {
+		dynamicCfgErr = multierror.Append(dynamicCfgErr,
+			resource.ErrInvalidField{
+				Name:    f,
+				Wrapped: resource.ErrUnsupported,
+			},
+		)
+	}
+	dynamicCfgErr = multierror.Append(dynamicCfgErr,
+		resource.ErrInvalidField{
+			Name: "transparent_proxy",
+			Wrapped: resource.ErrInvalidField{
+				Name:    "dialed_directly",
+				Wrapped: resource.ErrUnsupported,
+			},
+		},
+		resource.ErrInvalidField{
+			Name: "transparent_proxy",
+			Wrapped: resource.ErrInvalidField{
+				Name:    "outbound_listener_port",
+				Wrapped: errInvalidPort,
+			},
+		},
+		resource.ErrInvalidField{
+			Name: "expose_config",
+			Wrapped: resource.ErrInvalidListElement{
+				Name: "expose_paths",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "listener_port",
+					Wrapped: errInvalidPort,
+				},
+			},
+		},
+		resource.ErrInvalidField{
+			Name: "expose_config",
+			Wrapped: resource.ErrInvalidListElement{
+				Name: "expose_paths",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "local_path_port",
+					Wrapped: errInvalidPort,
+				},
+			},
+		},
+	)
+
+	var expError error
+	expError = multierror.Append(expError,
+		resource.ErrInvalidField{
+			Name:    "workloads",
+			Wrapped: resource.ErrEmpty,
+		},
+		resource.ErrInvalidField{
+			Name:    "opaque_config",
+			Wrapped: resource.ErrUnsupported,
+		},
+		resource.ErrInvalidField{
+			Name:    "dynamic_config",
+			Wrapped: dynamicCfgErr,
+		},
+	)
+
+	require.Equal(t, err, expError)
+}
+
+func TestValidateProxyConfiguration_AllFieldsValid(t *testing.T) {
+	proxyCfg := &pbmesh.ProxyConfiguration{
+		Workloads: &pbcatalog.WorkloadSelector{Names: []string{"foo"}},
+
+		DynamicConfig: &pbmesh.DynamicConfig{
+			MutualTlsMode:   pbmesh.MutualTLSMode_MUTUAL_TLS_MODE_DEFAULT,
+			MeshGatewayMode: pbmesh.MeshGatewayMode_MESH_GATEWAY_MODE_UNSPECIFIED,
+
+			TransparentProxy: &pbmesh.TransparentProxy{
+				DialedDirectly:       false,
+				OutboundListenerPort: 15500,
+			},
+
+			ExposeConfig: &pbmesh.ExposeConfig{
+				ExposePaths: []*pbmesh.ExposePath{
+					{
+						ListenerPort:  1234,
+						LocalPathPort: 1235,
+					},
+				},
+			},
+		},
+
+		BootstrapConfig: &pbmesh.BootstrapConfig{
+			StatsdUrl:                       "stats-url",
+			DogstatsdUrl:                    "dogstats-url",
+			StatsTags:                       []string{"tags"},
+			PrometheusBindAddr:              "prom-bind-addr",
+			StatsBindAddr:                   "stats-bind-addr",
+			ReadyBindAddr:                   "ready-bind-addr",
+			OverrideJsonTpl:                 "override-json-tpl",
+			StaticClustersJson:              "static-clusters-json",
+			StaticListenersJson:             "static-listeners-json",
+			StatsSinksJson:                  "stats-sinks-json",
+			StatsConfigJson:                 "stats-config-json",
+			StatsFlushInterval:              "stats-flush-interval",
+			TracingConfigJson:               "tracing-config-json",
+			TelemetryCollectorBindSocketDir: "telemetry-collector-bind-socket-dir",
+		},
+	}
+
+	res := resourcetest.Resource(pbmesh.ProxyConfigurationType, "test").
+		WithData(t, proxyCfg).
+		Build()
+
+	err := ValidateProxyConfiguration(res)
+	require.NoError(t, err)
+}
+
+func TestValidateProxyConfiguration_WorkloadSelector(t *testing.T) {
 	type testcase struct {
 		data      *pbmesh.ProxyConfiguration
 		expectErr string

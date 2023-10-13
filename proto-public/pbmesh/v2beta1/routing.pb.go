@@ -29,7 +29,7 @@ type MeshGatewayMode int32
 
 const (
 	// MESH_GATEWAY_MODE_UNSPECIFIED represents no specific mode and should be
-	// used to indicate that a the decision on the mode will be made by other
+	// used to indicate that the decision on the mode will be made by other
 	// configuration or default settings.
 	MeshGatewayMode_MESH_GATEWAY_MODE_UNSPECIFIED MeshGatewayMode = 0
 	// MESH_GATEWAY_MODE_NONE is the mode to use when traffic should not be
