@@ -22,7 +22,7 @@ func (b *Builder) buildExposePaths(workload *pbcatalog.Workload) {
 				buildListener()
 
 			b.addExposePathsRoute(exposePath, clusterName).
-				addLocalAppCluster(clusterName).
+				addLocalAppCluster(clusterName, nil).
 				addLocalAppStaticEndpoints(clusterName, exposePath.LocalPathPort)
 		}
 	}
