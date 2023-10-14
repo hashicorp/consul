@@ -19,7 +19,7 @@ func RegisterComputedTrafficPermission(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookComputedTrafficPermissions,
 			Write: aclWriteHookComputedTrafficPermissions,
-			List:  aclListHookComputedTrafficPermissions,
+			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateComputedTrafficPermissions,
 		Scope:    resource.ScopeNamespace,
@@ -70,10 +70,4 @@ func aclReadHookComputedTrafficPermissions(authorizer acl.Authorizer, authzConte
 
 func aclWriteHookComputedTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(res.Id.Name, authzContext)
-}
-
-func aclListHookComputedTrafficPermissions(_ acl.Authorizer, _ *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement
-	return nil
 }

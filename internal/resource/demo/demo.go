@@ -97,7 +97,7 @@ func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
 		if resource.EqualType(TypeV1RecordLabel, id.Type) {
 			if res == nil {
-				return resource.ErrNeedData
+				return resource.ErrNeedResource
 			}
 		}
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)

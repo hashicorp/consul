@@ -73,7 +73,7 @@ type nodeHealthControllerTestSuite struct {
 }
 
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
-	suite.resourceClient = svctest.RunResourceService(suite.T(), types.Register)
+	suite.resourceClient = svctest.RunResourceService(suite.T(), types.Register, types.RegisterDNSPolicy)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 
 	// The rest of the setup will be to prime the resource service with some data

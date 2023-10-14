@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	catalogtesthelpers "github.com/hashicorp/consul/internal/catalog/catalogtest/helpers"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -414,4 +415,13 @@ func TestValidateDestinations(t *testing.T) {
 			run(t, tc)
 		})
 	}
+}
+
+func TestDestinationsACLs(t *testing.T) {
+	catalogtesthelpers.RunWorkloadSelectingTypeACLsTests[*pbmesh.Destinations](t, pbmesh.DestinationsType,
+		func(selector *pbcatalog.WorkloadSelector) *pbmesh.Destinations {
+			return &pbmesh.Destinations{Workloads: selector}
+		},
+		RegisterDestinations,
+	)
 }

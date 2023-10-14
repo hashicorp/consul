@@ -48,6 +48,12 @@ var (
 	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
 
+type WorkloadSelecting = types.WorkloadSelecting
+
+func ACLHooksForWorkloadSelectingType[T WorkloadSelecting]() *resource.ACLHooks {
+	return types.ACLHooksForWorkloadSelectingType[T]()
+}
+
 // RegisterTypes adds all resource types within the "catalog" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {

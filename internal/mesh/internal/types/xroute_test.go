@@ -458,7 +458,7 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 			require.True(t, ok)
 
 			err = reg.ACLs.Read(authz, &acl.AuthorizerContext{}, tc.res.Id, nil)
-			require.ErrorIs(t, err, resource.ErrNeedData, "read hook should require the data payload")
+			require.ErrorIs(t, err, resource.ErrNeedResource, "read hook should require the data payload")
 
 			checkF(t, "read", tc.readOK, reg.ACLs.Read(authz, &acl.AuthorizerContext{}, tc.res.Id, tc.res))
 			checkF(t, "write", tc.writeOK, reg.ACLs.Write(authz, &acl.AuthorizerContext{}, tc.res))
