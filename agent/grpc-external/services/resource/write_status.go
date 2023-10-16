@@ -178,8 +178,17 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		}
 	}
 
-	// Lowercase
-	resource.Normalize(req.Id.Tenancy)
+	if err := validateId(req.Id, "id"); err != nil {
+		return nil, err
+	}
+
+	for i, condition := range req.Status.Conditions {
+		if condition.Resource != nil {
+			if err := validateRef(condition.Resource, fmt.Sprintf("status.conditions[%d].resource", i)); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	// Check type exists.
 	reg, err := s.resolveType(req.Id.Type)
