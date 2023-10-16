@@ -29,124 +29,124 @@
   pointer-events: auto;
 }
 
-[role='contentinfo'] {
-  @extend %footer;
-}
-[role='banner'] {
-  @extend %main-header-horizontal;
-}
-[role='banner'] > label {
-  @extend %main-nav-horizontal-toggle-button;
-}
-.app > input[id] {
-  @extend %main-nav-horizontal-toggle;
-}
-%main-header-horizontal > div {
-  @extend %main-nav-horizontal-panel;
-}
+// [role='contentinfo'] {
+//   @extend %footer;
+// }
+// [role='banner'] {
+//   @extend %main-header-horizontal;
+// }
+// [role='banner'] > label {
+//   @extend %main-nav-horizontal-toggle-button;
+// }
+// .app > input[id] {
+//   @extend %main-nav-horizontal-toggle;
+// }
+// %main-header-horizontal > div {
+//   @extend %main-nav-horizontal-panel;
+// }
 
-%main-header-horizontal nav:first-of-type {
-  @extend %main-nav-vertical, %main-nav-sidebar;
-}
-%main-header-horizontal nav:last-of-type {
-  @extend %main-nav-horizontal;
-  margin-left: auto;
-}
-%main-nav-vertical-hoisted {
-  top: 18px;
-}
-%main-nav-vertical-hoisted [aria-label]::before {
-  display: none !important;
-}
-%main-nav-horizontal [aria-haspopup='menu'] ~ * {
-  position: absolute;
-  right: 0;
-  min-width: 192px;
-}
-%main-nav-horizontal [aria-expanded],
-%main-nav-vertical-hoisted [aria-expanded] {
-  @extend %main-nav-horizontal-popover-menu-trigger;
-  @extend %main-nav-horizontal-action;
-}
-%main-nav-horizontal-popover-menu-trigger {
-  @extend %main-nav-horizontal-action-active;
-}
-%footer,
-%main-nav-sidebar,
-%main-notifications,
-main {
-  @extend %transition-pushover;
-}
-%footer {
-  @extend %body-100-regular;
-  position: fixed;
-  z-index: 50;
+// %main-header-horizontal nav:first-of-type {
+//   @extend %main-nav-vertical, %main-nav-sidebar;
+// }
+// %main-header-horizontal nav:last-of-type {
+//   @extend %main-nav-horizontal;
+//   margin-left: auto;
+// }
+// %main-nav-vertical-hoisted {
+//   top: 18px;
+// }
+// %main-nav-vertical-hoisted [aria-label]::before {
+//   display: none !important;
+// }
+// %main-nav-horizontal [aria-haspopup='menu'] ~ * {
+//   position: absolute;
+//   right: 0;
+//   min-width: 192px;
+// }
+// %main-nav-horizontal [aria-expanded],
+// %main-nav-vertical-hoisted [aria-expanded] {
+//   @extend %main-nav-horizontal-popover-menu-trigger;
+//   @extend %main-nav-horizontal-action;
+// }
+// %main-nav-horizontal-popover-menu-trigger {
+//   @extend %main-nav-horizontal-action-active;
+// }
+// %footer,
+// %main-nav-sidebar,
+// %main-notifications,
+// main {
+//   @extend %transition-pushover;
+// }
+// %footer {
+//   @extend %body-100-regular;
+//   position: fixed;
+//   z-index: 50;
 
-  color: var(--token-color-foreground-disabled);
-  width: 250px;
-  padding-left: 25px;
-}
-%footer {
-  top: calc(100vh - 42px);
-  top: calc(max(100vh, 460px) - 42px);
-}
-html.has-partitions.has-nspaces .app [role='contentinfo'] {
-  top: calc(100vh - 42px);
-  top: calc(max(100vh, 640px) - 42px);
-}
-%main-nav-sidebar {
-  z-index: 10;
-}
-%footer,
-%main-nav-sidebar {
-  transition-property: left;
-}
-%app-notifications,
-main {
-  margin-top: var(--chrome-height, 64px);
-  transition-property: margin-left;
-}
-%app-notifications {
-  transition-property: margin-left, width;
-}
+//   color: var(--token-color-foreground-disabled);
+//   width: 250px;
+//   padding-left: 25px;
+// }
+// %footer {
+//   top: calc(100vh - 42px);
+//   top: calc(max(100vh, 460px) - 42px);
+// }
+// html.has-partitions.has-nspaces .app [role='contentinfo'] {
+//   top: calc(100vh - 42px);
+//   top: calc(max(100vh, 640px) - 42px);
+// }
+// %main-nav-sidebar {
+//   z-index: 10;
+// }
+// %footer,
+// %main-nav-sidebar {
+//   transition-property: left;
+// }
+// %app-notifications,
+// main {
+//   margin-top: var(--chrome-height, 64px);
+//   transition-property: margin-left;
+// }
+// %app-notifications {
+//   transition-property: margin-left, width;
+// }
 
-@media #{$--sidebar-open} {
-  %main-nav-horizontal-toggle ~ main .notifications {
-    width: calc(100% - var(--chrome-width));
-  }
-  %main-nav-horizontal-toggle:checked ~ main .notifications {
-    width: 100%;
-  }
-  %main-nav-horizontal-toggle ~ footer,
-  %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: 0;
-  }
-  %main-nav-horizontal-toggle:checked ~ footer,
-  %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 280px) * -1);
-  }
-  %main-nav-horizontal-toggle ~ main {
-    margin-left: var(--chrome-width, 280px);
-  }
-  %main-nav-horizontal-toggle:checked ~ main .notifications,
-  %main-nav-horizontal-toggle:checked ~ main {
-    margin-left: 0;
-  }
-}
-@media #{$--lt-sidebar-open} {
-  %main-nav-horizontal-toggle ~ main .notifications {
-    width: 100%;
-  }
-  %main-nav-horizontal-toggle:checked ~ footer,
-  %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
-    left: 0;
-  }
-  %main-nav-horizontal-toggle ~ footer,
-  %main-nav-horizontal-toggle + header > div > nav:first-of-type {
-    left: calc(var(--chrome-width, 280px) * -1);
-  }
-  %main-nav-horizontal-toggle ~ main .notifications,
-  %main-nav-horizontal-toggle ~ main {
-    margin-left: 0;
-  }
-}
+// @media #{$--sidebar-open} {
+//   %main-nav-horizontal-toggle ~ main .notifications {
+//     width: calc(100% - var(--chrome-width));
+//   }
+//   %main-nav-horizontal-toggle:checked ~ main .notifications {
+//     width: 100%;
+//   }
+//   %main-nav-horizontal-toggle ~ footer,
+//   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
+//     left: 0;
+//   }
+//   %main-nav-horizontal-toggle:checked ~ footer,
+//   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
+//     left: calc(var(--chrome-width, 280px) * -1);
+//   }
+//   %main-nav-horizontal-toggle ~ main {
+//     margin-left: var(--chrome-width, 280px);
+//   }
+//   %main-nav-horizontal-toggle:checked ~ main .notifications,
+//   %main-nav-horizontal-toggle:checked ~ main {
+//     margin-left: 0;
+//   }
+// }
+// @media #{$--lt-sidebar-open} {
+//   %main-nav-horizontal-toggle ~ main .notifications {
+//     width: 100%;
+//   }
+//   %main-nav-horizontal-toggle:checked ~ footer,
+//   %main-nav-horizontal-toggle:checked + header > div > nav:first-of-type {
+//     left: 0;
+//   }
+//   %main-nav-horizontal-toggle ~ footer,
+//   %main-nav-horizontal-toggle + header > div > nav:first-of-type {
+//     left: calc(var(--chrome-width, 280px) * -1);
+//   }
+//   %main-nav-horizontal-toggle ~ main .notifications,
+//   %main-nav-horizontal-toggle ~ main {
+//     margin-left: 0;
+//   }
+// }

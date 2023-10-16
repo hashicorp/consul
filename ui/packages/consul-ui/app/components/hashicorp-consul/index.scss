@@ -47,26 +47,12 @@
     max-height: 360px;
     --paged-row-height: 43px;
   }
-
-  [role='banner'] a svg {
-    fill: var(--token-color-consul-brand);
-  }
-  .docs-link a::after {
-    @extend %with-docs-mask, %as-pseudo;
-  }
-  .learn-link a::after {
-    @extend %with-learn-mask, %as-pseudo;
-  }
-  .feedback-link a::after {
-    @extend %with-logo-github-monochrome-mask, %as-pseudo;
-  }
-  .acls-separator span {
-    @extend %led-icon;
-    color: var(--token-color-foreground-critical);
-    display: inline-block;
-    position: relative;
-    top: 2px;
-    margin-left: 2px;
+  nav li.consul-disabled-nav {
+    width: 100%;
+    min-height: var(--token-side-nav-body-list-item-height);
+    padding: var(--token-side-nav-body-list-item-padding-vertical)
+      var(--token-side-nav-body-list-item-padding-horizontal);
+    color: var(--token-color-foreground-disabled);
   }
 }
 .hashicorp-consul {

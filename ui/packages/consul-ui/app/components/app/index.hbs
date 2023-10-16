@@ -37,25 +37,18 @@
 
   <ModalLayer />
 
-  <input
-    type="checkbox"
-    id={{concat guid "-main-nav-toggle"}}
-  />
-  <header
-    role="banner"
-  >
-    <label
-      tabindex="0"
-      for={{concat guid "-main-nav-toggle"}}
-      aria-label={{t 'components.app.toggle_menu'}}
-      {{on "keypress" this.keypressClick}}
-      {{on "mouseup" this.unfocus}}
-    ></label>
-      {{yield exported to="home-nav"}}
-      <div
-        data-test-navigation
-      >
-{{!--
+    {{!-- <input type='checkbox' id={{concat guid '-main-nav-toggle'}} /> --}}
+    {{!-- <header role='banner'>
+      <label
+        tabindex='0'
+        for={{concat guid '-main-nav-toggle'}}
+        aria-label={{t 'components.app.toggle_menu'}}
+        {{on 'keypress' this.keypressClick}}
+        {{on 'mouseup' this.unfocus}}
+      ></label>
+      {{yield exported to='home-nav'}}
+      <div data-test-navigation>
+        {{!
   The viewport tolerances here give us a 10 pixel buffer to make sure the menu
   is marked as out of the viewport, we use all sides so we don't need to change
   this should any CSS change
@@ -82,23 +75,19 @@
         </nav>
 
       </div>
-  </header>
-  <main id={{concat guid '-main'}}>
-    <div class="notifications">
-      {{yield exported to="notifications"}}
-      <PortalTarget
-        @name="app-notifications"
-        @multiple={{true}}
-      ></PortalTarget>
-    </div>
-    {{yield exported to="main"}}
-  </main>
-  <footer
-    role="contentinfo"
-    data-test-footer
-  >
-    {{yield exported to="content-info"}}
-  </footer>
-</div>
+    </header> --}}
+
+    {{yield exported to='side-nav'}}
+    <main id={{concat guid '-main'}}>
+      <div class='notifications'>
+        {{yield exported to='notifications'}}
+        <PortalTarget @name='app-notifications' @multiple={{true}} />
+      </div>
+      {{yield exported to='main'}}
+    </main>
+    {{!-- <footer role='contentinfo' data-test-footer>
+      {{yield exported to='content-info'}}
+    </footer> --}}
+  </div>
 
 {{/let}}

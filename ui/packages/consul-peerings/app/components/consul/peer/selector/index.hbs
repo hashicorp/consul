@@ -3,23 +3,14 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<li 
-  class="peers-separator"
-  role="separator"
-  ...attributes
->
-  Organization
-</li>
-<li
-  data-test-main-nav-peers
-  class={{if (is-href 'dc.peers' @dc.Name) 'is-active'}}
->
-    <a
-      href={{href-to 'dc.peers' @dc.Name
-        params=(hash peer=undefined)
-      }}
-    >
-      Peers
-    </a>
-</li>
-
+{{#let @list as |SNL|}}
+  <SNL.Title ...attributes>Organization</SNL.Title>
+  <SNL.Link
+    @text="Peers"
+    @route="dc.peers"
+    @models={{array @dc.Name}}
+    @query={{hash peer=undefined}}
+    @isActive={{is-href "dc.peers" @dc.Name}}
+    data-test-main-nav-peers
+  />
+{{/let}}

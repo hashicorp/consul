@@ -15,7 +15,8 @@
             <Hds::Toast
               @color={{if (eq status 'error') 'critical' status}}
               data-notification
-              as |T|>
+              as |T|
+            >
               <T.Title>{{capitalize status}}!</T.Title>
               <T.Description>
                 {{#if (eq type 'logout')}}
@@ -71,13 +72,125 @@
 
   </:notifications>
 
-  <:home-nav>
-    <a class='w-8 h-8' href={{href-to 'index' params=(hash peer=undefined)}}>
-      <FlightIcon @size='24' @name='consul-color' @stretched={{true}} />
-    </a>
-  </:home-nav>
+  <:side-nav>
+    <Hds::SideNav>
+      <:header>
+        <Hds::SideNav::Header>
+          <:logo>
+            <Hds::SideNav::Header::HomeLink
+              @icon='consul-color'
+              @ariaLabel='Consul'
+              @route='index'
+              @query={{hash peer=undefined}}
+            />
+          </:logo>
+          <:actions>
+            <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='left' as |dd|>
+              <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
+              <dd.Title @text='Help & Support' />
+              <dd.Interactive
+                @href={{env 'CONSUL_DOCS_URL'}}
+                @isHrefExternal={{true}}
+                @text='Documentation'
+              />
+              <dd.Interactive
+                @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                @isHrefExternal={{true}}
+                @text='Tuorials'
+              />
+              <dd.Separator />
+              <dd.Interactive
+                @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                @isHrefExternal={{true}}
+                @text='Give feedback'
+              />
+            </Hds::Dropdown>
+            <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='left' as |dd|>
+              <dd.ToggleIcon @icon='user' @text='Account menu' />
+              <dd.Title @text='Signed In' />
+              <dd.Description @text='email@domain.com' />
+              <dd.Interactive @href='#' @text='Account Settings' />
+            </Hds::Dropdown>
+          </:actions>
+        </Hds::SideNav::Header>
+      </:header>
+      <:body>
+        <Hds::SideNav::List as |SNL|>
+          {{#if (can 'access overview')}}
+            <SNL.Link
+              @text='Overview'
+              @route='dc.show'
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.show' @dc.Name}}
+              data-test-main-nav-overview
+            />
+          {{/if}}
+          {{#if (can 'read services')}}
+            <SNL.Link
+              @text='Services'
+              @route='dc.services'
+              @models={{array @dc.Name}}
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.services' @dc.Name}}
+              data-test-main-nav-services
+            />
+          {{/if}}
+          {{#if (can 'read nodes')}}
+            <SNL.Link
+              @text='Nodes'
+              @route='dc.nodes'
+              @models={{array @dc.Name}}
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.nodes' @dc.Name}}
+              data-test-main-nav-nodes
+            />
+          {{/if}}
+          {{#if (can 'read kv')}}
+            <SNL.Link
+              @text='Key/Value'
+              @route='dc.kv'
+              @models={{array @dc.Name}}
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.kv' @dc.Name}}
+              data-test-main-nav-kv
+            />
+          {{/if}}
+          {{#if (can 'read intentions')}}
+            <SNL.Link
+              @text='Intentions'
+              @route='dc.intentions'
+              @models={{array @dc.Name}}
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.intentions' @dc.Name}}
+              data-test-main-nav-intentions
+            />
+          {{/if}}
 
-  <:main-nav>
+          <Consul::Acl::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @list={{SNL}}
+          />
+          <Consul::Peer::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @list={{SNL}}
+          />
+        </Hds::SideNav::List>
+      </:body>
+      <:footer>
+        <p class='hds-foreground-disabled hds-typography-display-100'>
+          Consul v{{env 'CONSUL_VERSION'}}
+        </p>
+        {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+      </:footer>
+    </Hds::SideNav>
+
+  </:side-nav>
+
+  {{!-- <:main-nav>
     <Consul::Hcp::Home />
     <ul>
       <Consul::Datacenter::Selector
@@ -100,41 +213,6 @@
         @nspaces={{this.nspaces}}
         @onchange={{action (mut this.nspaces) value='data'}}
       />
-      {{#if (can 'access overview')}}
-        <li
-          data-test-main-nav-overview
-          class={{class-map (array 'is-active' (is-href 'dc.show' @dc.Name))}}
-        >
-          <Action @href={{href-to 'dc.show' @dc.Name params=(hash peer=undefined)}}>
-            Overview
-          </Action>
-        </li>
-      {{/if}}
-      {{#if (can 'read services')}}
-        <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}>Services</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read nodes')}}
-        <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}>Nodes</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read kv')}}
-        <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}>Key/Value</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read intentions')}}
-        <li
-          data-test-main-nav-intentions
-          class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}
-        >
-          <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
-        </li>
-      {{/if}}
-      <Consul::Acl::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
-      <Consul::Peer::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
     </ul>
   </:main-nav>
 
@@ -189,7 +267,7 @@
         <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
       </Consul::Token::Selector>
     </ul>
-  </:complementary-nav>
+  </:complementary-nav> --}}
 
   <:main>
     {{yield
