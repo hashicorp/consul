@@ -39,27 +39,49 @@ var checkF = func(t *testing.T, expect string, got error) {
 }
 
 type ACLTestCase struct {
-	Rules   string
-	Data    protoreflect.ProtoMessage
-	Owner   *pbresource.ID
-	Typ     *pbresource.Type
+	Rules string
+
+	// One of either Res or Data/Owner/Typ should be set.
+	Res   *pbresource.Resource
+	Data  protoreflect.ProtoMessage
+	Owner *pbresource.ID
+	Typ   *pbresource.Type
+
 	ReadOK  string
 	WriteOK string
 	ListOK  string
+
+	ReadHookRequiresResource bool
 }
 
 func RunACLTestCase(t *testing.T, tc ACLTestCase, registry resource.Registry) {
-	reg, ok := registry.Resolve(tc.Typ)
-	require.True(t, ok)
+	var (
+		typ *pbresource.Type
+		res *pbresource.Resource
+	)
+	if tc.Res != nil {
+		require.Nil(t, tc.Data)
+		require.Nil(t, tc.Owner)
+		require.Nil(t, tc.Typ)
+		typ = tc.Res.Id.GetType()
+		res = tc.Res
+	} else {
+		require.NotNil(t, tc.Data)
+		require.NotNil(t, tc.Typ)
+		typ = tc.Typ
 
-	resolvedType, ok := registry.Resolve(tc.Typ)
-	require.True(t, ok)
+		resolvedType, ok := registry.Resolve(typ)
+		require.True(t, ok)
 
-	res := Resource(tc.Typ, "test").
-		WithTenancy(DefaultTenancyForType(t, resolvedType)).
-		WithOwner(tc.Owner).
-		WithData(t, tc.Data).
-		Build()
+		res = Resource(tc.Typ, "test").
+			WithTenancy(DefaultTenancyForType(t, resolvedType)).
+			WithOwner(tc.Owner).
+			WithData(t, tc.Data).
+			Build()
+	}
+
+	reg, ok := registry.Resolve(typ)
+	require.True(t, ok)
 
 	ValidateAndNormalize(t, registry, res)
 
@@ -69,6 +91,11 @@ func RunACLTestCase(t *testing.T, tc ACLTestCase, registry resource.Registry) {
 	authz, err := acl.NewAuthorizerFromRules(tc.Rules, &config, nil)
 	require.NoError(t, err)
 	authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
+
+	if tc.ReadHookRequiresResource {
+		err = reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
+		require.ErrorIs(t, err, resource.ErrNeedResource, "read hook should require the data payload")
+	}
 
 	t.Run("read", func(t *testing.T) {
 		err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, res)
