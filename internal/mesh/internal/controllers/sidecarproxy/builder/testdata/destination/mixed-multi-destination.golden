@@ -30,7 +30,8 @@
                     }
                   }
                 }
-              }
+              },
+              "name": "failover-target~0~http.api-1.default.dc1.internal.foo.consul"
             },
             {
               "dynamic": {
@@ -54,7 +55,7 @@
                   }
                 }
               },
-              "name": "failover-target~0~http.api-1.default.dc1.internal.foo.consul"
+              "name": "failover-target~1~http.api-1.default.dc1.internal.foo.consul"
             }
           ]
         },
@@ -310,7 +311,7 @@
     }
   },
   "requiredEndpoints": {
-    "failover-target~0~http.api-1.default.dc1.internal.foo.consul": {
+    "failover-target~1~http.api-1.default.dc1.internal.foo.consul": {
       "id": {
         "name": "backup-1",
         "tenancy": {
