@@ -1003,9 +1003,9 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
 		"destination/l4-single-destination-ip-port-bind-address",
-		//"destination/l4-single-destination-unix-socket-bind-address",
-		//"destination/l4-multi-destination",
-		//"destination/mixed-multi-destination",
+		"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-multi-destination",
+		"destination/mixed-multi-destination",
 	}
 
 	for _, name := range cases {
@@ -1090,8 +1090,18 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 			require.NotNil(suite.T(), proxyStateTemplate)
 
 			reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
-			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
 
+			// Verify leaf cert contents then hard code them for comparison
+			// and downstream tests since they change from test run to test run.
+			require.NotEmpty(suite.T(), reconciledPS.LeafCertificates)
+			reconciledPS.LeafCertificates = map[string]*pbproxystate.LeafCertificate{
+				"test-identity": {
+					Cert: "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
+					Key:  "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFIFkTIL1iUV4O/RpveVHzHs7ZzhSkvYIzbdXDttz9EooAoGCCqGSM49\nAwEHoUQDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9ta/bGT+5\norZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJQ==\n-----END EC PRIVATE KEY-----\n",
+				},
+			}
+
+			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
 			expected := golden.Get(suite.T(), actual, name+".golden")
 
 			require.JSONEq(suite.T(), expected, actual)
