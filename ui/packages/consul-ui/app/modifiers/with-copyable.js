@@ -6,6 +6,7 @@
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
 import { runInDebug } from '@ember/debug';
+import { registerDestructor } from '@ember/destroyable';
 
 const typeAssertion = (type, value, withDefault) => {
   return typeof value === type ? value : withDefault;
@@ -54,7 +55,7 @@ export default class WithCopyableModifier extends Modifier {
     registerDestructor(this, cleanup);
   }
 
-  modify(element, [value], namedArgs) {
+  modify(element, value, namedArgs) {
     this.element = element;
     this.disconnect();
     this.connect(value, namedArgs);
