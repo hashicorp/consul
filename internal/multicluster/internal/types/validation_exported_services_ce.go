@@ -18,15 +18,6 @@ func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedServic
 
 	invalidFields := make([]string, 0)
 
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
-		if res.Id.Tenancy.Namespace != "default" {
-			invalidFields = append(invalidFields, "namespace")
-		} else {
-			invalidFields = append(invalidFields, "partition")
-		}
-		hasSetEnterpriseFeatures = true
-	}
-
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
 		// and non blank partition
@@ -62,16 +53,6 @@ func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, expor
 	var hasSetEnterpriseFeatures bool
 
 	invalidFields := make([]string, 0)
-
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
-		if res.Id.Tenancy.Namespace != "default" {
-			invalidFields = append(invalidFields, "namespace")
-		}
-		if res.Id.Tenancy.Partition != "default" {
-			invalidFields = append(invalidFields, "partition")
-		}
-		hasSetEnterpriseFeatures = true
-	}
 
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
@@ -146,14 +127,6 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 	var hasSetEnterpriseFeatures bool
 
 	invalidFields := make([]string, 0)
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
-		if res.Id.Tenancy.Namespace != "default" {
-			invalidFields = append(invalidFields, "namespace")
-		} else {
-			invalidFields = append(invalidFields, "partition")
-		}
-		hasSetEnterpriseFeatures = true
-	}
 
 	for _, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
