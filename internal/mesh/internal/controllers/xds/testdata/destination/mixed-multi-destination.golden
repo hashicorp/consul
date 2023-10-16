@@ -29,7 +29,8 @@
                   }
                 }
               }
-            }
+            },
+            "name": "failover-target~0~http.api-1.default.dc1.internal.foo.consul"
           },
           {
             "dynamic": {
@@ -53,7 +54,7 @@
                 }
               }
             },
-            "name": "failover-target~0~http.api-1.default.dc1.internal.foo.consul"
+            "name": "failover-target~1~http.api-1.default.dc1.internal.foo.consul"
           }
         ]
       },
@@ -330,7 +331,7 @@
         }
       ]
     },
-    "tcp2.api-1.default.dc1.internal.foo.consul": {
+    "http.api-1.default.dc1.internal.foo.consul": {
       "endpoints": [
         {
           "healthStatus": "HEALTH_STATUS_HEALTHY",
@@ -341,7 +342,7 @@
         }
       ]
     },
-    "tcp2.api-2.default.dc1.internal.foo.consul": {
+    "http.api-2.default.dc1.internal.foo.consul": {
       "endpoints": [
         {
           "healthStatus": "HEALTH_STATUS_HEALTHY",

@@ -1012,8 +1012,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 		"destination/l4-multi-destination",
 		"destination/l4-multiple-implicit-destinations-tproxy",
 		"destination/l4-implicit-and-explicit-destinations-tproxy",
-		// TODO(jm): resolve the endpoint group naming issue
-		//"destination/mixed-multi-destination",
+		"destination/mixed-multi-destination",
 		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
 		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
 		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
