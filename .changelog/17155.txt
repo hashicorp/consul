@@ -1,0 +1,3 @@
+```release-note:improvement
+config: Add new `tls.defaults.verify_server_hostname` configuration option. This specifies the default value for any interfaces that support the `verify_server_hostname` option.
+```

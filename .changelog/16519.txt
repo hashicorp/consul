@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Update to use Hds::Toast component to show notifications
+```

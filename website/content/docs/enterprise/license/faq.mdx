@@ -74,6 +74,8 @@ after license expiration and is defined in
 
 ~> **Starting with Consul 1.14, and patch releases 1.13.3 and 1.12.6, Consul will support non-terminating licenses**:
    Please contact your support representative for more details on non-terminating licenses.
+   An expired license will not allow Consul versions released after the expiration date to run.
+   It will not be possible to upgrade to a new version of Consul released after license expiration.
 
 ## Q: Does this affect client agents?
 
@@ -136,7 +138,7 @@ When a customer deploys new clusters to a 1.10.0+ent release, they need to have 
 
 New Consul cluster deployments using 1.10.0+ent will need to have a valid license on servers to successfully deploy.
 This valid license must be on-disk (auto-loaded) or as an environment variable.
-Please see the [upgrade requirements](https://consul.io/faq#q-what-are-the-upgrade-requirements).
+Please see the [upgrade requirements](/consul/docs/enterprise/license/faq#q-what-are-the-upgrade-requirements).
 
 ## Q: What is the migration path for customers who want to migrate from their existing license-as-applied-via-the-CLI flow to the license on disk flow?
 
@@ -181,7 +183,7 @@ When downgrading to a version of Consul before 1.10.0+ent, customers will need t
 
 ## Q: Are there potential pitfalls when downgrading or upgrading Consul server instances?
 
-~> Verify that you meet the [upgrade requirements](https://consul.io/faq#q-what-are-the-upgrade-requirements).
+~> Verify that you meet the [upgrade requirements](/consul/docs/enterprise/license/faq#q-what-are-the-upgrade-requirements).
 
 Assume a scenario where there are three Consul server nodes:
 

@@ -1,13 +1,17 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxycfg
 
 import (
 	"context"
 	"fmt"
 
-	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 var _ kindHandler = (*handlerAPIGateway)(nil)
@@ -45,13 +49,12 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	}
 
 	// Watch the api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.APIGateway, h.service, gatewayConfigWatchID)
+	err = h.subscribeToConfigEntry(ctx, structs.APIGateway, h.service, h.proxyID.EnterpriseMeta, apiGatewayConfigWatchID)
 	if err != nil {
 		return snap, err
 	}
 
-	// Watch the bound-api-gateway's config entry
-	err = h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, gatewayConfigWatchID)
+	err = watchJWTProviders(ctx, h)
 	if err != nil {
 		return snap, err
 	}
@@ -62,6 +65,9 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.TCPRoutes = watch.NewMap[structs.ResourceReference, *structs.TCPRouteConfigEntry]()
 	snap.APIGateway.Certificates = watch.NewMap[structs.ResourceReference, *structs.InlineCertificateConfigEntry]()
 
+	snap.APIGateway.Upstreams = make(listenerRouteUpstreams)
+	snap.APIGateway.UpstreamsSet = make(routeUpstreamSet)
+
 	// These need to be initialized here but are set by handlerUpstreams
 	snap.APIGateway.DiscoveryChain = make(map[UpstreamID]*structs.CompiledDiscoveryChain)
 	snap.APIGateway.PeerUpstreamEndpoints = watch.NewMap[UpstreamID, structs.CheckServiceNodes]()
@@ -70,19 +76,20 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 	snap.APIGateway.WatchedDiscoveryChains = make(map[UpstreamID]context.CancelFunc)
 	snap.APIGateway.WatchedGateways = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.APIGateway.WatchedGatewayEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
+	snap.APIGateway.WatchedLocalGWEndpoints = watch.NewMap[string, structs.CheckServiceNodes]()
 	snap.APIGateway.WatchedUpstreams = make(map[UpstreamID]map[string]context.CancelFunc)
 	snap.APIGateway.WatchedUpstreamEndpoints = make(map[UpstreamID]map[string]structs.CheckServiceNodes)
 
 	return snap, nil
 }
 
-func (h *handlerAPIGateway) subscribeToConfigEntry(ctx context.Context, kind, name, watchID string) error {
+func (h *handlerAPIGateway) subscribeToConfigEntry(ctx context.Context, kind, name string, entMeta acl.EnterpriseMeta, watchID string) error {
 	return h.dataSources.ConfigEntry.Notify(ctx, &structs.ConfigEntryQuery{
 		Kind:           kind,
 		Name:           name,
 		Datacenter:     h.source.Datacenter,
 		QueryOptions:   structs.QueryOptions{Token: h.token},
-		EnterpriseMeta: h.proxyID.EnterpriseMeta,
+		EnterpriseMeta: entMeta,
 	}, watchID, h.ch)
 }
 
@@ -95,32 +102,40 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	switch {
-	case u.CorrelationID == rootsWatchID:
+	switch u.CorrelationID {
+	case rootsWatchID:
 		// Handle change in the CA roots
 		if err := h.handleRootCAUpdate(u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == gatewayConfigWatchID:
+	case apiGatewayConfigWatchID, boundGatewayConfigWatchID:
 		// Handle change in the api-gateway or bound-api-gateway config entry
-		if err := h.handleGatewayConfigUpdate(ctx, u, snap); err != nil {
+		if err := h.handleGatewayConfigUpdate(ctx, u, snap, u.CorrelationID); err != nil {
 			return err
 		}
-	case u.CorrelationID == inlineCertificateConfigWatchID:
+	case inlineCertificateConfigWatchID:
 		// Handle change in an attached inline-certificate config entry
 		if err := h.handleInlineCertConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	case u.CorrelationID == routeConfigWatchID:
+	case routeConfigWatchID:
 		// Handle change in an attached http-route or tcp-route config entry
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
+	case jwtProviderID:
+		err := setJWTProvider(u, snap)
+		if err != nil {
+			return err
+		}
+
 	default:
-		return (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap)
+		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
+			return err
+		}
 	}
 
-	return nil
+	return h.recompileDiscoveryChains(snap)
 }
 
 // handleRootCAUpdate responds to changes in the watched root CA for a gateway
@@ -133,15 +148,26 @@ func (h *handlerAPIGateway) handleRootCAUpdate(u UpdateEvent, snap *ConfigSnapsh
 	return nil
 }
 
-// handleGatewayConfigUpdate responds to changes in the watched config entry for a gateway.
-// In particular, we want to make sure that we're subscribing to any attached resources such
-// as routes and certificates. These additional subscriptions will enable us to update the
-// config snapshot appropriately for any route or certificate changes.
-func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot) error {
+// handleGatewayConfigUpdate responds to changes in the watched config entries for a gateway.
+// Once the base api-gateway config entry has been seen, we store the list of listeners and
+// then subscribe to the corresponding bound-api-gateway config entry. We use the bound-api-gateway
+// config entry to subscribe to any attached resources, including routes and certificates.
+// These additional subscriptions will enable us to update the config snapshot appropriately
+// for any route or certificate changes.
+func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u UpdateEvent, snap *ConfigSnapshot, correlationID string) error {
 	resp, ok := u.Result.(*structs.ConfigEntryResponse)
 	if !ok {
 		return fmt.Errorf("invalid type for response: %T", u.Result)
 	} else if resp.Entry == nil {
+		// A nil response indicates that we have the watch configured and that we are done with further changes
+		// until a new response comes in. By setting these earlier we allow a minimal xDS snapshot to configure the
+		// gateway.
+		if correlationID == apiGatewayConfigWatchID {
+			snap.APIGateway.GatewayConfigLoaded = true
+		}
+		if correlationID == boundGatewayConfigWatchID {
+			snap.APIGateway.BoundGatewayConfigLoaded = true
+		}
 		return nil
 	}
 
@@ -168,7 +194,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 					return fmt.Errorf("unexpected route kind on gateway: %s", ref.Kind)
 				}
 
-				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, routeConfigWatchID)
+				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, routeConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
 					return err
@@ -181,7 +207,7 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 				seenRefs[ref] = struct{}{}
 				snap.APIGateway.Certificates.InitWatch(ref, cancel)
 
-				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, inlineCertificateConfigWatchID)
+				err := h.subscribeToConfigEntry(ctx, ref.Kind, ref.Name, ref.EnterpriseMeta, inlineCertificateConfigWatchID)
 				if err != nil {
 					// TODO May want to continue
 					return err
@@ -192,6 +218,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		// Unsubscribe from any config entries that are no longer attached
 		snap.APIGateway.HTTPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.Upstreams.delete(ref)
+				snap.APIGateway.UpstreamsSet.delete(ref)
 				snap.APIGateway.HTTPRoutes.CancelWatch(ref)
 			}
 			return true
@@ -199,6 +227,8 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 
 		snap.APIGateway.TCPRoutes.ForEachKey(func(ref structs.ResourceReference) bool {
 			if _, ok := seenRefs[ref]; !ok {
+				snap.APIGateway.Upstreams.delete(ref)
+				snap.APIGateway.UpstreamsSet.delete(ref)
 				snap.APIGateway.TCPRoutes.CancelWatch(ref)
 			}
 			return true
@@ -221,6 +251,12 @@ func (h *handlerAPIGateway) handleGatewayConfigUpdate(ctx context.Context, u Upd
 		}
 
 		snap.APIGateway.GatewayConfigLoaded = true
+
+		// Watch the corresponding bound-api-gateway config entry
+		err := h.subscribeToConfigEntry(ctx, structs.BoundAPIGateway, h.service, h.proxyID.EnterpriseMeta, boundGatewayConfigWatchID)
+		if err != nil {
+			return err
+		}
 		break
 	default:
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
@@ -243,10 +279,10 @@ func (h *handlerAPIGateway) handleInlineCertConfigUpdate(_ context.Context, u Up
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: cfg.GetKind(),
-		Name: cfg.GetName(),
+		Kind:           cfg.GetKind(),
+		Name:           cfg.GetName(),
+		EnterpriseMeta: *cfg.GetEnterpriseMeta(),
 	}
 
 	snap.APIGateway.Certificates.Set(ref, cfg)
@@ -264,13 +300,13 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return nil
 	}
 
-	// TODO Consider if unset SectionName and acl.EnterpriseMeta could trip us up
 	ref := structs.ResourceReference{
-		Kind: resp.Entry.GetKind(),
-		Name: resp.Entry.GetName(),
+		Kind:           resp.Entry.GetKind(),
+		Name:           resp.Entry.GetName(),
+		EnterpriseMeta: *resp.Entry.GetEnterpriseMeta(),
 	}
 
-	seenUpstreamIDs := make(map[UpstreamID]struct{})
+	seenUpstreamIDs := make(upstreamIDSet)
 	upstreams := make(map[APIGatewayListenerKey]structs.Upstreams)
 
 	switch route := resp.Entry.(type) {
@@ -296,7 +332,6 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						DestinationNamespace: service.NamespaceOrDefault(),
 						DestinationPartition: service.PartitionOrDefault(),
 						LocalBindPort:        listener.Port,
-						// TODO IngressHosts:         g.Hosts,
 						// Pass the protocol that was configured on the listener in order
 						// to force that protocol on the Envoy listener.
 						Config: map[string]interface{}{
@@ -304,7 +339,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 						},
 					}
 
-					listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+					listenerKey := APIGatewayListenerKeyFromListener(listener)
 					upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 				}
 
@@ -331,7 +366,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		for _, service := range route.Services {
 			upstreamID := NewUpstreamIDFromServiceName(service.ServiceName())
-			seenUpstreamIDs[upstreamID] = struct{}{}
+			seenUpstreamIDs.add(upstreamID)
 
 			// For each listener, check if this route should bind and, if so, create an upstream.
 			for _, listener := range snap.APIGateway.Listeners {
@@ -351,7 +386,6 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					DestinationNamespace: service.NamespaceOrDefault(),
 					DestinationPartition: service.PartitionOrDefault(),
 					LocalBindPort:        listener.Port,
-					//IngressHosts:         g.Hosts,
 					// Pass the protocol that was configured on the ingress listener in order
 					// to force that protocol on the Envoy listener.
 					Config: map[string]interface{}{
@@ -359,7 +393,7 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 					},
 				}
 
-				listenerKey := APIGatewayListenerKey{Protocol: string(listener.Protocol), Port: listener.Port}
+				listenerKey := APIGatewayListenerKeyFromListener(listener)
 				upstreams[listenerKey] = append(upstreams[listenerKey], upstream)
 			}
 
@@ -380,14 +414,14 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 		return fmt.Errorf("invalid type for config entry: %T", resp.Entry)
 	}
 
-	snap.APIGateway.Upstreams = upstreams
-	snap.APIGateway.UpstreamsSet = seenUpstreamIDs
-	//snap.APIGateway.Hosts = TODO
-	snap.APIGateway.AreHostsSet = true
+	for listener, set := range upstreams {
+		snap.APIGateway.Upstreams.set(ref, listener, set)
+	}
+	snap.APIGateway.UpstreamsSet.set(ref, seenUpstreamIDs)
 
 	// Stop watching any upstreams and discovery chains that have become irrelevant
 	for upstreamID, cancelDiscoChain := range snap.APIGateway.WatchedDiscoveryChains {
-		if _, ok := seenUpstreamIDs[upstreamID]; ok {
+		if snap.APIGateway.UpstreamsSet.hasUpstream(upstreamID) {
 			continue
 		}
 
@@ -404,6 +438,46 @@ func (h *handlerAPIGateway) handleRouteConfigUpdate(ctx context.Context, u Updat
 
 		cancelDiscoChain()
 		delete(snap.APIGateway.WatchedDiscoveryChains, upstreamID)
+	}
+
+	return nil
+}
+
+func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error {
+	synthesizedChains := map[UpstreamID]*structs.CompiledDiscoveryChain{}
+
+	for name, listener := range snap.APIGateway.Listeners {
+		boundListener, ok := snap.APIGateway.BoundListeners[name]
+		if !(ok && snap.APIGateway.GatewayConfig.ListenerIsReady(name)) {
+			// Skip any listeners that don't have a bound listener. Once the bound listener is created, this will be run again.
+			// skip any listeners that might be in an invalid state
+			continue
+		}
+
+		// Create a synthesized discovery chain for each service.
+		services, upstreams, compiled, err := snap.APIGateway.synthesizeChains(h.source.Datacenter, listener, boundListener)
+		if err != nil {
+			return err
+		}
+
+		if len(upstreams) == 0 {
+			// skip if we can't construct any upstreams
+			continue
+		}
+
+		for i, service := range services {
+			id := NewUpstreamIDFromServiceName(structs.NewServiceName(service.Name, &service.EnterpriseMeta))
+
+			if compiled[i].ServiceName != service.Name {
+				return fmt.Errorf("Compiled Discovery chain for %s does not match service %s", compiled[i].ServiceName, id)
+			}
+			synthesizedChains[id] = compiled[i]
+		}
+	}
+
+	// Merge in additional discovery chains
+	for id, chain := range synthesizedChains {
+		snap.APIGateway.DiscoveryChain[id] = chain
 	}
 
 	return nil
@@ -438,7 +512,7 @@ func (h *handlerAPIGateway) watchIngressLeafCert(ctx context.Context, snap *Conf
 		snap.APIGateway.LeafCertWatchCancel()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	err := h.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+	err := h.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 		Datacenter:     h.source.Datacenter,
 		Token:          h.token,
 		Service:        h.service,

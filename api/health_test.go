@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -192,8 +195,9 @@ func TestAPI_HealthChecks_AggregatedStatus(t *testing.T) {
 
 func TestAPI_HealthChecks(t *testing.T) {
 	t.Parallel()
+	const nodename = "node123"
 	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
-		conf.NodeName = "node123"
+		conf.NodeName = nodename
 	})
 	defer s.Stop()
 
@@ -215,7 +219,7 @@ func TestAPI_HealthChecks(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		checks := HealthChecks{
 			&HealthCheck{
-				Node:        "node123",
+				Node:        nodename,
 				CheckID:     "service:foo",
 				Name:        "Service 'foo' check",
 				Status:      "critical",

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { helper } from '@ember/component/helper';
 import { get } from '@ember/object';
 import { MANAGEMENT_ID } from 'consul-ui/models/policy';

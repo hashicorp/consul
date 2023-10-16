@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
@@ -796,6 +799,8 @@ type RuntimeConfig struct {
 	// hcl: leave_on_terminate = (true|false)
 	LeaveOnTerm bool
 
+	Locality *Locality
+
 	// Logging configuration used to initialize agent logging.
 	Logging logging.Config
 
@@ -1353,6 +1358,18 @@ type RuntimeConfig struct {
 	// hcl: ports { server = int }
 	ServerPort int
 
+	// ServerRejoinAgeMax is used to specify the duration of time a server
+	// is allowed to be down/offline before a startup operation is refused.
+	//
+	// For example: if a server has been offline for 5 days, and this option
+	// is configured to 3 days, then any subsequent startup operation will fail
+	// and require an operator to manually intervene.
+	//
+	// The default is: 7 days
+	//
+	// hcl: server_rejoin_age_max = "duration"
+	ServerRejoinAgeMax time.Duration
+
 	// Services contains the provided service definitions:
 	//
 	// hcl: services = [
@@ -1475,7 +1492,24 @@ type RuntimeConfig struct {
 	// AutoReloadConfigCoalesceInterval Coalesce Interval for auto reload config
 	AutoReloadConfigCoalesceInterval time.Duration
 
+	// LocalProxyConfigResyncInterval is not a user-configurable value and exists
+	// here so that tests can use a smaller value.
+	LocalProxyConfigResyncInterval time.Duration
+
+	Reporting ReportingConfig
+
+	// List of experiments to enable
+	Experiments []string
+
 	EnterpriseRuntimeConfig
+}
+
+type LicenseConfig struct {
+	Enabled bool
+}
+
+type ReportingConfig struct {
+	License LicenseConfig
 }
 
 type AutoConfig struct {
@@ -1709,6 +1743,17 @@ func (c *RuntimeConfig) VersionWithMetadata() string {
 	return version
 }
 
+// StructLocality converts the RuntimeConfig Locality to a struct Locality.
+func (c *RuntimeConfig) StructLocality() *structs.Locality {
+	if c.Locality == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: stringVal(c.Locality.Region),
+		Zone:   stringVal(c.Locality.Zone),
+	}
+}
+
 // Sanitized returns a JSON/HCL compatible representation of the runtime
 // configuration where all fields with potential secrets had their
 // values replaced by 'hidden'. In addition, network addresses and
@@ -1719,6 +1764,9 @@ func (c *RuntimeConfig) Sanitized() map[string]interface{} {
 
 // IsCloudEnabled returns true if a cloud.resource_id is set and the server mode is enabled
 func (c *RuntimeConfig) IsCloudEnabled() bool {
+	if c == nil {
+		return false
+	}
 	return c.ServerMode && c.Cloud.ResourceID != ""
 }
 

@@ -1,5 +1,11 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 %confirmation-dialog {
-  float: right;
+  justify-content: end;
+  width: 100%;
 }
 %confirmation-dialog-inline p {
   margin-right: 12px;

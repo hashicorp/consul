@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { env } from 'consul-ui/env';
 const OPTIONAL = {};
 if (env('CONSUL_PARTITIONS_ENABLED')) {

@@ -17,6 +17,7 @@
         "ACLAgentRecoveryToken": "hidden",
         "ACLAgentToken": "hidden",
         "ACLConfigFileRegistrationToken": "hidden",
+        "ACLDNSToken": "hidden",
         "ACLDefaultToken": "hidden",
         "ACLReplicationToken": "hidden",
         "DataDir": "",
@@ -79,8 +80,6 @@
     "BootstrapExpect": 0,
     "BuildDate": "2019-11-20 05:00:00 +0000 UTC",
     "Cache": {
-        "CacheRefreshBackoffMin": 0,
-        "CacheRefreshMaxWait": "0s",
         "EntryFetchMaxBurst": 42,
         "EntryFetchRate": 0.334,
         "Logger": null
@@ -119,6 +118,7 @@
             "Status": "",
             "SuccessBeforePassing": 0,
             "TCP": "",
+            "TCPUseTLS": false,
             "TLSServerName": "",
             "TLSSkipVerify": false,
             "TTL": "0s",
@@ -133,8 +133,12 @@
         "ClientID": "id",
         "ClientSecret": "hidden",
         "Hostname": "",
+        "ManagementToken": "hidden",
         "ResourceID": "cluster1",
-        "ScadaAddress": ""
+        "ScadaAddress": "",
+        "TLSConfig": null,
+        "NodeID": "",
+        "NodeName": ""
     },
     "ConfigEntryBootstrap": [],
     "ConnectCAConfig": {},
@@ -199,6 +203,7 @@
     "EnableRemoteScriptChecks": false,
     "EncryptKey": "hidden",
     "EnterpriseRuntimeConfig": {},
+    "Experiments": [],
     "ExposeMaxPort": 0,
     "ExposeMinPort": 0,
     "GRPCAddrs": [],
@@ -233,6 +238,11 @@
     "KVMaxValueSize": 1234567800000000,
     "LeaveDrainTime": "0s",
     "LeaveOnTerm": false,
+    "LocalProxyConfigResyncInterval": "0s",
+    "Locality": {
+        "Region": "us-west-1",
+        "Zone": "us-west-1a"
+    },
     "Logging": {
         "EnableSyslog": false,
         "LogFilePath": "",
@@ -290,6 +300,11 @@
     "ReconnectTimeoutLAN": "0s",
     "ReconnectTimeoutWAN": "0s",
     "RejoinAfterLeave": false,
+    "Reporting": {
+        "License": {
+            "Enabled": false
+        }
+    },
     "RequestLimitsMode": 0,
     "RequestLimitsReadRate": 0,
     "RequestLimitsWriteRate": 0,
@@ -322,6 +337,7 @@
     "ServerMode": false,
     "ServerName": "",
     "ServerPort": 0,
+    "ServerRejoinAgeMax": "168h0m0s",
     "Services": [
         {
             "Address": "",
@@ -354,6 +370,7 @@
                 "Status": "",
                 "SuccessBeforePassing": 0,
                 "TCP": "",
+                "TCPUseTLS": false,
                 "TLSServerName": "",
                 "TLSSkipVerify": false,
                 "TTL": "0s",
@@ -366,6 +383,7 @@
             "EnterpriseMeta": {},
             "ID": "",
             "Kind": "",
+            "Locality": null,
             "Meta": {},
             "Name": "foo",
             "Port": 0,
@@ -453,6 +471,7 @@
         "DisableHostname": false,
         "DogstatsdAddr": "",
         "DogstatsdTags": [],
+        "EnableHostMetrics": false,
         "FilterDefault": false,
         "MetricsPrefix": "",
         "PrometheusOpts": {

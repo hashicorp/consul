@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package serverdiscovery provides a service on Consul servers to discover the set of servers
 // currently able to handle incoming requests.
 
@@ -5,7 +8,7 @@ syntax = "proto3";
 
 package hashicorp.consul.serverdiscovery;
 
-import "proto-public/annotations/ratelimit/ratelimit.proto";
+import "annotations/ratelimit/ratelimit.proto";
 
 service ServerDiscoveryService {
   // WatchServers will stream back sets of ready servers as they change such as
@@ -15,6 +18,7 @@ service ServerDiscoveryService {
   rpc WatchServers(WatchServersRequest) returns (stream WatchServersResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_SERVER_DISCOVERY
     };
   }
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -12,7 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-hclog"
-	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
@@ -255,8 +258,8 @@ func (c *CAManager) initializeCAConfig() (*structs.CAConfiguration, error) {
 }
 
 // newCARoot returns a filled-in structs.CARoot from a raw PEM value.
-func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
-	primaryCert, err := connect.ParseCert(pemValue)
+func newCARoot(caPem, provider, clusterID string) (*structs.CARoot, error) {
+	primaryCert, err := connect.ParseCert(caPem)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +267,7 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error extracting root key info: %v", err)
 	}
-	return &structs.CARoot{
+	caRoot := &structs.CARoot{
 		ID:                  connect.CalculateCertFingerprint(primaryCert.Raw),
 		Name:                fmt.Sprintf("%s CA Primary Cert", providerPrettyName(provider)),
 		SerialNumber:        primaryCert.SerialNumber.Uint64(),
@@ -272,11 +275,13 @@ func newCARoot(pemValue, provider, clusterID string) (*structs.CARoot, error) {
 		ExternalTrustDomain: clusterID,
 		NotBefore:           primaryCert.NotBefore,
 		NotAfter:            primaryCert.NotAfter,
-		RootCert:            pemValue,
+		RootCert:            lib.EnsureTrailingNewline(caPem),
 		PrivateKeyType:      keyType,
 		PrivateKeyBits:      keyBits,
 		Active:              true,
-	}, nil
+	}
+
+	return caRoot, nil
 }
 
 // getCAProvider returns the currently active instance of the CA Provider,
@@ -479,25 +484,6 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 	if err := provider.Configure(pCfg); err != nil {
 		return fmt.Errorf("error configuring provider: %v", err)
 	}
-	root, err := provider.GenerateRoot()
-	if err != nil {
-		return fmt.Errorf("error generating CA root certificate: %v", err)
-	}
-
-	rootCA, err := newCARoot(root.PEM, conf.Provider, conf.ClusterID)
-	if err != nil {
-		return err
-	}
-
-	// TODO: https://github.com/hashicorp/consul/issues/12386
-	interPEM, err := provider.GenerateIntermediate()
-	if err != nil {
-		return fmt.Errorf("error generating intermediate cert: %v", err)
-	}
-	intermediateCert, err := connect.ParseCert(interPEM)
-	if err != nil {
-		return fmt.Errorf("error getting intermediate cert: %v", err)
-	}
 
 	// If the provider has state to persist and it's changed or new then update
 	// CAConfig.
@@ -517,24 +503,31 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 		}
 	}
 
-	var rootUpdateRequired bool
-
-	// Versions prior to 1.9.3, 1.8.8, and 1.7.12 incorrectly used the primary
-	// rootCA's subjectKeyID here instead of the intermediate. For
-	// provider=consul this didn't matter since there are no intermediates in
-	// the primaryDC, but for vault it does matter.
-	expectedSigningKeyID := connect.EncodeSigningKeyID(intermediateCert.SubjectKeyId)
-	if rootCA.SigningKeyID != expectedSigningKeyID {
-		c.logger.Info("Correcting stored CARoot values",
-			"previous-signing-key", rootCA.SigningKeyID, "updated-signing-key", expectedSigningKeyID)
-		rootCA.SigningKeyID = expectedSigningKeyID
-		rootUpdateRequired = true
+	root, err := provider.GenerateCAChain()
+	if err != nil {
+		return fmt.Errorf("error generating CA root certificate: %v", err)
 	}
 
-	// Add the local leaf signing cert to the rootCA struct. This handles both
-	// upgrades of existing state, and new rootCA.
-	if c.getLeafSigningCertFromRoot(rootCA) != interPEM {
-		rootCA.IntermediateCerts = append(rootCA.IntermediateCerts, interPEM)
+	rootCA, err := newCARoot(root, conf.Provider, conf.ClusterID)
+	if err != nil {
+		return err
+	}
+
+	// provider may use intermediates for leaf signing in which case
+	// we need to generate a leaf signing CA.
+	if usesIntermediate, ok := provider.(ca.PrimaryUsesIntermediate); ok {
+		leafPem, err := usesIntermediate.GenerateLeafSigningCert()
+		if err != nil {
+			return fmt.Errorf("error generating new leaf signing cert: %w", err)
+		}
+
+		if err := setLeafSigningCert(rootCA, leafPem); err != nil {
+			return fmt.Errorf("error setting leaf signing cert: %w", err)
+		}
+	}
+
+	var rootUpdateRequired bool
+	if len(rootCA.IntermediateCerts) > 0 {
 		rootUpdateRequired = true
 	}
 
@@ -577,14 +570,10 @@ func (c *CAManager) primaryInitialize(provider ca.Provider, conf *structs.CAConf
 // sign leaf certificates in the local datacenter. The SubjectKeyId of the
 // returned cert should always match the SigningKeyID of the CARoot.
 //
-// TODO: fix the data model so that we don't need this complicated lookup to
-// find the leaf signing cert. See github.com/hashicorp/consul/issues/11347.
+// TODO: only used in tests. Remove if possible.
 func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
-	if !c.isIntermediateUsedToSignLeaf() {
-		return root.RootCert
-	}
 	if len(root.IntermediateCerts) == 0 {
-		return ""
+		return root.RootCert
 	}
 	return root.IntermediateCerts[len(root.IntermediateCerts)-1]
 }
@@ -596,7 +585,7 @@ func (c *CAManager) getLeafSigningCertFromRoot(root *structs.CARoot) string {
 // This method should only be called while the state lock is held by setting the
 // state to non-ready.
 func (c *CAManager) secondaryInitializeIntermediateCA(provider ca.Provider, config *structs.CAConfiguration) error {
-	activeIntermediate, err := provider.ActiveIntermediate()
+	activeIntermediate, err := provider.ActiveLeafSigningCert()
 	if err != nil {
 		return err
 	}
@@ -754,7 +743,9 @@ func shouldPersistNewRootAndConfig(newActiveRoot *structs.CARoot, oldConfig, new
 	if newConfig == nil {
 		return false
 	}
-	return newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config)
+
+	// Do not persist if the new provider and config are the same as the old
+	return !(newConfig.Provider == oldConfig.Provider && reflect.DeepEqual(newConfig.Config, oldConfig.Config))
 }
 
 func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) {
@@ -781,7 +772,6 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 		return err
 	}
 
-	// Exit early if it's a no-op change
 	state := c.delegate.State()
 	_, config, err := state.CAConfig(nil)
 	if err != nil {
@@ -797,6 +787,8 @@ func (c *CAManager) UpdateConfiguration(args *structs.CARequest) (reterr error) 
 
 	// Don't allow users to change the ClusterID.
 	args.Config.ClusterID = config.ClusterID
+
+	// Exit early if it's a no-op change
 	if args.Config.Provider == config.Provider && reflect.DeepEqual(args.Config.Config, config.Config) {
 		return nil
 	}
@@ -876,17 +868,6 @@ type ValidateConfigUpdater interface {
 }
 
 func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.CARequest, config *structs.CAConfiguration) error {
-	providerRoot, err := newProvider.GenerateRoot()
-	if err != nil {
-		return fmt.Errorf("error generating CA root certificate: %v", err)
-	}
-
-	newRootPEM := providerRoot.PEM
-	newActiveRoot, err := newCARoot(newRootPEM, args.Config.Provider, args.Config.ClusterID)
-	if err != nil {
-		return err
-	}
-
 	// See if the provider needs to persist any state along with the config
 	pState, err := newProvider.State()
 	if err != nil {
@@ -894,13 +875,51 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 	}
 	args.Config.State = pState
 
+	caPEM, err := newProvider.GenerateCAChain()
+	if err != nil {
+		return fmt.Errorf("error generating CA root certificate: %v", err)
+	}
+
+	newActiveRoot, err := newCARoot(caPEM, args.Config.Provider, args.Config.ClusterID)
+	if err != nil {
+		return err
+	}
+
+	// Fetch the existing root CA to compare with the current one.
 	state := c.delegate.State()
-	// Compare the new provider's root CA ID to the current one. If they
-	// match, just update the existing provider with the new config.
-	// If they don't match, begin the root rotation process.
 	_, root, err := state.CARootActive(nil)
 	if err != nil {
 		return err
+	}
+
+	// provider may use intermediates for leaf signing in which case
+	// we may need to generate a leaf signing CA if the root has changed.
+	if usesIntermediate, ok := newProvider.(ca.PrimaryUsesIntermediate); ok {
+		var leafPemFunc func() (string, error)
+		if root != nil && root.ID == newActiveRoot.ID {
+			// If Root ID is the same, we can reuse the existing leaf signing cert
+			leafPemFunc = newProvider.ActiveLeafSigningCert
+		} else {
+			// If Root ID is different, we need to generate a new leaf signing cert
+			// else the trust chain will break when the old root expires.
+			leafPemFunc = usesIntermediate.GenerateLeafSigningCert
+		}
+		leafPem, err := leafPemFunc()
+		if err != nil {
+			return fmt.Errorf("error fetching leaf signing cert: %w", err)
+		}
+		// newProvider.ActiveLeafSigningCert may return a blank leafPem so we
+		// fall back to generating a new one just in case.
+		if leafPem == "" {
+			leafPem, err = usesIntermediate.GenerateLeafSigningCert()
+			if err != nil {
+				return fmt.Errorf("error generating new leaf signing cert: %w", err)
+			}
+		}
+
+		if err := setLeafSigningCert(newActiveRoot, leafPem); err != nil {
+			return fmt.Errorf("error setting leaf signing cert: %w", err)
+		}
 	}
 
 	// If the root didn't change, just update the config and return.
@@ -936,7 +955,7 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 		// 3. Take the active root for the new provider and append the intermediate from step 2
 		// to its list of intermediates.
 		// TODO: this cert is already parsed once in newCARoot, could we remove the second parse?
-		newRoot, err := connect.ParseCert(newRootPEM)
+		newRoot, err := connect.ParseCert(caPEM)
 		if err != nil {
 			return err
 		}
@@ -970,19 +989,9 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 			}
 
 			// Add the cross signed cert to the new CA's intermediates (to be attached
-			// to leaf certs).
-			newActiveRoot.IntermediateCerts = []string{xcCert}
-		}
-	}
-
-	// TODO: https://github.com/hashicorp/consul/issues/12386
-	intermediate, err := newProvider.GenerateIntermediate()
-	if err != nil {
-		return err
-	}
-	if intermediate != newRootPEM {
-		if err := setLeafSigningCert(newActiveRoot, intermediate); err != nil {
-			return err
+			// to leaf certs). We do not want it to be the last cert if there are any
+			// existing intermediate certs so we push to the front.
+			newActiveRoot.IntermediateCerts = append([]string{xcCert}, newActiveRoot.IntermediateCerts...)
 		}
 	}
 
@@ -1032,8 +1041,12 @@ func (c *CAManager) primaryUpdateRootCA(newProvider ca.Provider, args *structs.C
 // This is only run for CAs that require an intermediary in the primary DC, such as Vault.
 // It should only be called while the state lock is held by setting the state to non-ready.
 func (c *CAManager) primaryRenewIntermediate(provider ca.Provider, newActiveRoot *structs.CARoot) error {
+	p, ok := provider.(ca.PrimaryUsesIntermediate)
+	if !ok {
+		return fmt.Errorf("tried to renew intermediates for a provider that does not use them")
+	}
 	// Generate and sign an intermediate cert using the root CA.
-	intermediatePEM, err := provider.GenerateIntermediate()
+	intermediatePEM, err := p.GenerateLeafSigningCert()
 	if err != nil {
 		return fmt.Errorf("error generating new intermediate cert: %v", err)
 	}
@@ -1177,7 +1190,7 @@ func (c *CAManager) renewIntermediate(ctx context.Context, forceNow bool) error 
 		return nil
 	}
 
-	activeIntermediate, err := provider.ActiveIntermediate()
+	activeIntermediate, err := provider.ActiveLeafSigningCert()
 	if err != nil {
 		return err
 	}
@@ -1423,6 +1436,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 	if err != nil {
 		return nil, err
 	}
+	c.logger.Trace("authorizing and signing cert", "spiffeID", spiffeID)
 
 	// Perform authorization.
 	var authzContext acl.AuthorizerContext
@@ -1440,6 +1454,11 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 		if v.Datacenter != dc {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different datacenter: %s, "+
 				"we are %s", v.Datacenter, dc)
+		}
+	case *connect.SpiffeIDWorkloadIdentity:
+		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
+		if err := allow.IdentityWriteAllowed(v.WorkloadIdentity, &authzContext); err != nil {
+			return nil, err
 		}
 	case *connect.SpiffeIDAgent:
 		v.GetEnterpriseMeta().FillAuthzContext(&authzContext)
@@ -1474,6 +1493,7 @@ func (c *CAManager) AuthorizeAndSignCertificate(csr *x509.CertificateRequest, au
 				"we are %s", v.Datacenter, dc)
 		}
 	default:
+		c.logger.Trace("spiffe ID type is not expected", "spiffeID", spiffeID, "spiffeIDType", v)
 		return nil, connect.InvalidCSRError("SPIFFE ID in CSR must be a service, mesh-gateway, or agent ID")
 	}
 
@@ -1500,6 +1520,7 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	agentID, isAgent := spiffeID.(*connect.SpiffeIDAgent)
 	serverID, isServer := spiffeID.(*connect.SpiffeIDServer)
 	mgwID, isMeshGateway := spiffeID.(*connect.SpiffeIDMeshGateway)
+	wID, isWorkloadIdentity := spiffeID.(*connect.SpiffeIDWorkloadIdentity)
 
 	var entMeta acl.EnterpriseMeta
 	switch {
@@ -1509,7 +1530,12 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 				"we are %s", serviceID.Host, signingID.Host())
 		}
 		entMeta.Merge(serviceID.GetEnterpriseMeta())
-
+	case isWorkloadIdentity:
+		if !signingID.CanSign(spiffeID) {
+			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
+				"we are %s", wID.TrustDomain, signingID.Host())
+		}
+		entMeta.Merge(wID.GetEnterpriseMeta())
 	case isMeshGateway:
 		if !signingID.CanSign(spiffeID) {
 			return nil, connect.InvalidCSRError("SPIFFE ID in CSR from a different trust domain: %s, "+
@@ -1632,6 +1658,9 @@ func (c *CAManager) SignCertificate(csr *x509.CertificateRequest, spiffeID conne
 	case isService:
 		reply.Service = serviceID.Service
 		reply.ServiceURI = cert.URIs[0].String()
+	case isWorkloadIdentity:
+		reply.WorkloadIdentity = wID.WorkloadIdentity
+		reply.WorkloadIdentityURI = cert.URIs[0].String()
 	case isMeshGateway:
 		reply.Kind = structs.ServiceKindMeshGateway
 		reply.KindURI = cert.URIs[0].String()

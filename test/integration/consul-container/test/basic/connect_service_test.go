@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package basic
 
 import (
@@ -8,8 +11,7 @@ import (
 
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
 // TestBasicConnectService Summary
@@ -23,9 +25,21 @@ import (
 //   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
 	t.Parallel()
-	cluster := createCluster(t)
 
-	clientService := createServices(t, cluster)
+	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			// TODO(rb): fix the test to not need the service/envoy stack to use :8500
+			AllowHTTPAnyway: true,
+		},
+	})
+
+	_, clientService := topology.CreateServices(t, cluster, "http")
 	_, port := clientService.GetAddr()
 	_, adminPort := clientService.GetAdminAddr()
 
@@ -34,64 +48,56 @@ func TestBasicConnectService(t *testing.T) {
 
 	libassert.AssertContainerState(t, clientService, "running")
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
 }
 
-func createCluster(t *testing.T) *libcluster.Cluster {
-	opts := libcluster.BuildOptions{
-		InjectAutoEncryption:   true,
-		InjectGossipEncryption: true,
-		// TODO: fix the test to not need the service/envoy stack to use :8500
-		AllowHTTPAnyway: true,
-	}
-	ctx := libcluster.NewBuildContext(t, opts)
+func TestConnectGRPCService_WithInputConfig(t *testing.T) {
+	serverHclConfig := `
+datacenter = "dc2"
+data_dir = "/non-existent/conssul-data-dir"
+node_name = "server-1"
 
-	conf := libcluster.NewConfigBuilder(ctx).
-		ToAgentConfig(t)
-	t.Logf("Cluster config:\n%s", conf.JSON)
+bind_addr = "0.0.0.0"
+max_query_time = "800s"
+	`
 
-	configs := []libcluster.Config{*conf}
+	clientHclConfig := `
+datacenter = "dc2"
+data_dir = "/non-existent/conssul-data-dir"
+node_name = "client-1"
 
-	cluster, err := libcluster.New(t, configs)
-	require.NoError(t, err)
+bind_addr = "0.0.0.0"
+max_query_time = "900s"
+	`
 
-	node := cluster.Agents[0]
-	client := node.GetClient()
+	cluster, _, _ := topology.NewClusterWithConfig(t, &topology.ClusterConfig{
+		NumServers:                1,
+		NumClients:                1,
+		ApplyDefaultProxySettings: true,
+		BuildOpts: &libcluster.BuildOptions{
+			Datacenter:             "dc1",
+			InjectAutoEncryption:   true,
+			InjectGossipEncryption: true,
+			AllowHTTPAnyway:        true,
+		},
+	},
+		serverHclConfig,
+		clientHclConfig,
+	)
 
-	libcluster.WaitForLeader(t, cluster, client)
-	libcluster.WaitForMembers(t, client, 1)
+	// Verify the provided server config is merged to agent config
+	serverConfig := cluster.Agents[0].GetConfig()
+	require.Contains(t, serverConfig.JSON, "\"max_query_time\":\"800s\"")
 
-	// Default Proxy Settings
-	ok, err := utils.ApplyDefaultProxySettings(client)
-	require.NoError(t, err)
-	require.True(t, ok)
+	clientConfig := cluster.Agents[1].GetConfig()
+	require.Contains(t, clientConfig.JSON, "\"max_query_time\":\"900s\"")
 
-	return cluster
-}
+	_, clientService := topology.CreateServices(t, cluster, "grpc")
+	_, port := clientService.GetAddr()
+	_, adminPort := clientService.GetAdminAddr()
 
-func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
-	node := cluster.Agents[0]
-	client := node.GetClient()
-	// Create a service and proxy instance
-	serviceOpts := &libservice.ServiceOpts{
-		Name:     libservice.StaticServerServiceName,
-		ID:       "static-server",
-		HTTPPort: 8080,
-		GRPCPort: 8079,
-	}
+	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
+	libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", port))
 
-	// Create a service and proxy instance
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node, serviceOpts)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
-	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName)
-
-	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
-	require.NoError(t, err)
-
-	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
-
-	return clientConnectProxy
+	// time.Sleep(9999 * time.Second)
 }

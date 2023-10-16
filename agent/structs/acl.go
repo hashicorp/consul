@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
@@ -6,11 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"hash"
-	"hash/fnv"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
 
 	"golang.org/x/crypto/blake2b"
@@ -42,41 +45,72 @@ const (
 
 	// This policy gives unlimited access to everything. Users
 	// may rename if desired but cannot delete or modify the rules.
-	ACLPolicyGlobalManagementID = "00000000-0000-0000-0000-000000000001"
-	ACLPolicyGlobalManagement   = `
-acl = "write"
+	ACLPolicyGlobalManagementID   = "00000000-0000-0000-0000-000000000001"
+	ACLPolicyGlobalManagementName = "global-management"
+	ACLPolicyGlobalManagementDesc = "A built-in policy that grants read and write access to all Consul features"
+
+	ACLPolicyGlobalReadOnlyID   = "00000000-0000-0000-0000-000000000002"
+	ACLPolicyGlobalReadOnlyName = "builtin/global-read-only"
+	ACLPolicyGlobalReadOnlyDesc = "A built-in policy that grants read-only access to all Consul features"
+
+	ACLReservedIDPrefix = "00000000-0000-0000-0000-0000000000"
+
+	aclPolicyGlobalRulesTemplate = `
+acl = "%[1]s"
 agent_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 event_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
+}
+identity_prefix "" {
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 key_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-keyring = "write"
+keyring = "%[1]s"
 node_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
-operator = "write"
-mesh = "write"
-peering = "write"
+operator = "%[1]s"
+mesh = "%[1]s"
+peering = "%[1]s"
 query_prefix "" {
-	policy = "write"
+	policy = "%[1]s"
 }
 service_prefix "" {
-	policy = "write"
-	intentions = "write"
+	policy = "%[1]s"
+	intentions = "%[1]s"
 }
 session_prefix "" {
-	policy = "write"
-}` + EnterpriseACLPolicyGlobalManagement
+	policy = "%[1]s"
+}`
+)
 
-	ACLReservedPrefix = "00000000-0000-0000-0000-0000000000"
+var (
+	ACLPolicyGlobalReadOnlyRules   = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "read") + EnterpriseACLPolicyGlobalReadOnly
+	ACLPolicyGlobalManagementRules = fmt.Sprintf(aclPolicyGlobalRulesTemplate, "write") + EnterpriseACLPolicyGlobalManagement
+
+	ACLBuiltinPolicies = map[string]ACLPolicy{
+		ACLPolicyGlobalManagementID: {
+			ID:          ACLPolicyGlobalManagementID,
+			Name:        ACLPolicyGlobalManagementName,
+			Description: ACLPolicyGlobalManagementDesc,
+			Rules:       ACLPolicyGlobalManagementRules,
+		},
+		ACLPolicyGlobalReadOnlyID: {
+			ID:          ACLPolicyGlobalReadOnlyID,
+			Name:        ACLPolicyGlobalReadOnlyName,
+			Description: ACLPolicyGlobalReadOnlyDesc,
+			Rules:       ACLPolicyGlobalReadOnlyRules,
+		},
+	}
 )
 
 func ACLIDReserved(id string) bool {
-	return strings.HasPrefix(id, ACLReservedPrefix)
+	return strings.HasPrefix(id, ACLReservedIDPrefix)
 }
 
 // ACLBootstrapNotAllowedErr is returned once we know that a bootstrap can no
@@ -96,6 +130,7 @@ type ACLIdentity interface {
 	RoleIDs() []string
 	ServiceIdentityList() []*ACLServiceIdentity
 	NodeIdentityList() []*ACLNodeIdentity
+	TemplatedPolicyList() []*ACLTemplatedPolicy
 	IsExpired(asOf time.Time) bool
 	IsLocal() bool
 	EnterpriseMetadata() *acl.EnterpriseMeta
@@ -147,22 +182,20 @@ func (s *ACLServiceIdentity) EstimateSize() int {
 }
 
 func (s *ACLServiceIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
+	// use templated policy to generate synthetic policy
+	templatedPolicy := ACLTemplatedPolicy{
+		TemplateID:   ACLTemplatedPolicyServiceID,
+		TemplateName: api.ACLTemplatedPolicyServiceName,
+		Datacenters:  s.Datacenters,
+		TemplateVariables: &ACLTemplatedPolicyVariables{
+			Name: s.ServiceName,
+		},
+	}
+
 	// Given that we validate this string name before persisting, we do not
-	// have to escape it before doing the following interpolation.
-	rules := aclServiceIdentityRules(s.ServiceName, entMeta)
+	// expect any errors from generating the synthetic policy
+	policy, _ := templatedPolicy.SyntheticPolicy(entMeta)
 
-	hasher := fnv.New128a()
-	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
-
-	policy := &ACLPolicy{}
-	policy.ID = hashID
-	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	sn := NewServiceName(s.ServiceName, entMeta)
-	policy.Description = fmt.Sprintf("synthetic policy for service identity %q", sn.String())
-	policy.Rules = rules
-	policy.Datacenters = s.Datacenters
-	policy.EnterpriseMeta.Merge(entMeta)
-	policy.SetHash(true)
 	return policy
 }
 
@@ -219,21 +252,20 @@ func (s *ACLNodeIdentity) EstimateSize() int {
 }
 
 func (s *ACLNodeIdentity) SyntheticPolicy(entMeta *acl.EnterpriseMeta) *ACLPolicy {
+	// use templated policy to generate synthetic policy
+	templatedPolicy := ACLTemplatedPolicy{
+		TemplateID:   ACLTemplatedPolicyNodeID,
+		TemplateName: api.ACLTemplatedPolicyNodeName,
+		Datacenters:  []string{s.Datacenter},
+		TemplateVariables: &ACLTemplatedPolicyVariables{
+			Name: s.NodeName,
+		},
+	}
+
 	// Given that we validate this string name before persisting, we do not
-	// have to escape it before doing the following interpolation.
-	rules := aclNodeIdentityRules(s.NodeName, entMeta)
+	// expect any errors from generating the synthetic policy
+	policy, _ := templatedPolicy.SyntheticPolicy(entMeta)
 
-	hasher := fnv.New128a()
-	hashID := fmt.Sprintf("%x", hasher.Sum([]byte(rules)))
-
-	policy := &ACLPolicy{}
-	policy.ID = hashID
-	policy.Name = fmt.Sprintf("synthetic-policy-%s", hashID)
-	policy.Description = fmt.Sprintf("synthetic policy for node identity %q", s.NodeName)
-	policy.Rules = rules
-	policy.Datacenters = []string{s.Datacenter}
-	policy.EnterpriseMeta.Merge(entMeta)
-	policy.SetHash(true)
 	return policy
 }
 
@@ -283,6 +315,9 @@ type ACLToken struct {
 
 	// The node identities that this token should be allowed to manage.
 	NodeIdentities ACLNodeIdentities `json:",omitempty"`
+
+	// The templated policies to generate synthetic policies for.
+	TemplatedPolicies ACLTemplatedPolicies `json:",omitempty"`
 
 	// Whether this token is DC local. This means that it will not be synced
 	// to the ACL datacenter and replicated to others.
@@ -364,6 +399,7 @@ func (t *ACLToken) Clone() *ACLToken {
 	t2.Roles = nil
 	t2.ServiceIdentities = nil
 	t2.NodeIdentities = nil
+	t2.TemplatedPolicies = nil
 
 	if len(t.Policies) > 0 {
 		t2.Policies = make([]ACLTokenPolicyLink, len(t.Policies))
@@ -383,6 +419,12 @@ func (t *ACLToken) Clone() *ACLToken {
 		t2.NodeIdentities = make([]*ACLNodeIdentity, len(t.NodeIdentities))
 		for i, n := range t.NodeIdentities {
 			t2.NodeIdentities[i] = n.Clone()
+		}
+	}
+	if len(t.TemplatedPolicies) > 0 {
+		t2.TemplatedPolicies = make([]*ACLTemplatedPolicy, len(t.TemplatedPolicies))
+		for idx, tp := range t.TemplatedPolicies {
+			t2.TemplatedPolicies[idx] = tp.Clone()
 		}
 	}
 
@@ -493,6 +535,10 @@ func (t *ACLToken) SetHash(force bool) []byte {
 			nodeID.AddToHash(hash)
 		}
 
+		for _, templatedPolicy := range t.TemplatedPolicies {
+			templatedPolicy.AddToHash(hash)
+		}
+
 		t.EnterpriseMeta.AddToHash(hash, false)
 
 		// Finalize the hash
@@ -519,6 +565,9 @@ func (t *ACLToken) EstimateSize() int {
 	for _, nodeID := range t.NodeIdentities {
 		size += nodeID.EstimateSize()
 	}
+	for _, templatedPolicy := range t.TemplatedPolicies {
+		size += templatedPolicy.EstimateSize()
+	}
 	return size + t.EnterpriseMeta.EstimateSize()
 }
 
@@ -533,6 +582,7 @@ type ACLTokenListStub struct {
 	Roles             []ACLTokenRoleLink   `json:",omitempty"`
 	ServiceIdentities ACLServiceIdentities `json:",omitempty"`
 	NodeIdentities    ACLNodeIdentities    `json:",omitempty"`
+	TemplatedPolicies ACLTemplatedPolicies `json:",omitempty"`
 	Local             bool
 	AuthMethod        string     `json:",omitempty"`
 	ExpirationTime    *time.Time `json:",omitempty"`
@@ -555,6 +605,7 @@ func (token *ACLToken) Stub() *ACLTokenListStub {
 		Roles:                       token.Roles,
 		ServiceIdentities:           token.ServiceIdentities,
 		NodeIdentities:              token.NodeIdentities,
+		TemplatedPolicies:           token.TemplatedPolicies,
 		Local:                       token.Local,
 		AuthMethod:                  token.AuthMethod,
 		ExpirationTime:              token.ExpirationTime,
@@ -840,6 +891,9 @@ type ACLRole struct {
 	// List of nodes to generate synthetic policies for.
 	NodeIdentities ACLNodeIdentities `json:",omitempty"`
 
+	// List of templated policies to generate synthethic policies for.
+	TemplatedPolicies ACLTemplatedPolicies `json:",omitempty"`
+
 	// Hash of the contents of the role
 	// This does not take into account the ID (which is immutable)
 	// nor the raft metadata.
@@ -879,6 +933,7 @@ func (r *ACLRole) Clone() *ACLRole {
 	r2.Policies = nil
 	r2.ServiceIdentities = nil
 	r2.NodeIdentities = nil
+	r2.TemplatedPolicies = nil
 
 	if len(r.Policies) > 0 {
 		r2.Policies = make([]ACLRolePolicyLink, len(r.Policies))
@@ -894,6 +949,12 @@ func (r *ACLRole) Clone() *ACLRole {
 		r2.NodeIdentities = make([]*ACLNodeIdentity, len(r.NodeIdentities))
 		for i, n := range r.NodeIdentities {
 			r2.NodeIdentities[i] = n.Clone()
+		}
+	}
+	if len(r.TemplatedPolicies) > 0 {
+		r2.TemplatedPolicies = make([]*ACLTemplatedPolicy, len(r.TemplatedPolicies))
+		for i, n := range r.TemplatedPolicies {
+			r2.TemplatedPolicies[i] = n.Clone()
 		}
 	}
 	return &r2
@@ -927,6 +988,9 @@ func (r *ACLRole) SetHash(force bool) []byte {
 		for _, nodeID := range r.NodeIdentities {
 			nodeID.AddToHash(hash)
 		}
+		for _, templatedPolicy := range r.TemplatedPolicies {
+			templatedPolicy.AddToHash(hash)
+		}
 
 		r.EnterpriseMeta.AddToHash(hash, false)
 
@@ -953,6 +1017,9 @@ func (r *ACLRole) EstimateSize() int {
 	}
 	for _, nodeID := range r.NodeIdentities {
 		size += nodeID.EstimateSize()
+	}
+	for _, templatedPolicy := range r.TemplatedPolicies {
+		size += templatedPolicy.EstimateSize()
 	}
 
 	return size + r.EnterpriseMeta.EstimateSize()
@@ -1002,6 +1069,21 @@ const (
 	//   }
 	// }
 	BindingRuleBindTypeNode = "node"
+
+	// BindingRuleBindTypeTemplatedPolicy is the binding rule bind type that
+	// assigns a TemplatedPolicy to the token that is created using the value
+	// of the computed BindVars as template variables and BindName as template name like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   TemplatedPolicies: []*ACLTemplatedPolicy{
+	//     &ACLTemplatedPolicy{
+	//       TemplateName: "<BindName>",
+	//       TemplateVariables: &ACLTemplatedPolicyVariables{<computed BindVars>}
+	//     },
+	//   },
+	// }
+	BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 )
 
 type ACLBindingRule struct {
@@ -1021,14 +1103,20 @@ type ACLBindingRule struct {
 	// BindType adjusts how this binding rule is applied at login time.  The
 	// valid values are:
 	//
-	//  - BindingRuleBindTypeService = "service"
-	//  - BindingRuleBindTypeRole    = "role"
+	//  - BindingRuleBindTypeService         = "service"
+	//  - BindingRuleBindTypeNode            = "node"
+	//  - BindingRuleBindTypeRole            = "role"
+	//  - BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 	BindType string
 
 	// BindName is the target of the binding. Can be lightly templated using
 	// HIL ${foo} syntax from available field names. How it is used depends
 	// upon the BindType.
 	BindName string
+
+	// BindVars is a the variables used when binding rule type is `templated-policy`. Can be lightly
+	// templated using HIL ${foo} syntax from available field names.
+	BindVars *ACLTemplatedPolicyVariables `json:",omitempty"`
 
 	// Embedded Enterprise ACL metadata
 	acl.EnterpriseMeta `mapstructure:",squash"`
@@ -1275,6 +1363,7 @@ type ACLTokenListRequest struct {
 	Policy        string // Policy filter
 	Role          string // Role filter
 	AuthMethod    string // Auth Method filter
+	ServiceName   string // Service name (from service identities) filter
 	Datacenter    string // The datacenter to perform the request within
 	ACLAuthMethodEnterpriseMeta
 	acl.EnterpriseMeta
@@ -1293,7 +1382,7 @@ type ACLTokenListResponse struct {
 }
 
 // ACLTokenBatchGetRequest is used for reading multiple tokens, this is
-// different from the the token list request in that only tokens with the
+// different from the token list request in that only tokens with the
 // the requested ids are returned
 type ACLTokenBatchGetRequest struct {
 	AccessorIDs []string // List of accessor ids to fetch
@@ -1814,6 +1903,10 @@ func (id *AgentRecoveryTokenIdentity) NodeIdentityList() []*ACLNodeIdentity {
 	return nil
 }
 
+func (id *AgentRecoveryTokenIdentity) TemplatedPolicyList() []*ACLTemplatedPolicy {
+	return nil
+}
+
 func (id *AgentRecoveryTokenIdentity) IsExpired(asOf time.Time) bool {
 	return false
 }
@@ -1859,6 +1952,10 @@ func (i *ACLServerIdentity) ServiceIdentityList() []*ACLServiceIdentity {
 }
 
 func (i *ACLServerIdentity) NodeIdentityList() []*ACLNodeIdentity {
+	return nil
+}
+
+func (i *ACLServerIdentity) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	return nil
 }
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import validations from 'consul-ui/validations/kv';
 import builderFactory from 'consul-ui/utils/form/builder';
 const builder = builderFactory();

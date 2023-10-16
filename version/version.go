@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package version
 
 import (
@@ -20,7 +23,7 @@ var (
 	//go:embed VERSION
 	fullVersion string
 
-	Version, VersionPrerelease, _ = strings.Cut(fullVersion, "-")
+	Version, VersionPrerelease, _ = strings.Cut(strings.TrimSpace(fullVersion), "-")
 
 	// https://semver.org/#spec-item-10
 	VersionMetadata = ""
@@ -29,6 +32,14 @@ var (
 	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
 	BuildDate string = "1970-01-01T00:00:01Z"
 )
+
+// BuildInfo includes all available version info for this build
+type BuildInfo struct {
+	SHA          string
+	BuildDate    string
+	HumanVersion string
+	FIPS         string
+}
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
 // for displaying to humans.
@@ -41,10 +52,24 @@ func GetHumanVersion() string {
 		version += fmt.Sprintf("-%s", release)
 	}
 
+	if IsFIPS() {
+		version += ".fips1402"
+	}
+
 	if metadata != "" {
 		version += fmt.Sprintf("+%s", metadata)
 	}
 
 	// Strip off any single quotes added by the git information.
 	return strings.ReplaceAll(version, "'", "")
+}
+
+// GetBuildInfo returns all available version information for this build.
+func GetBuildInfo() *BuildInfo {
+	return &BuildInfo{
+		SHA:          GitCommit,
+		BuildDate:    BuildDate,
+		HumanVersion: GetHumanVersion(),
+		FIPS:         GetFIPSInfo(),
+	}
 }

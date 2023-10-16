@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xdscommon
 
 import (
@@ -27,7 +30,7 @@ type SupportedProxyFeatures struct {
 }
 
 func DetermineSupportedProxyFeatures(node *envoy_core_v3.Node) (SupportedProxyFeatures, error) {
-	version := determineEnvoyVersionFromNode(node)
+	version := DetermineEnvoyVersionFromNode(node)
 	return determineSupportedProxyFeaturesFromVersion(version)
 }
 
@@ -66,7 +69,7 @@ func determineSupportedProxyFeaturesFromVersion(version *version.Version) (Suppo
 	return sf, nil
 }
 
-func determineEnvoyVersionFromNode(node *envoy_core_v3.Node) *version.Version {
+func DetermineEnvoyVersionFromNode(node *envoy_core_v3.Node) *version.Version {
 	if node == nil {
 		return nil
 	}

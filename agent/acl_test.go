@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -19,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 
@@ -159,6 +163,9 @@ func (a *TestACLAgent) Stats() map[string]map[string]string {
 }
 func (a *TestACLAgent) ReloadConfig(_ consul.ReloadableConfig) error {
 	return fmt.Errorf("Unimplemented")
+}
+func (a *TestACLAgent) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return nil
 }
 
 func TestACL_Version8EnabledByDefault(t *testing.T) {

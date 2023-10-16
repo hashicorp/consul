@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -110,7 +113,7 @@ type serverACLResolverBackend struct {
 }
 
 func (s *serverACLResolverBackend) IsServerManagementToken(token string) bool {
-	mgmt, err := s.getSystemMetadata(structs.ServerManagementTokenAccessorID)
+	mgmt, err := s.GetSystemMetadata(structs.ServerManagementTokenAccessorID)
 	if err != nil {
 		s.logger.Debug("failed to fetch server management token: %w", err)
 		return false
@@ -148,9 +151,9 @@ func (s *Server) ResolveIdentityFromToken(token string) (bool, structs.ACLIdenti
 	} else if aclToken != nil && !aclToken.IsExpired(time.Now()) {
 		return true, aclToken, nil
 	}
-	if aclToken == nil && token == acl.AnonymousTokenSecret {
+	if aclToken == nil && token == acl.AnonymousTokenSecret && s.InPrimaryDatacenter() {
 		// synthesize the anonymous token for early use, bootstrapping has not completed
-		s.InsertAnonymousToken()
+		s.insertAnonymousToken()
 		fallbackId := structs.ACLToken{
 			AccessorID:  acl.AnonymousTokenID,
 			SecretID:    acl.AnonymousTokenSecret,

@@ -1,0 +1,3 @@
+```release-note:improvement
+extensions: Improve validation and error feedback for `property-override` builtin Envoy extension
+```

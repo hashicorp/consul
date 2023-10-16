@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -16,6 +19,7 @@ import (
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -3185,7 +3189,7 @@ func TestDNS_ServiceLookup_WanTranslation(t *testing.T) {
 				}
 
 				var out struct{}
-				require.NoError(t, a2.RPC(context.Background(), "Catalog.Register", args, &out))
+				require.NoError(r, a2.RPC(context.Background(), "Catalog.Register", args, &out))
 			})
 
 			// Look up the SRV record via service and prepared query.
@@ -3513,11 +3517,11 @@ func TestDNS_CaseInsensitiveServiceLookup(t *testing.T) {
 				retry.Run(t, func(r *retry.R) {
 					in, _, err := c.Exchange(m, a.DNSAddr())
 					if err != nil {
-						t.Fatalf("err: %v", err)
+						r.Fatalf("err: %v", err)
 					}
 
 					if len(in.Answer) != 1 {
-						t.Fatalf("question %v, empty lookup: %#v", question, in)
+						r.Fatalf("question %v, empty lookup: %#v", question, in)
 					}
 				})
 			}
@@ -4883,21 +4887,26 @@ func TestDNS_TCP_and_UDP_Truncate(t *testing.T) {
 	services := []string{"normal", "truncated"}
 	for index, service := range services {
 		numServices := (index * 5000) + 2
+		var eg errgroup.Group
 		for i := 1; i < numServices; i++ {
-			args := &structs.RegisterRequest{
-				Datacenter: "dc1",
-				Node:       fmt.Sprintf("%s-%d.acme.com", service, i),
-				Address:    fmt.Sprintf("127.%d.%d.%d", 0, (i / 255), i%255),
-				Service: &structs.NodeService{
-					Service: service,
-					Port:    8000,
-				},
-			}
+			j := i
+			eg.Go(func() error {
+				args := &structs.RegisterRequest{
+					Datacenter: "dc1",
+					Node:       fmt.Sprintf("%s-%d.acme.com", service, j),
+					Address:    fmt.Sprintf("127.%d.%d.%d", 0, (j / 255), j%255),
+					Service: &structs.NodeService{
+						Service: service,
+						Port:    8000,
+					},
+				}
 
-			var out struct{}
-			if err := a.RPC(context.Background(), "Catalog.Register", args, &out); err != nil {
-				t.Fatalf("err: %v", err)
-			}
+				var out struct{}
+				return a.RPC(context.Background(), "Catalog.Register", args, &out)
+			})
+		}
+		if err := eg.Wait(); err != nil {
+			t.Fatalf("error registering: %v", err)
 		}
 
 		// Register an equivalent prepared query.
@@ -6301,6 +6310,22 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 
 }
 
+func initDNSToken(t *testing.T, rpc RPC) {
+	t.Helper()
+
+	reqToken := structs.ACLTokenSetRequest{
+		Datacenter: "dc1",
+		ACLToken: structs.ACLToken{
+			SecretID:          "279d4735-f8ca-4d48-b5cc-c00a9713bbf8",
+			Policies:          nil,
+			TemplatedPolicies: []*structs.ACLTemplatedPolicy{{TemplateName: "builtin/dns"}},
+		},
+		WriteRequest: structs.WriteRequest{Token: "root"},
+	}
+	err := rpc.RPC(context.Background(), "ACL.TokenSet", &reqToken, &structs.ACLToken{})
+	require.NoError(t, err)
+}
+
 func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -6313,10 +6338,11 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	}{
 		{"root", 1},
 		{"anonymous", 0},
+		{"dns", 1},
 	}
 	for _, tt := range tests {
 		t.Run("ACLToken == "+tt.token, func(t *testing.T) {
-			a := NewTestAgent(t, `
+			hcl := `
 				primary_datacenter = "dc1"
 
 				acl {
@@ -6326,12 +6352,33 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 
 					tokens {
 						initial_management = "root"
-						default = "`+tt.token+`"
+`
+			if tt.token == "dns" {
+				// Create a UUID for dns token since it doesn't have an alias
+				dnsToken := "279d4735-f8ca-4d48-b5cc-c00a9713bbf8"
+
+				hcl = hcl + `
+						default = "anonymous"
+						dns = "` + dnsToken + `"
+`
+			} else {
+				hcl = hcl + `
+						default = "` + tt.token + `"
+`
+			}
+
+			hcl = hcl + `
 					}
 				}
-			`)
+			`
+
+			a := NewTestAgent(t, hcl)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
+
+			if tt.token == "dns" {
+				initDNSToken(t, a)
+			}
 
 			// Register a service
 			args := &structs.RegisterRequest{
@@ -6364,6 +6411,7 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 		})
 	}
 }
+
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -7059,6 +7107,45 @@ func TestDNS_AltDomains_Overlap(t *testing.T) {
 		if got, want := aRec.A.To4().String(), "127.0.0.1"; got != want {
 			t.Fatalf("A ip invalid, got %v want %v", got, want)
 		}
+	}
+}
+
+func TestDNS_AltDomain_DCName_Overlap(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	// this tests the DC name overlap with the consul domain/alt-domain
+	// we should get response when DC suffix is a prefix of consul alt-domain
+	t.Parallel()
+	a := NewTestAgent(t, `
+		datacenter = "dc-test"
+		node_name = "test-node"
+		alt_domain = "test.consul."
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc-test")
+
+	questions := []string{
+		"test-node.node.dc-test.consul.",
+		"test-node.node.dc-test.test.consul.",
+	}
+
+	for _, question := range questions {
+		m := new(dns.Msg)
+		m.SetQuestion(question, dns.TypeA)
+
+		c := new(dns.Client)
+		in, _, err := c.Exchange(m, a.DNSAddr())
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		require.Len(t, in.Answer, 1)
+
+		aRec, ok := in.Answer[0].(*dns.A)
+		require.True(t, ok)
+		require.Equal(t, aRec.A.To4().String(), "127.0.0.1")
 	}
 }
 

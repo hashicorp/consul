@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: agent/grpc-middleware/testutil/testservice/simple.proto
+// source: simple.proto
 
 package testservice
 
@@ -163,5 +163,5 @@ var Simple_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "agent/grpc-middleware/testutil/testservice/simple.proto",
+	Metadata: "simple.proto",
 }

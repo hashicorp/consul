@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package cluster
 
 import (
@@ -59,8 +62,9 @@ func LaunchContainerOnNode(
 		ContainerRequest: req,
 		Started:          true,
 	})
+	fmt.Printf("creating container with image: %s(%s)\n", req.Name, req.Image)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("creating container: %s(%s), %w", req.Name, req.Image, err)
 	}
 	deferClean.Add(func() {
 		_ = container.Terminate(ctx)
@@ -68,12 +72,12 @@ func LaunchContainerOnNode(
 
 	ip, err := container.ContainerIP(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching container IP: %w", err)
 	}
 
 	if utils.FollowLog {
 		if err := container.StartLogProducer(ctx); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("starting log producer: %w", err)
 		}
 		container.FollowOutput(&LogConsumer{
 			Prefix: req.Name,
@@ -87,7 +91,7 @@ func LaunchContainerOnNode(
 	for _, portStr := range mapPorts {
 		mapped, err := pod.MappedPort(ctx, nat.Port(portStr))
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("mapping port %s: %w", portStr, err)
 		}
 		ports[portStr] = mapped
 	}

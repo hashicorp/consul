@@ -165,6 +165,10 @@
       {
         "title": "Segment",
         "path": "operator/segment"
+      },
+      {
+        "title": "Usage",
+        "path": "operator/usage"
       }
     ]
   },

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package testcommon
 
 import (
@@ -22,6 +25,9 @@ func SetupTLSRootsAndLeaf(t *testing.T, snap *proxycfg.ConfigSnapshot) {
 		case structs.ServiceKindMeshGateway:
 			snap.MeshGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
 			snap.MeshGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
+		case structs.ServiceKindAPIGateway:
+			snap.APIGateway.Leaf.CertPEM = loadTestResource(t, "test-leaf-cert")
+			snap.APIGateway.Leaf.PrivateKeyPEM = loadTestResource(t, "test-leaf-key")
 		}
 	}
 	if snap.Roots != nil {

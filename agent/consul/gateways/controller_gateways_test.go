@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package gateways
 
 import (
@@ -8,14 +11,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
+	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/require"
 )
 
 func TestBoundAPIGatewayBindRoute(t *testing.T) {
@@ -49,6 +55,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 							Protocol: structs.ListenerProtocolTCP,
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							gatewayAccepted(),
+						},
+					},
 				},
 			},
 			route: &structs.TCPRouteConfigEntry{
@@ -59,6 +70,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 						Kind:        structs.APIGateway,
 						Name:        "Gateway",
 						SectionName: "Listener",
+					},
+				},
+				Status: structs.Status{
+					Conditions: []structs.Condition{
+						routeAccepted(),
 					},
 				},
 			},
@@ -116,6 +132,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 							Protocol: structs.ListenerProtocolTCP,
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							gatewayAccepted(),
+						},
+					},
 				},
 			},
 			route: &structs.TCPRouteConfigEntry{
@@ -125,6 +146,11 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 					{
 						Kind: structs.APIGateway,
 						Name: "Gateway",
+					},
+				},
+				Status: structs.Status{
+					Conditions: []structs.Condition{
+						routeAccepted(),
 					},
 				},
 			},
@@ -181,6 +207,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Name: "Route",
 				Parents: []structs.ResourceReference{
 					{
+						Kind:        "Foo",
 						Name:        "Gateway",
 						SectionName: "Listener",
 					},
@@ -416,6 +443,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -428,6 +460,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -520,6 +557,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -540,6 +582,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -557,6 +604,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -623,6 +675,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -635,6 +692,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -690,6 +752,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -702,6 +769,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -769,6 +841,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -781,6 +858,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -842,6 +924,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -870,6 +957,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -887,6 +979,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -967,6 +1064,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -979,6 +1081,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -1026,6 +1133,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 				{
@@ -1046,6 +1158,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1060,6 +1177,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							SectionName: "Listener 1",
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Name: "TCP Route 2",
@@ -1069,6 +1191,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway 2",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener 2",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -1127,6 +1254,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolHTTP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1139,6 +1271,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Name:        "Gateway",
 							Kind:        structs.APIGateway,
 							SectionName: "Listener",
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -1180,6 +1317,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1194,11 +1336,15 @@ func TestBindRoutesToGateways(t *testing.T) {
 							SectionName: "",
 						},
 					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 			},
 			expectedBoundAPIGateways: []*structs.BoundAPIGatewayConfigEntry{
 				{
-
 					Name: "Gateway",
 					Listeners: []structs.BoundAPIGatewayListener{
 						{
@@ -1288,6 +1434,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 								Protocol: structs.ListenerProtocolTCP,
 							},
 						},
+						Status: structs.Status{
+							Conditions: []structs.Condition{
+								gatewayAccepted(),
+							},
+						},
 					},
 				},
 			},
@@ -1299,6 +1450,11 @@ func TestBindRoutesToGateways(t *testing.T) {
 						{
 							Name: "Gateway",
 							Kind: structs.APIGateway,
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
 						},
 					},
 				},
@@ -1338,7 +1494,6 @@ func TestBindRoutesToGateways(t *testing.T) {
 }
 
 func TestAPIGatewayController(t *testing.T) {
-	conditions := newGatewayConditionGenerator()
 	defaultMeta := acl.DefaultEnterpriseMeta()
 	for name, tc := range map[string]struct {
 		requests       []controller.Request
@@ -1366,7 +1521,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
+							gatewayAccepted(),
 						},
 					},
 				},
@@ -1397,7 +1552,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeNoUpstreams(),
+							routeNoUpstreams(),
 						},
 					},
 				},
@@ -1423,13 +1578,13 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeNoUpstreams(),
+							routeNoUpstreams(),
 						},
 					},
 				},
 			},
 		},
-		"tcp-route-no-gateways-invalid-targets": {
+		"tcp-route-not-accepted-bind": {
 			requests: []controller.Request{{
 				Kind: structs.TCPRoute,
 				Name: "tcp-route",
@@ -1443,6 +1598,27 @@ func TestAPIGatewayController(t *testing.T) {
 					Services: []structs.TCPService{{
 						Name: "tcp-upstream",
 					}},
+					Parents: []structs.ResourceReference{{
+						Name:           "api-gateway",
+						EnterpriseMeta: *defaultMeta,
+					}},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "listener",
+						Port: 80,
+					}},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{{
+						Name: "listener",
+					}},
 				},
 			},
 			finalEntries: []structs.ConfigEntry{
@@ -1452,9 +1628,40 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeInvalidDiscoveryChain(errServiceDoesNotExist),
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
+								Name:           "api-gateway",
+								EnterpriseMeta: *defaultMeta,
+							}, errors.New("failed to bind route to gateway api-gateway: gateway has not been accepted")),
 						},
 					},
+				},
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{{
+						Name: "listener",
+						Port: 80,
+					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "api-gateway",
+								SectionName:    "listener",
+								EnterpriseMeta: *defaultMeta,
+							}),
+						},
+					},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "api-gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{{
+						Name: "listener",
+					}},
 				},
 			},
 		},
@@ -1487,7 +1694,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeInvalidDiscoveryChain(errInvalidProtocol),
+							routeInvalidDiscoveryChain(errInvalidProtocol),
 						},
 					},
 				},
@@ -1526,8 +1733,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.gatewayNotFound(structs.ResourceReference{
+							routeAccepted(),
+							gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1580,8 +1787,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.gatewayNotFound(structs.ResourceReference{
+							routeAccepted(),
+							gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1644,8 +1851,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1713,8 +1920,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.gatewayNotFound(structs.ResourceReference{
+							routeAccepted(),
+							gatewayNotFound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1747,6 +1954,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -1762,6 +1974,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Protocol: structs.ListenerProtocolTCP,
 						Port:     22,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							gatewayAccepted(),
+						},
+					},
 				},
 				&structs.BoundAPIGatewayConfigEntry{
 					Kind:           structs.BoundAPIGateway,
@@ -1789,8 +2006,14 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								EnterpriseMeta: *defaultMeta,
+								SectionName:    "listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1805,8 +2028,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1839,6 +2062,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -1876,8 +2104,14 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								EnterpriseMeta: *defaultMeta,
+								SectionName:    "listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1892,8 +2126,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -1930,6 +2164,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
@@ -1943,6 +2182,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -1989,8 +2233,14 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								EnterpriseMeta: *defaultMeta,
+								SectionName:    "listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2005,8 +2255,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2020,8 +2270,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2060,6 +2310,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.HTTPRouteConfigEntry{
 					Kind:           structs.HTTPRoute,
@@ -2075,6 +2330,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -2122,8 +2382,14 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								EnterpriseMeta: *defaultMeta,
+								SectionName:    "listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2138,8 +2404,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2153,8 +2419,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2172,6 +2438,14 @@ func TestAPIGatewayController(t *testing.T) {
 			}, {
 				Kind: structs.TCPRoute,
 				Name: "tcp-route",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}, {
+				Kind: structs.TCPRoute,
+				Name: "tcp-route",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}, {
+				Kind: structs.HTTPRoute,
+				Name: "http-route",
 				Meta: acl.DefaultEnterpriseMeta(),
 			}, {
 				Kind: structs.HTTPRoute,
@@ -2255,8 +2529,14 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:           structs.APIGateway,
+								Name:           "gateway",
+								EnterpriseMeta: *defaultMeta,
+								SectionName:    "listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2271,8 +2551,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2286,8 +2566,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2326,6 +2606,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.TCPRouteConfigEntry{
 					Kind:           structs.TCPRoute,
@@ -2339,6 +2624,11 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:           "gateway",
 						EnterpriseMeta: *defaultMeta,
 					}},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							routeAccepted(),
+						},
+					},
 				},
 				&structs.ServiceConfigEntry{
 					Kind:           structs.ServiceDefaults,
@@ -2399,13 +2689,23 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "tcp-listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "http-listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -2419,8 +2719,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2434,8 +2734,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2461,8 +2761,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2516,7 +2816,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								SectionName:    "tcp-listener",
@@ -2531,7 +2831,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
+							routeAccepted(),
 						},
 					},
 				},
@@ -2550,8 +2850,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2605,7 +2905,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								SectionName:    "tcp-listener",
@@ -2620,7 +2920,7 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeNoUpstreams(),
+							routeNoUpstreams(),
 						},
 					},
 				},
@@ -2648,8 +2948,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2674,8 +2974,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}, errors.New("foo")),
@@ -2705,8 +3005,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -2748,8 +3048,13 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "http-listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -2763,8 +3068,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeUnbound(structs.ResourceReference{
+							routeAccepted(),
+							routeUnbound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}, errors.New("failed to bind route tcp-route to gateway gateway with listener ''")),
@@ -2777,8 +3082,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}),
@@ -2813,8 +3118,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2849,8 +3154,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.gatewayNotFound(structs.ResourceReference{
+							routeAccepted(),
+							gatewayNotFound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}),
@@ -2890,8 +3195,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -2916,8 +3221,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -2961,8 +3266,8 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.routeBound(structs.ResourceReference{
+							routeAccepted(),
+							routeBound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}),
@@ -2977,8 +3282,8 @@ func TestAPIGatewayController(t *testing.T) {
 					EnterpriseMeta: *defaultMeta,
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.routeAccepted(),
-							conditions.gatewayNotFound(structs.ResourceReference{
+							routeAccepted(),
+							gatewayNotFound(structs.ResourceReference{
 								Kind: structs.APIGateway,
 								Name: "gateway",
 							}),
@@ -3027,12 +3332,13 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.invalidCertificate(structs.ResourceReference{
-								Kind: structs.InlineCertificate,
-								Name: "certificate",
-							}, errors.New("certificate not found")),
-							conditions.invalidCertificates(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							invalidCertificate(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "http-listener",
+							}, errors.New("certificate \"certificate\" not found")),
+							invalidCertificates(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3095,8 +3401,13 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "http-listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3116,6 +3427,345 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+				},
+			},
+		},
+		"all-listeners-valid-certificate-refs": {
+			requests: []controller.Request{{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}},
+			initialEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "listener-1",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "cert-1",
+								}},
+							},
+						},
+						{
+							Name: "listener-2",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "cert-2",
+								}},
+							},
+						},
+					},
+				},
+				&structs.InlineCertificateConfigEntry{
+					Kind:           structs.InlineCertificate,
+					Name:           "cert-1",
+					EnterpriseMeta: *defaultMeta,
+				},
+				&structs.InlineCertificateConfigEntry{
+					Kind:           structs.InlineCertificate,
+					Name:           "cert-2",
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			finalEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "listener-1",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "cert-1",
+								}},
+							},
+						},
+						{
+							Name: "listener-2",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "cert-2",
+								}},
+							},
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							resolvedRefs(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-1",
+							}),
+							resolvedRefs(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-2",
+							}),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-1",
+							}),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-2",
+							}),
+							gatewayAccepted(),
+						},
+					},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name: "listener-1",
+							Certificates: []structs.ResourceReference{
+								{
+									Kind: structs.InlineCertificate,
+									Name: "cert-1",
+								},
+							},
+						},
+						{
+							Name: "listener-2",
+							Certificates: []structs.ResourceReference{
+								{
+									Kind: structs.InlineCertificate,
+									Name: "cert-2",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"all-listeners-invalid-certificates": {
+			requests: []controller.Request{{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}},
+			initialEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "listener-1",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "missing certificate",
+								}},
+							},
+						},
+						{
+							Name: "listener-2",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "another missing certificate",
+								}},
+							},
+						},
+					},
+				},
+			},
+			finalEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "listener-1",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "missing certificate",
+								}},
+							},
+						},
+						{
+							Name: "listener-2",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "another missing certificate",
+								}},
+							},
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							invalidCertificate(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-1",
+							}, errors.New("certificate \"missing certificate\" not found")),
+							invalidCertificate(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-2",
+							}, errors.New("certificate \"another missing certificate\" not found")),
+							invalidCertificates(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-1",
+							}),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "listener-2",
+							}),
+						},
+					},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{
+						{Name: "listener-1"},
+						{Name: "listener-2"},
+					},
+				},
+			},
+		},
+		"mixed-valid-and-invalid-certificate-refs-for-listeners": {
+			requests: []controller.Request{{
+				Kind: structs.APIGateway,
+				Name: "gateway",
+				Meta: acl.DefaultEnterpriseMeta(),
+			}},
+			initialEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "invalid-listener",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "missing certificate",
+								}},
+							},
+						},
+						{
+							Name: "valid-listener",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								}},
+							},
+						},
+					},
+				},
+				&structs.InlineCertificateConfigEntry{
+					Kind:           structs.InlineCertificate,
+					Name:           "certificate",
+					EnterpriseMeta: *defaultMeta,
+				},
+			},
+			finalEntries: []structs.ConfigEntry{
+				&structs.APIGatewayConfigEntry{
+					Kind:           structs.APIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.APIGatewayListener{
+						{
+							Name: "invalid-listener",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "missing certificate",
+								}},
+							},
+						},
+						{
+							Name: "valid-listener",
+							Port: 80,
+							TLS: structs.APIGatewayTLSConfiguration{
+								Certificates: []structs.ResourceReference{{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								}},
+							},
+						},
+					},
+					Status: structs.Status{
+						Conditions: []structs.Condition{
+							invalidCertificate(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "invalid-listener",
+							}, errors.New("certificate \"missing certificate\" not found")),
+							resolvedRefs(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "valid-listener",
+							}),
+
+							invalidCertificates(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "valid-listener",
+							}),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "invalid-listener",
+							}),
+						},
+					},
+				},
+				&structs.BoundAPIGatewayConfigEntry{
+					Kind:           structs.BoundAPIGateway,
+					Name:           "gateway",
+					EnterpriseMeta: *defaultMeta,
+					Listeners: []structs.BoundAPIGatewayListener{
+						{
+							Name: "valid-listener",
+							Certificates: []structs.ResourceReference{
+								{
+									Kind: structs.InlineCertificate,
+									Name: "certificate",
+								},
+							},
+						},
+						{
+							Name: "invalid-listener",
+						},
+					},
 				},
 			},
 		},
@@ -3142,12 +3792,12 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.invalidCertificate(structs.ResourceReference{
+							invalidCertificate(structs.ResourceReference{
 								Kind: structs.InlineCertificate,
 								Name: "certificate",
 							}, errors.New("certificate not found")),
-							conditions.invalidCertificates(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							invalidCertificates(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3178,8 +3828,13 @@ func TestAPIGatewayController(t *testing.T) {
 					}},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							conditions.gatewayAccepted(),
-							conditions.gatewayListenerNoConflicts(structs.ResourceReference{
+							gatewayAccepted(),
+							gatewayListenerNoConflicts(structs.ResourceReference{
+								Kind:        structs.APIGateway,
+								Name:        "gateway",
+								SectionName: "http-listener",
+							}),
+							resolvedRefs(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3297,7 +3952,8 @@ func TestAPIGatewayController(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher: publisher,
+				Publisher:      publisher,
+				StorageBackend: fsm.NullStorageBackend,
 			})
 
 			var index uint64
@@ -3365,7 +4021,7 @@ func TestAPIGatewayController(t *testing.T) {
 						require.NoError(t, err)
 						ppExpected, err := json.MarshalIndent(expectedStatus, "", "  ")
 						require.NoError(t, err)
-						require.True(t, statusEqual, fmt.Sprintf("statuses are unequal: %+v != %+v", string(ppActual), string(ppExpected)))
+						require.True(t, statusEqual, fmt.Sprintf("statuses are unequal (actual != expected): %+v != %+v", string(ppActual), string(ppExpected)))
 						if bound, ok := controlled.(*structs.BoundAPIGatewayConfigEntry); ok {
 							ppActual, err := json.MarshalIndent(bound, "", "  ")
 							require.NoError(t, err)
@@ -3416,7 +4072,8 @@ func TestNewAPIGatewayController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher: publisher,
+		Publisher:      publisher,
+		StorageBackend: fsm.NullStorageBackend,
 	})
 
 	updater := &Updater{
@@ -3440,15 +4097,18 @@ func (n *noopController) Subscribe(request *stream.SubscribeRequest, transformer
 func (n *noopController) WithBackoff(base, max time.Duration) controller.Controller { return n }
 func (n *noopController) WithLogger(logger hclog.Logger) controller.Controller      { return n }
 func (n *noopController) WithWorkers(i int) controller.Controller                   { return n }
-func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) controller.WorkQueue) controller.Controller {
+func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) queue.WorkQueue[controller.Request]) controller.Controller {
 	return n
 }
+
 func (n *noopController) AddTrigger(request controller.Request, trigger func(ctx context.Context) error) {
 	n.triggers[request] = struct{}{}
 }
+
 func (n *noopController) RemoveTrigger(request controller.Request) {
 	delete(n.triggers, request)
 }
+
 func (n *noopController) Enqueue(requests ...controller.Request) {
 	n.enqueued = append(n.enqueued, requests...)
 }

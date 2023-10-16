@@ -36,7 +36,8 @@ Feature: dc / services / show / topology / intentions
     ---
     When I click ".consul-topology-metrics [data-test-action]"
     And I click ".consul-topology-metrics [data-test-confirm]"
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
   Scenario: There was an error saving the intention
     Given the url "/v1/connect/intentions/exact?source=default%2Fweb&destination=default%2Fdb&dc=datacenter" responds with a 500 status
     When I visit the service page for yaml
@@ -46,4 +47,5 @@ Feature: dc / services / show / topology / intentions
     ---
     When I click ".consul-topology-metrics [data-test-action]"
     And I click ".consul-topology-metrics [data-test-confirm]"
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class

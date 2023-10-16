@@ -89,7 +89,7 @@ However, we generally recommend using resource names that don't require URL-enco
 Depending on the validation that Consul applies to a resource name,
 Consul may still reject a request if it considers the resource name invalid for that endpoint.
 And even if Consul considers the resource name valid, it may degrade other functionality,
-such as failed [DNS lookups](/consul/docs/discovery/dns)
+such as failed [DNS lookups](/consul/docs/services/discovery/dns-overview)
 for nodes or services with names containing invalid DNS characters.
 
 This HTTP API capability also allows the

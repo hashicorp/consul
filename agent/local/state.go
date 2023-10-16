@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
@@ -10,20 +13,20 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/acl/resolver"
-	"github.com/hashicorp/consul/lib/stringslice"
-
-	"github.com/armon/go-metrics"
-	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
-	"github.com/mitchellh/copystructure"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+
+	"github.com/armon/go-metrics"
+	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+	"github.com/mitchellh/copystructure"
 )
 
 var StateCounters = []prometheus.CounterDefinition{
@@ -59,6 +62,7 @@ type Config struct {
 	DiscardCheckOutput  bool
 	NodeID              types.NodeID
 	NodeName            string
+	NodeLocality        *structs.Locality
 	Partition           string // this defaults if empty
 	TaggedAddresses     map[string]string
 }
@@ -834,6 +838,12 @@ func (l *State) setCheckStateLocked(c *CheckState) {
 	existing := l.checks[id]
 	if existing != nil {
 		c.InSync = c.Check.IsSame(existing.Check)
+		// If the existing check has a Defercheck, it needs to be
+		// assigned to the new check
+		if existing.DeferCheck != nil && c.DeferCheck == nil {
+			c.DeferCheck = existing.DeferCheck
+			c.InSync = false
+		}
 	}
 
 	l.checks[id] = c
@@ -1073,6 +1083,7 @@ func (l *State) updateSyncState() error {
 	// Check if node info needs syncing
 	if svcNode == nil || svcNode.ID != l.config.NodeID ||
 		!reflect.DeepEqual(svcNode.TaggedAddresses, l.config.TaggedAddresses) ||
+		!reflect.DeepEqual(svcNode.Locality, l.config.NodeLocality) ||
 		!reflect.DeepEqual(svcNode.Meta, l.metadata) {
 		l.nodeInfoInSync = false
 	}
@@ -1247,6 +1258,7 @@ func (l *State) SyncChanges() error {
 		}
 	}
 
+	var errs error
 	// Sync the services
 	// (logging happens in the helper methods)
 	for id, s := range l.services {
@@ -1260,7 +1272,7 @@ func (l *State) SyncChanges() error {
 			l.logger.Debug("Service in sync", "service", id.String())
 		}
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
 
@@ -1281,10 +1293,10 @@ func (l *State) SyncChanges() error {
 			l.logger.Debug("Check in sync", "check", id.String())
 		}
 		if err != nil {
-			return err
+			errs = multierror.Append(errs, err)
 		}
 	}
-	return nil
+	return errs
 }
 
 // deleteService is used to delete a service from the server
@@ -1565,6 +1577,7 @@ func (l *State) syncNodeInfo() error {
 		Node:            l.config.NodeName,
 		Address:         l.config.AdvertiseAddr,
 		TaggedAddresses: l.config.TaggedAddresses,
+		Locality:        l.config.NodeLocality,
 		NodeMeta:        l.metadata,
 		EnterpriseMeta:  l.agentEnterpriseMeta,
 		WriteRequest:    structs.WriteRequest{Token: at},

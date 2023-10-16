@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package bindingrulecreate
 
 import (
@@ -6,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/command/acl/bindingrule"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/mitchellh/cli"
@@ -28,6 +32,7 @@ type cmd struct {
 	selector       string
 	bindType       string
 	bindName       string
+	bindVars       map[string]string
 
 	showMeta bool
 	format   string
@@ -68,7 +73,14 @@ func (c *cmd) init() {
 		&c.bindType,
 		"bind-type",
 		string(api.BindingRuleBindTypeService),
-		"Type of binding to perform (\"service\" or \"role\").",
+		"Type of binding to perform (\"service\", \"role\", \"node\"  or \"templated-policy\").",
+	)
+	c.flags.Var(
+		(*flags.FlagMapValue)(&c.bindVars),
+		"bind-vars",
+		"Templated policy variables. Can only be used when -bind-type is templated-policy."+
+			" May be specified multiple times with different variables. Can use ${var} interpolation."+
+			" Format is VariableName=Value",
 	)
 	c.flags.StringVar(
 		&c.bindName,
@@ -97,15 +109,28 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.authMethodName == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-method' flag"))
+		c.UI.Error("Missing required '-method' flag")
 		c.UI.Error(c.Help())
 		return 1
 	} else if c.bindType == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-bind-type' flag"))
+		c.UI.Error("Missing required '-bind-type' flag")
 		c.UI.Error(c.Help())
 		return 1
 	} else if c.bindName == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-bind-name' flag"))
+		c.UI.Error("Missing required '-bind-name' flag")
+		c.UI.Error(c.Help())
+		return 1
+	}
+
+	if api.BindingRuleBindType(c.bindType) != api.BindingRuleBindTypeTemplatedPolicy && len(c.bindVars) > 0 {
+		c.UI.Error("Cannot specify -bind-vars when -bind-type is not templated-policy")
+		c.UI.Error(c.Help())
+		return 1
+	}
+
+	processBindVars, err := acl.ExtractBindVars(c.bindVars)
+	if err != nil {
+		c.UI.Error("Failed to decode '-bind-vars'")
 		c.UI.Error(c.Help())
 		return 1
 	}
@@ -115,6 +140,7 @@ func (c *cmd) Run(args []string) int {
 		AuthMethod:  c.authMethodName,
 		BindType:    api.BindingRuleBindType(c.bindType),
 		BindName:    c.bindName,
+		BindVars:    processBindVars,
 		Selector:    c.selector,
 	}
 

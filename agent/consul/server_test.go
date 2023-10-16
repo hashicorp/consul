@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -24,8 +27,6 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/consul/agent/hcp"
-
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -33,6 +34,7 @@ import (
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
@@ -334,7 +336,7 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 		}
 	}
 	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler())
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -1241,7 +1243,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1279,7 +1281,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1313,7 +1315,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1332,7 +1334,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
@@ -1881,14 +1883,18 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
-		GlobalMode: rc.RequestLimits.Mode,
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimits.ReadRate,
-			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  rc.RequestLimits.WriteRate,
-			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
+			Mode: rc.RequestLimits.Mode,
+			ReadWriteConfig: rpcRate.ReadWriteConfig{
+				ReadConfig: multilimiter.LimiterConfig{
+					Rate:  rc.RequestLimits.ReadRate,
+					Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+				},
+				WriteConfig: multilimiter.LimiterConfig{
+					Rate:  rc.RequestLimits.WriteRate,
+					Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
+				},
+			},
 		},
 	})
 
@@ -1899,7 +1905,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	defaults := DefaultConfig()
 	got := s.raft.ReloadableConfig()
 	require.Equal(t, uint64(4321), got.SnapshotThreshold,
-		"should have be reloaded to new value")
+		"should have been reloaded to new value")
 	require.Equal(t, defaults.RaftConfig.SnapshotInterval, got.SnapshotInterval,
 		"should have remained the default interval")
 	require.Equal(t, defaults.RaftConfig.TrailingLogs, got.TrailingLogs,
@@ -2075,10 +2081,10 @@ func TestServer_hcpManager(t *testing.T) {
 	_, conf1 := testServerConfig(t)
 	conf1.BootstrapExpect = 1
 	conf1.RPCAdvertise = &net.TCPAddr{IP: []byte{127, 0, 0, 2}, Port: conf1.RPCAddr.Port}
-	hcp1 := hcp.NewMockClient(t)
-	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcp.ServerStatus) bool {
+	hcp1 := hcpclient.NewMockClient(t)
+	hcp1.EXPECT().PushServerStatus(mock.Anything, mock.MatchedBy(func(status *hcpclient.ServerStatus) bool {
 		return status.ID == string(conf1.NodeID)
-	})).Run(func(ctx context.Context, status *hcp.ServerStatus) {
+	})).Run(func(ctx context.Context, status *hcpclient.ServerStatus) {
 		require.Equal(t, status.LanAddress, "127.0.0.2")
 	}).Call.Return(nil)
 

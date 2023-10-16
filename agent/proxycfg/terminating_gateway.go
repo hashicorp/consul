@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package proxycfg
 
 import (
@@ -6,7 +9,9 @@ import (
 	"strings"
 
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
 type handlerTerminatingGateway struct {
@@ -53,7 +58,7 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 
 	snap.TerminatingGateway.WatchedServices = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.WatchedIntentions = make(map[structs.ServiceName]context.CancelFunc)
-	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.Intentions)
+	snap.TerminatingGateway.Intentions = make(map[structs.ServiceName]structs.SimplifiedIntentions)
 	snap.TerminatingGateway.WatchedLeaves = make(map[structs.ServiceName]context.CancelFunc)
 	snap.TerminatingGateway.ServiceLeaves = make(map[structs.ServiceName]*structs.IssuedCert)
 	snap.TerminatingGateway.WatchedConfigs = make(map[structs.ServiceName]context.CancelFunc)
@@ -65,6 +70,8 @@ func (s *handlerTerminatingGateway) initialize(ctx context.Context) (ConfigSnaps
 	snap.TerminatingGateway.GatewayServices = make(map[structs.ServiceName]structs.GatewayService)
 	snap.TerminatingGateway.DestinationServices = make(map[structs.ServiceName]structs.GatewayService)
 	snap.TerminatingGateway.HostnameServices = make(map[structs.ServiceName]structs.CheckServiceNodes)
+	snap.TerminatingGateway.WatchedInboundPeerTrustBundles = make(map[structs.ServiceName]context.CancelFunc)
+	snap.TerminatingGateway.InboundPeerTrustBundles = make(map[structs.ServiceName][]*pbpeering.PeeringTrustBundle)
 	return snap, nil
 }
 
@@ -165,11 +172,34 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 				snap.TerminatingGateway.WatchedIntentions[svc.Service] = cancel
 			}
 
+			if _, ok := snap.TerminatingGateway.WatchedInboundPeerTrustBundles[svc.Service]; !ok {
+				ctx, cancel := context.WithCancel(ctx)
+
+				err := s.dataSources.TrustBundleList.Notify(ctx, &cachetype.TrustBundleListRequest{
+					Request: &pbpeering.TrustBundleListByServiceRequest{
+						ServiceName: svc.Service.Name,
+						Namespace:   svc.Service.EnterpriseMeta.NamespaceOrDefault(),
+						Partition:   svc.Service.EnterpriseMeta.PartitionOrDefault(),
+					},
+					QueryOptions: structs.QueryOptions{Token: s.token},
+				}, peerTrustBundleIDPrefix+svc.Service.String(), s.ch)
+
+				if err != nil {
+					logger.Error("failed to register watch for peer trust bundles",
+						"service", svc.Service.String(),
+						"error", err,
+					)
+					cancel()
+					return err
+				}
+				snap.TerminatingGateway.WatchedInboundPeerTrustBundles[svc.Service] = cancel
+			}
+
 			// Watch leaf certificate for the service
 			// This cert is used to terminate mTLS connections on the service's behalf
 			if _, ok := snap.TerminatingGateway.WatchedLeaves[svc.Service]; !ok {
 				ctx, cancel := context.WithCancel(ctx)
-				err := s.dataSources.LeafCertificate.Notify(ctx, &cachetype.ConnectCALeafRequest{
+				err := s.dataSources.LeafCertificate.Notify(ctx, &leafcert.ConnectCALeafRequest{
 					Datacenter:     s.source.Datacenter,
 					Token:          s.token,
 					Service:        svc.Service.Name,
@@ -296,6 +326,16 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 			}
 		}
 
+		// Cancel watches for peered trust bundle that were not in the update
+		for sn, cancelFn := range snap.TerminatingGateway.WatchedInboundPeerTrustBundles {
+			if _, ok := svcMap[sn]; !ok {
+				logger.Debug("canceling watch for peered trust bundle", "service", sn.String())
+				delete(snap.TerminatingGateway.WatchedInboundPeerTrustBundles, sn)
+				delete(snap.TerminatingGateway.InboundPeerTrustBundles, sn)
+				cancelFn()
+			}
+		}
+
 		// Cancel intention watches for services that were not in the update
 		for sn, cancelFn := range snap.TerminatingGateway.WatchedIntentions {
 			if _, ok := svcMap[sn]; !ok {
@@ -354,17 +394,32 @@ func (s *handlerTerminatingGateway) handleUpdate(ctx context.Context, u UpdateEv
 		// There should only ever be one entry for a service resolver within a namespace
 		if resolver, ok := resp.Entry.(*structs.ServiceResolverConfigEntry); ok {
 			snap.TerminatingGateway.ServiceResolvers[sn] = resolver
+			snap.TerminatingGateway.ServiceResolversSet[sn] = true
+		} else {
+			// we likely have a deleted service resolver, and our cast is a nil
+			// cast, so clear this out
+			delete(snap.TerminatingGateway.ServiceResolvers, sn)
+			snap.TerminatingGateway.ServiceResolversSet[sn] = false
 		}
-		snap.TerminatingGateway.ServiceResolversSet[sn] = true
 
 	case strings.HasPrefix(u.CorrelationID, serviceIntentionsIDPrefix):
-		resp, ok := u.Result.(structs.Intentions)
+		resp, ok := u.Result.(structs.SimplifiedIntentions)
 		if !ok {
 			return fmt.Errorf("invalid type for response: %T", u.Result)
 		}
 
 		sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, serviceIntentionsIDPrefix))
 		snap.TerminatingGateway.Intentions[sn] = resp
+
+	case strings.HasPrefix(u.CorrelationID, peerTrustBundleIDPrefix):
+		resp, ok := u.Result.(*pbpeering.TrustBundleListByServiceResponse)
+		if !ok {
+			return fmt.Errorf("invalid type for response: %T", u.Result)
+		}
+		if len(resp.Bundles) > 0 {
+			sn := structs.ServiceNameFromString(strings.TrimPrefix(u.CorrelationID, peerTrustBundleIDPrefix))
+			snap.TerminatingGateway.InboundPeerTrustBundles[sn] = resp.Bundles
+		}
 
 	default:
 		// do nothing

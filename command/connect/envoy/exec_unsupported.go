@@ -1,5 +1,7 @@
-//go:build !linux && !darwin
-// +build !linux,!darwin
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+//go:build !linux && !darwin && !windows
 
 package envoy
 

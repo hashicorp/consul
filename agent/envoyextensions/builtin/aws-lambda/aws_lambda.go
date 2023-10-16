@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package awslambda
 
 import (
@@ -25,6 +28,8 @@ import (
 var _ extensioncommon.BasicExtension = (*awsLambda)(nil)
 
 type awsLambda struct {
+	extensioncommon.BasicExtensionAdapter
+
 	ARN                string
 	PayloadPassthrough bool
 	InvocationMode     string
@@ -39,7 +44,7 @@ func Constructor(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) 
 	if err := a.fromArguments(ext.Arguments); err != nil {
 		return nil, err
 	}
-	return &extensioncommon.BasicEnvoyExtender{
+	return &extensioncommon.UpstreamEnvoyExtender{
 		Extension: &a,
 	}, nil
 }
@@ -62,15 +67,23 @@ func (a *awsLambda) validate() error {
 // CanApply returns true if the kind of the provided ExtensionConfiguration matches
 // the kind of the lambda configuration
 func (a *awsLambda) CanApply(config *extensioncommon.RuntimeConfig) bool {
-	return config.Kind == config.OutgoingProxyKind()
+	return config.Kind == config.UpstreamOutgoingProxyKind()
 }
 
 // PatchRoute modifies the routing configuration for a service of kind TerminatingGateway. If the kind is
 // not TerminatingGateway, then it can not be modified.
-func (a *awsLambda) PatchRoute(r *extensioncommon.RuntimeConfig, route *envoy_route_v3.RouteConfiguration) (*envoy_route_v3.RouteConfiguration, bool, error) {
-	if r.Kind != api.ServiceKindTerminatingGateway {
-		return route, false, nil
+func (a *awsLambda) PatchRoute(p extensioncommon.RoutePayload) (*envoy_route_v3.RouteConfiguration, bool, error) {
+	cfg := p.RuntimeConfig
+	if cfg.Kind != api.ServiceKindTerminatingGateway {
+		return p.Message, false, nil
 	}
+
+	// Only patch outbound routes.
+	if p.IsInbound() {
+		return p.Message, false, nil
+	}
+
+	route := p.Message
 
 	for _, virtualHost := range route.VirtualHosts {
 		for _, route := range virtualHost.Routes {
@@ -91,10 +104,17 @@ func (a *awsLambda) PatchRoute(r *extensioncommon.RuntimeConfig, route *envoy_ro
 }
 
 // PatchCluster patches the provided envoy cluster with data required to support an AWS lambda function
-func (a *awsLambda) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_cluster_v3.Cluster) (*envoy_cluster_v3.Cluster, bool, error) {
-	transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
+func (a *awsLambda) PatchCluster(p extensioncommon.ClusterPayload) (*envoy_cluster_v3.Cluster, bool, error) {
+	// Only patch outbound clusters.
+	if p.IsInbound() {
+		return p.Message, false, nil
+	}
+
+	transportSocket, err := extensioncommon.MakeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 		Sni: "*.amazonaws.com",
 	})
+
+	c := p.Message
 
 	if err != nil {
 		return c, false, fmt.Errorf("failed to make transport socket: %w", err)
@@ -153,7 +173,14 @@ func (a *awsLambda) PatchCluster(_ *extensioncommon.RuntimeConfig, c *envoy_clus
 
 // PatchFilter patches the provided envoy filter with an inserted lambda filter being careful not to
 // overwrite the http filters.
-func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_listener_v3.Filter) (*envoy_listener_v3.Filter, bool, error) {
+func (a *awsLambda) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.Filter, bool, error) {
+	filter := p.Message
+
+	// Only patch outbound filters.
+	if p.IsInbound() {
+		return filter, false, nil
+	}
+
 	if filter.Name != "envoy.filters.network.http_connection_manager" {
 		return filter, false, nil
 	}
@@ -166,7 +193,7 @@ func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_
 		return filter, false, errors.New("error unmarshalling filter")
 	}
 
-	lambdaHttpFilter, err := makeEnvoyHTTPFilter(
+	lambdaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
 		"envoy.filters.http.aws_lambda",
 		&envoy_lambda_v3.Config{
 			Arn:                a.ARN,
@@ -201,7 +228,7 @@ func (a *awsLambda) PatchFilter(_ *extensioncommon.RuntimeConfig, filter *envoy_
 	config.StripPortMode = &envoy_http_v3.HttpConnectionManager_StripAnyHostPort{
 		StripAnyHostPort: true,
 	}
-	newFilter, err := makeFilter("envoy.filters.network.http_connection_manager", config)
+	newFilter, err := extensioncommon.MakeFilter("envoy.filters.network.http_connection_manager", config)
 	if err != nil {
 		return filter, false, errors.New("error making new filter")
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package configentry
 
 import (
@@ -7,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
@@ -32,6 +36,7 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 					ProxyConfig: map[string]interface{}{
 						"foo": "bar",
 					},
+					MutualTLSMode: structs.MutualTLSModePermissive,
 					Expose: structs.ExposeConfig{
 						Checks: true,
 						Paths: []structs.ExposePath{
@@ -73,6 +78,7 @@ func Test_MergeServiceConfig_TransparentProxy(t *testing.T) {
 						OutboundListenerPort: 10101,
 						DialedDirectly:       true,
 					},
+					MutualTLSMode: structs.MutualTLSModePermissive,
 					Config: map[string]interface{}{
 						"foo": "bar",
 					},
@@ -266,6 +272,214 @@ func Test_MergeServiceConfig_Extensions(t *testing.T) {
 			// The input defaults must not be modified by the merge.
 			// See PR #10647
 			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
+func isEnterprise() bool {
+	return acl.PartitionOrDefault("") == "default"
+}
+
+func Test_MergeServiceConfig_peeredCentralDefaultsMerging(t *testing.T) {
+	partitions := []string{"default"}
+	if isEnterprise() {
+		partitions = append(partitions, "part1")
+	}
+
+	const peerName = "my-peer"
+
+	newDefaults := func(partition string) *structs.ServiceConfigResponse {
+		// client agents
+		return &structs.ServiceConfigResponse{
+			ProxyConfig: map[string]any{
+				"protocol": "http",
+			},
+			UpstreamConfigs: []structs.OpaqueUpstreamConfig{
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.ServiceName{
+							Name:           "*",
+							EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "*"),
+						},
+					},
+					Config: map[string]any{
+						"mesh_gateway": map[string]any{
+							"Mode": "local",
+						},
+						"protocol": "http",
+					},
+				},
+				{
+					Upstream: structs.PeeredServiceName{
+						ServiceName: structs.ServiceName{
+							Name:           "static-server",
+							EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+						},
+						Peer: peerName,
+					},
+					Config: map[string]any{
+						"mesh_gateway": map[string]any{
+							"Mode": "local",
+						},
+						"protocol": "http",
+					},
+				},
+			},
+			MeshGateway: structs.MeshGatewayConfig{
+				Mode: "local",
+			},
+		}
+	}
+
+	for _, partition := range partitions {
+		t.Run("partition="+partition, func(t *testing.T) {
+			t.Run("clients", func(t *testing.T) {
+				defaults := newDefaults(partition)
+
+				service := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "",
+					Port:    21000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServiceAddress:    "127.0.0.1",
+						LocalServicePort:       8080,
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "service",
+								DestinationNamespace: "default",
+								DestinationPartition: partition,
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+							},
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				expect := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "",
+					Port:    21000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServiceAddress:    "127.0.0.1",
+						LocalServicePort:       8080,
+						Config: map[string]any{
+							"protocol": "http",
+						},
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "service",
+								DestinationNamespace: "default",
+								DestinationPartition: partition,
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: "local",
+								},
+								Config: map[string]any{},
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: "local",
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				got, err := MergeServiceConfig(defaults, service)
+				require.NoError(t, err)
+				require.Equal(t, expect, got)
+			})
+
+			t.Run("dataplanes", func(t *testing.T) {
+				defaults := newDefaults(partition)
+
+				service := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "10.61.57.9",
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"consul-virtual": {
+							Address: "240.0.0.2",
+							Port:    20000,
+						},
+					},
+					Port: 20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServicePort:       8080,
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "",
+								DestinationNamespace: "default",
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+							},
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				expect := &structs.NodeService{
+					Kind:    "connect-proxy",
+					ID:      "static-client-sidecar-proxy",
+					Service: "static-client-sidecar-proxy",
+					Address: "10.61.57.9",
+					TaggedAddresses: map[string]structs.ServiceAddress{
+						"consul-virtual": {
+							Address: "240.0.0.2",
+							Port:    20000,
+						},
+					},
+					Port: 20000,
+					Proxy: structs.ConnectProxyConfig{
+						DestinationServiceName: "static-client",
+						DestinationServiceID:   "static-client",
+						LocalServicePort:       8080,
+						Config: map[string]any{
+							"protocol": "http",
+						},
+						Upstreams: []structs.Upstream{
+							{
+								DestinationType:      "",
+								DestinationNamespace: "default",
+								DestinationPeer:      peerName,
+								DestinationName:      "static-server",
+								LocalBindAddress:     "0.0.0.0",
+								LocalBindPort:        5000,
+								MeshGateway: structs.MeshGatewayConfig{
+									Mode: "local", // This field vanishes if the merging does not work for dataplanes.
+								},
+								Config: map[string]any{},
+							},
+						},
+						MeshGateway: structs.MeshGatewayConfig{
+							Mode: "local",
+						},
+					},
+					EnterpriseMeta: acl.NewEnterpriseMetaWithPartition(partition, "default"),
+				}
+
+				got, err := MergeServiceConfig(defaults, service)
+				require.NoError(t, err)
+				require.Equal(t, expect, got)
+			})
 		})
 	}
 }
@@ -755,6 +969,114 @@ func Test_MergeServiceConfig_UpstreamOverrides(t *testing.T) {
 			// The input defaults must not be modified by the merge.
 			// See PR #10647
 			assert.Equal(t, tt.args.defaults, defaultsCopy)
+		})
+	}
+}
+
+// Tests that RateLimit config is a no-op in non-enterprise.
+// In practice, the ratelimit config would have been validated
+// on write.
+func Test_MergeServiceConfig_RateLimit(t *testing.T) {
+	rl := structs.RateLimits{
+		InstanceLevel: structs.InstanceLevelRateLimits{
+			RequestsPerSecond: 1234,
+			RequestsMaxBurst:  2345,
+			Routes: []structs.InstanceLevelRouteRateLimits{
+				{
+					PathExact:         "/admin",
+					RequestsPerSecond: 3333,
+					RequestsMaxBurst:  4444,
+				},
+			},
+		},
+	}
+	tests := []struct {
+		name     string
+		defaults *structs.ServiceConfigResponse
+		service  *structs.NodeService
+		want     *structs.NodeService
+	}{
+		{
+			name: "injects ratelimit extension",
+			defaults: &structs.ServiceConfigResponse{
+				RateLimits: rl,
+			},
+			service: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+				},
+			},
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: func() []structs.EnvoyExtension {
+						if ext := rl.ToEnvoyExtension(); ext != nil {
+							return []structs.EnvoyExtension{*ext}
+						}
+						return nil
+					}(),
+				},
+			},
+		},
+		{
+			name: "injects ratelimit extension at the end",
+			defaults: &structs.ServiceConfigResponse{
+				RateLimits: rl,
+				EnvoyExtensions: []structs.EnvoyExtension{
+					{
+						Name:     "existing-ext",
+						Required: true,
+						Arguments: map[string]interface{}{
+							"arg1": "val1",
+						},
+					},
+				},
+			},
+			service: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+				},
+			},
+
+			want: &structs.NodeService{
+				ID:      "foo-proxy",
+				Service: "foo-proxy",
+				Proxy: structs.ConnectProxyConfig{
+					DestinationServiceName: "foo",
+					DestinationServiceID:   "foo",
+					EnvoyExtensions: func() []structs.EnvoyExtension {
+						existing := []structs.EnvoyExtension{
+							{
+								Name:     "existing-ext",
+								Required: true,
+								Arguments: map[string]interface{}{
+									"arg1": "val1",
+								},
+							},
+						}
+						if ext := rl.ToEnvoyExtension(); ext != nil {
+							existing = append(existing, *ext)
+						}
+						return existing
+					}(),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := MergeServiceConfig(tt.defaults, tt.service)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

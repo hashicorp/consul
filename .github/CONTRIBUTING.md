@@ -67,8 +67,7 @@ issue. Stale issues will be closed.
 ### Prerequisites
 
 If you wish to work on Consul itself, you'll first need to:
-- install [Go](https://golang.org) (the version should match that of our
-  [CI config's](https://github.com/hashicorp/consul/blob/main/.circleci/config.yml) Go image).
+- install [Go](https://golang.org)
 - [fork the Consul repo](../docs/contributing/fork-the-project.md)
 
 ### Building Consul
@@ -162,8 +161,7 @@ When you're ready to submit a pull request:
    | --- | --- |
    | `pr/no-changelog` | This PR does not have an intended changelog entry |
    | `pr/no-metrics-test` | This PR does not require any testing for metrics |
-   | `backport/stable-website` | This PR contains documentation changes that are ready to be deployed immediately. Changes will also automatically get backported to the latest release branch |
-   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. |
+   | `backport/1.12.x` | Backport the changes in this PR to the targeted release branch. Consult the [Consul Release Notes](https://www.consul.io/docs/release-notes) page to view active releases. Website documentation merged to the latest release branch is deployed immediately |
    Other labels may automatically be added by the Github Action CI.
 7. After you submit, the Consul maintainers team needs time to carefully review your
    contribution and ensure it is production-ready, considering factors such as: security,

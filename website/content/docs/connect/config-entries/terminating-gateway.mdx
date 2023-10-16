@@ -7,12 +7,9 @@ description: >-
 
 # Terminating Gateway Configuration Entry
 
--> **v1.8.4+:** On Kubernetes, the `TerminatingGateway` custom resource is supported in Consul versions 1.8.4+.<br />
-**v1.8.0+:** On other platforms, this config entry is supported in Consul versions 1.8.0+.
-
 The `terminating-gateway` config entry kind (`TerminatingGateway` on Kubernetes) allows you to configure terminating gateways
 to proxy traffic from services in the Consul service mesh to services registered with Consul that do not have a
-[Connect service sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
+[service mesh sidecar proxy](/consul/docs/connect/proxies). The configuration is associated with the name of a gateway service
 and will apply to all instances of the gateway with that name.
 
 ~> [Configuration entries](/consul/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
@@ -41,7 +38,7 @@ Terminating gateways can optionally target all services within a Consul namespac
 as the service name. Configuration options set on the wildcard act as defaults that can be overridden
 by options set on a specific service name.
 
-Note that if the wildcard specifier is used, and some services in that namespace have a Connect sidecar proxy,
+Note that if the wildcard specifier is used, and some services in that namespace have a service mesh sidecar proxy,
 traffic from the mesh to those services will be evenly load-balanced between the gateway and their sidecars.
 
 ## Sample Config Entries
@@ -49,7 +46,7 @@ traffic from the mesh to those services will be evenly load-balanced between the
 ### Access an external service
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service.
 
@@ -147,7 +144,7 @@ spec:
 ### Access an external service over TLS
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file to be used for one-way TLS authentication.
@@ -190,7 +187,7 @@ spec:
   "Services": [
     {
       "Name": "billing",
-      "CAFile": "/etc/certs/ca-chain.cert.pem"
+      "CAFile": "/etc/certs/ca-chain.cert.pem",
       "SNI": "billing.service.com"
     }
   ]
@@ -262,7 +259,7 @@ spec:
 ### Access an external service over mutual TLS
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with the billing service, and specify a CA
 file, key file, and cert file to be used for mutual TLS authentication.
@@ -388,7 +385,7 @@ spec:
 ### Override connection parameters for a specific service
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 Link gateway named "us-west-gateway" with all services in the datacenter, and configure default certificates for mutual TLS.
 
@@ -614,7 +611,7 @@ spec:
         {
           name: 'namespace',
           description:
-            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+            'If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
         },
       ],
       hcl: false,

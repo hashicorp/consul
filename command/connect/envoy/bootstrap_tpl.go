@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package envoy
 
 // BootstrapTplArgs is the set of arguments that may be interpolated into the
@@ -5,7 +8,7 @@ package envoy
 type BootstrapTplArgs struct {
 	GRPC
 
-	// ProxyCluster is the cluster name for the the Envoy `node` specification and
+	// ProxyCluster is the cluster name for the Envoy `node` specification and
 	// is typically the same as the ProxyID.
 	ProxyCluster string
 
@@ -262,7 +265,9 @@ const bootstrapTemplate = `{
     {{- end }}
   },
   {{- if .StatsSinksJSON }}
-  "stats_sinks": {{ .StatsSinksJSON }},
+  "stats_sinks": [
+    {{ .StatsSinksJSON }}
+  ],
   {{- end }}
   {{- if .StatsConfigJSON }}
   "stats_config": {{ .StatsConfigJSON }},
@@ -276,10 +281,12 @@ const bootstrapTemplate = `{
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "cds_config": {
       "ads": {},
+      "initial_fetch_timeout": "0s",
       "resource_api_version": "V3"
     },
     "ads_config": {

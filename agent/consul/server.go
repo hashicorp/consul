@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -30,15 +33,19 @@ import (
 	"go.etcd.io/bbolt"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/consul/usagemetrics"
@@ -48,10 +55,12 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
+	resourcegrpc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/services/serverdiscovery"
 	agentgrpc "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/grpc-internal/services/subscribe"
 	"github.com/hashicorp/consul/agent/hcp"
+	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	logdrop "github.com/hashicorp/consul/agent/log-drop"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/pool"
@@ -61,10 +70,22 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/auth"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/reaper"
+	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
+	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"
@@ -114,6 +135,9 @@ const (
 	reconcileChSize = 256
 
 	LeaderTransferMinVersion = "1.6.0"
+
+	CatalogResourceExperimentName = "resource-apis"
+	V2TenancyExperimentName       = "v2tenancy"
 )
 
 const (
@@ -157,6 +181,8 @@ type raftStore interface {
 }
 
 const requestLimitsBurstMultiplier = 10
+
+var _ blockingquery.FSMServer = (*Server)(nil)
 
 // Server is Consul server which manages the service discovery,
 // health checking, DC forwarding, Raft, and multiple Serf pools.
@@ -220,7 +246,7 @@ type Server struct {
 	// serf cluster that spans datacenters
 	eventChWAN chan serf.Event
 
-	// wanMembershipNotifyCh is used to receive notifications that the the
+	// wanMembershipNotifyCh is used to receive notifications that the
 	// serfWAN wan pool may have changed.
 	//
 	// If this is nil, notification is skipped.
@@ -246,6 +272,9 @@ type Server struct {
 	// raftNotifyCh is set up by setupRaft() and ensures that we get reliable leader
 	// transition notifications from the Raft layer.
 	raftNotifyCh <-chan bool
+
+	// raftStorageBackend is the Raft-backed storage backend for resources.
+	raftStorageBackend *raftstorage.Backend
 
 	// reconcileCh is used to pass events from the serf handler
 	// into the leader manager, so that the strong state can be
@@ -409,6 +438,47 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 	operatorServer *operator.Server
+
+	// routineManager is responsible for managing longer running go routines
+	// run by the Server
+	routineManager *routine.Manager
+
+	// resourceServiceServer implements the Resource Service.
+	resourceServiceServer *resourcegrpc.Server
+
+	// insecureResourceServiceClient is a client that can be used to communicate
+	// with the Resource Service in-process (i.e. not via the network) *without*
+	// auth. It should only be used for purely-internal workloads, such as
+	// controllers.
+	insecureResourceServiceClient pbresource.ResourceServiceClient
+
+	// secureResourceServiceClient is a client that can be used to communicate
+	// with the Resource Service in-process (i.e. not via the network) *with* auth.
+	// It can be used to make requests to the Resource Service on behalf of the user
+	// (e.g. from the HTTP API).
+	secureResourceServiceClient pbresource.ResourceServiceClient
+
+	// controllerManager schedules the execution of controllers.
+	controllerManager *controller.Manager
+
+	// handles metrics reporting to HashiCorp
+	reportingManager *reporting.ReportingManager
+
+	registry resource.Registry
+
+	useV2Resources bool
+}
+
+func (s *Server) DecrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, ^uint64(0))
+}
+
+func (s *Server) GetShutdownChannel() chan struct{} {
+	return s.shutdownCh
+}
+
+func (s *Server) IncrementBlockingQueries() uint64 {
+	return atomic.AddUint64(&s.queriesBlocking, 1)
 }
 
 type connHandler interface {
@@ -417,9 +487,22 @@ type connHandler interface {
 	Shutdown() error
 }
 
+// ProxyUpdater is an interface for ProxyTracker.
+type ProxyUpdater interface {
+	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
+	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
+
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
+
+	EventChannel() chan controller.Event
+}
+
 // NewServer is used to construct a new Consul server from the configuration
 // and extra options, potentially returning an error.
-func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger) (*Server, error) {
+func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
+	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
 	logger := flat.Logger
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
@@ -441,14 +524,6 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	shutdownCh := make(chan struct{})
 
 	loggers := newLoggerStore(serverLogger)
-
-	fsmDeps := fsm.Deps{
-		Logger: flat.Logger,
-		NewStateStore: func() *state.Store {
-			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
-		},
-		Publisher: flat.EventPublisher,
-	}
 
 	if incomingRPCLimiter == nil {
 		incomingRPCLimiter = rpcRate.NullRequestLimitsHandler()
@@ -476,12 +551,28 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 		shutdownCh:              shutdownCh,
 		leaderRoutineManager:    routine.NewManager(logger.Named(logging.Leader)),
 		aclAuthMethodValidators: authmethod.NewCache(),
-		fsm:                     fsm.NewFromDeps(fsmDeps),
 		publisher:               flat.EventPublisher,
 		incomingRPCLimiter:      incomingRPCLimiter,
+		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
+		registry:                flat.Registry,
+		useV2Resources:          flat.UseV2Resources(),
 	}
-
 	incomingRPCLimiter.Register(s)
+
+	s.raftStorageBackend, err = raftstorage.NewBackend(&raftHandle{s}, logger.Named("raft-storage-backend"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create storage backend: %w", err)
+	}
+	go s.raftStorageBackend.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
+	s.fsm = fsm.NewFromDeps(fsm.Deps{
+		Logger: flat.Logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStoreWithEventPublisher(gc, flat.EventPublisher)
+		},
+		Publisher:      flat.EventPublisher,
+		StorageBackend: s.raftStorageBackend,
+	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
 		Client:   flat.HCP.Client,
@@ -500,7 +591,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	rpcServerOpts := []func(*rpc.Server){
-		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger))),
+		rpc.WithPreBodyInterceptor(
+			middleware.ChainedRPCPreBodyInterceptor(
+				func(reqServiceMethod string, sourceAddr net.Addr) error {
+					if s.useV2Resources && isV1CatalogRequest(reqServiceMethod) {
+						return structs.ErrUsingV2CatalogExperiment
+					}
+					return nil
+				},
+				middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger)),
+			),
+		),
 	}
 
 	if flat.GetNetRPCInterceptorFunc != nil {
@@ -602,7 +703,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(); err != nil {
+	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -728,69 +829,22 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	s.overviewManager = NewOverviewManager(s.logger, s.fsm, s.config.MetricsReportingInterval)
 	go s.overviewManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	// Initialize external gRPC server - register services on external gRPC server.
-	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
-		ACLsEnabled: s.config.ACLsEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		InPrimaryDatacenter: s.InPrimaryDatacenter(),
-		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
-			return s.loadAuthMethod(methodName, entMeta)
-		},
-		LocalTokensEnabled:        s.LocalTokensEnabled,
-		Logger:                    logger.Named("grpc-api.acl"),
-		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
-		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
-		PrimaryDatacenter:         s.config.PrimaryDatacenter,
-		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
-	})
-	s.externalACLServer.Register(s.externalGRPCServer)
+	s.reportingManager = reporting.NewReportingManager(s.logger, getEnterpriseReportingDeps(flat), s, s.fsm.State())
+	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
-	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
-		Publisher:   s.publisher,
-		GetStore:    func() connectca.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.connect-ca"),
-		ACLResolver: s.ACLResolver,
-		CAManager:   s.caManager,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-		ConnectEnabled: s.config.ConnectEnabled,
-	})
-	s.externalConnectCAServer.Register(s.externalGRPCServer)
+	// Setup insecure resource service client.
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger, flat); err != nil {
+		return nil, err
+	}
 
-	dataplane.NewServer(dataplane.Config{
-		GetStore:    func() dataplane.StateStore { return s.FSM().State() },
-		Logger:      logger.Named("grpc-api.dataplane"),
-		ACLResolver: s.ACLResolver,
-		Datacenter:  s.config.Datacenter,
-	}).Register(s.externalGRPCServer)
+	// Initialize external gRPC server
+	s.setupExternalGRPC(config, flat, logger)
 
-	serverdiscovery.NewServer(serverdiscovery.Config{
-		Publisher:   s.publisher,
-		ACLResolver: s.ACLResolver,
-		Logger:      logger.Named("grpc-api.server-discovery"),
-	}).Register(s.externalGRPCServer)
-
-	s.peeringBackend = NewPeeringBackend(s)
-	s.operatorBackend = NewOperatorBackend(s)
-	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
-		Backend:        s.peeringBackend,
-		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
-		Logger:         logger.Named("grpc-api.peerstream"),
-		ACLResolver:    s.ACLResolver,
-		Datacenter:     s.config.Datacenter,
-		ConnectEnabled: s.config.ConnectEnabled,
-		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
-			}
-			return s.ForwardGRPC(s.grpcConnPool, info, fn)
-		},
-	})
-	s.peerStreamServer.Register(s.externalGRPCServer)
+	// Setup secure resource service client. We need to do it after we setup the
+	// gRPC server because it needs the server to be instantiated.
+	if err := s.setupSecureResourceServiceClient(); err != nil {
+		return nil, err
+	}
 
 	// Initialize internal gRPC server.
 	//
@@ -798,6 +852,16 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// to enable RPC forwarding.
 	s.grpcHandler = newGRPCHandlerFromConfig(flat, config, s)
 	s.grpcLeaderForwarder = flat.LeaderForwarder
+
+	s.controllerManager = controller.NewManager(
+		s.insecureResourceServiceClient,
+		logger.Named(logging.ControllerRuntime),
+	)
+	if err := s.registerControllers(flat, proxyUpdater); err != nil {
+		return nil, err
+	}
+	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+
 	go s.trackLeaderChanges()
 
 	s.xdsCapacityController = xdscapacity.NewController(xdscapacity.Config{
@@ -838,7 +902,81 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server, incom
 	// Now we are setup, configure the HCP manager
 	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
+	err = s.runEnterpriseRateLimiterConfigEntryController()
+	if err != nil {
+		return nil, err
+	}
+
 	return s, nil
+}
+
+func isV1CatalogRequest(rpcName string) bool {
+	switch {
+	case strings.HasPrefix(rpcName, "Catalog."),
+		strings.HasPrefix(rpcName, "Health."),
+		strings.HasPrefix(rpcName, "ConfigEntry."):
+		return true
+	}
+
+	switch rpcName {
+	case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
+		return false
+	default:
+		if strings.HasPrefix(rpcName, "Internal.") {
+			return true
+		}
+		return false
+	}
+}
+
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	if s.useV2Resources {
+		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+
+		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
+		if err != nil {
+			return err
+		}
+
+		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
+				var bundle pbproxystate.TrustBundle
+				roots, err := s.getCARoots(nil, s.GetState())
+				if err != nil {
+					return nil, err
+				}
+				bundle.TrustDomain = roots.TrustDomain
+				for _, root := range roots.Roots {
+					bundle.Roots = append(bundle.Roots, root.RootCert)
+				}
+				return &bundle, nil
+			},
+			// This function is adapted from server_connect.go:getCARoots.
+			TrustDomainFetcher: func() (string, error) {
+				_, caConfig, err := s.fsm.State().CAConfig(nil)
+				if err != nil {
+					return "", err
+				}
+
+				return s.getTrustDomain(caConfig)
+			},
+
+			LeafCertManager: deps.LeafCertManager,
+			LocalDatacenter: s.config.Datacenter,
+			DefaultAllow:    defaultAllow,
+			ProxyUpdater:    proxyUpdater,
+		})
+
+		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+	}
+
+	reaper.RegisterControllers(s.controllerManager)
+
+	if s.config.DevMode {
+		demo.RegisterControllers(s.controllerManager)
+	}
+
+	return nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
@@ -860,6 +998,8 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		Datacenter:     config.Datacenter,
 		ConnectEnabled: config.ConnectEnabled,
 		PeeringEnabled: config.PeeringEnabled,
+		Locality:       config.Locality,
+		FSMServer:      s,
 	})
 	s.peeringServer = p
 	o := operator.NewServer(operator.Config{
@@ -891,6 +1031,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		s.peerStreamServer.Register(srv)
 		s.externalACLServer.Register(srv)
 		s.externalConnectCAServer.Register(srv)
+		s.resourceServiceServer.Register(srv)
 	}
 
 	return agentgrpc.NewHandler(deps.Logger, config.RPCAddr, register, nil, s.incomingRPCLimiter)
@@ -922,7 +1063,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft() error {
+func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -981,8 +1122,7 @@ func (s *Server) setupRaft() error {
 			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
 
-		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+		initWAL := func() error {
 			walDir := filepath.Join(path, "wal")
 			if err := os.MkdirAll(walDir, 0755); err != nil {
 				return err
@@ -1001,13 +1141,29 @@ func (s *Server) setupRaft() error {
 			s.raftStore = wal
 			log = wal
 			stable = wal
+			return nil
+		}
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
+			if !s.config.LogStoreConfig.Verification.Enabled {
+				s.config.LogStoreConfig.Verification.Enabled = true
+				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
+			}
+			if err = initWAL(); err != nil {
+				return err
+			}
+		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			if err = initWAL(); err != nil {
+				return err
+			}
 		} else {
 			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
 				// User configured the new storage, but still has old raft.db. Warn
 				// them!
 				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
 			}
-
+			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
 			// Create the backend raft store for logs and stable storage.
 			store, err := raftboltdb.New(raftboltdb.Options{
 				BoltOptions: &bbolt.Options{
@@ -1044,7 +1200,7 @@ func (s *Server) setupRaft() error {
 		log = cacheStore
 
 		// Create the snapshot store.
-		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("snapshot"))
+		snapshots, err := raft.NewFileSnapshotStoreWithLogger(path, snapshotsRetained, s.logger.Named("raft.snapshot"))
 		if err != nil {
 			return err
 		}
@@ -1085,11 +1241,22 @@ func (s *Server) setupRaft() error {
 				return fmt.Errorf("recovery failed to parse peers.json: %v", err)
 			}
 
+			// It's safe to pass nil as the handle argument here because we won't call
+			// the backend's data access methods (only Apply, Snapshot, and Restore).
+			backend, err := raftstorage.NewBackend(nil, hclog.NewNullLogger())
+			if err != nil {
+				return fmt.Errorf("recovery failed: %w", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go backend.Run(ctx)
+
 			tmpFsm := fsm.NewFromDeps(fsm.Deps{
 				Logger: s.logger,
 				NewStateStore: func() *state.Store {
 					return state.NewStateStore(s.tombstoneGC)
 				},
+				StorageBackend: backend,
 			})
 			if err := raft.RecoverCluster(s.config.RaftConfig, tmpFsm,
 				log, stable, snap, trans, configuration); err != nil {
@@ -1218,6 +1385,164 @@ func (s *Server) setupRPC() error {
 	}
 	s.raftLayer = NewRaftLayer(s.config.RPCSrcAddr, s.config.RPCAdvertise, wrapper, tlsFunc)
 	return nil
+}
+
+// Initialize and register services on external gRPC server.
+func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logger) {
+	s.externalACLServer = aclgrpc.NewServer(aclgrpc.Config{
+		ACLsEnabled: s.config.ACLsEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		InPrimaryDatacenter: s.InPrimaryDatacenter(),
+		LoadAuthMethod: func(methodName string, entMeta *acl.EnterpriseMeta) (*structs.ACLAuthMethod, aclgrpc.Validator, error) {
+			return s.loadAuthMethod(methodName, entMeta)
+		},
+		LocalTokensEnabled:        s.LocalTokensEnabled,
+		Logger:                    logger.Named("grpc-api.acl"),
+		NewLogin:                  func() aclgrpc.Login { return s.aclLogin() },
+		NewTokenWriter:            func() aclgrpc.TokenWriter { return s.aclTokenWriter() },
+		PrimaryDatacenter:         s.config.PrimaryDatacenter,
+		ValidateEnterpriseRequest: s.validateEnterpriseRequest,
+	})
+	s.externalACLServer.Register(s.externalGRPCServer)
+
+	s.externalConnectCAServer = connectca.NewServer(connectca.Config{
+		Publisher:   s.publisher,
+		GetStore:    func() connectca.StateStore { return s.FSM().State() },
+		Logger:      logger.Named("grpc-api.connect-ca"),
+		ACLResolver: s.ACLResolver,
+		CAManager:   s.caManager,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		ConnectEnabled: s.config.ConnectEnabled,
+	})
+	s.externalConnectCAServer.Register(s.externalGRPCServer)
+
+	dataplane.NewServer(dataplane.Config{
+		GetStore:          func() dataplane.StateStore { return s.FSM().State() },
+		Logger:            logger.Named("grpc-api.dataplane"),
+		ACLResolver:       s.ACLResolver,
+		Datacenter:        s.config.Datacenter,
+		EnableV2:          stringslice.Contains(deps.Experiments, CatalogResourceExperimentName),
+		ResourceAPIClient: s.insecureResourceServiceClient,
+	}).Register(s.externalGRPCServer)
+
+	serverdiscovery.NewServer(serverdiscovery.Config{
+		Publisher:   s.publisher,
+		ACLResolver: s.ACLResolver,
+		Logger:      logger.Named("grpc-api.server-discovery"),
+	}).Register(s.externalGRPCServer)
+
+	s.peeringBackend = NewPeeringBackend(s)
+	s.operatorBackend = NewOperatorBackend(s)
+
+	s.peerStreamServer = peerstream.NewServer(peerstream.Config{
+		Backend:        s.peeringBackend,
+		GetStore:       func() peerstream.StateStore { return s.FSM().State() },
+		Logger:         logger.Named("grpc-api.peerstream"),
+		ACLResolver:    s.ACLResolver,
+		Datacenter:     s.config.Datacenter,
+		ConnectEnabled: s.config.ConnectEnabled,
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+	})
+	s.peerStreamServer.Register(s.externalGRPCServer)
+
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
+
+	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:      deps.Registry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   s.ACLResolver,
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
+	})
+	s.resourceServiceServer.Register(s.externalGRPCServer)
+
+	reflection.Register(s.externalGRPCServer)
+}
+
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger, deps Deps) error {
+	if s.raftStorageBackend == nil {
+		return fmt.Errorf("raft storage backend cannot be nil")
+	}
+
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
+	server := resourcegrpc.NewServer(resourcegrpc.Config{
+		Registry:      typeRegistry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   resolver.DANGER_NO_AUTH{},
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
+	})
+
+	conn, err := s.runInProcessGRPCServer(server.Register)
+	if err != nil {
+		return err
+	}
+	s.insecureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
+
+	return nil
+}
+
+func (s *Server) setupSecureResourceServiceClient() error {
+	if s.resourceServiceServer == nil {
+		return fmt.Errorf("resource service server cannot be nil")
+	}
+	conn, err := s.runInProcessGRPCServer(s.resourceServiceServer.Register)
+	if err != nil {
+		return err
+	}
+	s.secureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
+
+	return nil
+}
+
+// runInProcessGRPCServer runs a gRPC server that can only be accessed in the
+// same process, rather than over the network, using a pipe listener.
+func (s *Server) runInProcessGRPCServer(registerFn ...func(*grpc.Server)) (*grpc.ClientConn, error) {
+	server := grpc.NewServer()
+
+	for _, fn := range registerFn {
+		fn(server)
+	}
+
+	pipe := agentgrpc.NewPipeListener()
+	go server.Serve(pipe)
+
+	go func() {
+		<-s.shutdownCh
+		server.Stop()
+	}()
+
+	conn, err := grpc.Dial("",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithContextDialer(pipe.DialContext),
+		grpc.WithBlock(),
+	)
+	if err != nil {
+		server.Stop()
+		return nil, err
+	}
+	go func() {
+		<-s.shutdownCh
+		conn.Close()
+	}()
+
+	return conn, nil
 }
 
 // Shutdown is used to shutdown the server
@@ -1525,6 +1850,26 @@ func (s *Server) IsLeader() bool {
 	return s.raft.State() == raft.Leader
 }
 
+// IsServer checks if this addr is of a server
+func (s *Server) IsServer(addr string) bool {
+
+	for _, ss := range s.raft.GetConfiguration().Configuration().Servers {
+		a, err := net.ResolveTCPAddr("tcp", string(ss.Address))
+		if err != nil {
+			continue
+		}
+		localIP, err := net.ResolveTCPAddr("tcp", string(s.config.RaftConfig.LocalID))
+		if err != nil {
+			continue
+		}
+		// only return true if it's another server and not our local address
+		if string(metadata.GetIP(a)) == addr && string(metadata.GetIP(localIP)) != addr {
+			return true
+		}
+	}
+	return false
+}
+
 // LeaderLastContact returns the time of last contact by a leader.
 // This only makes sense if we are currently a follower.
 func (s *Server) LeaderLastContact() time.Time {
@@ -1670,6 +2015,13 @@ func (s *Server) FSM() *fsm.FSM {
 	return s.fsm
 }
 
+func (s *Server) GetState() *state.Store {
+	if s == nil || s.FSM() == nil {
+		return nil
+	}
+	return s.FSM().State()
+}
+
 // Stats is used to return statistics for debugging and insight
 // for various sub-systems
 func (s *Server) Stats() map[string]map[string]string {
@@ -1746,6 +2098,8 @@ func (s *Server) ReloadConfig(config ReloadableConfig) error {
 	if err := s.raft.ReloadConfig(raftCfg); err != nil {
 		return err
 	}
+
+	s.updateReportingConfig(config)
 
 	s.rpcLimiter.Store(rate.NewLimiter(config.RPCRateLimit, config.RPCMaxBurst))
 
@@ -1838,6 +2192,8 @@ func (s *Server) trackLeaderChanges() {
 
 			s.grpcLeaderForwarder.UpdateLeaderAddr(s.config.Datacenter, string(leaderObs.LeaderAddr))
 			s.peeringBackend.SetLeaderAddress(string(leaderObs.LeaderAddr))
+			s.raftStorageBackend.LeaderChanged()
+			s.controllerManager.SetRaftLeader(s.IsLeader())
 
 			// Trigger sending an update to HCP status
 			s.hcpManager.SendUpdate()
@@ -1851,13 +2207,14 @@ func (s *Server) trackLeaderChanges() {
 // hcpServerStatus is the callback used by the HCP manager to emit status updates to the HashiCorp Cloud Platform when
 // enabled.
 func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
-	return func(ctx context.Context) (status hcp.ServerStatus, err error) {
+	return func(ctx context.Context) (status hcpclient.ServerStatus, err error) {
 		status.Name = s.config.NodeName
 		status.ID = string(s.config.NodeID)
 		status.Version = cslversion.GetHumanVersion()
 		status.LanAddress = s.config.RPCAdvertise.IP.String()
 		status.GossipPort = s.config.SerfLANConfig.MemberlistConfig.AdvertisePort
 		status.RPCPort = s.config.RPCAddr.Port
+		status.Datacenter = s.config.Datacenter
 
 		tlsCert := s.tlsConfigurator.Cert()
 		if tlsCert != nil {
@@ -1899,8 +2256,14 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 			status.ScadaStatus = deps.HCP.Provider.SessionStatus()
 		}
 
+		status.ACL.Enabled = s.config.ACLsEnabled
+
 		return status, nil
 	}
+}
+
+func (s *Server) ResourceServiceClient() pbresource.ResourceServiceClient {
+	return s.secureResourceServiceClient
 }
 
 func fileExists(name string) (bool, error) {
@@ -1938,14 +2301,18 @@ func ConfiguredIncomingRPCLimiter(ctx context.Context, serverLogger hclog.Interc
 
 func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, multilimiterConfig *multilimiter.Config) *rpcRate.HandlerConfig {
 	hc := &rpcRate.HandlerConfig{
-		GlobalMode: limitsConfig.Mode,
-		GlobalReadConfig: multilimiter.LimiterConfig{
-			Rate:  limitsConfig.ReadRate,
-			Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
-		},
-		GlobalWriteConfig: multilimiter.LimiterConfig{
-			Rate:  limitsConfig.WriteRate,
-			Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
+			Mode: limitsConfig.Mode,
+			ReadWriteConfig: rpcRate.ReadWriteConfig{
+				ReadConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.ReadRate,
+					Burst: int(limitsConfig.ReadRate) * requestLimitsBurstMultiplier,
+				},
+				WriteConfig: multilimiter.LimiterConfig{
+					Rate:  limitsConfig.WriteRate,
+					Burst: int(limitsConfig.WriteRate) * requestLimitsBurstMultiplier,
+				},
+			},
 		},
 	}
 	if multilimiterConfig != nil {

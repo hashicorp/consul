@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Intention List'
 description: >-
-  The `consul intention list` command returns all L4 service intentions, including a unique ID and intention precendence. It was deprecated in Consul v1.9.0; use `consul config` instead.
+  The `consul intention list` command returns all L4 service intentions, including a unique ID and intention precedence. It was deprecated in Consul v1.9.0; use `consul config` instead.
 ---
 
 # Consul Intention List
@@ -19,16 +19,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | ACL Required                  |
 | ----------------------------- |
-| `intentions:read`<sup>1</sup> |
-
-<p>
-  <sup>1</sup> Intention ACL rules are specified as part of a{' '}
-  <code>service</code> rule. See{' '}
-  <a href="/docs/connect/intentions#intention-management-permissions">
-    Intention Management Permissions
-  </a>{' '}
-  for more details.
-</p>
+| `intentions:read` <p> Define intention rules in the `service` policy. Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements) for additional information.</p> |
 
 ## Usage
 

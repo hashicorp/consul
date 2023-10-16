@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
@@ -55,6 +58,7 @@ func DefaultSource() Source {
 		segment_limit = 64
 
 		server = false
+		server_rejoin_age_max = "168h"
 		syslog_facility = "LOCAL0"
 
 		tls = {
@@ -141,7 +145,6 @@ func DefaultSource() Source {
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 		raft_logstore {
-			backend = "boltdb"
 			wal {
 				segment_size_mb = 64
 			}
@@ -205,6 +208,7 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
+		experiments = []
 	`,
 	}
 }

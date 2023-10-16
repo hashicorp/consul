@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package retry
 
 import (
@@ -5,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,6 +45,56 @@ func TestRetryer(t *testing.T) {
 	}
 }
 
+func TestBasics(t *testing.T) {
+	t.Run("Error allows retry", func(t *testing.T) {
+		i := 0
+		Run(t, func(r *R) {
+			i++
+			t.Logf("i: %d; r: %#v", i, r)
+			if i == 1 {
+				r.Errorf("Errorf, i: %d", i)
+				return
+			}
+		})
+		assert.Equal(t, i, 2)
+	})
+
+	t.Run("Fatal returns from func, but does not fail test", func(t *testing.T) {
+		i := 0
+		gotHere := false
+		ft := &fakeT{}
+		Run(ft, func(r *R) {
+			i++
+			t.Logf("i: %d; r: %#v", i, r)
+			if i == 1 {
+				r.Fatalf("Fatalf, i: %d", i)
+				gotHere = true
+			}
+		})
+
+		assert.False(t, gotHere)
+		assert.Equal(t, i, 2)
+		// surprisingly, r.FailNow() *does not* trigger ft.FailNow()!
+		assert.Equal(t, ft.fails, 0)
+	})
+
+	t.Run("Func being run can panic with struct{}{}", func(t *testing.T) {
+		gotPanic := false
+		func() {
+			defer func() {
+				if p := recover(); p != nil {
+					gotPanic = true
+				}
+			}()
+			Run(t, func(r *R) {
+				panic(struct{}{})
+			})
+		}()
+
+		assert.True(t, gotPanic)
+	})
+}
+
 func TestRunWith(t *testing.T) {
 	t.Run("calls FailNow after exceeding retries", func(t *testing.T) {
 		ft := &fakeT{}
@@ -65,11 +119,75 @@ func TestRunWith(t *testing.T) {
 			r.Fatalf("not yet")
 		})
 
+		// TODO: these should all be assert
 		require.Equal(t, 2, iter)
 		require.Equal(t, 1, ft.fails)
 		require.Len(t, ft.out, 1)
 		require.Contains(t, ft.out[0], "not yet\n")
 		require.Contains(t, ft.out[0], "do not proceed\n")
+	})
+}
+
+func TestCleanup(t *testing.T) {
+	t.Run("basic", func(t *testing.T) {
+		ft := &fakeT{}
+		cleanupsExecuted := 0
+		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
+			r.Cleanup(func() {
+				cleanupsExecuted += 1
+			})
+		})
+
+		require.Equal(t, 0, ft.fails)
+		require.Equal(t, 1, cleanupsExecuted)
+	})
+	t.Run("cleanup-panic-recovery", func(t *testing.T) {
+		ft := &fakeT{}
+		cleanupsExecuted := 0
+		RunWith(&Counter{Count: 2, Wait: time.Millisecond}, ft, func(r *R) {
+			r.Cleanup(func() {
+				cleanupsExecuted += 1
+			})
+
+			r.Cleanup(func() {
+				cleanupsExecuted += 1
+				panic(fmt.Errorf("fake test error"))
+			})
+
+			r.Cleanup(func() {
+				cleanupsExecuted += 1
+			})
+
+			// test is successful but should fail due to the cleanup panicing
+		})
+
+		require.Equal(t, 3, cleanupsExecuted)
+		require.Equal(t, 1, ft.fails)
+		require.Contains(t, ft.out[0], "fake test error")
+	})
+
+	t.Run("cleanup-per-retry", func(t *testing.T) {
+		ft := &fakeT{}
+		iter := 0
+		cleanupsExecuted := 0
+		RunWith(&Counter{Count: 3, Wait: time.Millisecond}, ft, func(r *R) {
+			if cleanupsExecuted != iter {
+				r.Stop(fmt.Errorf("cleanups not executed between retries"))
+				return
+			}
+			iter += 1
+
+			r.Cleanup(func() {
+				cleanupsExecuted += 1
+			})
+
+			r.FailNow()
+		})
+
+		require.Equal(t, 3, cleanupsExecuted)
+		// ensure that r.Stop hadn't been called. If it was then we would
+		// have log output
+		require.Len(t, ft.out, 0)
 	})
 }
 

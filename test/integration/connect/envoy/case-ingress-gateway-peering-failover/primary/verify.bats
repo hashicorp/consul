@@ -33,8 +33,8 @@ load helpers
 # Failover
 
 @test "s1 upstream should have healthy endpoints for s2 in both primary and failover" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~s2.default.primary.internal HEALTHY 1
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~s2.default.primary-to-alpha.external HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~0~s2.default.primary.internal HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~1~s2.default.primary.internal HEALTHY 1
 }
 
 @test "ingress-gateway should be able to connect to s2" {
@@ -42,7 +42,7 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection" {
-  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~s2.default.primary.internal.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~0~s2.default.primary.internal.*cx_total" 1
 }
 
 @test "terminate instance of s2 primary envoy which should trigger failover to s2 alpha when the tcp check fails" {
@@ -54,8 +54,8 @@ load helpers
 }
 
 @test "s1 upstream should have healthy endpoints for s2 in the failover cluster peer" {
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~s2.default.primary.internal UNHEALTHY 1
-  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~s2.default.primary-to-alpha.external HEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~0~s2.default.primary.internal UNHEALTHY 1
+  assert_upstream_has_endpoints_in_status 127.0.0.1:20000 failover-target~1~s2.default.primary.internal HEALTHY 1
 }
 
 @test "reset envoy statistics for failover" {
@@ -71,5 +71,5 @@ load helpers
 }
 
 @test "s1 upstream made 1 connection to s2 through the cluster peer" {
-  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~s2.default.primary-to-alpha.external.*cx_total" 1
+  assert_envoy_metric_at_least 127.0.0.1:20000 "cluster.failover-target~1~s2.default.primary.internal.*cx_total" 1
 }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -11,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -140,6 +144,95 @@ func TestHTTPServer_UnixSocket_FileExists(t *testing.T) {
 	}
 }
 
+func TestHTTPSServer_UnixSocket(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	if runtime.GOOS == "windows" {
+		t.SkipNow()
+	}
+
+	tempDir := testutil.TempDir(t, "consul")
+	socket := filepath.Join(tempDir, "test.sock")
+
+	a := StartTestAgent(t, TestAgent{
+		UseHTTPS: true,
+		HCL: `
+			addresses {
+				https = "unix://` + socket + `"
+			}
+			unix_sockets {
+				mode = "0777"
+			}
+			tls {
+				defaults {
+					  ca_file = "../test/client_certs/rootca.crt"
+					  cert_file = "../test/client_certs/server.crt"
+					  key_file = "../test/client_certs/server.key"
+				}
+		  	}
+		`,
+	})
+	defer a.Shutdown()
+
+	// Ensure the socket was created
+	if _, err := os.Stat(socket); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Ensure the mode was set properly
+	fi, err := os.Stat(socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if fi.Mode().String() != "Srwxrwxrwx" {
+		t.Fatalf("bad permissions: %s", fi.Mode())
+	}
+
+	// Make an HTTP/2-enabled client, using the API helpers to set
+	// up TLS to be as normal as possible for Consul.
+	tlscfg := &api.TLSConfig{
+		Address:  "consul.test",
+		KeyFile:  "../test/client_certs/client.key",
+		CertFile: "../test/client_certs/client.crt",
+		CAFile:   "../test/client_certs/rootca.crt",
+	}
+	tlsccfg, err := api.SetupTLSConfig(tlscfg)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport := api.DefaultConfig().Transport
+	transport.TLSHandshakeTimeout = 30 * time.Second
+	transport.TLSClientConfig = tlsccfg
+	if err := http2.ConfigureTransport(transport); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	transport.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
+		return net.Dial("unix", socket)
+	}
+	client := &http.Client{Transport: transport}
+
+	u, err := url.Parse("https://unix" + socket)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	u.Path = "/v1/agent/self"
+	u.Scheme = "https"
+	resp, err := client.Get(u.String())
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer resp.Body.Close()
+
+	if body, err := io.ReadAll(resp.Body); err != nil || len(body) == 0 {
+		t.Fatalf("bad: %s %v", body, err)
+	} else if !strings.Contains(string(body), "NodeName") {
+		t.Fatalf("NodeName not found in results: %s", string(body))
+	}
+}
+
 func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -151,9 +244,13 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	a := StartTestAgent(t, TestAgent{
 		UseHTTPS: true,
 		HCL: `
-			key_file = "../test/client_certs/server.key"
-			cert_file = "../test/client_certs/server.crt"
-			ca_file = "../test/client_certs/rootca.crt"
+			tls {
+				defaults {
+				  ca_file = "../test/client_certs/rootca.crt"
+				  cert_file = "../test/client_certs/server.crt"
+				  key_file = "../test/client_certs/server.key"
+				}
+		  	}
 		`,
 	})
 	defer a.Shutdown()
@@ -191,7 +288,9 @@ func TestSetupHTTPServer_HTTP2(t *testing.T) {
 	err = setupHTTPS(httpServer, noopConnState, time.Second)
 	require.NoError(t, err)
 
-	srvHandler := a.srv.handler(true)
+	a.enableDebug.Store(true)
+
+	srvHandler := a.srv.handler()
 	mux, ok := srvHandler.(*wrappedMux)
 	require.True(t, ok, "expected a *wrappedMux, got %T", handler)
 	mux.mux.HandleFunc("/echo", handler)
@@ -386,7 +485,9 @@ func TestHTTPAPI_Ban_Nonprintable_Characters(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 	if got, want := resp.Code, http.StatusBadRequest; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
 	}
@@ -409,7 +510,9 @@ func TestHTTPAPI_Allow_Nonprintable_Characters_With_Flag(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp := httptest.NewRecorder()
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 	// Key doesn't actually exist so we should get 404
 	if got, want := resp.Code, http.StatusNotFound; got != want {
 		t.Fatalf("bad response code got %d want %d", got, want)
@@ -548,7 +651,9 @@ func requireHasHeadersSet(t *testing.T, a *TestAgent, path string) {
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", path, nil)
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 
 	hdrs := resp.Header()
 	require.Equal(t, "*", hdrs.Get("Access-Control-Allow-Origin"),
@@ -609,14 +714,18 @@ func TestAcceptEncodingGzip(t *testing.T) {
 	// negotiation, but since this call doesn't go through a real
 	// transport, the header has to be set manually
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "", resp.Header().Get("Content-Encoding"))
 
 	resp = httptest.NewRecorder()
 	req, _ = http.NewRequest("GET", "/v1/kv/long", nil)
 	req.Header["Accept-Encoding"] = []string{"gzip"}
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, 200, resp.Code)
 	require.Equal(t, "gzip", resp.Header().Get("Content-Encoding"))
 }
@@ -778,6 +887,15 @@ func TestParseSource(t *testing.T) {
 	// We should follow whatever dc parameter was given so that the node is
 	// looked up correctly on the receiving end.
 	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&dc=foo", nil)
+	source = structs.QuerySource{}
+	a.srv.parseSource(req, &source)
+	if source.Datacenter != "foo" || source.Node != "bob" {
+		t.Fatalf("bad: %v", source)
+	}
+
+	// We should follow whatever datacenter parameter was given so that the node is
+	// looked up correctly on the receiving end.
+	req, _ = http.NewRequest("GET", "/v1/catalog/nodes?near=bob&datacenter=foo", nil)
 	source = structs.QuerySource{}
 	a.srv.parseSource(req, &source)
 	if source.Datacenter != "foo" || source.Node != "bob" {
@@ -962,8 +1080,9 @@ func TestHTTPServer_PProfHandlers_EnableDebug(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile?seconds=1", nil)
 
+	a.enableDebug.Store(true)
 	httpServer := &HTTPHandlers{agent: a.Agent}
-	httpServer.handler(true).ServeHTTP(resp, req)
+	httpServer.handler().ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusOK, resp.Code)
 }
@@ -981,7 +1100,7 @@ func TestHTTPServer_PProfHandlers_DisableDebugNoACLs(t *testing.T) {
 	req, _ := http.NewRequest("GET", "/debug/pprof/profile", nil)
 
 	httpServer := &HTTPHandlers{agent: a.Agent}
-	httpServer.handler(false).ServeHTTP(resp, req)
+	httpServer.handler().ServeHTTP(resp, req)
 
 	require.Equal(t, http.StatusNotFound, resp.Code)
 }
@@ -1062,7 +1181,9 @@ func TestHTTPServer_PProfHandlers_ACLs(t *testing.T) {
 		t.Run(fmt.Sprintf("case %d (%#v)", i, c), func(t *testing.T) {
 			req, _ := http.NewRequest("GET", fmt.Sprintf("%s?token=%s", c.endpoint, c.token), nil)
 			resp := httptest.NewRecorder()
-			a.srv.handler(true).ServeHTTP(resp, req)
+			a.enableDebug.Store(true)
+
+			a.srv.handler().ServeHTTP(resp, req)
 			assert.Equal(t, c.code, resp.Code)
 		})
 	}
@@ -1372,7 +1493,9 @@ func TestEnableWebUI(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "/ui/", nil)
 	resp := httptest.NewRecorder()
-	a.srv.handler(true).ServeHTTP(resp, req)
+	a.enableDebug.Store(true)
+
+	a.srv.handler().ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
 	// Validate that it actually sent the index page we expect since an error
@@ -1401,7 +1524,9 @@ func TestEnableWebUI(t *testing.T) {
 	{
 		req, _ := http.NewRequest("GET", "/ui/", nil)
 		resp := httptest.NewRecorder()
-		a.srv.handler(true).ServeHTTP(resp, req)
+		a.enableDebug.Store(true)
+
+		a.srv.handler().ServeHTTP(resp, req)
 		require.Equal(t, http.StatusOK, resp.Code)
 		require.Contains(t, resp.Body.String(), `<!-- CONSUL_VERSION:`)
 		require.Contains(t, resp.Body.String(), `valid-but-unlikely-metrics-provider-name`)
@@ -1503,8 +1628,10 @@ func TestAllowedNets(t *testing.T) {
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
-func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
-	t.Helper()
+func assertIndex(t require.TestingT, resp *httptest.ResponseRecorder) {
+	if tt, ok := t.(*testing.T); ok {
+		tt.Helper()
+	}
 	require.NoError(t, checkIndex(resp))
 }
 

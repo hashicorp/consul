@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 set -eEuo pipefail
 
@@ -12,7 +15,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=1
@@ -176,6 +179,14 @@ function start_consul {
     license=$(cat $CONSUL_LICENSE_PATH)
   fi
 
+  USE_RESOURCE_APIS=${USE_RESOURCE_APIS:-false}
+
+  experiments="experiments=[]"
+  # set up consul to run in V1 or V2 catalog mode
+  if [[ "${USE_RESOURCE_APIS}" == true ]]; then
+   experiments="experiments=[\"resource-apis\"]"
+  fi
+
   # We currently run these integration tests in two modes: one in which Envoy's
   # xDS sessions are served directly by a Consul server, and another in which it
   # goes through a client agent.
@@ -259,6 +270,7 @@ function start_consul {
       agent -dev -datacenter "${DC}" \
       -config-dir "/workdir/${DC}/consul" \
       -config-dir "/workdir/${DC}/consul-server" \
+      -hcl=${experiments} \
       -client "0.0.0.0" >/dev/null
   fi
 }
@@ -311,8 +323,7 @@ function pre_service_setup {
 }
 
 function start_services {
-  # Push the state to the shared docker volume (note this is because CircleCI
-  # can't use shared volumes)
+  # Push the state to the shared docker volume
   docker cp workdir/. envoy_workdir_1:/workdir
 
   # Start containers required
@@ -473,8 +484,7 @@ function run_tests {
   # Wipe state
   wipe_volumes
 
-  # Push the state to the shared docker volume (note this is because CircleCI
-  # can't use shared volumes)
+  # Push the state to the shared docker volume
   docker cp workdir/. envoy_workdir_1:/workdir
 
   start_consul primary
@@ -556,10 +566,6 @@ function suite_setup {
     echo "Rebuilding 'bats-verify' image..."
     retry_default docker build -t bats-verify -f Dockerfile-bats .
 
-    # if this fails on CircleCI your first thing to try would be to upgrade
-    # the machine image to the latest version using this listing:
-    #
-    # https://circleci.com/docs/2.0/configuration-reference/#available-linux-machine-images
     echo "Checking bats image..."
     docker run --rm -t bats-verify -v
 
@@ -571,7 +577,7 @@ function suite_setup {
 
     # pre-build the test-sds-server container
     echo "Rebuilding 'test-sds-server' image..."
-    retry_default docker build -t test-sds-server -f Dockerfile-test-sds-server test-sds-server
+    retry_default docker build -t test-sds-server -f test-sds-server/Dockerfile test-sds-server
 }
 
 function suite_teardown {
@@ -791,6 +797,9 @@ function common_run_container_gateway {
 
 function run_container_gateway-primary {
   common_run_container_gateway mesh-gateway primary
+}
+function run_container_gateway-ap1 {
+  common_run_container_gateway mesh-gateway ap1
 }
 function run_container_gateway-secondary {
   common_run_container_gateway mesh-gateway secondary

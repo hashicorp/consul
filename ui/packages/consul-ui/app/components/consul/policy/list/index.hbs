@@ -1,15 +1,26 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
 <ListCollection
   class="consul-policy-list"
   @items={{@items}}
 as |item|>
     <BlockSlot @name="header">
-{{#if (eq (policy/typeof item) 'policy-management')}}
+{{#if (or (eq (policy/typeof item) 'policy-management') (eq (policy/typeof item) 'read-only'))}}
         <dl class="policy-management">
           <dt>Type</dt>
           <dd>
-            <Tooltip>
-              Global Management Policy
-            </Tooltip>
+            {{#if (eq (policy/typeof item) 'policy-management')}}
+              <Tooltip>
+                Global Management Policy
+              </Tooltip>
+            {{else}}
+              <Tooltip>
+                Global Read-only Policy
+              </Tooltip>
+            {{/if}}
           </dd>
         </dl>
 {{/if}}

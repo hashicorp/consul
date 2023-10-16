@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package xds
 
 import (
 	"fmt"
 
+	"github.com/hashicorp/consul/agent/xds/configfetcher"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
@@ -15,7 +19,7 @@ import (
 // resources for a single client.
 type ResourceGenerator struct {
 	Logger         hclog.Logger
-	CfgFetcher     ConfigFetcher
+	CfgFetcher     configfetcher.ConfigFetcher
 	IncrementalXDS bool
 
 	ProxyFeatures xdscommon.SupportedProxyFeatures
@@ -23,7 +27,7 @@ type ResourceGenerator struct {
 
 func NewResourceGenerator(
 	logger hclog.Logger,
-	cfgFetcher ConfigFetcher,
+	cfgFetcher configfetcher.ConfigFetcher,
 	incrementalXDS bool,
 ) *ResourceGenerator {
 	return &ResourceGenerator{
@@ -35,8 +39,7 @@ func NewResourceGenerator(
 
 func (g *ResourceGenerator) AllResourcesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) (map[string][]proto.Message, error) {
 	all := make(map[string][]proto.Message)
-	// TODO Add xdscommon.SecretType
-	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType} {
+	for _, typeUrl := range []string{xdscommon.ListenerType, xdscommon.RouteType, xdscommon.ClusterType, xdscommon.EndpointType, xdscommon.SecretType} {
 		res, err := g.resourcesFromSnapshot(typeUrl, cfgSnap)
 		if err != nil {
 			return nil, fmt.Errorf("failed to generate xDS resources for %q: %v", typeUrl, err)

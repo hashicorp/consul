@@ -1,10 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
 )
 
 // ResourceReference is a reference to a ConfigEntry
@@ -21,7 +26,11 @@ type ResourceReference struct {
 	// unused, this should be blank.
 	SectionName string
 
-	acl.EnterpriseMeta
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+}
+
+func (r *ResourceReference) String() string {
+	return fmt.Sprintf("%s:%s/%s/%s/%s", r.Kind, r.PartitionOrDefault(), r.NamespaceOrDefault(), r.Name, r.SectionName)
 }
 
 func (r *ResourceReference) IsSame(other *ResourceReference) bool {
@@ -45,33 +54,19 @@ type Status struct {
 	Conditions []Condition
 }
 
+func (s *Status) MatchesConditionStatus(condition Condition) bool {
+	for _, c := range s.Conditions {
+		if c.IsCondition(&condition) &&
+			c.Status == condition.Status {
+			return true
+		}
+	}
+	return false
+}
+
 func (s Status) SameConditions(other Status) bool {
 	if len(s.Conditions) != len(other.Conditions) {
 		return false
-	}
-	lessResource := func(one, two *ResourceReference) bool {
-		if one == nil && two == nil {
-			return false
-		}
-		if one == nil {
-			return true
-		}
-		if two == nil {
-			return false
-		}
-		if one.Kind < two.Kind {
-			return true
-		}
-		if one.Kind > two.Kind {
-			return false
-		}
-		if one.Name < two.Name {
-			return true
-		}
-		if one.Name > two.Name {
-			return false
-		}
-		return one.SectionName < two.SectionName
 	}
 	sortConditions := func(conditions []Condition) []Condition {
 		sort.SliceStable(conditions, func(i, j int) bool {
@@ -94,6 +89,31 @@ func (s Status) SameConditions(other Status) bool {
 		}
 	}
 	return true
+}
+
+func lessResource(one, two *ResourceReference) bool {
+	if one == nil && two == nil {
+		return false
+	}
+	if one == nil {
+		return true
+	}
+	if two == nil {
+		return false
+	}
+	if one.Kind < two.Kind {
+		return true
+	}
+	if one.Kind > two.Kind {
+		return false
+	}
+	if one.Name < two.Name {
+		return true
+	}
+	if one.Name > two.Name {
+		return false
+	}
+	return one.SectionName < two.SectionName
 }
 
 // Condition is used for a single message and state associated
@@ -176,4 +196,43 @@ func (u *StatusUpdater) UpdateEntry() (ControlledConfigEntry, bool) {
 	}
 	u.entry.SetStatus(u.status)
 	return u.entry, true
+}
+
+func NewGatewayCondition(name api.GatewayConditionType, status api.ConditionStatus, reason api.GatewayConditionReason, message string, resource ResourceReference) Condition {
+	if err := api.ValidateGatewayConditionReason(name, status, reason); err != nil {
+		// note we panic here because an invalid combination is a programmer error
+		// this  should never actually be hit
+		panic(err)
+	}
+
+	return Condition{
+		Type:               string(name),
+		Status:             string(status),
+		Reason:             string(reason),
+		Message:            message,
+		Resource:           ptrTo(resource),
+		LastTransitionTime: ptrTo(time.Now().UTC()),
+	}
+}
+
+// NewRouteCondition is a helper to build allowable Conditions for a Route config entry
+func NewRouteCondition(name api.RouteConditionType, status api.ConditionStatus, reason api.RouteConditionReason, message string, ref ResourceReference) Condition {
+	if err := api.ValidateRouteConditionReason(name, status, reason); err != nil {
+		// note we panic here because an invalid combination is a programmer error
+		// this  should never actually be hit
+		panic(err)
+	}
+
+	return Condition{
+		Type:               string(name),
+		Status:             string(status),
+		Reason:             string(reason),
+		Message:            message,
+		Resource:           ptrTo(ref),
+		LastTransitionTime: ptrTo(time.Now().UTC()),
+	}
+}
+
+func ptrTo[T any](val T) *T {
+	return &val
 }

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 set -euo pipefail
 
@@ -7,7 +10,13 @@ kind = "api-gateway"
 name = "api-gateway"
 listeners = [
   {
+    name = "listener-one"
     port = 9999
+    protocol = "tcp"
+  },
+  {
+    name = "listener-two"
+    port = 9998
     protocol = "tcp"
   }
 ]
@@ -15,7 +24,7 @@ listeners = [
 
 upsert_config_entry primary '
 kind = "tcp-route"
-name = "api-gateway-route"
+name = "api-gateway-route-one"
 services = [
   {
     name = "s1"
@@ -23,10 +32,45 @@ services = [
 ]
 parents = [
   {
-    kind = "api-gateway"
     name = "api-gateway"
+    sectionName = "listener-one"
   }
 ]
+'
+
+upsert_config_entry primary '
+kind = "tcp-route"
+name = "api-gateway-route-two"
+services = [
+  {
+    name = "s2"
+  }
+]
+parents = [
+  {
+    name = "api-gateway"
+    sectionName = "listener-two"
+    kind = "api-gateway"
+  }
+]
+'
+
+upsert_config_entry primary '
+kind = "service-intentions"
+name = "s1"
+sources {
+  name = "api-gateway"
+  action = "allow"
+}
+'
+
+upsert_config_entry primary '
+kind = "service-intentions"
+name = "s2"
+sources {
+  name = "api-gateway"
+  action = "deny"
+}
 '
 
 register_services primary

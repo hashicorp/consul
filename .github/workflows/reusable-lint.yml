@@ -1,0 +1,60 @@
+name: reusable-lint
+
+on:
+  workflow_call:
+    inputs:
+      go-arch:
+        required: false
+        type: string
+        default: ""
+      runs-on:
+        description: An expression indicating which kind of runners to use.
+        required: true
+        type: string
+      repository-name:
+        required: true
+        type: string
+    secrets:
+      elevated-github-token:
+        required: true
+env:
+  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+  GOARCH: ${{inputs.go-arch}}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+
+jobs:
+  lint:
+    runs-on: ${{ fromJSON(inputs.runs-on) }}
+    strategy:
+      matrix:
+        directory: 
+        - ""
+        - "api"
+        - "sdk"
+        - "envoyextensions"
+        - "troubleshoot"
+        - "test/integration/consul-container"
+        - "test-integ"
+        - "testing/deployer"
+      fail-fast: true
+    name: lint ${{ matrix.directory }}
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(inputs.repository-name, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: 'go.mod'
+      - run: go env
+      - name: lint-${{ matrix.directory }}
+        uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
+        with:
+          working-directory: ${{ matrix.directory }}
+          version: v1.51.1
+          args: --build-tags="${{ env.GOTAGS }}" -v
+          skip-cache: true
+      - name: Notify Slack
+        if: ${{ failure() }}
+        run: .github/scripts/notify_slack.sh

@@ -76,7 +76,7 @@ security concerns accordingly.
 - **Run without Root** - The NIA daemon does not require root or other administrative privileges to operate.
 
 - **Protect NIA Daemon API Endpoint** - Any network endpoints provided by, or exposed to the NIA Daemon should be
-  protected using Consul Connect and appropriate firewall rules.
+  protected using Consul service mesh and appropriate firewall rules.
 
 - **Use a centralized logging solution** - Export log entries within [syslog](https://en.wikipedia.org/wiki/Syslog)
   generated from `consul-terraform-sync` to a centralized logging solution.

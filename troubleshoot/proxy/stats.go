@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package troubleshoot
 
 import (
 	"encoding/json"
 	"fmt"
+
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
 	"github.com/hashicorp/consul/troubleshoot/validate"
 )
@@ -32,10 +36,19 @@ func (t *Troubleshoot) troubleshootStats() (validate.Messages, error) {
 		}
 	}
 
-	statMessages = append(statMessages, validate.Message{
-		Success: true,
-		Message: fmt.Sprintf("Envoy has %v rejected configurations", totalConfigRejections),
-	})
+	if totalConfigRejections > 0 {
+		statMessages = append(statMessages, validate.Message{
+			Message: fmt.Sprintf("Envoy has %v rejected configurations", totalConfigRejections),
+			PossibleActions: []string{
+				"Check the logs of the Consul agent configuring the local proxy to see why Envoy rejected this configuration",
+			},
+		})
+	} else {
+		statMessages = append(statMessages, validate.Message{
+			Success: true,
+			Message: fmt.Sprintf("Envoy has %v rejected configurations", totalConfigRejections),
+		})
+	}
 
 	connectionFailureStats, err := t.getEnvoyStats("upstream_cx_connect_fail")
 	if err != nil {
@@ -50,7 +63,7 @@ func (t *Troubleshoot) troubleshootStats() (validate.Messages, error) {
 	}
 	statMessages = append(statMessages, validate.Message{
 		Success: true,
-		Message: fmt.Sprintf("Envoy has detected %v connection failure(s).", totalCxFailures),
+		Message: fmt.Sprintf("Envoy has detected %v connection failure(s)", totalCxFailures),
 	})
 	return statMessages, nil
 }

@@ -1,0 +1,3 @@
+```release-note:bug
+grpc: ensure grpc resolver correctly uses lan/wan addresses on servers
+```

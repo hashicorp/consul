@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package command
 
 import (
@@ -33,6 +36,10 @@ import (
 	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
 	aclrread "github.com/hashicorp/consul/command/acl/role/read"
 	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
+	acltp "github.com/hashicorp/consul/command/acl/templatedpolicy"
+	acltplist "github.com/hashicorp/consul/command/acl/templatedpolicy/list"
+	acltppreview "github.com/hashicorp/consul/command/acl/templatedpolicy/preview"
+	acltpread "github.com/hashicorp/consul/command/acl/templatedpolicy/read"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
@@ -105,9 +112,15 @@ import (
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
+	"github.com/hashicorp/consul/command/resource"
+	resourceapply "github.com/hashicorp/consul/command/resource/apply"
+	resourcedelete "github.com/hashicorp/consul/command/resource/delete"
+	resourcelist "github.com/hashicorp/consul/command/resource/list"
+	resourceread "github.com/hashicorp/consul/command/resource/read"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
+	svcsexport "github.com/hashicorp/consul/command/services/export"
 	svcsregister "github.com/hashicorp/consul/command/services/register"
 	"github.com/hashicorp/consul/command/snapshot"
 	snapinspect "github.com/hashicorp/consul/command/snapshot/inspect"
@@ -118,7 +131,7 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
-	troubleshoot "github.com/hashicorp/consul/command/troubleshoot"
+	"github.com/hashicorp/consul/command/troubleshoot"
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
@@ -169,6 +182,10 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil }},
 		entry{"acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil }},
 		entry{"acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil }},
+		entry{"acl templated-policy", func(cli.Ui) (cli.Command, error) { return acltp.New(), nil }},
+		entry{"acl templated-policy list", func(ui cli.Ui) (cli.Command, error) { return acltplist.New(ui), nil }},
+		entry{"acl templated-policy read", func(ui cli.Ui) (cli.Command, error) { return acltpread.New(ui), nil }},
+		entry{"acl templated-policy preview", func(ui cli.Ui) (cli.Command, error) { return acltppreview.New(ui), nil }},
 		entry{"agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil }},
 		entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
@@ -234,10 +251,16 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
+		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
+		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
+		entry{"resource delete", func(ui cli.Ui) (cli.Command, error) { return resourcedelete.New(ui), nil }},
+		entry{"resource apply", func(ui cli.Ui) (cli.Command, error) { return resourceapply.New(ui), nil }},
+		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},
 		entry{"services deregister", func(ui cli.Ui) (cli.Command, error) { return svcsderegister.New(ui), nil }},
+		entry{"services export", func(ui cli.Ui) (cli.Command, error) { return svcsexport.New(ui), nil }},
 		entry{"snapshot", func(cli.Ui) (cli.Command, error) { return snapshot.New(), nil }},
 		entry{"snapshot inspect", func(ui cli.Ui) (cli.Command, error) { return snapinspect.New(ui), nil }},
 		entry{"snapshot restore", func(ui cli.Ui) (cli.Command, error) { return snaprestore.New(ui), nil }},

@@ -25,6 +25,7 @@ be found in the public [user documentation].
 1. [Agent Configuration](./config)
 1. [RPC](./rpc)
 1. [Cluster Persistence](./persistence)
+1. [Resources and Controllers](./resources)
 1. [Client Agent](./client-agent)
 1. [Service Discovery](./service-discovery)
 1. [Service Mesh (Connect)](./service-mesh)
@@ -38,6 +39,9 @@ Also see the [FAQ](./faq.md).
 ## Other Docs
 
 1. [Integration Tests](../test/integration/connect/envoy/README.md)
+1. [Upgrade Tests](../test/integration/consul-container/test/upgrade/README.md)
+1. [Remote Debugging Integration Tests](../test/integration/consul-container/test/debugging.md)
+1. [Peering Common Topology Tests](../test-integ/peering_commontopo/README.md)
 
 ## Important Directories
 
@@ -47,24 +51,23 @@ contain other important source related to Consul.
 * [ui] contains the source code for the Consul UI.
 * [website] contains the source for [consul.io](https://www.consul.io/). A pull requests
   can update the source code and Consul's documentation at the same time.
-* [.circleci] and [.github] contain the source for our CI and GitHub repository
+* [.github] contains the source for our CI and GitHub repository
   automation.
 * [.changelog] contains markdown files that are used by [hashicorp/go-changelog] to produce the
   [CHANGELOG.md].
 * [build-support] contains bash functions and scripts used to automate.
-  development tasks. Generally these scripts are called from the [GNUmakefile].
+  development tasks. Generally these scripts are called from the [Makefile].
 * [grafana] contains the source for a [Grafana dashboard] that can be used to
   monitor Consul.
 
 [ui]: https://github.com/hashicorp/consul/tree/main/ui
 [website]: https://github.com/hashicorp/consul/tree/main/website
-[.circleci]: https://github.com/hashicorp/consul/tree/main/.circleci
 [.github]: https://github.com/hashicorp/consul/tree/main/.github
 [.changelog]: https://github.com/hashicorp/consul/tree/main/.changelog
 [hashicorp/go-changelog]: https://github.com/hashicorp/go-changelog
 [CHANGELOG.md]: https://github.com/hashicorp/consul/blob/main/CHANGELOG.md
 [build-support]: https://github.com/hashicorp/consul/tree/main/build-support
-[GNUmakefile]: https://github.com/hashicorp/consul/tree/main/GNUmakefile
+[Makefile]: https://github.com/hashicorp/consul/tree/main/Makefile
 [Grafana dashboard]: https://grafana.com/grafana/dashboards
 [grafana]: https://github.com/hashicorp/consul/tree/main/grafana
 

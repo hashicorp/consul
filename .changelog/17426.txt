@@ -1,0 +1,5 @@
+```release-note:improvement
+ peering: gRPC queries for TrustBundleList, TrustBundleRead, PeeringList, and PeeringRead now support blocking semantics,
+ reducing network and CPU demand.
+ The HTTP APIs for Peering List and Read have been updated to support blocking.
+ ```

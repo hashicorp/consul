@@ -172,9 +172,9 @@ To prevent any CPU spikes from a misconfigured client, RPC requests to the serve
 
 In addition, two [performance indicators](/consul/docs/agent/telemetry) &mdash; `consul.runtime.alloc_bytes` and `consul.runtime.heap_objects` &mdash; can help diagnose if the current sizing is not adequately meeting the load.
 
-## Connect Certificate Signing CPU Limits
+## Service Mesh Certificate Signing CPU Limits
 
-If you enable [Connect](/consul/docs/connect), the leader server will need
+If you enable [service mesh](/consul/docs/connect), the leader server will need
 to perform public key signing operations for every service instance in the
 cluster. Typically these operations are fast on modern hardware, however when
 the CA is changed or its key rotated, the leader will face an influx of
@@ -194,11 +194,11 @@ operations could impact the server's normal work. To limit that, Consul since
 
 By default we set a limit of 50 per second which is reasonable on modest
 hardware but may be too low and impact rotation times if more than 1500 service
-instances are using Connect in the cluster. `csr_max_per_second` is likely best
+instances are using service mesh in the cluster. `csr_max_per_second` is likely best
 if you have fewer than four cores available since a whole core being used by
 signing is likely to impact the server stability if it's all or a large portion
 of the cores available. The downside is that you need to capacity plan: how many
-service instances will need Connect certificates? What CSR rate can your server
+service instances will need service mesh certificates? What CSR rate can your server
 tolerate without impacting stability? How fast do you want CA rotations to
 process?
 

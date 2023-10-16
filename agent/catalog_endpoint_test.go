@@ -1,25 +1,72 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestCatalogEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
+		})
+	}
+
+	checkRequest("PUT", "/v1/catalog/register")
+	checkRequest("GET", "/v1/catalog/connect/")
+	checkRequest("PUT", "/v1/catalog/deregister")
+	checkRequest("GET", "/v1/catalog/datacenters")
+	checkRequest("GET", "/v1/catalog/nodes")
+	checkRequest("GET", "/v1/catalog/services")
+	checkRequest("GET", "/v1/catalog/service/")
+	checkRequest("GET", "/v1/catalog/node/")
+	checkRequest("GET", "/v1/catalog/node-services/")
+	checkRequest("GET", "/v1/catalog/gateway-services/")
+}
+
+func assertV1CatalogEndpointDoesNotWorkWithV2(t *testing.T, a *TestAgent, method, url string, requestBody string) {
+	var body io.Reader
+	switch method {
+	case http.MethodPost, http.MethodPut:
+		body = strings.NewReader(requestBody + "\n")
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+
+	got, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	require.Contains(t, string(got), structs.ErrUsingV2CatalogExperiment.Error())
+}
 
 func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 	if testing.Short() {
@@ -2023,5 +2070,69 @@ func TestCatalog_GatewayServices_Ingress(t *testing.T) {
 			s.RaftIndex = structs.RaftIndex{}
 		}
 		require.Equal(r, expect, gatewayServices)
+	})
+}
+
+func TestCatalogRegister_AssignManualServiceVIPs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	for _, service := range []string{"api", "web"} {
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry: &structs.ServiceResolverConfigEntry{
+				Kind: structs.ServiceResolver,
+				Name: service,
+			},
+		}
+		var out bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
+	}
+
+	assignVIPs := func(req structs.AssignServiceManualVIPsRequest, expect structs.AssignServiceManualVIPsResponse) {
+		httpReq, _ := http.NewRequest("PUT", "/v1/internal/service-virtual-ip", jsonReader(req))
+		resp := httptest.NewRecorder()
+		obj, err := a.srv.AssignManualServiceVIPs(resp, httpReq)
+		require.NoError(t, err)
+
+		result, ok := obj.(structs.AssignServiceManualVIPsResponse)
+		require.True(t, ok)
+		require.Equal(t, expect, result)
+	}
+
+	// Assign some manual IPs to the service
+	assignVIPs(structs.AssignServiceManualVIPsRequest{
+		Service:    "api",
+		ManualVIPs: []string{"1.1.1.1", "2.2.2.2", "3.3.3.3"},
+	}, structs.AssignServiceManualVIPsResponse{
+		Found: true,
+	})
+
+	// Assign some manual IPs to the new service, reassigning one from the existing service.
+	assignVIPs(structs.AssignServiceManualVIPsRequest{
+		Service:    "web",
+		ManualVIPs: []string{"2.2.2.2", "4.4.4.4"},
+	}, structs.AssignServiceManualVIPsResponse{
+		Found: true,
+		UnassignedFrom: []structs.PeeredServiceName{
+			{
+				ServiceName: structs.ServiceName{Name: "api", EnterpriseMeta: *acl.DefaultEnterpriseMeta()},
+			},
+		},
+	})
+
+	// Assign some manual IPs a non-existent service, should be a no-op.
+	assignVIPs(structs.AssignServiceManualVIPsRequest{
+		Service:    "nope",
+		ManualVIPs: []string{"1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4"},
+	}, structs.AssignServiceManualVIPsResponse{
+		Found: false,
 	})
 }

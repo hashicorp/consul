@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -96,6 +99,10 @@ func (id *missingIdentity) ServiceIdentityList() []*structs.ACLServiceIdentity {
 }
 
 func (id *missingIdentity) NodeIdentityList() []*structs.ACLNodeIdentity {
+	return nil
+}
+
+func (id *missingIdentity) TemplatedPolicyList() []*structs.ACLTemplatedPolicy {
 	return nil
 }
 
@@ -212,6 +219,17 @@ type ACLResolverSettings struct {
 	// ACLs are used to deny-list, or "deny" which means ACLs are
 	// allow-lists.
 	ACLDefaultPolicy string
+}
+
+func (s ACLResolverSettings) IsDefaultAllow() (bool, error) {
+	switch s.ACLDefaultPolicy {
+	case "allow":
+		return true, nil
+	case "deny":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected ACL default policy value of %q", s.ACLDefaultPolicy)
+	}
 }
 
 // ACLResolver is the type to handle all your token and policy resolution needs.
@@ -593,9 +611,11 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		roleIDs           = identity.RoleIDs()
 		serviceIdentities = structs.ACLServiceIdentities(identity.ServiceIdentityList())
 		nodeIdentities    = structs.ACLNodeIdentities(identity.NodeIdentityList())
+		templatedPolicies = structs.ACLTemplatedPolicies(identity.TemplatedPolicyList())
 	)
 
-	if len(policyIDs) == 0 && len(serviceIdentities) == 0 && len(roleIDs) == 0 && len(nodeIdentities) == 0 {
+	if len(policyIDs) == 0 && len(serviceIdentities) == 0 &&
+		len(roleIDs) == 0 && len(nodeIdentities) == 0 && len(templatedPolicies) == 0 {
 		// In this case the default policy will be all that is in effect.
 		return nil, nil
 	}
@@ -613,16 +633,19 @@ func (r *ACLResolver) resolvePoliciesForIdentity(identity structs.ACLIdentity) (
 		}
 		serviceIdentities = append(serviceIdentities, role.ServiceIdentities...)
 		nodeIdentities = append(nodeIdentities, role.NodeIdentityList()...)
+		templatedPolicies = append(templatedPolicies, role.TemplatedPolicyList()...)
 	}
 
 	// Now deduplicate any policies or service identities that occur more than once.
 	policyIDs = dedupeStringSlice(policyIDs)
 	serviceIdentities = serviceIdentities.Deduplicate()
 	nodeIdentities = nodeIdentities.Deduplicate()
+	templatedPolicies = templatedPolicies.Deduplicate()
 
 	// Generate synthetic policies for all service identities in effect.
 	syntheticPolicies := r.synthesizePoliciesForServiceIdentities(serviceIdentities, identity.EnterpriseMetadata())
 	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForNodeIdentities(nodeIdentities, identity.EnterpriseMetadata())...)
+	syntheticPolicies = append(syntheticPolicies, r.synthesizePoliciesForTemplatedPolicies(templatedPolicies, identity.EnterpriseMetadata())...)
 
 	// For the new ACLs policy replication is mandatory for correct operation on servers. Therefore
 	// we only attempt to resolve policies locally
@@ -661,6 +684,24 @@ func (r *ACLResolver) synthesizePoliciesForNodeIdentities(nodeIdentities []*stru
 	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(nodeIdentities))
 	for _, n := range nodeIdentities {
 		syntheticPolicies = append(syntheticPolicies, n.SyntheticPolicy(entMeta))
+	}
+
+	return syntheticPolicies
+}
+
+func (r *ACLResolver) synthesizePoliciesForTemplatedPolicies(templatedPolicies []*structs.ACLTemplatedPolicy, entMeta *acl.EnterpriseMeta) []*structs.ACLPolicy {
+	if len(templatedPolicies) == 0 {
+		return nil
+	}
+
+	syntheticPolicies := make([]*structs.ACLPolicy, 0, len(templatedPolicies))
+	for _, tp := range templatedPolicies {
+		policy, err := tp.SyntheticPolicy(entMeta)
+		if err != nil {
+			r.logger.Warn(fmt.Sprintf("could not generate synthetic policy for templated policy: %q", tp.TemplateName), "error", err)
+			continue
+		}
+		syntheticPolicies = append(syntheticPolicies, policy)
 	}
 
 	return syntheticPolicies

@@ -1,7 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package local
 
 import (
 	"context"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -10,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 )
+
+const resyncFrequency = 30 * time.Second
 
 const source proxycfg.ProxySource = "local"
 
@@ -30,6 +37,10 @@ type SyncConfig struct {
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
+
+	// ResyncFrequency is how often to do a resync and recreate any terminated
+	// watches.
+	ResyncFrequency time.Duration
 }
 
 // Sync watches the agent's local state and registers/deregisters services with
@@ -50,12 +61,19 @@ func Sync(ctx context.Context, cfg SyncConfig) {
 	cfg.State.Notify(stateCh)
 	defer cfg.State.StopNotify(stateCh)
 
+	var resyncCh <-chan time.Time
 	for {
 		sync(cfg)
+
+		if resyncCh == nil && cfg.ResyncFrequency > 0 {
+			resyncCh = time.After(cfg.ResyncFrequency)
+		}
 
 		select {
 		case <-stateCh:
 			// Wait for a state change.
+		case <-resyncCh:
+			resyncCh = nil
 		case <-ctx.Done():
 			return
 		}
@@ -118,7 +136,7 @@ func sync(cfg SyncConfig) {
 
 //go:generate mockery --name ConfigManager --inpackage
 type ConfigManager interface {
-	Watch(id proxycfg.ProxyID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+	Watch(id proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc)
 	Register(proxyID proxycfg.ProxyID, service *structs.NodeService, source proxycfg.ProxySource, token string, overwrite bool) error
 	Deregister(proxyID proxycfg.ProxyID, source proxycfg.ProxySource)
 	RegisteredProxies(source proxycfg.ProxySource) []proxycfg.ProxyID

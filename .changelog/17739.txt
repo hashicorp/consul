@@ -1,0 +1,3 @@
+```release-note:bug
+http: fixed API endpoint `PUT /acl/token/:AccessorID` (update token), no longer requires `AccessorID` in the request body. Web UI can now update tokens.
+ ```

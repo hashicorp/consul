@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -23,6 +26,8 @@ const (
 	ServiceIntentions  string = "service-intentions"
 	MeshConfig         string = "mesh"
 	ExportedServices   string = "exported-services"
+	SamenessGroup      string = "sameness-group"
+	RateLimitIPConfig  string = "control-plane-request-limit"
 
 	ProxyConfigGlobal string = "global"
 	MeshConfigMesh    string = "mesh"
@@ -30,12 +35,20 @@ const (
 	TCPRoute          string = "tcp-route"
 	InlineCertificate string = "inline-certificate"
 	HTTPRoute         string = "http-route"
+	JWTProvider       string = "jwt-provider"
 )
 
 const (
-	BuiltinAWSLambdaExtension      string = "builtin/aws/lambda"
-	BuiltinLuaExtension            string = "builtin/lua"
-	BuiltinLocalRatelimitExtension string = "builtin/http/localratelimit"
+	BuiltinAWSLambdaExtension         string = "builtin/aws/lambda"
+	BuiltinExtAuthzExtension          string = "builtin/ext-authz"
+	BuiltinLuaExtension               string = "builtin/lua"
+	BuiltinOTELAccessLoggingExtension string = "builtin/otel-access-logging"
+	BuiltinPropertyOverrideExtension  string = "builtin/property-override"
+	BuiltinWasmExtension              string = "builtin/wasm"
+	// BuiltinValidateExtension should not be exposed directly or accepted as a valid configured
+	// extension type, as it is only used indirectly via troubleshooting tools. It is included here
+	// for common reference alongside other builtin extensions.
+	BuiltinValidateExtension string = "builtin/proxy/validate"
 )
 
 type ConfigEntry interface {
@@ -103,6 +116,21 @@ type TransparentProxyConfig struct {
 	DialedDirectly bool `json:",omitempty" alias:"dialed_directly"`
 }
 
+type MutualTLSMode string
+
+const (
+	// MutualTLSModeDefault represents no specific mode and should
+	// be used to indicate that a different layer of the configuration
+	// chain should take precedence.
+	MutualTLSModeDefault MutualTLSMode = ""
+
+	// MutualTLSModeStrict requires mTLS for incoming traffic.
+	MutualTLSModeStrict MutualTLSMode = "strict"
+
+	// MutualTLSModePermissive allows incoming non-mTLS traffic.
+	MutualTLSModePermissive MutualTLSMode = "permissive"
+)
+
 // ExposeConfig describes HTTP paths to expose through Envoy outside of Connect.
 // Users can expose individual paths and/or all HTTP/GRPC paths for checks.
 type ExposeConfig struct {
@@ -116,9 +144,11 @@ type ExposeConfig struct {
 
 // EnvoyExtension has configuration for an extension that patches Envoy resources.
 type EnvoyExtension struct {
-	Name      string
-	Required  bool
-	Arguments map[string]interface{} `bexpr:"-"`
+	Name          string
+	Required      bool
+	Arguments     map[string]interface{} `bexpr:"-"`
+	ConsulVersion string
+	EnvoyVersion  string
 }
 
 type ExposePath struct {
@@ -255,6 +285,15 @@ type PassiveHealthCheck struct {
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly.
 	EnforcingConsecutive5xx *uint32 `json:",omitempty" alias:"enforcing_consecutive_5xx"`
+
+	// The maximum % of an upstream cluster that can be ejected due to outlier detection.
+	// Defaults to 10% but will eject at least one host regardless of the value.
+	MaxEjectionPercent *uint32 `json:",omitempty" alias:"max_ejection_percent"`
+
+	// The base time that a host is ejected for. The real time is equal to the base time
+	// multiplied by the number of times the host has been ejected and is capped by
+	// max_ejection_time (Default 300s). Defaults to 30000ms or 30s.
+	BaseEjectionTime *time.Duration `json:",omitempty" alias:"base_ejection_time"`
 }
 
 // UpstreamLimits describes the limits that are associated with a specific
@@ -276,6 +315,47 @@ type UpstreamLimits struct {
 	MaxConcurrentRequests *int `alias:"max_concurrent_requests"`
 }
 
+// RateLimits is rate limiting configuration that is applied to
+// inbound traffic for a service.
+// Rate limiting is a Consul enterprise feature.
+type RateLimits struct {
+	InstanceLevel InstanceLevelRateLimits `alias:"instance_level"`
+}
+
+// InstanceLevelRateLimits represents rate limit configuration
+// that are applied per service instance.
+type InstanceLevelRateLimits struct {
+	// RequestsPerSecond is the average number of requests per second that can be
+	// made without being throttled. This field is required if RequestsMaxBurst
+	// is set. The allowed number of requests may exceed RequestsPerSecond up to
+	// the value specified in RequestsMaxBurst.
+	//
+	// Internally, this is the refill rate of the token bucket used for rate limiting.
+	RequestsPerSecond int `alias:"requests_per_second"`
+
+	// RequestsMaxBurst is the maximum number of requests that can be sent
+	// in a burst. Should be equal to or greater than RequestsPerSecond.
+	// If unset, defaults to RequestsPerSecond.
+	//
+	// Internally, this is the maximum size of the token bucket used for rate limiting.
+	RequestsMaxBurst int `alias:"requests_max_burst"`
+
+	// Routes is a list of rate limits applied to specific routes.
+	// Overrides any top-level configuration.
+	Routes []InstanceLevelRouteRateLimits
+}
+
+// InstanceLevelRouteRateLimits represents rate limit configuration
+// applied to a route matching one of PathExact/PathPrefix/PathRegex.
+type InstanceLevelRouteRateLimits struct {
+	PathExact  string `alias:"path_exact"`
+	PathPrefix string `alias:"path_prefix"`
+	PathRegex  string `alias:"path_regex"`
+
+	RequestsPerSecond int `alias:"requests_per_second"`
+	RequestsMaxBurst  int `alias:"requests_max_burst"`
+}
+
 type ServiceConfigEntry struct {
 	Kind                      string
 	Name                      string
@@ -284,6 +364,7 @@ type ServiceConfigEntry struct {
 	Protocol                  string                  `json:",omitempty"`
 	Mode                      ProxyMode               `json:",omitempty"`
 	TransparentProxy          *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode             MutualTLSMode           `json:",omitempty" alias:"mutual_tls_mode"`
 	MeshGateway               MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
 	Expose                    ExposeConfig            `json:",omitempty"`
 	ExternalSNI               string                  `json:",omitempty" alias:"external_sni"`
@@ -293,6 +374,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                     `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                     `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                  `json:",omitempty" alias:"balance_inbound_connections"`
+	RateLimits                *RateLimits             `json:",omitempty" alias:"rate_limits"`
 	EnvoyExtensions           []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
 	Meta                      map[string]string       `json:",omitempty"`
 	CreateIndex               uint64
@@ -308,17 +390,20 @@ func (s *ServiceConfigEntry) GetCreateIndex() uint64     { return s.CreateIndex 
 func (s *ServiceConfigEntry) GetModifyIndex() uint64     { return s.ModifyIndex }
 
 type ProxyConfigEntry struct {
-	Kind             string
-	Name             string
-	Partition        string                  `json:",omitempty"`
-	Namespace        string                  `json:",omitempty"`
-	Mode             ProxyMode               `json:",omitempty"`
-	TransparentProxy *TransparentProxyConfig `json:",omitempty" alias:"transparent_proxy"`
-	Config           map[string]interface{}  `json:",omitempty"`
-	MeshGateway      MeshGatewayConfig       `json:",omitempty" alias:"mesh_gateway"`
-	Expose           ExposeConfig            `json:",omitempty"`
-	AccessLogs       *AccessLogsConfig       `json:",omitempty" alias:"access_logs"`
-	EnvoyExtensions  []EnvoyExtension        `json:",omitempty" alias:"envoy_extensions"`
+	Kind                 string
+	Name                 string
+	Partition            string                               `json:",omitempty"`
+	Namespace            string                               `json:",omitempty"`
+	Mode                 ProxyMode                            `json:",omitempty"`
+	TransparentProxy     *TransparentProxyConfig              `json:",omitempty" alias:"transparent_proxy"`
+	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
+	Config               map[string]interface{}               `json:",omitempty"`
+	MeshGateway          MeshGatewayConfig                    `json:",omitempty" alias:"mesh_gateway"`
+	Expose               ExposeConfig                         `json:",omitempty"`
+	AccessLogs           *AccessLogsConfig                    `json:",omitempty" alias:"access_logs"`
+	EnvoyExtensions      []EnvoyExtension                     `json:",omitempty" alias:"envoy_extensions"`
+	FailoverPolicy       *ServiceResolverFailoverPolicy       `json:",omitempty" alias:"failover_policy"`
+	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta        map[string]string `json:",omitempty"`
 	CreateIndex uint64
@@ -355,6 +440,8 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &MeshConfigEntry{}, nil
 	case ExportedServices:
 		return &ExportedServicesConfigEntry{Name: name}, nil
+	case SamenessGroup:
+		return &SamenessGroupConfigEntry{Kind: kind, Name: name}, nil
 	case APIGateway:
 		return &APIGatewayConfigEntry{Kind: kind, Name: name}, nil
 	case TCPRoute:
@@ -363,6 +450,10 @@ func makeConfigEntry(kind, name string) (ConfigEntry, error) {
 		return &InlineCertificateConfigEntry{Kind: kind, Name: name}, nil
 	case HTTPRoute:
 		return &HTTPRouteConfigEntry{Kind: kind, Name: name}, nil
+	case RateLimitIPConfig:
+		return &RateLimitIPConfigEntry{Kind: kind, Name: name}, nil
+	case JWTProvider:
+		return &JWTProviderConfigEntry{Kind: kind, Name: name}, nil
 	default:
 		return nil, fmt.Errorf("invalid config entry kind: %s", kind)
 	}

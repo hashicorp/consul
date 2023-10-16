@@ -84,7 +84,7 @@ license {
 
 ### Auto-retrieval
 
-You can use the `auto_retrieval` block to configure the the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
+You can use the `auto_retrieval` block to configure the automatic license retrieval in CTS. When enabled, CTS attempts to retrieve a new license from its configured Consul Enterprise backend once a day. If CTS cannot retrieve a license and the current license is reaching its expiration date, CTS attempts to retrieve a license with increased frequency, as defined by the [License Expiration Date Handling](/consul/docs/nia/enterprise/license#license-expiration-handling).
 
 ~> Enabling `auto_retrieval` is recommended when using HCP Consul, as HCP Consul licenses expire more frequently than Consul Enterprise licenses. Without auto-retrieval enabled, you have to restart CTS every time you load a new license.
 
@@ -197,7 +197,7 @@ Service registration requires that the [Consul token](/consul/docs/nia/configura
 | `default_check.enabled` | Optional | boolean | Enables CTS to create the default health check. | `true` |
 | `default_check.address` | Optional | string | The address to use for the default HTTP health check. Needs to include the scheme (`http`/`https`) and the port, if applicable. | `http://localhost:<port>` or `https://localhost:<port>`. Determined from the [port configuration](/consul/docs/nia/configuration#port) and whether [TLS is enabled](/consul/docs/nia/configuration#enabled-2) on the CTS API. |
 
-The default health check is an [HTTP check](/consul/docs/discovery/checks#http-interval) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
+The default health check is an [HTTP check](/consul/docs/services/usage/checks#http-checks) that calls the [Health API](/consul/docs/nia/api/health). The following table describes the values CTS sets for this default check, corresponding to the [Consul register check API](/consul/api-docs/agent/check#register-check). If an option is not listed in this table, then CTS is using the default value.
 
 | Parameter | Value |
 | --------- | ----- |
@@ -277,7 +277,7 @@ A `task` block configures which task to execute in automation. Use  the `conditi
 task {
   name           = "taskA"
   description    = ""
-  enabled        = true,
+  enabled        = true
   providers      = []
   module         = "org/example/module"
   version        = "1.0.0"
@@ -564,7 +564,7 @@ task {
     cron = "* * * * Mon"
   }
 
-  module_input “services” {
+  module_input "services" {
     regexp = "^web.*"
     datacenter = "dc1"
     namespace  = "default"

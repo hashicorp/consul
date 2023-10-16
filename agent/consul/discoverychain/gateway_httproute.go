@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package discoverychain
 
 import (
@@ -44,7 +47,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 	splitters := []*structs.ServiceSplitterConfigEntry{}
 	defaults := []*structs.ServiceConfigEntry{}
 
-	router, splits := httpRouteToDiscoveryChain(route)
+	router, splits, upstreamDefaults := httpRouteToDiscoveryChain(route)
 	serviceDefault := httpServiceDefault(router, meta)
 	defaults = append(defaults, serviceDefault)
 	for _, split := range splits {
@@ -53,6 +56,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 			defaults = append(defaults, httpServiceDefault(split, meta))
 		}
 	}
+	defaults = append(defaults, upstreamDefaults...)
 
 	ingress := structs.IngressService{
 		Name:           router.Name,
@@ -64,7 +68,7 @@ func synthesizeHTTPRouteDiscoveryChain(route structs.HTTPRouteConfigEntry) (stru
 	return ingress, router, splitters, defaults
 }
 
-func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry) {
+func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.ServiceRouterConfigEntry, []*structs.ServiceSplitterConfigEntry, []*structs.ServiceConfigEntry) {
 	router := &structs.ServiceRouterConfigEntry{
 		Kind:           structs.ServiceRouter,
 		Name:           route.GetName(),
@@ -72,37 +76,61 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 		EnterpriseMeta: route.EnterpriseMeta,
 	}
 	var splitters []*structs.ServiceSplitterConfigEntry
+	var defaults []*structs.ServiceConfigEntry
 
 	for idx, rule := range route.Rules {
-		modifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
-		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrites)
+		requestModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.Filters.Headers)
+		responseModifier := httpRouteFiltersToServiceRouteHeaderModifier(rule.ResponseFilters.Headers)
+		prefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(rule.Filters.URLRewrite)
 
 		var destination structs.ServiceRouteDestination
 		if len(rule.Services) == 1 {
-			// TODO open question: is there a use case where someone might want to set the rewrite to ""?
 			service := rule.Services[0]
 
-			servicePrefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrites)
-			if servicePrefixRewrite == "" {
+			servicePrefixRewrite := httpRouteFiltersToDestinationPrefixRewrite(service.Filters.URLRewrite)
+			if service.Filters.URLRewrite == nil {
 				servicePrefixRewrite = prefixRewrite
 			}
-			serviceModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
-			modifier.Add = mergeMaps(modifier.Add, serviceModifier.Add)
-			modifier.Set = mergeMaps(modifier.Set, serviceModifier.Set)
-			modifier.Remove = append(modifier.Remove, serviceModifier.Remove...)
+
+			// Merge service request header modifier(s) onto route rule modifiers
+			// Note: Removals for the same header may exist on the rule + the service and
+			//   will result in idempotent duplicate values in the modifier w/ service coming last
+			serviceRequestModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.Filters.Headers)
+			requestModifier.Add = mergeMaps(requestModifier.Add, serviceRequestModifier.Add)
+			requestModifier.Set = mergeMaps(requestModifier.Set, serviceRequestModifier.Set)
+			requestModifier.Remove = append(requestModifier.Remove, serviceRequestModifier.Remove...)
+
+			// Merge service response header modifier(s) onto route rule modifiers
+			// Note: Removals for the same header may exist on the rule + the service and
+			//   will result in idempotent duplicate values in the modifier w/ service coming last
+			serviceResponseModifier := httpRouteFiltersToServiceRouteHeaderModifier(service.ResponseFilters.Headers)
+			responseModifier.Add = mergeMaps(responseModifier.Add, serviceResponseModifier.Add)
+			responseModifier.Set = mergeMaps(responseModifier.Set, serviceResponseModifier.Set)
+			responseModifier.Remove = append(responseModifier.Remove, serviceResponseModifier.Remove...)
 
 			destination.Service = service.Name
 			destination.Namespace = service.NamespaceOrDefault()
 			destination.Partition = service.PartitionOrDefault()
 			destination.PrefixRewrite = servicePrefixRewrite
-			destination.RequestHeaders = modifier
+			destination.RequestHeaders = requestModifier
+			destination.ResponseHeaders = responseModifier
+
+			// since we have already validated the protocol elsewhere, we
+			// create a new service defaults here to make sure we pass validation
+			defaults = append(defaults, &structs.ServiceConfigEntry{
+				Kind:           structs.ServiceDefaults,
+				Name:           service.Name,
+				Protocol:       "http",
+				EnterpriseMeta: service.EnterpriseMeta,
+			})
 		} else {
 			// create a virtual service to split
 			destination.Service = fmt.Sprintf("%s-%d", route.GetName(), idx)
 			destination.Namespace = route.NamespaceOrDefault()
 			destination.Partition = route.PartitionOrDefault()
 			destination.PrefixRewrite = prefixRewrite
-			destination.RequestHeaders = modifier
+			destination.RequestHeaders = requestModifier
+			destination.ResponseHeaders = responseModifier
 
 			splitter := &structs.ServiceSplitterConfigEntry{
 				Kind:           structs.ServiceSplitter,
@@ -133,10 +161,41 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				split.Namespace = service.NamespaceOrDefault()
 				split.Partition = service.PartitionOrDefault()
 				splitter.Splits = append(splitter.Splits, split)
+
+				// since we have already validated the protocol elsewhere, we
+				// create a new service defaults here to make sure we pass validation
+				defaults = append(defaults, &structs.ServiceConfigEntry{
+					Kind:           structs.ServiceDefaults,
+					Name:           service.Name,
+					Protocol:       "http",
+					EnterpriseMeta: service.EnterpriseMeta,
+				})
 			}
 			if len(splitter.Splits) > 0 {
 				splitters = append(splitters, splitter)
 			}
+		}
+
+		if rule.Filters.RetryFilter != nil {
+			if rule.Filters.RetryFilter.NumRetries != nil {
+				destination.NumRetries = *rule.Filters.RetryFilter.NumRetries
+			}
+			if rule.Filters.RetryFilter.RetryOnConnectFailure != nil {
+				destination.RetryOnConnectFailure = *rule.Filters.RetryFilter.RetryOnConnectFailure
+			}
+
+			if len(rule.Filters.RetryFilter.RetryOn) > 0 {
+				destination.RetryOn = rule.Filters.RetryFilter.RetryOn
+			}
+
+			if len(rule.Filters.RetryFilter.RetryOnStatusCodes) > 0 {
+				destination.RetryOnStatusCodes = rule.Filters.RetryFilter.RetryOnStatusCodes
+			}
+		}
+
+		if rule.Filters.TimeoutFilter != nil {
+			destination.IdleTimeout = rule.Filters.TimeoutFilter.IdleTimeout
+			destination.RequestTimeout = rule.Filters.TimeoutFilter.RequestTimeout
 		}
 
 		// for each match rule a ServiceRoute is created for the service-router
@@ -151,18 +210,17 @@ func httpRouteToDiscoveryChain(route structs.HTTPRouteConfigEntry) (*structs.Ser
 				Destination: &destination,
 			})
 		}
+
 	}
 
-	return router, splitters
+	return router, splitters, defaults
 }
 
-func httpRouteFiltersToDestinationPrefixRewrite(rewrites []structs.URLRewrite) string {
-	for _, rewrite := range rewrites {
-		if rewrite.Path != "" {
-			return rewrite.Path
-		}
+func httpRouteFiltersToDestinationPrefixRewrite(rewrite *structs.URLRewrite) string {
+	if rewrite == nil {
+		return ""
 	}
-	return ""
+	return rewrite.Path
 }
 
 // httpRouteFiltersToServiceRouteHeaderModifier will consolidate a list of HTTP filters

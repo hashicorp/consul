@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export const defaultRunner = function (target, configuration, isClosed) {
   if (isClosed(target)) {
     target.dispatchEvent({ type: 'close' });

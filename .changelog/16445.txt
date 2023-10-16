@@ -1,0 +1,3 @@
+```release-note:bug
+cli: ensure acl token read -self works
+```

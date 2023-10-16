@@ -1,13 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peerstream
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -18,11 +21,11 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto/pbcommon"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/pbpeerstream"
-	"github.com/hashicorp/consul/proto/pbservice"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/pbpeerstream"
+	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -472,15 +475,40 @@ func TestSubscriptionManager_InitialSnapshot(t *testing.T) {
 		Node:    &structs.Node{Node: "foo", Address: "10.0.0.1"},
 		Service: &structs.NodeService{ID: "mysql-1", Service: "mysql", Port: 5000},
 	}
+	mysqlSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mysql-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mysql",
+		},
+	}
 	backend.ensureNode(t, mysql.Node)
 	backend.ensureService(t, "foo", mysql.Service)
+	backend.ensureService(t, "foo", &mysqlSidecar)
 
 	mongo := &structs.CheckServiceNode{
-		Node:    &structs.Node{Node: "zip", Address: "10.0.0.3"},
-		Service: &structs.NodeService{ID: "mongo-1", Service: "mongo", Port: 5000},
+		Node: &structs.Node{Node: "zip", Address: "10.0.0.3"},
+		Service: &structs.NodeService{
+			ID:      "mongo-1",
+			Service: "mongo",
+			Port:    5000,
+		},
+	}
+	mongoSidecar := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		Service: "mongo-sidecar-proxy",
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "mongo",
+		},
 	}
 	backend.ensureNode(t, mongo.Node)
 	backend.ensureService(t, "zip", mongo.Service)
+	backend.ensureService(t, "zip", &mongoSidecar)
+
+	backend.ensureConfigEntry(t, &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "chain",
+	})
 
 	var (
 		mysqlCorrID = subExportedService + structs.NewServiceName("mysql", nil).String()
@@ -653,7 +681,7 @@ func TestSubscriptionManager_ServerAddrs(t *testing.T) {
 		},
 	}
 	// mock handler only gets called once during the initial subscription
-	backend.handler.expect("", 0, 1, payload)
+	backend.handler.SetPayload(1, payload)
 
 	// Only configure a tracker for server address events.
 	tracker := newResourceSubscriptionTracker()
@@ -988,7 +1016,7 @@ func TestFlattenChecks(t *testing.T) {
 type testSubscriptionBackend struct {
 	state.EventPublisher
 	store   *state.Store
-	handler *mockSnapshotHandler
+	handler *dummyReadyServersSnapshotHandler
 
 	lastIdx uint64
 }
@@ -1105,11 +1133,11 @@ func setupTestPeering(t *testing.T, store *state.Store, name string, index uint6
 	return p.ID
 }
 
-func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *mockSnapshotHandler) {
+func newStateStore(t *testing.T, publisher *stream.EventPublisher) (*state.Store, *dummyReadyServersSnapshotHandler) {
 	gc, err := state.NewTombstoneGC(time.Second, time.Millisecond)
 	require.NoError(t, err)
 
-	handler := newMockSnapshotHandler(t)
+	handler := &dummyReadyServersSnapshotHandler{}
 
 	store := state.NewStateStoreWithEventPublisher(gc, publisher)
 	require.NoError(t, publisher.RegisterHandler(state.EventTopicServiceHealth, store.ServiceHealthSnapshot, false))
@@ -1269,38 +1297,34 @@ func pbCheck(node, svcID, svcName, status string, entMeta *pbcommon.EnterpriseMe
 	}
 }
 
-// mockSnapshotHandler is copied from server_discovery/server_test.go
-type mockSnapshotHandler struct {
-	mock.Mock
+type dummyReadyServersSnapshotHandler struct {
+	lock       sync.Mutex
+	eventIndex uint64
+	payload    autopilotevents.EventPayloadReadyServers
 }
 
-func newMockSnapshotHandler(t *testing.T) *mockSnapshotHandler {
-	handler := &mockSnapshotHandler{}
-	t.Cleanup(func() {
-		handler.AssertExpectations(t)
-	})
-	return handler
+func (h *dummyReadyServersSnapshotHandler) SetPayload(idx uint64, payload autopilotevents.EventPayloadReadyServers) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	h.eventIndex = idx
+	h.payload = payload
 }
 
-func (m *mockSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	ret := m.Called(req, buf)
-	return ret.Get(0).(uint64), ret.Error(1)
-}
+func (h *dummyReadyServersSnapshotHandler) handle(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
+	if req.Topic != autopilotevents.EventTopicReadyServers {
+		return 0, fmt.Errorf("bad request")
+	}
+	if req.Subject != stream.SubjectNone {
+		return 0, fmt.Errorf("bad request")
+	}
 
-func (m *mockSnapshotHandler) expect(token string, requestIndex uint64, eventIndex uint64, payload autopilotevents.EventPayloadReadyServers) {
-	m.On("handle", stream.SubscribeRequest{
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	buf.Append([]stream.Event{{
 		Topic:   autopilotevents.EventTopicReadyServers,
-		Subject: stream.SubjectNone,
-		Token:   token,
-		Index:   requestIndex,
-	}, mock.Anything).Run(func(args mock.Arguments) {
-		buf := args.Get(1).(stream.SnapshotAppender)
-		buf.Append([]stream.Event{
-			{
-				Topic:   autopilotevents.EventTopicReadyServers,
-				Index:   eventIndex,
-				Payload: payload,
-			},
-		})
-	}).Return(eventIndex, nil)
+		Index:   h.eventIndex,
+		Payload: h.payload,
+	}})
+
+	return h.eventIndex, nil
 }

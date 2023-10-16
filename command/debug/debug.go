@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package debug
 
 import (
@@ -23,6 +26,8 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
+
+	"github.com/hashicorp/hcdiag/command"
 )
 
 const (
@@ -32,7 +37,7 @@ const (
 
 	// debugDuration is the total duration that debug runs before being
 	// shut down
-	debugDuration = 2 * time.Minute
+	debugDuration = 5 * time.Minute
 
 	// debugDurationGrace is a period of time added to the specified
 	// duration to allow intervals to capture within that time
@@ -78,6 +83,7 @@ type cmd struct {
 	interval time.Duration
 	duration time.Duration
 	output   string
+	since    string
 	archive  bool
 	capture  []string
 	client   *api.Client
@@ -132,6 +138,8 @@ func (c *cmd) init() {
 	c.flags.StringVar(&c.output, "output", defaultFilename, "The path "+
 		"to the compressed archive that will be created with the "+
 		"information after collection.")
+	c.flags.StringVar(&c.since, "since", "", "Flag used for hcdiag command, time within"+
+		"which information is collected")
 
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
@@ -178,9 +186,17 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	c.UI.Output("Starting debugger and capturing static information...")
+	c.UI.Info(fmt.Sprintf(" Agent Version: '%s'", version))
+
+	if c.since != "" {
+		runCommand := command.NewRunCommand(&cli.BasicUi{
+			Writer: os.Stdout, ErrorWriter: os.Stderr,
+		})
+		runCommand.Run([]string{"-consul", fmt.Sprintf("-since=%s", c.since)})
+		return 0
+	}
 
 	// Output metadata about target agent
-	c.UI.Info(fmt.Sprintf(" Agent Version: '%s'", version))
 	c.UI.Info(fmt.Sprintf("      Interval: '%s'", c.interval))
 	c.UI.Info(fmt.Sprintf("      Duration: '%s'", c.duration))
 	c.UI.Info(fmt.Sprintf("        Output: '%s'", archiveName))
@@ -270,7 +286,8 @@ func (c *cmd) prepare() (version string, err error) {
 	// If none are specified we will collect information from
 	// all by default
 	if len(c.capture) == 0 {
-		c.capture = defaultTargets
+		c.capture = make([]string, len(defaultTargets))
+		copy(c.capture, defaultTargets)
 	}
 
 	// If EnableDebug is not true, skip collecting pprof
@@ -499,7 +516,7 @@ func (c *cmd) captureHeap(outputDir string) error {
 }
 
 func (c *cmd) captureLogs(ctx context.Context) error {
-	logCh, err := c.client.Agent().Monitor("DEBUG", ctx.Done(), nil)
+	logCh, err := c.client.Agent().Monitor("TRACE", ctx.Done(), nil)
 	if err != nil {
 		return err
 	}
@@ -767,6 +784,11 @@ Usage: consul debug [options]
   other commonly secret material are redacted automatically, but we
   strongly recommend review of the data within the archive prior to
   transmitting it.
+
+  To get information from past, -since flag can be used. It internally uses
+  hcdiag -consul -since
+      
+      $ consul debug -since 1h
 
   For a full list of options and examples, please see the Consul
   documentation.

@@ -425,6 +425,10 @@
       {
         "title": "raft",
         "path": "operator/raft"
+      },
+      {
+        "title": "usage",
+        "path": "operator/usage"
       }
     ]
   },
@@ -483,6 +487,10 @@
       {
         "title": "deregister",
         "path": "services/deregister"
+      },
+      {
+        "title": "export",
+        "path": "services/export"
       }
     ]
   },
@@ -525,6 +533,23 @@
       {
         "title": "cert",
         "path": "tls/cert"
+      }
+    ]
+  },
+  {
+    "title": "troubleshoot",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "troubleshoot"
+      },
+      {
+        "title": "upstreams",
+        "path": "troubleshoot/upstreams"
+      },
+      {
+        "title": "proxy",
+        "path": "troubleshoot/proxy"
       }
     ]
   },

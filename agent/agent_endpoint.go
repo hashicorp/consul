@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -8,29 +11,31 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
-
-	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 type Self struct {
@@ -304,6 +309,7 @@ func buildAgentService(s *structs.NodeService, dc string) api.AgentService {
 		ModifyIndex:       s.ModifyIndex,
 		Weights:           weights,
 		Datacenter:        dc,
+		Locality:          s.Locality.ToAPI(),
 	}
 
 	if as.Tags == nil {
@@ -612,6 +618,21 @@ func (s *HTTPHandlers) AgentMembers(resp http.ResponseWriter, req *http.Request)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// filter the members by parsed filter expression
+	var filterExpression string
+	s.parseFilter(req, &filterExpression)
+	if filterExpression != "" {
+		filter, err := bexpr.CreateFilter(filterExpression, nil, members)
+		if err != nil {
+			return nil, err
+		}
+		raw, err := filter.Execute(members)
+		if err != nil {
+			return nil, err
+		}
+		members = raw.([]serf.Member)
 	}
 
 	total := len(members)
@@ -1511,6 +1532,9 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 		case "config_file_service_registration":
 			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
 
+		case "dns_token", "dns":
+			s.agent.tokens.UpdateDNSToken(args.Token, token_store.TokenSourceAPI)
+
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}
@@ -1565,7 +1589,7 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 
 	// TODO(peering): expose way to get kind=mesh-gateway type cert with appropriate ACLs
 
-	args := cachetype.ConnectCALeafRequest{
+	args := leafcert.ConnectCALeafRequest{
 		Service: serviceName, // Need name not ID
 	}
 	var qOpts structs.QueryOptions
@@ -1594,17 +1618,13 @@ func (s *HTTPHandlers) AgentConnectCALeafCert(resp http.ResponseWriter, req *htt
 		return nil, nil
 	}
 
-	raw, m, err := s.agent.cache.Get(req.Context(), cachetype.ConnectCALeafName, &args)
+	reply, m, err := s.agent.leafCertManager.Get(req.Context(), &args)
 	if err != nil {
 		return nil, err
 	}
+
 	defer setCacheMeta(resp, &m)
 
-	reply, ok := raw.(*structs.IssuedCert)
-	if !ok {
-		// This should never happen, but we want to protect against panics
-		return nil, fmt.Errorf("internal error: response type not correct")
-	}
 	setIndex(resp, reply.ModifyIndex)
 
 	return reply, nil
@@ -1637,14 +1657,108 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
-	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)
+	// We need to have a target to check intentions
+	if authReq.Target == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Target service must be specified"}
+	}
+
+	// Parse the certificate URI from the client ID
+	uri, err := connect.ParseCertURIFromString(authReq.ClientCertURI)
 	if err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Connect identifier"}
+	}
+
+	uriService, ok := uri.(*connect.SpiffeIDService)
+	if !ok {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Service identifier"}
+	}
+
+	// We need to verify service:write permissions for the given token.
+	// We do this manually here since the RPC request below only verifies
+	// service:read.
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &authReq.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return nil, fmt.Errorf("Could not resolve token to authorizer: %w", err)
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(authReq.Target, &authzContext); err != nil {
 		return nil, err
 	}
-	setCacheMeta(resp, cacheMeta)
+
+	if !uriService.MatchesPartition(authReq.TargetPartition()) {
+		return nil, HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason: fmt.Sprintf("Mismatched partitions: %q != %q",
+				uriService.PartitionOrDefault(),
+				acl.PartitionOrDefault(authReq.TargetPartition())),
+		}
+	}
+
+	// Get the intentions for this target service.
+	args := &structs.IntentionQueryRequest{
+		Datacenter: s.agent.config.Datacenter,
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: authReq.TargetNamespace(),
+					Partition: authReq.TargetPartition(),
+					Name:      authReq.Target,
+				},
+			},
+		},
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+
+	raw, meta, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed getting intention match: %w", err)
+	}
+
+	reply, ok := raw.(*structs.IndexedIntentionMatches)
+	if !ok {
+		return nil, fmt.Errorf("internal error: response type not correct")
+	}
+	if len(reply.Matches) != 1 {
+		return nil, fmt.Errorf("Internal error loading matches")
+	}
+
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
+	for _, ixn := range reply.Matches[0] {
+		// We match on the intention source because the uriService is the source of the connection to authorize.
+		if _, ok := connect.AuthorizeIntentionTarget(
+			uriService.Service, uriService.Namespace, uriService.Partition, "", ixn, structs.IntentionMatchSource); ok {
+			ixnMatch = ixn
+			break
+		}
+	}
+
+	var (
+		authorized bool
+		reason     string
+	)
+
+	if ixnMatch != nil {
+		if len(ixnMatch.Permissions) == 0 {
+			// This is an L4 intention.
+			reason = fmt.Sprintf("Matched L4 intention: %s", ixnMatch.String())
+			authorized = ixnMatch.Action == structs.IntentionActionAllow
+		} else {
+			reason = fmt.Sprintf("Matched L7 intention: %s", ixnMatch.String())
+			// This is an L7 intention, so DENY.
+			authorized = false
+		}
+	} else {
+		reason = "Default behavior configured by ACLs"
+		authorized = authz.IntentionDefaultAllow(nil) == acl.Allow
+	}
+
+	setCacheMeta(resp, &meta)
 
 	return &connectAuthorizeResp{
-		Authorized: authz,
+		Authorized: authorized,
 		Reason:     reason,
 	}, nil
 }
@@ -1678,4 +1792,13 @@ func (s *HTTPHandlers) AgentHost(resp http.ResponseWriter, req *http.Request) (i
 	}
 
 	return debug.CollectHostInfo(), nil
+}
+
+// AgentVersion
+//
+// GET /v1/agent/version
+//
+// Retrieves Consul version information.
+func (s *HTTPHandlers) AgentVersion(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	return version.GetBuildInfo(), nil
 }

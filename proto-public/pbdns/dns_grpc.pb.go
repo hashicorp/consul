@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             (unknown)
-// source: proto-public/pbdns/dns.proto
+// source: pbdns/dns.proto
 
 package pbdns
 
@@ -101,5 +101,5 @@ var DNSService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "proto-public/pbdns/dns.proto",
+	Metadata: "pbdns/dns.proto",
 }

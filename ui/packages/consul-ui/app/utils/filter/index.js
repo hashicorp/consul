@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import setHelpers from 'mnemonist/set';
 
 const createPossibles = function (predicates) {

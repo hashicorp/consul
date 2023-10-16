@@ -1,15 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"math/rand"
+	"io"
+	mathrand "math/rand"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -17,11 +23,18 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/grpc-external/limiter"
+	"github.com/hashicorp/consul/agent/proxycfg"
+	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
+	"github.com/hashicorp/consul/agent/xds"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -47,13 +60,15 @@ import (
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/agent/hcp/scada"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbautoconf"
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -316,6 +331,7 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
+					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -323,8 +339,15 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					},
 					HTTPMaxHeaderBytes: tt.maxHeaderBytes,
 				},
-				Cache: cache.New(cache.Options{}),
+				Cache:  cache.New(cache.Options{}),
+				NetRPC: &LazyNetRPC{},
 			}
+
+			bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+				CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+				RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+				Config:      leafcert.Config{},
+			})
 
 			cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 			bd, err = initEnterpriseBaseDeps(bd, &cfg)
@@ -332,6 +355,9 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 
 			a, err := New(bd)
 			require.NoError(t, err)
+			mockDelegate := delegateMock{}
+			mockDelegate.On("LicenseCheck").Return()
+			a.delegate = &mockDelegate
 
 			a.startLicenseManager(testutil.TestContext(t))
 
@@ -366,6 +392,8 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				resp, err := client.Do(req.WithContext(ctx))
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
+				resp.Body.Close()
+				s.Shutdown(ctx)
 			}
 		})
 	}
@@ -442,6 +470,7 @@ func testAgent_AddService(t *testing.T, extraHCL string) {
 				Tags:           []string{"tag1"},
 				Weights:        nil, // nil weights...
 				Port:           8100,
+				Locality:       &structs.Locality{Region: "us-west-1", Zone: "us-west-1a"},
 				EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 			},
 			// ... should be populated to avoid "IsSame" returning true during AE.
@@ -752,7 +781,7 @@ func testAgent_AddServices_AliasUpdateCheckNotReverted(t *testing.T, extraHCL st
 
 func test_createAlias(t *testing.T, agent *TestAgent, chk *structs.CheckType, expectedResult string) func(r *retry.R) {
 	t.Helper()
-	serviceNum := rand.Int()
+	serviceNum := mathrand.Int()
 	srv := &structs.NodeService{
 		Service: fmt.Sprintf("serviceAlias-%d", serviceNum),
 		Tags:    []string{"tag1"},
@@ -946,6 +975,80 @@ func TestAgent_AddServiceWithH2CPINGCheck(t *testing.T) {
 		t.Fatalf("Error registering service: %v", err)
 	}
 	requireCheckExists(t, a, "test-h2cping-check")
+}
+
+func startMockTLSServer(t *testing.T) (addr string, closeFunc func() error) {
+	// Load certificates
+	cert, err := tls.LoadX509KeyPair("../test/key/ourdomain_server.cer", "../test/key/ourdomain_server.key")
+	require.NoError(t, err)
+	// Create a certificate pool
+	rootCertPool := x509.NewCertPool()
+	caCert, err := os.ReadFile("../test/ca/root.cer")
+	require.NoError(t, err)
+	rootCertPool.AppendCertsFromPEM(caCert)
+	// Configure TLS
+	config := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    rootCertPool,
+	}
+	// Start TLS server
+	ln, err := tls.Listen("tcp", "127.0.0.1:0", config)
+	require.NoError(t, err)
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			io.Copy(io.Discard, conn)
+			conn.Close()
+		}
+	}()
+	return ln.Addr().String(), ln.Close
+}
+
+func TestAgent_AddServiceWithTCPTLSCheck(t *testing.T) {
+	t.Parallel()
+	dataDir := testutil.TempDir(t, "agent")
+	a := NewTestAgent(t, `
+		data_dir = "`+dataDir+`"
+		enable_agent_tls_for_checks = true
+		datacenter = "dc1"
+		tls {
+			defaults {
+				ca_file   = "../test/ca/root.cer"
+				cert_file = "../test/key/ourdomain_server.cer"
+				key_file  = "../test/key/ourdomain_server.key"
+			}
+		}
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	// Start mock TCP+TLS server
+	addr, closeServer := startMockTLSServer(t)
+	defer closeServer()
+	check := &structs.HealthCheck{
+		Node:    "foo",
+		CheckID: "arbitraryTCPServerTLSCheck",
+		Name:    "arbitraryTCPServerTLSCheck",
+		Status:  api.HealthCritical,
+	}
+	chkType := &structs.CheckType{
+		TCP:           addr,
+		TCPUseTLS:     true,
+		TLSServerName: "server.dc1.consul",
+		Interval:      5 * time.Second,
+	}
+	err := a.AddCheck(check, chkType, false, "", ConfigSourceLocal)
+	require.NoError(t, err)
+	// Retry until the healthcheck is passing.
+	retry.Run(t, func(r *retry.R) {
+		status := getCheck(a, "arbitraryTCPServerTLSCheck")
+		if status.Status != api.HealthPassing {
+			r.Fatalf("bad: %v", status.Status)
+		}
+	})
 }
 
 func TestAgent_AddServiceNoExec(t *testing.T) {
@@ -4179,6 +4282,39 @@ func TestAgent_ReloadConfig_XDSUpdateRateLimit(t *testing.T) {
 	require.Equal(t, rate.Limit(1000), a.proxyConfig.UpdateRateLimit())
 }
 
+func TestAgent_ReloadConfig_EnableDebug(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	cfg := fmt.Sprintf(`data_dir = %q`, testutil.TempDir(t, "agent"))
+
+	a := NewTestAgent(t, cfg)
+	defer a.Shutdown()
+
+	c := TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = true`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, true, a.enableDebug.Load())
+
+	c = TestConfig(
+		testutil.Logger(t),
+		config.FileSource{
+			Name:   t.Name(),
+			Format: "hcl",
+			Data:   cfg + ` enable_debug = false`,
+		},
+	)
+	require.NoError(t, a.reloadConfigInternal(c))
+	require.Equal(t, false, a.enableDebug.Load())
+}
+
 func TestAgent_consulConfig_AutoEncryptAllowTLS(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -4250,7 +4386,7 @@ func TestAgent_consulConfig_RequestLimits(t *testing.T) {
 
 	t.Parallel()
 	hcl := `
-		limits { 
+		limits {
 			request_limits {
 				mode = "enforcing"
 				read_rate = 8888
@@ -4818,19 +4954,19 @@ services {
 
 	deadlineCh := time.After(10 * time.Second)
 	start := time.Now()
+LOOP:
 	for {
 		select {
 		case evt := <-ch:
 			// We may receive several notifications of an error until we get the
 			// first successful reply.
 			require.Equal(t, "foo", evt.CorrelationID)
-			if evt.Err == nil {
-				require.NoError(t, evt.Err)
-				require.NotNil(t, evt.Result)
-				t.Logf("took %s to get first success", time.Since(start))
-				return
+			if evt.Err != nil {
+				break LOOP
 			}
-			t.Logf("saw error: %v", evt.Err)
+			require.NoError(t, evt.Err)
+			require.NotNil(t, evt.Result)
+			t.Logf("took %s to get first success", time.Since(start))
 		case <-deadlineCh:
 			t.Fatal("did not get notified successfully")
 		}
@@ -5430,6 +5566,7 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
+			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5437,14 +5574,24 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 				&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: ports[1]},
 			},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err = initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6019,17 +6166,28 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
 		},
-		Cache: cache.New(cache.Options{}),
+		Cache:  cache.New(cache.Options{}),
+		NetRPC: &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	bd, err := initEnterpriseBaseDeps(bd, &config.RuntimeConfig{})
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6152,16 +6310,27 @@ func TestAgent_startListeners_scada(t *testing.T) {
 			HCP: hcp.Deps{
 				Provider: pvd,
 			},
+			Registry: resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
 	}
+
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
 
 	cfg := config.RuntimeConfig{BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC)}
 	bd, err := initEnterpriseBaseDeps(bd, &cfg)
 	require.NoError(t, err)
 
 	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6187,7 +6356,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 		},
 		Overrides: `
 cloud {
-  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100" 
+  resource_id = "organization/0b9de9a3-8403-4ca6-aba8-fca752f42100/project/0b9de9a3-8403-4ca6-aba8-fca752f42100/consul.cluster/0b9de9a3-8403-4ca6-aba8-fca752f42100"
   client_id = "test"
   client_secret = "test"
 }`,
@@ -6199,6 +6368,147 @@ cloud {
 	require.NoError(t, err)
 }
 
+func TestAgent_checkServerLastSeen(t *testing.T) {
+	bd := BaseDeps{
+		Deps: consul.Deps{
+			Logger:       hclog.NewInterceptLogger(nil),
+			Tokens:       new(token.Store),
+			GRPCConnPool: &fakeGRPCConnPool{},
+			Registry:     resource.NewRegistry(),
+		},
+		RuntimeConfig: &config.RuntimeConfig{},
+		Cache:         cache.New(cache.Options{}),
+		NetRPC:        &LazyNetRPC{},
+	}
+	bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+		CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+		RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+		Config:      leafcert.Config{},
+	})
+	agent, err := New(bd)
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	agent.delegate = &mockDelegate
+	require.NoError(t, err)
+
+	// Test that an ErrNotExist OS error is treated as ok.
+	t.Run("TestReadErrNotExist", func(t *testing.T) {
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return nil, os.ErrNotExist
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.NoError(t, err)
+	})
+
+	// Test that an error reading server metadata is treated as an error.
+	t.Run("TestReadErr", func(t *testing.T) {
+		expected := errors.New("read error")
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return nil, expected
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.ErrorIs(t, err, expected)
+	})
+
+	// Test that a server with a 7d old last seen timestamp is treated as an error.
+	t.Run("TestIsLastSeenStaleErr", func(t *testing.T) {
+		agent.config.ServerRejoinAgeMax = time.Hour
+
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return &consul.ServerMetadata{
+				LastSeenUnix: time.Now().Add(-24 * 7 * time.Hour).Unix(),
+			}, nil
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.Error(t, err)
+		require.ErrorContains(t, err, "refusing to rejoin cluster because server has been offline for more than the configured server_rejoin_age_max")
+	})
+
+	// Test that a server with a 6h old last seen timestamp is not treated as an error.
+	t.Run("TestNoErr", func(t *testing.T) {
+		agent.config.ServerRejoinAgeMax = 24 * 7 * time.Hour
+
+		readFn := func(filename string) (*consul.ServerMetadata, error) {
+			return &consul.ServerMetadata{
+				LastSeenUnix: time.Now().Add(-6 * time.Hour).Unix(),
+			}, nil
+		}
+
+		err := agent.checkServerLastSeen(readFn)
+		require.NoError(t, err)
+	})
+}
+
+func TestAgent_getProxyWatcher(t *testing.T) {
+	type testcase struct {
+		description    string
+		getExperiments func() []string
+		expectedType   xds.ProxyWatcher
+	}
+	testscases := []testcase{
+		{
+			description:  "config source is returned when api-resources experiment is not configured",
+			expectedType: &local.ConfigSource{},
+			getExperiments: func() []string {
+				return []string{}
+			},
+		},
+		{
+			description:  "proxy tracker is returned when api-resources experiment is configured",
+			expectedType: &proxytracker.ProxyTracker{},
+			getExperiments: func() []string {
+				return []string{consul.CatalogResourceExperimentName}
+			},
+		},
+	}
+	for _, tc := range testscases {
+		caConfig := tlsutil.Config{}
+		tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
+		require.NoError(t, err)
+
+		bd := BaseDeps{
+			Deps: consul.Deps{
+				Logger:          hclog.NewInterceptLogger(nil),
+				Tokens:          new(token.Store),
+				TLSConfigurator: tlsConf,
+				GRPCConnPool:    &fakeGRPCConnPool{},
+				Registry:        resource.NewRegistry(),
+			},
+			RuntimeConfig: &config.RuntimeConfig{
+				HTTPAddrs: []net.Addr{
+					&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
+				},
+			},
+			Cache:  cache.New(cache.Options{}),
+			NetRPC: &LazyNetRPC{},
+		}
+
+		bd.XDSStreamLimiter = limiter.NewSessionLimiter()
+		bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
+			CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
+			RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
+			Config:      leafcert.Config{},
+		})
+
+		cfg := config.RuntimeConfig{
+			BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC),
+		}
+		bd, err = initEnterpriseBaseDeps(bd, &cfg)
+		require.NoError(t, err)
+
+		bd.Experiments = tc.getExperiments()
+
+		agent, err := New(bd)
+		require.NoError(t, err)
+		agent.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{Logger: bd.Logger, Source: &structs.QuerySource{}})
+		require.NoError(t, err)
+		require.IsTypef(t, tc.expectedType, agent.getProxyWatcher(), fmt.Sprintf("Expected proxyWatcher to be of type %s", reflect.TypeOf(tc.expectedType)))
+	}
+
+}
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := os.ReadFile("../test/ca/root.cer")

@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package structs
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -713,6 +717,18 @@ type APIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
+func (e *APIGatewayConfigEntry) GetName() string                        { return e.Name }
+func (e *APIGatewayConfigEntry) GetMeta() map[string]string             { return e.Meta }
+func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex               { return &e.RaftIndex }
+func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta { return &e.EnterpriseMeta }
+
+var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
+
+func (e *APIGatewayConfigEntry) GetStatus() Status       { return e.Status }
+func (e *APIGatewayConfigEntry) SetStatus(status Status) { e.Status = status }
+func (e *APIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }
+
 func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
 	for _, condition := range e.Status.Conditions {
 		if !condition.Resource.IsSame(&ResourceReference{
@@ -732,34 +748,34 @@ func (e *APIGatewayConfigEntry) ListenerIsReady(name string) bool {
 	return true
 }
 
-func (e *APIGatewayConfigEntry) GetKind() string {
-	return APIGateway
-}
-
-func (e *APIGatewayConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-	return e.Name
-}
-
-func (e *APIGatewayConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
 func (e *APIGatewayConfigEntry) Normalize() error {
 	for i, listener := range e.Listeners {
 		protocol := strings.ToLower(string(listener.Protocol))
 		listener.Protocol = APIGatewayListenerProtocol(protocol)
 		e.Listeners[i] = listener
+
+		for i, cert := range listener.TLS.Certificates {
+			if cert.Kind == "" {
+				cert.Kind = InlineCertificate
+			}
+			cert.EnterpriseMeta.Merge(e.GetEnterpriseMeta())
+			cert.EnterpriseMeta.Normalize()
+
+			listener.TLS.Certificates[i] = cert
+		}
 	}
+
 	return nil
 }
 
 func (e *APIGatewayConfigEntry) Validate() error {
+	if err := validateConfigEntryMeta(e.Meta); err != nil {
+		return err
+	}
+
+	if len(e.Listeners) == 0 {
+		return fmt.Errorf("api gateway must have at least one listener")
+	}
 	if err := e.validateListenerNames(); err != nil {
 		return err
 	}
@@ -770,9 +786,14 @@ func (e *APIGatewayConfigEntry) Validate() error {
 	return e.validateListeners()
 }
 
+var listenerNameRegex = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`)
+
 func (e *APIGatewayConfigEntry) validateListenerNames() error {
 	listeners := make(map[string]struct{})
 	for _, listener := range e.Listeners {
+		if len(listener.Name) < 1 || !listenerNameRegex.MatchString(listener.Name) {
+			return fmt.Errorf("listener name %q is invalid, must be at least 1 character and contain only letters, numbers, or dashes", listener.Name)
+		}
 		if _, found := listeners[listener.Name]; found {
 			return fmt.Errorf("found multiple listeners with the name %q", listener.Name)
 		}
@@ -843,34 +864,6 @@ func (e *APIGatewayConfigEntry) CanWrite(authz acl.Authorizer) error {
 	return authz.ToAllowAuthorizer().MeshWriteAllowed(&authzContext)
 }
 
-func (e *APIGatewayConfigEntry) GetRaftIndex() *RaftIndex {
-	if e == nil {
-		return &RaftIndex{}
-	}
-	return &e.RaftIndex
-}
-
-func (e *APIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
-	if e == nil {
-		return nil
-	}
-	return &e.EnterpriseMeta
-}
-
-var _ ControlledConfigEntry = (*APIGatewayConfigEntry)(nil)
-
-func (e *APIGatewayConfigEntry) GetStatus() Status {
-	return e.Status
-}
-
-func (e *APIGatewayConfigEntry) SetStatus(status Status) {
-	e.Status = status
-}
-
-func (e *APIGatewayConfigEntry) DefaultStatus() Status {
-	return Status{}
-}
-
 // APIGatewayListenerProtocol is the protocol that an APIGateway listener uses
 type APIGatewayListenerProtocol string
 
@@ -881,9 +874,8 @@ const (
 
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
-	// Name is the optional name of the listener in a given gateway. This is
-	// optional but must be unique within a gateway; therefore, if a gateway
-	// has more than a single listener, all but one must specify a Name.
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
 	Name string
 	// Hostname is the host name that a listener should be bound to. If
 	// unspecified, the listener accepts requests for all hostnames.
@@ -895,6 +887,24 @@ type APIGatewayListener struct {
 	Protocol APIGatewayListenerProtocol
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
+
+	// Override is the policy that overrides all other policy and route specific configuration
+	Override *APIGatewayPolicy `json:",omitempty"`
+	// Default is the policy that is the default for the listener and route, routes can override this behavior
+	Default *APIGatewayPolicy `json:",omitempty"`
+}
+
+// APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
+type APIGatewayPolicy struct {
+	// JWT holds the JWT configuration for the Listener
+	JWT *APIGatewayJWTRequirement `json:",omitempty"`
+}
+
+func (l APIGatewayListener) GetHostname() string {
+	if l.Hostname != "" {
+		return l.Hostname
+	}
+	return "*"
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
@@ -911,6 +921,11 @@ type APIGatewayTLSConfiguration struct {
 	MinVersion types.TLSVersion
 	// CipherSuites is the cipher suites that the listener should support.
 	CipherSuites []types.TLSCipherSuite
+}
+
+// IsEmpty returns true if all values in the struct are nil or empty.
+func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
+	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
@@ -984,25 +999,26 @@ func (e *BoundAPIGatewayConfigEntry) IsInitializedForGateway(gateway *APIGateway
 	return true
 }
 
-func (e *BoundAPIGatewayConfigEntry) GetKind() string {
-	return BoundAPIGateway
-}
-
-func (e *BoundAPIGatewayConfigEntry) GetName() string {
-	if e == nil {
-		return ""
-	}
-	return e.Name
-}
-
-func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string {
-	if e == nil {
-		return nil
-	}
-	return e.Meta
-}
-
+func (e *BoundAPIGatewayConfigEntry) GetKind() string            { return BoundAPIGateway }
+func (e *BoundAPIGatewayConfigEntry) GetName() string            { return e.Name }
+func (e *BoundAPIGatewayConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *BoundAPIGatewayConfigEntry) Normalize() error {
+	for i, listener := range e.Listeners {
+		for j, route := range listener.Routes {
+			route.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			route.EnterpriseMeta.Normalize()
+
+			listener.Routes[j] = route
+		}
+		for j, cert := range listener.Certificates {
+			cert.EnterpriseMeta.Merge(&e.EnterpriseMeta)
+			cert.EnterpriseMeta.Normalize()
+
+			listener.Certificates[j] = cert
+		}
+
+		e.Listeners[i] = listener
+	}
 	return nil
 }
 
@@ -1141,8 +1157,6 @@ func (l *BoundAPIGatewayListener) UnbindRoute(route ResourceReference) bool {
 	return false
 }
 
-func (e *BoundAPIGatewayConfigEntry) GetStatus() Status {
-	return Status{}
-}
+func (e *BoundAPIGatewayConfigEntry) GetStatus() Status       { return Status{} }
 func (e *BoundAPIGatewayConfigEntry) SetStatus(status Status) {}
 func (e *BoundAPIGatewayConfigEntry) DefaultStatus() Status   { return Status{} }

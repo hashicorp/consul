@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -358,7 +361,10 @@ func TestAPI_ClientTxn(t *testing.T) {
 						"wan":      s.Config.Bind,
 						"wan_ipv4": s.Config.Bind,
 					},
-					Meta:        map[string]string{"consul-network-segment": ""},
+					Meta: map[string]string{
+						"consul-network-segment": "",
+						"consul-version":         s.Config.Version,
+					},
 					CreateIndex: ret.Results[1].Node.CreateIndex,
 					ModifyIndex: ret.Results[1].Node.ModifyIndex,
 				},

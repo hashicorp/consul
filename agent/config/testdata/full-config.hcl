@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 acl_agent_master_token = "furuQD0b"
 acl_agent_token = "cOshLOQ2"
 acl_datacenter = "m3urck3z"
@@ -282,6 +285,9 @@ enable_syslog = true
 encrypt = "A4wELWqH"
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
+experiments = [
+    "foo"
+]
 http_config {
     block_endpoints = [ "RBvAFcGD", "fWOWFznh" ]
     allow_write_http_from = [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ]
@@ -372,6 +378,11 @@ reconnect_timeout = "23739s"
 reconnect_timeout_wan = "26694s"
 recursors = [ "63.38.39.58", "92.49.18.18" ]
 rejoin_after_leave = true
+reporting = {
+    license = {
+        enabled = false
+    }
+}
 retry_interval = "8067s"
 retry_interval_wan = "28866s"
 retry_join = [ "pbsSFY7U", "l0qLtWij" ]
@@ -386,6 +397,7 @@ serf_lan = "99.43.63.15"
 serf_wan = "67.88.33.19"
 server = true
 server_name = "Oerr9n1G"
+server_rejoin_age_max = "604800s"
 service = {
     id = "dLOXpSCI"
     name = "o1ynPkp0"
@@ -681,6 +693,7 @@ telemetry {
     circonus_check_tags = "prvO4uBl"
     circonus_submission_interval = "DolzaflP"
     circonus_submission_url = "gTcbS93G"
+    enable_host_metrics = true
     disable_hostname = true
     dogstatsd_addr = "0wSndumK"
     dogstatsd_tags = [ "3N81zSUB","Xtj8AnXZ" ]

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -44,6 +47,16 @@ type PeeringRemoteInfo struct {
 	Partition string
 	// Datacenter is the remote peer's datacenter.
 	Datacenter string
+	Locality   *Locality `json:",omitempty"`
+}
+
+// Locality identifies where a given entity is running.
+type Locality struct {
+	// Region is region the zone belongs to.
+	Region string
+
+	// Zone is the zone the entity is running in.
+	Zone string
 }
 
 type Peering struct {

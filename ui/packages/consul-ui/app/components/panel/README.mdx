@@ -12,17 +12,10 @@ properties available to help maintain consistency within the panel.
 below is only for illustrative purposes. Please use this CSS component as a
 building block for other CSS instead.
 
-
 ```hbs preview-template
 <figure>
   <figcaption>Panel with no padding (in dark mode)</figcaption>
-  <div
-    class={{class-map
-      "panel"
-      "theme-dark"
-    }}
-    ...attributes
-  >
+  <div class={{class-map 'panel' 'theme-dark'}} ...attributes>
     <div>
       <p>Some text purposefully with no padding</p>
     </div>
@@ -34,34 +27,21 @@ building block for other CSS instead.
 </figure>
 <figure>
   <figcaption>Panel using inherited padding for consistency</figcaption>
-  <div
-    class={{class-map
-      "panel"
-    }}
-    ...attributes
-  >
+  <div class={{class-map 'panel'}} ...attributes>
     <Action
       style={{style-map
         (array 'width' '100%')
-        (array 'border-bottom' '1px solid rgb(var(--tone-border))')
+        (array 'border-bottom' '1px solid var(--tone-border)')
         (array 'padding' 'var(--padding-x) var(--padding-y)')
       }}
     >
       Full Width Button
     </Action>
-    <div
-      style={{style-map
-        (array 'padding' 'var(--padding-x) var(--padding-y)')
-      }}
-    >
+    <div style={{style-map (array 'padding' 'var(--padding-x) var(--padding-y)')}}>
       <p>Some text with padding</p>
     </div>
     <hr />
-    <div
-      style={{style-map
-        (array 'padding' 'var(--padding-x) var(--padding-y)')
-      }}
-    >
+    <div style={{style-map (array 'padding' 'var(--padding-x) var(--padding-y)')}}>
       <p>Along with a separator ^ again with padding</p>
     </div>
   </div>
@@ -69,44 +49,33 @@ building block for other CSS instead.
 <figure>
   <figcaption>Panel using larger padding and different color borders</figcaption>
   <div
-    class={{class-map
-      "panel"
+    class={{class-map 'panel'}}
+    style={{style-map
+      (array '--padding-x' '24px')
+      (array '--padding-y' '24px')
+      (array '--tone-border' 'var(--token-color-consul-foreground)')
     }}
-      style={{style-map
-        (array '--padding-x' '24px')
-        (array '--padding-y' '24px')
-        (array '--tone-border' 'var(--tone-strawberry-500)')
-      }}
     ...attributes
   >
     <Action
       style={{style-map
         (array 'width' '100%')
-        (array 'border-bottom' '1px solid rgb(var(--tone-border))')
+        (array 'border-bottom' '1px solid var(--tone-border)')
         (array 'padding' 'var(--padding-x) var(--padding-y)')
       }}
     >
       Full Width Button
     </Action>
-    <div
-      style={{style-map
-        (array 'padding' 'var(--padding-x) var(--padding-y)')
-      }}
-    >
+    <div style={{style-map (array 'padding' 'var(--padding-x) var(--padding-y)')}}>
       <p>Some text with padding</p>
     </div>
     <hr />
-    <div
-      style={{style-map
-        (array 'padding' 'var(--padding-x) var(--padding-y)')
-      }}
-    >
+    <div style={{style-map (array 'padding' 'var(--padding-x) var(--padding-y)')}}>
       <p>Along with a separator ^ again with padding</p>
     </div>
   </div>
 </figure>
 ```
-
 
 ```css
 .panel {
@@ -119,8 +88,8 @@ building block for other CSS instead.
 
 ## CSS Properties
 
-| Property | Type | Default | Description |
-| --- | --- | --- | --- |
-| `--tone-border` | `color` | --tone-gray-300 | Default color for all borders |
-| `--padding-x` | `length` | 14px | Default x padding to be used for padding values within the component |
-| `--padding-y` | `length` | 14px | Default y padding to be used for padding values within the component |
+| Property        | Type     | Default                           | Description                                                          |
+| --------------- | -------- | --------------------------------- | -------------------------------------------------------------------- |
+| `--tone-border` | `color`  | --token-color-palette-neutral-300 | Default color for all borders                                        |
+| `--padding-x`   | `length` | 14px                              | Default x padding to be used for padding values within the component |
+| `--padding-y`   | `length` | 14px                              | Default y padding to be used for padding values within the component |

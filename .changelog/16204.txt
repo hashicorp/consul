@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Update sidebar width to 280px
+```

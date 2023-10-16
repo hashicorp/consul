@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 // IngressGatewayConfigEntry manages the configuration for an ingress service
@@ -268,9 +271,8 @@ func (g *APIGatewayConfigEntry) GetModifyIndex() uint64     { return g.ModifyInd
 
 // APIGatewayListener represents an individual listener for an APIGateway
 type APIGatewayListener struct {
-	// Name is the optional name of the listener in a given gateway. This is
-	// optional, however, it must be unique. Therefore, if a gateway has more
-	// than a single listener, all but one must specify a Name.
+	// Name is the name of the listener in a given gateway. This must be
+	// unique within a gateway.
 	Name string
 	// Hostname is the host name that a listener should be bound to, if
 	// unspecified, the listener accepts requests for all hostnames.
@@ -282,6 +284,10 @@ type APIGatewayListener struct {
 	Protocol string
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
+	// Override is the policy that overrides all other policy and route specific configuration
+	Override *APIGatewayPolicy `json:",omitempty"`
+	// Default is the policy that is the default for the listener and route, routes can override this behavior
+	Default *APIGatewayPolicy `json:",omitempty"`
 }
 
 // APIGatewayTLSConfiguration specifies the configuration of a listener’s
@@ -299,4 +305,40 @@ type APIGatewayTLSConfiguration struct {
 	// Define a subset of cipher suites to restrict
 	// Only applicable to connections negotiated via TLS 1.2 or earlier
 	CipherSuites []string `json:",omitempty" alias:"cipher_suites"`
+}
+
+// APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
+type APIGatewayPolicy struct {
+	// JWT holds the JWT configuration for the Listener
+	JWT *APIGatewayJWTRequirement `json:",omitempty"`
+}
+
+// APIGatewayJWTRequirement holds the list of JWT providers to be verified against
+type APIGatewayJWTRequirement struct {
+	// Providers is a list of providers to consider when verifying a JWT.
+	Providers []*APIGatewayJWTProvider `json:",omitempty"`
+}
+
+// APIGatewayJWTProvider holds the provider and claim verification information
+type APIGatewayJWTProvider struct {
+	// Name is the name of the JWT provider. There MUST be a corresponding
+	// "jwt-provider" config entry with this name.
+	Name string `json:",omitempty"`
+
+	// VerifyClaims is a list of additional claims to verify in a JWT's payload.
+	VerifyClaims []*APIGatewayJWTClaimVerification `json:",omitempty" alias:"verify_claims"`
+}
+
+// APIGatewayJWTClaimVerification holds the actual claim information to be verified
+type APIGatewayJWTClaimVerification struct {
+	// Path is the path to the claim in the token JSON.
+	Path []string `json:",omitempty"`
+
+	// Value is the expected value at the given path:
+	// - If the type at the path is a list then we verify
+	//   that this value is contained in the list.
+	//
+	// - If the type at the path is a string then we verify
+	//   that this value matches.
+	Value string `json:",omitempty"`
 }

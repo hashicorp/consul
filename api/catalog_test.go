@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -62,6 +65,7 @@ func TestAPI_CatalogNodes(t *testing.T) {
 			},
 			Meta: map[string]string{
 				"consul-network-segment": "",
+				"consul-version":         s.Config.Version,
 			},
 		}
 		require.Equal(r, want, got)
@@ -216,6 +220,73 @@ func TestAPI_CatalogServices_NodeMetaFilter(t *testing.T) {
 	})
 }
 
+func TestAPI_CatalogServices_FilterExpr_NodeMeta(t *testing.T) {
+	t.Parallel()
+	meta := map[string]string{"somekey": "somevalue", "synthetic": "true"}
+	c, s := makeClientWithConfig(t, nil, func(conf *testutil.TestServerConfig) {
+		conf.NodeMeta = meta
+	})
+	defer s.Stop()
+
+	catalog := c.Catalog()
+	// Make sure we get the service back when filtering by filter expression
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta[\"synthetic\"] == true and NodeMeta[\"somekey\"] == somevalue"})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.synthetic == true"})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.somekey == somevalue"})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) == 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+	retry.Run(t, func(r *retry.R) {
+		services, meta, err := catalog.Services(&QueryOptions{Filter: "NodeMeta.nope == nope"})
+		if err != nil {
+			r.Fatal(err)
+		}
+
+		if meta.LastIndex == 0 {
+			r.Fatalf("Bad: %v", meta)
+		}
+
+		if len(services) != 0 {
+			r.Fatalf("Bad: %v", services)
+		}
+	})
+}
+
 func TestAPI_CatalogService(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)
@@ -326,11 +397,12 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 
 	agent := c.Agent()
 	catalog := c.Catalog()
-
+	locality := &Locality{Region: "us-west-1", Zone: "us-west-1a"}
 	reg := &AgentServiceRegistration{
-		Name: "foo",
-		ID:   "foo1",
-		Tags: []string{"bar"},
+		Name:     "foo",
+		ID:       "foo1",
+		Tags:     []string{"bar"},
+		Locality: locality,
 	}
 	require.NoError(t, agent.ServiceRegister(reg))
 	defer agent.ServiceDeregister("foo1")
@@ -341,6 +413,7 @@ func TestAPI_CatalogService_SingleTag(t *testing.T) {
 		require.NotEqual(r, meta.LastIndex, 0)
 		require.Len(r, services, 1)
 		require.Equal(r, services[0].ServiceID, "foo1")
+		require.Equal(r, locality, services[0].ServiceLocality)
 	})
 }
 

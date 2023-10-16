@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package state
 
 import (
@@ -22,6 +25,7 @@ var allConnectKind = []string{
 	string(structs.ServiceKindIngressGateway),
 	string(structs.ServiceKindMeshGateway),
 	string(structs.ServiceKindTerminatingGateway),
+	string(structs.ServiceKindAPIGateway),
 	connectNativeInstancesTable,
 }
 
@@ -126,11 +130,11 @@ func updateUsage(tx WriteTxn, changes Changes) error {
 			// changed, in order to compare it with the finished memdb state.
 			// Make sure to account for the fact that services can change their names.
 			if serviceNameChanged(change) {
-				serviceNameChanges[svc.CompoundServiceName()] += 1
+				serviceNameChanges[svc.CompoundServiceName().ServiceName] += 1
 				before := change.Before.(*structs.ServiceNode)
-				serviceNameChanges[before.CompoundServiceName()] -= 1
+				serviceNameChanges[before.CompoundServiceName().ServiceName] -= 1
 			} else {
-				serviceNameChanges[svc.CompoundServiceName()] += delta
+				serviceNameChanges[svc.CompoundServiceName().ServiceName] += delta
 			}
 
 		case "kvs":
@@ -420,6 +424,11 @@ func (s *Store) ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, e
 		return 0, structs.ServiceUsage{}, fmt.Errorf("failed services lookup: %s", err)
 	}
 
+	nodes, err := firstUsageEntry(ws, tx, tableNodes)
+	if err != nil {
+		return 0, structs.ServiceUsage{}, fmt.Errorf("failed nodes lookup: %s", err)
+	}
+
 	serviceKindInstances := make(map[string]int)
 	for _, kind := range allConnectKind {
 		usage, err := firstUsageEntry(ws, tx, connectUsageTableName(kind))
@@ -439,6 +448,7 @@ func (s *Store) ServiceUsage(ws memdb.WatchSet) (uint64, structs.ServiceUsage, e
 		Services:                 services.Count,
 		ConnectServiceInstances:  serviceKindInstances,
 		BillableServiceInstances: billableServiceInstances.Count,
+		Nodes:                    nodes.Count,
 	}
 	results, err := compileEnterpriseServiceUsage(ws, tx, usage)
 	if err != nil {

@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: Update alerts to Hds::Alert component
+```

@@ -38,3 +38,7 @@ load helpers
   assert_envoy_metric_at_least 127.0.0.1:20000 "v1.s2.default.primary.*cx_total" 1
 }
 
+@test "terminating-gateway is used for the upstream connection of the proxy" {
+  # make sure we resolve the terminating gateway as endpoint for the upstream
+  assert_upstream_has_endpoint_port 127.0.0.1:19001 "v1.s2" 8443
+}

@@ -13,7 +13,7 @@ description: >-
 
 - **Per listener TLS Config**: It is now possible to configure TLS differently for each of Consul's listeners, such as HTTPS, gRPC, and the internal multiplexed RPC listener, using the `tls` stanza. Refer to [TLS Configuration Reference](/consul/docs/agent/config/config-files#tls-configuration-reference) for more details. 
 
-- **AWS Lambda**: Adds the ability to invoke AWS Lambdas through terminating gateways, which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Refer to [AWS Lambda](/consul/docs]/lambda) and [Invoke Lambda Functions](/consul/docs/lambda/invocation) for more details. 
+- **AWS Lambda**: Adds the ability to invoke AWS Lambdas through terminating gateways, which allows for cross-datacenter communication, transparent proxy, and intentions with Consul Service Mesh. Refer to [AWS Lambda](/consul/docs/lambda) and [Invoke Lambda Functions](/consul/docs/lambda/invocation) for more details. 
 
 - **Mesh-wide TLS min/max versions and cipher suites**: Using the [Mesh](/consul/docs/connect/config-entries/mesh#tls) Config Entry or CRD, it is now possible to set TLS min/max versions and cipher suites for both inbound and outbound mTLS connections.
 
@@ -30,7 +30,7 @@ description: >-
 
 - The `disable_compat_1.9` option now defaults to true. Metrics formatted in the style of version 1.9, such as `consul.http...`,  can still be enabled by setting disable_compat_1.9 = false. However, these metrics will be removed in 1.13.
 
-- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/consul/docs/security/acl/acl-tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
+- The `agent_master` ACL token has been renamed to `agent_recovery` ACL token. In addition, the `consul acl set-agent-token master` command has been replaced with `consul acl set-agent-token recovery`. Refer to [ACL Agent Recovery Token](/consul/docs/security/acl/tokens#acl-agent-recovery-token) and [Consul ACL Set Agent Token](/consul/commands/acl/set-agent-token) for more information.
 
 - If TLS min versions and max versions are not specified, the TLS min/max versions default to the following values. For details on how to configure TLS min and max, refer to the [Mesh TLS config entry](/consul/docs/connect/config-entries/mesh#tls) or CRD documentation. 
   - Incoming connections: TLS 1.2 for min0 version, TLS 1.3 for max version

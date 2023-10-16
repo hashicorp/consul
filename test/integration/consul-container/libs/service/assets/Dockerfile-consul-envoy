@@ -1,8 +1,0 @@
-# Note these args have to be before the first FROM
-ARG CONSUL_IMAGE
-ARG ENVOY_VERSION
-
-FROM ${CONSUL_IMAGE} as consul
-
-FROM docker.mirror.hashicorp.services/envoyproxy/envoy:v${ENVOY_VERSION}
-COPY --from=consul /bin/consul /bin/consul

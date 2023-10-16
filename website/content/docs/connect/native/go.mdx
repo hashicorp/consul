@@ -7,26 +7,36 @@ description: >-
 
 # Service Mesh Native Integration for Go Applications
 
+<Note>
+
+The Connect Native golang SDK is currently deprecated and will be removed in a future Consul release.
+The SDK will be removed when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+</Note>
+
+We provide a library that makes it drop-in simple to integrate Consul service mesh
+with most [Go](https://golang.org/) applications. This page shows examples
+of integrating this library for accepting or establishing mesh-based
+connections. For most Go applications, Consul service mesh can be natively integrated
+in just a single line of code excluding imports and struct initialization.
+
+In addition to this, please read and understand the
+[overview of service mesh native integrations](/consul/docs/connect/native).
+In particular, after natively integrating applications with Consul service mesh,
+they must declare that they accept mesh-based connections via their service definitions.
+
+The noun _connect_ is used throughout this documentation and the Go API
+to refer to the connect subsystem that provides Consul's service mesh capabilities.
+
+## Accepting Connections
+
 -> **Note:** When calling `ConnectAuthorize()` on incoming connections this library
 will return _deny_ if `Permissions` are defined on the matching intention.
 The method is currently only suited for networking layer 4 (e.g. TCP) integration.
 
-We provide a library that makes it drop-in simple to integrate Connect
-with most [Go](https://golang.org/) applications. This page shows examples
-of integrating this library for accepting or establishing Connect-based
-connections. For most Go applications, Connect can be natively integrated
-in just a single line of code excluding imports and struct initialization.
-
-In addition to this, please read and understand the
-[overview of Connect-Native integrations](/consul/docs/connect/native).
-In particular, after integrating applications with Connect, they must declare
-that they accept Connect-based connections via their service definitions.
-
-## Accepting Connections
-
 Any server that supports TLS (HTTP, gRPC, net/rpc, etc.) can begin
-accepting Connect-based connections in just a few lines of code. For most
-existing applications, converting the server to accept Connect-based
+accepting mesh-based connections in just a few lines of code. For most
+existing applications, converting the server to accept mesh-based
 connections will require only a one-line change excluding imports and
 structure initialization.
 
@@ -55,7 +65,7 @@ func main() {
   svc, _ := connect.NewService("my-service", client)
   defer svc.Close()
 
-  // Creating an HTTP server that serves via Connect
+  // Creating an HTTP server that serves via service mesh
   server := &http.Server{
     Addr:      ":8080",
     TLSConfig: svc.ServerTLSConfig(),
@@ -106,7 +116,7 @@ func main() {
   svc, _ := connect.NewService("my-service", client)
   defer svc.Close()
 
-  // Creating an HTTP server that serves via Connect
+  // Creating an HTTP server that serves via service mesh
   listener, _ := tls.Listen("tcp", ":8080", svc.ServerTLSConfig())
   defer listener.Close()
 
@@ -117,9 +127,9 @@ func main() {
 
 ## HTTP Clients
 
-For Go applications that need to Connect to HTTP-based upstream dependencies,
+For Go applications that need to connect to HTTP-based upstream dependencies,
 the Go library can construct an `*http.Client` that automatically establishes
-Connect-based connections as long as Consul-based service discovery is used.
+mesh-based connections as long as Consul-based service discovery is used.
 
 Example, followed by more details:
 
@@ -152,7 +162,7 @@ section above. If your application is both a client and server, both the
 API client and service structure can be shared and reused.
 
 Next, we call `svc.HTTPClient()` to return a specially configured
-`*http.Client`. This client will automatically established Connect-based
+`*http.Client`. This client will automatically established mesh-based
 connections using Consul service discovery.
 
 Finally, we perform an HTTP `GET` request to a hypothetical userinfo service.
@@ -189,7 +199,7 @@ the following specific limitations:
 ## Raw TLS Connection
 
 For a raw `net.Conn` TLS connection, the `svc.Dial` function can be used.
-This will establish a connection to the desired service via Connect and
+This will establish a connection to the desired service via the service mesh and
 return the `net.Conn`. This connection can then be used as desired.
 
 Example:

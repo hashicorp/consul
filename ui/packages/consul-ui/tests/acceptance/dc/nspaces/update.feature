@@ -28,8 +28,8 @@ Feature: dc / nspaces / update: Nspace Update
         Description: [Description]
     ---
     Then the url should be /datacenter/namespaces
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
     Where:
       ---------------------------
       | Description             |
@@ -40,5 +40,5 @@ Feature: dc / nspaces / update: Nspace Update
     Given the url "/v1/namespace/namespace?dc=datacenter" responds with a 500 status
     And I submit
     Then the url should be /datacenter/namespaces/namespace
-    Then "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class

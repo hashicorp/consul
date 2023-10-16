@@ -1,0 +1,1 @@
+{"id":{"name":"korn","type":{"group":"demo","groupVersion":"v1","kind":"Artist"}},"data":{"@type":"hashicorp.consul.internal.demo.v1.Artist","name":"Korn"}}

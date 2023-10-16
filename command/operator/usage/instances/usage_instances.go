@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package instances
 
 import (
@@ -8,9 +11,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mitchellh/cli"
+	"golang.org/x/exp/maps"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -33,8 +38,10 @@ type cmd struct {
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.BoolVar(&c.onlyBillable, "billable", false, "Display only billable service info.")
-	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Connect service info.")
+	c.flags.BoolVar(&c.onlyBillable, "billable", false, "Display only billable service info. "+
+		"Cannot be used with -connect.")
+	c.flags.BoolVar(&c.onlyConnect, "connect", false, "Display only Connect service info."+
+		"Cannot be used with -billable.")
 	c.flags.BoolVar(&c.allDatacenters, "all-datacenters", false, "Display service counts from "+
 		"all datacenters.")
 
@@ -51,6 +58,11 @@ func (c *cmd) Run(args []string) int {
 
 	if l := len(c.flags.Args()); l > 0 {
 		c.UI.Error(fmt.Sprintf("Too many arguments (expected 0, got %d)", l))
+		return 1
+	}
+
+	if c.onlyBillable && c.onlyConnect {
+		c.UI.Error("Cannot specify both -billable and -connect flags")
 		return 1
 	}
 
@@ -89,6 +101,14 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 		c.UI.Output(billableOutput + "\n")
+
+		c.UI.Output("\nNodes")
+		nodesOutput, err := formatNodesCounts(usage.Usage)
+		if err != nil {
+			c.UI.Error(err.Error())
+			return 1
+		}
+		c.UI.Output(nodesOutput + "\n\n")
 	}
 
 	// Output Connect service counts
@@ -103,6 +123,36 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	return 0
+}
+
+func formatNodesCounts(usageStats map[string]api.ServiceUsage) (string, error) {
+	var output bytes.Buffer
+	tw := tabwriter.NewWriter(&output, 0, 2, 6, ' ', 0)
+
+	nodesTotal := 0
+
+	fmt.Fprintf(tw, "Datacenter\t")
+
+	fmt.Fprintf(tw, "Count\t")
+
+	fmt.Fprint(tw, "\t\n")
+
+	nodes := maps.Keys(usageStats)
+	sort.Strings(nodes)
+	for _, dc := range nodes {
+		nodesTotal += usageStats[dc].Nodes
+		fmt.Fprintf(tw, "%s\t%d\n", dc, usageStats[dc].Nodes)
+	}
+
+	fmt.Fprint(tw, "\t\n")
+	fmt.Fprintf(tw, "Total")
+
+	fmt.Fprintf(tw, "\t%d", nodesTotal)
+
+	if err := tw.Flush(); err != nil {
+		return "", fmt.Errorf("Error flushing tabwriter: %s", err)
+	}
+	return strings.TrimSpace(output.String()), nil
 }
 
 func formatServiceCounts(usageStats map[string]api.ServiceUsage, billable, showDatacenter bool) (string, error) {
@@ -219,22 +269,22 @@ func (c *cmd) Help() string {
 const (
 	synopsis = "Display service instance usage information"
 	help     = `
-Usage: consul usage instances [options]
+Usage: consul operator usage instances [options]
 
   Retrieves usage information about the number of services registered in a given
   datacenter. By default, the datacenter of the local agent is queried.
 
   To retrieve the service usage data:
 
-      $ consul usage instances
+      $ consul operator usage instances
 
   To show only billable service instance counts:
 
-      $ consul usage instances -billable
+      $ consul operator usage instances -billable
 
   To show only connect service instance counts:
 
-      $ consul usage instances -connect
+      $ consul operator usage instances -connect
 
   For a full list of options and examples, please see the Consul documentation.
 `

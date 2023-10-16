@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package validate
 
 import (
@@ -63,7 +66,7 @@ func TestErrors(t *testing.T) {
 				r.loadAssignment = true
 				r.endpoints = 1
 			},
-			err: "no clusters found on route or listener",
+			err: "No clusters found on route or listener",
 		},
 		"no healthy endpoints": {
 			validate: func() *Validate {
@@ -86,7 +89,7 @@ func TestErrors(t *testing.T) {
 			endpointValidator: func(r *resource, s string, clusters *envoy_admin_v3.Clusters) {
 				r.loadAssignment = true
 			},
-			err: "no healthy endpoints for cluster \"db-sni\" for upstream \"db\"",
+			err: "No healthy endpoints for cluster \"db-sni\" for upstream \"db\"",
 		},
 		"success: aggregate cluster with one target with endpoints": {
 			validate: func() *Validate {
@@ -169,7 +172,7 @@ func TestErrors(t *testing.T) {
 				r.loadAssignment = true
 				r.endpoints = 0
 			},
-			err: "no healthy endpoints for aggregate cluster \"db-sni\" for upstream \"db\"",
+			err: "No healthy endpoints for aggregate cluster \"db-sni\" for upstream \"db\"",
 		},
 		"success: passthrough cluster doesn't error even though there are zero endpoints": {
 			validate: func() *Validate {
@@ -203,7 +206,9 @@ func TestErrors(t *testing.T) {
 			var outputErrors string
 			for _, msgError := range messages.Errors() {
 				outputErrors += msgError.Message
-				outputErrors += msgError.PossibleActions
+				for _, action := range msgError.PossibleActions {
+					outputErrors += action
+				}
 			}
 			if tc.err == "" {
 				require.True(t, messages.Success())
@@ -330,7 +335,7 @@ func TestMakeValidate(t *testing.T) {
 	for n, tc := range cases {
 		t.Run(n, func(t *testing.T) {
 
-			extensionName := builtinValidateExtension
+			extensionName := api.BuiltinValidateExtension
 			if tc.extensionName != "" {
 				extensionName = tc.extensionName
 			}
@@ -344,7 +349,7 @@ func TestMakeValidate(t *testing.T) {
 				},
 				Upstreams: map[api.CompoundServiceName]*extensioncommon.UpstreamData{
 					svc: {
-						SNI: tc.snis,
+						SNIs: tc.snis,
 					},
 				},
 			}

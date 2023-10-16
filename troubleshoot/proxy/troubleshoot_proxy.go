@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package troubleshoot
 
 import (
@@ -8,15 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/troubleshoot/validate"
-)
-
-const (
-	listeners       string = "type.googleapis.com/envoy.admin.v3.ListenersConfigDump"
-	clusters        string = "type.googleapis.com/envoy.admin.v3.ClustersConfigDump"
-	routes          string = "type.googleapis.com/envoy.admin.v3.RoutesConfigDump"
-	endpoints       string = "type.googleapis.com/envoy.admin.v3.EndpointsConfigDump"
-	bootstrap       string = "type.googleapis.com/envoy.admin.v3.BootstrapConfigDump"
-	httpConnManager string = "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager"
 )
 
 type Troubleshoot struct {
@@ -79,7 +73,7 @@ func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate
 	if errors := messages.Errors(); len(errors) == 0 {
 		msg := validate.Message{
 			Success: true,
-			Message: "certificates are valid",
+			Message: "Certificates are valid",
 		}
 		allTestMessages = append(allTestMessages, msg)
 	}
@@ -97,7 +91,7 @@ func (t *Troubleshoot) RunAllTests(upstreamEnvoyID, upstreamIP string) (validate
 	if errors := messages.Errors(); len(errors) == 0 {
 		msg := validate.Message{
 			Success: true,
-			Message: "upstream resources are valid",
+			Message: "Upstream resources are valid",
 		}
 		allTestMessages = append(allTestMessages, msg)
 	}

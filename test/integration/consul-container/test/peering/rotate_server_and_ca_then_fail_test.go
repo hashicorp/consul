@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
@@ -50,7 +53,14 @@ import (
 func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 	t.Parallel()
 
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.TargetVersion)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.GetTargetImageName(), utils.TargetVersion,
+		libtopology.PeeringClusterSize{
+			AcceptingNumServers: 3,
+			AcceptingNumClients: 1,
+			DialingNumServers:   1,
+			DialingNumClients:   1,
+		},
+		false)
 	var (
 		acceptingCluster     = accepting.Cluster
 		dialingCluster       = dialing.Cluster
@@ -94,7 +104,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	}
 
 	testutil.RunStep(t, "rotate exporting cluster's root CA", func(t *testing.T) {
@@ -144,7 +154,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 		// Connectivity should still be contained
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 
 		verifySidecarHasTwoRootCAs(t, clientSidecarService)
 	})
@@ -166,7 +176,7 @@ func TestPeering_RotateServerAndCAThenFail_(t *testing.T) {
 
 		_, port := clientSidecarService.GetAddr()
 		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server")
+		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), libservice.StaticServerServiceName, "")
 	})
 }
 

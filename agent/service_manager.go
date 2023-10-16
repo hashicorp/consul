@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package agent
 
 import (
@@ -145,7 +148,8 @@ func (w *serviceConfigWatch) register(ctx context.Context) error {
 
 	// Merge the local registration with the central defaults and update this service
 	// in the local state.
-	merged, err := configentry.MergeServiceConfig(serviceDefaults, w.registration.Service)
+	ns := w.registration.Service.WithNormalizedUpstreams()
+	merged, err := configentry.MergeServiceConfig(serviceDefaults, ns)
 	if err != nil {
 		return err
 	}
@@ -275,7 +279,8 @@ func (w *serviceConfigWatch) handleUpdate(ctx context.Context, event cache.Updat
 
 	// Merge the local registration with the central defaults and update this service
 	// in the local state.
-	merged, err := configentry.MergeServiceConfig(serviceDefaults, w.registration.Service)
+	ns := w.registration.Service.WithNormalizedUpstreams()
+	merged, err := configentry.MergeServiceConfig(serviceDefaults, ns)
 	if err != nil {
 		return err
 	}

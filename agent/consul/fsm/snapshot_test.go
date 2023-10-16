@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package fsm
 
 import (
 	"bytes"
+	"context"
 	"net"
 	"testing"
 	"time"
@@ -15,18 +19,32 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/consul/proto/pbpeering"
-	"github.com/hashicorp/consul/proto/prototest"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-func TestFSM_SnapshotRestore_OSS(t *testing.T) {
+func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	t.Parallel()
 
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	handle := &testRaftHandle{}
+	storageBackend := newStorageBackend(t, handle)
+	handle.apply = func(buf []byte) (any, error) { return storageBackend.Apply(buf, 123), nil }
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: storageBackend,
+	})
+
+	fsm.state.SystemMetadataSet(10, &structs.SystemMetadataEntry{Key: structs.SystemMetadataVirtualIPsEnabled, Value: "true"})
 
 	// Add some state
 	node1 := &structs.Node{
@@ -63,8 +81,14 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Connect: connectConf,
 	})
 
+	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("web", nil)}
+	vip, err := fsm.state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.1")
+
 	fsm.state.EnsureService(4, "foo", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"primary"}, Address: "127.0.0.1", Port: 5000})
 	fsm.state.EnsureService(5, "baz", &structs.NodeService{ID: "web", Service: "web", Tags: nil, Address: "127.0.0.2", Port: 80})
+
 	fsm.state.EnsureService(6, "baz", &structs.NodeService{ID: "db", Service: "db", Tags: []string{"secondary"}, Address: "127.0.0.2", Port: 5000})
 	fsm.state.EnsureCheck(7, &structs.HealthCheck{
 		Node:      "foo",
@@ -83,8 +107,8 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	policy := &structs.ACLPolicy{
 		ID:          structs.ACLPolicyGlobalManagementID,
 		Name:        "global-management",
-		Description: "Builtin Policy that grants unlimited access",
-		Rules:       structs.ACLPolicyGlobalManagement,
+		Description: structs.ACLPolicyGlobalManagementDesc,
+		Rules:       structs.ACLPolicyGlobalManagementRules,
 	}
 	policy.SetHash(true)
 	require.NoError(t, fsm.state.ACLPolicySet(1, policy))
@@ -426,6 +450,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}
 	require.NoError(t, fsm.state.EnsureConfigEntry(26, serviceIxn))
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("foo", nil)}
+	vip, err = fsm.state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.2")
 
 	// mesh config entry
 	meshConfig := &structs.MeshConfigEntry{
@@ -449,10 +477,10 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		Port:    8000,
 		Connect: connectConf,
 	})
-	psn := structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
-	vip, err := fsm.state.VirtualIPForService(psn)
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
+	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.1")
+	require.Equal(t, vip, "240.0.0.3")
 
 	fsm.state.EnsureService(30, "foo", &structs.NodeService{
 		ID:      "backend",
@@ -464,7 +492,7 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
 	vip, err = fsm.state.VirtualIPForService(psn)
 	require.NoError(t, err)
-	require.Equal(t, vip, "240.0.0.2")
+	require.Equal(t, vip, "240.0.0.4")
 
 	_, serviceNames, err := fsm.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)
 	require.NoError(t, err)
@@ -518,6 +546,35 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 		},
 	}))
 
+	// Add a service-resolver entry to get a virtual IP for service goo
+	resolverEntry := &structs.ServiceResolverConfigEntry{
+		Kind: structs.ServiceResolver,
+		Name: "goo",
+	}
+	require.NoError(t, fsm.state.EnsureConfigEntry(34, resolverEntry))
+	vip, err = fsm.state.VirtualIPForService(structs.PeeredServiceName{ServiceName: structs.NewServiceName("goo", nil)})
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.5")
+
+	// Resources
+	resource, err := storageBackend.WriteCAS(context.Background(), &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type: &pbresource.Type{
+				Group:        "test",
+				GroupVersion: "v1",
+				Kind:         "foo",
+			},
+			Tenancy: &pbresource.Tenancy{
+				Partition: "default",
+				PeerName:  "local",
+				Namespace: "default",
+			},
+			Name: "bar",
+			Uid:  "a",
+		},
+	})
+	require.NoError(t, err)
+
 	// Snapshot
 	snap, err := fsm.Snapshot()
 	require.NoError(t, err)
@@ -556,8 +613,15 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.NoError(t, encoder.Encode(&token2))
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, logger)
-	require.NoError(t, err)
+	storageBackend2 := newStorageBackend(t, nil)
+
+	fsm2 := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: storageBackend2,
+	})
 
 	// Do a restore
 	require.NoError(t, fsm2.Restore(sink))
@@ -613,14 +677,26 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Equal(t, uint64(25), checks[0].ModifyIndex)
 
 	// Verify virtual IPs are consistent.
-	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("web", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.1")
-	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("foo", nil)}
 	vip, err = fsm2.state.VirtualIPForService(psn)
 	require.NoError(t, err)
 	require.Equal(t, vip, "240.0.0.2")
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("frontend", nil)}
+	vip, err = fsm2.state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.3")
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("backend", nil)}
+	vip, err = fsm2.state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.4")
+	psn = structs.PeeredServiceName{ServiceName: structs.NewServiceName("goo", nil)}
+	vip, err = fsm2.state.VirtualIPForService(psn)
+	require.NoError(t, err)
+	require.Equal(t, vip, "240.0.0.5")
 
 	// Verify key is set
 	_, d, err := fsm2.state.KVSGet(nil, "/test", nil)
@@ -839,6 +915,11 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	require.Len(t, ptbRestored.RootPEMs, 1)
 	require.Equal(t, "qux certificate bundle", ptbRestored.RootPEMs[0])
 
+	// Verify resources are restored.
+	resourceRestored, err := storageBackend2.Read(context.Background(), storage.EventualConsistency, resource.Id)
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, resource, resourceRestored)
+
 	// Snapshot
 	snap, err = fsm2.Snapshot()
 	require.NoError(t, err)
@@ -860,12 +941,18 @@ func TestFSM_SnapshotRestore_OSS(t *testing.T) {
 	}
 }
 
-func TestFSM_BadRestore_OSS(t *testing.T) {
+func TestFSM_BadRestore_CE(t *testing.T) {
 	t.Parallel()
 	// Create an FSM with some state.
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 	fsm.state.EnsureNode(1, &structs.Node{Node: "foo", Address: "127.0.0.1"})
 	abandonCh := fsm.state.AbandonCh()
 
@@ -895,8 +982,14 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 
 	// Create an FSM with no config entry.
 	logger := testutil.Logger(t)
-	fsm, err := New(nil, logger)
-	require.NoError(t, err)
+
+	fsm := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 
 	// Snapshot
 	snap, err := fsm.Snapshot()
@@ -909,8 +1002,13 @@ func TestFSM_BadSnapshot_NilCAConfig(t *testing.T) {
 	require.NoError(t, snap.Persist(sink))
 
 	// Try to restore on a new FSM
-	fsm2, err := New(nil, logger)
-	require.NoError(t, err)
+	fsm2 := NewFromDeps(Deps{
+		Logger: logger,
+		NewStateStore: func() *state.Store {
+			return state.NewStateStore(nil)
+		},
+		StorageBackend: newStorageBackend(t, nil),
+	})
 
 	// Do a restore
 	require.NoError(t, fsm2.Restore(sink))
@@ -946,8 +1044,14 @@ func Test_restoreServiceVirtualIP(t *testing.T) {
 		dec := codec.NewDecoder(buf, structs.MsgpackHandle)
 
 		logger := testutil.Logger(t)
-		fsm, err := New(nil, logger)
-		require.NoError(t, err)
+
+		fsm := NewFromDeps(Deps{
+			Logger: logger,
+			NewStateStore: func() *state.Store {
+				return state.NewStateStore(nil)
+			},
+			StorageBackend: newStorageBackend(t, nil),
+		})
 
 		restore := fsm.State().Restore()
 

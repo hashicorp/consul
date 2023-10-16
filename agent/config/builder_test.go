@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package config
 
 import (
@@ -308,6 +311,21 @@ func TestBuilder_DurationVal_InvalidDuration(t *testing.T) {
 	require.Contains(t, b.err.Error(), badDuration2)
 }
 
+func TestBuilder_DurationValWithDefaultMin(t *testing.T) {
+	b := builder{}
+
+	// Attempt to validate that a duration of 10 hours will not error when the min val is 1 hour.
+	dur := "10h0m0s"
+	b.durationValWithDefaultMin("field2", &dur, 24*7*time.Hour, time.Hour)
+	require.NoError(t, b.err)
+
+	// Attempt to validate that a duration of 1 min will error when the min val is 1 hour.
+	dur = "0h1m0s"
+	b.durationValWithDefaultMin("field1", &dur, 24*7*time.Hour, time.Hour)
+	require.Error(t, b.err)
+	require.Contains(t, b.err.Error(), "1 error")
+}
+
 func TestBuilder_ServiceVal_MultiError(t *testing.T) {
 	b := builder{}
 	b.serviceVal(&ServiceDefinition{
@@ -537,4 +555,92 @@ func TestBuilder_parsePrefixFilter(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestBuidler_hostMetricsWithCloud(t *testing.T) {
+	devMode := true
+	builderOpts := LoadOpts{
+		DevMode: &devMode,
+		DefaultConfig: FileSource{
+			Name:   "test",
+			Format: "hcl",
+			Data:   `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+	}
+
+	result, err := Load(builderOpts)
+	require.NoError(t, err)
+	require.Empty(t, result.Warnings)
+	cfg := result.RuntimeConfig
+	require.NotNil(t, cfg)
+	require.True(t, cfg.Telemetry.EnableHostMetrics)
+}
+
+func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
+	tests := []struct {
+		name      string
+		hcl       string
+		expectErr bool
+		override  bool
+	}{
+		{
+			name: "base_case",
+			hcl:  ``,
+		},
+		{
+			name: "resource-apis_no_cloud",
+			hcl:  `experiments = ["resource-apis"]`,
+		},
+		{
+			name: "cloud-config_no_experiments",
+			hcl:  `cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+		{
+			name: "cloud-config_resource-apis_experiment",
+			hcl: `
+			experiments = ["resource-apis"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+			expectErr: true,
+		},
+		{
+			name: "cloud-config_other_experiment",
+			hcl: `
+			experiments = ["test"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+		},
+		{
+			name: "cloud-config_resource-apis_experiment_override",
+			hcl: `
+			experiments = ["resource-apis"]
+			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
+			override: true,
+		},
+	}
+	for _, tc := range tests {
+		// using dev mode skips the need for a data dir
+		devMode := true
+		builderOpts := LoadOpts{
+			DevMode: &devMode,
+			Overrides: []Source{
+				FileSource{
+					Name:   "overrides",
+					Format: "hcl",
+					Data:   tc.hcl,
+				},
+			},
+		}
+		if tc.override {
+			os.Setenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK", "1")
+		}
+		_, err := Load(builderOpts)
+		if tc.override {
+			os.Unsetenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK")
+		}
+		if tc.expectErr {
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "cannot include 'resource-apis' when HCP")
+		} else {
+			require.NoError(t, err)
+		}
+	}
 }

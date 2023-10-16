@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 (routes =>
   routes({
     dc: {
@@ -213,6 +218,7 @@
             queryParams: {
               sortBy: 'sort',
               status: 'status',
+              version: 'version',
               searchproperty: {
                 as: 'searchproperty',
                 empty: [['Node', 'Address', 'Meta', 'PeerName']],

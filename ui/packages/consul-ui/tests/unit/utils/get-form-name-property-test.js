@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import getFormNameProperty from 'consul-ui/utils/get-form-name-property';
 import { module, test } from 'qunit';
 

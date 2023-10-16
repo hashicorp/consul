@@ -44,7 +44,7 @@ selectors.
 ```css
 .selector::after {
   --icon-name: icon-alert-circle;
-  --icon-color: rgb(var(---white));
+  --icon-color: var(--token-color-surface-primary);
   content: '';
 }
 ```
@@ -56,9 +56,9 @@ icons in HTML using these CSS properties.
 <h2
   style={{style-map
     (array '--icon-name-start' 'icon-alert-circle')
-    (array '--icon-color-start' 'rgb(var(--tone-strawberry-500))')
+    (array '--icon-color-start' 'var(--token-color-consul-brand)')
     (array '--icon-name-end' 'icon-vault')
-    (array '--icon-color-end' 'var(--color-vault-500)')
+    (array '--icon-color-end' 'var(--color-vault)')
   }}
 >
   Header Name
@@ -105,7 +105,7 @@ also use `background-color`.
 ```css
 .selector::before {
   @extend %with-alert-circle-fill-mask, %as-pseudo;
-  color: rgb(var(--tone-strawberry-500));
+  color: var(--token-color-consul-brand);
 }
 ```
 
@@ -141,7 +141,7 @@ use `-mask`, use `-icon` instead:
   {{css-props (set this 'icons') prefix='icon-'}}
   class={{class-map (concat 'theme-' (or this.theme 'light'))}}
   style={{style-map
-    (array '--icon-color' (if (eq this.type 'monochrome') 'rgb(var(--black))'))
+    (array '--icon-color' (if (eq this.type 'monochrome') 'var(--token-color-hashicorp-brand)'))
     (array '--icon-size' (concat 'icon-' (or this.size '500')))
     (array '--icon-resolution' (if (gt this.size 500) '.5' '1'))
   }}

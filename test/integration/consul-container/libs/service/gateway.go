@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package service
 
 import (
@@ -8,27 +11,41 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/hashicorp/consul/api"
-
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // gatewayContainer
 type gatewayContainer struct {
-	ctx         context.Context
-	container   testcontainers.Container
-	ip          string
-	port        int
-	adminPort   int
-	serviceName string
+	ctx          context.Context
+	container    testcontainers.Container
+	ip           string
+	port         int
+	adminPort    int
+	serviceName  string
+	portMappings map[int]int
 }
 
 var _ Service = (*gatewayContainer)(nil)
+
+func (g gatewayContainer) Exec(ctx context.Context, cmd []string) (string, error) {
+	exitCode, reader, err := g.container.Exec(ctx, cmd)
+	if err != nil {
+		return "", fmt.Errorf("exec with error %s", err)
+	}
+	if exitCode != 0 {
+		return "", fmt.Errorf("exec with exit code %d", exitCode)
+	}
+	buf, err := io.ReadAll(reader)
+	if err != nil {
+		return "", fmt.Errorf("error reading from exec output: %w", err)
+	}
+	return string(buf), nil
+}
 
 func (g gatewayContainer) Export(partition, peer string, client *api.Client) error {
 	return fmt.Errorf("gatewayContainer export unimplemented")
@@ -36,6 +53,10 @@ func (g gatewayContainer) Export(partition, peer string, client *api.Client) err
 
 func (g gatewayContainer) GetAddr() (string, int) {
 	return g.ip, g.port
+}
+
+func (g gatewayContainer) GetAddrs() (string, []int) {
+	return "", nil
 }
 
 func (g gatewayContainer) GetLogs() (string, error) {
@@ -71,12 +92,27 @@ func (g gatewayContainer) Start() error {
 	return g.container.Start(context.Background())
 }
 
+func (g gatewayContainer) Stop() error {
+	if g.container == nil {
+		return fmt.Errorf("container has not been initialized")
+	}
+	return g.container.Stop(context.Background(), nil)
+}
+
 func (c gatewayContainer) Terminate() error {
-	return cluster.TerminateContainer(c.ctx, c.container, true)
+	return libcluster.TerminateContainer(c.ctx, c.container, true)
 }
 
 func (g gatewayContainer) GetAdminAddr() (string, int) {
 	return "localhost", g.adminPort
+}
+
+func (g gatewayContainer) GetPort(port int) (int, error) {
+	p, ok := g.portMappings[port]
+	if !ok {
+		return 0, fmt.Errorf("port does not exist")
+	}
+	return p, nil
 }
 
 func (g gatewayContainer) Restart() error {
@@ -85,10 +121,13 @@ func (g gatewayContainer) Restart() error {
 		return fmt.Errorf("error get gateway state %s", err)
 	}
 
+	fmt.Printf("Stopping container: %s\n", g.GetName())
 	err = g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stop gateway %s", err)
 	}
+
+	fmt.Printf("Starting container: %s\n", g.GetName())
 	err = g.container.Start(g.ctx)
 	if err != nil {
 		return fmt.Errorf("error start gateway %s", err)
@@ -101,49 +140,57 @@ func (g gatewayContainer) GetStatus() (string, error) {
 	return state.Status, err
 }
 
-func NewGatewayService(ctx context.Context, name string, kind string, node libcluster.Agent) (Service, error) {
+type GatewayConfig struct {
+	Name      string
+	Kind      string
+	Namespace string
+	Partition string
+}
+
+func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, ports ...int) (Service, error) {
+	return NewGatewayServiceReg(ctx, gwCfg, node, true, ports...)
+}
+
+func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, doRegister bool, ports ...int) (Service, error) {
 	nodeConfig := node.GetConfig()
 	if nodeConfig.ScratchDir == "" {
 		return nil, fmt.Errorf("node ScratchDir is required")
 	}
 
-	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), name)
+	namePrefix := fmt.Sprintf("%s-service-gateway-%s", node.GetDatacenter(), gwCfg.Name)
 	containerName := utils.RandName(namePrefix)
 
-	envoyVersion := getEnvoyVersion()
 	agentConfig := node.GetConfig()
-	buildargs := map[string]*string{
-		"ENVOY_VERSION": utils.StringToPointer(envoyVersion),
-		"CONSUL_IMAGE":  utils.StringToPointer(agentConfig.DockerImage()),
-	}
-
-	dockerfileCtx, err := getDevContainerDockerfile()
-	if err != nil {
-		return nil, err
-	}
-	dockerfileCtx.BuildArgs = buildargs
-
 	adminPort, err := node.ClaimAdminPort()
 	if err != nil {
 		return nil, err
 	}
+	cmd := []string{
+		"consul", "connect", "envoy",
+		fmt.Sprintf("-gateway=%s", gwCfg.Kind),
+		"-service", gwCfg.Name,
+		"-namespace", gwCfg.Namespace,
+		"-partition", gwCfg.Partition,
+		"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
+		"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
+	}
+	if doRegister {
+		cmd = append(cmd, "-register")
+	}
+	cmd = append(cmd, "--")
+	envoyArgs := []string{
+		"--log-level", envoyLogLevel,
+	}
 
+	fmt.Println("agent image name", agentConfig.DockerImage())
+	imageVersion := utils.SideCarVersion(agentConfig.DockerImage())
 	req := testcontainers.ContainerRequest{
-		FromDockerfile: dockerfileCtx,
-		WaitingFor:     wait.ForLog("").WithStartupTimeout(10 * time.Second),
-		AutoRemove:     false,
-		Name:           containerName,
-		Cmd: []string{
-			"consul", "connect", "envoy",
-			fmt.Sprintf("-gateway=%s", kind),
-			"-register",
-			"-service", name,
-			"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
-			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
-			"--",
-			"--log-level", envoyLogLevel,
-		},
-		Env: make(map[string]string),
+		Image:      fmt.Sprintf("consul-envoy:%s", imageVersion),
+		WaitingFor: wait.ForLog("").WithStartupTimeout(100 * time.Second),
+		AutoRemove: false,
+		Name:       containerName,
+		Env:        make(map[string]string),
+		Cmd:        append(cmd, envoyArgs...),
 	}
 
 	nodeInfo := node.GetInfo()
@@ -178,21 +225,33 @@ func NewGatewayService(ctx context.Context, name string, kind string, node libcl
 		adminPortStr = strconv.Itoa(adminPort)
 	)
 
-	info, err := cluster.LaunchContainerOnNode(ctx, node, req, []string{
+	extraPorts := []string{}
+	for _, port := range ports {
+		extraPorts = append(extraPorts, strconv.Itoa(port))
+	}
+
+	info, err := libcluster.LaunchContainerOnNode(ctx, node, req, append(
+		extraPorts,
 		portStr,
 		adminPortStr,
-	})
+	))
 	if err != nil {
 		return nil, err
 	}
 
+	portMappings := make(map[int]int)
+	for _, port := range ports {
+		portMappings[port] = info.MappedPorts[strconv.Itoa(port)].Int()
+	}
+
 	out := &gatewayContainer{
-		ctx:         ctx,
-		container:   info.Container,
-		ip:          info.IP,
-		port:        info.MappedPorts[portStr].Int(),
-		adminPort:   info.MappedPorts[adminPortStr].Int(),
-		serviceName: name,
+		ctx:          ctx,
+		container:    info.Container,
+		ip:           info.IP,
+		port:         info.MappedPorts[portStr].Int(),
+		adminPort:    info.MappedPorts[adminPortStr].Int(),
+		serviceName:  gwCfg.Name,
+		portMappings: portMappings,
 	}
 
 	return out, nil

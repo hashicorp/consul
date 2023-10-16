@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package api
 
 import (
@@ -29,6 +32,9 @@ type License struct {
 	// The time at which the license ceases to function and can
 	// no longer be used in any capacity
 	TerminationTime time.Time `json:"termination_time"`
+
+	// Whether the license will ignore termination
+	IgnoreTermination bool `json:"ignore_termination"`
 
 	// The product the license is valid for
 	Product string `json:"product"`

@@ -26,8 +26,8 @@ Feature: dc / acls / tokens / update: ACL Token Update
         Description: [Description]
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class
     Where:
       ---------------------------
       | Description             |
@@ -38,8 +38,8 @@ Feature: dc / acls / tokens / update: ACL Token Update
     Given the url "/v1/acl/token/key" responds with a 500 status
     And I submit
     Then the url should be /datacenter/acls/tokens/key
-    Then "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "error" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-critical" class
 
   @notNamespaceable
   Scenario: Updating a simple ACL token when Namespaces are disabled does not send Namespace
@@ -53,5 +53,5 @@ Feature: dc / acls / tokens / update: ACL Token Update
       - Namespace
     ---
     Then the url should be /datacenter/acls/tokens
-    And "[data-notification]" has the "notification-update" class
-    And "[data-notification]" has the "success" class
+    And "[data-notification]" has the "hds-toast" class
+    And "[data-notification]" has the "hds-alert--color-success" class

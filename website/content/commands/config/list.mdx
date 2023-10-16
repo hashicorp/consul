@@ -27,6 +27,7 @@ are not supported from commands, but may be from the corresponding HTTP endpoint
 
 | Config Entry Kind   | Required ACL      |
 | ------------------- | ----------------- |
+| api-gateway         | `mesh:read`       |
 | ingress-gateway     | `service:read`    |
 | proxy-defaults      | `<none>`          |
 | service-defaults    | `service:read`    |
@@ -43,6 +44,7 @@ Usage: `consul config list [options]`
 #### Command Options
 
 - `-kind` - Specifies the kind of the config entry to list.
+- `-filter` - Specifies an expression to use for filtering the results.
 
 #### Enterprise Options
 
@@ -56,7 +58,16 @@ Usage: `consul config list [options]`
 
 ## Examples
 
+To list all service-defaults config entries:
+
     $ consul config list -kind service-defaults
     billing
     db
     web
+
+The following lists service-defaults with a filter expression:
+
+    $ consul config list -kind service-defaults -filter 'MutualTLSMode == "permissive"'
+    db
+    web
+

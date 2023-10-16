@@ -1,0 +1,3 @@
+```release-note:bug
+peering: Fix issue resulting in prepared query failover to cluster peers never un-failing over.
+```

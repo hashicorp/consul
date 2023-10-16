@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package semaphore implements a simple semaphore that is based on
 // golang.org/x/sync/semaphore but doesn't support weights. It's advantage over
 // a simple buffered chan is that the capacity of the semaphore (i.e. the number

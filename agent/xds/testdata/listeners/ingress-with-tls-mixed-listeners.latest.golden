@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -17,16 +16,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_8080",
-                "rds": {
-                  "configSource": {
-                    "ads": {
-
-                    },
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "8080"
-                },
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -35,11 +24,22 @@
                     }
                   }
                 ],
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "8080"
+                },
+                "statPrefix": "ingress_upstream_8080",
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ],
@@ -48,9 +48,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {
-
-                },
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -61,25 +61,23 @@
                     }
                   }
                 ],
+                "tlsParams": {},
                 "validationContext": {
                   "trustedCa": {
                     "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
                   }
-                },
-                "alpnProtocols": [
-                  "http/1.1"
-                ]
+                }
               },
               "requireClientCertificate": false
             }
           }
         }
       ],
+      "name": "http:1.2.3.4:8080",
       "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:9090",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -93,16 +91,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_9090",
-                "rds": {
-                  "configSource": {
-                    "ads": {
-
-                    },
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "9090"
-                },
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -111,19 +99,31 @@
                     }
                   }
                 ],
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "9090"
+                },
+                "statPrefix": "ingress_upstream_9090",
                 "tracing": {
-                  "randomSampling": {
-
+                  "randomSampling": {}
+                },
+                "upgradeConfigs": [
+                  {
+                    "upgradeType": "websocket"
                   }
-                }
+                ]
               }
             }
           ]
         }
       ],
+      "name": "http:1.2.3.4:9090",
       "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

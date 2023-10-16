@@ -1,0 +1,23 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+# verify-ci is a no-op workflow that must run on every PR. It is used in a
+# branch protection rule to detect when CI workflows are not running.
+name: verify-ci
+
+permissions:
+  contents: read
+
+on: 
+  pull_request:
+  push:
+    branches:
+      # Push events on the main branch
+      - main
+      - release/**
+
+jobs:
+  verify-ci-success:
+    runs-on: ubuntu-latest
+    steps:
+    - run: echo "verify-ci succeeded"

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
@@ -39,7 +42,7 @@ import (
 	tokenStore "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/consul/proto/pbsubscribe"
+	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -499,7 +502,7 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 	}
 
 	s.resetConsistentReadReady()
-	err := s.consistentRead()
+	err := s.ConsistentRead()
 	if err.Error() != "Not ready to serve consistent reads" {
 		t.Fatal("Server should NOT be ready for consistent reads")
 	}
@@ -510,7 +513,7 @@ func TestRPC_ReadyForConsistentReads(t *testing.T) {
 	}()
 
 	retry.Run(t, func(r *retry.R) {
-		if err := s.consistentRead(); err != nil {
+		if err := s.ConsistentRead(); err != nil {
 			r.Fatalf("Expected server to be ready for consistent reads, got error %v", err)
 		}
 	})
@@ -1165,7 +1168,7 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 
 	var conn *grpc.ClientConn
 	{
-		client, resolverBuilder, balancerBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
+		client, resolverBuilder := newClientWithGRPCPlumbing(t, func(c *Config) {
 			c.Datacenter = "dc2"
 			c.PrimaryDatacenter = "dc1"
 			c.RPCConfig.EnableStreaming = true
@@ -1177,7 +1180,6 @@ func TestRPC_LocalTokenStrippedOnForward_GRPC(t *testing.T) {
 			Servers:               resolverBuilder,
 			DialingFromServer:     false,
 			DialingFromDatacenter: "dc2",
-			BalancerBuilder:       balancerBuilder,
 		})
 
 		conn, err = pool.ClientConn("dc2")

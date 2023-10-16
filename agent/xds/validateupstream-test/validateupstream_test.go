@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package validateupstream_test
 
 import (
@@ -43,35 +46,35 @@ func TestValidateUpstreams(t *testing.T) {
 		{
 			name: "tcp-success",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 		},
 		{
 			name: "tcp-missing-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				delete(ir.Index[xdscommon.ListenerType], listenerName)
 				return ir
 			},
-			err: "no listener for upstream \"db\"",
+			err: "No listener for upstream \"db\"",
 		},
 		{
 			name: "tcp-missing-cluster",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil)
 			},
 			patcher: func(ir *xdscommon.IndexedResources) *xdscommon.IndexedResources {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster \"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"db\"",
+			err: "No cluster \"db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"db\"",
 		},
 		{
 			name: "http-success",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, nil, httpServiceDefaults)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, nil, httpServiceDefaults)
 			},
 		},
 		{
@@ -79,7 +82,7 @@ func TestValidateUpstreams(t *testing.T) {
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
 			// need to use the test snapshot and add L7 config entries.
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, []proxycfg.UpdateEvent{
 					// The events ensure there are endpoints for the v1 and v2 subsets.
 					{
 						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
@@ -104,7 +107,7 @@ func TestValidateUpstreams(t *testing.T) {
 			// RDS, Envoy's Route Discovery Service, is only used for HTTP services with a customized discovery chain, so we
 			// need to use the test snapshot and add L7 config entries.
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", nil, []proxycfg.UpdateEvent{
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", false, nil, []proxycfg.UpdateEvent{
 					// The events ensure there are endpoints for the v1 and v2 subsets.
 					{
 						CorrelationID: "upstream-target:v1.db.default.default.dc1:" + dbUID.String(),
@@ -124,24 +127,24 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.RouteType], "db")
 				return ir
 			},
-			err: "no route for upstream \"db\"",
+			err: "No route for upstream \"db\"",
 		},
 		{
 			name: "redirect",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", false, nil, nil)
 			},
 		},
 		{
 			name: "failover",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
 			},
 		},
 		{
 			name: "failover-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", nil, nil)
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", false, nil, nil)
 			},
 		},
 		{
@@ -170,7 +173,7 @@ func TestValidateUpstreams(t *testing.T) {
 				delete(ir.Index[xdscommon.ClusterType], sni)
 				return ir
 			},
-			err: "no cluster \"google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"240.0.0.1\"",
+			err: "No cluster \"google.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul\" for upstream \"240.0.0.1\"",
 		},
 		{
 			name: "tproxy-http-redirect-success",
@@ -230,7 +233,9 @@ func TestValidateUpstreams(t *testing.T) {
 			var outputErrors string
 			for _, msgError := range messages.Errors() {
 				outputErrors += msgError.Message
-				outputErrors += msgError.PossibleActions
+				for _, action := range msgError.PossibleActions {
+					outputErrors += action
+				}
 			}
 			if len(tt.err) == 0 {
 				require.True(t, messages.Success())

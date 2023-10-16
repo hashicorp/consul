@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package acl
 
 import (
@@ -56,6 +59,8 @@ type PolicyRules struct {
 	ACL                   string               `hcl:"acl,expand"`
 	Agents                []*AgentRule         `hcl:"agent,expand"`
 	AgentPrefixes         []*AgentRule         `hcl:"agent_prefix,expand"`
+	Identities            []*IdentityRule      `hcl:"identity,expand"`
+	IdentityPrefixes      []*IdentityRule      `hcl:"identity_prefix,expand"`
 	Keys                  []*KeyRule           `hcl:"key,expand"`
 	KeyPrefixes           []*KeyRule           `hcl:"key_prefix,expand"`
 	Nodes                 []*NodeRule          `hcl:"node,expand"`
@@ -85,6 +90,19 @@ type Policy struct {
 type AgentRule struct {
 	Node   string `hcl:",key"`
 	Policy string
+}
+
+// IdentityRule represents a policy for a workload identity
+type IdentityRule struct {
+	Name   string `hcl:",key"`
+	Policy string
+
+	// Intentions is the policy for intentions where this workload identity
+	// is the destination. This may be empty, in which case the Policy determines
+	// the intentions policy.
+	Intentions string
+
+	EnterpriseRule `hcl:",squash"`
 }
 
 // KeyRule represents a rule for a key
@@ -162,6 +180,30 @@ func (pr *PolicyRules) Validate(conf *Config) error {
 	for _, ap := range pr.AgentPrefixes {
 		if !isPolicyValid(ap.Policy, false) {
 			return fmt.Errorf("Invalid agent_prefix policy: %#v", ap)
+		}
+	}
+
+	// Validate the identity policies
+	for _, id := range pr.Identities {
+		if !isPolicyValid(id.Policy, false) {
+			return fmt.Errorf("Invalid identity policy: %#v", id)
+		}
+		if id.Intentions != "" && !isPolicyValid(id.Intentions, false) {
+			return fmt.Errorf("Invalid identity intentions policy: %#v", id)
+		}
+		if err := id.EnterpriseRule.Validate(id.Policy, conf); err != nil {
+			return fmt.Errorf("Invalid identity enterprise policy: %#v, got error: %v", id, err)
+		}
+	}
+	for _, id := range pr.IdentityPrefixes {
+		if !isPolicyValid(id.Policy, false) {
+			return fmt.Errorf("Invalid identity_prefix policy: %#v", id)
+		}
+		if id.Intentions != "" && !isPolicyValid(id.Intentions, false) {
+			return fmt.Errorf("Invalid identity_prefix intentions policy: %#v", id)
+		}
+		if err := id.EnterpriseRule.Validate(id.Policy, conf); err != nil {
+			return fmt.Errorf("Invalid identity_prefix enterprise policy: %#v, got error: %v", id, err)
 		}
 	}
 

@@ -1,0 +1,3 @@
+```release-note:improvement
+ui: support filtering API gateways in the ui and displaying their documentation links
+```

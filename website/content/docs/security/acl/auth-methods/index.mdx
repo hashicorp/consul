@@ -27,8 +27,8 @@ integrations allow for these credentials to be used to create ACL tokens with
 properly-scoped policies without additional operator intervention.
 
 In Consul 1.5.0 the focus is around simplifying the creation of tokens with the
-privileges necessary to participate in a [Connect](/consul/docs/connect)
-service mesh with minimal operator intervention.
+privileges necessary to participate in a [service mesh](/consul/docs/connect)
+with minimal operator intervention.
 
 ## Supported Types
 
@@ -74,7 +74,7 @@ tokens without operator intervention.
 Successful authentication with an auth method returns a set of trusted
 identity attributes corresponding to the authenticated identity. Those
 attributes are matched against all configured binding rules for that auth
-method to determine what privileges to grant the the Consul ACL token it will
+method to determine what privileges to grant the Consul ACL token it will
 ultimately create.
 
 Each binding rule is composed of two portions:

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 set -euo pipefail
 
@@ -9,6 +12,7 @@ listeners = [
   {
     port = 9999
     protocol = "tcp"
+    name = "listener"
   }
 ]
 '
@@ -38,6 +42,7 @@ services = [
 ]
 parents = [
   {
+    kind = "api-gateway"
     name = "api-gateway"
   }
 ]

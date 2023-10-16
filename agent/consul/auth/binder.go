@@ -1,6 +1,10 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package auth
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-bexpr"
@@ -34,12 +38,13 @@ type BinderStateStore interface {
 	ACLRoleGetByName(ws memdb.WatchSet, roleName string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLRole, error)
 }
 
-// Bindings contains the ACL roles, service identities, node identities and
-// enterprise meta to be assigned to the created token.
+// Bindings contains the ACL roles, service identities, node identities,
+// templated policies, and enterprise meta to be assigned to the created token.
 type Bindings struct {
 	Roles             []structs.ACLTokenRoleLink
 	ServiceIdentities []*structs.ACLServiceIdentity
 	NodeIdentities    []*structs.ACLNodeIdentity
+	TemplatedPolicies structs.ACLTemplatedPolicies
 	EnterpriseMeta    acl.EnterpriseMeta
 }
 
@@ -52,6 +57,7 @@ func (b *Bindings) None() bool {
 
 	return len(b.ServiceIdentities) == 0 &&
 		len(b.NodeIdentities) == 0 &&
+		len(b.TemplatedPolicies) == 0 &&
 		len(b.Roles) == 0
 }
 
@@ -83,30 +89,42 @@ func (b *Binder) Bind(authMethod *structs.ACLAuthMethod, verifiedIdentity *authm
 		return &bindings, nil
 	}
 
-	// Compute role, service identity, or node identity names by interpolating
+	// Compute role, service identity, node identity or templated policy names by interpolating
 	// the identity's projected variables into the rule BindName templates.
 	for _, rule := range matchingRules {
-		bindName, valid, err := computeBindName(rule.BindType, rule.BindName, verifiedIdentity.ProjectedVars)
-		switch {
-		case err != nil:
-			return nil, fmt.Errorf("cannot compute %q bind name for bind target: %w", rule.BindType, err)
-		case !valid:
-			return nil, fmt.Errorf("computed %q bind name for bind target is invalid: %q", rule.BindType, bindName)
-		}
-
 		switch rule.BindType {
 		case structs.BindingRuleBindTypeService:
+			bindName, err := computeBindName(rule.BindName, verifiedIdentity.ProjectedVars, acl.IsValidServiceIdentityName)
+			if err != nil {
+				return nil, err
+			}
 			bindings.ServiceIdentities = append(bindings.ServiceIdentities, &structs.ACLServiceIdentity{
 				ServiceName: bindName,
 			})
 
 		case structs.BindingRuleBindTypeNode:
+			bindName, err := computeBindName(rule.BindName, verifiedIdentity.ProjectedVars, acl.IsValidNodeIdentityName)
+			if err != nil {
+				return nil, err
+			}
 			bindings.NodeIdentities = append(bindings.NodeIdentities, &structs.ACLNodeIdentity{
 				NodeName:   bindName,
 				Datacenter: b.datacenter,
 			})
 
+		case structs.BindingRuleBindTypeTemplatedPolicy:
+			templatedPolicy, err := generateTemplatedPolicies(rule.BindName, rule.BindVars, verifiedIdentity.ProjectedVars)
+			if err != nil {
+				return nil, err
+			}
+			bindings.TemplatedPolicies = append(bindings.TemplatedPolicies, templatedPolicy)
+
 		case structs.BindingRuleBindTypeRole:
+			bindName, err := computeBindName(rule.BindName, verifiedIdentity.ProjectedVars, acl.IsValidRoleName)
+			if err != nil {
+				return nil, err
+			}
+
 			_, role, err := b.store.ACLRoleGetByName(nil, bindName, &bindings.EnterpriseMeta)
 			if err != nil {
 				return nil, err
@@ -123,11 +141,11 @@ func (b *Binder) Bind(authMethod *structs.ACLAuthMethod, verifiedIdentity *authm
 	return &bindings, nil
 }
 
-// IsValidBindName returns whether the given BindName template produces valid
+// IsValidBindingRule returns whether the given BindName and/or BindVars template produces valid
 // results when interpolating the auth method's available variables.
-func IsValidBindName(bindType, bindName string, availableVariables []string) (bool, error) {
+func IsValidBindingRule(bindType, bindName string, bindVars *structs.ACLTemplatedPolicyVariables, availableVariables []string) error {
 	if bindType == "" || bindName == "" {
-		return false, nil
+		return errors.New("bindType and bindName must not be empty")
 	}
 
 	fakeVarMap := make(map[string]string)
@@ -135,38 +153,96 @@ func IsValidBindName(bindType, bindName string, availableVariables []string) (bo
 		fakeVarMap[v] = "fake"
 	}
 
-	_, valid, err := computeBindName(bindType, bindName, fakeVarMap)
-	if err != nil {
-		return false, err
-	}
-	return valid, nil
-}
-
-// computeBindName processes the HIL for the provided bind type+name using the
-// projected variables.
-//
-// - If the HIL is invalid ("", false, AN_ERROR) is returned.
-// - If the computed name is not valid for the type ("INVALID_NAME", false, nil) is returned.
-// - If the computed name is valid for the type ("VALID_NAME", true, nil) is returned.
-func computeBindName(bindType, bindName string, projectedVars map[string]string) (string, bool, error) {
-	bindName, err := template.InterpolateHIL(bindName, projectedVars, true)
-	if err != nil {
-		return "", false, err
-	}
-
-	var valid bool
 	switch bindType {
 	case structs.BindingRuleBindTypeService:
-		valid = acl.IsValidServiceIdentityName(bindName)
+		if _, err := computeBindName(bindName, fakeVarMap, acl.IsValidServiceIdentityName); err != nil {
+			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
+		}
+
 	case structs.BindingRuleBindTypeNode:
-		valid = acl.IsValidNodeIdentityName(bindName)
+		if _, err := computeBindName(bindName, fakeVarMap, acl.IsValidNodeIdentityName); err != nil {
+			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
+		}
+
+	case structs.BindingRuleBindTypeTemplatedPolicy:
+		// If user-defined templated policies are supported in the future,
+		// we will need to lookup state to ensure a template exists for given
+		// bindName. A possible solution is to rip out the check for templated
+		// policy into its own step which has access to the state store.
+		if _, err := generateTemplatedPolicies(bindName, bindVars, fakeVarMap); err != nil {
+			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
+		}
+
 	case structs.BindingRuleBindTypeRole:
-		valid = acl.IsValidRoleName(bindName)
+		if _, err := computeBindName(bindName, fakeVarMap, acl.IsValidRoleName); err != nil {
+			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
+		}
 	default:
-		return "", false, fmt.Errorf("unknown binding rule bind type: %s", bindType)
+		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", bindType)
 	}
 
-	return bindName, valid, nil
+	return nil
+}
+
+// computeBindName interprets given HIL bindName with any given variables in projectedVars.
+// validate (if not nil) will be called on the interpreted string.
+func computeBindName(bindName string, projectedVars map[string]string, validate func(string) bool) (string, error) {
+	computed, err := template.InterpolateHIL(bindName, projectedVars, true)
+	if err != nil {
+		return "", fmt.Errorf("error interpreting template: %w", err)
+	}
+	if validate != nil && !validate(computed) {
+		return "", fmt.Errorf("invalid bind name: %q", computed)
+	}
+	return computed, nil
+}
+
+// generateTemplatedPolicies fetches a templated policy by bindName then attempts to interpret
+// bindVars with any given variables in projectedVars. The resulting template is validated
+// by the template's schema.
+func generateTemplatedPolicies(
+	bindName string,
+	bindVars *structs.ACLTemplatedPolicyVariables,
+	projectedVars map[string]string,
+) (*structs.ACLTemplatedPolicy, error) {
+	baseTemplate, ok := structs.GetACLTemplatedPolicyBase(bindName)
+	if !ok {
+		return nil, fmt.Errorf("Bind name for templated-policy bind type does not match existing template name: %s", bindName)
+	}
+
+	computedBindVars, err := computeBindVars(bindVars, projectedVars)
+	if err != nil {
+		return nil, fmt.Errorf("failed to interpret templated policy variables: %w", err)
+	}
+
+	out := &structs.ACLTemplatedPolicy{
+		TemplateName:      bindName,
+		TemplateVariables: computedBindVars,
+		TemplateID:        baseTemplate.TemplateID,
+	}
+
+	if err := out.ValidateTemplatedPolicy(baseTemplate.Schema); err != nil {
+		return nil, fmt.Errorf("templated policy failed validation: %w", err)
+	}
+
+	return out, nil
+}
+
+func computeBindVars(bindVars *structs.ACLTemplatedPolicyVariables, projectedVars map[string]string) (*structs.ACLTemplatedPolicyVariables, error) {
+	if bindVars == nil {
+		return nil, nil
+	}
+
+	out := &structs.ACLTemplatedPolicyVariables{}
+	if bindVars.Name != "" {
+		nameValue, err := template.InterpolateHIL(bindVars.Name, projectedVars, true)
+		if err != nil {
+			return nil, err
+		}
+		out.Name = nameValue
+	}
+
+	return out, nil
 }
 
 // doesSelectorMatch checks that a single selector matches the provided vars.
