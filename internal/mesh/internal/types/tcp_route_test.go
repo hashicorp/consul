@@ -81,6 +81,7 @@ func TestMutateTCPRoute(t *testing.T) {
 			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		err := MutateTCPRoute(res)
 		require.NoError(t, err)
@@ -103,15 +104,17 @@ func TestMutateTCPRoute(t *testing.T) {
 
 func TestValidateTCPRoute(t *testing.T) {
 	type testcase struct {
-		route     *pbmesh.TCPRoute
-		expectErr string
+		routeTenancy *pbresource.Tenancy
+		route        *pbmesh.TCPRoute
+		expectErr    string
 	}
 
 	run := func(t *testing.T, tc testcase) {
 		res := resourcetest.Resource(pbmesh.TCPRouteType, "api").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
+			WithTenancy(tc.routeTenancy).
 			WithData(t, tc.route).
 			Build()
+		resource.DefaultIDTenancy(res.Id, nil, resource.DefaultNamespacedTenancy())
 
 		// Ensure things are properly mutated and updated in the inputs.
 		err := MutateTCPRoute(res)
@@ -167,6 +170,7 @@ func TestValidateTCPRoute(t *testing.T) {
 	// Add common parent refs test cases.
 	for name, parentTC := range getXRouteParentRefTestCases() {
 		cases["parent-ref: "+name] = testcase{
+			routeTenancy: parentTC.routeTenancy,
 			route: &pbmesh.TCPRoute{
 				ParentRefs: parentTC.refs,
 			},
@@ -182,6 +186,7 @@ func TestValidateTCPRoute(t *testing.T) {
 			})
 		}
 		cases["backend-ref: "+name] = testcase{
+			routeTenancy: backendTC.routeTenancy,
 			route: &pbmesh.TCPRoute{
 				ParentRefs: []*pbmesh.ParentReference{
 					newParentRef(pbcatalog.ServiceType, "web", ""),

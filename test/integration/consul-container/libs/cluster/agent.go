@@ -10,14 +10,13 @@ import (
 	"io"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	agentconfig "github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/testcontainers/testcontainers-go"
 	"google.golang.org/grpc"
-
-	agentconfig "github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/decode"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -79,7 +78,8 @@ type Config struct {
 	UseAPIWithTLS  bool // TODO
 	UseGRPCWithTLS bool
 
-	ACLEnabled bool
+	ACLEnabled     bool
+	TokenBootstrap string
 }
 
 func (c *Config) DockerImage() string {

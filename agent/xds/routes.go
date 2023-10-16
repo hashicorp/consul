@@ -15,6 +15,7 @@ import (
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -435,9 +436,15 @@ func (s *ResourceGenerator) routesForIngressGateway(cfgSnap *proxycfg.ConfigSnap
 func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot) ([]proto.Message, error) {
 	var result []proto.Message
 
+	// Build up the routes in a deterministic way
 	readyListeners := getReadyListeners(cfgSnap)
-
-	for _, readyListener := range readyListeners {
+	listenerNames := maps.Keys(readyListeners)
+	sort.Strings(listenerNames)
+	for _, listenerName := range listenerNames {
+		readyListener, ok := readyListeners[listenerName]
+		if !ok {
+			continue
+		}
 		// Do not create any route configuration for TCP listeners
 		if readyListener.listenerCfg.Protocol != structs.ListenerProtocolHTTP {
 			continue
@@ -466,6 +473,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		// Gateway + HTTPRoutes, then the virtual host will be "*".
 		for _, consolidatedRoute := range consolidatedRoutes {
 			upstream := buildHTTPRouteUpstream(consolidatedRoute, readyListener.listenerCfg)
+			// Consolidate all routes for this listener into the minimum possible set based on hostname matching.
 			uid := proxycfg.NewUpstreamID(&upstream)
 			chain := cfgSnap.APIGateway.DiscoveryChain[uid]
 			if chain == nil {
@@ -485,6 +493,13 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 		}
 
 		if len(listenerRoute.VirtualHosts) > 0 {
+			// Build up the virtual hosts in a deterministic way
+			slices.SortStableFunc(listenerRoute.VirtualHosts, func(a, b *envoy_route_v3.VirtualHost) int {
+				if a.Name < b.Name {
+					return -1
+				}
+				return 1
+			})
 			result = append(result, listenerRoute)
 		}
 	}

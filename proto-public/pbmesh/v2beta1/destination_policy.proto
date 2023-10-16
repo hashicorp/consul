@@ -27,11 +27,13 @@ message DestinationPolicy {
 message DestinationConfig {
   // ConnectTimeout is the timeout for establishing new network connections
   // to this service.
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration connect_timeout = 1;
 
   // RequestTimeout is the timeout for an HTTP request to complete before the
   // connection is automatically terminated. If unspecified, defaults to 15
   // seconds.
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration request_timeout = 2;
 
   // LoadBalancer determines the load balancing policy and configuration for
@@ -50,6 +52,8 @@ message LocalityPrioritization {
   LocalityPrioritizationMode mode = 1;
 }
 
+// +kubebuilder:validation:Enum=LOCALITY_PRIORITIZATION_MODE_UNSPECIFIED;LOCALITY_PRIORITIZATION_MODE_NONE;LOCALITY_PRIORITIZATION_MODE_FAILOVER
+// +kubebuilder:validation:Type=string
 enum LocalityPrioritizationMode {
   LOCALITY_PRIORITIZATION_MODE_UNSPECIFIED = 0;
   LOCALITY_PRIORITIZATION_MODE_NONE = 1;
@@ -80,6 +84,8 @@ message LoadBalancer {
   }
 }
 
+// +kubebuilder:validation:Enum=LOAD_BALANCER_POLICY_UNSPECIFIED;LOAD_BALANCER_POLICY_RANDOM;LOAD_BALANCER_POLICY_ROUND_ROBIN;LOAD_BALANCER_POLICY_LEAST_REQUEST;LOAD_BALANCER_POLICY_MAGLEV;LOAD_BALANCER_POLICY_RING_HASH
+// +kubebuilder:validation:Type=string
 enum LoadBalancerPolicy {
   LOAD_BALANCER_POLICY_UNSPECIFIED = 0;
   LOAD_BALANCER_POLICY_RANDOM = 1;
@@ -129,6 +135,8 @@ message HashPolicy {
   bool terminal = 5;
 }
 
+// +kubebuilder:validation:Enum=HASH_POLICY_FIELD_UNSPECIFIED;HASH_POLICY_FIELD_HEADER;HASH_POLICY_FIELD_COOKIE;HASH_POLICY_FIELD_QUERY_PARAMETER
+// +kubebuilder:validation:Type=string
 enum HashPolicyField {
   HASH_POLICY_FIELD_UNSPECIFIED = 0;
   HASH_POLICY_FIELD_HEADER = 1;
@@ -143,6 +151,7 @@ message CookieConfig {
   bool session = 1;
 
   // TTL for generated cookies. Cannot be specified for session cookies.
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration ttl = 2;
 
   // The path to set for the cookie

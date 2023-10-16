@@ -5,12 +5,13 @@ package proxyconfiguration
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/workloadselectionmapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -20,19 +21,19 @@ import (
 
 const ControllerName = "consul.io/proxy-configuration-controller"
 
-func Controller(proxyConfigMapper *mapper.Mapper) controller.Controller {
+func Controller(proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]) controller.Controller {
 	if proxyConfigMapper == nil {
 		panic("proxy config mapper is required")
 	}
 
 	return controller.ForType(pbmesh.ComputedProxyConfigurationType).
-		WithWatch(pbmesh.ProxyConfigurationType, proxyConfigMapper.MapProxyConfiguration).
+		WithWatch(pbmesh.ProxyConfigurationType, proxyConfigMapper.MapToComputedType).
 		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ComputedProxyConfigurationType)).
 		WithReconciler(&reconciler{proxyConfigMapper: proxyConfigMapper})
 }
 
 type reconciler struct {
-	proxyConfigMapper *mapper.Mapper
+	proxyConfigMapper *workloadselectionmapper.Mapper[*pbmesh.ProxyConfiguration]
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -83,10 +84,10 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// Now get any proxy configurations IDs that we have in the cache that have selectors matching the name
 	// of this CPC (name-aligned with the workload).
-	proxyCfgIDs := r.proxyConfigMapper.ProxyConfigurationsForWorkload(req.ID)
+	proxyCfgIDs := r.proxyConfigMapper.IDsForWorkload(req.ID)
 	rt.Logger.Trace("cached proxy cfg IDs", "ids", proxyCfgIDs)
 
-	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs)
+	decodedProxyCfgs, err := r.fetchProxyConfigs(ctx, rt.Client, proxyCfgIDs, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching proxy configurations", "error", err)
 		return err
@@ -154,8 +155,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 func (r *reconciler) fetchProxyConfigs(
 	ctx context.Context,
 	client pbresource.ResourceServiceClient,
-	proxyCfgIds []*pbresource.ID) ([]*types.DecodedProxyConfiguration, error) {
-
+	proxyCfgIds []*pbresource.ID,
+	workload *types.DecodedWorkload,
+) ([]*types.DecodedProxyConfiguration, error) {
 	var decoded []*types.DecodedProxyConfiguration
 	for _, id := range proxyCfgIds {
 		res, err := resource.GetDecodedResource[*pbmesh.ProxyConfiguration](ctx, client, id)
@@ -164,9 +166,20 @@ func (r *reconciler) fetchProxyConfigs(
 		}
 		if res == nil || res.GetResource() == nil || res.GetData() == nil {
 			// If resource is not found, we should untrack it.
-			r.proxyConfigMapper.UntrackProxyConfiguration(id)
+			r.proxyConfigMapper.UntrackID(id)
 			continue
 		}
+
+		if res.Data.Workloads.Filter != "" {
+			match, err := resource.FilterMatchesResourceMetadata(workload.Resource, res.Data.Workloads.Filter)
+			if err != nil {
+				return nil, fmt.Errorf("error checking selector filters: %w", err)
+			}
+			if !match {
+				continue
+			}
+		}
+
 		decoded = append(decoded, res)
 	}
 

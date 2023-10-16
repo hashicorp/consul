@@ -4,6 +4,8 @@
 package types
 
 import (
+	"net"
+
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
@@ -13,17 +15,18 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func RegisterUpstreams(r resource.Registry) {
+func RegisterDestinations(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.DestinationsType,
 		Proto:    &pbmesh.Destinations{},
 		Scope:    resource.ScopeNamespace,
-		Mutate:   MutateUpstreams,
-		Validate: ValidateUpstreams,
+		Mutate:   MutateDestinations,
+		Validate: ValidateDestinations,
+		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.Destinations](),
 	})
 }
 
-func MutateUpstreams(res *pbresource.Resource) error {
+func MutateDestinations(res *pbresource.Resource) error {
 	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
@@ -64,7 +67,7 @@ func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
 }
 
-func ValidateUpstreams(res *pbresource.Resource) error {
+func ValidateDestinations(res *pbresource.Resource) error {
 	var destinations pbmesh.Destinations
 
 	if err := res.Data.UnmarshalTo(&destinations); err != nil {
@@ -73,10 +76,24 @@ func ValidateUpstreams(res *pbresource.Resource) error {
 
 	var merr error
 
+	if selErr := catalog.ValidateSelector(destinations.Workloads, false); selErr != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "workloads",
+			Wrapped: selErr,
+		})
+	}
+
+	if destinations.GetPqDestinations() != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "pq_destinations",
+			Wrapped: resource.ErrUnsupported,
+		})
+	}
+
 	for i, dest := range destinations.Destinations {
 		wrapDestErr := func(err error) error {
 			return resource.ErrInvalidListElement{
-				Name:    "upstreams",
+				Name:    "destinations",
 				Index:   i,
 				Wrapped: err,
 			}
@@ -93,11 +110,74 @@ func ValidateUpstreams(res *pbresource.Resource) error {
 			merr = multierror.Append(merr, refErr)
 		}
 
-		// TODO(v2): validate port name using catalog validator
-		// TODO(v2): validate ListenAddr
+		if portErr := catalog.ValidatePortName(dest.DestinationPort); portErr != nil {
+			merr = multierror.Append(merr, wrapDestErr(resource.ErrInvalidField{
+				Name:    "destination_port",
+				Wrapped: portErr,
+			}))
+		}
+
+		if dest.GetDatacenter() != "" {
+			merr = multierror.Append(merr, wrapDestErr(resource.ErrInvalidField{
+				Name:    "datacenter",
+				Wrapped: resource.ErrUnsupported,
+			}))
+		}
+
+		if listenAddrErr := validateListenAddr(dest); listenAddrErr != nil {
+			merr = multierror.Append(merr, wrapDestErr(listenAddrErr))
+		}
 	}
 
-	// TODO(v2): validate workload selectors
+	return merr
+}
+
+func validateListenAddr(dest *pbmesh.Destination) error {
+	var merr error
+
+	if dest.GetListenAddr() == nil {
+		return multierror.Append(merr, resource.ErrInvalidFields{
+			Names:   []string{"ip_port", "unix"},
+			Wrapped: resource.ErrMissingOneOf,
+		})
+	}
+
+	switch listenAddr := dest.GetListenAddr().(type) {
+	case *pbmesh.Destination_IpPort:
+		if ipPortErr := validateIPPort(listenAddr.IpPort); ipPortErr != nil {
+			merr = multierror.Append(merr, resource.ErrInvalidField{
+				Name:    "ip_port",
+				Wrapped: ipPortErr,
+			})
+		}
+	case *pbmesh.Destination_Unix:
+		if !catalog.IsValidUnixSocketPath(listenAddr.Unix.GetPath()) {
+			merr = multierror.Append(merr, resource.ErrInvalidField{
+				Name: "unix",
+				Wrapped: resource.ErrInvalidField{
+					Name:    "path",
+					Wrapped: errInvalidUnixSocketPath,
+				},
+			})
+		}
+	}
+
+	return merr
+}
+
+func validateIPPort(ipPort *pbmesh.IPPortAddress) error {
+	var merr error
+
+	if listenPortErr := validatePort(ipPort.GetPort(), "port"); listenPortErr != nil {
+		merr = multierror.Append(merr, listenPortErr)
+	}
+
+	if net.ParseIP(ipPort.GetIp()) == nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "ip",
+			Wrapped: errInvalidIP,
+		})
+	}
 
 	return merr
 }

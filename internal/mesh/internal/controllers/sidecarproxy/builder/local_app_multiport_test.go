@@ -18,6 +18,62 @@ func TestBuildLocalApp_Multiport(t *testing.T) {
 	cases := map[string]struct {
 		workload *pbcatalog.Workload
 	}{
+		"source/multiport-l7-single-workload-address-without-ports": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc-port":  {Port: 9091, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+		"source/multiport-l7-multiple-workload-addresses-without-ports": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+					{
+						Host: "10.0.0.2",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc-port":  {Port: 9091, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
+		"source/multiport-l7-multiple-workload-addresses-with-specific-ports": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host:  "10.0.0.1",
+						Ports: []string{"admin-port"},
+					},
+					{
+						Host:  "10.0.0.2",
+						Ports: []string{"api-port"},
+					},
+					{
+						Host:  "10.0.0.3",
+						Ports: []string{"mesh"},
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+		},
 		"source/multiport-l4-single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{

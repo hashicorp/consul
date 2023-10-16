@@ -97,7 +97,7 @@ func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
 		if resource.EqualType(TypeV1RecordLabel, id.Type) {
 			if res == nil {
-				return resource.ErrNeedData
+				return resource.ErrNeedResource
 			}
 		}
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
@@ -354,7 +354,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
 			Tenancy: clone(artistID.Tenancy),
-			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
+			Name:    fmt.Sprintf("%s-%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,
 		Data:  data,

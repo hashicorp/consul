@@ -5,6 +5,7 @@ package resource
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -22,39 +23,98 @@ import (
 func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(artistId, recordLabelId *pbresource.ID) *pbresource.ID{
-		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
-			return nil
+	type testCase struct {
+		modFn       func(artistId, recordLabelId *pbresource.ID) *pbresource.ID
+		errContains string
+	}
+
+	testCases := map[string]testCase{
+		"no id": {
+			modFn: func(_, _ *pbresource.ID) *pbresource.ID {
+				return nil
+			},
+			errContains: "id is required",
 		},
-		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Type = nil
-			return artistId
+		"no type": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Type = nil
+				return artistId
+			},
+			errContains: "id.type is required",
 		},
-		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Name = ""
-			return artistId
+		"no name": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = ""
+				return artistId
+			},
+			errContains: "id.name invalid",
 		},
-		"partition scoped resource with namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
-			return recordLabelId
+		"mixed case name": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = "DepecheMode"
+				return artistId
+			},
+			errContains: "id.name invalid",
+		},
+		"name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = strings.Repeat("n", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.name invalid",
+		},
+		"partition mixed case": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Partition = "Default"
+				return artistId
+			},
+			errContains: "id.tenancy.partition invalid",
+		},
+		"partition name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.tenancy.partition invalid",
+		},
+		"namespace mixed case": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Namespace = "Default"
+				return artistId
+			},
+			errContains: "id.tenancy.namespace invalid",
+		},
+		"namespace name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.tenancy.namespace invalid",
+		},
+		"partition scoped resource with namespace": {
+			modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+				recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
+				return recordLabelId
+			},
+			errContains: "cannot have a namespace",
 		},
 	}
-	for desc, modFn := range testCases {
+	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			req := &pbresource.DeleteRequest{Id: modFn(artist.Id, recordLabel.Id), Version: ""}
+			req := &pbresource.DeleteRequest{Id: tc.modFn(artist.Id, recordLabel.Id), Version: ""}
 
 			_, err = client.Delete(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -129,7 +189,7 @@ func TestDelete_Success(t *testing.T) {
 					server, client, ctx := testDeps(t)
 					demo.RegisterTypes(server.Registry)
 
-					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+					recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 					require.NoError(t, err)
 					writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 					require.NoError(t, err)
