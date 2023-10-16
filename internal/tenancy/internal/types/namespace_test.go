@@ -21,13 +21,13 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    NamespaceV1Alpha1Type,
+			Type:    NamespaceV2Beta1Type,
 			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name:    "ns1234",
 		},

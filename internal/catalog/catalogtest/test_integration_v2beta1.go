@@ -26,7 +26,7 @@ var (
 	testData embed.FS
 )
 
-// RunCatalogV1Alpha1IntegrationTest will push up a bunch of catalog related data and then
+// RunCatalogV2Beta1IntegrationTest will push up a bunch of catalog related data and then
 // verify that all the expected reconciliations happened correctly. This test is
 // intended to exercise a large swathe of behavior of the overall catalog package.
 // Besides just controller reconciliation behavior, the intent is also to verify
@@ -38,7 +38,7 @@ var (
 // is another RunCatalogIntegrationTestLifeCycle function that can be used for those
 // purposes. The two are distinct so that the data being published and the assertions
 // made against the system can be reused in upgrade tests.
-func RunCatalogV1Alpha1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV2Beta1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
 	t.Helper()
 
 	PublishCatalogV2Beta1IntegrationTestData(t, client)
