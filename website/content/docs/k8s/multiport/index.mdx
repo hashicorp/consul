@@ -14,7 +14,7 @@ Multi-port services are part of a beta release. This documentation supports test
 
 This topic describes changes to Consul's catalog that allow you to register a service with multiple ports on Kubernetes deployments.
 
-## Background
+## Introduction
 
 When Consul registers services, v1 of its catalog API tracks the following information:
 
@@ -22,7 +22,7 @@ When Consul registers services, v1 of its catalog API tracks the following infor
 - Locations of the _nodes_ the instances run on
 - Names of the _services_ the instances are associated with
 
-This catalog API was designed prior to the introduction of Consul’s service mesh features. Services and service instances are coupled in the catalog such that Consul's ACL system requires a Kubernetes ServiceAccount resource to match the Service name. As a result, only one service can represent a Kubernetes Workload in the Consul catalog.
+This catalog API was designed prior to the introduction of Consul’s service mesh features. The service mesh uses Consul's ACL system, which requires a Kubernetes ServiceAccount resource to match the Service name. As a result, only one service can represent a Kubernetes Workload in the Consul catalog.
 
 Since then, the cloud networking needs for applications have evolved and the Consul catalog adapted to support workarounds for these needs. For example, [Kubernetes Pods with multiple ports](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports) demonstrates how you can schedule a service with multiple ports so that Consul registers it in the catalog as distinct services with their own service instances. However, this workaround results in additional resource consumption because Consul requires that each service and port use their own proxy and Consul dataplane so that it can recognize them as distinct services.
 
@@ -31,7 +31,7 @@ Since then, the cloud networking needs for applications have evolved and the Con
 Consul v1.17 introduces a new version of the catalog API designed to bridge differences between the Consul and Kubernetes data models. The v2 catalog API still tracks services and nodes for Consul, but replaces service instances with _workloads_ and _workload identites_.
 
 - `Workload` is an application instance running in a set of one or more Pods scheduled according to a Kubernetes Workload resource such as a Deployment or StatefulSet. It is similar to [Kubernetes Workloads](https://kubernetes.io/docs/concepts/workloads/).
-- `WorkloadIdentities` provide a distinct identity for a Workload to assume in a Kubernetes cluster. THey are similar to [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/).
+- `WorkloadIdentities` provide a distinct identity for a Workload to assume in a Kubernetes cluster. They are similar to [Kubernetes Service Accounts](https://kubernetes.io/docs/concepts/security/service-accounts/).
 
 This catalog structure enables Consul to associate a single Kubernetes Workload with multiple services in its catalog.
 
@@ -61,7 +61,7 @@ For an example configuration and instructions for each of the steps in this work
 
 Be aware of the following constraints and technical limitations on using multi-port services and the v2 catalog API:
 
-- The v2 catalog API beta does not support connections with client agents. It is only available for Kubernetes deployments, which use [Consul dataplanes](consul/docs/connect/dataplane) instead of client agents.
+- The v2 catalog API beta does not support connections with client agents. It is only available for Kubernetes deployments, which use [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents.
 - The v1 and v2 catalog APIs cannot run concurrently.
 - The Consul UI does not support multi-port services or the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
 - HCP Consul does not support multi-port services or the v2 catalog API in this release.
