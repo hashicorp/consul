@@ -1,0 +1,127 @@
+---
+layout: commands
+page_title: 'Commands: ACL Templated Policy Preview'
+description: |
+  The `consul acl templated-policy preview` command previews what resulting generated policy from a templated policy.
+---
+
+# Consul ACL Templated Policy Preview
+
+Command: `consul acl templated-policy preview`
+
+Corresponding HTTP API Endpoint: [\[POST\] /v1/acl/templated-policy/preview/:name](/consul/api-docs/acl/templated-policies#preview-a-templated-policy)
+
+The `acl templated-policy preview` command is used to preview the resulting generated policy from a templated policy.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
+## Usage 
+
+Usage: `consul acl templated-policy preview [options] [args]`
+
+#### Command Options
+
+- `-name=<string>` - The templated policy name.  Use -var flag to specify variables when
+  required.
+
+- `var=<value>` - Templated policy variables. Must be used in combination with -name
+  flag to specify required variables. May be specified multiple times with different
+  variables. Format is VariableName:Value
+
+- `-file=<string>` - Path to a file containing templated policies and variables.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+@include 'http_api_namespace_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+#### Previewing a templated policy with no required variables:
+
+```shell-session
+consul acl templated-policy preview -name "builtin/dns"
+ID:           0a6e6f64655f70726566697...
+Name:         synthetic-policy-0a6e6f...
+Description:  synthetic policy generated from templated policy: builtin/dns
+Datacenters:
+Rules:
+node_prefix "" {
+	policy = "read"
+}
+service_prefix "" {
+	policy = "read"
+}
+query_prefix "" {
+	policy = "read"
+}
+```
+
+#### Previewing a templated policy with required variables:
+
+```shell-session
+consul acl templated-policy preview -name "builtin/service" -var "name:api"
+ID:           0a736572766963652022617...
+Name:         synthetic-policy-0a7365...
+Description:  synthetic policy generated from templated policy: builtin/service
+Datacenters:
+Rules:
+service "api" {
+	policy = "write"
+}
+service "api-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+```
+
+#### Previewing a templated policy using a file: 
+
+##### Sample Payload
+
+```hcl
+TemplatedPolicy "builtin/service" {
+  Name = "web"
+}
+```
+
+```shell-session
+$ consul acl templated-policy -file templated-policy.hcl
+ID:           0a736572766963652022776...
+Name:         synthetic-policy-0a7365...
+Description:  synthetic policy generated from templated policy: builtin/service
+Datacenters:
+Rules:
+service "web" {
+	policy = "write"
+}
+service "web-sidecar-proxy" {
+	policy = "write"
+}
+service_prefix "" {
+	policy = "read"
+}
+node_prefix "" {
+	policy = "read"
+}
+```

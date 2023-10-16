@@ -1,0 +1,51 @@
+---
+layout: commands
+page_title: 'Commands: ACL Templated Policy Read'
+description: |
+  The `consul acl templated-policy read` command outputs details that make up an ACL templated policy of the specified name.
+---
+
+# Consul ACL Templated Policy Read
+
+Command: `consul acl templated-policy read`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/templated-policy/name/:name](/consul/api-docs/acl/templated-policies#read-a-templated-policy-by-name)
+
+The `acl templated-policy read` command reads and displays a templated policies details.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+are not supported from commands, but may be from the corresponding HTTP endpoint.
+
+| ACL Required |
+| ------------ |
+| `acl:read`   |
+
+## Usage 
+
+Usage: `consul acl templated-policy read [options] [args]`
+
+#### Command Options 
+
+- `-name=<string>` - The name of the templated policy to read.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Examples
+
+Get templated policy details by name:
+
+```shell-session
+$ consul acl templated-policy read -name "builtin/service"
+Name:            builtin/service
+Input variables:
+	Name: String - Required - The name of the service.
+Example usage:
+	consul acl token create -templated-policy builtin/service -var name:api
+```

@@ -55,6 +55,14 @@ The corresponding CLI command is [`consul acl role create`](/consul/commands/acl
   linking roles internally by IDs, Consul enables policy renaming without
   breaking tokens.
 
+- `TemplatedPolicies` `(array<TemplatedPolicy>)` - The list of [templated policies](/consul/docs/security/acl#templated-policies)
+  that should be applied to the role. Added in Consul 1.17.
+
+    - `TemplateName` `(string: <required>)` - The templated policy name.
+    
+    - `TemplateVariables` `(ACLTemplatedPolicyVariables: <optional>)` - The templated policy variables. Not all templated policies
+      require variables.
+
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
   identities](/consul/docs/security/acl#service-identities) that should be
   applied to the role. Added in Consul 1.5.0.
@@ -97,6 +105,17 @@ The corresponding CLI command is [`consul acl role create`](/consul/commands/acl
     },
     {
       "Name": "node-read"
+    }
+  ],
+  "TemplatedPolicies": [
+     {
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    },
+    {
+      "TemplateName": "builtin/dns"
     }
   ],
   "ServiceIdentities": [
@@ -151,6 +170,19 @@ $ curl --request PUT \
     {
       "NodeName": "node-1",
       "Datacenter": "dc2"
+    }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000003",
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    },
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000005",
+      "TemplateName": "builtin/dns"
     }
   ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
@@ -223,6 +255,19 @@ $ curl --request GET http://127.0.0.1:8500/v1/acl/role/aa770e5b-8b0b-7fcf-e5a1-8
       "Datacenter": "dc2"
     }
   ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000003",
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    },
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000005",
+      "TemplateName": "builtin/dns"
+    }
+  ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
   "CreateIndex": 57,
   "ModifyIndex": 57
@@ -291,6 +336,19 @@ $ curl --request GET http://127.0.0.1:8500/v1/acl/role/name/example-role
     {
       "NodeName": "node-1",
       "Datacenter": "dc2"
+    }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000003",
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    },
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000005",
+      "TemplateName": "builtin/dns"
     }
   ],
   "Hash": "mBWMIeX9zyUTdDMq8vWB0iYod+mKBArJoAhj6oPz3BI=",
@@ -379,6 +437,11 @@ The corresponding CLI command is [`consul acl role update`](/consul/commands/acl
       "NodeName": "node-1",
       "Datacenter": "dc2"
     }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateName": "builtin/dns"
+    }
   ]
 }
 ```
@@ -412,6 +475,12 @@ $ curl --request PUT \
     {
       "NodeName": "node-1",
       "Datacenter": "dc2"
+    }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000005",
+      "TemplateName": "builtin/dns"
     }
   ],
   "Hash": "OtZUUKhInTLEqTPfNSSOYbRiSBKm3c4vI2p6MxZnGWc=",

@@ -64,6 +64,14 @@ The corresponding CLI command is [`consul acl token create`](/consul/commands/ac
   resolved to the role ID. With linking tokens internally by IDs, Consul
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
 
+- `TemplatedPolicies` `(array<TemplatedPolicy>)` - The list of [templated policies](/consul/docs/security/acl#templated-policies)
+  that should be applied to the role. Added in Consul 1.17.
+
+    - `TemplateName` `(string: <required>)` - The templated policy name.
+    
+    - `TemplateVariables` `(ACLTemplatedPolicyVariables: <optional>)` - The templated policy variables. Not all templated policies
+      require variables.
+
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
   identities](/consul/docs/security/acl#service-identities) that should be
   applied to the token. Added in Consul 1.5.0.
@@ -121,6 +129,14 @@ The corresponding CLI command is [`consul acl token create`](/consul/commands/ac
       "Name": "node-read"
     }
   ],
+  "TemplatedPolicies": [
+    {
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    }
+  ],
   "Local": false
 }
 ```
@@ -148,6 +164,15 @@ $ curl --request PUT \
     {
       "ID": "e359bd81-baca-903e-7e64-1ccd9fdc78f5",
       "Name": "node-read"
+    }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000003",
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
     }
   ],
   "Local": false,
