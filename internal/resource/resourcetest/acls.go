@@ -41,6 +41,9 @@ var checkF = func(t *testing.T, expect string, got error) {
 type ACLTestCase struct {
 	Rules string
 
+	// AuthCtx is optional. If not provided an empty one will be used.
+	AuthCtx *acl.AuthorizerContext
+
 	// One of either Res or Data/Owner/Typ should be set.
 	Res   *pbresource.Resource
 	Data  protoreflect.ProtoMessage
@@ -92,21 +95,25 @@ func RunACLTestCase(t *testing.T, tc ACLTestCase, registry resource.Registry) {
 	require.NoError(t, err)
 	authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
 
+	if tc.AuthCtx == nil {
+		tc.AuthCtx = &acl.AuthorizerContext{}
+	}
+
 	if tc.ReadHookRequiresResource {
-		err = reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
+		err = reg.ACLs.Read(authz, tc.AuthCtx, res.Id, nil)
 		require.ErrorIs(t, err, resource.ErrNeedResource, "read hook should require the data payload")
 	}
 
 	t.Run("read", func(t *testing.T) {
-		err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, res)
+		err := reg.ACLs.Read(authz, tc.AuthCtx, res.Id, res)
 		checkF(t, tc.ReadOK, err)
 	})
 	t.Run("write", func(t *testing.T) {
-		err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
+		err := reg.ACLs.Write(authz, tc.AuthCtx, res)
 		checkF(t, tc.WriteOK, err)
 	})
 	t.Run("list", func(t *testing.T) {
-		err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
+		err := reg.ACLs.List(authz, tc.AuthCtx)
 		checkF(t, tc.ListOK, err)
 	})
 }
