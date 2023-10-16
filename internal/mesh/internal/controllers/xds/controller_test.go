@@ -1002,6 +1002,19 @@ func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
 }
 
+// TestReconcile_SidecarProxyGoldenFileInputs tests the Reconcile() by using
+// the golden test output/expected files from the sidecar proxy tests as inputs
+// to the XDS controller reconciliation.
+// XDS controller reconciles the full ProxyStateTemplate object.  The fields
+// that things that it focuses on are leaf certs, endpoints, and trust bundles,
+// which is just a subset of the ProxyStateTemplate struct.  Prior to XDS controller
+// reconciliation, the sidecar proxy controller will have reconciled the other parts
+// of the ProxyStateTempalte.
+// Since the XDS controller does act on the ProxyStateTemplate, the tests
+// utilize that entire object rather than just the parts that XDS controller
+// internals reconciles.  Namely, by using checking the full ProxyStateTemplate
+// rather than just endpoints,leafs, and trust bundles, the test also ensures
+// side effects or change in scope to XDS controller are not introduce mistakenly.
 func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
