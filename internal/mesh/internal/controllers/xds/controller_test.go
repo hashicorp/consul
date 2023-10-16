@@ -8,12 +8,13 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/protobuf/encoding/protojson"
-	"strings"
-	"testing"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -1009,11 +1010,11 @@ func TestXdsController(t *testing.T) {
 // that things that it focuses on are leaf certs, endpoints, and trust bundles,
 // which is just a subset of the ProxyStateTemplate struct.  Prior to XDS controller
 // reconciliation, the sidecar proxy controller will have reconciled the other parts
-// of the ProxyStateTempalte.
+// of the ProxyStateTemplate.
 // Since the XDS controller does act on the ProxyStateTemplate, the tests
 // utilize that entire object rather than just the parts that XDS controller
 // internals reconciles.  Namely, by using checking the full ProxyStateTemplate
-// rather than just endpoints,leafs, and trust bundles, the test also ensures
+// rather than just endpoints, leaf certs, and trust bundles, the test also ensures
 // side effects or change in scope to XDS controller are not introduce mistakenly.
 func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	path := "../sidecarproxy/builder/testdata"
