@@ -4,13 +4,13 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -518,99 +518,92 @@ func TestDestinationPolicyACLs(t *testing.T) {
 	registry := resource.NewRegistry()
 	Register(registry)
 
-	type testcase struct {
-		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
-		readOK  string
-		writeOK string
-		listOK  string
+	newPolicy := func(t *testing.T, tenancyStr string) *pbresource.Resource {
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
+			WithTenancy(resourcetest.Tenancy(tenancyStr)).
+			WithData(t, &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+					},
+				},
+			}).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res)
+		return res
 	}
 
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
 
-	checkF := func(t *testing.T, expect string, got error) {
-		switch expect {
-		case ALLOW:
-			if acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be allowed")
-			}
-		case DENY:
-			if !acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be denied")
-			}
-		case DEFAULT:
-			require.Nil(t, got, "expected fallthrough decision")
-		default:
-			t.Fatalf("unexpected expectation: %q", expect)
-		}
-	}
-
-	reg, ok := registry.Resolve(pbmesh.DestinationPolicyType)
-	require.True(t, ok)
-
-	run := func(t *testing.T, tc testcase) {
-		destData := &pbmesh.DestinationPolicy{
-			PortConfigs: map[string]*pbmesh.DestinationConfig{
-				"http": {
-					ConnectTimeout: durationpb.New(55 * time.Second),
-				},
-			},
-		}
-		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, destData).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res)
-
-		config := acl.Config{
-			WildcardName: structs.WildcardSpecifier,
-		}
-		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
-		require.NoError(t, err)
-		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
-
-		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
-			checkF(t, tc.readOK, err)
-		})
-		t.Run("write", func(t *testing.T) {
-			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
-			checkF(t, tc.writeOK, err)
-		})
-		t.Run("list", func(t *testing.T) {
-			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
-			checkF(t, tc.listOK, err)
-		})
-	}
-
-	cases := map[string]testcase{
-		"no rules": {
-			rules:   ``,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api read": {
-			rules:   `service "api" { policy = "read" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api write": {
-			rules:   `service "api" { policy = "write" }`,
-			readOK:  ALLOW,
-			writeOK: ALLOW,
-			listOK:  DEFAULT,
-		},
-	}
-
-	for name, tc := range cases {
+	run := func(t *testing.T, name string, tc resourcetest.ACLTestCase) {
 		t.Run(name, func(t *testing.T) {
-			run(t, tc)
+			resourcetest.RunACLTestCase(t, tc, registry)
+		})
+	}
+
+	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+
+	serviceRead := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "read" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "read" } `, name)
+	}
+	serviceWrite := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "write" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "write" } `, name)
+	}
+
+	assert := func(t *testing.T, name string, rules string, res *pbresource.Resource, readOK, writeOK string) {
+		tc := resourcetest.ACLTestCase{
+			AuthCtx: resource.AuthorizerContext(res.Id.Tenancy),
+			Rules:   rules,
+			Res:     res,
+			ReadOK:  readOK,
+			WriteOK: writeOK,
+			ListOK:  DEFAULT,
+		}
+		run(t, name, tc)
+	}
+
+	tenancies := []string{"default.default"}
+	if isEnterprise {
+		tenancies = append(tenancies, "default.foo", "alpha.default", "alpha.foo")
+	}
+
+	for _, policyTenancyStr := range tenancies {
+		t.Run("policy tenancy: "+policyTenancyStr, func(t *testing.T) {
+			for _, aclTenancyStr := range tenancies {
+				t.Run("acl tenancy: "+aclTenancyStr, func(t *testing.T) {
+					aclTenancy := resourcetest.Tenancy(aclTenancyStr)
+
+					maybe := func(match string) string {
+						if policyTenancyStr != aclTenancyStr {
+							return DENY
+						}
+						return match
+					}
+
+					t.Run("no rules", func(t *testing.T) {
+						rules := ``
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), DENY, DENY)
+					})
+					t.Run("api:read", func(t *testing.T) {
+						rules := serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "api")
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), maybe(ALLOW), DENY)
+					})
+					t.Run("api:write", func(t *testing.T) {
+						rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api")
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), maybe(ALLOW), maybe(ALLOW))
+					})
+				})
+			}
 		})
 	}
 }
