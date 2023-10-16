@@ -143,7 +143,7 @@
     "ember-modifier": "^4.1.0",
     "ember-named-blocks-polyfill": "^0.2.5",
     "ember-on-helper": "^0.1.0",
-    "ember-on-resize-modifier": "^0.3.0",
+    "ember-on-resize-modifier": "^2.0.2",
     "ember-page-title": "^6.2.2",
     "ember-power-select": "^4.0.5",
     "ember-power-select-with-create": "^0.8.0",
