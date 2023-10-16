@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -28,61 +27,24 @@ import (
 func TestWatchList_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
+
 	demo.RegisterTypes(server.Registry)
 
-	type testCase struct {
-		modFn       func(*pbresource.WatchListRequest)
-		errContains string
-	}
-
-	testCases := map[string]testCase{
-		"no type": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.Type = nil },
-			errContains: "type is required",
-		},
-		"no tenancy": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy = nil },
-			errContains: "tenancy is required",
-		},
-		"partition mixed case": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy.Partition = "Default" },
-			errContains: "tenancy.partition invalid",
-		},
-		"partition too long": {
-			modFn: func(req *pbresource.WatchListRequest) {
-				req.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
-			},
-			errContains: "tenancy.partition invalid",
-		},
-		"namespace mixed case": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy.Namespace = "Default" },
-			errContains: "tenancy.namespace invalid",
-		},
-		"namespace too long": {
-			modFn: func(req *pbresource.WatchListRequest) {
-				req.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
-			},
-			errContains: "tenancy.namespace invalid",
-		},
-		"name_prefix mixed case": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.NamePrefix = "Smashing" },
-			errContains: "name_prefix invalid",
-		},
-		"partitioned type provides non-empty namespace": {
-			modFn: func(req *pbresource.WatchListRequest) {
-				req.Type = demo.TypeV1RecordLabel
-				req.Tenancy.Namespace = "bad"
-			},
-			errContains: "cannot have a namespace",
+	testCases := map[string]func(*pbresource.WatchListRequest){
+		"no type":    func(req *pbresource.WatchListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.WatchListRequest) { req.Tenancy = nil },
+		"partitioned type provides non-empty namespace": func(req *pbresource.WatchListRequest) {
+			req.Type = demo.TypeV1RecordLabel
+			req.Tenancy.Namespace = "bad"
 		},
 	}
-	for desc, tc := range testCases {
+	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.WatchListRequest{
 				Type:    demo.TypeV2Album,
 				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
-			tc.modFn(req)
+			modFn(req)
 
 			stream, err := client.WatchList(testContext(t), req)
 			require.NoError(t, err)
@@ -90,7 +52,6 @@ func TestWatchList_InputValidation(t *testing.T) {
 			_, err = stream.Recv()
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -175,7 +136,7 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			rspCh := handleResourceStream(t, stream)
 
 			// Testcase will pick one of recordLabel or artist based on scope of type.
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("LooneyTunes")
 			require.NoError(t, err)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)

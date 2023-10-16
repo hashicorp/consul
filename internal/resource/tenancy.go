@@ -5,6 +5,7 @@ package resource
 
 import (
 	"fmt"
+	"strings"
 
 	"google.golang.org/protobuf/proto"
 
@@ -59,6 +60,20 @@ func (s Scope) String() string {
 		return "namespace"
 	}
 	panic(fmt.Sprintf("string mapping missing for scope %v", int(s)))
+}
+
+// Normalize lowercases the partition and namespace.
+func Normalize(tenancy *pbresource.Tenancy) {
+	if tenancy == nil {
+		return
+	}
+	tenancy.Partition = strings.ToLower(tenancy.Partition)
+	tenancy.Namespace = strings.ToLower(tenancy.Namespace)
+
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = DefaultPeerName
+	}
 }
 
 // DefaultClusteredTenancy returns the default tenancy for a cluster scoped resource.
@@ -141,6 +156,7 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 	if itemTenancy.PeerName == "" {
 		itemTenancy.PeerName = DefaultPeerName
 	}
+	Normalize(itemTenancy)
 
 	if parentTenancy != nil {
 		// Recursively normalize this tenancy as well.
@@ -151,6 +167,7 @@ func defaultTenancy(itemTenancy, parentTenancy, scopeTenancy *pbresource.Tenancy
 	if parentTenancy == nil {
 		parentTenancy = scopeTenancy
 	}
+	Normalize(parentTenancy)
 
 	if !equalOrEmpty(itemTenancy.PeerName, DefaultPeerName) {
 		panic("peering is not supported yet for resource tenancies")
