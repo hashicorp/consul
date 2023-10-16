@@ -151,7 +151,7 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 }
 
 func MutateComputedExportedServices(res *pbresource.Resource) error {
-	var ces multiclusterv1alpha1.ComputedExportedService
+	var ces multiclusterv1alpha1.ComputedExportedServices
 
 	if err := res.Data.UnmarshalTo(&ces); err != nil {
 		return err
@@ -163,7 +163,7 @@ func MutateComputedExportedServices(res *pbresource.Resource) error {
 }
 
 func MutateExportedServices(res *pbresource.Resource) error {
-	var ces multiclusterv1alpha1.ComputedExportedService
+	var ces multiclusterv1alpha1.ExportedServices
 
 	if err := res.Data.UnmarshalTo(&ces); err != nil {
 		return err
@@ -175,7 +175,7 @@ func MutateExportedServices(res *pbresource.Resource) error {
 }
 
 func MutateNamespaceExportedServices(res *pbresource.Resource) error {
-	var ces multiclusterv1alpha1.ComputedExportedService
+	var ces multiclusterv1alpha1.NamespaceExportedServices
 
 	if err := res.Data.UnmarshalTo(&ces); err != nil {
 		return err
@@ -187,7 +187,7 @@ func MutateNamespaceExportedServices(res *pbresource.Resource) error {
 }
 
 func MutatePartitionExportedServices(res *pbresource.Resource) error {
-	var ces multiclusterv1alpha1.ComputedExportedService
+	var ces multiclusterv1alpha1.PartitionExportedServices
 
 	if err := res.Data.UnmarshalTo(&ces); err != nil {
 		return err
