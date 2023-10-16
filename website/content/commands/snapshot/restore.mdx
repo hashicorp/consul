@@ -1,15 +1,13 @@
 ---
 layout: commands
 page_title: 'Commands: Snapshot Restore'
-description: |
-  The `consul snapshot restore` command restores the state of Consul servers after a disaster. A server can restore key/value entries, registered services in the catalog, prepared queries, sessions, and ACLs from a saved snapshot.
 ---
 
 # Consul Snapshot Restore
 
 Command: `consul snapshot restore`
 
-Corresponding HTTP API Endpoint: [\[PUT\] /v1/snapshot](/consul/api-docs/snapshot#restore-snapshot)
+Corresponding HTTP API Endpoint: [\[PUT\] /v1/snapshot](/api-docs/snapshot#restore-snapshot)
 
 The `snapshot restore` command is used to restore an atomic, point-in-time
 snapshot of the state of the Consul servers which includes key/value entries,
@@ -22,8 +20,8 @@ intended to recover from a disaster. It restores your configuration into a fresh
 cluster of Consul servers as long as your new cluster runs the same Consul
 version as the cluster that originally took the snapshot.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |
@@ -49,5 +47,5 @@ $ consul snapshot restore backup.snap
 Restored snapshot
 ```
 
-Please see the [HTTP API](/consul/api-docs/snapshot) documentation for
+Please see the [HTTP API](/api-docs/snapshot) documentation for
 more details about snapshot internals.

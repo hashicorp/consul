@@ -8,7 +8,7 @@ description: >-
 # Vault as the Server TLS Certificate Provider on Kubernetes
 
 ## Overview
-To use Vault as the server TLS certificate provider on Kubernetes, complete a modified version of the steps outlined in the [Data Integration](/consul/docs/k8s/deployment-configurations/vault/data-integration) section.
+To use Vault as the server TLS certificate provider on Kubernetes, complete a modified version of the steps outlined in the [Data Integration](/docs/k8s/deployment-configurations/vault/data-integration) section.
 
 Complete the following steps once:
   1. Create a Vault policy that authorizes the desired level of access to the secret.
@@ -20,8 +20,8 @@ Repeat the following steps for each datacenter in the cluster:
 
 ## Prerequisites
 Prior to setting up the data integration between Vault and Consul on Kubernetes, you will need to have:  
-1. Read and completed the steps in the [Systems Integration](/consul/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
-2. Read the [Data Integration Overview](/consul/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/consul/docs/k8s/deployment-configurations/vault).
+1. Read and completed the steps in the [Systems Integration](/docs/k8s/deployment-configurations/vault/systems-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
+2. Read the [Data Integration Overview](/docs/k8s/deployment-configurations/vault/data-integration) section of [Vault as a Secrets Backend](/docs/k8s/deployment-configurations/vault).
 3. Complete the [Bootstrapping the PKI Engine](#bootstrapping-the-pki-engine) section.
 
 ## Bootstrapping the PKI Engine
@@ -54,7 +54,7 @@ TLS certificates to Consul.
 To use Vault to issue Server TLS certificates, you will need to create the following:
 
 1. Create a policy that allows `["create", "update"]` access to the
-    [certificate issuing URL](/vault/api-docs/secret/pki#generate-certificate) so the Consul servers can
+    [certificate issuing URL](https://www.vaultproject.io/api-docs/secret/pki#generate-certificate) so the Consul servers can
     fetch a new certificate/key pair.
 
     The path to the secret referenced in the `path` resource is the same value that you will configure in the  `server.serverCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).
@@ -75,7 +75,7 @@ To use Vault to issue Server TLS certificates, you will need to create the follo
     $ vault policy write consul-server consul-server-policy.hcl
     ```
 
-1. Create a policy that allows `["read"]` access to the [CA URL](/vault/api-docs/secret/pki),
+1. Create a policy that allows `["read"]` access to the [CA URL](https://www.vaultproject.io/api-docs/secret/pki),
 this is required for the Consul components to communicate with the Consul servers in order to fetch their auto-encryption certificates.
     
     The path to the secret referenced in the `path` resource is the same value that you will configure in the  `global.tls.caCert.secretName` Helm configuration (refer to [Update Consul on Kubernetes Helm chart](#update-consul-on-kubernetes-helm-chart)).

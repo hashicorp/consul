@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package auth
 
 import (
@@ -15,7 +12,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 )
 
 func TestTokenWriter_Create_Validation(t *testing.T) {
@@ -101,6 +97,14 @@ func TestTokenWriter_Create_Validation(t *testing.T) {
 			token:         structs.ACLToken{AuthMethod: "some-auth-method"},
 			fromLogin:     false,
 			errorContains: "AuthMethod field is disallowed outside of login",
+		},
+		"Rules set": {
+			token:         structs.ACLToken{Rules: "some rules"},
+			errorContains: "Rules cannot be specified for this token",
+		},
+		"Type set": {
+			token:         structs.ACLToken{Type: "some-type"},
+			errorContains: "Type cannot be specified for this token",
 		},
 	}
 	for desc, tc := range testCases {
@@ -358,59 +362,6 @@ func TestTokenWriter_NodeIdentities(t *testing.T) {
 	}
 }
 
-func TestTokenWriter_TemplatedPolicies(t *testing.T) {
-	aclCache := &MockACLCache{}
-	aclCache.On("RemoveIdentityWithSecretToken", mock.Anything)
-
-	store := testStateStore(t)
-
-	writer := buildTokenWriter(store, aclCache)
-
-	testCases := map[string]struct {
-		input         []*structs.ACLTemplatedPolicy
-		output        []*structs.ACLTemplatedPolicy
-		errorContains string
-	}{
-		"missing templated policy name": {
-			input:         []*structs.ACLTemplatedPolicy{{TemplateName: ""}},
-			errorContains: "templated policy is missing the template name field on this token",
-		},
-		"invalid templated policy name": {
-			input:         []*structs.ACLTemplatedPolicy{{TemplateName: "faketemplate"}},
-			errorContains: "no such ACL templated policy with Name \"faketemplate\"",
-		},
-		"missing required template variable: name": {
-			input:         []*structs.ACLTemplatedPolicy{{TemplateName: api.ACLTemplatedPolicyServiceName, Datacenters: []string{"dc1"}}},
-			errorContains: "validation error for templated policy \"builtin/service\"",
-		},
-		"duplicate templated policies are removed and ids are set": {
-			input: []*structs.ACLTemplatedPolicy{
-				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "web"}},
-				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "web"}},
-				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "api"}},
-				{TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "nodename"}},
-			},
-			output: []*structs.ACLTemplatedPolicy{
-				{TemplateID: structs.ACLTemplatedPolicyServiceID, TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "web"}},
-				{TemplateID: structs.ACLTemplatedPolicyServiceID, TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "api"}},
-				{TemplateID: structs.ACLTemplatedPolicyNodeID, TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &structs.ACLTemplatedPolicyVariables{Name: "nodename"}},
-			},
-		},
-	}
-	for desc, tc := range testCases {
-		t.Run(desc, func(t *testing.T) {
-			updated, err := writer.Create(&structs.ACLToken{TemplatedPolicies: tc.input}, false)
-			if tc.errorContains == "" {
-				require.NoError(t, err)
-				require.ElementsMatch(t, tc.output, updated.TemplatedPolicies)
-			} else {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errorContains)
-			}
-		})
-	}
-}
-
 func TestTokenWriter_Create_Expiration(t *testing.T) {
 	aclCache := &MockACLCache{}
 	aclCache.On("RemoveIdentityWithSecretToken", mock.Anything)
@@ -546,6 +497,14 @@ func TestTokenWriter_Update_Validation(t *testing.T) {
 		"ExpirationTime changed": {
 			token:         structs.ACLToken{AccessorID: token.AccessorID, ExpirationTime: timePointer(token.ExpirationTime.Add(1 * time.Minute))},
 			errorContains: "Cannot change expiration time",
+		},
+		"Rules set": {
+			token:         structs.ACLToken{AccessorID: token.AccessorID, Rules: "some rules"},
+			errorContains: "Rules cannot be specified for this token",
+		},
+		"Type set": {
+			token:         structs.ACLToken{AccessorID: token.AccessorID, Type: "some-type"},
+			errorContains: "Type cannot be specified for this token",
 		},
 	}
 	for desc, tc := range testCases {

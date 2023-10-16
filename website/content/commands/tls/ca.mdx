@@ -1,19 +1,17 @@
 ---
 layout: commands
 page_title: 'Commands: TLS CA Create'
-description: |
-  The `consul tls ca create` command creates a self-signed certificate authority (CA) for TLS setup.
 ---
 
 # Consul TLS CA Create
 
 Command: `consul tls ca create`
 
-This command creates a self-signed CA to be used for Consul TLS setup.
+This command create a self signed CA to be used for Consul TLS setup.
 
-## Examples
+## Example
 
-Create a CA:
+Create CA:
 
 ```shell-session
 $ consul tls ca create
@@ -21,17 +19,9 @@ $ consul tls ca create
 ==> Saved consul-ca-key.pem
 ```
 
-Create a CA that signs certificates exclusively for the example.com domain:
-
-```shell-session
-$ consul tls ca create -name-constraint -domain example.com
-==> Saved example.com-ca.pem
-==> Saved example.com-ca-key.pem
-```
-
 ## Usage
 
-Usage: `consul tls ca create [options]`
+Usage: `consul tls ca create [filename-prefix] [options]`
 
 #### Command Options
 
@@ -39,17 +29,18 @@ Usage: `consul tls ca create [options]`
   Results in rejecting certificates for other DNS than specified. Can be used
   multiple times. Only used in combination with `-name-constraint`.
 
-- `-days=<int>` - Number of days the CA is valid for. Defaults to 1825 days (approximately 5 years).
+- `-days=<int>` - Provide number of days the CA is valid for from now on, defaults to 5 years.
 
-- `-domain=<string>` - The DNS domain of the Consul cluster that agents are [configured](/consul/docs/agent/config/cli-flags#_domain) with.
-  Defaults to `consul`. Only used when `-name-constraint` is set.
-  Additional domains can be passed with `-additional-name-constraint`.
+- `-domain=<string>` - Domain of consul cluster. Only used in combination with
+  `-name-constraint`. Defaults to `consul`.
 
-- `-name-constraint` - Enables [X.509 name constraints](https://www.rfc-editor.org/rfc/rfc5280#page-40) for the CA.
-  If used, the CA only signs certificates for localhost and the domains specified by `-domain` and `-additional-name-constraint`.
-  If Consul's UI is served over HTTPS in your deployment, add its DNS name with `-additional-constraint` as well. Defaults to `false`.
+- `-name-constraint` - Add name constraints for the CA. Results in rejecting
+  certificates for other DNS than specified. If turned on localhost and -domain
+  will be added to the allowed DNS. If the UI is going to be served over HTTPS
+  its DNS has to be added with `-additional-constraint`. It is not possible to
+  add that after the fact! Defaults to false.
 
-- `cluster-id` - ID of the Consul cluster. Sets the CA's URI with the SPIFFEID composed of the cluster ID and domain
-  (specified by `-domain` or `consul` by default).
+- `cluster-id` - ClusterID of the consul cluster, requires `-domain` to be set as well.
+   When used this will cause URIs to be set with spiffeid.
 
 - `common-name` - Common Name of CA. Defaults to Consul Agent CA.

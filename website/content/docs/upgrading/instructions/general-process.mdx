@@ -12,7 +12,7 @@ description: >-
 
 This document describes some best practices that you should follow when
 upgrading Consul. Some versions also have steps that are specific to that
-version, so make sure you also review the [upgrade instructions](/consul/docs/upgrading/instructions)
+version, so make sure you also review the [upgrade instructions](/docs/upgrading/instructions)
 for the version you are on.
 
 ## Download the New Version
@@ -22,7 +22,7 @@ First, download the binary for the new version you want.
 <Tabs>
 <Tab heading="Binary">
 
-All current and past versions of the CE and Enterprise releases are
+All current and past versions of the OSS and Enterprise releases are
 available here:
 
 - https://releases.hashicorp.com/consul
@@ -32,14 +32,14 @@ available here:
 
 Docker containers are available at these locations:
 
-- **CE:** https://hub.docker.com/_/consul
+- **OSS:** https://hub.docker.com/_/consul
 - **Enterprise:** https://hub.docker.com/r/hashicorp/consul-enterprise
 
 </Tab>
 <Tab heading="Kubernetes">
 
 If you are using Kubernetes, then please review our documentation for
-[Upgrading Consul on Kubernetes](/consul/docs/k8s/upgrade).
+[Upgrading Consul on Kubernetes](/docs/k8s/upgrade).
 
 </Tab>
 </Tabs>
@@ -71,10 +71,10 @@ Version      1
 This will ensure you have a safe fallback option in case something goes wrong. Store
 this snapshot somewhere safe. More documentation on snapshot usage is available here:
 
-- [consul.io/commands/snapshot](/consul/commands/snapshot)
-- [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
+- [consul.io/commands/snapshot](/commands/snapshot)
+- [Backup Consul Data and State tutorial](https://learn.hashicorp.com/tutorials/consul/backup-and-restore)
 
-**2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
+**2.** Temporarily modify your Consul configuration so that its [log_level](/docs/agent/config/cli-flags#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to
 reload the configuration:
 
@@ -171,13 +171,13 @@ Most of these problems can be solved by following the steps outlined in our
 If you are still having trouble after trying the recovery steps outlined there,
 then the following options for further assistance are available:
 
-- CE users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
-- Enterprise and CE users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
+- OSS users without paid support plans can request help in our [Community Forum](https://discuss.hashicorp.com/c/consul/29)
+- Enterprise and OSS users with paid support plans can contact [HashiCorp Support](https://support.hashicorp.com/)
 
 When contacting Hashicorp Support, please include the following information in your ticket:
 
 - Consul version you were upgrading FROM and TO.
-- [Debug level logs](/consul/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
+- [Debug level logs](/docs/agent/config/cli-flags#_log_level) from all servers in the cluster
   that you are having trouble with. These should include logs from prior to the upgrade attempt
   up through the current time. If your logs were not set at debug level prior to the
   upgrade, please include those logs as well. Also, update your config to use debug logs,

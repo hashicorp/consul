@@ -1,48 +1,48 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 a {
   text-decoration: none;
 }
-td,
-th,
-span,
-strong {
+td, th,
+span, strong {
   color: inherit;
 }
 /* %typo-body */
 body {
-  color: var(--token-color-foreground-strong);
+  color: rgb(var(--tone-gray-900));
 }
 /* TODO: Consider changing this to 'p a, dd a, td a' etc etc */
 a {
-  color: var(--token-color-foreground-action);
+  color: rgb(var(--color-action));
 }
 html {
-  background-color: var(--token-color-surface-primary);
+  background-color: rgb(var(--tone-gray-000));
 }
 hr {
-  background-color: var(--token-color-surface-interactive-active);
+  background-color: rgb(var(--tone-gray-200));
+}
+button {
+  background-color: var(--transparent);
 }
 html {
-  font-size: 16px;
+  font-size: var(--typo-size-000);
 }
-
+/* %typo-body */
+body {
+  line-height: 1.5;
+}
 body,
+button,
 input,
 select,
 textarea {
-  font-family: var(--token-typography-font-stack-text);
+  font-family: var(--typo-family-sans);
 }
 code,
 pre {
-  font-family: var(--token-typography-font-stack-code);
+  font-family: var(--typo-family-mono);
 }
 strong {
   font-style: inherit;
-  @extend %body-200-semibold;
+  font-weight: var(--typo-weight-bold);
 }
 html {
   text-rendering: optimizeLegibility;
@@ -69,9 +69,7 @@ html {
 html {
   box-sizing: border-box;
 }
-*,
-*::before,
-*::after {
+*, *::before, *::after {
   box-sizing: inherit;
 }
 fieldset {
@@ -87,8 +85,8 @@ hr {
   border: none;
   display: block;
 }
-input[type='checkbox'],
-input[type='radio'] {
+input[type="checkbox"],
+input[type="radio"] {
   vertical-align: baseline;
 }
 td,

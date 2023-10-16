@@ -1,17 +1,15 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package basic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
+	libagent "github.com/hashicorp/consul/test/integration/consul-container/libs/agent"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 // TestBasicConnectService Summary
@@ -19,85 +17,72 @@ import (
 // A simulated client (a direct HTTP call) talks to it's upstream proxy through the
 //
 // Steps:
-//   - Create a single agent cluster.
-//   - Create the example static-server and sidecar containers, then register them both with Consul
-//   - Create an example static-client sidecar, then register both the service and sidecar with Consul
-//   - Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
+//  * Create a single agent cluster.
+//	* Create the example static-server and sidecar containers, then register them both with Consul
+//  * Create an example static-client sidecar, then register both the service and sidecar with Consul
+//  * Make sure a call to the client sidecar local bind port returns a response from the upstream, static-server
 func TestBasicConnectService(t *testing.T) {
-	t.Parallel()
+	cluster := createCluster(t)
+	defer terminate(t, cluster)
 
-	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
-		NumServers:                1,
-		NumClients:                1,
-		ApplyDefaultProxySettings: true,
-		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:             "dc1",
-			InjectAutoEncryption:   true,
-			InjectGossipEncryption: true,
-			// TODO(rb): fix the test to not need the service/envoy stack to use :8500
-			AllowHTTPAnyway: true,
-		},
-	})
-
-	_, clientService := topology.CreateServices(t, cluster, "http")
+	clientService := createServices(t, cluster)
 	_, port := clientService.GetAddr()
-	_, adminPort := clientService.GetAdminAddr()
 
-	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
-	libassert.GetEnvoyListenerTCPFilters(t, adminPort)
-
-	libassert.AssertContainerState(t, clientService, "running")
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", port), "static-server", "")
+	libassert.HTTPServiceEchoes(t, "localhost", port)
 }
 
-func TestConnectGRPCService_WithInputConfig(t *testing.T) {
-	serverHclConfig := `
-datacenter = "dc2"
-data_dir = "/non-existent/conssul-data-dir"
-node_name = "server-1"
+func terminate(t *testing.T, cluster *libcluster.Cluster) {
+	err := cluster.Terminate()
+	require.NoError(t, err)
+}
 
-bind_addr = "0.0.0.0"
-max_query_time = "800s"
-	`
+// createCluster
+func createCluster(t *testing.T) *libcluster.Cluster {
+	opts := libagent.BuildOptions{
+		InjectAutoEncryption:   true,
+		InjectGossipEncryption: true,
+	}
+	ctx, err := libagent.NewBuildContext(opts)
+	require.NoError(t, err)
 
-	clientHclConfig := `
-datacenter = "dc2"
-data_dir = "/non-existent/conssul-data-dir"
-node_name = "client-1"
+	conf, err := libagent.NewConfigBuilder(ctx).ToAgentConfig()
+	require.NoError(t, err)
+	t.Logf("Cluster config:\n%s", conf.JSON)
 
-bind_addr = "0.0.0.0"
-max_query_time = "900s"
-	`
+	configs := []libagent.Config{*conf}
 
-	cluster, _, _ := topology.NewClusterWithConfig(t, &topology.ClusterConfig{
-		NumServers:                1,
-		NumClients:                1,
-		ApplyDefaultProxySettings: true,
-		BuildOpts: &libcluster.BuildOptions{
-			Datacenter:             "dc1",
-			InjectAutoEncryption:   true,
-			InjectGossipEncryption: true,
-			AllowHTTPAnyway:        true,
-		},
-	},
-		serverHclConfig,
-		clientHclConfig,
-	)
+	cluster, err := libcluster.New(configs)
+	require.NoError(t, err)
 
-	// Verify the provided server config is merged to agent config
-	serverConfig := cluster.Agents[0].GetConfig()
-	require.Contains(t, serverConfig.JSON, "\"max_query_time\":\"800s\"")
+	node := cluster.Agents[0]
+	client := node.GetClient()
+	libcluster.WaitForLeader(t, cluster, client)
+	libcluster.WaitForMembers(t, client, 1)
 
-	clientConfig := cluster.Agents[1].GetConfig()
-	require.Contains(t, clientConfig.JSON, "\"max_query_time\":\"900s\"")
+	// Default Proxy Settings
+	ok, err := utils.ApplyDefaultProxySettings(client)
+	require.NoError(t, err)
+	require.True(t, ok)
 
-	_, clientService := topology.CreateServices(t, cluster, "grpc")
-	_, port := clientService.GetAddr()
-	_, adminPort := clientService.GetAdminAddr()
+	return cluster
+}
 
-	libassert.AssertUpstreamEndpointStatus(t, adminPort, "static-server.default", "HEALTHY", 1)
-	libassert.GRPCPing(t, fmt.Sprintf("localhost:%d", port))
+func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Service {
+	node := cluster.Agents[0]
+	client := node.GetClient()
 
-	// time.Sleep(9999 * time.Second)
+	// Create a service and proxy instance
+	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(node)
+	require.NoError(t, err)
+
+	libassert.CatalogServiceExists(t, client, "static-server-sidecar-proxy")
+	libassert.CatalogServiceExists(t, client, "static-server")
+
+	// Create a client proxy instance with the server as an upstream
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false)
+	require.NoError(t, err)
+
+	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy")
+
+	return clientConnectProxy
 }

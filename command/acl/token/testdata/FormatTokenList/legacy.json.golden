@@ -1,0 +1,13 @@
+[
+    {
+        "CreateIndex": 0,
+        "ModifyIndex": 0,
+        "AccessorID": "8acc7486-ca54-4d3c-9aed-5cd85651b0ee",
+        "SecretID": "257ade69-748c-4022-bafd-76d27d9143f8",
+        "Description": "legacy",
+        "Local": false,
+        "CreateTime": "0001-01-01T00:00:00Z",
+        "Hash": null,
+        "Legacy": true
+    }
+]

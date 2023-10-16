@@ -1,3 +1,0 @@
-```release-note:improvement
-agent: add new metrics to track cpu disk and memory usage for server hosts (defaults to: enabled)
-```

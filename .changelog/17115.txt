@@ -1,3 +1,0 @@
-```release-note:improvement
-gateway: Change status condition reason for invalid certificate on a listener from "Accepted" to "ResolvedRefs".
-```

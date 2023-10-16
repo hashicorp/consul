@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import { computed, get, set } from '@ember/object';
 import CollectionComponent from 'ember-collection/components/ember-collection';
@@ -25,7 +20,7 @@ export default CollectionComponent.extend(Slotted, {
     this.guid = this.dom.guid(this);
     // TODO: The row height should auto calculate properly from the CSS
     const o = this;
-    this['cell-layout'] = new Grid(this.width, this.rowHeight);
+    this['cell-layout'] = new Grid(get(this, 'width'), get(this, 'rowHeight'));
     this['cell-layout'].formatItemStyle = function (itemIndex) {
       let style = formatItemStyle.apply(this, arguments);
       if (o.checked === itemIndex) {
@@ -40,12 +35,12 @@ export default CollectionComponent.extend(Slotted, {
     this.actions.resize.apply(this, [{ target: this.dom.viewport() }]);
   },
   style: computed('rowHeight', '_items', 'maxRows', 'maxHeight', function () {
-    const maxRows = this.rows;
-    let height = this.maxHeight;
+    const maxRows = get(this, 'rows');
+    let height = get(this, 'maxHeight');
     if (maxRows) {
       let rows = Math.max(3, get(this._items || [], 'length'));
       rows = Math.min(maxRows, rows);
-      height = this.rowHeight * rows + 29;
+      height = get(this, 'rowHeight') * rows + 29;
     }
     return {
       height: height,
@@ -80,7 +75,7 @@ export default CollectionComponent.extend(Slotted, {
         const height = e.target.innerHeight - space;
         this.set('maxHeight', Math.max(0, height));
         // TODO: The row height should auto calculate properly from the CSS
-        this['cell-layout'] = new Grid($appContent.clientWidth, this.rowHeight);
+        this['cell-layout'] = new Grid($appContent.clientWidth, get(this, 'rowHeight'));
         const o = this;
         this['cell-layout'].formatItemStyle = function (itemIndex) {
           let style = formatItemStyle.apply(this, arguments);
@@ -100,7 +95,7 @@ export default CollectionComponent.extend(Slotted, {
       if (this.$tr) {
         this.$tr.style.zIndex = null;
       }
-      if (e.target && e.target.checked && index !== this.checked) {
+      if (e.target && e.target.checked && index !== get(this, 'checked')) {
         set(this, 'checked', parseInt(index));
         const target = e.target;
         const $tr = this.dom.closest('tr', target);

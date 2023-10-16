@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -15,7 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -189,37 +186,6 @@ func testRegisterServiceWithChangeOpts(t *testing.T, s *Store, idx uint64, nodeI
 	return svc
 }
 
-// testRegisterServiceWithMeta registers service with Meta passed as arg.
-func testRegisterServiceWithMeta(t *testing.T, s *Store, idx uint64, nodeID, serviceID string, meta map[string]string, opts ...func(service *structs.NodeService)) *structs.NodeService {
-	svc := &structs.NodeService{
-		ID:      serviceID,
-		Service: serviceID,
-		Address: "1.1.1.1",
-		Port:    1111,
-		Meta:    meta,
-	}
-	for _, o := range opts {
-		o(svc)
-	}
-
-	if err := s.EnsureService(idx, nodeID, svc); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	tx := s.db.Txn(false)
-	defer tx.Abort()
-	service, err := tx.First(tableServices, indexID, NodeServiceQuery{Node: nodeID, Service: serviceID, PeerName: svc.PeerName})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if result, ok := service.(*structs.ServiceNode); !ok ||
-		result.Node != nodeID ||
-		result.ServiceID != serviceID {
-		t.Fatalf("bad service: %#v", result)
-	}
-	return svc
-}
-
 // testRegisterService register a service with given transaction idx
 // If the service already exists, transaction number might not be increased
 // Use `testRegisterServiceWithChange()` if you want perform a registration that
@@ -234,27 +200,11 @@ func testRegisterConnectService(t *testing.T, s *Store, idx uint64, nodeID, serv
 	})
 }
 
-func testRegisterAPIService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindAPIGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterTerminatingService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindTerminatingGateway, idx, nodeID, serviceID)
-}
-
 func testRegisterIngressService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindIngressGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterMeshService(t *testing.T, s *Store, idx uint64, nodeID, serviceID string) {
-	testRegisterGatewayService(t, s, structs.ServiceKindMeshGateway, idx, nodeID, serviceID)
-}
-
-func testRegisterGatewayService(t *testing.T, s *Store, kind structs.ServiceKind, idx uint64, nodeID, serviceID string) {
 	svc := &structs.NodeService{
 		ID:      serviceID,
 		Service: serviceID,
-		Kind:    kind,
+		Kind:    structs.ServiceKindIngressGateway,
 		Address: "1.1.1.1",
 		Port:    1111,
 	}
@@ -274,7 +224,6 @@ func testRegisterGatewayService(t *testing.T, s *Store, kind structs.ServiceKind
 		t.Fatalf("bad service: %#v", result)
 	}
 }
-
 func testRegisterCheck(t *testing.T, s *Store, idx uint64,
 	nodeID string, serviceID string, checkID types.CheckID, state string) {
 	testRegisterCheckWithPartition(t, s, idx,

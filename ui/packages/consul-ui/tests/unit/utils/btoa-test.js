@@ -1,14 +1,8 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import btoa from 'consul-ui/utils/btoa';
 
 module('Unit | Utils | btoa', function () {
   test('it encodes strings properly', function (assert) {
-    assert.expect(2);
     [
       {
         test: '',

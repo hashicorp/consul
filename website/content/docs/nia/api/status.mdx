@@ -6,9 +6,9 @@ description: >-
 ---
 # Status
 
-The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/consul/docs/nia/tasks#status-information).
+The `/status` endpoints return status-related information for tasks. This endpoint returns a count of successful and failed task events that are recorded whenever tasks execute an automation. Currently, only the five most recent events are stored in Consul-Terraform-Sync (CTS). For more information on the hierarchy of status information and how it is collected, refer to [Status Information](/docs/nia/tasks#status-information).
 
-If CTS is configured [for high availability](/consul/docs/nia/usage/run-ha), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/consul/docs/nia/usage/errors-ref) for more information. 
+If CTS is configured [for high availability](/docs/nia/usage/run-ha), you can send requests to the [`/status/cluster` endpoint path](#cluster-status) on any CTS cluster member instance to receive information about the entire cluster. Calling the `status` endpoint path (without `/cluster`), however, returns a 400 error if the request is sent to a follower instance. The error message depends on what information the follower instance is able to obtain about the leader. Refer to [Error Messages](/docs/nia/usage/errors-ref) for more information. 
 
 ## Status for all tasks
 
@@ -68,7 +68,7 @@ Response:
 
 This endpoint returns the individual task status information for a single specified task or for all tasks.
 
-Task health status value is determined by the success or failure of all stored [event data](/consul/docs/nia/tasks#event) on the process of updating network infrastructure for a task. Currently only the 5 most recent events are stored per task.
+Task health status value is determined by the success or failure of all stored [event data](/docs/nia/tasks#event) on the process of updating network infrastructure for a task. Currently only the 5 most recent events are stored per task.
  - Successful: The most recent stored event is successful.
  - Errored: The most recent stored event is not successful but all previous stored events are successful.
  - Critical: The most recent stored event is not successful and one or more previous stored events are also not successful.
@@ -103,11 +103,11 @@ The response is a JSON map of task name to a status information structure with t
 |`services`   | list[string] | **Deprecated in CTS 0.5.0 and will be removed in a future major release.** List of the services configured for the task.
 |`providers`  | list[string] | **Deprecated in CTS 0.5.0 and will be removed in v0.8.0.** List of the providers configured for the task.
 |`events_url` | string | Relative URL to retrieve the event data stored for the task.
-|`events`     | list[[Event](/consul/docs/nia/api/status#event)] | List of stored events that inform the task's status. See [section below](/consul/docs/nia/api/status#event) for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
+|`events`     | list[[Event](/docs/nia/api/status#event)] | List of stored events that inform the task's status. See [section below](/docs/nia/api/status#event) for information on event data. This field is only included in the response upon request by setting the `?include=events` parameter. The relative URL for the request to include events can be retrieved from the `events_url` field.
 
 #### Event
 
-Event represents the process of updating network infrastructure of a task. The data is captured in a JSON structure. For more details on the scope of an event, see [Event](/consul/docs/nia/tasks#event).
+Event represents the process of updating network infrastructure of a task. The data is captured in a JSON structure. For more details on the scope of an event, see [Event](/docs/nia/tasks#event).
 
 | Name	      | Type	 | Description       |
 | ----------- | ------ | ------------------ |
@@ -229,7 +229,7 @@ Response:
 
 ## Cluster status
 
-The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/consul/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/consul/docs/nia/usage/errors-ref) for information about CTS error messages. 
+The `/v1/status/cluster` API endpoint returns information about high-availability clusters and its members, such as health status and leadership. This endpoint is only supported when using CTS in [high availability mode](/docs/nia/usage/run-ha). If you call the endpoint without configuring CTS for high availability, then CTS prints an error to the console. Refer to [Error Messages](/docs/nia/usage/errors-ref) for information about CTS error messages. 
 
 | Method | Path              | Response format    |
 | ------ | ----------------- | ------------------ |
@@ -258,11 +258,11 @@ The following table describes the fields available for objects in the `members` 
 
 | Field | Type | Description |
 | --- | ---- | --- |
-| `address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured on the leader instance. Refer to the [high availability instance configuration](/consul/docs/nia/configuration#high-availability-instance) reference for additional information. |
-| `healthy` | boolean | Indicates the health of the service instance health. Refer to [Service Registration](/consul/docs/nia/configuration#service-registration) for additional information. |
-| `id` | string | Indicates the service registration ID. Refer to [Service Registration](/consul/docs/nia/configuration#service-registration) for additional information. |
+| `address` | string | Indicates the location of the instance. The address is only included in the response if the `high_availability.instance.address` option is configured on the leader instance. Refer to the [high availability instance configuration](/docs/nia/configuration#high-availability-instance) reference for additional information. |
+| `healthy` | boolean | Indicates the health of the service instance health. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
+| `id` | string | Indicates the service registration ID. Refer to [Service Registration](/docs/nia/configuration#service-registration) for additional information. |
 | `leader` | boolean | Identifies the cluster leader. |
-| `service_name` | string | Identifies the name of the service that the instance represents. The value is set by the `service_name` field in the [Service Registration](/consul/docs/nia/configuration#service-registration) configuration.  |
+| `service_name` | string | Identifies the name of the service that the instance represents. The value is set by the `service_name` field in the [Service Registration](/docs/nia/configuration#service-registration) configuration.  |
 
 ### Example
 

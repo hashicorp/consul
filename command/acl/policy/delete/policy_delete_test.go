@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package policydelete
 
 import (
@@ -8,12 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPolicyDeleteCommand_noTabs(t *testing.T) {
@@ -73,5 +69,5 @@ func TestPolicyDeleteCommand(t *testing.T) {
 		policy.ID,
 		&api.QueryOptions{Token: "root"},
 	)
-	assert.EqualError(t, err, "Unexpected response code: 404 (Requested policy does not exist: ACL not found)")
+	assert.EqualError(t, err, "Unexpected response code: 403 (ACL not found)")
 }

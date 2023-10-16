@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package policyread
 
 import (
@@ -92,11 +89,6 @@ func (c *cmd) Run(args []string) int {
 			errArg = fmt.Sprintf("name:%s", c.policyName)
 		}
 		c.UI.Error(fmt.Sprintf("Error reading policy %q: %v", errArg, err))
-		return 1
-	}
-
-	if pol == nil {
-		c.UI.Error(fmt.Sprintf("Error policy not found: %s", c.policyName))
 		return 1
 	}
 

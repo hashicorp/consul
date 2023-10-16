@@ -11,13 +11,13 @@ This topic explains error messages you may encounter when using Consul-Terraform
 
 ## Example error log messages
 
-If you configured the CTS cluster to run in [high availability mode](/consul/docs/nia/usage/run-ha) and the local module is missing, then the following message appears in the log:
+If you configured the CTS cluster to run in [high availability mode](/docs/nia/usage/run-ha) and the the local module is missing, then the following message appears in the log:
 
 ```shell-session
 [ERROR] ha.compat: error="compatibility check failure: stat ./example-module: no such file or directory"
 ```
 
-The resolution is to add the missing local module on the incompatible CTS instance. Refer to the [`module` documentation](/consul/docs/nia/configuration#module) in the CTS configuration reference for additional information. 
+The resolution is to add the missing local module on the incompatible CTS instance. Refer to the [`module` documentation](/docs/nia/configuration#module) in the CTS configuration reference for additional information. 
 
 ## Example API and CLI error messages
 
@@ -67,7 +67,7 @@ $ curl --request GET cts-01.example.com:8558/v1/tasks
 
 **Resolution**:
 
-Identify the leader instance address and redirect the request to the leader. You can identify the leader by calling the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
+Identify the leader instance address and redirect the request to the leader. You can identify the leader by calling the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
 
 ```shell-session
 [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>. 
@@ -95,7 +95,7 @@ We recommend deploying a cluster that has three instances.
 
 **Resolution**:
 
-Identify and send the request to the leader CTS instance. You can identify the leader by calling the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
+Identify and send the request to the leader CTS instance. You can identify the leader by calling the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) or by checking the logs for the following entry:
 
 ```shell-session
 [INFO] ha: acquired leadership lock: id=<ID-OF-CTS-INSTANCE>
@@ -115,11 +115,11 @@ Identify and send the request to the leader CTS instance. You can identify the l
 
 **Conditions**:
 
-- You called the [`status/cluster` API endpoint](/consul/docs/nia/api/status#cluster-status) without configuring CTS for [high availability](/consul/docs/nia/usage/run-ha).
+- You called the [`status/cluster` API endpoint](/docs/nia/api/status#cluster-status) without configuring CTS for [high availability](/docs/nia/usage/run-ha).
 
 **Resolution**:
 
-Configure CTS to run in [high availability mode](/consul/docs/nia/usage/run-ha).
+Configure CTS to run in [high availability mode](/docs/nia/usage/run-ha).
 
 ---
 

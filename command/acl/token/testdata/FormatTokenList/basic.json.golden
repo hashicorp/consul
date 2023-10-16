@@ -7,6 +7,7 @@
         "Description": "test token",
         "Local": false,
         "CreateTime": "2020-05-22T18:52:31Z",
-        "Hash": "YWJjZGVmZ2g="
+        "Hash": "YWJjZGVmZ2g=",
+        "Legacy": false
     }
 ]

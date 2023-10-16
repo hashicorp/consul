@@ -1,0 +1,281 @@
+---
+layout: docs
+page_title: Ingress Gateway | Service Mesh
+description: >-
+  Ingress gateways listen for requests from external network locations and route authorized traffic to destinations in the service mesh. Use custom TLS certificates with ingress gateways through Envoy's gRPC Secret Discovery Service (SDS).
+---
+
+# Ingress Gateways
+
+-> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
+
+Ingress gateways enable connectivity within your organizational network from services outside the Consul
+service mesh to services in the mesh. An ingress gateway is
+a type of proxy and must be registered as a service in Consul, with the
+[kind](/api-docs/agent/service#kind) set to "ingress-gateway". They are an
+entrypoint for outside traffic and allow you to define what services should be
+exposed and on what port. You configure an ingress gateway by defining a set of
+[listeners](/docs/connect/config-entries/ingress-gateway#listeners) that each map
+to a set of backing
+[services](/docs/connect/config-entries/ingress-gateway#services).
+
+To enable easier service discovery, a new Consul [DNS
+subdomain](/consul/docs/services/discovery/dns-static-lookups#ingress-service-lookups) is provided, on
+`<service>.ingress.<domain>`.
+
+For listeners with a
+[protocol](/docs/connect/config-entries/ingress-gateway#protocol) other than
+`tcp`, multiple services can be specified for a single listener. In this
+case, the ingress gateway relies on host/authority headers to decide the
+service that should receive the traffic. The host used to match traffic
+defaults to the [Consul DNS ingress
+subdomain](/consul/docs/services/discovery/dns-static-lookups#ingress-service-lookups), but can be changed using
+the [hosts](/consul/docs/connect/config-entries/ingress-gateway#hosts) field.
+
+![Ingress Gateway Architecture](/img/ingress-gateways.png)
+
+## Prerequisites
+
+Ingress gateways also require that your Consul datacenters are configured correctly:
+
+- You'll need to use Consul version 1.8.0 or newer.
+- Consul [Connect](/docs/agent/config/config-files#connect) must be enabled on the datacenter's Consul servers.
+- [gRPC](/docs/agent/config/config-files#grpc_port) must be enabled on all client agents.
+
+Currently, [Envoy](https://www.envoyproxy.io/) is the only proxy with ingress gateway capabilities in Consul.
+
+## Running and Using an Ingress Gateway
+
+For a complete example of how to allow external traffic inside your Consul service mesh,
+review the [ingress gateway tutorial](https://learn.hashicorp.com/tutorials/consul/service-mesh-ingress-gateways).
+
+## Ingress Gateway Configuration
+
+Ingress gateways are configured in service definitions and registered with Consul like other services, with two exceptions.
+The first is that the [kind](/api-docs/agent/service#kind) must be "ingress-gateway". Second,
+the ingress gateway service definition may contain a `Proxy.Config` entry just like a
+Connect proxy service, to define opaque configuration parameters useful for the actual proxy software.
+For Envoy there are some supported [gateway options](/docs/connect/proxies/envoy#gateway-options) as well as
+[escape-hatch overrides](/docs/connect/proxies/envoy#escape-hatch-overrides).
+
+-> **Note:** If ACLs are enabled, ingress gateways must be registered with a token granting `service:write` for the ingress gateway's service name,
+`service:read` for all services in the ingress gateway's configuration entry, and `node:read` for all nodes of the services
+in the ingress gateway's configuration entry. These privileges authorize the token to route communications to other Connect services.
+If the Consul client agent on the gateway's node is not configured to use the default gRPC port, 8502, then the gateway's token
+must also provide `agent:read` for its node's name in order to discover the agent's gRPC port. gRPC is used to expose Envoy's xDS API to Envoy proxies.
+
+~> [Configuration entries](/docs/agent/config-entries) are global in scope. A configuration entry for a gateway name applies
+across all federated Consul datacenters. If ingress gateways in different Consul datacenters need to route to different
+sets of services within their datacenter, then the ingress gateways **must** be registered with different names.
+
+<!-- Add a "permalink" anchor here since this title is long and may be edited
+     but we need to deep-link to it elsewhere -->
+<a name="sds"></a>
+
+## Custom TLS Certificates via Secret Discovery Service (SDS)
+
+~> **Advanced Topic:** This topic describes a low-level feature designed for
+developers building integrations with custom TLS management solutions.
+
+Consul 1.11 added support for ingress gateways to serve TLS certificates to
+inbound traffic that are sourced from an external service. The external service
+must implement Envoy's [gRPC Secret Discovery
+Service](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret)
+(or SDS) API.
+
+The following procedure describes how to configure an ingress gateway with TLS certificates from an SDS source. The instructions assume that you are familiar with Envoy configuration and the SDS protocol.
+
+### Configure Static SDS Cluster(s)
+
+Each Envoy proxy that makes up this Ingress Gateway must define one or more additional [static
+clusters](/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) when registering. These additional clusters define how Envoy should connect to the required SDS service(s). Defining extra clusters in Envoy's bootstrap configuration requires a manual registration of the Ingress Gateway with Consul proxy.
+It's not possible to use the `-register` flag with `consul connect envoy -gateway=ingress` to automatically register the proxy in this case.
+
+The cluster(s) must provide connection information and any necessary
+authentication information such as mTLS credentials.
+
+The following example will demonstrate how to use:
+ - A DNS name to discover the SDS service addresses
+ - Local certificate files for TLS client authentication with the SDS server.
+   The certificates are assumed to be created and managed by some other
+   process.
+
+ 1. **Register the proxy service.**
+
+    The following Proxy Service Definition defines the additional cluster
+    configuration that will be provided to Envoy when it starts. With this TLS
+    configuration, Envoy will detect changes to the certificate and key files on
+    disk so an external process may maintain and rotate them without needing an
+    Envoy restart.
+
+    ```hcl
+    // public-ingress.hcl
+    Services {
+      Name = "public-ingress"
+      Kind = "ingress-gateway"
+
+      Proxy {
+        Config {
+          envoy_extra_static_clusters_json = <<EOF
+    {
+      "name": "sds-cluster",
+      "connect_timeout": "5s",
+      "http2_protocol_options": {},
+      "type": "LOGICAL_DNS",
+      "transport_socket": {
+        "name":"tls",
+        "typed_config": {
+          "@type":"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "common_tls_context":{
+            "tls_certificate_sds_secret_configs": [
+              {
+                "name":"tls_sds",
+                "sds_config":{
+                  "path":"/certs/sds-auth-cert.json"
+                }
+              }
+            ],
+            "validation_context_sds_secret_config": {
+              "name":"validation_context_sds",
+              "sds_config":{
+                  "path":"/certs/sds-validation.json"
+              }
+            }
+          }
+        }
+      },
+      "load_assignment": {
+        "cluster_name": "sds-cluster",
+        "endpoints": [
+          {
+            "lb_endpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socket_address": {
+                      "address": "sds-server.svc.cluster.local",
+                      "port_value": 8080,
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+    EOF
+        }
+      }
+    }
+    ```
+
+ 1. **Issue the following command to create the registration.**
+
+    ```
+    consul services register public-ingress.hcl
+    ```
+
+    The command must be executed against the Consul agent on the Envoy proxy's node.
+
+#### Setup TLS Client Authentication for SDS
+
+Configuration files similar to the following examples must be available on the
+disk where the Envoy proxy will run. The actual certificates and keys referenced
+in the configuration files must also be present.
+
+ 1. **Configure TLS client authentication for SDS.**
+ 
+    The certificates and keys must be saved to the same disk where the Envoy
+    proxy will run. The following example files reference the PEM-encoded
+    certificate and key files to be used for TLS Client Authentication with the
+    SDS service (`sds-client-auth.{crt,key}`) and the certificate authority
+    certificate used to validate the SDS server's TLS credentials
+    (`sds-ca.crt`).
+    
+    Refer to [Envoy's documentation]
+    (https://www.envoyproxy.io/docs/envoy/latest/api-v3/bootstrap/bootstrap) for
+    more details on this configuration and other possible authentication
+    options.
+
+    ```json
+    // /certs/sds-auth-cert.json
+    {
+      "resources": [
+        {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+          "name": "tls_sds",
+          "tls_certificate": {
+            "certificate_chain": {
+              "filename": "/certs/sds-client-auth.crt"
+            },
+            "private_key": {
+              "filename": "/certs/sds-client-auth.key"
+            }
+          }
+        }
+      ]
+    }
+    ```
+    ```json
+    // /certs/sds-validation.json
+    {
+      "resources": [
+        {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret",
+          "name": "validation_context_sds",
+          "validation_context": {
+            "trusted_ca": {
+              "filename": "/certs/sds-ca.crt"
+            }
+          }
+        }
+      ]
+    }
+    ```
+
+ 1. **Issue the following command to start Envoy.**
+
+    ```bash
+    $ consul connect envoy -gateway=ingress -service public-ingress
+    ```
+
+### Configure the Ingress Gateway to Use Certificates from SDS
+
+SDS certificates may now be configured in the `ingress-gateway` Config Entry.
+
+The following example shows a single default certificate and key being used for
+all listeners.
+
+```hcl
+// public-ingress-cfg.hcl
+Kind = "ingress-gateway"
+Name = "public-ingress"
+
+TLS {
+  SDS {
+    # This must match the name of the static cluster from step #1
+    ClusterName = "sds-cluster"
+    # This is the name of the certificate resource to load.
+    CertResource = "example.com-public-cert"
+  }
+}
+
+Listeners = [
+  {
+    Port = 8443
+    Protocol = "http"
+    Services = ["*"]
+  }
+]
+
+```
+
+ 1. **Run `consul config write public-ingress-cfg.hcl` to write this configuration.**
+
+    The Envoy instance will now start a listener on port 8443 and attempt to fetch
+    the TLS certificate named from the SDS server.
+
+Separate certificates may be loaded per listener or per-service with hostname
+(SNI) switching. See the [Config Entry
+reference](/docs/connect/config-entries/ingress-gateway) for more details.

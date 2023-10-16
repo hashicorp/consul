@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package testutil
 
 import (
@@ -17,14 +14,14 @@ import (
 // be used by tests to set the log level of a hclog.Logger. Defaults to
 // hclog.Warn if the environment variable is unset, or if the value of the
 // environment variable can not be matched to a log level.
-var TestLogLevel = TestLogLevelWithDefault(hclog.Warn)
+var TestLogLevel = testLogLevel()
 
-func TestLogLevelWithDefault(l hclog.Level) hclog.Level {
+func testLogLevel() hclog.Level {
 	level := hclog.LevelFromString(os.Getenv("TEST_LOG_LEVEL"))
 	if level != hclog.NoLevel {
 		return level
 	}
-	return l
+	return hclog.Warn
 }
 
 func Logger(t TestingTB) hclog.InterceptLogger {

@@ -1,0 +1,92 @@
+---
+layout: docs
+page_title: Use Consul API Gateway
+description: >-
+  Learn how to apply a configured Consul API Gateway to your Kubernetes cluster, review the required fields for rerouting HTTP requests, and troubleshoot an error message.
+---
+
+# Basic Consul API Gateway Usage
+
+This topic describes how to use Consul API Gateway.
+
+## Requirements
+
+Complete the following steps to use Consul API Gateway in your network.
+
+1. Verify that the [requirements](/docs/api-gateway/tech-specs) have been met.
+1. Verify that the Consul API Gateway CRDs and controller have been installed and applied. Refer to [Installation](/docs/api-gateway/install) for details.
+
+## Configuration
+
+Configure your [`Gateway`](/docs/api-gateway/configuration/gateway) and [`Routes`](/docs/api-gateway/configuration/routes) as describe in the [Configuration](/docs/api-gateway/configuration) section.
+
+  <CodeBlockConfig hideClipboard filename="values.yaml">
+
+  ```yaml
+    apiGateway:
+      enabled: true
+      managedGatewayClass:
+  ```
+
+  </CodeBlockConfig>
+
+## Apply configurations
+
+Issue the `kubectl apply` command to implement the configurations:
+
+```shell-session
+$ kubectl apply -f gateway.yaml routes.yaml
+```
+
+
+<!--- Commented out per https://github.com/hashicorp/consul/pull/11951/files#r791204596
+
+### Using the Consul API Gateway Binary
+
+You can download the Consul API Gateway binary and use it to manually start the control plane server.
+
+1. Download the binary from the [Consul API Gateway repository](https://github.com/hashicorp/consul-api-gateway).
+1. Navigate to the `consul-api-gateway-main` directory and build the binary:
+
+```shell-session
+$ go build
+```
+
+1.  (Optional) Copy the binary to the execution path, e.g.:
+
+```shell-session
+$ cp consul-api-gateway /usr/bin
+```
+
+1.  Use the `server` command to interact with the Consul API Gateway binary:
+
+```shell-session
+$ ./consul-api-gateway server <options>
+```
+
+The following options are supported:
+
+| Option                 | Description                                                                                                                                                                           | Required | Default                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------- |
+| `-ca-file`             | String value that specifies the path to the CA for the Consul server.                                                                                                                 | Required | none                                                                    |
+| `-ca-secret`           | String value that specifies the CA secret for the Consul server.                                                                                                                      | Required | none                                                                    |
+| `-ca-secret-namespace` | String value that specifies the CA secret namespace for the Consul server.                                                                                                            | Required | none                                                                    |
+| `-k8-context`          | String value that specifies the Kubernetes context to use when starting the Consul server.                                                                                            | Optional | current context                                                         |
+| `-k8-namespace`        | String value that specifies the Kubernetes namespace to use when starting the Consul server.                                                                                          | Optional | `default`                                                               |
+| `-log-json`            | Boolean value that enables or disables JSON format for the log output.                                                                                                                | Required | `false`                                                                 |
+| `-log-level`           | String value that specifies the logging level. The following values are supported: <br/>- `trace` (highest level of detail) <br/>- `debug` <br/>- `info` <br/>- `warn` <br/>- `error` | Optional | `info`                                                                  |
+| `-metrics-port`        | Integer value that specifies the port number for collecting metrics.                                                                                                                  | Optional | none                                                                    |
+| `-pprof`               | Integer value that specifies the Go pprof port number for collecting metrics.                                                                                                         | Optional | none                                                                    |
+| `-sds-server-host`     | String value that specifies the host server for the secret discovery service (SDS).                                                                                                   | Optional | `consul-api-gateway-controller.default.`<br/>`svc.cluster.`<br/>`local` |
+| `-sds-server-host`     | Integer value that specifies the port number for the secret discovery service (SDS).                                                                                                  | Optional | `9090`                                                                  |
+
+You can also issue the `version` command to print the Consul API Gateway version to the console:
+
+```shell-session
+$ ./consul-api-gateway version
+consul-api-gateway 0.1.0
+```
+--->
+
+
+

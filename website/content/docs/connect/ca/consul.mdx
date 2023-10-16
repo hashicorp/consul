@@ -7,24 +7,24 @@ description: >-
 
 # Built-In Certificate Authority for Service Mesh
 
-Consul ships with a built-in CA system so that service mesh can be
+Consul ships with a built-in CA system so that Connect can be
 easily enabled out of the box. The built-in CA generates and stores the
 root certificate and private key on Consul servers. It can also be
 configured with a custom certificate and private key if needed.
 
-If service mesh is enabled and no CA provider is specified, the built-in
+If Connect is enabled and no CA provider is specified, the built-in
 CA is the default provider used. The provider can be
-[updated and rotated](/consul/docs/connect/ca#root-certificate-rotation)
+[updated and rotated](/docs/connect/ca#root-certificate-rotation)
 at any point to migrate to a new provider.
 
 -> This page documents the specifics of the built-in CA provider.
-Please read the [certificate management overview](/consul/docs/connect/ca)
+Please read the [certificate management overview](/docs/connect/ca)
 page first to understand how Consul manages certificates with configurable
 CA providers.
 
 ## Configuration
 
-The built-in CA provider has no required configuration. Enabling service mesh
+The built-in CA provider has no required configuration. Enabling Connect
 alone will configure the built-in CA provider, and will automatically generate
 a root certificate and private key:
 
@@ -57,7 +57,7 @@ configuration file.
   [SPIFFE SVID signing certificate](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md)
   and the URI in the SAN must match the cluster identifier created at
   bootstrap with the ".consul" TLD. The cluster identifier can be found
-  using the [CA List Roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates).
+  using the [CA List Roots endpoint](/api-docs/connect/ca#list-ca-root-certificates).
 
 @include 'http_api_connect_ca_common_options.mdx'
 
@@ -69,7 +69,7 @@ the Consul CA provider to use a specific private key and root certificate.
 This is particularly useful if you have an external PKI system that doesn't
 currently integrate with Consul directly.
 
-To view the current CA configuration, use the [Get CA Configuration endpoint](/consul/api-docs/connect/ca#get-ca-configuration):
+To view the current CA configuration, use the [Get CA Configuration endpoint](/api-docs/connect/ca#get-ca-configuration):
 
 ```shell-session
 $ curl localhost:8500/v1/connect/ca/configuration
@@ -84,13 +84,13 @@ $ curl localhost:8500/v1/connect/ca/configuration
 }
 ```
 
-This is the default service mesh CA configuration if nothing is explicitly set when
-service mesh is enabled - the PrivateKey and RootCert fields have not been set, so those have
+This is the default Connect CA configuration if nothing is explicitly set when
+Connect is enabled - the PrivateKey and RootCert fields have not been set, so those have
 been generated (as seen above in the roots list).
 
 There are two ways to have the Consul CA use a custom private key and root certificate:
-either through the `ca_config` section of the [Agent configuration](/consul/docs/agent/config/config-files#connect_ca_config) (which can only be used during the cluster's
-initial bootstrap) or through the [Update CA Configuration endpoint](/consul/api-docs/connect/ca#update-ca-configuration).
+either through the `ca_config` section of the [Agent configuration](/docs/agent/config/config-files#connect_ca_config) (which can only be used during the cluster's
+initial bootstrap) or through the [Update CA Configuration endpoint](/api-docs/connect/ca#update-ca-configuration).
 
 Currently Consul requires that root certificates are valid [SPIFFE SVID Signing certificates](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md) and that the URI encoded
 in the SAN is the cluster identifier created at bootstrap with the ".consul" TLD. In this
@@ -100,13 +100,13 @@ In order to use the Update CA Configuration HTTP endpoint, the private key and c
 must be passed via JSON:
 
 ```shell-session
-$ jq --null-input --rawfile key root.key --rawfile cert root.crt '
+$ jq --null-input --arg key "$(cat root.key)" --arg cert "$(cat root.crt)" '
 {
     "Provider": "consul",
     "Config": {
         "LeafCertTTL": "72h",
-        "PrivateKey": $key | sub("\\n$"; ""),
-        "RootCert": $cert | sub("\\n$"; ""),
+        "PrivateKey": $key,
+        "RootCert": $cert,
         "IntermediateCertTTL": "8760h"
     }
 }' > ca_config.json

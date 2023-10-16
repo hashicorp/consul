@@ -1,11 +1,7 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -18,23 +14,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 )
-
-func TestConfigEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{"kind":"service-defaults", "name":"web"}`)
-		})
-	}
-
-	checkRequest("GET", "/v1/config/service-defaults")
-	checkRequest("GET", "/v1/config/service-defaults/web")
-	checkRequest("DELETE", "/v1/config/service-defaults/web")
-	checkRequest("PUT", "/v1/config")
-}
 
 func TestConfig_Get(t *testing.T) {
 	if testing.Short() {
@@ -86,7 +65,7 @@ func TestConfig_Get(t *testing.T) {
 	}
 	for _, req := range reqs {
 		out := false
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 
 	t.Run("get a single service entry", func(t *testing.T) {
@@ -192,7 +171,7 @@ func TestConfig_Delete(t *testing.T) {
 	}
 	for _, req := range reqs {
 		out := false
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Apply", &req, &out))
 	}
 
 	// Delete an entry.
@@ -209,7 +188,7 @@ func TestConfig_Delete(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
 		require.Equal(t, structs.ServiceDefaults, out.Kind)
 		require.Len(t, out.Entries, 1)
 		entry := out.Entries[0].(*structs.ServiceConfigEntry)
@@ -233,7 +212,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 		Name: "foo",
 	}
 	var created bool
-	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &structs.ConfigEntryRequest{
+	require.NoError(t, a.RPC("ConfigEntry.Apply", &structs.ConfigEntryRequest{
 		Datacenter: "dc1",
 		Entry:      entry,
 	}, &created))
@@ -241,7 +220,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 	// Read it back to get its ModifyIndex.
 	var out structs.ConfigEntryResponse
-	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
+	require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
 		Datacenter: "dc1",
 		Kind:       entry.Kind,
 		Name:       entry.Name,
@@ -265,7 +244,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 		// Verify it was not deleted.
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
+		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
 			Datacenter: "dc1",
 			Kind:       entry.Kind,
 			Name:       entry.Name,
@@ -288,7 +267,7 @@ func TestConfig_Delete_CAS(t *testing.T) {
 
 		// Verify it was deleted.
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &structs.ConfigEntryQuery{
+		require.NoError(t, a.RPC("ConfigEntry.Get", &structs.ConfigEntryQuery{
 			Datacenter: "dc1",
 			Kind:       entry.Kind,
 			Name:       entry.Name,
@@ -332,7 +311,7 @@ func TestConfig_Apply(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ServiceConfigEntry)
 		require.Equal(t, entry.Name, "foo")
@@ -381,7 +360,7 @@ func TestConfig_Apply_TerminatingGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
 		require.NotNil(t, out)
 		require.Len(t, out.Entries, 1)
 
@@ -442,7 +421,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.IndexedConfigEntries
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.List", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.List", &args, &out))
 		require.NotNil(t, out)
 		require.Len(t, out.Entries, 1)
 
@@ -507,7 +486,7 @@ func TestConfig_Apply_ProxyDefaultsMeshGateway(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ProxyConfigEntry)
 		require.Equal(t, structs.MeshGatewayModeLocal, entry.MeshGateway.Mode)
@@ -549,7 +528,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out := &structs.ConfigEntryResponse{}
-	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, out))
+	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
 	require.NotNil(t, out.Entry)
 	entry := out.Entry.(*structs.ServiceConfigEntry)
 
@@ -593,7 +572,7 @@ func TestConfig_Apply_CAS(t *testing.T) {
 	}
 
 	out = &structs.ConfigEntryResponse{}
-	require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, out))
+	require.NoError(t, a.RPC("ConfigEntry.Get", &args, out))
 	require.NotNil(t, out.Entry)
 	newEntry := out.Entry.(*structs.ServiceConfigEntry)
 	require.NotEqual(t, entry.GetRaftIndex(), newEntry.GetRaftIndex())
@@ -665,7 +644,7 @@ func TestConfig_Apply_Decoding(t *testing.T) {
 				Datacenter: "dc1",
 			}
 			var out structs.ConfigEntryResponse
-			require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
+			require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
 			require.NotNil(t, out.Entry)
 			entry := out.Entry.(*structs.ServiceConfigEntry)
 			require.Equal(t, entry.Name, "foo")
@@ -716,7 +695,7 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 			Datacenter: "dc1",
 		}
 		var out structs.ConfigEntryResponse
-		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Get", &args, &out))
+		require.NoError(t, a.RPC("ConfigEntry.Get", &args, &out))
 		require.NotNil(t, out.Entry)
 		entry := out.Entry.(*structs.ProxyConfigEntry)
 

@@ -39,7 +39,7 @@ If Consul is instead deployed with 5 servers, the quorum size increases to 3, so
 the fault tolerance increases to 2.
 To learn more about the relationship between the
 number of servers, quorum, and fault tolerance, refer to the
-[consensus protocol documentation](/consul/docs/architecture/consensus#deployment_table).
+[consensus protocol documentation](/docs/architecture/consensus#deployment_table).
 
 Effectively mitigating your risk is more nuanced than just increasing the fault tolerance
 metric described above. You must consider:
@@ -62,7 +62,7 @@ HashiCorp recommends all production deployments consider:
 
 ### Spread Servers Across Infrastructure Availability Zones
 
-The cloud or on-premise infrastructure underlying your  [Consul datacenter](/consul/docs/install/glossary#datacenter)
+The cloud or on-premise infrastructure underlying your  [Consul datacenter](/docs/install/glossary#datacenter)
 may be split into several "availability zones".
 An availability zone is meant to share no points of failure with other zones by:
 - Having power, cooling, and networking systems independent from other zones
@@ -96,7 +96,7 @@ Consul Enterprise provides a way to improve fault tolerance without this perform
 
 ### <EnterpriseAlert inline /> Use Backup Voting Servers to Replace Lost Voters
 
-Consul Enterprise [redundancy zones](/consul/docs/enterprise/redundancy)
+Consul Enterprise [redundancy zones](/docs/enterprise/redundancy)
 can be used to improve fault tolerance without the performance penalty of increasing the number of voting servers.
 
 Each redundancy zone should be assigned 2 or more Consul servers.
@@ -128,7 +128,7 @@ to also gain the infrastructure-level fault tolerance benefits provided by avail
 However, Consul redundancy zones can be used even without the backing of infrastructure availability zones.
 
 For more information on redundancy zones, refer to:
-- [Redundancy zone documentation](/consul/docs/enterprise/redundancy)
+- [Redundancy zone documentation](/docs/enterprise/redundancy)
   for a more detailed explanation
-- [Redundancy zone tutorial](/consul/tutorials/enterprise/redundancy-zones)
+- [Redundancy zone tutorial](https://learn.hashicorp.com/tutorials/consul/redundancy-zones?in=consul/enterprise)
   to learn how to use them

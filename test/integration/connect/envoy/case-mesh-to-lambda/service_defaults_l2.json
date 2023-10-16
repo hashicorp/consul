@@ -2,14 +2,10 @@
   "Kind": "service-defaults",
   "Name": "l2",
   "Protocol": "http",
-  "EnvoyExtensions": [
-    {
-      "Name": "builtin/aws/lambda",
-      "Arguments": {
-        "Region": "${AWS_LAMBDA_REGION}",
-        "ARN": "${AWS_LAMBDA_ARN}",
-        "PayloadPassthrough": false
-      }
-    }
-  ]
+  "Meta": {
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled": "true",
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/region": "${AWS_LAMBDA_REGION}",
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/arn": "${AWS_LAMBDA_ARN}",
+    "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough": "false"
+  }
 }

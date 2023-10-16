@@ -1,0 +1,11 @@
+<ShadowHost as |shadow|>
+  {{yield
+    (hash
+      root=(fn this.setHost (fn shadow.host))
+      connect=(fn this.setHost (fn shadow.host))
+      Template=shadow.Template
+      disconnect=(fn this.disconnect)
+    )
+    this.element
+  }}
+</ShadowHost>

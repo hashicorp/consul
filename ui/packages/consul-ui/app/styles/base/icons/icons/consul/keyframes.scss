@@ -1,0 +1,9 @@
+@keyframes icon-consul {
+  100% {
+
+    -webkit-mask-image: var(--icon-consul-color-16);
+    mask-image: var(--icon-consul-color-16);
+    background-color: var(--icon-color, var(--color-consul-500, currentColor));
+
+  }
+}

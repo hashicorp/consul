@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package structs
 
@@ -173,13 +171,3 @@ func (s *ServiceNode) NodeIdentity() Identity {
 }
 
 type EnterpriseServiceUsage struct{}
-
-// WithNormalizedUpstreams returns a deep copy of the NodeService with no modifications to
-// data for CE versions.
-func (ns *NodeService) WithNormalizedUpstreams() *NodeService {
-	// Simply return a copy for CE, since it doesn't have partitions or namespaces.
-	if ns == nil {
-		return nil
-	}
-	return ns.DeepCopy()
-}

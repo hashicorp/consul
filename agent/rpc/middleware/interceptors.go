@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package middleware
 
 import (
-	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -12,10 +8,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
+	"github.com/hashicorp/go-hclog"
 )
 
 // RPCTypeInternal identifies the "RPC" request as coming from some internal
@@ -26,11 +20,9 @@ import (
 // Really what we are measuring here is a "cluster operation". The term we have
 // used for this historically is "RPC", so we continue to use that here.
 const RPCTypeInternal = "internal"
-
 const RPCTypeNetRPC = "net/rpc"
 
 var metricRPCRequest = []string{"rpc", "server", "call"}
-
 var requestLogName = strings.Join(metricRPCRequest, "_")
 
 var OneTwelveRPCSummary = []prometheus.SummaryDefinition{
@@ -163,46 +155,5 @@ func GetNetRPCInterceptor(recorder *RequestRecorder) rpc.ServerServiceCallInterc
 		err := handler()
 
 		recorder.Record(reqServiceMethod, RPCTypeNetRPC, reqStart, argv.Interface(), err != nil)
-	}
-}
-
-func GetNetRPCRateLimitingInterceptor(requestLimitsHandler rpcRate.RequestLimitsHandler, panicHandler RecoveryHandlerFunc) rpc.PreBodyInterceptor {
-
-	return func(reqServiceMethod string, sourceAddr net.Addr) (retErr error) {
-
-		defer func() {
-			if r := recover(); r != nil {
-				retErr = panicHandler(r)
-			}
-		}()
-
-		op := rpcRate.Operation{
-			Name:       reqServiceMethod,
-			SourceAddr: sourceAddr,
-			Type:       rpcRateLimitSpecs[reqServiceMethod].Type,
-			Category:   rpcRateLimitSpecs[reqServiceMethod].Category,
-		}
-
-		// net/rpc does not provide a way to encode the nuances of the
-		// error response (retry or retry elsewhere) so the error string
-		// from the rate limiter is all that we have.
-		return requestLimitsHandler.Allow(op)
-	}
-}
-
-func ChainedRPCPreBodyInterceptor(chain ...rpc.PreBodyInterceptor) rpc.PreBodyInterceptor {
-	if len(chain) == 0 {
-		panic("don't call this with zero interceptors")
-	}
-	if len(chain) == 1 {
-		return chain[0]
-	}
-	return func(reqServiceMethod string, sourceAddr net.Addr) error {
-		for _, interceptor := range chain {
-			if err := interceptor(reqServiceMethod, sourceAddr); err != nil {
-				return err
-			}
-		}
-		return nil
 	}
 }

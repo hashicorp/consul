@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package auth
 
 import (
@@ -119,7 +116,7 @@ func TestBinder_Roles_NameValidation(t *testing.T) {
 
 	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid bind name")
+	require.Contains(t, err.Error(), "bind name for bind target is invalid")
 }
 
 func TestBinder_ServiceIdentities_Success(t *testing.T) {
@@ -187,7 +184,7 @@ func TestBinder_ServiceIdentities_NameValidation(t *testing.T) {
 
 	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid bind name")
+	require.Contains(t, err.Error(), "bind name for bind target is invalid")
 }
 
 func TestBinder_NodeIdentities_Success(t *testing.T) {
@@ -255,87 +252,74 @@ func TestBinder_NodeIdentities_NameValidation(t *testing.T) {
 
 	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid bind name")
+	require.Contains(t, err.Error(), "bind name for bind target is invalid")
 }
 
-func Test_IsValidBindingRule(t *testing.T) {
+func Test_IsValidBindName(t *testing.T) {
 	type testcase struct {
 		name     string
 		bindType string
 		bindName string
-		bindVars *structs.ACLTemplatedPolicyVariables
 		fields   string
-		err      bool
+		valid    bool // valid HIL, invalid contents
+		err      bool // invalid HIL
 	}
 
 	for _, test := range []testcase{
 		{"no bind type",
-			"", "", nil, "", true},
+			"", "", "", false, false},
 		{"bad bind type",
-			"invalid", "blah", nil, "", true},
+			"invalid", "blah", "", false, true},
 		// valid HIL, invalid name
 		{"empty",
-			"both", "", nil, "", true},
+			"both", "", "", false, false},
 		{"just end",
-			"both", "}", nil, "", true},
+			"both", "}", "", false, false},
 		{"var without start",
-			"both", " item }", nil, "item", true},
+			"both", " item }", "item", false, false},
 		{"two vars missing second start",
-			"both", "before-${ item }after--more }", nil, "item,more", true},
+			"both", "before-${ item }after--more }", "item,more", false, false},
 		// names for the two types are validated differently
 		{"@ is disallowed",
-			"both", "bad@name", nil, "", true},
+			"both", "bad@name", "", false, false},
 		{"leading dash",
-			"role", "-name", nil, "", false},
+			"role", "-name", "", true, false},
 		{"leading dash",
-			"service", "-name", nil, "", true},
+			"service", "-name", "", false, false},
 		{"trailing dash",
-			"role", "name-", nil, "", false},
+			"role", "name-", "", true, false},
 		{"trailing dash",
-			"service", "name-", nil, "", true},
+			"service", "name-", "", false, false},
 		{"inner dash",
-			"both", "name-end", nil, "", false},
+			"both", "name-end", "", true, false},
 		{"upper case",
-			"role", "NAME", nil, "", false},
+			"role", "NAME", "", true, false},
 		{"upper case",
-			"service", "NAME", nil, "", true},
+			"service", "NAME", "", false, false},
 		// valid HIL, valid name
 		{"no vars",
-			"both", "nothing", nil, "", false},
+			"both", "nothing", "", true, false},
 		{"just var",
-			"both", "${item}", nil, "item", false},
+			"both", "${item}", "item", true, false},
 		{"var in middle",
-			"both", "before-${item}after", nil, "item", false},
+			"both", "before-${item}after", "item", true, false},
 		{"two vars",
-			"both", "before-${item}after-${more}", nil, "item,more", false},
+			"both", "before-${item}after-${more}", "item,more", true, false},
 		// bad
 		{"no bind name",
-			"both", "", nil, "", true},
+			"both", "", "", false, false},
 		{"just start",
-			"both", "${", nil, "", true},
+			"both", "${", "", false, true},
 		{"backwards",
-			"both", "}${", nil, "", true},
+			"both", "}${", "", false, true},
 		{"no varname",
-			"both", "${}", nil, "", true},
+			"both", "${}", "", false, true},
 		{"missing map key",
-			"both", "${item}", nil, "", true},
+			"both", "${item}", "", false, true},
 		{"var without end",
-			"both", "${ item ", nil, "item", true},
+			"both", "${ item ", "item", false, true},
 		{"two vars missing first end",
-			"both", "before-${ item after-${ more }", nil, "item,more", true},
-
-		// bind type: templated policy - bad input
-		{"templated-policy missing bindvars", "templated-policy", "builtin/service", nil, "", true},
-		{"templated-policy with unknown templated policy name",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${item}after-${more}"}, "", true},
-		{"templated-policy with correct bindvars and unknown vars",
-			"templated-policy", "builtin/fake", &structs.ACLTemplatedPolicyVariables{Name: "test"}, "", true},
-		{"templated-policy with correct bindvars but incorrect HIL",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${ item }after--more }"}, "", true},
-
-		// bind type: templated policy - good input
-		{"templated-policy with appropriate bindvars",
-			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${item}after-${more}"}, "item,more", false},
+			"both", "before-${ item after-${ more }", "item,more", false, true},
 	} {
 		var cases []testcase
 		if test.bindType == "both" {
@@ -352,13 +336,18 @@ func Test_IsValidBindingRule(t *testing.T) {
 			test := test
 			t.Run(test.bindType+"--"+test.name, func(t *testing.T) {
 				t.Parallel()
-				err := IsValidBindingRule(
+				valid, err := IsValidBindName(
 					test.bindType,
 					test.bindName,
-					test.bindVars,
 					strings.Split(test.fields, ","),
 				)
-				require.Equal(t, test.err, err != nil)
+				if test.err {
+					require.NotNil(t, err)
+					require.False(t, valid)
+				} else {
+					require.NoError(t, err)
+					require.Equal(t, test.valid, valid)
+				}
 			})
 		}
 	}

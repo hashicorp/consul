@@ -1,10 +1,6 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -46,7 +42,7 @@ func (g *GatewayServices) Fetch(opts cache.FetchOptions, req cache.Request) (cac
 
 	// Fetch
 	var reply structs.IndexedGatewayServices
-	if err := g.RPC.RPC(context.Background(), "Catalog.GatewayServices", reqReal, &reply); err != nil {
+	if err := g.RPC.RPC("Catalog.GatewayServices", reqReal, &reply); err != nil {
 		return result, err
 	}
 

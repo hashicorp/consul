@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -10,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/pprof"
-	"net/netip"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -32,14 +28,12 @@ import (
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
-	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
-	resourcehttp "github.com/hashicorp/consul/internal/resource/http"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommon"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
@@ -260,17 +254,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/symbol", pprof.Symbol)
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
-	mux.Handle("/api/",
-		http.StripPrefix("/api",
-			resourcehttp.NewHandler(
-				s.agent.delegate.ResourceServiceClient(),
-				s.agent.baseDeps.Registry,
-				s.parseToken,
-				s.agent.logger.Named(logging.HTTP),
-			),
-		),
-	)
-
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
 		// content_path} since this only runs at initial startup.
@@ -310,27 +293,12 @@ func (s *HTTPHandlers) handler() http.Handler {
 	if s.agent.config.DisableHTTPUnprintableCharFilter {
 		h = mux
 	}
-
 	h = s.enterpriseHandler(h)
-	h = withRemoteAddrHandler(h)
 	s.h = &wrappedMux{
 		mux:     mux,
 		handler: h,
 	}
 	return s.h
-}
-
-// Injects remote addr into the request's context
-func withRemoteAddrHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		addrPort, err := netip.ParseAddrPort(req.RemoteAddr)
-		if err == nil {
-			remoteAddr := net.TCPAddrFromAddrPort(addrPort)
-			ctx := consul.ContextWithRemoteAddr(req.Context(), remoteAddr)
-			req = req.WithContext(ctx)
-		}
-		next.ServeHTTP(resp, req)
-	})
 }
 
 // nodeName returns the node name of the agent
@@ -388,16 +356,8 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				}
 				logURL = strings.Replace(logURL, token, "<hidden>", -1)
 			}
-			httpLogger.Warn("This request used the token query parameter "+
-				"which is deprecated and will be removed in Consul 1.17",
-				"logUrl", logURL)
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
-
-		rejectCatalogV1Endpoint := false
-		if s.agent.baseDeps.UseV2Resources() {
-			rejectCatalogV1Endpoint = isV1CatalogRequest(req.URL.Path)
-		}
 
 		if s.denylist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
@@ -422,55 +382,14 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return false
 		}
 
-		isTooManyRequests := func(err error) bool {
-			if err == nil {
-				return false
-			}
-
-			// Client-side RPC limits.
-			if structs.IsErrRPCRateExceeded(err) {
-				return true
-			}
-
-			// Connect CA rate limiter.
-			if err.Error() == consul.ErrRateLimited.Error() {
-				return true
-			}
-
-			// gRPC server rate limit interceptor.
-			if status.Code(err) == codes.ResourceExhausted {
-				return true
-			}
-
-			// net/rpc server rate limit interceptor.
-			return strings.Contains(err.Error(), rate.ErrRetryElsewhere.Error())
-		}
-
-		isServiceUnavailable := func(err error) bool {
-			if err == nil {
-				return false
-			}
-
-			// gRPC server rate limit interceptor.
-			if status.Code(err) == codes.Unavailable {
-				return true
-			}
-
-			// net/rpc server rate limit interceptor.
-			return strings.Contains(err.Error(), rate.ErrRetryLater.Error())
-		}
-
-		isUsingV2CatalogExperiment := func(err error) bool {
-			if err == nil {
-				return false
-			}
-
-			return structs.IsErrUsingV2CatalogExperiment(err)
-		}
-
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
 			return ok
+		}
+
+		isTooManyRequests := func(err error) bool {
+			// Sadness net/rpc can't do nice typed errors so this is all we got
+			return err.Error() == consul.ErrRateLimited.Error()
 		}
 
 		addAllowHeader := func(methods []string) {
@@ -497,23 +416,12 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 					"error", err)
 			}
 
-			// If the error came from gRPC, unpack it to get the real message.
-			msg := err.Error()
-			if s, ok := status.FromError(err); ok {
-				msg = s.Message()
-			}
-
-			if isUsingV2CatalogExperiment(err) && !isHTTPError(err) {
-				err = newRejectV1RequestWhenV2EnabledError()
-			}
-
 			switch {
 			case isForbidden(err):
 				resp.WriteHeader(http.StatusForbidden)
-			case isTooManyRequests(err):
+				fmt.Fprint(resp, err.Error())
+			case structs.IsErrRPCRateExceeded(err):
 				resp.WriteHeader(http.StatusTooManyRequests)
-			case isServiceUnavailable(err):
-				resp.WriteHeader(http.StatusServiceUnavailable)
 			case isMethodNotAllowed(err):
 				// RFC2616 states that for 405 Method Not Allowed the response
 				// MUST include an Allow header containing the list of valid
@@ -521,21 +429,26 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 				// https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html
 				addAllowHeader(err.(MethodNotAllowedError).Allow)
 				resp.WriteHeader(http.StatusMethodNotAllowed) // 405
+				fmt.Fprint(resp, err.Error())
 			case isHTTPError(err):
 				err := err.(HTTPError)
 				code := http.StatusInternalServerError
 				if err.StatusCode != 0 {
 					code = err.StatusCode
 				}
-				if msg == "" {
-					msg = "An unexpected error occurred"
+				reason := "An unexpected error occurred"
+				if err.Error() != "" {
+					reason = err.Error()
 				}
 				resp.WriteHeader(code)
+				fmt.Fprint(resp, reason)
+			case isTooManyRequests(err):
+				resp.WriteHeader(http.StatusTooManyRequests)
+				fmt.Fprint(resp, err.Error())
 			default:
 				resp.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(resp, err.Error())
 			}
-
-			fmt.Fprint(resp, msg)
 		}
 
 		start := time.Now()
@@ -583,12 +496,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 			if err == nil {
 				// Invoke the handler
-				if rejectCatalogV1Endpoint {
-					obj = nil
-					err = s.rejectV1RequestWhenV2Enabled()
-				} else {
-					obj, err = handler(resp, req)
-				}
+				obj, err = handler(resp, req)
 			}
 		}
 		contentType := "application/json"
@@ -630,46 +538,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 	}
 }
 
-func isV1CatalogRequest(logURL string) bool {
-	switch {
-	case strings.HasPrefix(logURL, "/v1/catalog/"),
-		strings.HasPrefix(logURL, "/v1/health/"),
-		strings.HasPrefix(logURL, "/v1/config/"):
-		return true
-
-	case strings.HasPrefix(logURL, "/v1/agent/token/"),
-		logURL == "/v1/agent/self",
-		logURL == "/v1/agent/host",
-		logURL == "/v1/agent/version",
-		logURL == "/v1/agent/reload",
-		logURL == "/v1/agent/monitor",
-		logURL == "/v1/agent/metrics",
-		logURL == "/v1/agent/metrics/stream",
-		logURL == "/v1/agent/members",
-		strings.HasPrefix(logURL, "/v1/agent/join/"),
-		logURL == "/v1/agent/leave",
-		strings.HasPrefix(logURL, "/v1/agent/force-leave/"),
-		logURL == "/v1/agent/connect/authorize",
-		logURL == "/v1/agent/connect/ca/roots",
-		strings.HasPrefix(logURL, "/v1/agent/connect/ca/leaf/"):
-		return false
-
-	case strings.HasPrefix(logURL, "/v1/agent/"):
-		return true
-
-	case logURL == "/v1/internal/acl/authorize",
-		logURL == "/v1/internal/service-virtual-ip",
-		logURL == "/v1/internal/ui/oidc-auth-methods",
-		strings.HasPrefix(logURL, "/v1/internal/ui/metrics-proxy/"):
-		return false
-
-	case strings.HasPrefix(logURL, "/v1/internal/"):
-		return true
-	default:
-		return false
-	}
-}
-
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
 func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
@@ -678,9 +546,7 @@ func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, 
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			buf = append(buf, "\n"...)
-		}
+		buf = append(buf, "\n"...)
 		return buf, nil
 	}
 
@@ -1064,12 +930,9 @@ func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b 
 	}
 }
 
-// parseDC is used to parse the datacenter from the query params.
-// ?datacenter has precedence over ?dc.
+// parseDC is used to parse the ?dc query param
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
-	if other := req.URL.Query().Get("datacenter"); other != "" {
-		*dc = other
-	} else if other = req.URL.Query().Get("dc"); other != "" {
+	if other := req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
 		*dc = s.agent.config.Datacenter
@@ -1144,20 +1007,6 @@ func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 	s.parseTokenWithDefault(req, token)
-}
-
-func (s *HTTPHandlers) rejectV1RequestWhenV2Enabled() error {
-	if s.agent.baseDeps.UseV2Resources() {
-		return newRejectV1RequestWhenV2EnabledError()
-	}
-	return nil
-}
-
-func newRejectV1RequestWhenV2EnabledError() error {
-	return HTTPError{
-		StatusCode: http.StatusBadRequest,
-		Reason:     structs.ErrUsingV2CatalogExperiment.Error(),
-	}
 }
 
 func sourceAddrFromRequest(req *http.Request) string {

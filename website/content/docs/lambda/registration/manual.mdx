@@ -7,13 +7,13 @@ description: >-
 
 # Manual Lambda Function Registration
 
-This topic describes how to manually register Lambda functions into Consul. Refer to [Automate Lambda Function Registration](/consul/docs/lambda/registration/automate) for information about using the Lambda registrator to automate registration.
+This topic describes how to manually register Lambda functions into Consul. Refer to [Automate Lambda Function Registration](/docs/lambda/registration/automate) for information about using the Lambda registrator to automate registration. 
 
 ## Requirements
 
-Verify that your environment meets the requirements specified in [Lambda Function Registration Requirements](/consul/docs/lambda/registration).
+Verify that your environment meets the requirements specified in [Lambda Function Registration Requirements](/docs/lambda/registration).
 
-To manually register Lambda functions so that mesh services can invoke them, you must create and apply a service registration configuration for the Lambda function and write a [service defaults configuration entry](/consul/docs/connect/config-entries/service-defaults) for the function.
+To manually register Lambda functions so that mesh services can invoke them, you must create and apply a service registration configuration for the Lambda function and write a [service defaults configuration entry](/docs/connect/config-entries/service-defaults) for the function. 
 
 ## Register a Lambda function
 
@@ -46,26 +46,20 @@ You can manually register Lambda functions if you are unable to automate the pro
    $ curl --request PUT --data @lambda.json localhost:8500/v1/catalog/register
    ```
 
-1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `EnvoyExtensions` configuration. Refer to [Supported `EnvoyExtension` arguments](#supported-envoyextension-arguments) for more information. 
-
-The following example creates a `service-defaults` configuration entry named `lambda`:
+1. Create the `service-defaults` configuration entry and include the AWS tags used to invoke the Lambda function in the `Meta` field (refer to [Supported `Meta` fields](#supported-meta-fields). The following example creates a `service-defaults` configuration entry named `lambda`:
 
    <CodeBlockConfig filename="lambda-service-defaults.hcl">
 
    ```hcl
    Kind = "service-defaults"
-   Name = "<SERVICE_NAME>"
+   Name = "lambda"
    Protocol  = "http"
-   EnvoyExtensions = [
-     {
-       "Name": "builtin/aws/lambda",
-       "Arguments": {
-         "Region": "us-east-2",
-         "ARN": "<INSERT ARN HERE>",
-         "PayloadPassthrough": true
-       }
-     }
-   ]
+   Meta = {
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/enabled" = "true"
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/arn" = "<INSERT ARN HERE>"
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/payload-passthrough" = "true"
+     "serverless.consul.hashicorp.com/v1alpha1/lambda/region" = "us-east-2"
+   }
    ```
 
    </CodeBlockConfig>
@@ -75,11 +69,16 @@ The following example creates a `service-defaults` configuration entry named `la
    $ consul config write lambda-service-defaults.hcl
    ```
 
-### Supported `EnvoyExtension` arguments
+### Supported `Meta` fields
 
-The `lambda` Envoy extension supports the following arguments:
+The following tags are supported. The path prefix for all tags is `serverless.consul.hashicorp.com/v1alpha1/lambda`. For example, specify the following tag to enable Consul to configure the service as an AWS Lambda function: 
 
-- `ARN` (`string`) - Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. `ARN` must be set to a valid Lambda function ARN.
-- `Region` (`string`) - Specifies the AWS region the Lambda is running in. `Region` must be set to a valid AWS region where the Lambda function exists.
-- `PayloadPassthrough` (`boolean: false`) - Determines if the body Envoy receives is converted to JSON or directly passed to Lambda.
-- `InvocationMode` (`string: synchronous`) - Determines if Consul configures the Lambda to be invoked using the `synchronous` or `asynchronous` [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html).
+`serverless.consul.hashicorp.com/v1alpha1/lambda/enabled`.
+
+| Tag | Description |
+| --- | --- |
+| `<prefix-path>/enabled` | Determines if Consul configures the service as an AWS Lambda. |
+| `<prefix-path>/payload-passthrough` | Determines if the body Envoy receives is converted to JSON or directly passed to Lambda. |
+| `<prefix-path>/arn` | Specifies the [AWS ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html) for the service's Lambda. |
+| `<prefix-path>/invocation-mode` | Determines if Consul configures the Lambda to be invoked using the `synchronous` or `asynchronous` [invocation mode](https://docs.aws.amazon.com/lambda/latest/operatorguide/invocation-modes.html). |
+| `<prefix-path>/region` | Specifies the AWS region the Lambda is running in. |

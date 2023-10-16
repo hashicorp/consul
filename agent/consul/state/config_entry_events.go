@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -9,8 +6,8 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbconfigentry"
-	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/consul/proto/pbconfigentry"
+	"github.com/hashicorp/consul/proto/pbsubscribe"
 )
 
 // Adding events for a new config entry kind? Remember to update ConfigEntryFromStructs and ConfigEntryToStructs.
@@ -20,14 +17,6 @@ var configEntryKindToTopic = map[string]stream.Topic{
 	structs.IngressGateway:    EventTopicIngressGateway,
 	structs.ServiceIntentions: EventTopicServiceIntentions,
 	structs.ServiceDefaults:   EventTopicServiceDefaults,
-	structs.APIGateway:        EventTopicAPIGateway,
-	structs.TCPRoute:          EventTopicTCPRoute,
-	structs.HTTPRoute:         EventTopicHTTPRoute,
-	structs.InlineCertificate: EventTopicInlineCertificate,
-	structs.BoundAPIGateway:   EventTopicBoundAPIGateway,
-	structs.RateLimitIPConfig: EventTopicIPRateLimit,
-	structs.SamenessGroup:     EventTopicSamenessGroup,
-	structs.JWTProvider:       EventTopicJWTProvider,
 }
 
 // EventSubjectConfigEntry is a stream.Subject used to route and receive events
@@ -126,54 +115,6 @@ func (s *Store) ServiceIntentionsSnapshot(req stream.SubscribeRequest, buf strea
 // service-defaults config entries.
 func (s *Store) ServiceDefaultsSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
 	return s.configEntrySnapshot(structs.ServiceDefaults, req, buf)
-}
-
-// APIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
-// api-gateway config entries.
-func (s *Store) APIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.APIGateway, req, buf)
-}
-
-// TCPRouteSnapshot is a stream.SnapshotFunc that returns a snapshot of
-// tcp-route config entries.
-func (s *Store) TCPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.TCPRoute, req, buf)
-}
-
-// HTTPRouteSnapshot is a stream.SnapshotFunc that retuns a snapshot of
-// http-route config entries.
-func (s *Store) HTTPRouteSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.HTTPRoute, req, buf)
-}
-
-// InlineCertificateSnapshot is a stream.SnapshotFunc that returns a snapshot of
-// inline-certificate config entries.
-func (s *Store) InlineCertificateSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.InlineCertificate, req, buf)
-}
-
-// BoundAPIGatewaySnapshot is a stream.SnapshotFunc that returns a snapshot of
-// bound-api-gateway config entries.
-func (s *Store) BoundAPIGatewaySnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.BoundAPIGateway, req, buf)
-}
-
-// IPRateLimiterSnapshot is a stream.SnapshotFunc that returns a snapshot of
-// "control-plane-request-limit" config entries.
-func (s *Store) IPRateLimiterSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.RateLimitIPConfig, req, buf)
-}
-
-// SamenessGroupSnapshot is a stream.SnapshotFunc that returns a snapshot of
-// "sameness-group" config entries.
-func (s *Store) SamenessGroupSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.SamenessGroup, req, buf)
-}
-
-// JWTProviderSnapshot is a stream.SnapshotFunc that returns a snapshot of
-// jwt-provider config entries.
-func (s *Store) JWTProviderSnapshot(req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {
-	return s.configEntrySnapshot(structs.JWTProvider, req, buf)
 }
 
 func (s *Store) configEntrySnapshot(kind string, req stream.SubscribeRequest, buf stream.SnapshotAppender) (uint64, error) {

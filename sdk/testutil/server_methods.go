@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package testutil
 
 import (
@@ -9,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"testing"
@@ -55,7 +53,7 @@ func (s *TestServer) GetKV(t testing.TB, key string) []byte {
 	resp := s.get(t, "/v1/kv/"+key)
 	defer resp.Body.Close()
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("failed to read body: %s", err)
 	}
@@ -95,7 +93,7 @@ func (s *TestServer) ListKV(t testing.TB, prefix string) []string {
 	resp := s.get(t, "/v1/kv/"+prefix+"?keys")
 	defer resp.Body.Close()
 
-	raw, err := io.ReadAll(resp.Body)
+	raw, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Fatalf("failed to read body: %s", err)
 	}

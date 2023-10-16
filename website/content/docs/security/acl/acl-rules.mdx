@@ -7,7 +7,7 @@ description: >-
 
 # ACL Rules
 
-This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, see [Policies](/consul/docs/security/acl/acl-policies).
+This topic provides reference information for the types of access control list (ACL) rules you can create and how they affect access to datacenter resources. For details on how to create rules and group them into policies, see [Policies](/docs/security/acl/acl-policies).
 
 ## Overview
 
@@ -15,34 +15,34 @@ The following table provides an overview of the resources you can use to create 
 
 | Resource                           | Description                                                                                                                                                                                                                                                                                                                                          | Labels |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| `acl`                              | Controls access to ACL operations in the [ACL API](/consul/api-docs/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                                                                                                                                                                                                                   | No     |
+| `acl`                              | Controls access to ACL operations in the [ACL API](/api-docs/acl). <br/>See [ACL Resource Rules](#acl-resource-rules) for details.                                                                                                                                                                                                                   | No     |
 | `partition`<br/>`partition_prefix` | <EnterpriseAlert inline /> Controls access to one or more admin partitions. <br/>See [Admin Partition Rules](#admin-partition-rules) for details.                                                                                                                                                                                                    | Yes    |
-| `agent`<br/>`agent_prefix`         | Controls access to the utility operations in the [Agent API](/consul/api-docs/agent), such as `join` and `leave`. <br/>See [Agent Rules](#agent-rules) for details.                                                                                                                                                                                              | Yes    |
-| `event`<br/>`event_prefix`         | Controls access to event operations in the [Event API](/consul/api-docs/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details.                                                                                                                                                                                             | Yes    |
-| `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/consul/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes    |
-| `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/consul/api-docs/operator/keyring). <br/>See [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
+| `agent`<br/>`agent_prefix`         | Controls access to the utility operations in the [Agent API](/api-docs/agent), such as `join` and `leave`. <br/>See [Agent Rules](#agent-rules) for details.                                                                                                                                                                                              | Yes    |
+| `event`<br/>`event_prefix`         | Controls access to event operations in the [Event API](/api-docs/event), such as firing and listing events. <br/>See [Event Rules](#event-rules) for details.                                                                                                                                                                                             | Yes    |
+| `key`<br/>`key_prefix` &nbsp;      | Controls access to key/value store operations in the [KV API](/api-docs/kv). <br/>Can also use the `list` access level when setting the policy disposition. <br/>Has additional value options in Consul Enterprise for integrating with [Sentinel](https://docs.hashicorp.com/sentinel/consul). <br/>See [Key/Value Rules](#key-value-rules) for details. | Yes    |
+| `keyring` &nbsp; &nbsp; &nbsp;     | Controls access to keyring operations in the [Keyring API](/api-docs/operator/keyring). <br/>See [Keyring Rules](#keyring-rules) for details.                                                                                                                                                                                                                      | No     |
 | `mesh` &nbsp; &nbsp; &nbsp;        | Provides operator-level permissions for resources in the admin partition, such as ingress gateways or mesh proxy defaults. See [Mesh Rules](#mesh-rules) for details.                                                                                                                                                                                | No     |
-| `peering` &nbsp; &nbsp; &nbsp;     | Controls access to cluster peerings in the [Cluster Peering API](/consul/api-docs/peering). For more details, refer to [Peering Rules](#peering-rules).                                                                           | No     |
+| `peering` &nbsp; &nbsp; &nbsp;     | Controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering). For more details, refer to [Peering Rules](#peering-rules).                                                                           | No     |
 | `namespace`<br/>`namespace_prefix` | <EnterpriseAlert inline /> Controls access to one or more namespaces. <br/>See [Namespace Rules](#namespace-rules) for details.                                                                                                                                                                                                                      | Yes    |
-| `node`<br/>`node_prefix` &nbsp;    | Controls access to node-level operations in the [Catalog API](/consul/api-docs/catalog), [Health API](/consul/api-docs/health), [Prepared Query API](/consul/api-docs/query), [Network Coordinate API](/consul/api-docs/coordinate), and [Agent API](/consul/api-docs/agent) <br/>See [Node Rules](#node-rules) for details.                                                                                     | Yes    |
-| `operator` &nbsp; &nbsp; &nbsp;    | Controls access to cluster-level operations available in the [Operator API](/consul/api-docs/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details.                                                                                                                                                                  | No     |
-| `query`<br/>`query_prefix`         | Controls access to create, update, and delete prepared queries in the [Prepared Query API](/consul/api-docs/query). Access to the [node](#node-rules) and [service](#service-rules) must also be granted. <br/>See [Prepared Query Rules](#prepared-query-rules) for details.                                                                                    | Yes    |
-| `service`<br/>`service_prefix`     | Controls service-level operations in the [Catalog API](/consul/api-docs/catalog), [Health API](/consul/api-docs/health), [Intentions API](/consul/api-docs/connect/intentions), [Prepared Query API](/consul/api-docs/query), and [Agent API](/consul/api-docs/agent). <br/>See [Service Rules](#service-rules) for details.                                                                                        | Yes    |
-| `session`<br/>`session_prefix`     | Controls access to operations in the [Session API](/consul/api-docs/session). <br/>See [Session Rules](#session-rules) for details.                                                                                                                                                                                                                              | Yes    |
+| `node`<br/>`node_prefix` &nbsp;    | Controls access to node-level operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Prepared Query API](/api-docs/query), [Network Coordinate API](/api-docs/coordinate), and [Agent API](/api-docs/agent) <br/>See [Node Rules](#node-rules) for details.                                                                                     | Yes    |
+| `operator` &nbsp; &nbsp; &nbsp;    | Controls access to cluster-level operations available in the [Operator API](/api-docs/operator) excluding keyring API endpoints. <br/>See [Operator Rules](#operator-rules) for details.                                                                                                                                                                  | No     |
+| `query`<br/>`query_prefix`         | Controls access to create, update, and delete prepared queries in the [Prepared Query API](/api-docs/query). Access to the [node](#node-rules) and [service](#service-rules) must also be granted. <br/>See [Prepared Query Rules](#prepared-query-rules) for details.                                                                                    | Yes    |
+| `service`<br/>`service_prefix`     | Controls service-level operations in the [Catalog API](/api-docs/catalog), [Health API](/api-docs/health), [Intentions API](/api-docs/connect/intentions), [Prepared Query API](/api-docs/query), and [Agent API](/api-docs/agent). <br/>See [Service Rules](#service-rules) for details.                                                                                        | Yes    |
+| `session`<br/>`session_prefix`     | Controls access to operations in the [Session API](/api-docs/session). <br/>See [Session Rules](#session-rules) for details.                                                                                                                                                                                                                              | Yes    |
 
 The following resources are not covered by ACL policies:
 
-- The [Status API](/consul/api-docs/status) is used by servers when bootstrapping and exposes basic IP and port information about the servers, and does not allow modification of any state.
-- The datacenter listing operation of the [Catalog API](/consul/api-docs/catalog#list-datacenters) similarly exposes the names of known Consul datacenters, and does not allow modification of any state.
-- The [service mesh CA roots endpoint](/consul/api-docs/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
+- The [Status API](/api-docs/status) is used by servers when bootstrapping and exposes basic IP and port information about the servers, and does not allow modification of any state.
+- The datacenter listing operation of the [Catalog API](/api-docs/catalog#list-datacenters) similarly exposes the names of known Consul datacenters, and does not allow modification of any state.
+- The [connect CA roots endpoint](/api-docs/connect/ca#list-ca-root-certificates) exposes just the public TLS certificate which other systems can use to verify the TLS connection with Consul.
 
--> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/consul/docs/enterprise/namespaces#namespace-definition) (Consul Enterprise 1.7.0+).
+-> **Consul Enterprise Namespace** - In addition to directly-linked policies, roles, and service identities, Consul Enterprise enables ACL policies and roles to be defined in the [Namespaces definition](/docs/enterprise/namespaces#namespace-definition) (Consul Enterprise 1.7.0+).
 
 The following topics provide additional details about the available resources.
 
 ## ACL Resource Rules
 
-The `acl` resource controls access to ACL operations in the [ACL API](/consul/api-docs/acl). Only one `acl` rule is allowed per policy. The value is set to one of the [policy dispositions](#policy-dispositions).
+The `acl` resource controls access to ACL operations in the [ACL API](/api-docs/acl). Only one `acl` rule is allowed per policy. The value is set to one of the [policy dispositions](#policy-dispositions).
 
 The `acl = "write"` rule is also required to create snapshots. This is because all token secrets are contained within the snapshot.
 
@@ -158,7 +158,7 @@ partition_prefix "example-" {
 
 ## Agent Rules
 
-The `agent` and `agent_prefix` resources control access to the utility operations in the [Agent API](/consul/api-docs/agent),
+The `agent` and `agent_prefix` resources control access to the utility operations in the [Agent API](/api-docs/agent),
 such as join and leave. All of the catalog-related operations are covered by the [`node` or `node_prefix`](#node-rules)
 and [`service` or `service_prefix`](#service-rules) policies instead.
 
@@ -201,14 +201,14 @@ allow read-write access to the node with the _exact_ name `foo`, read-only acces
 to any node name by using the empty prefix, and denies all access to any node
 name that starts with `bar`.
 
-Since [Agent API](/consul/api-docs/agent) utility operations may be required before an agent is joined to
+Since [Agent API](/api-docs/agent) utility operations may be required before an agent is joined to
 a cluster, or during an outage of the Consul servers or ACL datacenter, a special token may be
-configured with [`acl.tokens.agent_recovery`](/consul/docs/agent/config/config-files#acl_tokens_agent_recovery) to allow
+configured with [`acl.tokens.agent_recovery`](/docs/agent/config/config-files#acl_tokens_agent_recovery) to allow
 write access to these operations even if no ACL resolution capability is available.
 
 ## Event Rules
 
-The `event` and `event_prefix` resources control access to event operations in the [Event API](/consul/api-docs/event), such as
+The `event` and `event_prefix` resources control access to event operations in the [Event API](/api-docs/event), such as
 firing events and listing events.
 
 <CodeTabs heading="Example event rules">
@@ -242,14 +242,14 @@ event "deploy" {
 Event rules are labeled with the event name they apply to. In the example above, the rules allow
 read-only access to any event, and firing of the "deploy" event.
 
-The [`consul exec`](/consul/commands/exec) command uses events with the "\_rexec" prefix during
+The [`consul exec`](/commands/exec) command uses events with the "\_rexec" prefix during
 operation, so to enable this feature in a Consul environment with ACLs enabled, you will need to
 give agents a token with access to this event prefix, in addition to configuring
-[`disable_remote_exec`](/consul/docs/agent/config/config-files#disable_remote_exec) to `false`.
+[`disable_remote_exec`](/docs/agent/config/config-files#disable_remote_exec) to `false`.
 
 ## Key/Value Rules
 
-The `key` and `key_prefix` resources control access to key/value store operations in the [KV API](/consul/api-docs/kv).
+The `key` and `key_prefix` resources control access to key/value store operations in the [KV API](/api-docs/kv).
 
 <CodeTabs heading="Example key rules">
 
@@ -292,7 +292,7 @@ to any key name with the empty prefix rule, allow read-write access to the "foo"
 
 Enable the `list` policy disposition (Consul 1.0+) by setting the
 `acl.enable_key_list_policy` parameter to `true`. The disposition provides
-recursive access to `key` entries. Refer to the [KV API](/consul/api-docs/kv#recurse)
+recursive access to `key` entries. Refer to the [KV API](/api-docs/kv#recurse)
 documentation for additional information.
 
 In the following example, `key` resources that start with `bar` may be listed.
@@ -353,11 +353,11 @@ EOF
 }
 ```
 
-For more detailed information, see the [Consul Sentinel documentation](/consul/docs/agent/sentinel).
+For more detailed information, see the [Consul Sentinel documentation](/docs/agent/sentinel).
 
 ## Keyring Rules
 
-The `keyring` resource controls access to keyring operations in the [Keyring API](/consul/api-docs/operator/keyring). Only one keyring policy is allowed per rule set. The value is set to one of the policy dispositions, but may be read and updated.
+The `keyring` resource controls access to keyring operations in the [Keyring API](/api-docs/operator/keyring). Only one keyring policy is allowed per rule set. The value is set to one of the policy dispositions, but may be read and updated.
 
 <CodeTabs heading="Example keyring rule">
 
@@ -526,9 +526,9 @@ specific namespace are prevented from accessing resources in another namespace.
 
 The `node` and `node_prefix` resources control access to the following API behaviors:
 
-- node-level registration and read access to the [Catalog API](/consul/api-docs/catalog)
-- service discovery with the [Health API](/consul/api-docs/health)
-- filtering results in [Agent API](/consul/api-docs/agent) operations, such as fetching the list of cluster members.
+- node-level registration and read access to the [Catalog API](/api-docs/catalog)
+- service discovery with the [Health API](/api-docs/health)
+- filtering results in [Agent API](/api-docs/agent) operations, such as fetching the list of cluster members.
 
 You can use resource labels to scope the rule to a specific resource or set of resources.
 
@@ -573,16 +573,16 @@ node "admin" {
 
 Agents must be configured with `write` privileges for their own node name so that the agent can register their node metadata, tagged addresses, and other information in the catalog.
 If configured incorrectly, the agent will print an error to the console when it tries to sync its state with the catalog.
-Configure `write` access in the [`acl.tokens.agent`](/consul/docs/agent/config/config-files#acl_tokens_agent) parameter.
+Configure `write` access in the [`acl.tokens.agent`](/docs/agent/config/config-files#acl_tokens_agent) parameter.
 
-The [`acl.token.default`](/consul/docs/agent/config/config-files#acl_tokens_default) used by the agent should have `read` access to a given node so that the DNS interface can be queried.
+The [`acl.token.default`](/docs/agent/config/config-files#acl_tokens_default) used by the agent should have `read` access to a given node so that the DNS interface can be queried.
 
 Node rules are used to filter query results when reading from the catalog or retrieving information from the health endpoints. This allows for configurations where a token has access to a given service name, but only on an allowed subset of node names.
 
-Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/consul/docs/architecture/anti-entropy) syncs.
+Consul agents check tokens locally when health checks are registered and when Consul performs periodic [anti-entropy](/docs/architecture/anti-entropy) syncs.
 These actions may required an ACL token to complete. Use the following methods to configure ACL tokens for registration events:
 
-* Configure a global token in the [acl.tokens.default](/consul/docs/agent/config/config-files#acl_tokens_default) parameter.
+* Configure a global token in the [acl.tokens.default](/docs/agent/config/config-files#acl_tokens_default) parameter.
   This allows a single token to be used during all check registration operations.
 * Provide an ACL token with `service` and `check` definitions at registration time.
   This allows for greater flexibility and enables the use of multiple tokens on the same agent.
@@ -590,7 +590,7 @@ These actions may required an ACL token to complete. Use the following methods t
 
 ### Reading Imported Nodes
 
-Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/consul/docs/connect/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Nodes rules affect read access to nodes with services exported by [`exported-services` configuration entries](/docs/connect/config-entries/exported-services#reading-services), including nodes imported from [cluster peerings](/docs/connect/cluster-peering) or [admin partitions](/docs/enterprise/admin-partitions) (Enterprise-only).
 Read access to all imported nodes is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service. 
 - `node:read` is granted to all nodes.
@@ -598,14 +598,14 @@ Read access to all imported nodes is granted when either of the following rule s
 For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
 
 You may need similarly scoped [Service Rules](#reading-imported-services) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
-These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities). 
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
 
-Refer to [Reading Services](/consul/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+Refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
 ## Operator Rules
 
 The `operator` resource controls access to cluster-level operations in the
-[Operator API](/consul/api-docs/operator), other than the [Keyring API](/consul/api-docs/operator/keyring).
+[Operator API](/api-docs/operator), other than the [Keyring API](/api-docs/operator/keyring).
 
 Only one operator rule allowed per rule set. In the following example, the token may be used to query the operator endpoints for
 diagnostic purposes but it will not make changes.
@@ -625,7 +625,7 @@ operator = "read"
 </CodeTabs>
 
 ## Peering Rules
-The `peering` resource controls access to cluster peerings in the [Cluster Peering API](/consul/api-docs/peering).
+The `peering` resource controls access to cluster peerings in the [Cluster Peering API](/api-docs/peering).
 
 In Consul Enterprise, peering rules are scoped to an admin partition. Therefore, they can be nested in an
 [admin partition rule](#admin-partition-rules) but not a [namespace rule](#namespace-rules).
@@ -651,7 +651,7 @@ For an example of how to apply rules for the `peering` resource alongside other 
 ## Prepared Query Rules
 
 The `query` and `query_prefix` resources control access to create, update, and delete prepared queries in the
-[Prepared Query API](/consul/api-docs/query). Specify the resource label in query rules to determine the scope of the rule.
+[Prepared Query API](/api-docs/query). Specify the resource label in query rules to determine the scope of the rule.
 The resource label in the following example is empty. As a result, the rules allow read-only access to query resources with any name.
 The rules also grant read-write access to the query named `foo`, which allows control of the query namespace to be delegated based on ACLs:
 
@@ -709,7 +709,7 @@ here, with examples:
   that is used and known by many clients to provide geo-failover behavior for
   a database.
 
-- [Template queries](/consul/api-docs/query#prepared-query-templates)
+- [Template queries](/api-docs/query#prepared-query-templates)
   queries work like static queries with a `Name` defined, except that a catch-all
   template with an empty `Name` requires an ACL token that can write to any query
   prefix.
@@ -756,7 +756,7 @@ These differences are outlined in the table below:
 
 ## Service Rules
 
-The `service` and `service_prefix` resources control service-level registration and read access to the [Catalog API](/consul/api-docs/catalog) and service discovery with the [Health API](/consul/api-docs/health).
+The `service` and `service_prefix` resources control service-level registration and read access to the [Catalog API](/api-docs/catalog) and service discovery with the [Health API](/api-docs/health).
 Specify the resource label in service rules to set the scope of the rule.
 The resource label in the following example is empty. As a result, the rules allow read-only access to any service name with the empty prefix.
 The rules also allow read-write access to the `app` service and deny all access to the `admin` service:
@@ -796,19 +796,19 @@ service "admin" {
 </CodeTabs>
 
 Consul's DNS interface is affected by restrictions on service rules. If the
-[`acl.tokens.default`](/consul/docs/agent/config/config-files#acl_tokens_default) used by the agent does not have `read` access to a
+[`acl.tokens.default`](/docs/agent/config/config-files#acl_tokens_default) used by the agent does not have `read` access to a
 given service, then the DNS interface will return no records when queried for it.
 
 When reading from the catalog or retrieving information from the health endpoints, service rules are
 used to filter the results of the query.
 
-Service rules come into play when using the [Agent API](/consul/api-docs/agent) to register services or
+Service rules come into play when using the [Agent API](/api-docs/agent) to register services or
 checks. The agent will check tokens locally as a service or check is registered, and Consul also
-performs periodic [anti-entropy](/consul/docs/architecture/anti-entropy) syncs, which may require an
+performs periodic [anti-entropy](/docs/architecture/anti-entropy) syncs, which may require an
 ACL token to complete. To accommodate this, Consul provides two methods of configuring ACL tokens
 to use for registration events:
 
-1. Using the [acl.tokens.default](/consul/docs/agent/config/config-files#acl_tokens_default) configuration
+1. Using the [acl.tokens.default](/docs/agent/config/config-files#acl_tokens_default) configuration
    directive. This allows a single token to be configured globally and used
    during all service and check registration operations.
 2. Providing an ACL token with service and check definitions at registration
@@ -823,13 +823,13 @@ to use for registration events:
    access.
 
 In addition to ACLs, in Consul 0.9.0 and later, the agent must be configured with
-[`enable_script_checks`](/consul/docs/agent/config/config-files#enable_script_checks) or
-[`enable_local_script_checks`](/consul/docs/agent/config/config-files#enable_local_script_checks)
+[`enable_script_checks`](/docs/agent/config/config-files#enable_script_checks) or
+[`enable_local_script_checks`](/docs/agent/config/config-files#enable_local_script_checks)
 set to `true` in order to enable script checks.
 
 ### Reading Imported Services
 
-Service rules affect read access to services exported by [`exported-services` configuration entries](/consul/docs/connect/config-entries/exported-services#reading-services), including services exported between [cluster peerings](/consul/docs/connect/cluster-peering) or [admin partitions](/consul/docs/enterprise/admin-partitions) (Enterprise-only).
+Service rules affect read access to services exported by [`exported-services` configuration entries](/docs/connect/config-entries/exported-services#reading-services), including services exported between [cluster peerings](/docs/connect/cluster-peering) or [admin partitions](/docs/enterprise/admin-partitions) (Enterprise-only).
 Read access to all imported services is granted when either of the following rule sets are attached to a token:
 - `service:write` is granted to any service. 
 - `service:read` is granted to all services.
@@ -837,9 +837,9 @@ Read access to all imported services is granted when either of the following rul
 For Consul Enterprise, either set of rules must be scoped to the requesting services's partition and at least one namespace.
 
 You may need similarly scoped [Node Rules](#reading-imported-nodes) to read Consul data, depending on the endpoint (e.g. `/v1/health/service/:name`).
-These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities). 
+These permissions are satisfied when using a [service identity](/docs/security/acl/acl-roles#service-identities). 
 
-Refer to [Reading Services](/consul/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
+Refer to [Reading Services](/docs/connect/config-entries/exported-services#reading-services) for example ACL policies used to read imported services using the health endpoint.
 
 ### Intentions
 
@@ -869,12 +869,12 @@ service "app" {
 
 </CodeTabs>
 
-Refer to [ACL requirements for intentions](/consul/docs/connect/intentions/create-manage-intentions#acl-requirements)
+Refer to [Intention Management Permissions](/docs/connect/intentions#intention-management-permissions)
 for more information about managing intentions access with service rules.
 
 ## Session Rules
 
-The `session` and `session_prefix` resources controls access to [Session API](/consul/api-docs/session) operations.
+The `session` and `session_prefix` resources controls access to [Session API](/api-docs/session) operations.
 
 Specify the resource label in session rules to set the scope of the rule.
 The resource label in the following example is empty. As a result, the rules allow read-only access to all sessions.

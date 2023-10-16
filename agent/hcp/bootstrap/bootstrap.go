@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 // Package bootstrap handles bootstrapping an agent's config from HCP. It must be a
 // separate package from other HCP components because it has a dependency on
 // agent/config while other components need to be imported and run within the
@@ -23,7 +20,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/connect"
-	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/go-uuid"
@@ -65,7 +62,7 @@ type RawBootstrapConfig struct {
 // fetch from HCP servers if the local data is incomplete.
 // It must be passed a (CLI) UI implementation so it can deliver progress
 // updates to the user, for example if it is waiting to retry for a long period.
-func LoadConfig(ctx context.Context, client hcpclient.Client, dataDir string, loader ConfigLoader, ui UI) (ConfigLoader, error) {
+func LoadConfig(ctx context.Context, client hcp.Client, dataDir string, loader ConfigLoader, ui UI) (ConfigLoader, error) {
 	ui.Output("Loading configuration from HCP")
 
 	// See if we have existing config on disk
@@ -181,14 +178,14 @@ func finalizeRuntimeConfig(rc *config.RuntimeConfig, cfg *RawBootstrapConfig) {
 
 // fetchBootstrapConfig will fetch boostrap configuration from remote servers and persist it to disk.
 // It will retry until successful or a terminal error condition is found (e.g. permission denied).
-func fetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
+func fetchBootstrapConfig(ctx context.Context, client hcp.Client, dataDir string, ui UI) (*RawBootstrapConfig, error) {
 	w := retry.Waiter{
 		MinWait: 1 * time.Second,
 		MaxWait: 5 * time.Minute,
 		Jitter:  retry.NewJitter(50),
 	}
 
-	var bsCfg *hcpclient.BootstrapConfig
+	var bsCfg *hcp.BootstrapConfig
 	for {
 		// Note we don't want to shadow `ctx` here since we need that for the Wait
 		// below.
@@ -225,7 +222,7 @@ func fetchBootstrapConfig(ctx context.Context, client hcpclient.Client, dataDir 
 // persistAndProcessConfig is called when we receive data from CCM.
 // We validate and persist everything that was received, then also update
 // the JSON config as needed.
-func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcpclient.BootstrapConfig) (string, error) {
+func persistAndProcessConfig(dataDir string, devMode bool, bsCfg *hcp.BootstrapConfig) (string, error) {
 	if devMode {
 		// Agent in dev mode, we still need somewhere to persist the certs
 		// temporarily though to be able to start up at all since we don't support

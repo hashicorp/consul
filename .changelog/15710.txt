@@ -1,4 +1,0 @@
-```release-note:breaking-change
-xds: Remove the `connect.enable_serverless_plugin` agent configuration option. Now 
-Lambda integration is enabled by default.
-```

@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package ca
 
 import (
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -88,7 +85,7 @@ func CASigningKeyTypeCases() []CASigningKeyTypes {
 // TestConsulProvider creates a new ConsulProvider, taking care to stub out it's
 // Logger so that logging calls don't panic. If logging output is important
 func TestConsulProvider(t testing.T, d ConsulProviderStateDelegate) *ConsulProvider {
-	logger := hclog.New(&hclog.LoggerOptions{Output: io.Discard})
+	logger := hclog.New(&hclog.LoggerOptions{Output: ioutil.Discard})
 	provider := &ConsulProvider{Delegate: d, logger: logger}
 	return provider
 }
@@ -169,8 +166,8 @@ func NewTestVaultServer(t testing.T) *TestVaultServer {
 	}
 
 	cmd := exec.Command(vaultBinaryName, args...)
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
+	cmd.Stdout = ioutil.Discard
+	cmd.Stderr = ioutil.Discard
 	require.NoError(t, cmd.Start())
 
 	testVault := &TestVaultServer{
@@ -198,7 +195,6 @@ type TestVaultServer struct {
 }
 
 var printedVaultVersion sync.Once
-var vaultTestVersion string
 
 func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
@@ -220,7 +216,6 @@ func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 		version = resp.Version
 	})
 	printedVaultVersion.Do(func() {
-		vaultTestVersion = version
 		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
 	})
 }
@@ -253,8 +248,8 @@ func requireTrailingNewline(t testing.T, leafPEM string) {
 	if len(leafPEM) == 0 {
 		t.Fatalf("cert is empty")
 	}
-	if rune(leafPEM[len(leafPEM)-1]) != '\n' {
-		t.Fatalf("cert does not end with a new line")
+	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
+		t.Fatalf("cert do not end with a new line")
 	}
 }
 

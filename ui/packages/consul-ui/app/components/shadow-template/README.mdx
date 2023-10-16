@@ -1,0 +1,162 @@
+# ShadowTemplate
+
+A component to aid creating ShadowDOM based components (when required), heavily
+inspired by the upcoming Declarative Shadow DOM spec, a new way to implement and
+use Shadow DOM directly in HTML.
+
+Instead of passing `shadowroot="open|closed"` as you would with Declarative
+Shadow DOM we have a `@shadowRoot` argument to which you would pass the actual
+Shadow DOM element (which itself either open or closed). You can get a reference
+to this by using the `{{attach-shadow}}` modifier.
+
+Additionally a `@styles` argument is made available for you to optionally
+pass completely isolated, scoped, constructable stylesheets to be used for the
+Shadow DOM tree (you can also continue to use `<style>` within the template
+itself also if necessary).
+
+For the moment we'd generally use a standard div element and add Shadow DOM to
+it, but as shown in the second example, you could also use it to make
+Glimmerized native custom-elements using Declarative ShadowDOM and
+Constructable Stylesheets.
+
+**Important:** As ShadowDOM elements are completely isolated please take care
+to use the features available (slots/parts etc) to make sure components built in
+this way can make use of a11y functionality, i.e. any elements having necessary
+`id` relationships for a11y reasons should be slotted to ensure that the all
+`id`s remain in the LightDOM. Native form controls such as inputs etc should
+also be slotted in order to keep them in the LightDOM to ensure that native
+form functionality continues to work.
+
+Beside several advantages of isolated DOM/CSS ShadowDOM slots can also be used
+within conditionals, something which is currently not possible with
+Glimmer/Ember slots. Mixing Glimmer/Handlebars conditionals with native
+ShadowDOM slots will give you this additional feature (see truthy conditional in
+the example below).
+
+```hbs preview-template
+<div
+  class={{class-map
+    "component-name"
+  }}
+  ...attributes
+  {{attach-shadow (set this 'shadow')}}
+>
+  <ShadowTemplate
+    @shadowRoot={{this.shadow}}
+    @styles={{css '
+      :host {
+        background-color: rgb(var(--tone-strawberry-500) / 20%);
+        padding: 1rem; /* 16px */
+      }
+      header {
+        color: purple;
+      }
+      p {
+        color: green;
+      }
+
+      ::slotted(header) {
+        color: blue;
+      }
+      ::slotted(p) {
+        color: red;
+      }
+      header {
+        display: flex;
+        align-items: center;
+      }
+      header::before {
+        margin-right: 0.375rem; /* 6px */
+      }
+    '}}
+  >
+    <header part="header">
+      <slot name="header">
+        <h1>Default Header</h1>
+      </slot>
+    </header>
+    <!-- Wrap the slot in a conditional -->
+    {{#if true}}
+      <slot name="body">
+        <p>Default Body</p>
+      </slot>
+    {{/if}}
+    <slot>
+      <!-- The default slot -->
+    </slot>
+  </ShadowTemplate>
+</div>
+```
+
+```css
+.component-name::part(header)::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+  width: 2rem; /* 32px */
+  height: 2rem; /* 32px */
+}
+```
+
+Example with a custom element. **Please note:** These must still be instantiated
+using Glimmer syntax i.e. `<ComponentName />` not `<component-name />` but a
+`<component-name />` element will be rendered to the DOM instead of a `<div>`.
+
+```hbs preview-template
+<component-name
+  ...attributes
+  {{attach-shadow (set this 'shadow')}}
+>
+  <ShadowTemplate
+    @shadowRoot={{this.shadow}}
+    @styles={{css '
+      header {
+        color: purple;
+      }
+      p {
+        color: green;
+      }
+
+      ::slotted(header) {
+        color: blue;
+      }
+      ::slotted(p) {
+        color: red;
+      }
+      header {
+        display: flex;
+        align-items: center;
+      }
+      header::before {
+        margin-right: 0.375rem; /* 6px */
+      }
+    '}}
+  >
+    <header part="header">
+      <slot name="header">
+        <h1>Default Header</h1>
+      </slot>
+    </header>
+    {{#if true}}
+      <slot name="body">
+        <p>Default Body</p>
+      </slot>
+    {{/if}}
+    <slot>
+      <!-- The default slot -->
+    </slot>
+  </ShadowTemplate>
+</component-name>
+```
+
+```css
+component-name::part(header)::before {
+  @extend %with-logo-consul-color-icon, %as-pseudo;
+  width: 2rem; /* 32px */
+  height: 2rem; /* 32px */
+}
+```
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `shadowRoot` | `ShadowRoot` |  | A reference to a shadow root (probably retrived using the `{{attach-shadow}}` modifier |
+| `styles` | `CSSResultGroup` | | Styles to be adopted by the ShadowRoot |

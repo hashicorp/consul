@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package external
 
 import (
@@ -17,17 +14,16 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/consul/agent/consul/rate"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil"
 	"github.com/hashicorp/consul/agent/grpc-middleware/testutil/testservice"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 )
 
 func TestServer_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
-	srv := NewServer(hclog.Default(), metricsObj, nil, rate.NullRequestLimitsHandler())
+	srv := NewServer(hclog.Default(), metricsObj, nil)
 
 	testservice.RegisterSimpleServer(srv, &testservice.Simple{})
 

@@ -1,14 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package create
 
 import (
 	"crypto/x509"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/command/flags"
@@ -153,12 +150,12 @@ func (c *cmd) Run(args []string) int {
 
 	caFile := strings.Replace(c.ca, "#DOMAIN#", c.domain, 1)
 	keyFile := strings.Replace(c.key, "#DOMAIN#", c.domain, 1)
-	cert, err := os.ReadFile(caFile)
+	cert, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA: %s", err))
 		return 1
 	}
-	key, err := os.ReadFile(keyFile)
+	key, err := ioutil.ReadFile(keyFile)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error reading CA key: %s", err))
 		return 1

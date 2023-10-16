@@ -1,20 +1,18 @@
 ---
 layout: commands
 page_title: 'Commands: ACL Role Delete'
-description: |
-  The `consul acl role delete` command deletes the ACL role of the specified ID or name.
 ---
 
 # Consul ACL Role Delete
 
 Command: `consul acl role delete`
 
-Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/role/:id](/consul/api-docs/acl/roles#delete-a-role)
+Corresponding HTTP API Endpoint: [\[DELETE\] /v1/acl/role/:id](/api-docs/acl/roles#delete-a-role)
 
 The `acl role delete` command deletes a role. Roles may be deleted by their ID or by name.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication). Configuration of
-[blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching)
+The table below shows this command's [required ACLs](/api-docs/api-structure#authentication). Configuration of
+[blocking queries](/api-docs/features/blocking) and [agent caching](/api-docs/features/caching)
 are not supported from commands, but may be from the corresponding HTTP endpoint.
 
 | ACL Required |

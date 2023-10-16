@@ -41,8 +41,8 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
           Name: Policy 2
     ---
     Then the url should be /datacenter/acls/[Model]s
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
   Where:
     -------------
     | Model     |

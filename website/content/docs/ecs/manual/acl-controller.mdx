@@ -1,0 +1,190 @@
+---
+layout: docs
+page_title: ACL Controller Manual Installation - Consul on AWS Elastic Container Service (ECS)
+description: >-
+  An ACL Controller is required to configure the AWS IAM auth method on Amazon Web Services ECS. Learn how to manually install ACL controllers by defining a task and a service and then configuring role policies.
+---
+
+# Manual Installation of ACL Controller for Consul on AWS Elastic Container Service (ECS)
+
+This topic describes how to manually deploy the ACL controller, which will automatically configure the [AWS IAM Auth Method](/docs/security/acl/auth-methods/aws-iam). If you are using Terraform, refer to the [Terraform Secure Configuration](/docs/ecs/terraform/secure-configuration) page to deploy the ACL controller.
+
+## Prerequisites
+
+* Your application tasks must include certain tags to be compatible with the ACL controller.
+Refer to the [Task Tags](/docs/ecs/manual/install#task-tags) section of the installation page.
+* You should be familiar with configuring Consul's secure features, including how to create ACL tokens and policies. Refer to the [Consul Security tutorials](https://learn.hashicorp.com/collections/consul/security) for an introduction and the [ACL system](/docs/security/acl) documentation for more information.
+* If you are using Consul with multiple ECS clusters, each cluster requires its own instance of the ACL controller.
+
+## Set Up Secrets
+
+Before deploying the ACL controller for the first time, you must [store the following secrets](https://docs.aws.amazon.com/secretsmanager/latest/userguide/manage_create-basic-secret.html) from Consul in AWS Secrets Manager.
+
+| Secret                | Sample Secret Name           | Description                                                                                                                                                               |
+| --------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Consul server CA cert | `my-consul-ca-cert`          | The Consul server CA Cert for the HTTPS interface. This is required if the Consul server uses a self-signed or internal CA. It is not required for Consul servers in HCP. |
+| Bootstrap ACL Token   | `my-consul-bootstrap-token`  | A Consul ACL token with `acl:write` and `operator:write` permissions.                                                                                                     |
+
+## Task Definition
+
+You must create a task definition to deploy the ACL controller in your ECS cluster.
+The ACL controller must run in the same ECS cluster that hosts your service mesh application
+tasks.
+
+The following example shows how the task definition should be configured for the ACL controller.
+
+```json
+{
+  "family": "my-consul-acl-controller",
+  "networkMode": "awsvpc",
+  "containerDefinitions": [
+    {
+      "name": "acl-controller",
+      "image": "public.ecr.aws/hashicorp/consul-ecs:<CONSUL_ECS_VERSION>",
+      "essential": true,
+      "command": ["acl-controller", "-iam-role-path", "/consul-ecs/"],
+      "secrets": [
+        {
+          "name": "CONSUL_HTTP_TOKEN",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-bootstrap-token"
+        },
+        {
+          "name": "CONSUL_CACERT_PEM",
+          "valueFrom": "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-ca-cert"
+        }
+      ],
+      "environment": [
+        {
+          "name": "CONSUL_HTTP_ADDR",
+          "value": "<Consul server HTTP API address>"
+        }
+      ]
+    }
+  ]
+}
+```
+
+You must include the following top-level fields.
+
+| Field name    | Type    | Description                                                                  |
+| -----------   | ------- | ---------------------------------------------------------------------------- |
+| `family`      | string  | The task family name of your choice.                                         |
+| `networkMode` | string  | Must be `awsvpc`, which is the only network mode supported by Consul on ECS. |
+
+In the `containerDefinitions` list, include one container with the following fields.
+
+| Field name    | Type    | Description                                                                                                                                                                                                                |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------                        |
+| `name`        | string  | The container name, which should be `acl-controller`                                                                                                                                                                       |
+| `image`       | string  | The `consul-ecs` image. Use our public AWS registry, `public.ecr.aws/hashicorp/consul-ecs`, to avoid rate limits.                                                                                                          |
+| `command`     | list    | Should be set as shown. The startup command for the ACL controller.                                                                                                                                                        |
+| `essential`   | boolean | Must be `true` to ensure the health of your application container affects the health status of the task.                                                                                                                   |
+| `secrets`     | list    | Should be set as shown. Configures the secrets the ECS service will retrieve and set as environment variables in the `acl-controller` container.                                                                           |
+| `environment` | string  | Must be set as shown. Configures environment variables that the ECS service will set in the `acl-controller` container. Must set the `CONSUL_HTTP_ADDR` environment variable to the HTTP(S) address of the Consul servers. |
+
+The following CLI options are available in the `command` field of the container definition.
+
+| Flag               | Type    | Description                                                                                   |
+| ------------------ | ------- | --------------------------------------------------------------------------------------------- |
+| `-iam-role-path`   | string  | Specifies the path to IAM roles trusted by the AWS IAM auth method created by the controller. |
+| `-log-level`       | string  | The log level for the ACL controller. Can be set to `DEBUG` for additional detail.            |
+
+The following describes the entries to include in the `secrets` list.
+
+| Name                | Description                                                                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CONSUL_HTTP_TOKEN` | Must be set to the secret containing the bootstrap ACL token.                                                                                  |
+| `CONSUL_CACERT_PEM` | If applicable, should be set to the secret containing the Consul server CA certificate. This must not be set when using Consul servers in HCP. |
+
+## ECS Service
+
+Once the task definition is created, define an ECS service in order to start an ACL controller task.
+
+The following example contains the recommended settings for the ACL controller. Refer to
+the [ECS service](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/service_definition_parameters.html) documentation
+to complete the remaining details for your use case.
+
+```json
+{
+   "cluster": "<Your ECS cluster ARN>"
+   "desiredCount": 1,
+   "launchType": "FARGATE",
+   "serviceName": "my-acl-controller",
+   "taskDefinition": "<task definition ARN>",
+   ...
+}
+```
+
+| Field name       | Type    | Description                                                                                                      |
+| ---------------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| `cluster`        | string  | Set to your ECS cluster name or ARN. This must be the same ECS cluster where your service mesh applications run. |
+| `desiredCount`   | integer | Must be `1`. Only one instance of the ACL controller should run per ECS cluster.                                   |
+| `launchType`     | string  | Consul on ECS supports both the `FARGATE` and `EC2` launch types.                                                |
+| `serviceName`    | string  | The service name of your choice.                                                                                 |
+| `taskDefinition` | string  | Must be set to the ACL controller [task definition](/docs/ecs/manual/acl-controller#task-definition).            |
+
+## AWS IAM Roles
+
+The ECS task and execution roles must be configured to allow the ACL controller access
+to the ECS API and Secrets Manager API.
+
+### Task Role Policy
+
+The following example shows the policy needed for the ECS task role for the ACL controller.
+This grants the ACL controller permission to list tasks, describe tasks, and read and update
+secrets.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecs:ListTasks",
+        "ecs:DescribeTasks"
+      ],
+      "Resource": ["*"]
+    }
+  ]
+}
+```
+
+The following are the required permissions.
+
+| Action                | Resource  | Description                                                  |
+| --------------------- | --------- | ------------------------------------------------------------ |
+| `ecs:ListTasks`       | `*`       | Allow the ACL controller to watch for new tasks.             |
+| `ecs:DescribeTasks`   | `*`       | Allow the ACL controller to retrieve details for new tasks.  |
+
+### Execution Role Policy
+
+The following IAM policy document allows ECS to retrieve secrets needed
+to start the ACL controller task from AWS Secrets Manager, including the ACL
+bootstrap token.
+
+The following example shows the policy needed for the execution role.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-bootstrap-token",
+        "arn:aws:secretsmanager:us-west-2:000000000000:secret:my-consul-ca-cert"
+      ]
+    }
+  ]
+}
+```
+
+The following are the required permissions.
+
+| Action                          | Resource                                                      | Description                                                            |
+| ------------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `secretsmanager:GetSecretValue` | `arn:aws:secretsmanager:us-west-2:000000000000:secret:<NAME>` | Allow ECS to retrieve this secret and inject the secret into the task. |

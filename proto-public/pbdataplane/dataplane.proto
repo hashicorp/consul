@@ -1,15 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Package dataplane provides a service on Consul servers for the Consul Dataplane
 
 syntax = "proto3";
 
 package hashicorp.consul.dataplane;
 
-import "annotations/ratelimit/ratelimit.proto";
 import "google/protobuf/struct.proto";
-import "pbmesh/v2beta1/proxy_configuration.proto";
 
 message GetSupportedDataplaneFeaturesRequest {}
 
@@ -18,7 +13,6 @@ enum DataplaneFeatures {
   DATAPLANE_FEATURES_WATCH_SERVERS = 1;
   DATAPLANE_FEATURES_EDGE_CERTIFICATE_MANAGEMENT = 2;
   DATAPLANE_FEATURES_ENVOY_BOOTSTRAP_CONFIGURATION = 3;
-  DATAPLANE_FEATURES_FIPS = 4;
 }
 
 message DataplaneFeatureSupport {
@@ -36,8 +30,7 @@ message GetEnvoyBootstrapParamsRequest {
     string node_name = 2;
   }
   // The proxy service ID
-  string service_id = 3 [deprecated = true];
-  string proxy_id = 6;
+  string service_id = 3;
   string partition = 4;
   string namespace = 5;
 }
@@ -71,53 +64,25 @@ enum ServiceKind {
   // ServiceKind Ingress Gateway is an Ingress Gateway for the Connect feature.
   // This service will ingress connections into the service mesh.
   SERVICE_KIND_INGRESS_GATEWAY = 5;
-
-  // ServiceKind API Gateway is an API Gateway for the Connect feature.
-  // This service will ingress connections in to the service mesh.
-  SERVICE_KIND_API_GATEWAY = 6;
 }
 
 message GetEnvoyBootstrapParamsResponse {
-  reserved 1;
-
-  // deprecated: use identity instead.
-  // service is used to identify the service (as the local cluster name and
+  ServiceKind service_kind = 1;
+  // service is be used to identify the service (as the local cluster name and
   // in metric tags). If the service is a connect proxy it will be the name of
   // the proxy's destination service, for gateways it will be the gateway
   // service's name.
-  string service = 2 [deprecated = true];
-
-  // identity is used to identify this proxy (as the local cluster name and
-  // in metric tags). For v1, this should be the service name.
-  // If the service is a connect proxy it will be the name of
-  // the proxy's destination service, for gateways it will be the gateway
-  // service's name.
-  // For v2, this should be the workload identity name.
-  string identity = 10;
+  string service = 2;
   string namespace = 3;
   string partition = 4;
   string datacenter = 5;
   google.protobuf.Struct config = 6;
-  hashicorp.consul.mesh.v2beta1.BootstrapConfig bootstrap_config = 11;
-
-  reserved 7;
-
+  string node_id = 7;
   string node_name = 8;
-  repeated string access_logs = 9;
 }
 
 service DataplaneService {
-  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
-      operation_category: OPERATION_CATEGORY_DATAPLANE
-    };
-  }
+  rpc GetSupportedDataplaneFeatures(GetSupportedDataplaneFeaturesRequest) returns (GetSupportedDataplaneFeaturesResponse) {}
 
-  rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {
-    option (hashicorp.consul.internal.ratelimit.spec) = {
-      operation_type: OPERATION_TYPE_READ,
-      operation_category: OPERATION_CATEGORY_DATAPLANE
-    };
-  }
+  rpc GetEnvoyBootstrapParams(GetEnvoyBootstrapParamsRequest) returns (GetEnvoyBootstrapParamsResponse) {}
 }

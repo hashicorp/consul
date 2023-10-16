@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package agent
 
@@ -54,17 +52,6 @@ func (d *DNSServer) parseLocality(labels []string, cfg *dnsConfig) (queryLocalit
 	}
 
 	return queryLocality{}, false
-}
-
-type querySameness struct{}
-
-// parseSamenessGroupLocality wraps parseLocality in CE
-func (d *DNSServer) parseSamenessGroupLocality(cfg *dnsConfig, labels []string, errfnc func() error) ([]queryLocality, error) {
-	locality, ok := d.parseLocality(labels, cfg)
-	if !ok {
-		return nil, errfnc()
-	}
-	return []queryLocality{locality}, nil
 }
 
 func serviceCanonicalDNSName(name, kind, datacenter, domain string, _ *acl.EnterpriseMeta) string {

@@ -37,20 +37,22 @@ Server agents are members of all segments. The datacenter includes the `<default
 Each client agent can only be a member of one segment at a time. Client agents are members of the `<default>` segment unless they are configured to join a different segment. 
 For a client agent to join the Consul datacenter, it must connect to another agent (client or server) within its configured segment.
 
-Read the [Network Segments documentation](/consul/docs/enterprise/network-segments/network-segments-overview) to learn more about network segments.
+
+
+Complete the [Network Segments](https://learn.hashicorp.com/tutorials/consul/network-partition-datacenters) tutorial to learn more about network segments.
 
 -> **Info:** Network segments enable you to operate a Consul datacenter without full
 mesh (LAN) connectivity between agents. To federate multiple Consul datacenters
 without full mesh (WAN) connectivity between all server agents in all datacenters,
-use [Network Areas (Enterprise)](/consul/docs/enterprise/federation).
+use [Network Areas (Enterprise)](/docs/enterprise/federation).
 
 ## Consul networking models
 
 Network segments are a subset of other Consul networking models. Understanding the broader models will help you segment your network. Refer to [Architecture Overview](/consul/docs/architecture) for additional information about the following concepts.
 
-### Clusters
+### Clusters 
 
-You can segment networks within a Consul _cluster_. A cluster is one or more Consul servers that form a Raft quorum and one or more Consul clients that are members of the same [datacenter](/consul/docs/agent/config/cli-flags#_datacenter). The cluster is sometimes called the _local cluster_.  Consul clients discover and make RPC requests to Consul servers in their local cluster through the gossip mechanism. Consul CE uses LAN gossip for intra-cluster communication between agents.
+You can segment networks within a Consul _cluster_. A cluster is one or more Consul servers that form a Raft quorum and one or more Consul clients that are members of the same [datacenter](/consul/docs/agent/config/cli-flags#_datacenter). The cluster is sometimes called the _local cluster_.  Consul clients discover and make RPC requests to Consul servers in their local cluster through the gossip mechanism. Consul OSS uses LAN gossip for intra-cluster communication between agents.
 
 ### LAN gossip pool
 

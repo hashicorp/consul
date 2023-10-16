@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package imp
 
 import (
@@ -11,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 
@@ -125,7 +123,7 @@ func (c *cmd) dataFromArgs(args []string) (string, error) {
 
 	switch data[0] {
 	case '@':
-		data, err := os.ReadFile(data[1:])
+		data, err := ioutil.ReadFile(data[1:])
 		if err != nil {
 			return "", fmt.Errorf("Failed to read file: %s", err)
 		}

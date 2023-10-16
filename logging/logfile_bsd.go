@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build darwin || freebsd || netbsd || openbsd
+// +build darwin freebsd netbsd openbsd
 
 package logging
 

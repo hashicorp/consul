@@ -15,7 +15,7 @@ The following components are required to run Consul-Terraform-Sync (CTS):
 
 You can add support for your network infrastructure through Terraform providers so that you can apply Terraform modules to implement network integrations.
 
-The following guidance is for running CTS using the Terraform driver. The Terraform Cloud driver<EnterpriseAlert inline /> has [additional prerequisites](/consul/docs/nia/network-drivers/terraform-cloud#setting-up-terraform-cloud-driver).
+The following guidance is for running CTS using the Terraform driver. The Terraform Cloud driver<EnterpriseAlert inline /> has [additional prerequisites](/docs/nia/network-drivers/terraform-cloud#setting-up-terraform-cloud-driver).
 
 ## Run a Consul cluster
 
@@ -25,25 +25,25 @@ Below are several steps towards a minimum Consul setup required for running CTS.
 
 CTS is a daemon that runs alongside Consul, similar to other Consul ecosystem tools like Consul Template. CTS is not included with the Consul binary and needs to be installed separately.
 
-To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](/consul/tutorials/get-started-vms?utm_source=docs).
+To install a local Consul agent, refer to the [Getting Started: Install Consul Tutorial](https://learn.hashicorp.com/collections/consul/get-started-vms?utm_source=docs).
 
-For information on compatible Consul versions, refer to the [Consul compatibility matrix](/consul/docs/nia/compatibility#consul).
+For information on compatible Consul versions, refer to the [Consul compatibility matrix](/docs/nia/compatibility#consul).
 
 ### Run an agent
 
-The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/consul/docs/agent) for information about configuring and starting a Consul agent.
+The Consul agent must be running in order to dynamically update network devices. Refer to the [Consul agent documentation](/docs/agent) for information about configuring and starting a Consul agent. For hands-on instructions about running Consul agents, refer to the [Getting Started: Run the Consul Agent Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-agent?in=consul/getting-started).
 
-When running a Consul agent with CTS in production, consider that CTS uses [blocking queries](/consul/api-docs/features/blocking) to monitor task dependencies, such as changes to registered services. This  results in multiple long-running TCP connections between CTS and the agent to poll changes for each dependency. Consul may quickly reach the agent connection limits if CTS is monitoring a high number of services.
+When running a Consul agent with CTS in production, consider that CTS uses [blocking queries](/api-docs/features/blocking) to monitor task dependencies, such as changes to registered services. This  results in multiple long-running TCP connections between CTS and the agent to poll changes for each dependency. Consul may quickly reach the agent connection limits if CTS is monitoring a high number of services.
 
-To avoid reaching the limit prematurely, we recommend using HTTP/2 (requires HTTPS) to communicate between CTS and the Consul agent. When using HTTP/2, CTS establishes a single connection and reuses it for all communication. Refer to the [Consul Configuration section](/consul/docs/nia/configuration#consul) for details.
+To avoid reaching the limit prematurely, we recommend using HTTP/2 (requires HTTPS) to communicate between CTS and the Consul agent. When using HTTP/2, CTS establishes a single connection and reuses it for all communication. Refer to the [Consul Configuration section](/docs/nia/configuration#consul) for details. 
 
-Alternatively, you can configure the [`limits.http_max_conns_per_client`](/consul/docs/agent/config/config-files#http_max_conns_per_client) option to set a maximum number of connections to meet your needs.
+Alternatively, you can configure the [`limits.http_max_conns_per_client`](/docs/agent/config/config-files#http_max_conns_per_client) option to set a maximimum number of connections to meet your needs. 
 
 ### Register services
 
 CTS monitors the Consul catalog for service changes that lead to downstream changes to your network devices. Without services, your CTS daemon is operational but idle. You can register services with your Consul agent by either loading a service definition or by sending an HTTP API request.
 
-The following HTTP API request example registers a service named `web` with your Consul agent:
+The following HTTP API request example registers a service named `web` with your Consul agent: 
 
 ```shell-session
 $ echo '{
@@ -56,21 +56,21 @@ $ echo '{
 $ curl --request PUT --data @payload.json http://localhost:8500/v1/agent/service/register
 ```
 
-The example represents a non-existent web service running at `10.10.10.10:8000` that is now available for CTS to consume.
+The example represents a non-existent web service running at `10.10.10.10:8000` that is now available for CTS to consume. 
 
-You can configure CTS to monitor the web service, execute a task, and update network device(s) by configuring `web` in the [`condition "services"`](/consul/docs/nia/configuration#services-condition) task block. If the web service has any non-default values, it can also be configured in `condition "services"`.
+You can configure CTS to monitor the web service, execute a task, and update network device(s) by configuring `web` in the [`condition "services"`](/docs/nia/configuration#services-condition) task block. If the web service has any non-default values, it can also be configured in `condition "services"`.
 
-For more details on registering a service using the HTTP API endpoint, refer to the [register service API docs](/consul/api-docs/agent/service#register-service).
+For more details on registering a service using the HTTP API endpoint, refer to the [register service API docs](/api-docs/agent/service#register-service).
 
-For hands-on instructions on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-service-discovery).
+For hands-on instructions on registering a service by loading a service definition, refer to the [Getting Started: Register a Service with Consul Service Discovery Tutorial](https://learn.hashicorp.com/tutorials/consul/get-started-service-discovery?in=consul/getting-started).
 
 ### Run a cluster
 
-For production environments, we recommend operating a Consul cluster rather than a single agent. Refer to [Getting Started: Deploy a Consul Datacenter Tutorial](/consul/tutorials/get-started-vms/virtual-machine-gs-deploy) for instructions on starting multiple Consul agents and joining them into a cluster.
+For production environments, we recommend operating a Consul cluster rather than a single agent. Refer to [Getting Started: Create a Local Consul Datacenter](https://learn.hashicorp.com/tutorials/consul/get-started-create-datacenter?in=consul/getting-started) for instructions on starting multiple Consul agents and joining them into a cluster.
 
 ## Network infrastructure using a Terraform provider
 
-CTS integrations for the Terraform driver use Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver for CTS inherits the expansive collection of Terraform providers to integrate with. You can also specify a provider `source` in the [`required_providers` configuration](/terraform/language/providers/requirements#requiring-providers) to use providers written by the community (requires Terraform 0.13 or later).
+CTS integrations for the Terraform driver use Terraform providers as plugins to interface with specific network infrastructure platforms. The Terraform driver for CTS inherits the expansive collection of Terraform providers to integrate with. You can also specify a provider `source` in the [`required_providers` configuration](https://www.terraform.io/language/providers/requirements#requiring-providers) to use providers written by the community (requires Terraform 0.13 or later).
 
 ### Finding Terraform providers
 
@@ -80,16 +80,16 @@ To find providers for the infrastructure platforms you use, browse the providers
 
 If a Terraform provider does not exist for your environment, you can create a new Terraform provider and publish it to the registry so that you can use it within a network integration task or create a compatible Terraform module. Refer to the following Terraform tutorial and documentation for additional information on creating and publishing providers:
 
-- [Setup and Implement Read](/terraform/tutorials/providers/provider-setup)
-- [Publishing Providers](/terraform/registry/providers/publishing).
+- [Setup and Implement Read](https://learn.hashicorp.com/tutorials/terraform/provider-setup) 
+- [Publishing Providers](https://www.terraform.io/registry/providers/publishing). 
 
 ## Network integration using a Terraform module
 
 The Terraform module for a task in CTS is the core component of the integration. It declares which resources to use and how your infrastructure is dynamically updated. The module, along with how it is configured within a task, determines the conditions under which your infrastructure is updated.
 
-Working with a Terraform provider, you can write an integration task for CTS by [creating a Terraform module](/consul/docs/nia/terraform-modules) that is compatible with the Terraform driver. You can also use a [module built by partners](#partner-terraform-modules).
+Working with a Terraform provider, you can write an integration task for CTS by [creating a Terraform module](/docs/nia/terraform-modules) that is compatible with the Terraform driver. You can also use a [module built by partners](#partner-terraform-modules).
 
-Refer to [Configuration](/consul/docs/nia/configuration) for information about configuring CTS and how to use Terraform providers and modules for tasks.
+Refer to [Configuration](/docs/nia/configuration) for information about configuring CTS and how to use Terraform providers and modules for tasks.
 
 ### Partner Terraform Modules
 

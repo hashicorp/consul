@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { module, test } from 'qunit';
 import { visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
@@ -15,7 +10,7 @@ const TOKEN_SET_BY_HCP = 'token-set-by-hcp';
 module('Acceptance | hcp login', function (hooks) {
   setupApplicationTest(hooks);
 
-  module('with `CONSUL_HTTP_TOKEN` not set', function (hooks) {
+  module('with `CONSUL_HTTP_TOKEN` not set', function () {
     hooks.beforeEach(function () {
       setupTestEnv(this.owner, {
         CONSUL_ACLS_ENABLED: true,

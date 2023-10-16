@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package config
 
@@ -98,9 +96,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		}`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.json",
@@ -122,9 +120,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.hcl",
@@ -148,9 +146,9 @@ func TestLoad_ReportingConfig(t *testing.T) {
 		}`
 
 		opts := LoadOpts{
-			FlagValues: FlagValuesTarget{Config: Config{
+			FlagValues: Config{
 				DataDir: &dir,
-			}},
+			},
 			Overrides: []Source{
 				FileSource{
 					Name:   "reporting.hcl",

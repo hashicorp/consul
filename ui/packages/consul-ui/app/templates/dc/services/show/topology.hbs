@@ -1,8 +1,3 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
 <Route
   @name={{routeName}}
 as |route|>
@@ -64,61 +59,51 @@ as |nspace dc items topology|}}
                 <disclosure.Details
                   @auto={{false}}
                 as |details|>
-                  <Hds::Alert id={{details.id}}
-                              @type='inline'
-                              @color={{if (includes prop (array 'filtered-by-acls' 'no-dependencies'))
-                                          'neutral'
-                                          'warning'}}
-                              class='mb-3 mt-2 topology-metrics-notice'
-                              data-test-notice={{prop}}
-                              as |A|>
-                    <A.Title>
-                      {{compute (fn route.t 'notice.${prop}.header'
-                                  (hash
-                                    prop=prop
-                                  ))
-                      }}
-                    </A.Title>
+                  <Notice
+                    class="topology-metrics-notice"
+                    id={{details.id}}
+                    data-test-notice={{prop}}
+                    @type={{if (includes prop (array 'filtered-by-acls' 'no-dependencies'))
+                      'info'
+                      'warning'
+                    }}
+                  as |notice|>
+                    <notice.Header>
+                      <h3>
+                        {{compute (fn route.t 'notice.${prop}.header'
+                          (hash
+                            prop=prop
+                          )
+                        )}}
+                      </h3>
+                    </notice.Header>
                     {{#if disclosure.expanded}}
-                      <A.Description>
-                        {{compute (fn route.t 'notice.${prop}.body'
-                                    (hash
-                                      prop=prop
-                                    ))
-                        }}
-                      </A.Description>
+                      <notice.Body>
+                        <p>
+                          {{compute (fn route.t 'notice.${prop}.body'
+                            (hash
+                              prop=prop
+                            )
+                          )}}
+                        </p>
+                      </notice.Body>
                     {{/if}}
-                    {{#if (and disclosure.expanded (not-eq prop 'filtered-by-acls'))}}
-                      {{#if (includes prop (array 'wildcard-intention' 'default-allow' 'no-intentions'))}}
-                        <A.Button
-                          @color='secondary'
-                          @size='small'
-                          @route='dc.services.show.intentions'
-                          @text={{compute (fn route.t 'notice.${prop}.footer.link-text'
-                                            (hash
-                                              prop=prop
-                                            ))}}
-                          @icon={{compute (fn route.t 'notice.${prop}.footer.icon'
-                                            (hash
-                                              prop=prop
-                                            ))}}
-                        />
-                      {{else}}
-                        <A.Link::Standalone
-                          @text={{compute (fn route.t 'notice.${prop}.footer.link-text'
-                                            (hash
-                                              prop=prop
-                                            ))}}
-                          @href={{compute (fn route.t 'notice.${prop}.footer.link'
-                                            (hash
-                                              prop=prop
-                                            ))}}
-                          @icon='docs-link'
-                          @iconPosition='trailing'
-                        />
+                    {{#let
+                      (compute (fn route.t 'notice.${prop}.footer'
+                        (hash
+                          route_intentions=(href-to 'dc.services.show.intentions')
+                          prop=prop
+                          htmlSafe=true
+                        )
+                      ))
+                    as |footer|}}
+                      {{#if (and disclosure.expanded (not-eq prop 'filtered-by-acls'))}}
+                        <notice.Footer>
+                          {{footer}}
+                        </notice.Footer>
                       {{/if}}
-                    {{/if}}
-                  </Hds::Alert>
+                    {{/let}}
+                  </Notice>
                 </disclosure.Details>
               {{/if}}
             {{/each-in}}

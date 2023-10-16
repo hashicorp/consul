@@ -1,19 +1,14 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cachetype
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/cache"
-	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 )
 
 // Recommended name for registration.
-const ConnectCARootName = cacheshim.ConnectCARootName
+const ConnectCARootName = "connect-ca-root"
 
 // ConnectCARoot supports fetching the Connect CA roots. This is a
 // straightforward cache type since it only has to block on the given
@@ -43,7 +38,7 @@ func (c *ConnectCARoot) Fetch(opts cache.FetchOptions, req cache.Request) (cache
 
 	// Fetch
 	var reply structs.IndexedCARoots
-	if err := c.RPC.RPC(context.Background(), "ConnectCA.Roots", reqReal, &reply); err != nil {
+	if err := c.RPC.RPC("ConnectCA.Roots", reqReal, &reply); err != nil {
 		return result, err
 	}
 

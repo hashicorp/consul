@@ -1,3 +1,0 @@
-```release-note:bug
-gateways: Fix a bug where a service in a peered datacenter could not access an external node service through a terminating gateway
-```

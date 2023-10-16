@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import { inject as service } from '@ember/service';
 import Adapter from '@ember-data/adapter';
 import AdapterError, {

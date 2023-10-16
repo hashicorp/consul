@@ -1,3 +1,0 @@
-```release-note:bug
-api-gateway: fix race condition in proxy config generation when Consul is notified of the bound-api-gateway config entry before it is notified of the api-gateway config entry.
-```

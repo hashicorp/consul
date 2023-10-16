@@ -1,28 +1,38 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "circuitBreakers": {},
-      "commonLbConfig": {
-        "healthyPanicThreshold": {}
-      },
-      "connectTimeout": "5s",
+      "name": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "api-a.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "connectTimeout": "5s",
+      "circuitBreakers": {
+
+      },
       "outlierDetection": {
         "maxEjectionPercent": 100
+      },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {
+
+        }
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -33,45 +43,53 @@
                 }
               }
             ],
-            "tlsParams": {},
             "validationContext": {
+              "trustedCa": {
+                "inlineString": "-----BEGIN CERTIFICATE-----\nMIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV\nUzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v\nMRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B\nCQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0\nNFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh\nZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl\nci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B\nAQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV\nc2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR\n2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC\nAwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk\nyto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy\n0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH\nZAuKN1aoKA==\n-----END CERTIFICATE-----\n"
+              },
               "matchSubjectAltNames": [
                 {
                   "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/api-a"
                 }
-              ],
-              "trustedCa": {
-                "inlineString": "-----BEGIN CERTIFICATE-----\nMIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV\nUzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v\nMRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B\nCQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0\nNFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh\nZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl\nci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B\nAQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV\nc2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR\n2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC\nAwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk\nyto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy\n0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH\nZAuKN1aoKA==\n-----END CERTIFICATE-----\n"
-              }
+              ]
             }
           },
           "sni": "api-a.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
-      },
-      "type": "EDS"
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "circuitBreakers": {},
-      "commonLbConfig": {
-        "healthyPanicThreshold": {}
-      },
-      "connectTimeout": "5s",
+      "name": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "db.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "connectTimeout": "5s",
+      "circuitBreakers": {
+
+      },
       "outlierDetection": {
         "maxEjectionPercent": 100
+      },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {
+
+        }
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -82,25 +100,25 @@
                 }
               }
             ],
-            "tlsParams": {},
             "validationContext": {
+              "trustedCa": {
+                "inlineString": "-----BEGIN CERTIFICATE-----\nMIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV\nUzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v\nMRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B\nCQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0\nNFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh\nZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl\nci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B\nAQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV\nc2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR\n2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC\nAwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk\nyto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy\n0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH\nZAuKN1aoKA==\n-----END CERTIFICATE-----\n"
+              },
               "matchSubjectAltNames": [
                 {
                   "exact": "spiffe://1c053652-8512-4373-90cf-5a7f6263a994.consul/ns/default/dc/cloud-dc/svc/db"
                 }
-              ],
-              "trustedCa": {
-                "inlineString": "-----BEGIN CERTIFICATE-----\nMIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV\nUzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v\nMRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B\nCQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0\nNFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh\nZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl\nci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B\nAQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV\nc2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR\n2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC\nAwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk\nyto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy\n0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH\nZAuKN1aoKA==\n-----END CERTIFICATE-----\n"
-              }
+              ]
             }
           },
           "sni": "db.default.default.cloud.external.1c053652-8512-4373-90cf-5a7f6263a994.consul"
         }
-      },
-      "type": "EDS"
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "local_app",
+      "type": "STATIC",
       "connectTimeout": "5s",
       "loadAssignment": {
         "clusterName": "local_app",
@@ -120,32 +138,40 @@
             ]
           }
         ]
-      },
-      "name": "local_app",
-      "type": "STATIC"
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "circuitBreakers": {},
-      "commonLbConfig": {
-        "healthyPanicThreshold": {}
-      },
-      "connectTimeout": "5s",
+      "name": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "no-endpoints.default.peer-a.external.1c053652-8512-4373-90cf-5a7f6263a994.consul",
+      "connectTimeout": "5s",
+      "circuitBreakers": {
+
+      },
       "outlierDetection": {
         "maxEjectionPercent": 100
+      },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {
+
+        }
       },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -156,7 +182,6 @@
                 }
               }
             ],
-            "tlsParams": {},
             "validationContext": {
               "trustedCa": {
                 "inlineString": "-----BEGIN CERTIFICATE-----\nMIICczCCAdwCCQC3BLnEmLCrSjANBgkqhkiG9w0BAQsFADB+MQswCQYDVQQGEwJV\nUzELMAkGA1UECAwCQVoxEjAQBgNVBAcMCUZsYWdzdGFmZjEMMAoGA1UECgwDRm9v\nMRAwDgYDVQQLDAdleGFtcGxlMQ8wDQYDVQQDDAZwZWVyLWExHTAbBgkqhkiG9w0B\nCQEWDmZvb0BwZWVyLWEuY29tMB4XDTIyMDUyNjAxMDQ0NFoXDTIzMDUyNjAxMDQ0\nNFowfjELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkFaMRIwEAYDVQQHDAlGbGFnc3Rh\nZmYxDDAKBgNVBAoMA0ZvbzEQMA4GA1UECwwHZXhhbXBsZTEPMA0GA1UEAwwGcGVl\nci1hMR0wGwYJKoZIhvcNAQkBFg5mb29AcGVlci1hLmNvbTCBnzANBgkqhkiG9w0B\nAQEFAAOBjQAwgYkCgYEA2zFYGTbXDAntT5pLTpZ2+VTiqx4J63VRJH1kdu11f0FV\nc2jl1pqCuYDbQXknDU0Pv1Q5y0+nSAihD2KqGS571r+vHQiPtKYPYRqPEe9FzAhR\n2KhWH6v/tk5DG1HqOjV9/zWRKB12gdFNZZqnw/e7NjLNq3wZ2UAwxXip5uJ8uwMC\nAwEAATANBgkqhkiG9w0BAQsFAAOBgQC/CJ9Syf4aL91wZizKTejwouRYoWv4gRAk\nyto45ZcNMHfJ0G2z+XAMl9ZbQsLgXmzAx4IM6y5Jckq8pKC4PEijCjlKTktLHlEy\n0ggmFxtNB1tid2NC8dOzcQ3l45+gDjDqdILhAvLDjlAIebdkqVqb2CfFNW/I2CQH\nZAuKN1aoKA==\n-----END CERTIFICATE-----\n"
@@ -164,17 +189,16 @@
             }
           }
         }
-      },
-      "type": "EDS"
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "connectTimeout": "5s",
-      "lbPolicy": "CLUSTER_PROVIDED",
       "name": "original-destination",
-      "type": "ORIGINAL_DST"
+      "type": "ORIGINAL_DST",
+      "connectTimeout": "5s",
+      "lbPolicy": "CLUSTER_PROVIDED"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

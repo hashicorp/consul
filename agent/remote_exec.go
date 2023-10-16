@@ -1,12 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	osexec "os/exec"
 	"path"
@@ -148,7 +145,7 @@ func (a *Agent) handleRemoteExec(msg *UserEvent) {
 	// Check if this is a script, we may need to spill to disk
 	var script string
 	if len(spec.Script) != 0 {
-		tmpFile, err := os.CreateTemp("", "rexec")
+		tmpFile, err := ioutil.TempFile("", "rexec")
 		if err != nil {
 			a.logger.Debug("failed to make tmp file", "error", err)
 			exitCode = 255
@@ -256,7 +253,7 @@ func (a *Agent) remoteExecGetSpec(event *remoteExecEvent, spec *remoteExecSpec) 
 	get.Token = a.tokens.AgentToken()
 	var out structs.IndexedDirEntries
 QUERY:
-	if err := a.RPC(context.Background(), "KVS.Get", &get, &out); err != nil {
+	if err := a.RPC("KVS.Get", &get, &out); err != nil {
 		a.logger.Error("failed to get remote exec job", "error", err)
 		return false
 	}
@@ -322,7 +319,7 @@ func (a *Agent) remoteExecWriteKey(event *remoteExecEvent, suffix string, val []
 	}
 	write.Token = a.tokens.AgentToken()
 	var success bool
-	if err := a.RPC(context.Background(), "KVS.Apply", &write, &success); err != nil {
+	if err := a.RPC("KVS.Apply", &write, &success); err != nil {
 		return err
 	}
 	if !success {

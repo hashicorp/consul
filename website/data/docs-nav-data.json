@@ -50,15 +50,15 @@
       },
       {
         "title": "Learn HCP Consul",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
+        "href": "https://learn.hashicorp.com/tutorials/cloud/get-started-consul"
       },
       {
         "title": "Learn Consul on Kubernetes",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes"
+        "href": "https://learn.hashicorp.com/tutorials/consul/service-mesh-deploy"
       },
       {
         "title": "Learn Consul on VMs",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-vms"
+        "href": "https://learn.hashicorp.com/collections/consul/get-started-vms"
       },
       {
         "title": "Manual Bootstrap",
@@ -146,18 +146,6 @@
         "title": "Consul",
         "routes": [
           {
-            "title": "v1.17.x",
-            "path": "release-notes/consul/v1_17_x"
-          },
-          {
-            "title": "v1.16.x",
-            "path": "release-notes/consul/v1_16_x"
-          },
-          {
-            "title": "v1.15.x",
-            "path": "release-notes/consul/v1_15_x"
-          },
-          {
             "title": "v1.14.x",
             "path": "release-notes/consul/v1_14_x"
           },
@@ -187,14 +175,6 @@
         "title": "Consul K8s",
         "routes": [
           {
-            "title": "v1.2.x",
-            "path": "release-notes/consul-k8s/v1_2_x"
-          },
-          {
-            "title": "v1.1.x",
-            "path": "release-notes/consul-k8s/v1_1_x"
-          },
-          {
             "title": "v1.0.x",
             "path": "release-notes/consul-k8s/v1_0_x"
           },
@@ -213,12 +193,8 @@
         ]
       },
       {
-        "title": "API Gateway for Kubernetes",
+        "title": "Consul API Gateway",
         "routes": [
-          {
-            "title": "v0.5.x",
-            "path": "release-notes/consul-api-gateway/v0_5_x"
-          },
           {
             "title": "v0.4.x",
             "path": "release-notes/consul-api-gateway/v0_4_x"
@@ -406,206 +382,103 @@
         "path": "connect/configuration"
       },
       {
-        "title": "Configuration entries",
+        "title": "Configuration Entries",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/config-entries"
           },
           {
-            "title": "API gateway",
-            "path": "connect/config-entries/api-gateway"
-          },
-          {
-            "title": "HTTP route",
-            "path": "connect/config-entries/http-route"
-          },
-          {
-            "title": "TCP route",
-            "path": "connect/config-entries/tcp-route"
-          },
-          {
-            "title": "Inline certificate",
-            "path": "connect/config-entries/inline-certificate"
-          },
-          {
-            "title": "Ingress gateway",
+            "title": "Ingress Gateway",
             "path": "connect/config-entries/ingress-gateway"
-          },
-          {
-            "title": "JWT Provider",
-            "path": "connect/config-entries/jwt-provider"
           },
           {
             "title": "Mesh",
             "path": "connect/config-entries/mesh"
           },
           {
-            "title": "Exported services",
+            "title": "Exported Services",
             "path": "connect/config-entries/exported-services"
           },
           {
-            "title": "Proxy defaults",
+            "title": "Proxy Defaults",
             "path": "connect/config-entries/proxy-defaults"
-          },
-          {
-            "title": "Sameness Group",
-            "path": "connect/config-entries/sameness-group"
           },
           {
             "title": "Service Defaults",
             "path": "connect/config-entries/service-defaults"
           },
           {
-            "title": "Service intentions",
+            "title": "Service Intentions",
             "path": "connect/config-entries/service-intentions"
           },
           {
-            "title": "Service resolver",
+            "title": "Service Resolver",
             "path": "connect/config-entries/service-resolver"
           },
           {
-            "title": "Service router",
+            "title": "Service Router",
             "path": "connect/config-entries/service-router"
           },
           {
-            "title": "Service splitter",
+            "title": "Service Splitter",
             "path": "connect/config-entries/service-splitter"
           },
           {
-            "title": "Terminating gateway",
+            "title": "Terminating Gateway",
             "path": "connect/config-entries/terminating-gateway"
-          },
-          {
-            "title": "Control plane request limit",
-            "path": "connect/config-entries/control-plane-request-limit"
           }
         ]
       },
       {
-        "title": "Proxies",
+        "title": "Supported Proxies",
         "routes": [
           {
             "title": "Overview",
             "path": "connect/proxies"
           },
           {
-            "title": "Deploy service mesh proxies",
-            "path": "connect/proxies/deploy-service-mesh-proxies"
-          },
-          {
-            "title": "Deploy sidecar services",
-            "path": "connect/proxies/deploy-sidecar-services"
-          },
-          {
-            "title": "Envoy Extensions",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/proxies/envoy-extensions"
-              },
-              {
-                "title": "Usage",
-                "routes": [
-                  {
-                    "title": "Delegate authorization to Apigee",
-                    "path": "connect/proxies/envoy-extensions/usage/apigee-ext-authz"
-                  },
-                  {
-                    "title": "Delegate authorization to external services",
-                    "path": "connect/proxies/envoy-extensions/usage/ext-authz"
-                  },
-                  {
-                    "title": "Run Lua scripts in Envoy proxies",
-                    "path": "connect/proxies/envoy-extensions/usage/lua"
-                  },
-                  {
-                    "title": "Invoke Lambda functions in Envoy proxies",
-                    "path": "connect/proxies/envoy-extensions/usage/lambda"
-                  },
-                  {
-                    "title": "Send access logs to OpenTelemetry collector service",
-                    "path": "connect/proxies/envoy-extensions/usage/otel-access-logging"
-                  },
-                  {
-                    "title": "Configure Envoy proxy properties",
-                    "path": "connect/proxies/envoy-extensions/usage/property-override"
-                  },
-                  {
-                    "title": "Run WebAssembly plug-ins in Envoy proxies",
-                    "path": "connect/proxies/envoy-extensions/usage/wasm"
-                  }
-                ]
-              },
-              {
-                "title": "Configuration",
-                "routes": [
-                  {
-                    "title": "External authorization",
-                    "path": "connect/proxies/envoy-extensions/configuration/ext-authz"
-                  },
-                  {
-                    "title": "OpenTelemetry Access Logging",
-                    "path": "connect/proxies/envoy-extensions/configuration/otel-access-logging"
-                  },
-                  {
-                    "title": "Property override",
-                    "path": "connect/proxies/envoy-extensions/configuration/property-override"
-                  },
-                  {
-                    "title": "WebAssembly",
-                    "path": "connect/proxies/envoy-extensions/configuration/wasm"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "title": "Proxy integration",
-            "path": "connect/proxies/integrate"
-          },
-          {
-            "title": "Proxy defaults configuration reference",
-            "href": "/consul/docs/connect/config-entries/proxy-defaults"
-          },
-          {
-            "title": "Envoy proxies reference",
+            "title": "Envoy",
             "path": "connect/proxies/envoy"
           },
           {
-            "title": "Built-in proxy reference",
+            "title": "Built-in Proxy",
             "path": "connect/proxies/built-in"
           },
           {
-            "title": "Service mesh proxy configuration reference",
-            "path": "connect/proxies/proxy-config-reference"
+            "title": "Proxy Integration",
+            "path": "connect/proxies/integrate"
           }
         ]
       },
       {
-        "title": "Service intentions",
+        "title": "Registering Proxies",
         "routes": [
           {
             "title": "Overview",
-            "path": "connect/intentions"
+            "path": "connect/registration"
           },
           {
-            "title": "Create and manage service intentions",
-            "path": "connect/intentions/create-manage-intentions"
+            "title": "Proxy Service Registration",
+            "path": "connect/registration/service-registration"
           },
           {
-            "title": "JWT authorization for intentions",
-            "path": "connect/intentions/jwt-authorization"
-          },
-          {
-            "title": "Service intentions legacy mode",
-            "path": "connect/intentions/legacy"
-          },
-          {
-            "title": "Configuration",
-            "href": "/consul/docs/connect/config-entries/service-intentions"
+            "title": "Sidecar Service Registration",
+            "path": "connect/registration/sidecar-service"
           }
         ]
+      },
+      {
+        "title": "Service-to-service permissions - Intentions",
+        "path": "connect/intentions"
+      },
+      {
+        "title": "Service-to-service permissions - Intentions (Legacy Mode)",
+        "path": "connect/intentions-legacy"
+      },
+      {
+        "title": "Transparent Proxy",
+        "path": "connect/transparent-proxy"
       },
       {
         "title": "Observability",
@@ -615,67 +488,21 @@
             "path": "connect/observability"
           },
           {
-            "title": "Access Logs",
-            "path": "connect/observability/access-logs"
-          },
-          {
             "title": "UI Visualization",
             "path": "connect/observability/ui-visualization"
           }
         ]
       },
       {
-        "title": "Manage traffic",
+        "title": "L7 Traffic Management",
         "routes": [
           {
             "title": "Overview",
-            "path": "connect/manage-traffic"
+            "path": "connect/l7-traffic"
           },
           {
-            "title": "Route traffic to local upstreams",
-            "path": "connect/manage-traffic/route-to-local-upstreams"
-          },
-          {
-            "title": "Limit request rates to services",
-            "path": "connect/manage-traffic/limit-request-rates"
-          },
-          {
-            "title": "Failover",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/manage-traffic/failover"
-              },
-              {
-                "title": "Configure failover services for Kubernetes",
-                "href": "/docs/k8s/l7-traffic/failover-tproxy"
-              },
-              {
-                "title": "Automate geo-failover with prepared queries",
-                "href": "/tutorials/developer-discovery/automate-geo-failover"
-              },
-              {
-                "title": "Failover with sameness groups",
-                "path": "connect/manage-traffic/failover/sameness"
-              },
-              {
-                "title": "Configuration",
-                "routes": [
-                  {
-                    "title": "Service resolver",
-                    "href": "/consul/docs/connect/config-entries/service-resolver"
-                  },
-                  {
-                    "title": "Service intentions",
-                    "href": "/consul/docs/connect/config-entries/service-intentions"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "title": "Discovery chain reference",
-            "path": "connect/manage-traffic/discovery-chain"
+            "title": "Discovery Chain",
+            "path": "connect/l7-traffic/discovery-chain"
           }
         ]
       },
@@ -693,127 +520,6 @@
           {
             "title": "Overview",
             "path": "connect/gateways"
-          },
-          {
-            "title": "API Gateways",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/api-gateway"
-              },
-              {
-                "title": "Technical specifications for Kubernetes",
-                "path": "connect/gateways/api-gateway/tech-specs"
-              },
-              {
-                "title": "Install on Kubernetes",
-                "path": "connect/gateways/api-gateway/install-k8s"
-              },
-              {
-                "title": "Upgrade on Kubernetes",
-                "path": "connect/gateways/api-gateway/upgrades-k8s"
-              },
-              {
-                "title": "Deploy listeners",
-                "routes": [
-                  {
-                    "title": "Deploy listeners to VMs",
-                    "path": "connect/gateways/api-gateway/deploy/listeners-vms"
-                  },
-                  {
-                    "title": "Deploy listeners to Kubernetes",
-                    "path": "connect/gateways/api-gateway/deploy/listeners-k8s"
-                  }
-                ]
-              },
-              {
-                "title": "Define routes",
-                "routes": [
-                  {
-                    "title": "Define routes on VMs",
-                    "path": "connect/gateways/api-gateway/define-routes/routes-vms"
-                  },
-                  {
-                    "title": "Define routes on Kubernetes",
-                    "path": "connect/gateways/api-gateway/define-routes/routes-k8s"
-                  },
-                  {
-                    "title": "Reroute traffic in Kubernetes",
-                    "path": "connect/gateways/api-gateway/define-routes/reroute-http-requests"
-                  },
-                  {
-                    "title": "Route to peered services in Kubernetes",
-                    "path": "connect/gateways/api-gateway/define-routes/route-to-peered-services"
-                  }
-                ]
-              },
-              {
-                "title": "Secure traffic",
-                "routes": [
-                  {
-                    "title": "Encrypt traffic on virtual machines",
-                    "path": "connect/gateways/api-gateway/secure-traffic/encrypt-vms"
-                  },
-                  {
-                    "title": "Verify incoming requests with JWTs on virtual machines",
-                    "path": "connect/gateways/api-gateway/secure-traffic/verify-jwts-vms"
-                  },
-                  {
-                    "title": "Verify incoming requests with JWTs on Kubernetes",
-                    "path": "connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s"
-                  }
-                ]
-              },
-              {
-                "title": "Configuration",
-                "routes": [
-                  {
-                    "title": "Overview",
-                    "path": "connect/gateways/api-gateway/configuration"
-                  },
-                  {
-                    "title": "Gateway",
-                    "path": "connect/gateways/api-gateway/configuration/gateway"
-                  },
-                  {
-                    "title": "GatewayClass",
-                    "path": "connect/gateways/api-gateway/configuration/gatewayclass"
-                  },
-                  {
-                    "title": "GatewayClassConfig",
-                    "path": "connect/gateways/api-gateway/configuration/gatewayclassconfig"
-                  },
-                  {
-                    "title": "GatewayPolicy",
-                    "path": "connect/gateways/api-gateway/configuration/gatewaypolicy"
-                  },
-                  {
-                    "title": "RouteAuthFilter",
-                    "path": "connect/gateways/api-gateway/configuration/routeauthfilter"
-                  },
-                  {
-                    "title": "Routes",
-                    "path": "connect/gateways/api-gateway/configuration/routes"
-                  },
-                  {
-                    "title": "RouteRetryFilter",
-                    "path": "connect/gateways/api-gateway/configuration/routeretryfilter"
-                  },
-                  {
-                    "title": "RouteTimeoutFilter",
-                    "path": "connect/gateways/api-gateway/configuration/routetimeoutfilter"
-                  },
-                  {
-                    "title": "MeshService",
-                    "path": "connect/gateways/api-gateway/configuration/meshservice"
-                  }
-                ]
-              },
-              {
-                "title": "Error Messages",
-                "path": "connect/gateways/api-gateway/errors"
-              }
-            ]
           },
           {
             "title": "Mesh Gateways",
@@ -842,24 +548,7 @@
           },
           {
             "title": "Ingress Gateways",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/gateways/ingress-gateway"
-              },
-              {
-                "title": "Implement an ingress gateway",
-                "path": "connect/gateways/ingress-gateway/usage"
-              },
-              {
-                "title": "Serve TLS certificates from an external service",
-                "path": "connect/gateways/ingress-gateway/tls-external-service"
-              },
-              {
-                "title": "Configuration",
-                "href": "/consul/docs/connect/config-entries/ingress-gateway"
-              }
-            ]
+            "path": "connect/gateways/ingress-gateway"
           },
           {
             "title": "Terminating Gateways",
@@ -892,10 +581,6 @@
               {
                 "title": "Manage L7 Traffic With Cluster Peering",
                 "path": "connect/cluster-peering/usage/peering-traffic-management"
-              },
-              {
-                "title": "Create Sameness Groups",
-                "path": "connect/cluster-peering/usage/create-sameness-groups"
               }
             ]
           }
@@ -1073,6 +758,14 @@
             "path": "security/acl/acl-rules"
           },
           {
+            "title": "Legacy Mode",
+            "path": "security/acl/acl-legacy"
+          },
+          {
+            "title": "Token Migration",
+            "path": "security/acl/acl-migrate-tokens"
+          },
+          {
             "title": "ACLs in Federated Datacenters",
             "path": "security/acl/acl-federated-datacenters"
           },
@@ -1151,40 +844,6 @@
         ]
       },
       {
-        "title": "Limit traffic rates",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "agent/limits"
-          },
-          {
-            "title": "Usage",
-            "routes": [
-              {
-                "title": "Initialize rate limit settings",
-                "path": "agent/limits/usage/init-rate-limits"
-              },
-              {
-                "title": "Monitor traffic rate limits",
-                "path": "agent/limits/usage/monitor-rate-limits"
-              },
-              {
-                "title": "Set global traffic rate limits",
-                "path": "agent/limits/usage/set-global-traffic-rate-limits"
-              },
-              {
-                "title": "Limit traffic rates from source IP addresses",
-                "path": "agent/limits/usage/limit-request-rates-from-ips"
-              }
-            ]
-          },
-          {
-            "title": "Configuration",
-            "href": "/docs/connect/config-entries/control-plane-request-limit"
-          }
-        ]
-      },
-      {
         "title": "Configuration Entries",
         "path": "agent/config-entries"
       },
@@ -1197,25 +856,9 @@
         "path": "agent/sentinel"
       },
       {
-        "title": "Experimental WAL LogStore",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "agent/wal-logstore"
-          },
-          {
-            "title": "Enable WAL LogStore backend",
-            "path": "agent/wal-logstore/enable"
-          },
-          {
-            "title": "Monitor Raft metrics and logs for WAL",
-            "path": "agent/wal-logstore/monitoring"
-          },
-          {
-            "title": "Revert to BoltDB",
-            "path": "agent/wal-logstore/revert-to-boltdb"
-          }
-        ]
+        "title": "RPC",
+        "path": "agent/rpc",
+        "hidden": true
       }
     ]
   },
@@ -1248,10 +891,6 @@
     "title": "Troubleshoot",
     "routes": [
       {
-        "title": "Service-to-Service Troubleshooting",
-        "path": "troubleshoot/troubleshoot-services"
-      },
-      {
         "title": "Common Error Messages",
         "path": "troubleshoot/common-errors"
       },
@@ -1275,6 +914,7 @@
         "title": "Architecture",
         "path": "k8s/architecture"
       },
+
       {
         "title": "Installation",
         "routes": [
@@ -1453,10 +1093,6 @@
                   {
                     "title": "Manage L7 Traffic With Cluster Peering",
                     "path": "k8s/connect/cluster-peering/usage/l7-traffic"
-                  },
-                  {
-                    "title": "Create Sameness Groups",
-                    "path": "k8s/connect/cluster-peering/usage/create-sameness-groups"
                   }
                 ]
               }
@@ -1464,24 +1100,7 @@
           },
           {
             "title": "Transparent Proxy",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "k8s/connect/transparent-proxy"
-              },
-              {
-                "title": "Enable transparent proxy",
-                "path": "k8s/connect/transparent-proxy/enable-transparent-proxy"
-              },
-              {
-                "title": "Route traffic to virtual services",
-                "href": "/docs/k8s/l7-traffic/route-to-virtual-services"
-              }
-            ]
-          },
-          {
-            "title": "Onboarding services in transparent proxy mode",
-            "path": "k8s/connect/onboarding-tproxy-mode"
+            "href": "/docs/connect/transparent-proxy"
           },
           {
             "title": "Ingress Gateways",
@@ -1511,36 +1130,6 @@
                 "path": "k8s/connect/observability/metrics"
               }
             ]
-          }
-        ]
-      },
-      {
-        "title": "Multi-port services",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "k8s/multiport"
-          },
-          {
-            "title": "Configure multi-port services",
-            "path": "k8s/multiport/configure"
-          }
-        ]
-      },
-      {
-        "title": "L7 traffic management",
-        "routes": [
-          {
-            "title": "Overview",
-            "href": "/docs/connect/l7-traffic"
-          },
-          {
-            "title": "Configure failover services",
-            "path": "k8s/l7-traffic/failover-tproxy"
-          },
-          {
-            "title": "Route traffic to virtual services",
-            "path": "k8s/l7-traffic/route-to-virtual-services"
           }
         ]
       },
@@ -1651,62 +1240,62 @@
         "path": "ecs"
       },
       {
-        "title": "Architecture",
-        "path": "ecs/architecture"
+        "title": "Requirements",
+        "path": "ecs/requirements"
       },
       {
-        "title": "Technical specifications",
-        "path": "ecs/tech-specs"
+        "title": "Task Resource Usage",
+        "path": "ecs/task-resource-usage"
       },
       {
-        "title": "Deploy Consul to ECS",
+        "title": "Install with Terraform",
         "routes": [
           {
-            "title": "Deploy using the Terraform module",
-            "path": "ecs/deploy/terraform"
+            "title": "Installation",
+            "path": "ecs/terraform/install"
           },
           {
-            "title": "Deploy manually",
-            "path": "ecs/deploy/manual"
+            "title": "Secure Configuration",
+            "path": "ecs/terraform/secure-configuration"
           },
           {
-            "title": "Configure the ECS task bind address",
-            "path": "ecs/deploy/bind-addresses"
-          },
-          {
-            "title": "Configure routes between ECS tasks",
-            "path": "ecs/deploy/configure-routes"
-          },
-          {
-            "title": "Migrate existing tasks",
-            "path": "ecs/deploy/migrate-existing-tasks"
+            "title": "Migrate Existing Tasks",
+            "path": "ecs/terraform/migrate-existing-tasks"
           }
         ]
       },
       {
-        "title": "Upgrade to Consul dataplane architecture",
-        "path": "ecs/upgrade-to-dataplanes"
+        "title": "Install Manually",
+        "routes": [
+          {
+            "title": "Installation",
+            "path": "ecs/manual/install"
+          },
+          {
+            "title": "Secure Configuration",
+            "path": "ecs/manual/secure-configuration"
+          },
+          {
+            "title": "ACL Controller",
+            "path": "ecs/manual/acl-controller"
+          }
+        ]
+      },
+      {
+        "title": "Architecture",
+        "path": "ecs/architecture"
       },
       {
         "title": "Consul Enterprise",
         "path": "ecs/enterprise"
       },
       {
-        "title": "Reference",
-        "routes": [
-          {
-            "title": "ECS configuration reference",
-            "path": "ecs/reference/configuration-reference"
-          },
-          {
-            "title": "ECS compatibility matrix",
-            "path": "ecs/reference/compatibility"
-          },
-          {
-            "title": "ECS Consul server JSON schema",
-            "path": "ecs/reference/consul-server-json"
-          }
-        ]
+        "title": "Configuration Reference",
+        "path": "ecs/configuration-reference"
+      },
+      {
+        "title": "Compatibility Matrix",
+        "path": "ecs/compatibility"
       }
     ]
   },
@@ -1784,10 +1373,6 @@
         "path": "enterprise/read-scale"
       },
       {
-        "title": "FIPS",
-        "path": "enterprise/fips"
-      },
-      {
         "title": "Single sign-on - OIDC",
         "href": "/docs/security/acl/auth-methods/oidc"
       },
@@ -1821,6 +1406,10 @@
         "href": "/docs/nia/enterprise"
       },
       {
+        "title": "Sentinel",
+        "path": "enterprise/sentinel"
+      },
+      {
         "title": "License",
         "routes": [
           {
@@ -1828,7 +1417,7 @@
             "path": "enterprise/license/overview"
           },
           {
-            "title": "Automated entitlement utilization reporting",
+            "title": "Automated License Utilization Reporting",
             "path": "enterprise/license/utilization-reporting"
           },
           {
@@ -1841,6 +1430,77 @@
   },
   {
     "divider": true
+  },
+  {
+    "title": "Consul API Gateway",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "api-gateway"
+      },
+      {
+        "title": "Installation",
+        "path": "api-gateway/install"
+      },
+      {
+        "title": "Technical Specifications",
+        "path": "api-gateway/tech-specs"
+      },
+      {
+        "title": "Upgrades",
+        "path": "api-gateway/upgrades"
+      },
+      {
+        "title": "Usage",
+        "routes": [
+          {
+            "title": "Basic Usage",
+            "path": "api-gateway/usage/usage"
+          },
+          {
+            "title": "Reroute HTTP Requests",
+            "path": "api-gateway/usage/reroute-http-requests"
+          },
+          {
+            "title": "Route Traffic to Peered Services",
+            "path": "api-gateway/usage/route-to-peered-services"
+          },
+          {
+            "title": "Error Messages",
+            "path": "api-gateway/usage/errors"
+          }
+        ]
+      },
+      {
+        "title": "Configuration",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "api-gateway/configuration"
+          },
+          {
+            "title": "Gateway",
+            "path": "api-gateway/configuration/gateway"
+          },
+          {
+            "title": "GatewayClass",
+            "path": "api-gateway/configuration/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig",
+            "path": "api-gateway/configuration/gatewayclassconfig"
+          },
+          {
+            "title": "Routes",
+            "path": "api-gateway/configuration/routes"
+          },
+          {
+            "title": "MeshService",
+            "path": "api-gateway/configuration/meshservice"
+          }
+        ]
+      }
+    ]
   },
   {
     "title": "Network Infrastructure Automation",

@@ -1,4 +1,0 @@
-```release-note:bug
-gateways: Fixed a bug in API gateways where binding a route that only targets a service imported from a peer results
-in the programmed gateway having no routes.
-```

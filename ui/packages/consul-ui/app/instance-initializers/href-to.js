@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import LinkComponent from '@ember/routing/link-component';
 
 export class HrefTo {
