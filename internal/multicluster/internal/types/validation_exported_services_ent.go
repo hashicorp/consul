@@ -24,3 +24,22 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, export
 	// no op for ENT
 	return nil
 }
+func MutateComputedExportedServices(res *pbresource.Resource) error {
+	// no op for ENT
+	return nil
+}
+
+func MutateExportedServices(res *pbresource.Resource) error {
+	// no op for ENT
+	return nil
+}
+
+func MutateNamespaceExportedServices(res *pbresource.Resource) error {
+	// no op for ENT
+	return nil
+}
+
+func MutatePartitionExportedServices(res *pbresource.Resource) error {
+	// no op for ENT
+	return nil
+}

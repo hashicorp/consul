@@ -52,15 +52,13 @@ func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.Computed
 	}
 }
 
-func TestValidateComputedExportedServices(t *testing.T) {
+func TestComputedExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
 		err := ValidateComputedExportedServices(tc.Resource)
 		require.NoError(t, err)
-
-		resourcetest.MustDecode[*multiclusterv1alpha1.ComputedExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{
@@ -83,7 +81,7 @@ func TestValidateComputedExportedServices(t *testing.T) {
 	}
 }
 
-func TestValidateComputedExportedServices_InvalidName(t *testing.T) {
+func TestComputedExportedServicesValidations_InvalidName(t *testing.T) {
 	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "computed-exported-services").
 		WithData(t, validComputedExportedServicesWithPeer()).
 		Build()

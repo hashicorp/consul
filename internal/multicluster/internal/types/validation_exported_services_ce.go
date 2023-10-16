@@ -21,7 +21,7 @@ func ValidateExportedServicesEnterprise(res *pbresource.Resource, exportedServic
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
 		// and non blank partition
-		if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
+		if consumer.GetPartition() != "default" {
 			hasSetEnterpriseFeatures = true
 			invalidFields = append(invalidFields, "partition")
 			break
@@ -57,8 +57,8 @@ func ValidateNamespaceExportedServicesEnterprise(res *pbresource.Resource, expor
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
 		// and non blank partition
-		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
-			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
+		if consumer.GetPartition() != "default" || consumer.GetSamenessGroup() != "" {
+			if consumer.GetPartition() != "default" {
 				invalidFields = append(invalidFields, "partition")
 			} else {
 				invalidFields = append(invalidFields, "sameness group")
@@ -87,21 +87,11 @@ func ValidatePartitionExportedServicesEnterprise(res *pbresource.Resource, expor
 
 	invalidFields := make([]string, 0)
 
-	if res.Id != nil && res.Id.Tenancy != nil && (res.Id.Tenancy.Namespace != "default" || res.Id.Tenancy.Partition != "default") {
-		if res.Id.Tenancy.Namespace != "default" {
-			invalidFields = append(invalidFields, "namespace")
-		}
-		if res.Id.Tenancy.Partition != "default" {
-			invalidFields = append(invalidFields, "partition")
-		}
-		hasSetEnterpriseFeatures = true
-	}
-
 	for _, consumer := range exportedService.Consumers {
 		// in case partition is not default and for the case when consumer has peer
 		// and non blank partition
-		if (consumer.GetPartition() != "default" && consumer.GetPartition() != "") || consumer.GetSamenessGroup() != "" {
-			if consumer.GetPartition() != "default" && consumer.GetPartition() != "" {
+		if consumer.GetPartition() != "default" || consumer.GetSamenessGroup() != "" {
+			if consumer.GetPartition() != "default" {
 				invalidFields = append(invalidFields, "partition")
 			} else {
 				invalidFields = append(invalidFields, "sameness group")
@@ -132,7 +122,7 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
 			// in case partition is not default and for the case when consumer has peer
 			// and non blank partition
-			if computedExportedServiceConsumer.GetPartition() != "default" && computedExportedServiceConsumer.GetPartition() != "" {
+			if computedExportedServiceConsumer.GetPartition() != "default" {
 				invalidFields = append(invalidFields, "partition")
 				hasSetEnterpriseFeatures = true
 				break
@@ -158,4 +148,52 @@ func ValidateComputedExportedServicesEnterprise(res *pbresource.Resource, comput
 	}
 
 	return merr
+}
+
+func MutateComputedExportedServices(res *pbresource.Resource) error {
+	var ces multiclusterv1alpha1.ComputedExportedService
+
+	if err := res.Data.UnmarshalTo(&ces); err != nil {
+		return err
+	}
+
+	//TODO How to check for partition or peer type
+
+	return nil
+}
+
+func MutateExportedServices(res *pbresource.Resource) error {
+	var ces multiclusterv1alpha1.ComputedExportedService
+
+	if err := res.Data.UnmarshalTo(&ces); err != nil {
+		return err
+	}
+
+	//TODO How to check for partition or peer type
+
+	return nil
+}
+
+func MutateNamespaceExportedServices(res *pbresource.Resource) error {
+	var ces multiclusterv1alpha1.ComputedExportedService
+
+	if err := res.Data.UnmarshalTo(&ces); err != nil {
+		return err
+	}
+
+	//TODO How to check for partition or peer type
+
+	return nil
+}
+
+func MutatePartitionExportedServices(res *pbresource.Resource) error {
+	var ces multiclusterv1alpha1.ComputedExportedService
+
+	if err := res.Data.UnmarshalTo(&ces); err != nil {
+		return err
+	}
+
+	//TODO How to check for partition or peer type
+
+	return nil
 }

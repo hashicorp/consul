@@ -19,6 +19,7 @@ func RegisterComputedExportedServices(r resource.Registry) {
 		Type:     pbmulticluster.ComputedExportedServicesType,
 		Proto:    &pbmulticluster.ComputedExportedServices{},
 		Scope:    resource.ScopePartition,
+		Mutate:   MutateComputedExportedServices,
 		Validate: ValidateComputedExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookComputedExportedServices,
