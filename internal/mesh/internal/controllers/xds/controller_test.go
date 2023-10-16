@@ -1027,71 +1027,23 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 			pst := JSONToProxyTemplate(suite.T(),
 				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
 
-			//get service data
-			serviceData := &pbcatalog.Service{}
-			var vp uint32 = 7000
-			requiredEps := make(map[string]*pbproxystate.EndpointRef)
-
-			// get service name and ports
-			for name := range pst.ProxyState.Clusters {
-				if name == "null_route_cluster" || name == "original-destination" {
-					continue
-				}
-				vp++
-				nameSplit := strings.Split(name, ".")
-				port := nameSplit[0]
-				svcName := nameSplit[1]
-				serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
-					TargetPort:  port,
-					VirtualPort: vp,
-					Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
-				})
-
-				svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
-					WithData(suite.T(), &pbcatalog.Service{}).
-					Write(suite.T(), suite.client)
-
-				eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
-					WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
-						{
-							Ports: map[string]*pbcatalog.WorkloadPort{
-								"mesh": {
-									Port:     20000,
-									Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
-								},
-							},
-							Addresses: []*pbcatalog.WorkloadAddress{
-								{
-									Host:  "10.1.1.1",
-									Ports: []string{"mesh"},
-								},
-							},
-						},
-					}}).
-					WithOwner(svc.Id).
-					Write(suite.T(), suite.client)
-				requiredEps[name] = &pbproxystate.EndpointRef{
-					Id:   eps.Id,
-					Port: "mesh",
-				}
+			// Destinations will need endpoint refs set up.
+			proxyType := strings.Split(name, "/")[0]
+			if proxyType == "destination" && len(pst.ProxyState.Endpoints) == 0 {
+				suite.addRequiredEndpointsAndRefs(pst, proxyType)
 			}
 
-			wiLeafs := make(map[string]*pbproxystate.LeafCertificateRef)
-			wiLeafs["wi-workload-identity"] = &pbproxystate.LeafCertificateRef{
-				Name: "wi-workload-identity",
-			}
-
-			pst.RequiredEndpoints = requiredEps
-
-			// Store the initial ProxyStateTemplate and track it in the mapper.
+			// Store the initial ProxyStateTemplate.
 			proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 				WithData(suite.T(), pst).
 				Write(suite.T(), suite.client)
 
+			// Check with resource service that it exists.
 			retry.Run(suite.T(), func(r *retry.R) {
 				suite.client.RequireResourceExists(r, proxyStateTemplate.Id)
 			})
 
+			// Track it in the mapper.
 			suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
 
 			// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
@@ -1099,9 +1051,9 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 				ID: proxyStateTemplate.Id,
 			})
 			require.NoError(suite.T(), err)
-
 			require.NotNil(suite.T(), proxyStateTemplate)
 
+			// Get the reconciled proxyStateTemplate to check the reconcile results.
 			reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
 
 			// Verify leaf cert contents then hard code them for comparison
@@ -1114,14 +1066,70 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 				},
 			}
 
+			// Compare actual vs expected.
 			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
 			expected := golden.Get(suite.T(), actual, name+".golden")
-
 			require.JSONEq(suite.T(), expected, actual)
 		})
 	}
 }
 
+func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.ProxyStateTemplate, proxyType string) {
+	//get service data
+	serviceData := &pbcatalog.Service{}
+	var vp uint32 = 7000
+	requiredEps := make(map[string]*pbproxystate.EndpointRef)
+
+	// get service name and ports
+	for clusterName := range pst.ProxyState.Clusters {
+		if clusterName == "null_route_cluster" || clusterName == "original-destination" {
+			continue
+		}
+		vp++
+		separator := "."
+		if proxyType == "source" {
+			separator = ":"
+		}
+		clusterNameSplit := strings.Split(clusterName, separator)
+		port := clusterNameSplit[0]
+		svcName := clusterNameSplit[1]
+		serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
+			TargetPort:  port,
+			VirtualPort: vp,
+			Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+		})
+
+		svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
+			WithData(suite.T(), &pbcatalog.Service{}).
+			Write(suite.T(), suite.client)
+
+		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
+			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
+				{
+					Ports: map[string]*pbcatalog.WorkloadPort{
+						"mesh": {
+							Port:     20000,
+							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+						},
+					},
+					Addresses: []*pbcatalog.WorkloadAddress{
+						{
+							Host:  "10.1.1.1",
+							Ports: []string{"mesh"},
+						},
+					},
+				},
+			}}).
+			WithOwner(svc.Id).
+			Write(suite.T(), suite.client)
+		requiredEps[clusterName] = &pbproxystate.EndpointRef{
+			Id:   eps.Id,
+			Port: "mesh",
+		}
+	}
+
+	pst.RequiredEndpoints = requiredEps
+}
 func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
 	t.Helper()
 	proxyTemplate := &pbmesh.ProxyStateTemplate{}
