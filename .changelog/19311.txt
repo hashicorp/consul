@@ -1,3 +1,0 @@
-```release-note:bug
-raft:  Fix panic during downgrade from enterprise to oss.
-```
