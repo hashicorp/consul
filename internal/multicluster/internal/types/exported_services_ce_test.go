@@ -185,7 +185,7 @@ func TestExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"all services has read policy": {
 			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,
