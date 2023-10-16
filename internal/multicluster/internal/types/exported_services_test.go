@@ -1,9 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-//go:build consulent
-// +build consulent
-
 package types
 
 import (
@@ -18,52 +15,6 @@ import (
 	"testing"
 )
 
-func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.ExportedServices{
-		Services:  []string{"api", "frontend", "backend"},
-		Consumers: consumers,
-	}
-}
-
-func validExportedServicesWithPartition() *multiclusterv1alpha1.ExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "partition",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.ExportedServices{
-		Services:  []string{"api", "frontend", "backend"},
-		Consumers: consumers,
-	}
-}
-
-func validExportedServicesWithSamenessGroup() *multiclusterv1alpha1.ExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "sameness_group",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.ExportedServices{
-		Services:  []string{"api", "frontend", "backend"},
-		Consumers: consumers,
-	}
-}
-
-func inValidExportedServices() *multiclusterv1alpha1.ExportedServices {
-	return &multiclusterv1alpha1.ExportedServices{}
-}
-
 func TestExportedServicesValidation(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
@@ -77,17 +28,17 @@ func TestExportedServicesValidation(t *testing.T) {
 
 	cases := map[string]testcase{
 		"exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
 				WithData(t, validExportedServicesWithPeer()).
 				Build(),
 		},
 		"exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
 				WithData(t, validExportedServicesWithPartition()).
 				Build(),
 		},
 		"exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
 				WithData(t, validExportedServicesWithSamenessGroup()).
 				Build(),
 		},
@@ -101,7 +52,7 @@ func TestExportedServicesValidation(t *testing.T) {
 }
 
 func TestExportedServicesValidation_NoServices(t *testing.T) {
-	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services-1").
+	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
 		WithData(t, inValidExportedServices()).
 		Build()
 
@@ -185,7 +136,7 @@ func TestExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"all services has read policy": {
 			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,

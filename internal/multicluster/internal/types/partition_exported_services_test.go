@@ -1,9 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-//go:build consulent
-// +build consulent
-
 package types
 
 import (
@@ -17,70 +14,31 @@ import (
 	"testing"
 )
 
-func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
-		Consumers: consumers,
-	}
-}
-
-func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "partition",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
-		Consumers: consumers,
-	}
-}
-
-func validNamespaceExportedServicesWithSamenessGroup() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "sameness_group",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
-		Consumers: consumers,
-	}
-}
-
-func TestNamespaceExportedServicesValidations(t *testing.T) {
+func TestPartitionExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidateNamespaceExportedServices(tc.Resource)
+		err := ValidatePartitionExportedServices(tc.Resource)
 		require.NoError(t, err)
 
-		resourcetest.MustDecode[*multiclusterv1alpha1.NamespaceExportedServices](t, tc.Resource)
+		resourcetest.MustDecode[*multiclusterv1alpha1.PartitionExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{
-		"namespace exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPeer()).
+		"partition exported services with peer": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithPeer()).
 				Build(),
 		},
-		"namespace exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPartition()).
+		"partition exported services with partition": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithPartition()).
 				Build(),
 		},
-		"namespace exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
+		"partition exported services with sameness_group": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithSamenessGroup()).
 				Build(),
 		},
 	}
@@ -92,7 +50,7 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 	}
 }
 
-func TestNamespaceExportedServicesACLs(t *testing.T) {
+func TestPartitionExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
 	Register(registry)
@@ -128,12 +86,12 @@ func TestNamespaceExportedServicesACLs(t *testing.T) {
 		}
 	}
 
-	reg, ok := registry.Resolve(multiclusterv1alpha1.NamespaceExportedServicesType)
+	reg, ok := registry.Resolve(multiclusterv1alpha1.PartitionExportedServicesType)
 	require.True(t, ok)
 
 	run := func(t *testing.T, tc testcase) {
-		exportedServiceData := &multiclusterv1alpha1.NamespaceExportedServices{}
-		res := resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+		exportedServiceData := &multiclusterv1alpha1.PartitionExportedServices{}
+		res := resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
 			WithData(t, exportedServiceData).
 			Build()
 		resourcetest.ValidateAndNormalize(t, registry, res)
@@ -164,7 +122,7 @@ func TestNamespaceExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"mesh read policy": {
 			rules:   `mesh = "read"`,
