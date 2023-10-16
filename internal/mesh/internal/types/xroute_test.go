@@ -12,7 +12,6 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -381,36 +380,11 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 		return res
 	}
 
-	type testcase struct {
-		res     *pbresource.Resource
-		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
-		readOK  string
-		writeOK string
-	}
-
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
-
-	checkF := func(t *testing.T, name string, expect string, got error) {
-		switch expect {
-		case ALLOW:
-			if acl.IsErrPermissionDenied(got) {
-				t.Fatal(name + " should be allowed")
-			}
-		case DENY:
-			if !acl.IsErrPermissionDenied(got) {
-				t.Fatal(name + " should be denied")
-			}
-		case DEFAULT:
-			require.Nil(t, got, name+" expected fallthrough decision")
-		default:
-			t.Fatalf(name+" unexpected expectation: %q", expect)
-		}
-	}
 
 	serviceRef := func(tenancy, name string) *pbresource.Reference {
 		return newRefWithTenancy(pbcatalog.ServiceType, tenancy, name)
@@ -461,26 +435,9 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 		)
 	}
 
-	run := func(t *testing.T, name string, tc testcase) {
+	run := func(t *testing.T, name string, tc resourcetest.ACLTestCase) {
 		t.Run(name, func(t *testing.T) {
-			config := acl.Config{
-				WildcardName: structs.WildcardSpecifier,
-			}
-			authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
-			require.NoError(t, err)
-			authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
-
-			reg, ok := registry.Resolve(tc.res.Id.GetType())
-			require.True(t, ok)
-
-			authCtx := &acl.AuthorizerContext{} // unused
-
-			err = reg.ACLs.Read(authz, authCtx, tc.res.Id, nil)
-			require.ErrorIs(t, err, resource.ErrNeedResource, "read hook should require the data payload")
-
-			checkF(t, "read", tc.readOK, reg.ACLs.Read(authz, authCtx, tc.res.Id, tc.res))
-			checkF(t, "write", tc.writeOK, reg.ACLs.Write(authz, authCtx, tc.res))
-			checkF(t, "list", DEFAULT, reg.ACLs.List(authz, authCtx))
+			resourcetest.RunACLTestCase(t, tc, registry)
 		})
 	}
 
@@ -500,11 +457,13 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 	}
 
 	assert := func(t *testing.T, name string, rules string, res *pbresource.Resource, readOK, writeOK string) {
-		tc := testcase{
-			res:     res,
-			rules:   rules,
-			readOK:  readOK,
-			writeOK: writeOK,
+		tc := resourcetest.ACLTestCase{
+			Rules:                    rules,
+			Res:                      res,
+			ReadOK:                   readOK,
+			WriteOK:                  writeOK,
+			ListOK:                   DEFAULT,
+			ReadHookRequiresResource: true,
 		}
 		run(t, name, tc)
 	}
