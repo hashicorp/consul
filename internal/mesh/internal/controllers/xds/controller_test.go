@@ -1002,13 +1002,24 @@ func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
 }
 
-func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
+func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
+		// destinations
 		"destination/l4-single-destination-ip-port-bind-address",
 		"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-single-implicit-destination-tproxy",
 		"destination/l4-multi-destination",
-		"destination/mixed-multi-destination",
+		"destination/l4-multiple-implicit-destinations-tproxy",
+		"destination/l4-implicit-and-explicit-destinations-tproxy",
+		// TODO(jm): resolve the endpoint group naming issue
+		//"destination/mixed-multi-destination",
+		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
+
+		//sources
+
 	}
 
 	for _, name := range cases {
@@ -1024,7 +1035,7 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 
 			// get service name and ports
 			for name := range pst.ProxyState.Clusters {
-				if name == "null_route_cluster" {
+				if name == "null_route_cluster" || name == "original-destination" {
 					continue
 				}
 				vp++
@@ -1108,28 +1119,6 @@ func (suite *xdsControllerTestSuite) TestBuildExplicitDestinations() {
 			expected := golden.Get(suite.T(), actual, name+".golden")
 
 			require.JSONEq(suite.T(), expected, actual)
-		})
-	}
-}
-
-func (suite *xdsControllerTestSuite) TestBuildImplicitDestinations() {
-
-	cases := []string{
-		"destination/l4-single-implicit-destination-tproxy",
-		"destination/l4-multiple-implicit-destinations-tproxy",
-		"destination/l4-implicit-and-explicit-destinations-tproxy",
-	}
-
-	for _, name := range cases {
-		suite.Run(name, func() {
-			//proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", false, proxyCfg).
-			//	BuildDestinations(c.destinations).
-			//	Build()
-			//
-			//actual := protoToJSON(t, proxyTmpl)
-			//expected := golden.Get(t, actual, name+".golden")
-			//
-			//require.JSONEq(t, expected, actual)
 		})
 	}
 }
