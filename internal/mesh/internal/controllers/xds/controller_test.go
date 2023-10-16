@@ -1019,7 +1019,7 @@ func TestXdsController(t *testing.T) {
 func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
-		// destinations
+		// destinations - please add in alphabetical order
 		"destination/l4-single-destination-ip-port-bind-address",
 		"destination/l4-single-destination-unix-socket-bind-address",
 		"destination/l4-single-implicit-destination-tproxy",
@@ -1031,8 +1031,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
 		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
 
-		//sources
-
+		//sources - please add in alphabetical order
+		"source/l4-multiple-workload-addresses-with-specific-ports",
 	}
 
 	for _, name := range cases {
