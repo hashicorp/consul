@@ -1033,6 +1033,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 
 		//sources - please add in alphabetical order
 		"source/l4-multiple-workload-addresses-with-specific-ports",
+		"source/l4-multiple-workload-addresses-without-ports",
 	}
 
 	for _, name := range cases {
