@@ -65,6 +65,30 @@
       "name": "tcp.api-2.default.dc1.internal.foo.consul"
     }
   },
+  "endpoints": {
+    "tcp.api-1.default.dc1.internal.foo.consul": {
+      "endpoints": [
+        {
+          "healthStatus": "HEALTH_STATUS_HEALTHY",
+          "hostPort": {
+            "host": "10.1.1.1",
+            "port": 20000
+          }
+        }
+      ]
+    },
+    "tcp.api-2.default.dc1.internal.foo.consul": {
+      "endpoints": [
+        {
+          "healthStatus": "HEALTH_STATUS_HEALTHY",
+          "hostPort": {
+            "host": "10.1.1.1",
+            "port": 20000
+          }
+        }
+      ]
+    }
+  },
   "identity": {
     "name": "test-identity",
     "tenancy": {
@@ -76,6 +100,12 @@
       "group": "auth",
       "groupVersion": "v2beta1",
       "kind": "WorkloadIdentity"
+    }
+  },
+  "leafCertificates": {
+    "test-identity": {
+      "cert": "-----BEGIN CERTIFICATE-----\nMIICDzCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTU0MzQxWhcNMjMxMDE2MTU1MzQxWjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECjAS1priKKg5DX2byiWj7rP/javtusIwUXXNZjLcL93d\nt1/TJ3BeGQjcye7Tj4fg7u1xKQe4zzzl9jzhNImDbqOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQgm9EL7d6QLgSa4XcBMrJe254kOIyY4qeEG1XkyHxgNqgw\nKwYDVR0jBCQwIoAgrxX5IdfjyCYUhGtC4FxnuPtk2WpVnEJvN7Tb+0dORfcwbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNIADBFAiEAsQylgvCf1TuK7Efng1VZ\nlYyP8fHV3ndNjq7DxGHBp9kCIHkDszWused6R5GAsRBNp3nwzK7fGWncrEQJGetp\nCNtQ\n-----END CERTIFICATE-----\n",
+      "key": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIPYFUcC4ZIeQRE/PfF7DsK5CeL4uEh2C6aFIyLYg2734oAoGCCqGSM49\nAwEHoUQDQgAECjAS1priKKg5DX2byiWj7rP/javtusIwUXXNZjLcL93dt1/TJ3Be\nGQjcye7Tj4fg7u1xKQe4zzzl9jzhNImDbg==\n-----END EC PRIVATE KEY-----\n"
     }
   },
   "listeners": [
@@ -110,5 +140,14 @@
         }
       ]
     }
-  ]
+  ],
+  "trustBundles": {
+    "local": {
+      "roots": [
+        "some-root",
+        "some-other-root"
+      ],
+      "trustDomain": "some-trust-domain"
+    }
+  }
 }
