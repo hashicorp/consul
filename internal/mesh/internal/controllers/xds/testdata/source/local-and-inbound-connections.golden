@@ -126,7 +126,7 @@
             "cluster": {
               "name": "local_app:port1"
             },
-            "maxInboundConnections": 123,
+            "maxInboundConnections": "123",
             "statPrefix": "public_listener",
             "trafficPermissions": {}
           },
@@ -151,7 +151,7 @@
             "route": {
               "name": "public_listener:port3"
             },
-            "maxInboundConnections": 123,
+            "maxInboundConnections": "123",
             "statPrefix": "public_listener",
             "staticRoute": true,
             "trafficPermissions": {}
