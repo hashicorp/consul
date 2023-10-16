@@ -1080,25 +1080,12 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 	var vp uint32 = 7000
 	requiredEps := make(map[string]*pbproxystate.EndpointRef)
 
-<<<<<<< HEAD
-	// get service name and ports
-=======
 	// iterate through clusters and set up endpoints for cluster/mesh port.
->>>>>>> 158caa2516 (clean up test to use helper.)
 	for clusterName := range pst.ProxyState.Clusters {
 		if clusterName == "null_route_cluster" || clusterName == "original-destination" {
 			continue
 		}
-<<<<<<< HEAD
-		vp++
-		separator := "."
-		if proxyType == "source" {
-			separator = ":"
-		}
-		clusterNameSplit := strings.Split(clusterName, separator)
-		port := clusterNameSplit[0]
-		svcName := clusterNameSplit[1]
-=======
+
 		//increment the random port number.
 		vp++
 		clusterNameSplit := strings.Split(clusterName, ".")
@@ -1106,25 +1093,18 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 		svcName := clusterNameSplit[1]
 
 		// set up service data with port info.
->>>>>>> 158caa2516 (clean up test to use helper.)
 		serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
 			TargetPort:  port,
 			VirtualPort: vp,
 			Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 		})
 
-<<<<<<< HEAD
-=======
 		// create service.
->>>>>>> 158caa2516 (clean up test to use helper.)
 		svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
 			WithData(suite.T(), &pbcatalog.Service{}).
 			Write(suite.T(), suite.client)
 
-<<<<<<< HEAD
-=======
 		// create endpoints with svc as owner.
->>>>>>> 158caa2516 (clean up test to use helper.)
 		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 				{
