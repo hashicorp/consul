@@ -1021,6 +1021,7 @@ func (s *Server) setupRaft() error {
 			s.raftStore = store
 			log = store
 			stable = store
+			s.logger.Info("setting up raft bolt store", "no_freelist_sync", s.config.LogStoreConfig.BoltDB.NoFreelistSync)
 
 			// start publishing boltdb metrics
 			go store.RunMetrics(&lib.StopChannelContext{StopCh: s.shutdownCh}, 0)
