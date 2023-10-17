@@ -294,7 +294,7 @@ $ kubectl apply -f api.yaml -f web.yaml
 
 Consul uses traffic permissions to validate communication between services based on L4 identity. In the beta release of the v2 catalog API, traffic permissions allow all services by default. In order to verify that services function correctly on each port, create CRDs that deny traffic to each port.
 
-The following examples create Consul CRDs that allow traffic to only one port of the multi-port service. Each resource separately denies `web` permission when it is a source of traffic to one of the services. These traffic permissions work with either method for defining a multi-port service. The resources will be applied invidually in the steps below. 
+The following examples create Consul CRDs that allow traffic to only one port of the multi-port service. Each resource separately denies `web` permission when it is a source of traffic to one of the services. These traffic permissions work with either method for defining a multi-port service. When following the instructions on this page, apply these permissions individually when you validate the ports.
 
 <CodeTabs tabs={[ "Deny port 80", "Deny port 90" ]}>
 
