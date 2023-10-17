@@ -103,7 +103,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -192,7 +192,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -243,7 +243,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
