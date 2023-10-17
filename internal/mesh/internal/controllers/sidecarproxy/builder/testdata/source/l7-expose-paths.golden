@@ -107,16 +107,16 @@
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
           "host": "10.0.0.1",
-          "port": 9090
+          "port": 1234
         },
-        "name": "exposed_path_health",
+        "name": "exposed_path_health1234",
         "routers": [
           {
             "l7": {
               "route": {
-                "name": "exposed_path_filter_health_1234"
+                "name": "exposed_path_destination_health9090"
               },
-              "statPrefix": "exposed_path_filter_health_1234",
+              "statPrefix": "exposed_path_destination_health9090",
               "staticRoute": true
             }
           }
@@ -126,17 +126,17 @@
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
           "host": "10.0.0.1",
-          "port": 9091
+          "port": 1235
         },
-        "name": "exposed_path_GetHealth",
+        "name": "exposed_path_GetHealth1235",
         "routers": [
           {
             "l7": {
               "protocol": "L7_PROTOCOL_HTTP2",
               "route": {
-                "name": "exposed_path_filter_GetHealth_1235"
+                "name": "exposed_path_destination_GetHealth9091"
               },
-              "statPrefix": "exposed_path_filter_GetHealth_1235",
+              "statPrefix": "exposed_path_destination_GetHealth9091",
               "staticRoute": true
             }
           }
@@ -144,13 +144,13 @@
       }
     ],
     "routes": {
-      "exposed_path_filter_GetHealth_1235": {
+      "exposed_path_destination_GetHealth9091": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "exposed_path_filter_GetHealth_1235",
+            "name": "exposed_path_destination_GetHealth9091",
             "routeRules": [
               {
                 "destination": {
@@ -168,13 +168,13 @@
           }
         ]
       },
-      "exposed_path_filter_health_1234": {
+      "exposed_path_destination_health9090": {
         "virtualHosts": [
           {
             "domains": [
               "*"
             ],
-            "name": "exposed_path_filter_health_1234",
+            "name": "exposed_path_destination_health9090",
             "routeRules": [
               {
                 "destination": {
