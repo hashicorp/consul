@@ -867,19 +867,6 @@ func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
 }
 
-// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
-// This is often used for fetching service-defaults config entries.
-func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
-	var upstreams []ServiceID
-	for i := range s.UpstreamServiceNames {
-		u := &s.UpstreamServiceNames[i]
-		if u.Peer == "" {
-			upstreams = append(upstreams, u.ServiceName.ToServiceID())
-		}
-	}
-	return upstreams
-}
-
 func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,

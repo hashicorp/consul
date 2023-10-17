@@ -4,8 +4,6 @@
 package resourcetest
 
 import (
-	"testing"
-
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
@@ -13,8 +11,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func MustDecode[T proto.Message](t *testing.T, res *pbresource.Resource) *resource.DecodedResource[T] {
-	dec, err := resource.Decode[T](res)
+func MustDecode[Tp proto.Message](t T, res *pbresource.Resource) *resource.DecodedResource[Tp] {
+	dec, err := resource.Decode[Tp](res)
 	require.NoError(t, err)
 	return dec
 }

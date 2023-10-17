@@ -1,10 +1,22 @@
 {
   "proxyState": {
     "clusters": {
+      "original-destination": {
+        "endpointGroup": {
+          "passthrough": {
+            "config": {
+              "connectTimeout": "5s"
+            }
+          }
+        },
+        "name": "original-destination"
+      },
       "tcp.api-1.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp.api-1.default.dc1.internal.foo.consul",
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -17,17 +29,21 @@
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
-                  ]
+                  ],
+                  "trustBundlePeerNameKey": "local"
                 }
               }
             }
           }
-        }
+        },
+        "name": "tcp.api-1.default.dc1.internal.foo.consul"
       },
       "tcp.api-2.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp.api-2.default.dc1.internal.foo.consul",
         "endpointGroup": {
           "dynamic": {
             "config": {
+              "connectTimeout": "5s",
               "disablePanicThreshold": true
             },
             "outboundTls": {
@@ -40,12 +56,14 @@
                 "validationContext": {
                   "spiffeIds": [
                     "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
-                  ]
+                  ],
+                  "trustBundlePeerNameKey": "local"
                 }
               }
             }
           }
-        }
+        },
+        "name": "tcp.api-2.default.dc1.internal.foo.consul"
       }
     },
     "identity": {
@@ -54,6 +72,11 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [
@@ -61,6 +84,14 @@
         "capabilities": [
           "CAPABILITY_TRANSPARENT"
         ],
+        "defaultRouter": {
+          "l4": {
+            "cluster": {
+              "name": "original-destination"
+            },
+            "statPrefix": "upstream.original-destination"
+          }
+        },
         "direction": "DIRECTION_OUTBOUND",
         "hostPort": {
           "host": "127.0.0.1",
@@ -70,11 +101,13 @@
         "routers": [
           {
             "l4": {
-              "name": "tcp.api-1.default.dc1.internal.foo.consul",
+              "cluster": {
+                "name": "tcp.api-1.default.dc1.internal.foo.consul"
+              },
               "statPrefix": "upstream.tcp.api-1.default.default.dc1"
             },
             "match": {
-              "destinationPort": 8080,
+              "destinationPort": 7070,
               "prefixRanges": [
                 {
                   "addressPrefix": "1.1.1.1",
@@ -85,11 +118,13 @@
           },
           {
             "l4": {
-              "name": "tcp.api-2.default.dc1.internal.foo.consul",
+              "cluster": {
+                "name": "tcp.api-2.default.dc1.internal.foo.consul"
+              },
               "statPrefix": "upstream.tcp.api-2.default.default.dc1"
             },
             "match": {
-              "destinationPort": 8080,
+              "destinationPort": 7070,
               "prefixRanges": [
                 {
                   "addressPrefix": "2.2.2.2",
@@ -107,7 +142,7 @@
     ]
   },
   "requiredEndpoints": {
-    "api-1.default.dc1.internal.foo.consul": {
+    "tcp.api-1.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-1",
         "tenancy": {
@@ -117,13 +152,13 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
       "port": "mesh"
     },
-    "api-2.default.dc1.internal.foo.consul": {
+    "tcp.api-2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-2",
         "tenancy": {
@@ -133,11 +168,23 @@
         },
         "type": {
           "group": "catalog",
-          "groupVersion": "v1alpha1",
+          "groupVersion": "v2beta1",
           "kind": "ServiceEndpoints"
         }
       },
       "port": "mesh"
+    }
+  },
+  "requiredLeafCertificates": {
+    "test-identity": {
+      "name": "test-identity",
+      "namespace": "default",
+      "partition": "default"
+    }
+  },
+  "requiredTrustBundles": {
+    "local": {
+      "peer": "local"
     }
   }
 }

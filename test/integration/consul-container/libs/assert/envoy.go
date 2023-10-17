@@ -14,11 +14,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -34,6 +33,7 @@ func GetEnvoyListenerTCPFilters(t *testing.T, adminPort int) {
 		fmt.Sprintf("localhost:%d", adminPort),
 	)
 }
+
 func GetEnvoyListenerTCPFiltersWithClient(
 	t *testing.T,
 	client *http.Client,
@@ -85,6 +85,7 @@ func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, heal
 		count,
 	)
 }
+
 func AssertUpstreamEndpointStatusWithClient(
 	t *testing.T,
 	client *http.Client,
@@ -114,7 +115,7 @@ func AssertUpstreamEndpointStatusWithClient(
 			| length`,
 			clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
-		require.NoErrorf(r, err, "could not found cluster name %q: %v \n%s", clusterName, err, clusters)
+		require.NoErrorf(r, err, "could not find cluster name %q: %v \n%s", clusterName, err, clusters)
 		require.Len(r, results, 1) // the final part of the pipeline is "length" which only ever returns 1 result
 
 		result, err := strconv.Atoi(results[0])

@@ -10,7 +10,45 @@
           "ads":  {},
           "resourceApiVersion":  "V3"
         }
-      }
+      },
+      "commonLbConfig": {
+        "healthyPanicThreshold": {}
+      },
+      "name": "tcp.api-1.default.dc1.internal.foo.consul",
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "alpnProtocols": [
+              "consul~tcp"
+            ],
+            "tlsCertificates": [
+              {
+                "certificateChain": {
+                  "inlineString": "cert1\n"
+                },
+                "privateKey": {
+                  "inlineString": "key1\n"
+                }
+              }
+            ],
+            "tlsParams": {},
+            "validationContext": {
+              "matchSubjectAltNames": [
+                {
+                  "exact": "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                }
+              ],
+              "trustedCa": {
+                "inlineString": "root1\n"
+              }
+            }
+          },
+          "sni": "api-1.default.dc1.internal.foo.consul"
+        }
+      },
+      "type": "EDS"
     }
   ],
   "typeUrl":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",

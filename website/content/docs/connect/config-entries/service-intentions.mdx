@@ -687,7 +687,7 @@ Map that contains an arbitrary name for the configuration entry and the namespac
 
 Specifies an arbitrary name for the configuration entry. Note that in other configuration entries, the `metadata.name` field specifies the name of the service that the settings apply to. For service intentions, the service that accepts the configurations is the _destination_ and is specified in the [`spec.destination.name`](#spec-destination-name) field. Refer to the following topics for additional information:
 
-- [ServiceIntentions Special Case (OSS)](/consul/docs/k8s/crds#serviceintentions-special-case)
+- [ServiceIntentions Special Case (CE)](/consul/docs/k8s/crds#serviceintentions-special-case)
 - [ServiceIntentions Special Case (Enterprise)](/consul/docs/k8s/crds#serviceintentions-special-case-enterprise)
 
 #### Values
@@ -697,7 +697,7 @@ Specifies an arbitrary name for the configuration entry. Note that in other conf
 
 ### `metadata.namespace` <EnterpriseAlert inline />
 
-Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
+Specifies the [namespace](/consul/docs/enterprise/namespaces) that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
 #### Values
 

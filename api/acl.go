@@ -21,9 +21,11 @@ const (
 	ACLManagementType = "management"
 
 	// ACLTemplatedPolicy names
-	ACLTemplatedPolicyServiceName = "builtin/service"
-	ACLTemplatedPolicyNodeName    = "builtin/node"
-	ACLTemplatedPolicyDNSName     = "builtin/dns"
+	ACLTemplatedPolicyServiceName          = "builtin/service"
+	ACLTemplatedPolicyNodeName             = "builtin/node"
+	ACLTemplatedPolicyDNSName              = "builtin/dns"
+	ACLTemplatedPolicyNomadServerName      = "builtin/nomad-server"
+	ACLTemplatedPolicyWorkloadIdentityName = "builtin/workload-identity"
 )
 
 type ACLLink struct {
@@ -164,6 +166,12 @@ type ACLTemplatedPolicy struct {
 	// Datacenters are an artifact of Nodeidentity & ServiceIdentity.
 	// It is used to facilitate the future migration away from both
 	Datacenters []string `json:",omitempty"`
+}
+
+type ACLTemplatedPolicyResponse struct {
+	TemplateName string
+	Schema       string
+	Template     string
 }
 
 type ACLTemplatedPolicyVariables struct {
@@ -1648,6 +1656,81 @@ func (a *ACL) OIDCCallback(auth *ACLOIDCCallbackParams, q *WriteOptions) (*ACLTo
 	}
 	wm := &WriteMeta{RequestTime: rtt}
 	var out ACLToken
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+	return &out, wm, nil
+}
+
+// TemplatedPolicyReadByName retrieves the templated policy details (by name). Returns nil if not found.
+func (a *ACL) TemplatedPolicyReadByName(templateName string, q *QueryOptions) (*ACLTemplatedPolicyResponse, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/templated-policy/name/"+templateName)
+	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	found, resp, err := requireNotFoundOrOK(resp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	if !found {
+		return nil, qm, nil
+	}
+
+	var out ACLTemplatedPolicyResponse
+	if err := decodeBody(resp, &out); err != nil {
+		return nil, nil, err
+	}
+
+	return &out, qm, nil
+}
+
+// TemplatedPolicyList retrieves a listing of all templated policies.
+func (a *ACL) TemplatedPolicyList(q *QueryOptions) (map[string]ACLTemplatedPolicyResponse, *QueryMeta, error) {
+	r := a.c.newRequest("GET", "/v1/acl/templated-policies")
+	r.setQueryOptions(q)
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	qm := &QueryMeta{}
+	parseQueryMeta(resp, qm)
+	qm.RequestTime = rtt
+
+	var entries map[string]ACLTemplatedPolicyResponse
+	if err := decodeBody(resp, &entries); err != nil {
+		return nil, nil, err
+	}
+	return entries, qm, nil
+}
+
+// TemplatedPolicyPreview is used to preview the policy rendered by the templated policy.
+func (a *ACL) TemplatedPolicyPreview(tp *ACLTemplatedPolicy, q *WriteOptions) (*ACLPolicy, *WriteMeta, error) {
+	r := a.c.newRequest("POST", "/v1/acl/templated-policy/preview/"+tp.TemplateName)
+	r.setWriteOptions(q)
+	r.obj = tp.TemplateVariables
+
+	rtt, resp, err := a.c.doRequest(r)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer closeResponseBody(resp)
+	if err := requireOK(resp); err != nil {
+		return nil, nil, err
+	}
+	wm := &WriteMeta{RequestTime: rtt}
+	var out ACLPolicy
 	if err := decodeBody(resp, &out); err != nil {
 		return nil, nil, err
 	}

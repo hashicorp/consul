@@ -5,40 +5,40 @@ package structs
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"hash"
 	"hash/fnv"
 	"html/template"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/exp/slices"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
+
+//go:embed acltemplatedpolicy/schemas/node.json
+var ACLTemplatedPolicyNodeSchema string
+
+//go:embed acltemplatedpolicy/schemas/service.json
+var ACLTemplatedPolicyServiceSchema string
+
+//go:embed acltemplatedpolicy/schemas/workload-identity.json
+var ACLTemplatedPolicyWorkloadIdentitySchema string
 
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
-	ACLTemplatedPolicyNodeID           = "00000000-0000-0000-0000-000000000004"
-	ACLTemplatedPolicyServiceID        = "00000000-0000-0000-0000-000000000003"
-	ACLTemplatedPolicyIdentitiesSchema = `{
-		"type": "object",
-		"properties": {
-			"name": { "type": "string", "$ref": "#/definitions/min-length-one" }
-		},
-		"required": ["name"],
-		"definitions": {
-			"min-length-one": {
-					"type": "string",
-					"minLength": 1
-			}
-		}
-	}`
+	ACLTemplatedPolicyServiceID          = "00000000-0000-0000-0000-000000000003"
+	ACLTemplatedPolicyNodeID             = "00000000-0000-0000-0000-000000000004"
+	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
+	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
+	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
 
-	ACLTemplatedPolicyDNSID     = "00000000-0000-0000-0000-000000000005"
-	ACLTemplatedPolicyDNSSchema = "" // empty schema as it does not require variables
+	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
 
 // ACLTemplatedPolicyBase contains basic information about builtin templated policies
@@ -51,26 +51,38 @@ type ACLTemplatedPolicyBase struct {
 }
 
 var (
-	// TODO(Ronald): add other templates
-	// This supports: node, service and dns templates
+	// Note: when adding a new builtin template, ensure you update `command/acl/templatedpolicy/formatter.go`
+	// to handle the new templates required variables and schema.
 	aclTemplatedPoliciesList = map[string]*ACLTemplatedPolicyBase{
 		api.ACLTemplatedPolicyServiceName: {
 			TemplateID:   ACLTemplatedPolicyServiceID,
 			TemplateName: api.ACLTemplatedPolicyServiceName,
-			Schema:       ACLTemplatedPolicyIdentitiesSchema,
+			Schema:       ACLTemplatedPolicyServiceSchema,
 			Template:     ACLTemplatedPolicyService,
 		},
 		api.ACLTemplatedPolicyNodeName: {
 			TemplateID:   ACLTemplatedPolicyNodeID,
 			TemplateName: api.ACLTemplatedPolicyNodeName,
-			Schema:       ACLTemplatedPolicyIdentitiesSchema,
+			Schema:       ACLTemplatedPolicyNodeSchema,
 			Template:     ACLTemplatedPolicyNode,
 		},
 		api.ACLTemplatedPolicyDNSName: {
 			TemplateID:   ACLTemplatedPolicyDNSID,
 			TemplateName: api.ACLTemplatedPolicyDNSName,
-			Schema:       ACLTemplatedPolicyDNSSchema,
+			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyDNS,
+		},
+		api.ACLTemplatedPolicyNomadServerName: {
+			TemplateID:   ACLTemplatedPolicyNomadServerID,
+			TemplateName: api.ACLTemplatedPolicyNomadServerName,
+			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
+			Template:     ACLTemplatedPolicyNomadServer,
+		},
+		api.ACLTemplatedPolicyWorkloadIdentityName: {
+			TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			Schema:       ACLTemplatedPolicyWorkloadIdentitySchema,
+			Template:     ACLTemplatedPolicyWorkloadIdentity,
 		},
 	}
 )
@@ -271,6 +283,7 @@ func GetACLTemplatedPolicyBase(templateName string) (*ACLTemplatedPolicyBase, bo
 	return nil, false
 }
 
+// GetACLTemplatedPolicyList returns a copy of the list of templated policies
 func GetACLTemplatedPolicyList() map[string]*ACLTemplatedPolicyBase {
 	m := make(map[string]*ACLTemplatedPolicyBase, len(aclTemplatedPoliciesList))
 	for k, v := range aclTemplatedPoliciesList {

@@ -6,7 +6,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -86,11 +85,11 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:          testutil.Logger(t),
-		Registry:        resource.NewRegistry(),
-		Backend:         backend,
-		ACLResolver:     mockACLResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Logger:        testutil.Logger(t),
+		Registry:      resource.NewRegistry(),
+		Backend:       backend,
+		ACLResolver:   mockACLResolver,
+		TenancyBridge: mockTenancyBridge,
 	})
 }
 
@@ -166,14 +165,6 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
-		"namespaced type with uppercase partition and namespace": {
-			typ: demo.TypeV2Artist,
-			tenancy: &pbresource.Tenancy{
-				Partition: "DEFAULT",
-				Namespace: "DEFAULT",
-				PeerName:  "local",
-			},
-		},
 		"namespaced type with wildcard partition and empty namespace": {
 			typ: demo.TypeV2Artist,
 			tenancy: &pbresource.Tenancy{
@@ -198,14 +189,6 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
-		"partitioned type with uppercase partition": {
-			typ: demo.TypeV1RecordLabel,
-			tenancy: &pbresource.Tenancy{
-				Partition: "DEFAULT",
-				Namespace: "",
-				PeerName:  "local",
-			},
-		},
 		"partitioned type with wildcard partition": {
 			typ: demo.TypeV1RecordLabel,
 			tenancy: &pbresource.Tenancy{
@@ -223,12 +206,6 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 	tenancyCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
 		"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
 			return artistId
-		},
-		"namespaced resource provides uppercase partition and namespace": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			id := clone(artistId)
-			id.Tenancy.Partition = strings.ToUpper(artistId.Tenancy.Partition)
-			id.Tenancy.Namespace = strings.ToUpper(artistId.Tenancy.Namespace)
-			return id
 		},
 		"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			id := clone(artistId)
@@ -253,11 +230,6 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 		},
 		"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			return recordLabelId
-		},
-		"partitioned resource provides uppercase partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-			id := clone(recordLabelId)
-			id.Tenancy.Partition = strings.ToUpper(recordLabelId.Tenancy.Partition)
-			return id
 		},
 		"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			id := clone(recordLabelId)

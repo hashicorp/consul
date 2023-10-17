@@ -221,6 +221,17 @@ type ACLResolverSettings struct {
 	ACLDefaultPolicy string
 }
 
+func (s ACLResolverSettings) IsDefaultAllow() (bool, error) {
+	switch s.ACLDefaultPolicy {
+	case "allow":
+		return true, nil
+	case "deny":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unexpected ACL default policy value of %q", s.ACLDefaultPolicy)
+	}
+}
+
 // ACLResolver is the type to handle all your token and policy resolution needs.
 //
 // Supports:

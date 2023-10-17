@@ -4,10 +4,6 @@
 name: test-integrations-windows
 
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    # Run nightly at 12AM UTC/8PM EST/5PM PST.
-    - cron: '0 0 * * *'
   workflow_dispatch:
 
 env:
@@ -58,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: [ "1.24.10", "1.25.9", "1.26.4", "1.27.0" ]
+        envoy-version: [ "1.27.0" ]
         xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
@@ -75,6 +71,11 @@ jobs:
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ${{ github.workspace }}
+
+      - name: Create dist folder and copy binary
+        run: |
+          mkdir dist
+          cp ${{ github.workspace }}\consul.exe dist\
 
       - name: Restore mode+x
         run: icacls ${{ github.workspace }}\consul.exe /grant:rx Everyone:RX
@@ -103,22 +104,22 @@ jobs:
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
 
-      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
-        shell: bash
-        if: always()
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-api-gateway-http-hostnames"
-          # shellcheck disable=SC2001
-          go test -v -timeout=45m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
+#      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+#        shell: bash
+#        if: always()
+#        env:
+#          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+#          GOTESTSUM_FORMAT: standard-verbose
+#          COMPOSE_INTERACTIVE_NO_CLI: 1
+#          LAMBDA_TESTS_ENABLED: "true"
+#          # tput complains if this isn't set to something.
+#          TERM: ansi
+#        run: |
+#          # shellcheck disable=SC2001
+#          echo "Running Integration Test case-api-gateway-http-hostnames"
+#          # shellcheck disable=SC2001
+#          go test -v -timeout=45m -tags integration \
+#            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-simple
         shell: bash

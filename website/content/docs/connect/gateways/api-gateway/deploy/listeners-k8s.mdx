@@ -1,0 +1,74 @@
+---
+layout: docs
+page_title: Deploy API gateway listeners in Kubernetes
+description: >-
+  Learn how to create API gateway configurations in Kubernetes that enable you to instantiate gateway instances.
+---
+
+# Deploy API gateway listeners in Kubernetes
+
+This topic describes how to deploy Consul API gateway listeners to Kubernetes-orchestrated environments. If you want to implement API gateway listeners on VMs, refer to [Deploy API gateway listeners to virtual machines](/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms).
+
+## Overview
+
+API gateways have one or more listeners that serve as ingress points for requests to services in a Consul service mesh. Create an [API gateway configuration](/consul/docs/connect/gateways/api-gateway/configuration/gateway) and define listeners that expose ports on the endpoint for ingress. Apply the configuration to direct Kubernetes to start API gateway services. 
+
+### Routes
+
+After deploying the gateway, attach HTTP or TCP [routes](/consul/docs/connect/gateways/api-gateway/configuration/routes) to listeners defined in the gateway to control how requests route to services in the network.
+
+### Intentions
+
+Configure Consul intentions to allow or prevent traffic between gateway listeners and services in the mesh. Refer to [Service intentions](/consul/docs/connect/intentions) for additional information. 
+
+
+## Requirements
+
+1. Verify that your environment meets the requirements specified in [Technical specifications for Kubernetes](/consul/docs/connect/gateways/api-gateway/tech-specs).
+1. Verify that the Consul API Gateway CRDs were applied. Refer to [Installation](/consul/docs/connect/gateways/api-gateway/install-k8s) for details.
+1. If your Kubernetes-orchestrated network runs on OpenShift, verify that OpenShift is enabled for your Consul installation. Refer to [OpenShift requirements](/consul/docs/connect/gateways/api-gateway/tech-specs#openshift-requirements) for additional information. 
+
+## Define the gateway and listeners
+
+Create an API gateway values file that defines the gateway and listeners.
+
+1. Specify the following fields:
+    - `apiVersion`: Specifies the Kubernetes gateway API version. Must be `gateway.networking.k8s.io/v1beta1`.
+    - `kind`: Specifies the type of configuration entry to implement. This must be `Gateway`. 
+    - `metadata.name`:  Specify a name for the gateway configuration. The name is metadata that you can use to reference the configuration when performing Consul operations.
+    - `spec.gatewayClassName`:  Specify the name of a `gatewayClass` configuration. Gateway classes are template-like resources in Kubernetes for instantiating gateway services. Specify `consul` to use the default gateway class shipped with Consul. Refer to the [GatewayClass configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/gatewayclass) for additional information.
+    - `spec.listeners`: Specify a list of listener configurations. Each listener is map containing the following fields:
+      - `port`: Specifies the port that the listener receives traffic on.
+      - `name`: Specifies a unique name for the listener.
+      - `protocol`: You can set either `tcp` or `http` 
+      - `allowedRoutes.namespaces`: Contains configurations for determining which namespaces are allowed to attach a route to the listener. 
+1. Configure any additional fields necessary for your use case, such as the namespace or admin partition. Refer to the [API gateway configuration entry reference](/consul/docs/connect/gateways/api-gateway/configuration/gateway) for additional information.
+1. Save the configuration.
+
+In the following example, the API gateway specifies an HTTP listener on port `80`:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: my-gateway
+  namespace: consul
+spec:
+  gatewayClassName: consul
+  listeners:
+  - protocol: HTTP
+    port: 80
+    name: http
+    allowedRoutes:
+      namespaces:
+        from: "All"
+```
+
+
+## Deploy the API gateway and listeners
+
+Apply the configuration to your cluster using the `kubectl` command. The following command applies the configuration to the `consul` namespace:
+
+```shell-session
+$ kubectl apply -f my-gateway.yaml -n consul
+```

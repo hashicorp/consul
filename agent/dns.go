@@ -416,7 +416,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	args := structs.DCSpecificRequest{
 		Datacenter: datacenter,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.coalesceDNSToken(),
 			AllowStale: cfg.AllowStale,
 		},
 	}
@@ -452,7 +452,7 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 		sargs := structs.ServiceSpecificRequest{
 			Datacenter: datacenter,
 			QueryOptions: structs.QueryOptions{
-				Token:      d.agent.tokens.UserToken(),
+				Token:      d.coalesceDNSToken(),
 				AllowStale: cfg.AllowStale,
 			},
 			ServiceAddress: serviceAddress,
@@ -513,7 +513,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 
 	cfg := d.config.Load().(*dnsConfig)
 
-	// Setup the message response
+	// Set up the message response
 	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
@@ -875,7 +875,7 @@ func (d *DNSServer) dispatch(remoteAddr net.Addr, req, resp *dns.Msg, maxRecursi
 			ServiceName:    queryParts[len(queryParts)-1],
 			EnterpriseMeta: locality.EnterpriseMeta,
 			QueryOptions: structs.QueryOptions{
-				Token: d.agent.tokens.UserToken(),
+				Token: d.coalesceDNSToken(),
 			},
 		}
 		if args.PeerName == "" {
@@ -1093,7 +1093,7 @@ func (d *DNSServer) nodeLookup(cfg *dnsConfig, lookup nodeLookup, req, resp *dns
 		PeerName:   lookup.PeerName,
 		Node:       lookup.Node,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.coalesceDNSToken(),
 			AllowStale: cfg.AllowStale,
 		},
 		EnterpriseMeta: lookup.EnterpriseMeta,
@@ -1425,7 +1425,7 @@ func (d *DNSServer) lookupServiceNodes(cfg *dnsConfig, lookup serviceLookup) (st
 		ServiceTags: serviceTags,
 		TagFilter:   lookup.Tag != "",
 		QueryOptions: structs.QueryOptions{
-			Token:            d.agent.tokens.UserToken(),
+			Token:            d.coalesceDNSToken(),
 			AllowStale:       cfg.AllowStale,
 			MaxAge:           cfg.CacheMaxAge,
 			UseCache:         cfg.UseCache,
@@ -1503,7 +1503,7 @@ func (d *DNSServer) preparedQueryLookup(cfg *dnsConfig, datacenter, query string
 		Datacenter:    datacenter,
 		QueryIDOrName: query,
 		QueryOptions: structs.QueryOptions{
-			Token:      d.agent.tokens.UserToken(),
+			Token:      d.coalesceDNSToken(),
 			AllowStale: cfg.AllowStale,
 			MaxAge:     cfg.CacheMaxAge,
 		},
@@ -2171,4 +2171,12 @@ func (d *DNSServer) resolveCNAME(cfg *dnsConfig, name string, maxRecursionLevel 
 	}
 	d.logger.Error("all resolvers failed for name", "name", name)
 	return nil
+}
+
+func (d *DNSServer) coalesceDNSToken() string {
+	if d.agent.tokens.DNSToken() != "" {
+		return d.agent.tokens.DNSToken()
+	} else {
+		return d.agent.tokens.UserToken()
+	}
 }

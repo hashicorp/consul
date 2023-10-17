@@ -1,0 +1,31 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+ARG CONSUL_DATAPLANE_IMAGE
+ARG CONSUL_IMAGE
+
+# Docker doesn't support expansion in COPY --copy, so we need to create an intermediate image.
+FROM ${CONSUL_IMAGE} as consul
+
+FROM ${CONSUL_DATAPLANE_IMAGE} as consuldataplane
+
+USER root
+
+# On Mac M1s when TProxy is enabled, consul-dataplane that are spawned from this image
+# (only used in consul-container integration tests) will terminate with the below error.
+# It is related to tproxy-startup.sh calling iptables SDK which then calls the underly
+# iptables. We are investigating how this works on M1s with consul-envoy images which
+# do not have this problem. For the time being tproxy tests on Mac M1s will fail locally
+# but pass in CI.
+#
+# Error setting up traffic redirection rules: failed to run command: /sbin/iptables -t nat -N CONSUL_PROXY_INBOUND, err: exit status 1, output: iptables: Failed to initialize nft: Protocol not supported
+RUN microdnf install -y iptables sudo nc \
+ 	&& usermod -a -G wheel consul-dataplane \
+ 	&& echo 'consul-dataplane ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+COPY --from=consul /bin/consul /bin/consul
+
+COPY tproxy-startup.sh /bin/tproxy-startup.sh
+RUN chmod +x /bin/tproxy-startup.sh && chown root:root /bin/tproxy-startup.sh
+
+USER 100

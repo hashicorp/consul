@@ -882,6 +882,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
 			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
 			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
+			ACLDNSToken:                    stringVal(c.ACL.Tokens.DNS),
 		},
 
 		// Autopilot
@@ -1132,6 +1133,15 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	}
 	if rt.Cache.EntryFetchRate <= 0 {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
+	}
+
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
+		// Allow override of this check for development/testing purposes. Should not be used in production
+		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
+		if err != nil || !override {
+			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
+		}
 	}
 
 	if rt.UIConfig.MetricsProvider == "prometheus" {
@@ -1404,7 +1414,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 		// Raft LogStore validation
 		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
-			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL && rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendDefault {
 			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
 				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
 		}
@@ -2550,7 +2560,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	// Node id might get overriden in setup.go:142
+	// Node id might get overridden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
 	val.NodeName = b.nodeName(v.NodeName)
@@ -2772,7 +2782,7 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
 	var cfg consul.RaftLogStoreConfig
 	if raw != nil {
-		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
 		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
 
 		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)

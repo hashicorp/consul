@@ -7,20 +7,17 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 )
 
-const (
-	GroupName       = "mesh"
-	VersionV1Alpha1 = "v1alpha1"
-	CurrentVersion  = VersionV1Alpha1
-)
-
 func Register(r resource.Registry) {
 	RegisterProxyConfiguration(r)
-	RegisterUpstreams(r)
-	RegisterUpstreamsConfiguration(r)
+	RegisterComputedProxyConfiguration(r)
+	RegisterDestinations(r)
+	RegisterComputedExplicitDestinations(r)
 	RegisterProxyStateTemplate(r)
 	RegisterHTTPRoute(r)
 	RegisterTCPRoute(r)
 	RegisterGRPCRoute(r)
 	RegisterDestinationPolicy(r)
 	RegisterComputedRoutes(r)
+	// todo (v2): uncomment once we implement it.
+	//RegisterDestinationsConfiguration(r)
 }

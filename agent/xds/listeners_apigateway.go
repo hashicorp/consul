@@ -6,12 +6,15 @@ package xds
 import (
 	"fmt"
 
+	"golang.org/x/exp/maps"
+
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 
+	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
@@ -107,15 +110,21 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, listenerFilterOpts{
-					useRDS:     useRDS,
-					protocol:   listenerKey.Protocol,
-					routeName:  listenerKey.RouteName(),
-					cluster:    clusterName,
-					statPrefix: "ingress_upstream_",
-					accessLogs: &cfgSnap.Proxy.AccessLogs,
-					logger:     s.Logger,
-				}, certs)
+				l.FilterChains, err = makeInlineOverrideFilterChains(
+					cfgSnap,
+					cfgSnap.APIGateway.TLSConfig,
+					listenerKey.Protocol,
+					listenerFilterOpts{
+						useRDS:     useRDS,
+						protocol:   listenerKey.Protocol,
+						routeName:  listenerKey.RouteName(),
+						cluster:    clusterName,
+						statPrefix: "ingress_upstream_",
+						accessLogs: &cfgSnap.Proxy.AccessLogs,
+						logger:     s.Logger,
+					},
+					certs,
+				)
 				if err != nil {
 					return nil, err
 				}
@@ -141,36 +150,47 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			}
 			listener := makeListener(listenerOpts)
 
-			route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(readyListener.routeReference)
-			foundJWT := false
-			if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
-				foundJWT = true
+			routes := make([]*structs.HTTPRouteConfigEntry, 0, len(readyListener.routeReferences))
+			for _, routeRef := range maps.Keys(readyListener.routeReferences) {
+				route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+				routes = append(routes, route)
 			}
+			consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, routes...)
+			routesWithJWT := []*structs.HTTPRouteConfigEntry{}
+			for _, routeCfgEntry := range consolidatedRoutes {
+				routeCfgEntry := routeCfgEntry
+				route := &routeCfgEntry
 
-			if !foundJWT && listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
-				foundJWT = true
-			}
+				if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
+					routesWithJWT = append(routesWithJWT, route)
+					continue
+				}
 
-			if !foundJWT {
+				if listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
+					routesWithJWT = append(routesWithJWT, route)
+					continue
+				}
+
 				for _, rule := range route.Rules {
 					if rule.Filters.JWT != nil {
-						foundJWT = true
-						break
+						routesWithJWT = append(routesWithJWT, route)
+						continue
 					}
 					for _, svc := range rule.Services {
 						if svc.Filters.JWT != nil {
-							foundJWT = true
-							break
+							routesWithJWT = append(routesWithJWT, route)
+							continue
 						}
 					}
 				}
+
 			}
 
 			var authFilters []*envoy_http_v3.HttpFilter
-			if foundJWT {
+			if len(routesWithJWT) > 0 {
 				builder := &GatewayAuthFilterBuilder{
 					listener:       listenerCfg,
-					route:          route,
+					routes:         routesWithJWT,
 					providers:      cfgSnap.JWTProviders,
 					envoyProviders: make(map[string]*envoy_http_jwt_authn_v3.JwtProvider, len(cfgSnap.JWTProviders)),
 				}
@@ -179,6 +199,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					return nil, err
 				}
 			}
+
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
 				protocol:         listenerKey.Protocol,
@@ -246,7 +267,7 @@ type readyListener struct {
 	listenerKey      proxycfg.APIGatewayListenerKey
 	listenerCfg      structs.APIGatewayListener
 	boundListenerCfg structs.BoundAPIGatewayListener
-	routeReference   structs.ResourceReference
+	routeReferences  map[structs.ResourceReference]struct{}
 	upstreams        []structs.Upstream
 }
 
@@ -276,26 +297,32 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 				continue
 			}
 
+			routeKey := l.Name + routeRef.String()
+
 			for _, upstream := range routeUpstreamsForListener {
 				// Insert or update readyListener for the listener to include this upstream
-				r, ok := ready[l.Name]
+				r, ok := ready[routeKey]
 				if !ok {
 					r = readyListener{
 						listenerKey:      listenerKey,
 						listenerCfg:      l,
+						routeReferences:  map[structs.ResourceReference]struct{}{},
 						boundListenerCfg: boundListener,
-						routeReference:   routeRef,
 					}
 				}
+				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
-				ready[l.Name] = r
+				ready[routeKey] = r
 			}
 		}
 	}
 	return ready
 }
 
-func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.DownstreamTlsContext, error) {
+func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	listenerCfg structs.APIGatewayListener,
+) (*envoy_tls_v3.DownstreamTlsContext, error) {
 	var downstreamContext *envoy_tls_v3.DownstreamTlsContext
 
 	tlsContext, err := makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap, listenerCfg)
@@ -316,7 +343,10 @@ func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap *proxycfg.Con
 	return downstreamContext, nil
 }
 
-func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.CommonTlsContext, error) {
+func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
+	cfgSnap *proxycfg.ConfigSnapshot,
+	listenerCfg structs.APIGatewayListener,
+) (*envoy_tls_v3.CommonTlsContext, error) {
 	var tlsContext *envoy_tls_v3.CommonTlsContext
 
 	// API Gateway TLS config is per listener

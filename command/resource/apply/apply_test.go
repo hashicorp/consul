@@ -5,12 +5,15 @@ package apply
 
 import (
 	"errors"
+	"io"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
+	"github.com/hashicorp/consul/command/resource/read"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestResourceApplyCommand(t *testing.T) {
@@ -36,7 +39,12 @@ func TestResourceApplyCommand(t *testing.T) {
 		{
 			name:   "nested data format",
 			args:   []string{"-f=../testdata/nested_data.hcl"},
-			output: "mesh.v1alpha1.Upstreams 'api' created.",
+			output: "mesh.v2beta1.Destinations 'api' created.",
+		},
+		{
+			name:   "file path with no flag",
+			args:   []string{"../testdata/nested_data.hcl"},
+			output: "mesh.v2beta1.Destinations 'api' created.",
 		},
 	}
 
@@ -60,6 +68,129 @@ func TestResourceApplyCommand(t *testing.T) {
 	}
 }
 
+func readResource(t *testing.T, a *agent.TestAgent, extraArgs []string) string {
+	readUi := cli.NewMockUi()
+	readCmd := read.New(readUi)
+
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-token=root",
+	}
+
+	args = append(extraArgs, args...)
+
+	code := readCmd.Run(args)
+	require.Equal(t, 0, code)
+	require.Empty(t, readUi.ErrorWriter.String())
+	return readUi.OutputWriter.String()
+}
+
+func TestResourceApplyCommand_StdIn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	t.Run("hcl", func(t *testing.T) {
+		stdinR, stdinW := io.Pipe()
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdinR
+
+		stdInput := `ID {
+			Type = gvk("demo.v2.Artist")
+			Name = "korn"
+			Tenancy {
+			  Namespace = "default"
+			  Partition = "default"
+			  PeerName = "local"
+			}
+		  }
+		  
+		  Data {
+			Name = "Korn"
+			Genre = "GENRE_METAL"
+		  }
+		  
+		  Metadata = {
+			"foo" = "bar"
+		  }`
+
+		go func() {
+			stdinW.Write([]byte(stdInput))
+			stdinW.Close()
+		}()
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-",
+		}
+
+		code := c.Run(args)
+		require.Equal(t, 0, code)
+		require.Empty(t, ui.ErrorWriter.String())
+		expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
+		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
+		require.Contains(t, ui.OutputWriter.String(), expected)
+	})
+
+	t.Run("json", func(t *testing.T) {
+		stdinR, stdinW := io.Pipe()
+
+		ui := cli.NewMockUi()
+		c := New(ui)
+		c.testStdin = stdinR
+
+		stdInput := `{
+			"data": {
+				"genre": "GENRE_METAL",
+				"name": "Korn"
+			},
+			"id": {
+				"name": "korn",
+				"tenancy": {
+					"namespace": "default",
+					"partition": "default",
+					"peerName": "local"
+				},
+				"type": {
+					"group": "demo",
+					"groupVersion": "v2",
+					"kind": "Artist"
+				}
+			},
+			"metadata": {
+				"foo": "bar"
+			}
+		}`
+
+		go func() {
+			stdinW.Write([]byte(stdInput))
+			stdinW.Close()
+		}()
+
+		args := []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-",
+		}
+
+		code := c.Run(args)
+		require.Equal(t, 0, code)
+		require.Empty(t, ui.ErrorWriter.String())
+		expected := readResource(t, a, []string{"demo.v2.Artist", "korn"})
+		require.Contains(t, ui.OutputWriter.String(), "demo.v2.Artist 'korn' created.")
+		require.Contains(t, ui.OutputWriter.String(), expected)
+	})
+}
+
 func TestResourceApplyInvalidArgs(t *testing.T) {
 	t.Parallel()
 
@@ -78,7 +209,7 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		"missing required flag": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Flag -f is required"),
+			expectedErr:  errors.New("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write"),
 		},
 		"file parsing failure": {
 			args:         []string{"-f=../testdata/invalid.hcl"},

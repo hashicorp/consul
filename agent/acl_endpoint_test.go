@@ -1372,13 +1372,13 @@ func TestACL_HTTP(t *testing.T) {
 
 			require.Equal(t, http.StatusOK, resp.Code)
 
-			var list map[string]ACLTemplatedPolicyResponse
+			var list map[string]api.ACLTemplatedPolicyResponse
 			require.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-			require.Len(t, list, 3)
+			require.Len(t, list, 5)
 
-			require.Equal(t, ACLTemplatedPolicyResponse{
+			require.Equal(t, api.ACLTemplatedPolicyResponse{
 				TemplateName: api.ACLTemplatedPolicyServiceName,
-				Schema:       structs.ACLTemplatedPolicyIdentitiesSchema,
+				Schema:       structs.ACLTemplatedPolicyServiceSchema,
 				Template:     structs.ACLTemplatedPolicyService,
 			}, list[api.ACLTemplatedPolicyServiceName])
 		})
@@ -1399,9 +1399,9 @@ func TestACL_HTTP(t *testing.T) {
 				a.srv.h.ServeHTTP(resp, req)
 				require.Equal(t, http.StatusOK, resp.Code)
 
-				var templatedPolicy ACLTemplatedPolicyResponse
+				var templatedPolicy api.ACLTemplatedPolicyResponse
 				require.NoError(t, json.NewDecoder(resp.Body).Decode(&templatedPolicy))
-				require.Equal(t, structs.ACLTemplatedPolicyDNSSchema, templatedPolicy.Schema)
+				require.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, templatedPolicy.Schema)
 				require.Equal(t, api.ACLTemplatedPolicyDNSName, templatedPolicy.TemplateName)
 				require.Equal(t, structs.ACLTemplatedPolicyDNS, templatedPolicy.Template)
 			})
@@ -2190,7 +2190,7 @@ func TestACL_Authorize(t *testing.T) {
 	policyReq := structs.ACLPolicySetRequest{
 		Policy: structs.ACLPolicy{
 			Name:  "test",
-			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
+			Rules: `acl = "read" operator = "write" identity_prefix "" { policy = "read"} service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
 		},
 		Datacenter:   "dc1",
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -2273,6 +2273,16 @@ func TestACL_Authorize(t *testing.T) {
 			},
 			{
 				Resource: "event",
+				Segment:  "foo",
+				Access:   "write",
+			},
+			{
+				Resource: "identity",
+				Segment:  "foo",
+				Access:   "read",
+			},
+			{
+				Resource: "identity",
 				Segment:  "foo",
 				Access:   "write",
 			},
@@ -2427,6 +2437,16 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
+			Resource: "identity",
+			Segment:  "foo",
+			Access:   "read",
+		},
+		{
+			Resource: "identity",
+			Segment:  "foo",
+			Access:   "write",
+		},
+		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "read",
@@ -2532,6 +2552,8 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
+		true,  // identity:read
+		false, // identity:write
 		true,  // intentions:read
 		false, // intention:write
 		false, // key:read

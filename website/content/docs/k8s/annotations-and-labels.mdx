@@ -81,7 +81,8 @@ The following Kubernetes resource annotations could be used on a pod to control 
   local port to listen for those connections. When transparent proxy is enabled,
   this annotation is optional. This annotation can be either _labeled_ or _unlabeled_. We recommend the labeled format because it has a more consistent syntax and can be used to reference cluster peers as upstreams.
 
- - **Labeled**:
+    You cannot reference auto-generated environment variables when the upstream annotation contains a dot. This is because Consul also renders the environment variables to include a dot. For example, Consul renders the variables generated for `static-server.svc:8080` as `STATIC-SERVER.SVC_CONNECT_SERVICE_HOST` and `STATIC_SERVER.SVC_CONNECT_SERVICE_PORT`, which makes the variables unusable.
+    - **Labeled**:
 
       The labeled annotation format allows you to reference any service as an upstream. You can specify a Consul Enterprise namespace. You can also specify an admin partition in the same datacenter, a cluster peer, or a WAN-federated datacenter.
 

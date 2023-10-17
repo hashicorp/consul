@@ -15,9 +15,9 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -87,7 +87,7 @@ func TestAgent_local_proxycfg(t *testing.T) {
 			// Prior to fixes in https://github.com/hashicorp/consul/pull/16497
 			// this call to Watch() would deadlock.
 			var err error
-			ch, stc, cancel, err = cfg.Watch(rtest.Resource(mesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
+			ch, stc, cancel, err = cfg.Watch(rtest.Resource(pbmesh.ProxyConfigurationType, sid.ID).ID(), a.config.NodeName, token)
 			require.NoError(t, err)
 		}
 		select {

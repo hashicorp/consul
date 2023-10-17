@@ -75,6 +75,34 @@ func (s *staticAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDec
 	return Deny
 }
 
+func (s *staticAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) IntentionDefaultAllow(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -259,6 +287,20 @@ func (s *staticAuthorizer) SessionWrite(string, *AuthorizerContext) EnforcementD
 
 func (s *staticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	if s.allowManage {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
 		return Allow
 	}
 	return Deny

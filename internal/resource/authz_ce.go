@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
-// +build !consulent
 
 package resource
 
@@ -13,5 +12,7 @@ import (
 
 // AuthorizerContext builds an ACL AuthorizerContext for the given tenancy.
 func AuthorizerContext(t *pbresource.Tenancy) *acl.AuthorizerContext {
-	return &acl.AuthorizerContext{Peer: t.PeerName}
+	return &acl.AuthorizerContext{
+		Peer: peerNameV2ToV1(t.PeerName),
+	}
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/go-bexpr"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"

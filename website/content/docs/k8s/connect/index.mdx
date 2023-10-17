@@ -167,6 +167,7 @@ upstream. This is analogous to the standard Kubernetes service environment varia
 point instead to the correct local proxy port to establish connections via
 service mesh.
 
+You cannot reference auto-generated environment variables when the upstream annotation contains a dot. This is because Consul also renders the environment variables to include a dot. For example, Consul renders the variables generated for `static-server.svc:8080` as `STATIC-SERVER.SVC_CONNECT_SERVICE_HOST` and `STATIC_SERVER.SVC_CONNECT_SERVICE_PORT`, which makes the variables unusable.
 You can verify access to the static text server using `kubectl exec`.
 Because transparent proxy is enabled by default,
 use Kubernetes DNS to connect to your desired upstream.

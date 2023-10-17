@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package apply
 
@@ -8,15 +8,15 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
-	"github.com/hashicorp/consul/internal/resourcehcl"
+	"github.com/hashicorp/consul/command/resource/client"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -33,6 +33,8 @@ type cmd struct {
 	help  string
 
 	filePath string
+
+	testStdin io.Reader
 }
 
 func (c *cmd) init() {
@@ -45,7 +47,7 @@ func (c *cmd) init() {
 	c.help = flags.Usage(help, c.flags)
 }
 
-func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRequest, error error) {
+func makeWriteRequest(parsedResource *pbresource.Resource) (payload *resource.WriteRequest, error error) {
 	// The parsed hcl file has data field in proto message format anypb.Any
 	// Converting to json format requires us to fisrt marshal it then unmarshal it
 	data, err := protojson.Marshal(parsedResource.Data)
@@ -60,7 +62,7 @@ func makeWriteRequest(parsedResource *pbresource.Resource) (payload *api.WriteRe
 	}
 	delete(resourceData, "@type")
 
-	return &api.WriteRequest{
+	return &resource.WriteRequest{
 		Data:     resourceData,
 		Metadata: parsedResource.GetMetadata(),
 		Owner:    parsedResource.GetOwner(),
@@ -75,17 +77,23 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
+	input := c.filePath
+
+	if input == "" && len(c.flags.Args()) > 0 {
+		input = c.flags.Arg(0)
+	}
+
 	var parsedResource *pbresource.Resource
 
-	if c.filePath != "" {
-		data, err := resource.ParseResourceFromFile(c.filePath)
+	if input != "" {
+		data, err := resource.ParseResourceInput(input, c.testStdin)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 			return 1
 		}
 		parsedResource = data
 	} else {
-		c.UI.Error("Flag -f is required")
+		c.UI.Error("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write")
 		return 1
 	}
 
@@ -94,20 +102,25 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	client, err := c.http.APIClient()
+	config := api.DefaultConfig()
+
+	c.http.MergeOntoConfig(config)
+	resourceClient, err := client.NewClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	opts := &api.QueryOptions{
+	res := resource.Resource{C: resourceClient}
+
+	opts := &client.QueryOptions{
 		Namespace: parsedResource.Id.Tenancy.GetNamespace(),
 		Partition: parsedResource.Id.Tenancy.GetPartition(),
 		Peer:      parsedResource.Id.Tenancy.GetPeerName(),
 		Token:     c.http.Token(),
 	}
 
-	gvk := &api.GVK{
+	gvk := &resource.GVK{
 		Group:   parsedResource.Id.Type.GetGroup(),
 		Version: parsedResource.Id.Type.GetGroupVersion(),
 		Kind:    parsedResource.Id.Type.GetKind(),
@@ -119,7 +132,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
-	entry, _, err := client.Resource().Apply(gvk, parsedResource.Id.GetName(), opts, writeRequest)
+	entry, err := res.Apply(gvk, parsedResource.Id.GetName(), opts, writeRequest)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", gvk, parsedResource.Id.GetName(), err))
 		return 1
@@ -136,17 +149,6 @@ func (c *cmd) Run(args []string) int {
 	return 0
 }
 
-func parseResource(data string) (resource *pbresource.Resource, e error) {
-	// parse the data
-	raw := []byte(data)
-	resource, err := resourcehcl.Unmarshal(raw, consul.NewTypeRegistry())
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-	}
-
-	return resource, nil
-}
-
 func (c *cmd) Synopsis() string {
 	return synopsis
 }
@@ -156,32 +158,44 @@ func (c *cmd) Help() string {
 }
 
 const synopsis = "Writes/updates resource information"
+
 const help = `
-Usage: consul resource apply -f=<file-path>
+Usage: consul resource apply [options] <resource>
 
-Write and/or update a resource by providing the definition in an hcl file as an argument
+	Write and/or update a resource by providing the definition. The configuration
+	argument is either a file path or '-' to indicate that the resource
+    should be read from stdin. The data should be either in HCL or
+	JSON form.
 
-Example:
+	Example (with flag):
 
-$ consul resource apply -f=demo.hcl
+	$ consul resource apply -f=demo.hcl
 
-Sample demo.hcl:
+	Example (from file):
 
-ID {
-	Type = gvk("group.version.kind")
-	Name = "resource-name"
-	Tenancy {
-	  Namespace = "default"
-	  Partition = "default"
-	  PeerName = "local"
+	$ consul resource apply demo.hcl
+
+	Example (from stdin):
+
+	$ consul resource apply -
+
+	Sample demo.hcl:
+
+	ID {
+		Type = gvk("group.version.kind")
+		Name = "resource-name"
+		Tenancy {
+		Namespace = "default"
+		Partition = "default"
+		PeerName = "local"
+		}
 	}
-  }
 
-  Data {
-	Name = "demo"
-  }
+	Data {
+		Name = "demo"
+	}
 
-  Metadata = {
-	"foo" = "bar"
-  }
+	Metadata = {
+		"foo" = "bar"
+	}
 `

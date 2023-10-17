@@ -6,11 +6,10 @@ package failovermapper
 import (
 	"context"
 
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -24,7 +23,7 @@ type Mapper struct {
 // New creates a new Mapper.
 func New() *Mapper {
 	return &Mapper{
-		b: bimapper.New(types.FailoverPolicyType, types.ServiceType),
+		b: bimapper.New(pbcatalog.FailoverPolicyType, pbcatalog.ServiceType),
 	}
 }
 
@@ -34,7 +33,7 @@ func New() *Mapper {
 func (m *Mapper) TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy]) {
 	destRefs := failover.Data.GetUnderlyingDestinationRefs()
 	destRefs = append(destRefs, &pbresource.Reference{
-		Type:    types.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: failover.Resource.Id.Tenancy,
 		Name:    failover.Resource.Id.Name,
 	})

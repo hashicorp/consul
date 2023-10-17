@@ -10,32 +10,50 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	GRPCRouteKind = "GRPCRoute"
-)
-
-var (
-	GRPCRouteV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         GRPCRouteKind,
-	}
-
-	GRPCRouteType = GRPCRouteV1Alpha1Type
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  GRPCRouteV1Alpha1Type,
-		Proto: &pbmesh.GRPCRoute{},
-		Scope: resource.ScopeNamespace,
-		// TODO(rb): normalize parent/backend ref tenancies in a Mutate hook
+		Type:     pbmesh.GRPCRouteType,
+		Proto:    &pbmesh.GRPCRoute{},
+		Scope:    resource.ScopeNamespace,
+		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),
 	})
+}
+
+func MutateGRPCRoute(res *pbresource.Resource) error {
+	var route pbmesh.GRPCRoute
+
+	if err := res.Data.UnmarshalTo(&route); err != nil {
+		return resource.NewErrDataParse(&route, err)
+	}
+
+	changed := false
+
+	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+		changed = true
+	}
+
+	for _, rule := range route.Rules {
+		for _, backend := range rule.BackendRefs {
+			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
+				continue
+			}
+			if mutateXRouteRef(res.Id.Tenancy, backend.BackendRef.Ref) {
+				changed = true
+			}
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return res.Data.MarshalFrom(&route)
 }
 
 func ValidateGRPCRoute(res *pbresource.Resource) error {
@@ -46,7 +64,7 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 	}
 
 	var merr error
-	if err := validateParentRefs(route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
@@ -170,14 +188,6 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 		}
 
 		if len(rule.BackendRefs) == 0 {
-			/*
-				BackendRefs (optional)¶
-
-				BackendRefs defines API objects where matching requests should be
-				sent. If unspecified, the rule performs no forwarding. If
-				unspecified and no filters are specified that would result in a
-				response being sent, a 404 error code is returned.
-			*/
 			merr = multierror.Append(merr, wrapRuleErr(
 				resource.ErrInvalidField{
 					Name:    "backend_refs",
@@ -193,13 +203,15 @@ func ValidateGRPCRoute(res *pbresource.Resource) error {
 					Wrapped: err,
 				})
 			}
-			for _, err := range validateBackendRef(hbref.BackendRef) {
-				merr = multierror.Append(merr, wrapBackendRefErr(
-					resource.ErrInvalidField{
-						Name:    "backend_ref",
-						Wrapped: err,
-					},
-				))
+
+			wrapBackendRefFieldErr := func(err error) error {
+				return wrapBackendRefErr(resource.ErrInvalidField{
+					Name:    "backend_ref",
+					Wrapped: err,
+				})
+			}
+			if err := validateBackendRef(hbref.BackendRef, wrapBackendRefFieldErr); err != nil {
+				merr = multierror.Append(merr, err)
 			}
 
 			if len(hbref.Filters) > 0 {

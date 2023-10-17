@@ -12,13 +12,11 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 
 	"github.com/hashicorp/consul/acl"
@@ -59,9 +57,8 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			Tenancy: &pbresource.Tenancy{
 				Namespace: req.Namespace,
 				Partition: req.Partition,
-				PeerName:  "local",
 			},
-			Type: catalog.WorkloadType,
+			Type: pbcatalog.WorkloadType,
 		}
 		workloadRsp, err := s.ResourceAPIClient.Read(ctx, &pbresource.ReadRequest{
 			Id: workloadId,
@@ -69,6 +66,7 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 		if err != nil {
 			// This error should already include the gRPC status code and so we don't need to wrap it
 			// in status.Error.
+			logger.Error("Error looking up workload", "error", err)
 			return nil, err
 		}
 		var workload pbcatalog.Workload
@@ -82,47 +80,38 @@ func (s *Server) GetEnvoyBootstrapParams(ctx context.Context, req *pbdataplane.G
 			return nil, status.Errorf(codes.InvalidArgument, "workload %q doesn't have identity associated with it", req.ProxyId)
 		}
 
-		// todo (ishustava): ACL enforcement ensuring there's identity:write permissions.
-
-		// Get all proxy configurations for this workload. Currently we're only looking
-		// for proxy configurations in the same tenancy as the workload.
-		// todo (ishustava): we need to support wildcard proxy configurations as well.
-
-		proxyCfgList, err := s.ResourceAPIClient.List(ctx, &pbresource.ListRequest{
-			Tenancy: workloadRsp.Resource.Id.GetTenancy(),
-			Type:    mesh.ProxyConfigurationType,
-		})
-		if err != nil {
+		// verify identity:write is allowed.  if not, give permission denied error.
+		if err := authz.ToAllowAuthorizer().IdentityWriteAllowed(workload.Identity, &authzContext); err != nil {
 			return nil, err
 		}
 
-		// Collect and merge proxy configs.
-		// todo (ishustava): sorting and conflict resolution.
-		bootstrapCfg := &pbmesh.BootstrapConfig{}
-		dynamicCfg := &pbmesh.DynamicConfig{}
-		for _, cfgResource := range proxyCfgList.Resources {
-			var proxyCfg pbmesh.ProxyConfiguration
-			err = cfgResource.Data.UnmarshalTo(&proxyCfg)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "failed to parse proxy configuration data: %q", cfgResource.Id.Name)
-			}
-			if isWorkloadSelected(req.ProxyId, proxyCfg.Workloads) {
-				proto.Merge(bootstrapCfg, proxyCfg.BootstrapConfig)
-				proto.Merge(dynamicCfg, proxyCfg.DynamicConfig)
-			}
+		computedProxyConfig, err := resource.GetDecodedResource[*pbmesh.ComputedProxyConfiguration](
+			ctx,
+			s.ResourceAPIClient,
+			resource.ReplaceType(pbmesh.ComputedProxyConfigurationType, workloadId))
+
+		if err != nil {
+			logger.Error("Error looking up ComputedProxyConfiguration for this workload", "error", err)
+			return nil, err
 		}
 
-		accessLogs := makeAccessLogs(dynamicCfg.GetAccessLogs(), logger)
+		rsp := &pbdataplane.GetEnvoyBootstrapParamsResponse{
+			Identity:   workload.Identity,
+			Partition:  workloadRsp.Resource.Id.Tenancy.Partition,
+			Namespace:  workloadRsp.Resource.Id.Tenancy.Namespace,
+			Datacenter: s.Datacenter,
+			NodeName:   workload.NodeName,
+		}
 
-		return &pbdataplane.GetEnvoyBootstrapParamsResponse{
-			Identity:        workload.Identity,
-			Partition:       workloadRsp.Resource.Id.Tenancy.Partition,
-			Namespace:       workloadRsp.Resource.Id.Tenancy.Namespace,
-			BootstrapConfig: bootstrapCfg,
-			Datacenter:      s.Datacenter,
-			NodeName:        workload.NodeName,
-			AccessLogs:      accessLogs,
-		}, nil
+		if computedProxyConfig != nil {
+			if computedProxyConfig.GetData().GetDynamicConfig() != nil {
+				rsp.AccessLogs = makeAccessLogs(computedProxyConfig.GetData().GetDynamicConfig().GetAccessLogs(), logger)
+			}
+
+			rsp.BootstrapConfig = computedProxyConfig.GetData().GetBootstrapConfig()
+		}
+
+		return rsp, nil
 	}
 
 	// The remainder of this file focuses on v1 implementation of this endpoint.
@@ -212,20 +201,4 @@ func makeAccessLogs(logs structs.AccessLogs, logger hclog.Logger) []string {
 	}
 
 	return accessLogs
-}
-
-func isWorkloadSelected(name string, selector *pbcatalog.WorkloadSelector) bool {
-	for _, prefix := range selector.Prefixes {
-		if strings.Contains(name, prefix) {
-			return true
-		}
-	}
-
-	for _, selectorName := range selector.Names {
-		if name == selectorName {
-			return true
-		}
-	}
-
-	return false
 }

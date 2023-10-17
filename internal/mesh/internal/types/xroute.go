@@ -6,13 +6,16 @@ package types
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type XRouteData interface {
@@ -30,7 +33,34 @@ type portedRefKey struct {
 	Port string
 }
 
-func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
+func mutateParentRefs(xrouteTenancy *pbresource.Tenancy, parentRefs []*pbmesh.ParentReference) (changed bool) {
+	for _, parent := range parentRefs {
+		if parent.Ref == nil {
+			continue
+		}
+		changedThis := mutateXRouteRef(xrouteTenancy, parent.Ref)
+		if changedThis {
+			changed = true
+		}
+	}
+	return changed
+}
+
+func mutateXRouteRef(xrouteTenancy *pbresource.Tenancy, ref *pbresource.Reference) (changed bool) {
+	if ref == nil {
+		return false
+	}
+	orig := proto.Clone(ref).(*pbresource.Reference)
+	resource.DefaultReferenceTenancy(
+		ref,
+		xrouteTenancy,
+		resource.DefaultNamespacedTenancy(), // All xRoutes are namespace scoped.
+	)
+
+	return !proto.Equal(orig, ref)
+}
+
+func validateParentRefs(id *pbresource.ID, parentRefs []*pbmesh.ParentReference) error {
 	var merr error
 	if len(parentRefs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
@@ -51,36 +81,23 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				Wrapped: err,
 			}
 		}
-		if parent.Ref == nil {
-			merr = multierror.Append(merr, wrapErr(
-				resource.ErrInvalidField{
-					Name:    "ref",
-					Wrapped: resource.ErrMissing,
-				},
-			))
-		} else {
-			if !IsServiceType(parent.Ref.Type) {
-				merr = multierror.Append(merr, wrapErr(
-					resource.ErrInvalidField{
-						Name: "ref",
-						Wrapped: resource.ErrInvalidReferenceType{
-							AllowedType: catalog.ServiceType,
-						},
-					},
-				))
-			}
-			if parent.Ref.Section != "" {
-				merr = multierror.Append(merr, wrapErr(
-					resource.ErrInvalidField{
-						Name: "ref",
-						Wrapped: resource.ErrInvalidField{
-							Name:    "section",
-							Wrapped: errors.New("section not supported for service parent refs"),
-						},
-					},
-				))
-			}
 
+		wrapRefErr := func(err error) error {
+			return wrapErr(resource.ErrInvalidField{
+				Name:    "ref",
+				Wrapped: err,
+			})
+		}
+
+		if err := catalog.ValidateLocalServiceRefNoSection(parent.Ref, wrapRefErr); err != nil {
+			merr = multierror.Append(merr, err)
+		} else {
+			if !resource.EqualTenancy(id.Tenancy, parent.Ref.Tenancy) {
+				merr = multierror.Append(merr, wrapRefErr(resource.ErrInvalidField{
+					Name:    "tenancy",
+					Wrapped: resource.ErrReferenceTenancyNotEqual,
+				}))
+			}
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,
@@ -94,7 +111,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				if portExist { // check for duplicate wild
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for wildcard port exists twice",
 								resource.ReferenceToString(parent.Ref),
@@ -104,7 +121,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				} else if exactExists { // check for existing exact
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for ports %v covered by wildcard port already",
 								resource.ReferenceToString(parent.Ref),
@@ -124,7 +141,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				if portExist { // check for duplicate exact
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for port %q exists twice",
 								resource.ReferenceToString(parent.Ref),
@@ -135,7 +152,7 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 				} else if wildExist { // check for existing wild
 					merr = multierror.Append(merr, wrapErr(
 						resource.ErrInvalidField{
-							Name: "ref",
+							Name: "port",
 							Wrapped: fmt.Errorf(
 								"parent ref %q for port %q covered by wildcard port already",
 								resource.ReferenceToString(parent.Ref),
@@ -154,48 +171,34 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 	return merr
 }
 
-func validateBackendRef(backendRef *pbmesh.BackendReference) []error {
-	var errs []error
+func validateBackendRef(backendRef *pbmesh.BackendReference, wrapErr func(error) error) error {
 	if backendRef == nil {
-		errs = append(errs, resource.ErrMissing)
-
-	} else if backendRef.Ref == nil {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "ref",
-			Wrapped: resource.ErrMissing,
-		})
-
-	} else {
-		if !IsServiceType(backendRef.Ref.Type) {
-			errs = append(errs, resource.ErrInvalidField{
-				Name: "ref",
-				Wrapped: resource.ErrInvalidReferenceType{
-					AllowedType: catalog.ServiceType,
-				},
-			})
-		}
-
-		if backendRef.Ref.Section != "" {
-			errs = append(errs, resource.ErrInvalidField{
-				Name: "ref",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "section",
-					Wrapped: errors.New("section not supported for service backend refs"),
-				},
-			})
-		}
-
-		if backendRef.Datacenter != "" {
-			errs = append(errs, resource.ErrInvalidField{
-				Name:    "datacenter",
-				Wrapped: errors.New("datacenter is not yet supported on backend refs"),
-			})
-		}
+		return wrapErr(resource.ErrMissing)
 	}
-	return errs
+
+	var merr error
+
+	wrapRefErr := func(err error) error {
+		return wrapErr(resource.ErrInvalidField{
+			Name:    "ref",
+			Wrapped: err,
+		})
+	}
+	if err := catalog.ValidateLocalServiceRefNoSection(backendRef.Ref, wrapRefErr); err != nil {
+		merr = multierror.Append(merr, err)
+	}
+	if backendRef.Datacenter != "" {
+		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
+			Name:    "datacenter",
+			Wrapped: errors.New("datacenter is not yet supported on backend refs"),
+		}))
+	}
+
+	return merr
 }
 
 func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
+	// enumcover:pbmesh.HeaderMatchType
 	switch typ {
 	case pbmesh.HeaderMatchType_HEADER_MATCH_TYPE_UNSPECIFIED:
 		return resource.ErrMissing
@@ -210,6 +213,10 @@ func validateHeaderMatchType(typ pbmesh.HeaderMatchType) error {
 	return nil
 }
 
+func errTimeoutCannotBeNegative(d time.Duration) error {
+	return fmt.Errorf("timeout cannot be negative: %v", d)
+}
+
 func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 	if timeouts == nil {
 		return nil
@@ -222,16 +229,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
-			})
-		}
-	}
-	if timeouts.BackendRequest != nil {
-		val := timeouts.BackendRequest.AsDuration()
-		if val < 0 {
-			errs = append(errs, resource.ErrInvalidField{
-				Name:    "backend_request",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}
@@ -240,7 +238,7 @@ func validateHTTPTimeouts(timeouts *pbmesh.HTTPRouteTimeouts) []error {
 		if val < 0 {
 			errs = append(errs, resource.ErrInvalidField{
 				Name:    "idle",
-				Wrapped: fmt.Errorf("timeout cannot be negative: %v", val),
+				Wrapped: errTimeoutCannotBeNegative(val),
 			})
 		}
 	}
@@ -254,13 +252,6 @@ func validateHTTPRetries(retries *pbmesh.HTTPRouteRetries) []error {
 	}
 
 	var errs []error
-
-	if retries.Number < 0 {
-		errs = append(errs, resource.ErrInvalidField{
-			Name:    "number",
-			Wrapped: fmt.Errorf("cannot be negative: %v", retries.Number),
-		})
-	}
 
 	for i, condition := range retries.OnConditions {
 		if !isValidRetryCondition(condition) {
@@ -293,4 +284,70 @@ func isValidRetryCondition(retryOn string) bool {
 	default:
 		return false
 	}
+}
+
+func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
+	hooks := &resource.ACLHooks{
+		Read:  aclReadHookXRoute[R],
+		Write: aclWriteHookXRoute[R],
+		List:  resource.NoOpACLListHook,
+	}
+
+	return hooks
+}
+
+func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
+
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
+	// Need service:read on ALL of the services this is controlling traffic for.
+	for _, parentRef := range route.GetParentRefs() {
+		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
+		parentServiceName := parentRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(parentServiceName, parentAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *pbresource.Resource) error {
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
+	// Need service:write on ALL of the services this is controlling traffic for.
+	for _, parentRef := range route.GetParentRefs() {
+		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
+		parentServiceName := parentRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(parentServiceName, parentAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	// Need service:read on ALL of the services this directs traffic at.
+	for _, backendRef := range route.GetUnderlyingBackendRefs() {
+		backendAuthzContext := resource.AuthorizerContext(backendRef.Ref.GetTenancy())
+		backendServiceName := backendRef.Ref.GetName()
+
+		if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(backendServiceName, backendAuthzContext); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -11,57 +11,15 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
-	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
-	// API Group Information
-
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV1Alpha1
-	CurrentVersion  = types.CurrentVersion
-
-	// Resource Kind Names.
-
-	WorkloadKind         = types.WorkloadKind
-	ServiceKind          = types.ServiceKind
-	ServiceEndpointsKind = types.ServiceEndpointsKind
-	VirtualIPsKind       = types.VirtualIPsKind
-	NodeKind             = types.NodeKind
-	HealthStatusKind     = types.HealthStatusKind
-	HealthChecksKind     = types.HealthChecksKind
-	DNSPolicyKind        = types.DNSPolicyKind
-	FailoverPolicyKind   = types.FailoverPolicyKind
-
-	// Resource Types for the v1alpha1 version.
-
-	WorkloadV1Alpha1Type         = types.WorkloadV1Alpha1Type
-	ServiceV1Alpha1Type          = types.ServiceV1Alpha1Type
-	ServiceEndpointsV1Alpha1Type = types.ServiceEndpointsV1Alpha1Type
-	VirtualIPsV1Alpha1Type       = types.VirtualIPsV1Alpha1Type
-	NodeV1Alpha1Type             = types.NodeV1Alpha1Type
-	HealthStatusV1Alpha1Type     = types.HealthStatusV1Alpha1Type
-	HealthChecksV1Alpha1Type     = types.HealthChecksV1Alpha1Type
-	DNSPolicyV1Alpha1Type        = types.DNSPolicyV1Alpha1Type
-	FailoverPolicyV1Alpha1Type   = types.FailoverPolicyV1Alpha1Type
-
-	// Resource Types for the latest version.
-
-	WorkloadType         = types.WorkloadType
-	ServiceType          = types.ServiceType
-	ServiceEndpointsType = types.ServiceEndpointsType
-	VirtualIPsType       = types.VirtualIPsType
-	NodeType             = types.NodeType
-	HealthStatusType     = types.HealthStatusType
-	HealthChecksType     = types.HealthChecksType
-	DNSPolicyType        = types.DNSPolicyType
-	FailoverPolicyType   = types.FailoverPolicyType
-
 	// Controller Statuses
 	NodeHealthStatusKey              = nodehealth.StatusKey
 	NodeHealthStatusConditionHealthy = nodehealth.StatusConditionHealthy
@@ -76,6 +34,9 @@ var (
 	EndpointsStatusConditionEndpointsManaged = endpoints.StatusConditionEndpointsManaged
 	EndpointsStatusConditionManaged          = endpoints.ConditionManaged
 	EndpointsStatusConditionUnmanaged        = endpoints.ConditionUnmanaged
+	StatusConditionBoundIdentities           = endpoints.StatusConditionBoundIdentities
+	StatusReasonWorkloadIdentitiesFound      = endpoints.StatusReasonWorkloadIdentitiesFound
+	StatusReasonNoWorkloadIdentitiesFound    = endpoints.StatusReasonNoWorkloadIdentitiesFound
 
 	FailoverStatusKey                                              = failover.StatusKey
 	FailoverStatusConditionAccepted                                = failover.StatusConditionAccepted
@@ -86,6 +47,12 @@ var (
 	FailoverStatusConditionAcceptedUnknownDestinationPortReason    = failover.UnknownDestinationPortReason
 	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
+
+type WorkloadSelecting = types.WorkloadSelecting
+
+func ACLHooksForWorkloadSelectingType[T WorkloadSelecting]() *resource.ACLHooks {
+	return types.ACLHooksForWorkloadSelectingType[T]()
+}
 
 // RegisterTypes adds all resource types within the "catalog" API group
 // to the given type registry
@@ -125,4 +92,35 @@ type FailoverPolicyMapper interface {
 
 func NewFailoverPolicyMapper() FailoverPolicyMapper {
 	return failovermapper.New()
+}
+
+// ValidateLocalServiceRefNoSection ensures the following:
+//
+// - ref is non-nil
+// - type is ServiceType
+// - section is empty
+// - tenancy is set and partition/namespace are both non-empty
+// - peer_name must be "local"
+//
+// Each possible validation error is wrapped in the wrapErr function before
+// being collected in a multierror.Error.
+func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
+	return types.ValidateLocalServiceRefNoSection(ref, wrapErr)
+}
+
+// ValidateSelector ensures that the selector has at least one exact or prefix
+// match constraint, and that if a filter is present it is valid.
+//
+// The selector can be nil, and have zero exact/prefix matches if allowEmpty is
+// set to true.
+func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+	return types.ValidateSelector(sel, allowEmpty)
+}
+
+func ValidatePortName(name string) error {
+	return types.ValidatePortName(name)
+}
+
+func IsValidUnixSocketPath(host string) bool {
+	return types.IsValidUnixSocketPath(host)
 }

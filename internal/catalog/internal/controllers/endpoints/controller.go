@@ -11,10 +11,9 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -44,9 +43,9 @@ func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controlle
 		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
 	}
 
-	return controller.ForType(types.ServiceEndpointsType).
-		WithWatch(types.ServiceType, controller.ReplaceType(types.ServiceEndpointsType)).
-		WithWatch(types.WorkloadType, workloadMap.MapWorkload).
+	return controller.ForType(pbcatalog.ServiceEndpointsType).
+		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbcatalog.ServiceEndpointsType)).
+		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
 		WithReconciler(newServiceEndpointsReconciler(workloadMap))
 }
 
@@ -70,7 +69,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 	endpointsID := req.ID
 	serviceID := &pbresource.ID{
-		Type:    types.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: endpointsID.Tenancy,
 		Name:    endpointsID.Name,
 	}
@@ -106,12 +105,12 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		return err
 	}
 
-	var status *pbresource.Condition
+	var statusConditions []*pbresource.Condition
 
 	if serviceUnderManagement(serviceData.service) {
 		rt.Logger.Trace("service is enabled for automatic endpoint management")
 		// This service should have its endpoints automatically managed
-		status = ConditionManaged
+		statusConditions = append(statusConditions, ConditionManaged)
 
 		// Inform the WorkloadMapper to track this service and its selectors. So
 		// future workload updates that would be matched by the services selectors
@@ -133,6 +132,12 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 		// Calculate the latest endpoints from the already gathered workloads
 		latestEndpoints := workloadsToEndpoints(serviceData.service, workloadData)
+
+		// Add status
+		if endpointsData != nil {
+			statusConditions = append(statusConditions,
+				workloadIdentityStatusFromEndpoints(latestEndpoints))
+		}
 
 		// Before writing the endpoints actually check to see if they are changed
 		if endpointsData == nil || !proto.Equal(endpointsData.endpoints, latestEndpoints) {
@@ -169,7 +174,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	} else {
 		rt.Logger.Trace("endpoints are not being automatically managed")
 		// This service is not having its endpoints automatically managed
-		status = ConditionUnmanaged
+		statusConditions = append(statusConditions, ConditionUnmanaged)
 
 		// Inform the WorkloadMapper that it no longer needs to track this service
 		// as it is no longer under endpoint management
@@ -204,9 +209,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	// for that object existing or not.
 	newStatus := &pbresource.Status{
 		ObservedGeneration: serviceData.resource.Generation,
-		Conditions: []*pbresource.Condition{
-			status,
-		},
+		Conditions:         statusConditions,
 	}
 	// If the status is unchanged then we should return and avoid the unnecessary write
 	if resource.EqualStatus(serviceData.resource.Status[StatusKey], newStatus, false) {
@@ -311,8 +314,13 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 			continue
 		}
 
-		if workloadPort.Protocol != svcPort.Protocol {
-			// workload port mismatch - ignore it
+		// If workload protocol is not specified, we will default to service's protocol.
+		// This is because on some platforms (kubernetes), workload protocol is not always
+		// known, and so we need to inherit from the service instead.
+		if workloadPort.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+			workloadPort.Protocol = svcPort.Protocol
+		} else if workloadPort.Protocol != svcPort.Protocol {
+			// Otherwise, there's workload port mismatch - ignore it.
 			continue
 		}
 
@@ -383,4 +391,14 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		Ports:        endpointPorts,
 		Identity:     data.workload.Identity,
 	}
+}
+
+func workloadIdentityStatusFromEndpoints(endpoints *pbcatalog.ServiceEndpoints) *pbresource.Condition {
+	identities := endpoints.GetIdentities()
+
+	if len(identities) > 0 {
+		return ConditionIdentitiesFound(identities)
+	}
+
+	return ConditionIdentitiesNotFound
 }

@@ -33,10 +33,10 @@ import (
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/logging"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/version"
 )
@@ -95,9 +95,7 @@ func (s *Server) DeltaAggregatedResources(stream ADSDeltaStream) error {
 func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hclog.Logger, cfgFetcher configfetcher.ConfigFetcher) (map[string][]proto.Message, error) {
 	switch proxySnapshot.(type) {
 	case *proxycfg.ConfigSnapshot:
-		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ConfigSnapshot",
-			"proxySnapshot", proxySnapshot,
-		)
+		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ConfigSnapshot")
 		generator := NewResourceGenerator(
 			logger,
 			cfgFetcher,
@@ -105,18 +103,19 @@ func getEnvoyConfiguration(proxySnapshot proxysnapshot.ProxySnapshot, logger hcl
 		)
 
 		c := proxySnapshot.(*proxycfg.ConfigSnapshot)
-		logger.Trace("ConfigSnapshot", c)
 		return generator.AllResourcesFromSnapshot(c)
 	case *proxytracker.ProxyState:
-		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ProxyState",
-			"proxySnapshot", proxySnapshot,
-		)
+		logger.Trace("ProxySnapshot update channel received a ProxySnapshot of type ProxyState")
 		generator := xdsv2.NewResourceGenerator(
 			logger,
 		)
 		c := proxySnapshot.(*proxytracker.ProxyState)
-		logger.Trace("ProxyState", c)
-		return generator.AllResourcesFromIR(c)
+		resources, err := generator.AllResourcesFromIR(c)
+		if err != nil {
+			logger.Error("error generating resources from proxy state template", "err", err)
+			return nil, err
+		}
+		return resources, nil
 	default:
 		return nil, errors.New("proxysnapshot must be of type ProxyState or ConfigSnapshot")
 	}
@@ -428,9 +427,8 @@ func newResourceIDFromEnvoyNode(node *envoy_config_core_v3.Node) *pbresource.ID 
 		Tenancy: &pbresource.Tenancy{
 			Namespace: entMeta.NamespaceOrDefault(),
 			Partition: entMeta.PartitionOrDefault(),
-			PeerName:  "local",
 		},
-		Type: mesh.ProxyStateTemplateV1AlphaType,
+		Type: pbmesh.ProxyStateTemplateType,
 	}
 }
 

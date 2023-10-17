@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/debug"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -1531,6 +1532,9 @@ func (s *HTTPHandlers) AgentToken(resp http.ResponseWriter, req *http.Request) (
 		case "config_file_service_registration":
 			s.agent.tokens.UpdateConfigFileRegistrationToken(args.Token, token_store.TokenSourceAPI)
 
+		case "dns_token", "dns":
+			s.agent.tokens.UpdateDNSToken(args.Token, token_store.TokenSourceAPI)
+
 		default:
 			return HTTPError{StatusCode: http.StatusNotFound, Reason: fmt.Sprintf("Token %q is unknown", target)}
 		}
@@ -1653,14 +1657,108 @@ func (s *HTTPHandlers) AgentConnectAuthorize(resp http.ResponseWriter, req *http
 		return nil, nil
 	}
 
-	authz, reason, cacheMeta, err := s.agent.ConnectAuthorize(token, &authReq)
+	// We need to have a target to check intentions
+	if authReq.Target == "" {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "Target service must be specified"}
+	}
+
+	// Parse the certificate URI from the client ID
+	uri, err := connect.ParseCertURIFromString(authReq.ClientCertURI)
 	if err != nil {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Connect identifier"}
+	}
+
+	uriService, ok := uri.(*connect.SpiffeIDService)
+	if !ok {
+		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: "ClientCertURI not a valid Service identifier"}
+	}
+
+	// We need to verify service:write permissions for the given token.
+	// We do this manually here since the RPC request below only verifies
+	// service:read.
+	var authzContext acl.AuthorizerContext
+	authz, err := s.agent.delegate.ResolveTokenAndDefaultMeta(token, &authReq.EnterpriseMeta, &authzContext)
+	if err != nil {
+		return nil, fmt.Errorf("Could not resolve token to authorizer: %w", err)
+	}
+
+	if err := authz.ToAllowAuthorizer().ServiceWriteAllowed(authReq.Target, &authzContext); err != nil {
 		return nil, err
 	}
-	setCacheMeta(resp, cacheMeta)
+
+	if !uriService.MatchesPartition(authReq.TargetPartition()) {
+		return nil, HTTPError{
+			StatusCode: http.StatusBadRequest,
+			Reason: fmt.Sprintf("Mismatched partitions: %q != %q",
+				uriService.PartitionOrDefault(),
+				acl.PartitionOrDefault(authReq.TargetPartition())),
+		}
+	}
+
+	// Get the intentions for this target service.
+	args := &structs.IntentionQueryRequest{
+		Datacenter: s.agent.config.Datacenter,
+		Match: &structs.IntentionQueryMatch{
+			Type: structs.IntentionMatchDestination,
+			Entries: []structs.IntentionMatchEntry{
+				{
+					Namespace: authReq.TargetNamespace(),
+					Partition: authReq.TargetPartition(),
+					Name:      authReq.Target,
+				},
+			},
+		},
+		QueryOptions: structs.QueryOptions{Token: token},
+	}
+
+	raw, meta, err := s.agent.cache.Get(req.Context(), cachetype.IntentionMatchName, args)
+	if err != nil {
+		return nil, fmt.Errorf("failed getting intention match: %w", err)
+	}
+
+	reply, ok := raw.(*structs.IndexedIntentionMatches)
+	if !ok {
+		return nil, fmt.Errorf("internal error: response type not correct")
+	}
+	if len(reply.Matches) != 1 {
+		return nil, fmt.Errorf("Internal error loading matches")
+	}
+
+	// Figure out which source matches this request.
+	var ixnMatch *structs.Intention
+	for _, ixn := range reply.Matches[0] {
+		// We match on the intention source because the uriService is the source of the connection to authorize.
+		if _, ok := connect.AuthorizeIntentionTarget(
+			uriService.Service, uriService.Namespace, uriService.Partition, "", ixn, structs.IntentionMatchSource); ok {
+			ixnMatch = ixn
+			break
+		}
+	}
+
+	var (
+		authorized bool
+		reason     string
+	)
+
+	if ixnMatch != nil {
+		if len(ixnMatch.Permissions) == 0 {
+			// This is an L4 intention.
+			reason = fmt.Sprintf("Matched L4 intention: %s", ixnMatch.String())
+			authorized = ixnMatch.Action == structs.IntentionActionAllow
+		} else {
+			reason = fmt.Sprintf("Matched L7 intention: %s", ixnMatch.String())
+			// This is an L7 intention, so DENY.
+			authorized = false
+		}
+	} else {
+		reason = "Default behavior configured by ACLs"
+		authorized = authz.IntentionDefaultAllow(nil) == acl.Allow
+	}
+
+	setCacheMeta(resp, &meta)
 
 	return &connectAuthorizeResp{
-		Authorized: authz,
+		Authorized: authorized,
 		Reason:     reason,
 	}, nil
 }

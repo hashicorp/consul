@@ -9,8 +9,8 @@ import (
 
 	"golang.org/x/exp/slices"
 
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 func generateProxyStateEndpoints(serviceEndpoints *ServiceEndpointsData, portName string) (*pbproxystate.Endpoints, error) {

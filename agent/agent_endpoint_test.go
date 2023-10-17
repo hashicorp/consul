@@ -79,6 +79,46 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	return svcToken.SecretID
 }
 
+func TestAgentEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
+		})
+	}
+
+	t.Run("agent-self-with-params", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	})
+
+	checkRequest("PUT", "/v1/agent/maintenance")
+	checkRequest("GET", "/v1/agent/services")
+	checkRequest("GET", "/v1/agent/service/web")
+	checkRequest("GET", "/v1/agent/checks")
+	checkRequest("GET", "/v1/agent/health/service/id/web")
+	checkRequest("GET", "/v1/agent/health/service/name/web")
+	checkRequest("PUT", "/v1/agent/check/register")
+	checkRequest("PUT", "/v1/agent/check/deregister/web")
+	checkRequest("PUT", "/v1/agent/check/pass/web")
+	checkRequest("PUT", "/v1/agent/check/warn/web")
+	checkRequest("PUT", "/v1/agent/check/fail/web")
+	checkRequest("PUT", "/v1/agent/check/update/web")
+	checkRequest("PUT", "/v1/agent/service/register")
+	checkRequest("PUT", "/v1/agent/service/deregister/web")
+	checkRequest("PUT", "/v1/agent/service/maintenance/web")
+}
+
 func TestAgent_Services(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -737,9 +777,6 @@ func TestAgent_Service(t *testing.T) {
 			if tt.wantWait != 0 {
 				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
-			} else {
-				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
-					"took %s", elapsed)
 			}
 
 			if tt.wantResp != nil {
@@ -4448,7 +4485,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No policy means no valid token
+			policies:  ``, // No policies means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},

@@ -19,11 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource"
-
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -40,6 +36,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/reflection"
 
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -73,9 +70,12 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
@@ -83,7 +83,7 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -137,6 +137,7 @@ const (
 	LeaderTransferMinVersion = "1.6.0"
 
 	CatalogResourceExperimentName = "resource-apis"
+	V2TenancyExperimentName       = "v2tenancy"
 )
 
 const (
@@ -464,6 +465,8 @@ type Server struct {
 	reportingManager *reporting.ReportingManager
 
 	registry resource.Registry
+
+	useV2Resources bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -489,8 +492,9 @@ type ProxyUpdater interface {
 	// PushChange allows pushing a computed ProxyState to xds for xds resource generation to send to a proxy.
 	PushChange(id *pbresource.ID, snapshot proxysnapshot.ProxySnapshot) error
 
-	// ProxyConnectedToServer returns whether this id is connected to this server.
-	ProxyConnectedToServer(id *pbresource.ID) bool
+	// ProxyConnectedToServer returns whether this id is connected to this server. If it is connected, it also returns
+	// the token as the first argument.
+	ProxyConnectedToServer(id *pbresource.ID) (string, bool)
 
 	EventChannel() chan controller.Event
 }
@@ -551,6 +555,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		incomingRPCLimiter:      incomingRPCLimiter,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		registry:                flat.Registry,
+		useV2Resources:          flat.UseV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -586,7 +591,17 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	rpcServerOpts := []func(*rpc.Server){
-		rpc.WithPreBodyInterceptor(middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger))),
+		rpc.WithPreBodyInterceptor(
+			middleware.ChainedRPCPreBodyInterceptor(
+				func(reqServiceMethod string, sourceAddr net.Addr) error {
+					if s.useV2Resources && isV1CatalogRequest(reqServiceMethod) {
+						return structs.ErrUsingV2CatalogExperiment
+					}
+					return nil
+				},
+				middleware.GetNetRPCRateLimitingInterceptor(s.incomingRPCLimiter, middleware.NewPanicHandler(s.logger)),
+			),
+		),
 	}
 
 	if flat.GetNetRPCInterceptorFunc != nil {
@@ -688,7 +703,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	}
 
 	// Initialize the Raft server.
-	if err := s.setupRaft(); err != nil {
+	if err := s.setupRaft(stringslice.Contains(flat.Experiments, CatalogResourceExperimentName)); err != nil {
 		s.Shutdown()
 		return nil, fmt.Errorf("Failed to start Raft: %v", err)
 	}
@@ -818,7 +833,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Setup insecure resource service client.
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger, flat); err != nil {
 		return nil, err
 	}
 
@@ -842,7 +857,9 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		s.insecureResourceServiceClient,
 		logger.Named(logging.ControllerRuntime),
 	)
-	s.registerControllers(flat, proxyUpdater)
+	if err := s.registerControllers(flat, proxyUpdater); err != nil {
+		return nil, err
+	}
 	go s.controllerManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
 
 	go s.trackLeaderChanges()
@@ -893,9 +910,34 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	return s, nil
 }
 
-func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
-	if stringslice.Contains(deps.Experiments, CatalogResourceExperimentName) {
+func isV1CatalogRequest(rpcName string) bool {
+	switch {
+	case strings.HasPrefix(rpcName, "Catalog."),
+		strings.HasPrefix(rpcName, "Health."),
+		strings.HasPrefix(rpcName, "ConfigEntry."):
+		return true
+	}
+
+	switch rpcName {
+	case "Internal.EventFire", "Internal.KeyringOperation", "Internal.OIDCAuthMethods":
+		return false
+	default:
+		if strings.HasPrefix(rpcName, "Internal.") {
+			return true
+		}
+		return false
+	}
+}
+
+func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+
+		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
+		if err != nil {
+			return err
+		}
+
 		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
 			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
 				var bundle pbproxystate.TrustBundle
@@ -918,9 +960,14 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 
 				return s.getTrustDomain(caConfig)
 			},
+
+			LeafCertManager: deps.LeafCertManager,
 			LocalDatacenter: s.config.Datacenter,
+			DefaultAllow:    defaultAllow,
 			ProxyUpdater:    proxyUpdater,
 		})
+
+		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
@@ -928,6 +975,8 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) {
 	if s.config.DevMode {
 		demo.RegisterControllers(s.controllerManager)
 	}
+
+	return nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
@@ -1014,7 +1063,7 @@ func (s *Server) connectCARootsMonitor(ctx context.Context) {
 }
 
 // setupRaft is used to setup and initialize Raft
-func (s *Server) setupRaft() error {
+func (s *Server) setupRaft(isCatalogResourceExperiment bool) error {
 	// If we have an unclean exit then attempt to close the Raft store.
 	defer func() {
 		if s.raft == nil && s.raftStore != nil {
@@ -1073,8 +1122,7 @@ func (s *Server) setupRaft() error {
 			return fmt.Errorf("failed trying to see if raft.db exists not sure how to continue: %w", err)
 		}
 
-		// Only use WAL if there is no existing raft.db, even if it's enabled.
-		if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+		initWAL := func() error {
 			walDir := filepath.Join(path, "wal")
 			if err := os.MkdirAll(walDir, 0755); err != nil {
 				return err
@@ -1093,13 +1141,29 @@ func (s *Server) setupRaft() error {
 			s.raftStore = wal
 			log = wal
 			stable = wal
+			return nil
+		}
+		// Only use WAL if there is no existing raft.db, even if it's enabled.
+		if s.config.LogStoreConfig.Backend == LogStoreBackendDefault && !boltFileExists && isCatalogResourceExperiment {
+			s.config.LogStoreConfig.Backend = LogStoreBackendWAL
+			if !s.config.LogStoreConfig.Verification.Enabled {
+				s.config.LogStoreConfig.Verification.Enabled = true
+				s.config.LogStoreConfig.Verification.Interval = 1 * time.Minute
+			}
+			if err = initWAL(); err != nil {
+				return err
+			}
+		} else if s.config.LogStoreConfig.Backend == LogStoreBackendWAL && !boltFileExists {
+			if err = initWAL(); err != nil {
+				return err
+			}
 		} else {
 			if s.config.LogStoreConfig.Backend == LogStoreBackendWAL {
 				// User configured the new storage, but still has old raft.db. Warn
 				// them!
 				s.logger.Warn("BoltDB file raft.db found, IGNORING raft_logstore.backend which is set to 'wal'")
 			}
-
+			s.config.LogStoreConfig.Backend = LogStoreBackendBoltDB
 			// Create the backend raft store for logs and stable storage.
 			store, err := raftboltdb.New(raftboltdb.Options{
 				BoltOptions: &bbolt.Options{
@@ -1390,29 +1454,38 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	})
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
+
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        deps.Registry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     s.ACLResolver,
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
+		Registry:      deps.Registry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   s.ACLResolver,
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
 
 	reflection.Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger, deps Deps) error {
 	if s.raftStorageBackend == nil {
 		return fmt.Errorf("raft storage backend cannot be nil")
 	}
 
+	tenancyBridge := NewV1TenancyBridge(s)
+	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+		tenancyBridge = resource.NewV2TenancyBridge()
+	}
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
-		Registry:        typeRegistry,
-		Backend:         s.raftStorageBackend,
-		ACLResolver:     resolver.DANGER_NO_AUTH{},
-		Logger:          logger.Named("grpc-api.resource"),
-		V1TenancyBridge: NewV1TenancyBridge(s),
+		Registry:      typeRegistry,
+		Backend:       s.raftStorageBackend,
+		ACLResolver:   resolver.DANGER_NO_AUTH{},
+		Logger:        logger.Named("grpc-api.resource"),
+		TenancyBridge: tenancyBridge,
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

@@ -145,7 +145,7 @@ func (s *Sprawl) PrintDetails() error {
 
 	w.Flush()
 
-	s.logger.Info("CURRENT SPRAWL DETAILS", "details", buf.String())
+	s.logger.Debug("CURRENT SPRAWL DETAILS", "details", buf.String())
 
 	return nil
 }

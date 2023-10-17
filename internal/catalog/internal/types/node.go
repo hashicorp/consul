@@ -4,29 +4,17 @@
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
-)
 
-const (
-	NodeKind = "Node"
-)
-
-var (
-	NodeV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         NodeKind,
-	}
-
-	NodeType = NodeV1Alpha1Type
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  NodeV1Alpha1Type,
+		Type:  pbcatalog.NodeType,
 		Proto: &pbcatalog.Node{},
 		// TODO: A node should be partition scoped. However its HealthStatus which is
 		// namespace scoped has Node as an owner. We do not support ownership between resources
@@ -35,6 +23,11 @@ func RegisterNode(r resource.Registry) {
 		// Until that time, Node will remain namespace scoped.
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateNode,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookNode,
+			Write: aclWriteHookNode,
+			List:  resource.NoOpACLListHook,
+		},
 	})
 }
 
@@ -92,4 +85,12 @@ func validateNodeAddress(addr *pbcatalog.NodeAddress) error {
 	}
 
 	return nil
+}
+
+func aclReadHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+	return authorizer.ToAllowAuthorizer().NodeReadAllowed(id.GetName(), authzContext)
+}
+
+func aclWriteHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	return authorizer.ToAllowAuthorizer().NodeWriteAllowed(res.GetId().GetName(), authzContext)
 }

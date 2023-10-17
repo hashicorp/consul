@@ -4,7 +4,8 @@
       "local_app:port1": {
         "endpointGroup": {
           "static": {}
-        }
+        },
+        "name": "local_app:port1"
       }
     },
     "endpoints": {
@@ -25,10 +26,18 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [
       {
+        "capabilities": [
+          "CAPABILITY_L4_TLS_INSPECTION"
+        ],
         "direction": "DIRECTION_INBOUND",
         "hostPort": {
           "host": "10.0.0.1",
@@ -48,8 +57,11 @@
               }
             },
             "l4": {
-              "name": "local_app:port1",
-              "statPrefix": "public_listener"
+              "cluster": {
+                "name": "local_app:port1"
+              },
+              "statPrefix": "public_listener",
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [

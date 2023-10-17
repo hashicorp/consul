@@ -5,7 +5,6 @@ package dataplane
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/go-hclog"
@@ -20,8 +19,8 @@ import (
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 
@@ -34,6 +33,7 @@ import (
 )
 
 const (
+	testIdentity     = "test-identity"
 	testToken        = "acl-token-get-envoy-bootstrap-params"
 	testServiceName  = "web"
 	proxyServiceID   = "web-proxy"
@@ -256,7 +256,7 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 	type testCase struct {
 		name            string
 		workloadData    *pbcatalog.Workload
-		proxyCfgs       []*pbmesh.ProxyConfiguration
+		proxyCfg        *pbmesh.ComputedProxyConfiguration
 		expBootstrapCfg *pbmesh.BootstrapConfig
 		expAccessLogs   string
 	}
@@ -288,18 +288,16 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		tc.workloadData.Ports = map[string]*pbcatalog.WorkloadPort{
 			"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
 		}
-		workloadResource := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+		workloadResource := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 			WithData(t, tc.workloadData).
 			WithTenancy(resource.DefaultNamespacedTenancy()).
 			Write(t, resourceClient)
 
-		// Create any proxy cfg resources.
-		for i, cfg := range tc.proxyCfgs {
-			resourcetest.Resource(mesh.ProxyConfigurationType, fmt.Sprintf("proxy-cfg-%d", i)).
-				WithData(t, cfg).
-				WithTenancy(resource.DefaultNamespacedTenancy()).
-				Write(t, resourceClient)
-		}
+		// Create computed proxy cfg resource.
+		resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, workloadResource.Id.Name).
+			WithData(t, tc.proxyCfg).
+			WithTenancy(resource.DefaultNamespacedTenancy()).
+			Write(t, resourceClient)
 
 		req := &pbdataplane.GetEnvoyBootstrapParamsRequest{
 			ProxyId:   workloadResource.Id.Name,
@@ -308,7 +306,23 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		}
 
 		aclResolver.On("ResolveTokenAndDefaultMeta", testToken, mock.Anything, mock.Anything).
-			Return(testutils.ACLServiceRead(t, workloadResource.Id.Name), nil)
+			Return(testutils.ACLUseProvidedPolicy(t,
+				&acl.Policy{
+					PolicyRules: acl.PolicyRules{
+						Services: []*acl.ServiceRule{
+							{
+								Name:   workloadResource.Id.Name,
+								Policy: acl.PolicyRead,
+							},
+						},
+						Identities: []*acl.IdentityRule{
+							{
+								Name:   testIdentity,
+								Policy: acl.PolicyWrite,
+							},
+						},
+					},
+				}), nil)
 
 		resp, err := client.GetEnvoyBootstrapParams(ctx, req)
 		require.NoError(t, err)
@@ -328,29 +342,26 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		{
 			name: "workload without node",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
-			expBootstrapCfg: &pbmesh.BootstrapConfig{},
+			expBootstrapCfg: nil,
 		},
 		{
 			name: "workload with node",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 				NodeName: "test-node",
 			},
-			expBootstrapCfg: &pbmesh.BootstrapConfig{},
+			expBootstrapCfg: nil,
 		},
 		{
 			name: "single proxy configuration",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
-			proxyCfgs: []*pbmesh.ProxyConfiguration{
-				{
-					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"test-workload"}},
-					BootstrapConfig: &pbmesh.BootstrapConfig{
-						DogstatsdUrl: "dogstats-url",
-					},
+			proxyCfg: &pbmesh.ComputedProxyConfiguration{
+				BootstrapConfig: &pbmesh.BootstrapConfig{
+					DogstatsdUrl: "dogstats-url",
 				},
 			},
 			expBootstrapCfg: &pbmesh.BootstrapConfig{
@@ -360,32 +371,17 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 		{
 			name: "multiple proxy configurations",
 			workloadData: &pbcatalog.Workload{
-				Identity: "test-identity",
+				Identity: testIdentity,
 			},
-			proxyCfgs: []*pbmesh.ProxyConfiguration{
-				{
-					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"test-workload"}},
-					BootstrapConfig: &pbmesh.BootstrapConfig{
-						DogstatsdUrl: "dogstats-url",
-					},
+			proxyCfg: &pbmesh.ComputedProxyConfiguration{
+				BootstrapConfig: &pbmesh.BootstrapConfig{
+					DogstatsdUrl: "dogstats-url",
+					StatsdUrl:    "stats-url",
 				},
-				{
-					Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"test-"}},
-					BootstrapConfig: &pbmesh.BootstrapConfig{
-						StatsdUrl: "stats-url",
-					},
-					DynamicConfig: &pbmesh.DynamicConfig{
-						AccessLogs: &pbmesh.AccessLogsConfig{
-							Enabled:    true,
-							JsonFormat: "{ \"custom_field\": \"%START_TIME%\" }",
-						},
-					},
-				},
-
-				{
-					Workloads: &pbcatalog.WorkloadSelector{Names: []string{"not-test-workload"}},
-					BootstrapConfig: &pbmesh.BootstrapConfig{
-						PrometheusBindAddr: "prom-addr",
+				DynamicConfig: &pbmesh.DynamicConfig{
+					AccessLogs: &pbmesh.AccessLogsConfig{
+						Enabled:    true,
+						JsonFormat: "{ \"custom_field\": \"%START_TIME%\" }",
 					},
 				},
 			},
@@ -543,7 +539,7 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 		require.Equal(t, tc.expecteErrMsg, errStatus.Message())
 	}
 
-	workload := resourcetest.Resource(catalog.WorkloadType, "test-workload").
+	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(t, &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
