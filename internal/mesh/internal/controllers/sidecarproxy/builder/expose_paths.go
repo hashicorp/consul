@@ -29,7 +29,7 @@ func (b *Builder) buildExposePaths(workload *pbcatalog.Workload) {
 }
 
 func (b *Builder) addExposePathsListener(workload *pbcatalog.Workload, exposePath *pbmesh.ExposePath) *ListenerBuilder {
-	listenerName := fmt.Sprintf("exposed_path_%s", exposePathName(exposePath))
+	listenerName := exposePathListenerName(exposePath)
 
 	listener := &pbproxystate.Listener{
 		Name:      listenerName,
@@ -44,7 +44,7 @@ func (b *Builder) addExposePathsListener(workload *pbcatalog.Workload, exposePat
 	listener.BindAddress = &pbproxystate.Listener_HostPort{
 		HostPort: &pbproxystate.HostPortAddress{
 			Host: meshAddress.Host,
-			Port: exposePath.LocalPathPort,
+			Port: exposePath.ListenerPort,
 		},
 	}
 
@@ -120,12 +120,21 @@ func (b *Builder) addExposePathsRoute(exposePath *pbmesh.ExposePath, clusterName
 
 func exposePathName(exposePath *pbmesh.ExposePath) string {
 	r := regexp.MustCompile(`[^a-zA-Z0-9]+`)
-	return r.ReplaceAllString(exposePath.Path, "")
+	// The regex removes anything not a letter or number from the path.
+	path := r.ReplaceAllString(exposePath.Path, "")
+	return path
+}
+
+func exposePathListenerName(exposePath *pbmesh.ExposePath) string {
+	// The path could be empty, so the unique name for this exposed path is the path and listener port.
+	pathPort := fmt.Sprintf("%s%d", exposePathName(exposePath), exposePath.ListenerPort)
+	listenerName := fmt.Sprintf("exposed_path_%s", pathPort)
+	return listenerName
 }
 
 func exposePathDestinationName(exposePath *pbmesh.ExposePath) string {
-	path := exposePathName(exposePath)
-	return fmt.Sprintf("exposed_path_filter_%s_%d", path, exposePath.ListenerPort)
+	// The destination of the expose path is to the local port.
+	return fmt.Sprintf("exposed_path_destination_%s%d", exposePathName(exposePath), exposePath.LocalPathPort)
 }
 
 func exposePathClusterName(exposePath *pbmesh.ExposePath) string {
