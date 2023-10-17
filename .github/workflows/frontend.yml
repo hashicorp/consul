@@ -40,7 +40,7 @@ jobs:
         node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     # Install dependencies.
     - name: install yarn packages
@@ -60,7 +60,7 @@ jobs:
         node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     # Install dependencies.
     - name: install yarn packages
@@ -89,7 +89,7 @@ jobs:
         node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     - name: Install Chrome
       uses: browser-actions/setup-chrome@c485fa3bab6be59dce18dbc18ef6ab7cbc8ff5f1 # v1.2.0
