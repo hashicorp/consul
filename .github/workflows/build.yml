@@ -81,15 +81,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.8", goos: "linux", goarch: "386"}
-          - {go: "1.20.8", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.8", goos: "linux", goarch: "arm"}
-          - {go: "1.20.8", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.8", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.8", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.8", goos: "windows", goarch: "386"}
-          - {go: "1.20.8", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.8", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.10", goos: "linux", goarch: "386"}
+          - {go: "1.20.10", goos: "linux", goarch: "amd64"}
+          - {go: "1.20.10", goos: "linux", goarch: "arm"}
+          - {go: "1.20.10", goos: "linux", goarch: "arm64"}
+          - {go: "1.20.10", goos: "freebsd", goarch: "386"}
+          - {go: "1.20.10", goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.10", goos: "windows", goarch: "386"}
+          - {go: "1.20.10", goos: "windows", goarch: "amd64"}
+          - {go: "1.20.10", goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -132,7 +132,7 @@ jobs:
           reproducible: report
           instructions: |-
             go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
- 
+
       - name: Package
         if: ${{ matrix.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
@@ -178,7 +178,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.8" ]
+        go: [ "1.20.10" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
