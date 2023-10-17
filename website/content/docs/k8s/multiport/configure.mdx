@@ -60,6 +60,10 @@ Then install Consul to your Kubernetes cluster using either the `consul-k8s` CLI
 <Tab heading="consul-k8s CLI" group="consul-k8s">
 
 ```shell-session
+$ export VERSION=1.3.0-rc1 && \
+    curl --location "https://releases.hashicorp.com/consul-k8s/${VERSION}/consul-k8s_${VERSION}_darwin_amd64.zip" --output consul-k8s-cli.zip
+$ unzip -o consul-k8s-cli.zip -d ~/consul-k8s
+$ export PATH=$PATH:$HOME/consul-k8s
 $ consul-k8s install -config-file=values.yaml
 ```
 
@@ -68,7 +72,7 @@ $ consul-k8s install -config-file=values.yaml
 <Tab heading="Helm" group="helm">
 
 ```shell-session
-$ helm install consul hashicorp/consul --create-namespace --namespace consul --values values.yaml
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --version 1.3.0-rc1 --values values.yaml
 ```
 
 </Tab>
