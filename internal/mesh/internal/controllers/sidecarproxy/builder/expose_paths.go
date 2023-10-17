@@ -55,7 +55,7 @@ func (b *ListenerBuilder) addExposePathsRouter(exposePath *pbmesh.ExposePath) *L
 	if b.listener == nil {
 		return b
 	}
-	destinationName := exposePathDestinationName(exposePath)
+	destinationName := exposePathRouteName(exposePath)
 
 	var l7Protocol pbproxystate.L7Protocol
 
@@ -88,7 +88,7 @@ func (b *ListenerBuilder) addExposePathsRouter(exposePath *pbmesh.ExposePath) *L
 }
 
 func (b *Builder) addExposePathsRoute(exposePath *pbmesh.ExposePath, clusterName string) *Builder {
-	routeName := exposePathDestinationName(exposePath)
+	routeName := exposePathRouteName(exposePath)
 	routeRule := &pbproxystate.RouteRule{
 		Match: &pbproxystate.RouteMatch{
 			PathMatch: &pbproxystate.PathMatch{
@@ -132,9 +132,10 @@ func exposePathListenerName(exposePath *pbmesh.ExposePath) string {
 	return listenerName
 }
 
-func exposePathDestinationName(exposePath *pbmesh.ExposePath) string {
-	// The destination of the expose path is to the local port.
-	return fmt.Sprintf("exposed_path_destination_%s%d", exposePathName(exposePath), exposePath.LocalPathPort)
+func exposePathRouteName(exposePath *pbmesh.ExposePath) string {
+	// The path could be empty, so the unique name for this exposed path is the path and listener port.
+	pathPort := fmt.Sprintf("%s%d", exposePathName(exposePath), exposePath.ListenerPort)
+	return fmt.Sprintf("exposed_path_route_%s", pathPort)
 }
 
 func exposePathClusterName(exposePath *pbmesh.ExposePath) string {
