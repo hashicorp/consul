@@ -719,12 +719,24 @@ type ServiceAndNode struct {
 
 // TODO(rb): really this should now be called "workload" or "instance"
 type Service struct {
-	ID           ServiceID
-	Image        string
-	Port         int            `json:",omitempty"`
-	Ports        map[string]int `json:",omitempty"` // multiport only
-	ExposedPort  int            `json:",omitempty"`
-	ExposedPorts map[string]int `json:",omitempty"` // multiport only
+	ID    ServiceID
+	Image string
+
+	// Port is the v1 single-port of this service.
+	Port int `json:",omitempty"`
+
+	// Ports is the v2 multi-port list for this service.
+	//
+	// This only applies for multi-port (v2).
+	Ports map[string]int `json:",omitempty"`
+
+	// ExposedPort is the exposed docker port corresponding to 'Port'.
+	ExposedPort int `json:",omitempty"`
+
+	// ExposedPorts are the exposed docker ports corresponding to 'Ports'.
+	//
+	// This only applies for multi-port (v2).
+	ExposedPorts map[string]int `json:",omitempty"`
 
 	// V2Services contains service names (which are merged with the tenancy
 	// info from ID) to resolve services in the Services slice in the Cluster
@@ -732,14 +744,18 @@ type Service struct {
 	//
 	// If omitted it is inferred that the ID.Name field is the singular service
 	// for this workload.
-	V2Services []string `json:",omitempty"` // multiport only
+	//
+	// This only applies for multi-port (v2).
+	V2Services []string `json:",omitempty"`
 
 	// WorkloadIdentities contains named WorkloadIdentities to assign to this
 	// workload.
 	//
 	// If omitted it is inferred that the ID.Name field is the singular
 	// identity for this workload.
-	WorkloadIdentities []string `json:",omitempty"` // multiport only
+	//
+	// This only applies for multi-port (v2).
+	WorkloadIdentities []string `json:",omitempty"`
 
 	Disabled bool `json:",omitempty"` // TODO
 
@@ -900,7 +916,11 @@ type Upstream struct {
 	LocalAddress string `json:",omitempty"` // defaults to 127.0.0.1
 	LocalPort    int
 	Peer         string `json:",omitempty"`
-	PortName     string `json:",omitempty"` // multiport only
+
+	// PortName is the named port of this Upstream to route traffic to.
+	//
+	// This only applies for multi-port (v2).
+	PortName string `json:",omitempty"`
 	// TODO: what about mesh gateway mode overrides?
 
 	// computed at topology compile
