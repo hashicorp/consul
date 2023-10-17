@@ -33,7 +33,7 @@ const (
 // CatalogV2ServiceExists verifies the service name exists in the Consul catalog
 func CatalogV2ServiceExists(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy) {
 	t.Helper()
-	catalogV2ServiceHasEndpointCount(t, client, svc, tenancy, -1)
+	CatalogV2ServiceHasEndpointCount(t, client, svc, tenancy, -1)
 }
 
 // CatalogV2ServiceDoesNotExist verifies the service name does not exist in the Consul catalog
@@ -62,13 +62,6 @@ func CatalogV2ServiceDoesNotExist(t *testing.T, client pbresource.ResourceServic
 // CatalogV2ServiceHasEndpointCount verifies the service name exists in the Consul catalog and has the specified
 // number of workload endpoints.
 func CatalogV2ServiceHasEndpointCount(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy, count int) {
-	t.Helper()
-	require.True(t, count > 0)
-
-	catalogV2ServiceHasEndpointCount(t, client, svc, tenancy, count)
-}
-
-func catalogV2ServiceHasEndpointCount(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy, count int) {
 	t.Helper()
 	require.False(t, count == 0)
 
