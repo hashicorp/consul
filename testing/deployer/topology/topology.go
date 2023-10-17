@@ -241,6 +241,10 @@ type Cluster struct {
 
 	// Services is a forward declaration of V2 services. This goes in hand with
 	// the V2Services field on the Service (instance) struct.
+	//
+	// Use of this is optional. If you elect not to use it, then v2 Services
+	// definitions are inferred from the list of service instances defined on
+	// the nodes in this cluster.
 	Services map[ServiceID]*pbcatalog.Service `json:"omitempty"`
 
 	// Nodes is the definition of the nodes (agent-less and agent-ful).
@@ -722,7 +726,8 @@ type Service struct {
 	ExposedPort  int            `json:",omitempty"`
 	ExposedPorts map[string]int `json:",omitempty"` // multiport only
 
-	// V2Services contains named pointers to the Services slice in the Cluster
+	// V2Services contains service names (which are merged with the tenancy
+	// info from ID) to resolve services in the Services slice in the Cluster
 	// definition.
 	//
 	// If omitted it is inferred that the ID.Name field is the singular service
