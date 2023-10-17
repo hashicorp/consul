@@ -23,7 +23,7 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
-const DockerPrefix = "consulcluster"
+const DockerPrefix = "cslc" // ConSuLCluster
 
 func Compile(logger hclog.Logger, raw *Config) (*Topology, error) {
 	return compile(logger, raw, nil)
