@@ -14,7 +14,7 @@ func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
+				Peer: "",
 			},
 		},
 	}

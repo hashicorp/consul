@@ -21,8 +21,6 @@ func TestPartitionExportedServicesValidations(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		err := ValidatePartitionExportedServices(tc.Resource)
 		require.NoError(t, err)
-
-		resourcetest.MustDecode[*multiclusterv1alpha1.PartitionExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{

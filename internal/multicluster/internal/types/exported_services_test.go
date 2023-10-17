@@ -20,10 +20,11 @@ func TestExportedServicesValidation(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidateExportedServices(tc.Resource)
+		err := MutateExportedServices(tc.Resource)
 		require.NoError(t, err)
 
-		resourcetest.MustDecode[*multiclusterv1alpha1.ExportedServices](t, tc.Resource)
+		err = ValidateExportedServices(tc.Resource)
+		require.NoError(t, err)
 	}
 
 	cases := map[string]testcase{
@@ -56,7 +57,10 @@ func TestExportedServicesValidation_NoServices(t *testing.T) {
 		WithData(t, inValidExportedServices()).
 		Build()
 
-	err := ValidateExportedServices(res)
+	err := MutateExportedServices(res)
+	require.NoError(t, err)
+
+	err = ValidateExportedServices(res)
 	require.Error(t, err)
 	expectedError := errors.New("invalid \"services\" field: at least one service must be set")
 	require.ErrorAs(t, err, &expectedError)

@@ -21,8 +21,6 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 	run := func(t *testing.T, tc testcase) {
 		err := ValidateNamespaceExportedServices(tc.Resource)
 		require.NoError(t, err)
-
-		resourcetest.MustDecode[*multiclusterv1alpha1.NamespaceExportedServices](t, tc.Resource)
 	}
 
 	cases := map[string]testcase{
@@ -122,7 +120,7 @@ func TestNamespaceExportedServicesACLs(t *testing.T) {
 			rules:   ``,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"mesh read policy": {
 			rules:   `mesh = "read"`,
