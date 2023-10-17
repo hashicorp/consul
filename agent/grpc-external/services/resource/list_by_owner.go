@@ -105,6 +105,9 @@ func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) 
 		return nil, err
 	}
 
+	// Lowercase
+	resource.Normalize(req.Owner.Tenancy)
+
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {
 		return nil, status.Errorf(

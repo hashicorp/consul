@@ -81,7 +81,6 @@ jobs:
     strategy:
       matrix:
         nomad-version: ['v1.6.2', 'v1.5.9', 'v1.4.13']
-
     steps:
       - name: Checkout Nomad
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3

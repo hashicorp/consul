@@ -42,7 +42,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		request              *http.Request
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
-		responseBodyContains string
+		expectedErrorMessage string
 	}
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
@@ -72,7 +72,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "resource.id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = resource.id.name is required",
 		},
 		{
 			description: "wrong schema",
@@ -89,21 +89,21 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body didn't follow the resource schema",
+			expectedErrorMessage: "Request body didn't follow the resource schema",
 		},
 		{
 			description:          "invalid request body",
 			request:              httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader("bad-input")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body format is invalid",
+			expectedErrorMessage: "Request body format is invalid",
 		},
 		{
 			description:          "no id",
 			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = id.name is required",
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
-			require.Contains(t, string(b), tc.responseBodyContains)
+			require.Equal(t, tc.expectedErrorMessage, string(b))
 		})
 	}
 }
