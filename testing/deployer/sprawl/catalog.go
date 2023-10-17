@@ -299,10 +299,6 @@ func (s *Sprawl) registerCatalogNodeV2(
 		panic("called wrong method type")
 	}
 
-	if true {
-		return nil // skip for now
-	}
-
 	nodeRes := &Resource[*pbcatalog.Node]{
 		Resource: &pbresource.Resource{
 			Id: &pbresource.ID{
@@ -530,7 +526,7 @@ func serviceInstanceToResources(
 				Metadata: svc.Meta,
 			},
 			Data: &pbcatalog.Workload{
-				// NodeName: node.PodName(),
+				NodeName: node.PodName(),
 				Identity: svc.ID.Name,
 				Ports:    wlPorts,
 				Addresses: []*pbcatalog.WorkloadAddress{
