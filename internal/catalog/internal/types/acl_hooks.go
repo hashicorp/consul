@@ -38,7 +38,7 @@ func aclWriteHookResourceWithWorkloadSelector[T WorkloadSelecting](authorizer ac
 	}
 
 	for _, prefix := range decodedService.GetData().GetWorkloads().GetPrefixes() {
-		err = authorizer.ToAllowAuthorizer().ServiceReadAllowed(prefix, authzContext)
+		err = authorizer.ToAllowAuthorizer().ServiceReadPrefixAllowed(prefix, authzContext)
 		if err != nil {
 			return err
 		}
