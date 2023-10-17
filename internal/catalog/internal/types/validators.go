@@ -56,7 +56,7 @@ func isValidDNSLabel(label string) bool {
 	return dnsLabelMatcher.Match([]byte(label))
 }
 
-func isValidUnixSocketPath(host string) bool {
+func IsValidUnixSocketPath(host string) bool {
 	if len(host) > maxUnixSocketPathLen || !strings.HasPrefix(host, "unix://") || strings.Contains(host, "\000") {
 		return false
 	}
@@ -71,14 +71,14 @@ func validateWorkloadHost(host string) error {
 	}
 
 	// Check if the host represents an IP address, unix socket path or a DNS name
-	if !isValidIPAddress(host) && !isValidUnixSocketPath(host) && !isValidDNSName(host) {
+	if !isValidIPAddress(host) && !IsValidUnixSocketPath(host) && !isValidDNSName(host) {
 		return errInvalidWorkloadHostFormat{Host: host}
 	}
 
 	return nil
 }
 
-func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	if sel == nil {
 		if allowEmpty {
 			return nil
@@ -88,14 +88,20 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	}
 
 	if len(sel.Names) == 0 && len(sel.Prefixes) == 0 {
-		if allowEmpty {
-			return nil
+		if !allowEmpty {
+			return resource.ErrEmpty
 		}
 
-		return resource.ErrEmpty
+		if sel.Filter != "" {
+			return resource.ErrInvalidField{
+				Name:    "filter",
+				Wrapped: errors.New("filter cannot be set unless there is a name or prefix selector"),
+			}
+		}
+		return nil
 	}
 
-	var err error
+	var merr error
 
 	// Validate that all the exact match names are non-empty. This is
 	// mostly for the sake of not admitting values that should always
@@ -103,7 +109,7 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	// This is because workloads must have non-empty names.
 	for idx, name := range sel.Names {
 		if name == "" {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
+			merr = multierror.Append(merr, resource.ErrInvalidListElement{
 				Name:    "names",
 				Index:   idx,
 				Wrapped: resource.ErrEmpty,
@@ -111,7 +117,14 @@ func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 		}
 	}
 
-	return err
+	if err := resource.ValidateMetadataFilter(sel.GetFilter()); err != nil {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "filter",
+			Wrapped: err,
+		})
+	}
+
+	return merr
 }
 
 func validateIPAddress(ip string) error {
@@ -126,7 +139,7 @@ func validateIPAddress(ip string) error {
 	return nil
 }
 
-func validatePortName(name string) error {
+func ValidatePortName(name string) error {
 	if name == "" {
 		return resource.ErrEmpty
 	}
@@ -171,7 +184,7 @@ func validateWorkloadAddress(addr *pbcatalog.WorkloadAddress, ports map[string]*
 
 	// Ensure that unix sockets reference exactly 1 port. They may also indirectly reference 1 port
 	// by the workload having only a single port and omitting any explicit port assignment.
-	if isValidUnixSocketPath(addr.Host) &&
+	if IsValidUnixSocketPath(addr.Host) &&
 		(len(addr.Ports) > 1 || (len(addr.Ports) == 0 && len(ports) > 1)) {
 		err = multierror.Append(err, errUnixSocketMultiport)
 	}

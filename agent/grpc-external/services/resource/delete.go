@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -175,5 +176,5 @@ func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource
 // name by embedding the resources's Uid in the name.
 func tombstoneName(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
-	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
+	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, strings.ToLower(deleteId.Uid))
 }

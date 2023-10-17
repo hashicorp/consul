@@ -12,6 +12,7 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_grpc_http1_bridge_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_http1_bridge/v3"
 	envoy_grpc_stats_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/grpc_stats/v3"
+	envoy_http_header_to_meta_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/header_to_metadata/v3"
 	envoy_http_router_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/router/v3"
 	envoy_extensions_filters_listener_http_inspector_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/http_inspector/v3"
 	envoy_original_dst_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/listener/original_dst/v3"
@@ -336,7 +337,7 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
-		rbacFilters, err := MakeL4RBAC(l4.TrafficPermissions)
+		rbacFilters, err := MakeRBACNetworkFilters(l4.TrafficPermissions)
 		if err != nil {
 			return nil, err
 		}
@@ -426,12 +427,16 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			},
 		}
 
-		routeConfig, err := pr.makeEnvoyRoute(l7.Name)
+		if l7.Route == nil {
+			return nil, fmt.Errorf("route should not be nil")
+		}
+		routeConfig := pr.makeEnvoyRouteConfigFromProxystateRoute(l7.Route.Name, pr.proxyState.Routes[l7.Route.Name])
 		if err != nil {
 			return nil, err
 		}
 
 		if l7.StaticRoute {
+			routeConfig.ValidateClusters = nil
 			httpConnMgr.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_RouteConfig{
 				RouteConfig: routeConfig,
 			}
@@ -441,7 +446,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 
 			httpConnMgr.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
 				Rds: &envoy_http_v3.Rds{
-					RouteConfigName: l7.Name,
+					RouteConfigName: l7.Route.Name,
 					ConfigSource: &envoy_core_v3.ConfigSource{
 						ResourceApiVersion: envoy_core_v3.ApiVersion_V3,
 						ConfigSourceSpecifier: &envoy_core_v3.ConfigSource_Ads{
@@ -452,9 +457,50 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			}
 		}
 
+		if l7.IncludeXfccPolicy {
+			httpConnMgr.ForwardClientCertDetails = envoyXFCCPolicy[l7.XfccPolicy]
+			httpConnMgr.SetCurrentClientCertDetails = &envoy_http_v3.HttpConnectionManager_SetCurrentClientCertDetails{
+				Subject: &wrapperspb.BoolValue{Value: true},
+				Cert:    true,
+				Chain:   true,
+				Dns:     true,
+				Uri:     true,
+			}
+		}
+
 		// Add http2 protocol options
 		if l7.Protocol == pbproxystate.L7Protocol_L7_PROTOCOL_HTTP2 || l7.Protocol == pbproxystate.L7Protocol_L7_PROTOCOL_GRPC {
 			httpConnMgr.Http2ProtocolOptions = &envoy_core_v3.Http2ProtocolOptions{}
+		}
+
+		// Add http authorization filters. First are jwt auth filters (not yet implemented), then traffic permission filters (not yet implemented), then xfcc filters.
+		var httpAuthzFilters []*envoy_http_v3.HttpFilter
+
+		// Add traffic permission filters.
+		// Currently only adds the empty filter since L7 traffic permissions are not yet implemented.
+		if l7.TrafficPermissions != nil {
+			// For now, MakeRBACHTTPFilters only has L4 granularity traffic permissions in it.
+			l7TrafficPermsFilters, err := MakeRBACHTTPFilters(l7.TrafficPermissions)
+			if err != nil {
+				return nil, err
+			}
+			httpAuthzFilters = append(httpAuthzFilters, l7TrafficPermsFilters...)
+		}
+
+		if l7.ParseXfccHeaders {
+			parseXFCCFilter, err := parseXFCCToDynamicMetaHTTPFilter()
+			if err != nil {
+				return nil, err
+			}
+			httpAuthzFilters = append(httpAuthzFilters, parseXFCCFilter)
+		}
+
+		// Here we ensure that the first filter
+		// (other than the "envoy.grpc_http1_bridge" filter) in the http filter
+		// chain of a public listener is the authz filter to prevent unauthorized
+		// access and that every filter chain uses our TLS certs.
+		if len(httpAuthzFilters) > 0 {
+			httpConnMgr.HttpFilters = append(httpAuthzFilters, httpConnMgr.HttpFilters...)
 		}
 
 		// Add grpc envoy http filters.
@@ -944,6 +990,14 @@ var envoyTLSVersions = map[pbproxystate.TLSVersion]envoy_tls_v3.TlsParameters_Tl
 	pbproxystate.TLSVersion_TLS_VERSION_1_3:  envoy_tls_v3.TlsParameters_TLSv1_3,
 }
 
+var envoyXFCCPolicy = map[pbproxystate.XFCCPolicy]envoy_http_v3.HttpConnectionManager_ForwardClientCertDetails{
+	pbproxystate.XFCCPolicy_XFCC_POLICY_SANITIZE:            envoy_http_v3.HttpConnectionManager_SANITIZE,
+	pbproxystate.XFCCPolicy_XFCC_POLICY_FORWARD_ONLY:        envoy_http_v3.HttpConnectionManager_FORWARD_ONLY,
+	pbproxystate.XFCCPolicy_XFCC_POLICY_APPEND_FORWARD:      envoy_http_v3.HttpConnectionManager_APPEND_FORWARD,
+	pbproxystate.XFCCPolicy_XFCC_POLICY_SANITIZE_SET:        envoy_http_v3.HttpConnectionManager_SANITIZE_SET,
+	pbproxystate.XFCCPolicy_XFCC_POLICY_ALWAYS_FORWARD_ONLY: envoy_http_v3.HttpConnectionManager_ALWAYS_FORWARD_ONLY,
+}
+
 // Sort the trust domains so that the output is stable.
 // This benefits tests but also prevents Envoy from mistakenly thinking the listener
 // changed and needs to be drained only because this ordering is different.
@@ -1001,4 +1055,92 @@ func sortPrefixRanges(prefixRanges []*pbproxystate.CidrRange) {
 	sort.SliceStable(prefixRanges, func(i, j int) bool {
 		return prefixRanges[i].AddressPrefix < prefixRanges[j].AddressPrefix
 	})
+}
+
+const (
+	anyPath     = `[^/]+`
+	trustDomain = anyPath + "." + anyPath
+)
+
+// downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
+// 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
+// By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha;
+// Hash=...;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://c7e1d24a-eed8-10a3-286a-52bdb6b6a6fd.consul/ns/default/dc/primary/svc/s1,By=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/ns/default/dc/alpha/svc/s2;
+// Hash=...;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://950df996-caef-ddef-ec5f-8d18a153b7b2.consul/gateway/mesh/dc/alpha
+//
+// 2. Requests directly to another service
+// By=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s2;
+// Hash=396218588ebc1655d32a49b68cedd6b66b9de7b3d69d0c0451bc5818132377d0;
+// Cert=...;
+// Chain=...;
+// Subject="";
+// URI=spiffe://ae9dbea8-c1dd-7356-b211-c564f7917100.consul/ns/default/dc/primary/svc/s1
+//
+// In either case, the regex matches the downstream service's spiffe id because mesh gateways use a different spiffe id format.
+// Envoy requires us to include the trailing and leading .* to properly extract the properly submatch.
+const downstreamServiceIdentityMatcher = ".*URI=spiffe://(" + trustDomain +
+	")(?:/ap/(" + anyPath +
+	"))?/ns/(" + anyPath +
+	")/dc/(" + anyPath +
+	")/svc/([^/;,]+).*"
+
+func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
+	var rules []*envoy_http_header_to_meta_v3.Config_Rule
+
+	fields := []struct {
+		name string
+		sub  string
+	}{
+		{
+			name: "trust-domain",
+			sub:  `\1`,
+		},
+		{
+			name: "partition",
+			sub:  `\2`,
+		},
+		{
+			name: "namespace",
+			sub:  `\3`,
+		},
+		{
+			name: "datacenter",
+			sub:  `\4`,
+		},
+		{
+			name: "service",
+			sub:  `\5`,
+		},
+	}
+
+	for _, f := range fields {
+		rules = append(rules, &envoy_http_header_to_meta_v3.Config_Rule{
+			Header: "x-forwarded-client-cert",
+			OnHeaderPresent: &envoy_http_header_to_meta_v3.Config_KeyValuePair{
+				MetadataNamespace: "consul",
+				Key:               f.name,
+				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
+					Pattern: &envoy_matcher_v3.RegexMatcher{
+						Regex: downstreamServiceIdentityMatcher,
+						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
+							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
+						},
+					},
+					Substitution: f.sub,
+				},
+			},
+		})
+	}
+
+	cfg := &envoy_http_header_to_meta_v3.Config{RequestRules: rules}
+
+	return makeEnvoyHTTPFilter("envoy.filters.http.header_to_metadata", cfg)
 }

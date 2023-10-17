@@ -28,6 +28,25 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestHealthEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
+		})
+	}
+
+	checkRequest("GET", "/v1/health/node/web")
+	checkRequest("GET", "/v1/health/checks/web")
+	checkRequest("GET", "/v1/health/state/web")
+	checkRequest("GET", "/v1/health/service/web")
+	checkRequest("GET", "/v1/health/connect/web")
+	checkRequest("GET", "/v1/health/ingress/web")
+}
+
 func TestHealthChecksInState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

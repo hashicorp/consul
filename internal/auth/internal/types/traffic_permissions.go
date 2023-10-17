@@ -19,7 +19,7 @@ func RegisterTrafficPermissions(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookTrafficPermissions,
 			Write: aclWriteHookTrafficPermissions,
-			List:  aclListHookTrafficPermissions,
+			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateTrafficPermissions,
 		Mutate:   MutateTrafficPermissions,
@@ -273,7 +273,7 @@ func isLocalPeer(p string) bool {
 
 func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
 	if res == nil {
-		return resource.ErrNeedData
+		return resource.ErrNeedResource
 	}
 	return authorizeDestination(res, func(dest string) error {
 		return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(dest, authzContext)
@@ -284,12 +284,6 @@ func aclWriteHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl
 	return authorizeDestination(res, func(dest string) error {
 		return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(dest, authzContext)
 	})
-}
-
-func aclListHookTrafficPermissions(_ acl.Authorizer, _ *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement
-	return nil
 }
 
 func authorizeDestination(res *pbresource.Resource, intentionAllowed func(string) error) error {

@@ -4,23 +4,30 @@
 package types
 
 import (
+	"context"
 	"errors"
 	"testing"
+
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto/private/prototest"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	tenancyv1alpha1 "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    NamespaceV1Alpha1Type,
+			Type:    NamespaceV2Beta1Type,
 			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name:    "ns1234",
 		},
@@ -30,12 +37,6 @@ func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbre
 	res.Data, err = anypb.New(data)
 	require.NoError(t, err)
 	return res
-}
-
-func validNamespace() *tenancyv1alpha1.Namespace {
-	return &tenancyv1alpha1.Namespace{
-		Description: "description from user",
-	}
 }
 
 func TestValidateNamespace_Ok(t *testing.T) {
@@ -129,7 +130,7 @@ func TestValidateNamespace(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := anypb.New(&tenancyv1alpha1.Namespace{})
+			a, err := anypb.New(&pbtenancy.Namespace{})
 			require.NoError(t, err)
 			res := &pbresource.Resource{Id: &pbresource.ID{Name: tt.namespaceName}, Data: a}
 			err = ValidateNamespace(res)
@@ -140,5 +141,56 @@ func TestValidateNamespace(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestRead_Success(t *testing.T) {
+	client := svctest.RunResourceService(t, Register)
+	client = rtest.NewClient(client)
+
+	res := rtest.Resource(NamespaceType, "ns1").
+		WithData(t, validNamespace()).
+		Write(t, client)
+
+	readRsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
+}
+
+func TestRead_NotFound(t *testing.T) {
+	client := svctest.RunResourceService(t, Register)
+	client = rtest.NewClient(client)
+
+	res := rtest.Resource(NamespaceType, "ns1").
+		WithData(t, validNamespace()).Build()
+
+	_, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+	require.Error(t, err)
+	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+}
+
+func TestDelete_Success(t *testing.T) {
+	client := svctest.RunResourceService(t, Register)
+	client = rtest.NewClient(client)
+
+	res := rtest.Resource(NamespaceType, "ns1").
+		WithData(t, validNamespace()).Write(t, client)
+
+	readRsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
+
+	_, err = client.Delete(context.Background(), &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
+
+	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
+	require.Error(t, err)
+	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+
+}
+
+func validNamespace() *pbtenancy.Namespace {
+	return &pbtenancy.Namespace{
+		Description: "ns namespace",
 	}
 }

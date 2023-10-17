@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -30,14 +31,16 @@ type reconciliationDataSuite struct {
 	client pbresource.ResourceServiceClient
 	rt     controller.Runtime
 
-	apiServiceData *pbcatalog.Service
-	apiService     *pbresource.Resource
-	apiEndpoints   *pbresource.Resource
-	api1Workload   *pbresource.Resource
-	api2Workload   *pbresource.Resource
-	api123Workload *pbresource.Resource
-	web1Workload   *pbresource.Resource
-	web2Workload   *pbresource.Resource
+	apiServiceData       *pbcatalog.Service
+	apiService           *pbresource.Resource
+	apiServiceSubsetData *pbcatalog.Service
+	apiServiceSubset     *pbresource.Resource
+	apiEndpoints         *pbresource.Resource
+	api1Workload         *pbresource.Resource
+	api2Workload         *pbresource.Resource
+	api123Workload       *pbresource.Resource
+	web1Workload         *pbresource.Resource
+	web2Workload         *pbresource.Resource
 }
 
 func (suite *reconciliationDataSuite) SetupTest() {
@@ -62,12 +65,19 @@ func (suite *reconciliationDataSuite) SetupTest() {
 			},
 		},
 	}
+	suite.apiServiceSubsetData = proto.Clone(suite.apiServiceData).(*pbcatalog.Service)
+	suite.apiServiceSubsetData.Workloads.Filter = "(zim in metadata) and (metadata.zim matches `^g.`)"
 
 	suite.apiService = rtest.Resource(pbcatalog.ServiceType, "api").
 		WithData(suite.T(), suite.apiServiceData).
 		Write(suite.T(), suite.client)
 
+	suite.apiServiceSubset = rtest.Resource(pbcatalog.ServiceType, "api-subset").
+		WithData(suite.T(), suite.apiServiceSubsetData).
+		Write(suite.T(), suite.client)
+
 	suite.api1Workload = rtest.Resource(pbcatalog.WorkloadType, "api-1").
+		WithMeta("zim", "dib").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -92,6 +102,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		Write(suite.T(), suite.client)
 
 	suite.api123Workload = rtest.Resource(pbcatalog.WorkloadType, "api-123").
+		WithMeta("zim", "gir").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -104,6 +115,7 @@ func (suite *reconciliationDataSuite) SetupTest() {
 		Write(suite.T(), suite.client)
 
 	suite.web1Workload = rtest.Resource(pbcatalog.WorkloadType, "web-1").
+		WithMeta("zim", "gaz").
 		WithData(suite.T(), &pbcatalog.Workload{
 			Addresses: []*pbcatalog.WorkloadAddress{
 				{Host: "127.0.0.1"},
@@ -257,6 +269,20 @@ func (suite *reconciliationDataSuite) TestGetWorkloadData() {
 	prototest.AssertDeepEqual(suite.T(), suite.api2Workload, data[2].resource)
 	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[3].resource)
 	prototest.AssertDeepEqual(suite.T(), suite.web2Workload, data[4].resource)
+}
+
+func (suite *reconciliationDataSuite) TestGetWorkloadDataWithFilter() {
+	// This is like TestGetWorkloadData except it exercises the post-read
+	// filter on the selector.
+	data, err := getWorkloadData(suite.ctx, suite.rt, &serviceData{
+		resource: suite.apiServiceSubset,
+		service:  suite.apiServiceSubsetData,
+	})
+
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), data, 2)
+	prototest.AssertDeepEqual(suite.T(), suite.api123Workload, data[0].resource)
+	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[1].resource)
 }
 
 func TestReconciliationData(t *testing.T) {

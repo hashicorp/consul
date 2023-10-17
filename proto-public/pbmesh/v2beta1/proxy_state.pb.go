@@ -30,13 +30,13 @@ type ProxyStateTemplate struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// proxy_state is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
+	// ProxyState is the partially filled out ProxyState resource. The Endpoints, LeafCertificates and TrustBundles fields will need filling in after the resource is stored.
 	ProxyState *ProxyState `protobuf:"bytes,1,opt,name=proxy_state,json=proxyState,proto3" json:"proxy_state,omitempty"`
-	// required_endpoints is a map of arbitrary string names to endpoint refs that need fetching by the proxy state controller.
+	// RequiredEndpoints is a map of arbitrary string names to endpoint refs that need fetching by the proxy state controller.
 	RequiredEndpoints map[string]*pbproxystate.EndpointRef `protobuf:"bytes,2,rep,name=required_endpoints,json=requiredEndpoints,proto3" json:"required_endpoints,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// required_leaf_certificates is a map of arbitrary string names to leaf certificates that need fetching/generation by the proxy state controller.
+	// RequiredLeafCertificates is a map of arbitrary string names to leaf certificates that need fetching/generation by the proxy state controller.
 	RequiredLeafCertificates map[string]*pbproxystate.LeafCertificateRef `protobuf:"bytes,3,rep,name=required_leaf_certificates,json=requiredLeafCertificates,proto3" json:"required_leaf_certificates,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// required_trust_bundles is a map of arbitrary string names to trust bundle refs that need fetching by the proxy state controller.
+	// RequiredTrustBundles is a map of arbitrary string names to trust bundle refs that need fetching by the proxy state controller.
 	RequiredTrustBundles map[string]*pbproxystate.TrustBundleRef `protobuf:"bytes,4,rep,name=required_trust_bundles,json=requiredTrustBundles,proto3" json:"required_trust_bundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 }
 
@@ -105,25 +105,25 @@ type ProxyState struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// identity is a reference to the identity of the workload this proxy is for.
+	// Identity is a reference to the identity of the workload this proxy is for.
 	Identity *pbresource.Reference `protobuf:"bytes,1,opt,name=identity,proto3" json:"identity,omitempty"`
-	// listeners is a list of listeners for this proxy.
+	// Listeners is a list of listeners for this proxy.
 	Listeners []*pbproxystate.Listener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
-	// clusters is a map from cluster name to clusters. The keys are referenced from listeners or routes.
+	// Clusters is a map from cluster name to clusters. The keys are referenced from listeners or routes.
 	Clusters map[string]*pbproxystate.Cluster `protobuf:"bytes,3,rep,name=clusters,proto3" json:"clusters,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// routes is a map from route name to routes. The keys are referenced from listeners.
+	// Routes is a map from route name to routes. The keys are referenced from listeners.
 	Routes map[string]*pbproxystate.Route `protobuf:"bytes,4,rep,name=routes,proto3" json:"routes,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// endpoints is a map from cluster name to endpoints.
+	// Endpoints is a map from cluster name to endpoints.
 	Endpoints map[string]*pbproxystate.Endpoints `protobuf:"bytes,5,rep,name=endpoints,proto3" json:"endpoints,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// leaf certificates is a map from UUID to leaf certificates.
+	// LeafCertificates is a map from UUID to leaf certificates.
 	LeafCertificates map[string]*pbproxystate.LeafCertificate `protobuf:"bytes,6,rep,name=leaf_certificates,json=leafCertificates,proto3" json:"leaf_certificates,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// trust bundles is a map from peer name to trust bundles.
+	// TrustBundles is a map from peer name to trust bundles.
 	TrustBundles map[string]*pbproxystate.TrustBundle `protobuf:"bytes,7,rep,name=trust_bundles,json=trustBundles,proto3" json:"trust_bundles,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
-	// tls has TLS configuration for this proxy.
+	// TLS has TLS configuration for this proxy.
 	Tls *pbproxystate.TLS `protobuf:"bytes,8,opt,name=tls,proto3" json:"tls,omitempty"`
-	// escape defines top level escape hatches. These are user configured json strings that configure an entire piece of listener or cluster Envoy configuration.
+	// Escape defines top level escape hatches. These are user configured json strings that configure an entire piece of listener or cluster Envoy configuration.
 	Escape *pbproxystate.EscapeHatches `protobuf:"bytes,9,opt,name=escape,proto3" json:"escape,omitempty"`
-	// access_logs configures access logging for this proxy.
+	// AccessLogs configures access logging for this proxy.
 	AccessLogs *pbproxystate.AccessLogs `protobuf:"bytes,10,opt,name=access_logs,json=accessLogs,proto3" json:"access_logs,omitempty"`
 }
 

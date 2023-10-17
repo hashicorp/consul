@@ -25,6 +25,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=LOCALITY_PRIORITIZATION_MODE_UNSPECIFIED;LOCALITY_PRIORITIZATION_MODE_NONE;LOCALITY_PRIORITIZATION_MODE_FAILOVER
+// +kubebuilder:validation:Type=string
 type LocalityPrioritizationMode int32
 
 const (
@@ -74,6 +76,8 @@ func (LocalityPrioritizationMode) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_destination_policy_proto_rawDescGZIP(), []int{0}
 }
 
+// +kubebuilder:validation:Enum=LOAD_BALANCER_POLICY_UNSPECIFIED;LOAD_BALANCER_POLICY_RANDOM;LOAD_BALANCER_POLICY_ROUND_ROBIN;LOAD_BALANCER_POLICY_LEAST_REQUEST;LOAD_BALANCER_POLICY_MAGLEV;LOAD_BALANCER_POLICY_RING_HASH
+// +kubebuilder:validation:Type=string
 type LoadBalancerPolicy int32
 
 const (
@@ -132,6 +136,8 @@ func (LoadBalancerPolicy) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_destination_policy_proto_rawDescGZIP(), []int{1}
 }
 
+// +kubebuilder:validation:Enum=HASH_POLICY_FIELD_UNSPECIFIED;HASH_POLICY_FIELD_HEADER;HASH_POLICY_FIELD_COOKIE;HASH_POLICY_FIELD_QUERY_PARAMETER
+// +kubebuilder:validation:Type=string
 type HashPolicyField int32
 
 const (
@@ -248,10 +254,12 @@ type DestinationConfig struct {
 
 	// ConnectTimeout is the timeout for establishing new network connections
 	// to this service.
+	// +kubebuilder:validation:Format=duration
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,1,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
 	// RequestTimeout is the timeout for an HTTP request to complete before the
 	// connection is automatically terminated. If unspecified, defaults to 15
 	// seconds.
+	// +kubebuilder:validation:Format=duration
 	RequestTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=request_timeout,json=requestTimeout,proto3" json:"request_timeout,omitempty"`
 	// LoadBalancer determines the load balancing policy and configuration for
 	// services issuing requests to this upstream service.
@@ -688,6 +696,7 @@ type CookieConfig struct {
 	// Generates a session cookie with no expiration.
 	Session bool `protobuf:"varint,1,opt,name=session,proto3" json:"session,omitempty"`
 	// TTL for generated cookies. Cannot be specified for session cookies.
+	// +kubebuilder:validation:Format=duration
 	Ttl *durationpb.Duration `protobuf:"bytes,2,opt,name=ttl,proto3" json:"ttl,omitempty"`
 	// The path to set for the cookie
 	Path string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`

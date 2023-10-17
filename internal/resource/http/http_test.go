@@ -42,7 +42,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		request              *http.Request
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
-		expectedErrorMessage string
+		responseBodyContains string
 	}
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
@@ -72,7 +72,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			expectedErrorMessage: "rpc error: code = InvalidArgument desc = resource.id.name is required",
+			responseBodyContains: "resource.id.name invalid",
 		},
 		{
 			description: "wrong schema",
@@ -89,21 +89,21 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			expectedErrorMessage: "Request body didn't follow the resource schema",
+			responseBodyContains: "Request body didn't follow the resource schema",
 		},
 		{
 			description:          "invalid request body",
 			request:              httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader("bad-input")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			expectedErrorMessage: "Request body format is invalid",
+			responseBodyContains: "Request body format is invalid",
 		},
 		{
 			description:          "no id",
 			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			expectedErrorMessage: "rpc error: code = InvalidArgument desc = id.name is required",
+			responseBodyContains: "id.name invalid",
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
-			require.Equal(t, tc.expectedErrorMessage, string(b))
+			require.Contains(t, string(b), tc.responseBodyContains)
 		})
 	}
 }
@@ -131,7 +131,7 @@ func TestResourceWriteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -359,7 +359,7 @@ func TestResourceReadHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, ""), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -412,7 +412,7 @@ func TestResourceDeleteHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)
@@ -489,7 +489,7 @@ func TestResourceListHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	client := svctest.RunResourceServiceWithACL(t, aclResolver, demo.RegisterTypes)
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
 
 	r := resource.NewRegistry()
 	demo.RegisterTypes(r)

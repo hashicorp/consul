@@ -10,18 +10,32 @@ const (
 	GroupName = "mesh"
 	Version   = "v2beta1"
 
-	ComputedRoutesKind            = "ComputedRoutes"
-	DestinationPolicyKind         = "DestinationPolicy"
-	DestinationsKind              = "Destinations"
-	DestinationsConfigurationKind = "DestinationsConfiguration"
-	GRPCRouteKind                 = "GRPCRoute"
-	HTTPRouteKind                 = "HTTPRoute"
-	ProxyConfigurationKind        = "ProxyConfiguration"
-	ProxyStateTemplateKind        = "ProxyStateTemplate"
-	TCPRouteKind                  = "TCPRoute"
+	ComputedExplicitDestinationsKind = "ComputedExplicitDestinations"
+	ComputedProxyConfigurationKind   = "ComputedProxyConfiguration"
+	ComputedRoutesKind               = "ComputedRoutes"
+	DestinationPolicyKind            = "DestinationPolicy"
+	DestinationsKind                 = "Destinations"
+	DestinationsConfigurationKind    = "DestinationsConfiguration"
+	GRPCRouteKind                    = "GRPCRoute"
+	HTTPRouteKind                    = "HTTPRoute"
+	ProxyConfigurationKind           = "ProxyConfiguration"
+	ProxyStateTemplateKind           = "ProxyStateTemplate"
+	TCPRouteKind                     = "TCPRoute"
 )
 
 var (
+	ComputedExplicitDestinationsType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedExplicitDestinationsKind,
+	}
+
+	ComputedProxyConfigurationType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         ComputedProxyConfigurationKind,
+	}
+
 	ComputedRoutesType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,

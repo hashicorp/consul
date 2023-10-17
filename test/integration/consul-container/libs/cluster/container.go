@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -17,6 +18,7 @@ import (
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
@@ -25,12 +27,11 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const bootLogLine = "Consul agent running"
+
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 // Exposed ports info
@@ -134,6 +135,13 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		err := copy.Copy(config.ExternalDataDir, tmpDirData)
 		if err != nil {
 			return nil, fmt.Errorf("error copying persistent data from %s: %w", config.ExternalDataDir, err)
+		}
+		// NOTE: make sure the new version can access the persistent data
+		// This is necessary for running on Linux
+		cmd := exec.Command("chmod", "-R", "777", tmpDirData)
+		err = cmd.Run()
+		if err != nil {
+			return nil, fmt.Errorf("error changing ownership of persistent data: %w", err)
 		}
 	}
 
@@ -337,8 +345,9 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		node.clientCACertFile = clientCACertFile
 	}
 
-	// Inject node token if ACL is enabled and the bootstrap token is generated
-	if cluster.TokenBootstrap != "" && cluster.ACLEnabled {
+	// Inject node token if ACL is enabled, the bootstrap token not null, and cluster
+	// has at least one agent
+	if cluster.TokenBootstrap != "" && cluster.ACLEnabled && len(cluster.Agents) > 0 {
 		agentToken, err := cluster.CreateAgentToken(pc.Datacenter, name)
 		if err != nil {
 			return nil, err
@@ -534,9 +543,11 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 func (c *consulContainerNode) Terminate() error {
 	return c.terminate(false, false)
 }
+
 func (c *consulContainerNode) TerminateAndRetainPod(skipFuncs bool) error {
 	return c.terminate(true, skipFuncs)
 }
+
 func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	// Services might register a termination function that should also fire
 	// when the "agent" is cleaned up.

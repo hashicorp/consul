@@ -37,7 +37,15 @@
         ],
         "capabilities": [
           "CAPABILITY_TRANSPARENT"
-        ]
+        ],
+        "defaultRouter": {
+          "l4": {
+            "cluster": {
+              "name": "original-destination"
+            },
+            "statPrefix": "upstream.original-destination"
+          }
+        }
       }
     ],
     "clusters": {
@@ -66,18 +74,20 @@
         }
       }
     },
-  "leafCertificates": {
-    "test-identity": {
+    "leafCertificates": {
+      "test-identity": {
         "cert": "cert1",
         "key": "key1"
-    }
-  },
-  "trustBundles": {
-    "local": {
+      }
+    },
+    "trustBundles": {
+      "local": {
         "trustDomain": "foo.consul",
-        "roots": ["root1"]
+        "roots": [
+          "root1"
+        ]
+      }
     }
-  }
   },
   "requiredEndpoints": {
     "api-1.default.dc1.internal.foo.consul": {

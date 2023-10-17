@@ -23,6 +23,8 @@ message AccessLogs {
   }
 }
 
+// +kubebuilder:validation:Enum=LOG_SINK_TYPE_DEFAULT;LOG_SINK_TYPE_FILE;LOG_SINK_TYPE_STDERR;LOG_SINK_TYPE_STDOUT
+// +kubebuilder:validation:Type=string
 enum LogSinkType {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   LOG_SINK_TYPE_DEFAULT = 0;

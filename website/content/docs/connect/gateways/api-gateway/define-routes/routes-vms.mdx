@@ -1,0 +1,121 @@
+---
+layout: docs
+page_title: Define API gateway routes on virtual machines
+description: Learn how to define and attach HTTP and TCP routes to Consul API gateway listeners so that requests from external clients can reach services in the mesh. 
+---
+
+# Define API gateway routes on virtual machines
+
+This topic describes how to configure HTTP and TCP routes and attach them to Consul API gateway listeners. Routes are rule-based configurations that allow external clients to send requests to services in the mesh. 
+
+## Overview
+
+The following steps describe the general workflow for defining and deploying routes:
+
+1. Define routes in an HTTP or TCP configuration entry. The configuration entry includes rules for routing requests, target services in the mesh for the traffic, and the name of the gateway to attach to.  
+1. Deploy the configuration entry to create the routes and attach them to the gateway.
+
+Routes and the gateways they are attached to are eventually-consistent objects. They provide feedback about their current state through a series of status conditions. As a result, you must manually check the route status to determine if the route is bound to the gateway successfully.
+
+## Requirements
+
+The following requirements must be satisfied to use API gateways on VMs:
+
+- Consul 1.15 or later
+- A Consul cluster with service mesh enabled. Refer to [`connect`](/consul/docs/agent/config/config-files#connect)
+- Network connectivity between the machine deploying the API Gateway and a Consul cluster agent or server
+
+### ACL requirements
+
+If ACLs are enabled, you must present a token with the following permissions to
+configure Consul and deploy API gateway routes:
+
+- `mesh: read`
+- `mesh: write`
+
+Refer [Mesh Rules](/consul/docs/security/acl/acl-rules#mesh-rules) for
+additional information about configuring policies that enable you to interact
+with Consul API gateway configurations.
+
+## Define the routes
+
+Define route configurations and bind them to listeners configured on the gateway so that Consul can route incoming requests to services in the mesh.
+
+1. Create a route configuration entry file and specify the following settings:
+   - `Kind`: Set to `http` or `tcp`.
+   - `Name`:  Specify a name for the route. The name is metadata that you can use to reference the configuration when performing Consul operations.
+   - `Parents`: Specifies a list of API gateways that the route binds to. 
+   - `Rules`: If you are configuring HTTP routes, define a list of routing rules for constructing a routing table that maps listeners to services. Each member of the list is a map that may containing the following fields:
+      - `Filters`
+      - `Matches`
+      - `Services`
+
+   Refer to the [HTTP route configuration entry](/consul/docs/connect/config-entries/http-route) and [TCP route configuration entry](/consul/docs/connect/config-entries/tcp-route) reference for details about configuring routes.
+
+1. Configure any additional fields necessary for your use case, such as the namespace or admin partition.
+1. Save the configuration.
+
+
+The following example routes requests from the listener on the API gateway at port `8443` to services in Consul based on the path of the request. When an incoming request starts at path `/`, Consul forwards 90 percent of the requests to the `ui` service and 10 percent to `experimental-ui`. Consul also forwards requests starting with `/api` to `api`.
+
+```hcl
+Kind = "http-route"
+Name = "my-http-route"
+
+// Rules define how requests will be routed
+Rules = [
+  // Send all requests to UI services with 10% going to the "experimental" UI
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/"
+        }
+      }
+    ]
+    Services = [
+      {
+        Name = "ui"
+        Weight = 90
+      },
+      {
+        Name = "experimental-ui"
+        Weight = 10
+      }
+    ]
+  },
+  // Send all requests that start with the path `/api` to the API service
+  {
+    Matches = [
+      {
+        Path = {
+          Match = "prefix"
+          Value = "/api"
+        }
+      }
+    ]
+    Services = [
+      {
+        Name = "api"
+      }
+    ]
+  }
+]
+
+Parents = [
+  {
+    Kind = "api-gateway"
+    Name = "my-gateway"
+    SectionName = "my-http-listener"
+  }
+]
+```
+
+## Deploy the route configuration
+
+Run the `consul config write` command to attach the routes to the specified gateways. The following example writes a configuration called `my-http-route.hcl`:
+
+```shell-session
+$ consul config write my-http-route.hcl
+```

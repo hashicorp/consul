@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/testhelpers"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -195,4 +196,13 @@ func TestValidateHealthChecks_EmptySelector(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
+}
+
+func TestHealthChecksACLs(t *testing.T) {
+	testhelpers.RunWorkloadSelectingTypeACLsTests[*pbcatalog.HealthChecks](t, pbcatalog.HealthChecksType,
+		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.HealthChecks {
+			return &pbcatalog.HealthChecks{Workloads: selector}
+		},
+		RegisterHealthChecks,
+	)
 }
