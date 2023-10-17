@@ -34,19 +34,9 @@ var testTypeUrlToPrettyName = map[string]string{
 	xdscommon.SecretType:   "secrets",
 }
 
-// TestReconcile_SidecarProxyGoldenFileInputs tests the Reconcile() by using
-// the golden test output/expected files from the sidecar proxy tests as inputs
-// to the XDS controller reconciliation.
-// XDS controller reconciles the full ProxyStateTemplate object.  The fields
-// that things that it focuses on are leaf certs, endpoints, and trust bundles,
-// which is just a subset of the ProxyStateTemplate struct.  Prior to XDS controller
-// reconciliation, the sidecar proxy controller will have reconciled the other parts
-// of the ProxyStateTemplate.
-// Since the XDS controller does act on the ProxyStateTemplate, the tests
-// utilize that entire object rather than just the parts that XDS controller
-// internals reconciles.  Namely, by using checking the full ProxyStateTemplate
-// rather than just endpoints, leaf certs, and trust bundles, the test also ensures
-// side effects or change in scope to XDS controller are not introduce mistakenly.
+// TestAllResourcesFromIR_XDSGoldenFileInputs tests the AllResourcesFromIR() by
+// using the golden test output/expected files from the XDS controller tests as
+// inputs to the XDSV2 resources generation.
 func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 	inputPath := "../../internal/mesh/internal/controllers/xds"
 
@@ -79,18 +69,19 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 
 	for _, name := range cases {
 		t.Run(name, func(t *testing.T) {
+			// Arrange - paths to input and output golden files.
 			testFile := fmt.Sprintf("%s.golden", name)
 			inputFilePath := fmt.Sprintf("%s/testdata/%s", inputPath, testFile)
 			inputValueInput := golden.GetBytesAtFilePath(t, inputFilePath)
 
+			// Act.
 			ps := jsonToProxyState(t, inputValueInput)
 			generator := NewResourceGenerator(testutil.Logger(t))
-
 			resources, err := generator.AllResourcesFromIR(&proxytracker.ProxyState{ProxyState: ps})
 			require.NoError(t, err)
 
-			require.NoError(t, err)
-
+			// Assert.
+			// Assert all resources were generated.
 			typeUrls := []string{
 				xdscommon.ListenerType,
 				xdscommon.RouteType,
@@ -101,12 +92,15 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 			}
 			require.Len(t, resources, len(typeUrls))
 
+			// Assert each resource type has actual XDS matching expected XDS.
 			for _, typeUrl := range typeUrls {
 				prettyName := testTypeUrlToPrettyName[typeUrl]
 				t.Run(prettyName, func(t *testing.T) {
 					items, ok := resources[typeUrl]
 					require.True(t, ok)
 
+					// sort resources so they don't show up as flakey tests as
+					// ordering in JSON is not guaranteed.
 					sort.Slice(items, func(i, j int) bool {
 						switch typeUrl {
 						case xdscommon.ListenerType:
@@ -124,9 +118,9 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 						}
 					})
 
+					// Compare actual to expected.
 					resp, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
 					require.NoError(t, err)
-
 					gotJSON := protoToJSON(t, resp)
 
 					expectedJSON := golden.Get(t, gotJSON, fmt.Sprintf("%s/%s", prettyName, testFile))
