@@ -5,12 +5,11 @@ package types
 
 import (
 	"fmt"
-	"strings"
-
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
+	tenancyv1alpha1 "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	"strings"
 )
 
 const (
@@ -18,18 +17,18 @@ const (
 )
 
 var (
-	NamespaceV2Beta1Type = &pbresource.Type{
+	NamespaceV1Alpha1Type = &pbresource.Type{
 		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
+		GroupVersion: VersionV1Alpha1,
 		Kind:         NamespaceKind,
 	}
-	NamespaceType = NamespaceV2Beta1Type
+	NamespaceType = NamespaceV1Alpha1Type
 )
 
 func RegisterNamespace(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     NamespaceType,
-		Proto:    &pbtenancy.Namespace{},
+		Type:     NamespaceV1Alpha1Type,
+		Proto:    &tenancyv1alpha1.Namespace{},
 		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
 		Mutate:   MutateNamespace,
@@ -43,7 +42,7 @@ func MutateNamespace(res *pbresource.Resource) error {
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
-	var ns pbtenancy.Namespace
+	var ns tenancyv1alpha1.Namespace
 
 	if err := res.Data.UnmarshalTo(&ns); err != nil {
 		return resource.NewErrDataParse(&ns, err)

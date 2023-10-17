@@ -42,8 +42,8 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
-	// Check tenancy exists for the v2 resource.
-	if err = tenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
+	// Check v1 tenancy exists for the v2 resource.
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -104,6 +104,9 @@ func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) 
 	if err != nil {
 		return nil, err
 	}
+
+	// Lowercase
+	resource.Normalize(req.Owner.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {

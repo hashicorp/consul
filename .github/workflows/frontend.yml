@@ -37,10 +37,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '18'
+        node-version: '16'
 
     - name: Install Yarn
-      run: corepack enable
+      run: npm install -g yarn
 
     # Install dependencies.
     - name: install yarn packages
@@ -57,10 +57,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '18'
+        node-version: '16'
 
     - name: Install Yarn
-      run: corepack enable
+      run: npm install -g yarn
 
     # Install dependencies.
     - name: install yarn packages
@@ -86,10 +86,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '18'
+        node-version: '16'
 
     - name: Install Yarn
-      run: corepack enable
+      run: npm install -g yarn
 
     - name: Install Chrome
       uses: browser-actions/setup-chrome@c485fa3bab6be59dce18dbc18ef6ab7cbc8ff5f1 # v1.2.0

@@ -5,7 +5,6 @@ package resource
 
 import (
 	"context"
-	"strings"
 
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
@@ -130,12 +129,16 @@ func isGRPCStatusError(err error) bool {
 }
 
 func validateId(id *pbresource.ID, errorPrefix string) error {
-	if id.Type == nil {
-		return status.Errorf(codes.InvalidArgument, "%s.type is required", errorPrefix)
+	var field string
+	switch {
+	case id.Type == nil:
+		field = "type"
+	case id.Name == "":
+		field = "name"
 	}
 
-	if err := resource.ValidateName(id.Name); err != nil {
-		return status.Errorf(codes.InvalidArgument, "%s.name invalid: %v", errorPrefix, err)
+	if field != "" {
+		return status.Errorf(codes.InvalidArgument, "%s.%s is required", errorPrefix, field)
 	}
 
 	// Better UX: Allow callers to pass in nil tenancy.  Defaulting and inheritance of tenancy
@@ -149,98 +152,39 @@ func validateId(id *pbresource.ID, errorPrefix string) error {
 		}
 	}
 
-	if id.Tenancy.Partition != "" {
-		if err := resource.ValidateName(id.Tenancy.Partition); err != nil {
-			return status.Errorf(codes.InvalidArgument, "%s.tenancy.partition invalid: %v", errorPrefix, err)
-		}
-	}
-	if id.Tenancy.Namespace != "" {
-		if err := resource.ValidateName(id.Tenancy.Namespace); err != nil {
-			return status.Errorf(codes.InvalidArgument, "%s.tenancy.namespace invalid: %v", errorPrefix, err)
-		}
-	}
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if id.Tenancy.PeerName == "" {
-		id.Tenancy.PeerName = resource.DefaultPeerName
-	}
+	resource.Normalize(id.Tenancy)
 
 	return nil
 }
 
-func validateRef(ref *pbresource.Reference, errorPrefix string) error {
-	if ref.Type == nil {
-		return status.Errorf(codes.InvalidArgument, "%s.type is required", errorPrefix)
-	}
-	if err := resource.ValidateName(ref.Name); err != nil {
-		return status.Errorf(codes.InvalidArgument, "%s.name invalid: %v", errorPrefix, err)
-	}
-	if err := resource.ValidateName(ref.Tenancy.Partition); err != nil {
-		return status.Errorf(codes.InvalidArgument, "%s.tenancy.partition invalid: %v", errorPrefix, err)
-	}
-	if err := resource.ValidateName(ref.Tenancy.Namespace); err != nil {
-		return status.Errorf(codes.InvalidArgument, "%s.tenancy.namespace invalid: %v", errorPrefix, err)
-	}
-	return nil
-}
-
-func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) error {
-	// Partition has to be a valid name if not wildcard or empty
-	if tenancy.Partition != "" && tenancy.Partition != "*" {
-		if err := resource.ValidateName(tenancy.Partition); err != nil {
-			return status.Errorf(codes.InvalidArgument, "tenancy.partition invalid: %v", err)
-		}
-	}
-
-	// Namespace has to be a valid name if not wildcard or empty
-	if tenancy.Namespace != "" && tenancy.Namespace != "*" {
-		if err := resource.ValidateName(tenancy.Namespace); err != nil {
-			return status.Errorf(codes.InvalidArgument, "tenancy.namespace invalid: %v", err)
-		}
-	}
-
-	// Not doing a strict resource name validation here because the prefix can be
-	// something like "foo-" which is a valid prefix but not valid resource name.
-	// relax validation to just check for lowercasing
-	if namePrefix != strings.ToLower(namePrefix) {
-		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
-	}
-
-	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
-	if tenancy.PeerName == "" {
-		tenancy.PeerName = resource.DefaultPeerName
-	}
-
-	return nil
-}
-
-// tenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
-func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
+// v1TenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
+func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
-		exists, err := tenancyBridge.PartitionExists(tenancy.Partition)
+		exists, err := v1Bridge.PartitionExists(tenancy.Partition)
 		switch {
 		case err != nil:
 			return err
 		case !exists:
-			return status.Errorf(errCode, "partition not found: %v", tenancy.Partition)
+			return status.Errorf(errCode, "partition resource not found: %v", tenancy.Partition)
 		}
 	}
 
 	if reg.Scope == resource.ScopeNamespace {
-		exists, err := tenancyBridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
+		exists, err := v1Bridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
 			return err
 		case !exists:
-			return status.Errorf(errCode, "namespace not found: %v", tenancy.Namespace)
+			return status.Errorf(errCode, "namespace resource not found: %v", tenancy.Namespace)
 		}
 	}
 	return nil
 }
 
-// tenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
-func tenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+// v1TenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
+func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
-		marked, err := tenancyBridge.IsPartitionMarkedForDeletion(tenancy.Partition)
+		marked, err := v1Bridge.IsPartitionMarkedForDeletion(tenancy.Partition)
 		switch {
 		case err != nil:
 			return err
@@ -250,7 +194,7 @@ func tenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyB
 	}
 
 	if reg.Scope == resource.ScopeNamespace {
-		marked, err := tenancyBridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
+		marked, err := v1Bridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
 			return err

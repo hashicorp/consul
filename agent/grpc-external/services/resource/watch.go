@@ -110,9 +110,8 @@ func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*re
 		return nil, err
 	}
 
-	if err := validateWildcardTenancy(req.Tenancy, req.NamePrefix); err != nil {
-		return nil, err
-	}
+	// Lowercase
+	resource.Normalize(req.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {

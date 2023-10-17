@@ -42,7 +42,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		request              *http.Request
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
-		responseBodyContains string
+		expectedErrorMessage string
 	}
 	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
@@ -72,7 +72,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "resource.id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = resource.id.name is required",
 		},
 		{
 			description: "wrong schema",
@@ -89,21 +89,21 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body didn't follow the resource schema",
+			expectedErrorMessage: "Request body didn't follow the resource schema",
 		},
 		{
 			description:          "invalid request body",
 			request:              httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader("bad-input")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body format is invalid",
+			expectedErrorMessage: "Request body format is invalid",
 		},
 		{
 			description:          "no id",
 			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = id.name is required",
 		},
 	}
 
@@ -119,7 +119,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
-			require.Contains(t, string(b), tc.responseBodyContains)
+			require.Equal(t, tc.expectedErrorMessage, string(b))
 		})
 	}
 }
@@ -157,7 +157,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
 	})
-	var readRsp *pbresource.ReadResponse
+
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
 		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
@@ -183,8 +183,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 
-		var err error
-		readRsp, err = client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
 				Tenancy: resource.DefaultNamespacedTenancy(),
@@ -201,7 +200,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should update the record with version parameter", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=%s", readRsp.Resource.Version), strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
