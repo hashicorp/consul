@@ -40,48 +40,48 @@ When every field is defined, a control plane request limit configuration entry h
 <CodeTabs>
 
 ```hcl
-kind = "control-plane-request-limit"
-name = "<name-for-the-entry>"
+Kind = "control-plane-request-limit"
+Name = "<name-for-the-entry>"
 
-mode = "permissive"
+Mode = "permissive"
 
-read_rate =  100
-write_rate = 100
+ReadRate =  100
+WriteRate = 100
 
-kv = {
-  read_rate =  100
-  write_rate = 100
+KV = {
+  ReadRate =  100
+  WriteRate = 100
 }
 
-acl = {
-  read_rate =  100
-  write_rate = 100
+ACL = {
+  ReadRate =  100
+  WriteRate = 100
 }
 
-catalog = {
-  read_rate =  100
-  write_rate = 100
+Catalog = {
+  ReadRate =  100
+  WriteRate = 100
 }
 ```
 
 ```json
 {
-  "kind": "control-plane-request-limit",
-  "name": "<name-for-the-entry>",
-  "mode": "permissive",
-  "read_rate":  100,
-  "write_rate": 100,
-  "kv": {
-    "read_rate": 100,
-    "write_rate": 100
+  "Kind": "control-plane-request-limit",
+  "Name": "<name-for-the-entry>",
+  "Mode": "permissive",
+  "ReadRate":  100,
+  "WriteRate": 100,
+  "KV": {
+    "ReadRate": 100,
+    "WriteRate": 100
     },
-  "acl": {
-    "read_rate": 100,
-    "write_rate": 100
+  "ACL": {
+    "ReadRate": 100,
+    "WriteRate": 100
     },
-  "catalog": {
-    "read_rate": 100,
-    "write_rate": 100
+  "Catalog": {
+    "ReadRate": 100,
+    "WriteRate": 100
   }
 }
 ```
