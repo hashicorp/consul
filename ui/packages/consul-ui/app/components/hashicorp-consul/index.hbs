@@ -181,9 +181,9 @@
         </Hds::SideNav::List>
       </:body>
       <:footer>
-        <p class='hds-foreground-disabled hds-typography-display-100'>
+        <Hds::Text::Display @size='100' @color='disabled'>
           Consul v{{env 'CONSUL_VERSION'}}
-        </p>
+        </Hds::Text::Display>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
       </:footer>
     </Hds::SideNav>
