@@ -8,8 +8,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"os"
-	"path/filepath"
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"sort"
 	"testing"
 
@@ -53,16 +52,16 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 
 	cases := []string{
 		// destinations - please add in alphabetical order
-		//"destination/l4-single-destination-ip-port-bind-address",
-		//"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-single-destination-ip-port-bind-address",
+		"destination/l4-single-destination-unix-socket-bind-address",
 		"destination/l4-single-implicit-destination-tproxy",
-		//"destination/l4-multi-destination",
-		//"destination/l4-multiple-implicit-destinations-tproxy",
-		//"destination/l4-implicit-and-explicit-destinations-tproxy",
-		//"destination/mixed-multi-destination",
-		//"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
-		//"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
-		//"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
+		"destination/l4-multi-destination",
+		"destination/l4-multiple-implicit-destinations-tproxy",
+		"destination/l4-implicit-and-explicit-destinations-tproxy",
+		"destination/mixed-multi-destination",
+		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
 
 		//sources - please add in alphabetical order
 		//"source/l4-multiple-workload-addresses-with-specific-ports",
@@ -82,7 +81,7 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			testFile := fmt.Sprintf("%s.golden", name)
 			inputFilePath := fmt.Sprintf("%s/testdata/%s", inputPath, testFile)
-			inputValueInput := goldenValueJSON(t, inputFilePath)
+			inputValueInput := golden.GetBytesAtFilePath(t, inputFilePath)
 
 			ps := jsonToProxyState(t, inputValueInput)
 			generator := NewResourceGenerator(testutil.Logger(t))
@@ -130,46 +129,12 @@ func TestAllResourcesFromIR_XDSGoldenFileInputs(t *testing.T) {
 
 					gotJSON := protoToJSON(t, resp)
 
-					expectedJSON := goldenValue(t, fmt.Sprintf("testdata/%s/%s", prettyName, testFile))
+					expectedJSON := golden.Get(t, gotJSON, fmt.Sprintf("%s/%s", prettyName, testFile))
 					require.JSONEq(t, expectedJSON, gotJSON)
 				})
 			}
 		})
 	}
-}
-
-func verifyClusterResourcesToGolden(t *testing.T, resources map[string][]proto.Message, testName string) {
-	clusters := resources[xdscommon.ClusterType]
-
-	// The order of clusters returned via CDS isn't relevant, so it's safe
-	// to sort these for the purposes of test comparisons.
-	sort.Slice(clusters, func(i, j int) bool {
-		return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
-	})
-
-	resp, err := response.CreateResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
-	require.NoError(t, err)
-	gotJSON := protoToJSON(t, resp)
-
-	expectedJSON := goldenValue(t, filepath.Join("testdata/clusters", testName))
-	require.JSONEq(t, expectedJSON, gotJSON)
-}
-
-func verifyListenerResourcesToGolden(t *testing.T, resources map[string][]proto.Message, testName string) {
-	listeners := resources[xdscommon.ListenerType]
-
-	// The order of clusters returned via CDS isn't relevant, so it's safe
-	// to sort these for the purposes of test comparisons.
-	sort.Slice(listeners, func(i, j int) bool {
-		return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
-	})
-
-	resp, err := response.CreateResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
-	require.NoError(t, err)
-	gotJSON := protoToJSON(t, resp)
-
-	expectedJSON := goldenValue(t, filepath.Join("testdata/listeners", testName))
-	require.JSONEq(t, expectedJSON, gotJSON)
 }
 
 func protoToJSON(t *testing.T, pb proto.Message) string {
@@ -189,17 +154,4 @@ func jsonToProxyState(t *testing.T, json []byte) *meshv2beta1.ProxyState {
 	err := um.Unmarshal(json, ps)
 	require.NoError(t, err)
 	return ps
-}
-
-func goldenValueJSON(t *testing.T, goldenPath string) []byte {
-	t.Helper()
-
-	content, err := os.ReadFile(goldenPath)
-	require.NoError(t, err)
-	return content
-}
-
-func goldenValue(t *testing.T, filePath string) string {
-	t.Helper()
-	return string(goldenValueJSON(t, filePath))
 }

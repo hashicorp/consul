@@ -31,6 +31,31 @@
               }
             }
           ]
+        },
+        {
+          "filterChainMatch":  {
+            "destinationPort":  7070,
+            "prefixRanges":  [
+              {
+                "addressPrefix":  "2.2.2.2",
+                "prefixLen":  32
+              },
+              {
+                "addressPrefix":  "3.3.3.3",
+                "prefixLen":  32
+              }
+            ]
+          },
+          "filters":  [
+            {
+              "name":  "envoy.filters.network.tcp_proxy",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "statPrefix":  "upstream.tcp.api-2.default.default.dc1",
+                "cluster":  "tcp.api-2.default.dc1.internal.foo.consul"
+              }
+            }
+          ]
         }
       ],
       "defaultFilterChain":  {
