@@ -1,4 +1,4 @@
-# CopyButton
+# ConsulCopyButton
 
 Button component used for copy-to-clipboard functionality so the user can easily copy specified text to their clipboard, along with tooltip-like notifications so the user has some sort of feedback to know the value has been copied.
 
@@ -10,7 +10,7 @@ Can be used inline to render only a small icon for the button with no other text
 <figure>
   <figcaption>Icon only</figcaption>
 
-  <CopyButton
+  <ConsulCopyButton
     @value={{'stringToCopy'}}
     @name="Thing"
   />
@@ -20,12 +20,12 @@ Can be used inline to render only a small icon for the button with no other text
 <figure>
   <figcaption>Icon and text</figcaption>
 
-  <CopyButton
+  <ConsulCopyButton
     @value={{'stringToCopy'}}
     @name="Thing"
   >
     Copy me!
-  </CopyButton>
+  </ConsulCopyButton>
 </figure>
 ```
 
