@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package peering
+package topoutil
 
 import (
 	"fmt"
@@ -12,18 +12,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/testing/deployer/topology"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-// asserter is a utility to help in reducing boilerplate in invoking test
+// Asserter is a utility to help in reducing boilerplate in invoking test
 // assertions against consul-topology Sprawl components.
 //
 // The methods should largely take in *topology.Service instances in lieu of
@@ -33,32 +31,32 @@ import (
 // If it's up to the test (like picking an upstream) leave port as an argument
 // but still take the service and use that to grab the local ip from the
 // topology.Node.
-type asserter struct {
-	sp sprawlLite
+type Asserter struct {
+	sp SprawlLite
 }
 
 // *sprawl.Sprawl satisfies this. We don't need anything else.
-type sprawlLite interface {
+type SprawlLite interface {
 	HTTPClientForCluster(clusterName string) (*http.Client, error)
 	APIClientForNode(clusterName string, nid topology.NodeID, token string) (*api.Client, error)
 	APIClientForCluster(clusterName string, token string) (*api.Client, error)
 	Topology() *topology.Topology
 }
 
-// newAsserter creates a new assertion helper for the provided sprawl.
-func newAsserter(sp sprawlLite) *asserter {
-	return &asserter{
+// NewAsserter creates a new assertion helper for the provided sprawl.
+func NewAsserter(sp SprawlLite) *Asserter {
+	return &Asserter{
 		sp: sp,
 	}
 }
 
-func (a *asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client {
+func (a *Asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client {
 	client, err := a.httpClientFor(cluster)
 	require.NoError(t, err)
 	return client
 }
 
-func (a *asserter) mustGetAPIClient(t *testing.T, cluster string) *api.Client {
+func (a *Asserter) mustGetAPIClient(t *testing.T, cluster string) *api.Client {
 	clu := a.sp.Topology().Clusters[cluster]
 	cl, err := a.sp.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
@@ -70,7 +68,7 @@ func (a *asserter) mustGetAPIClient(t *testing.T, cluster string) *api.Client {
 //
 // Use this in methods below to magically pick the right proxied http client
 // given the home of each node being checked.
-func (a *asserter) httpClientFor(cluster string) (*http.Client, error) {
+func (a *Asserter) httpClientFor(cluster string) (*http.Client, error) {
 	client, err := a.sp.HTTPClientForCluster(cluster)
 	if err != nil {
 		return nil, err
@@ -83,7 +81,7 @@ func (a *asserter) httpClientFor(cluster string) (*http.Client, error) {
 // Exposes libassert.UpstreamEndpointStatus for use against a Sprawl.
 //
 // NOTE: this doesn't take a port b/c you always want to use the envoy admin port.
-func (a *asserter) UpstreamEndpointStatus(
+func (a *Asserter) UpstreamEndpointStatus(
 	t *testing.T,
 	service *topology.Service,
 	clusterName string,
@@ -107,7 +105,7 @@ func (a *asserter) UpstreamEndpointStatus(
 // Exposes libassert.HTTPServiceEchoes for use against a Sprawl.
 //
 // NOTE: this takes a port b/c you may want to reach this via your choice of upstream.
-func (a *asserter) HTTPServiceEchoes(
+func (a *Asserter) HTTPServiceEchoes(
 	t *testing.T,
 	service *topology.Service,
 	port int,
@@ -131,7 +129,7 @@ func (a *asserter) HTTPServiceEchoes(
 // Exposes libassert.HTTPServiceEchoes for use against a Sprawl.
 //
 // NOTE: this takes a port b/c you may want to reach this via your choice of upstream.
-func (a *asserter) HTTPServiceEchoesResHeader(
+func (a *Asserter) HTTPServiceEchoesResHeader(
 	t *testing.T,
 	service *topology.Service,
 	port int,
@@ -149,7 +147,7 @@ func (a *asserter) HTTPServiceEchoesResHeader(
 	libassert.HTTPServiceEchoesResHeaderWithClient(t, client, addr, path, expectedResHeader)
 }
 
-func (a *asserter) HTTPStatus(
+func (a *Asserter) HTTPStatus(
 	t *testing.T,
 	service *topology.Service,
 	port int,
@@ -179,7 +177,7 @@ func (a *asserter) HTTPStatus(
 }
 
 // asserts that the service sid in cluster and exported by peer localPeerName is passing health checks,
-func (a *asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.ServiceID, peerName string) {
+func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.ServiceID, peerName string) {
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
@@ -198,7 +196,7 @@ func (a *asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.Se
 	})
 }
 
-func (a *asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, upstream *topology.Upstream) {
+func (a *Asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, upstream *topology.Upstream) {
 	t.Helper()
 	node := svc.Node
 	ip := node.LocalAddress()
@@ -220,7 +218,7 @@ func (a *asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, 
 // the body, and response with response.Body already Closed.
 //
 // We treat 400, 503, and 504s as retryable errors
-func (a *asserter) fortioFetch2Upstream(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, path string) (body []byte, res *http.Response) {
+func (a *Asserter) fortioFetch2Upstream(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, path string) (body []byte, res *http.Response) {
 	t.Helper()
 
 	// TODO: fortioSvc.ID.Normalize()? or should that be up to the caller?
@@ -253,7 +251,7 @@ func (a *asserter) fortioFetch2Upstream(t *testing.T, fortioSvc *topology.Servic
 
 // uses the /fortio/fetch2 endpoint to do a header echo check against an
 // upstream fortio
-func (a *asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream) {
+func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream) {
 	const kPassphrase = "x-passphrase"
 	const passphrase = "hello"
 	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
@@ -269,7 +267,7 @@ func (a *asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 // similar to libassert.AssertFortioName,
 // uses the /fortio/fetch2 endpoint to hit the debug endpoint on the upstream,
 // and assert that the FORTIO_NAME == name
-func (a *asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, clusterName string, sid topology.ServiceID) {
+func (a *Asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, clusterName string, sid topology.ServiceID) {
 	t.Helper()
 
 	var fortioNameRE = regexp.MustCompile(("\nFORTIO_NAME=(.+)\n"))
@@ -289,7 +287,7 @@ func (a *asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Serv
 
 // CatalogServiceExists is the same as libassert.CatalogServiceExists, except that it uses
 // a proxied API client
-func (a *asserter) CatalogServiceExists(t *testing.T, cluster string, svc string, opts *api.QueryOptions) {
+func (a *Asserter) CatalogServiceExists(t *testing.T, cluster string, svc string, opts *api.QueryOptions) {
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	libassert.CatalogServiceExists(t, cl, svc, opts)

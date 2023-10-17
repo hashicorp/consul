@@ -108,6 +108,46 @@ func (c *Config) Cluster(name string) *Cluster {
 	return nil
 }
 
+// DisableNode is a no-op if the node is already disabled.
+func (c *Config) DisableNode(clusterName string, nid NodeID) (bool, error) {
+	cluster := c.Cluster(clusterName)
+	if cluster == nil {
+		return false, fmt.Errorf("no such cluster: %q", clusterName)
+	}
+
+	for _, n := range cluster.Nodes {
+		if n.ID() == nid {
+			if n.Disabled {
+				return false, nil
+			}
+			n.Disabled = true
+			return true, nil
+		}
+	}
+
+	return false, fmt.Errorf("expected to find nodeID %q in cluster %q", nid.String(), clusterName)
+}
+
+// EnableNode is a no-op if the node is already enabled.
+func (c *Config) EnableNode(clusterName string, nid NodeID) (bool, error) {
+	cluster := c.Cluster(clusterName)
+	if cluster == nil {
+		return false, fmt.Errorf("no such cluster: %q", clusterName)
+	}
+
+	for _, n := range cluster.Nodes {
+		if n.ID() == nid {
+			if !n.Disabled {
+				return false, nil
+			}
+			n.Disabled = false
+			return true, nil
+		}
+	}
+
+	return false, fmt.Errorf("expected to find nodeID %q in cluster %q", nid.String(), clusterName)
+}
+
 type Network struct {
 	Type string // lan/wan ; empty means lan
 	Name string // logical name
