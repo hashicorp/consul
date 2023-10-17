@@ -217,6 +217,7 @@
     "node": "18"
   },
   "dependencies": {
-    "doctoc": "^2.0.0"
+    "doctoc": "^2.0.0",
+    "ember-element-helper": "0.6.1"
   }
 }
