@@ -868,6 +868,9 @@ func (s *Service) HasCheck() bool {
 
 func (s *Service) DigestExposedPorts(ports map[int]int) {
 	s.ExposedPort = ports[s.Port]
+	for portName, port := range s.Ports {
+		s.ExposedPorts[portName] = ports[port.Number]
+	}
 	if s.EnvoyAdminPort > 0 {
 		s.ExposedEnvoyAdminPort = ports[s.EnvoyAdminPort]
 	} else {
