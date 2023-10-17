@@ -93,6 +93,13 @@ func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enter
 	}
 	if overridePolicy != nil {
 		token.Policies = []*api.ACLTokenPolicyLink{{ID: overridePolicy.ID}}
+	} else if svc.IsV2() {
+		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			TemplateVariables: &api.ACLTemplatedPolicyVariables{
+				Name: svc.ID.Name,
+			},
+		}}
 	} else {
 		token.ServiceIdentities = []*api.ACLServiceIdentity{{
 			ServiceName: svc.ID.Name,
@@ -189,42 +196,6 @@ func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy
 		}
 	} else {
 		policy.Rules = meshGatewayCommunityRules
-	}
-
-	return policy
-}
-
-const (
-	workloadIdentityHACKCommunityRules = `
-identity %q {
-  policy = "write"
-}
-`
-	workloadIdentityHACKEntRules = `
-partition %q {
-	namespace %q {
-` + workloadIdentityHACKCommunityRules + `
-	}
-}
-`
-)
-
-func policyForWorkloadIdentityHACK(svc *topology.Service, enterprise bool) *api.ACLPolicy {
-	policyName := "workload-identity--" + svc.ID.ACLString()
-
-	policy := &api.ACLPolicy{
-		Name:        policyName,
-		Description: policyName,
-	}
-	if enterprise {
-		policy.Partition = svc.ID.Partition
-		policy.Namespace = svc.ID.Namespace
-	}
-
-	if enterprise {
-		policy.Rules = fmt.Sprintf(workloadIdentityHACKEntRules, svc.ID.Partition, svc.ID.Namespace, svc.ID.Name)
-	} else {
-		policy.Rules = fmt.Sprintf(workloadIdentityHACKCommunityRules, svc.ID.Name)
 	}
 
 	return policy
