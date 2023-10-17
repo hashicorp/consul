@@ -757,14 +757,6 @@ type Service struct {
 	// This only applies for multi-port (v2).
 	Ports map[string]*Port `json:",omitempty"`
 
-	// ExposedPort is the exposed docker port corresponding to 'Port'.
-	ExposedPort int `json:",omitempty"`
-
-	// ExposedPorts are the exposed docker ports corresponding to 'Ports'.
-	//
-	// This only applies for multi-port (v2).
-	ExposedPorts map[string]int `json:",omitempty"`
-
 	// V2Services contains service names (which are merged with the tenancy
 	// info from ID) to resolve services in the Services slice in the Cluster
 	// definition.
@@ -813,6 +805,25 @@ type Service struct {
 	Workload    string      `json:"-"`
 }
 
+func (s *Service) ExposedPort(name string) int {
+	if s.Node == nil {
+		panic("ExposedPort cannot be called until after Compile")
+	}
+
+	var internalPort int
+	if name == "" {
+		internalPort = s.Port
+	} else {
+		port, ok := s.Ports[name]
+		if !ok {
+			panic("port with name " + name + " not present on service")
+		}
+		internalPort = port.Number
+	}
+
+	return s.Node.ExposedPort(internalPort)
+}
+
 func (s *Service) PortOrDefault(name string) int {
 	if len(s.Ports) > 0 {
 		return s.Ports[name].Number
@@ -829,8 +840,6 @@ func (s *Service) IsV1() bool {
 }
 
 func (s *Service) inheritFromExisting(existing *Service) {
-	s.ExposedPort = existing.ExposedPort
-	s.ExposedPorts = existing.ExposedPorts
 	s.ExposedEnvoyAdminPort = existing.ExposedEnvoyAdminPort
 }
 
@@ -867,10 +876,6 @@ func (s *Service) HasCheck() bool {
 }
 
 func (s *Service) DigestExposedPorts(ports map[int]int) {
-	s.ExposedPort = ports[s.Port]
-	for portName, port := range s.Ports {
-		s.ExposedPorts[portName] = ports[port.Number]
-	}
 	if s.EnvoyAdminPort > 0 {
 		s.ExposedEnvoyAdminPort = ports[s.EnvoyAdminPort]
 	} else {
