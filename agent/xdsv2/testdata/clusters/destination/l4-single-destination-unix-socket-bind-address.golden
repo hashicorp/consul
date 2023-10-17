@@ -3,14 +3,7 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "original-destination",
-      "type":  "ORIGINAL_DST",
-      "connectTimeout":  "5s",
-      "lbPolicy":  "CLUSTER_PROVIDED"
-    },
-    {
-      "@type":  "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "name":  "tcp.api-1.default.dc1.internal.foo.consul",
+      "name":  "tcp.api-2.default.dc1.internal.foo.consul",
       "type":  "EDS",
       "edsClusterConfig":  {
         "edsConfig":  {
@@ -44,7 +37,7 @@
               },
               "matchSubjectAltNames":  [
                 {
-                  "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                  "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
                 }
               ]
             },
@@ -52,7 +45,7 @@
               "consul~tcp"
             ]
           },
-          "sni":  "api-1.default.dc1.internal.foo.consul"
+          "sni":  "api-2.default.dc1.internal.foo.consul"
         }
       }
     }
