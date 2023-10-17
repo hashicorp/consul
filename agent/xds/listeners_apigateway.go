@@ -152,7 +152,11 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			routes := make([]*structs.HTTPRouteConfigEntry, 0, len(readyListener.routeReferences))
 			for _, routeRef := range maps.Keys(readyListener.routeReferences) {
-				route, _ := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+				route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
+				if !ok {
+					return nil, fmt.Errorf("missing route for routeRef %s:%s", routeRef.Kind, routeRef.Name)
+				}
+
 				routes = append(routes, route)
 			}
 			consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, routes...)
@@ -297,11 +301,9 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 				continue
 			}
 
-			routeKey := l.Name + routeRef.String()
-
 			for _, upstream := range routeUpstreamsForListener {
 				// Insert or update readyListener for the listener to include this upstream
-				r, ok := ready[routeKey]
+				r, ok := ready[l.Name]
 				if !ok {
 					r = readyListener{
 						listenerKey:      listenerKey,
@@ -312,7 +314,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 				}
 				r.routeReferences[routeRef] = struct{}{}
 				r.upstreams = append(r.upstreams, upstream)
-				ready[routeKey] = r
+				ready[l.Name] = r
 			}
 		}
 	}
