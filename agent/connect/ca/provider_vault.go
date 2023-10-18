@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 const (
@@ -221,6 +222,12 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	retrier := retry.Waiter{
+		MinFailures: 1,
+		MinWait:     1 * time.Second,
+		Jitter:      retry.NewJitter(20),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -229,7 +236,16 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 		case err := <-watcher.DoneCh():
 			// Watcher has stopped
 			if err != nil {
-				v.logger.Error("Error renewing token for Vault provider", "error", err)
+				v.logger.Error("Error renewing token for Vault provider", "error", err, "fails", retrier.Failures())
+			}
+
+			// Although the vault watcher has its own retry logic, we have encountered
+			// issues when passing an invalid Vault token which would send an error to
+			// watcher.DoneCh() immediately, causing us to start the watcher over and
+			// over again in a very tight loop.
+			if err := retrier.Wait(ctx); err != nil {
+				// only possible error is when context is cancelled
+				return
 			}
 
 			// If the watcher has exited and auth method is enabled,
@@ -263,6 +279,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
+			retrier.Reset()
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
