@@ -27,7 +27,9 @@ jobs:
       pre-version: ${{ steps.set-product-version.outputs.prerelease-product-version }}
       shared-ldflags: ${{ steps.shared-ldflags.outputs.shared-ldflags }}
     steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # action-set-product-version implicitly sets fields like 'product-version' using version/VERSION
+      # https://github.com/hashicorp/actions-set-product-version
       - name: set product version
         id: set-product-version
         uses: hashicorp/actions-set-product-version@v1
@@ -35,7 +37,6 @@ jobs:
         id: get-product-version
         run: |
           CONSUL_DATE=$(build-support/scripts/build-date.sh)
-          ## TODO: This assumes `make version` outputs 1.1.1+ent-prerel
           echo "product-date=${CONSUL_DATE}" >> "$GITHUB_OUTPUT"
 
       - name: Set shared -ldflags
@@ -295,8 +296,10 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
-          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          echo "full_dev_tag=${{ env.version }}"
+          echo "full_dev_tag=${{ env.version }}" >> $GITHUB_ENV
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" 
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" >> $GITHUB_ENV
 
       - name: Docker Build (Action)
         uses: hashicorp/actions-docker-build@v1
@@ -308,8 +311,10 @@ jobs:
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
           dev_tags: |
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   build-docker-ubi-redhat:
@@ -349,8 +354,10 @@ jobs:
       # This naming convention will be used ONLY for per-commit dev images
       - name: Set docker dev tag
         run: |
-          version="${{ env.version }}"
-          echo "dev_tag=${version%.*}-dev" >> $GITHUB_ENV
+          echo "full_dev_tag=${{ env.version }}"
+          echo "full_dev_tag=${{ env.version }}" >> $GITHUB_ENV
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" 
+          echo "minor_dev_tag=$(echo ${{ env.version }}| sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+(-[0-9a-zA-Z\+\.]+)?$/\1\2/')" >> $GITHUB_ENV
 
       - uses: hashicorp/actions-docker-build@v1
         with:
@@ -361,8 +368,10 @@ jobs:
             docker.io/hashicorp/${{env.repo}}:${{env.version}}-ubi
             public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}-ubi
           dev_tags: |
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi
-            docker.io/hashicorppreview/${{ env.repo }}:${{ env.dev_tag }}-ubi-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.full_dev_tag }}-ubi-${{ github.sha }}
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi
+            docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
   verify-linux:
