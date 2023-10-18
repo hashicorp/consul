@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -24,6 +25,18 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
+
+func testCache() cache.Cache {
+	c := cache.New()
+	c.AddType(pbmesh.ComputedRoutesType)
+	c.AddType(pbmesh.HTTPRouteType)
+	c.AddType(pbmesh.GRPCRouteType)
+	c.AddType(pbmesh.TCPRouteType)
+	c.AddType(pbmesh.DestinationPolicyType)
+	c.AddIndex(pbcatalog.FailoverPolicyType, "destinations", catalog.FailoverDestinationsIndex())
+	c.AddType(pbcatalog.ServiceType)
+	return c
+}
 
 func TestMapper_HTTPRoute_Tracking(t *testing.T) {
 	testMapper_Tracking(t, pbmesh.HTTPRouteType, func(t *testing.T, parentRefs []*pbmesh.ParentReference, backendRefs []*pbmesh.BackendReference) proto.Message {
@@ -77,6 +90,8 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	registry := resource.NewRegistry()
 	types.Register(registry)
 	catalog.RegisterTypes(registry)
+
+	c := testCache()
 
 	newService := func(name string) *pbresource.Resource {
 		svc := rtest.Resource(pbcatalog.ServiceType, name).
@@ -153,20 +168,20 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	)
 
 	testutil.RunStep(t, "only name aligned defaults", func(t *testing.T) {
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes)
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes)
 
 		// This will track the failover policies.
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes)
 
 		// verify other helper methods
 		for _, ref := range []*pbresource.Reference{apiSvcRef, wwwSvcRef, barSvcRef, fooSvcRef, zimSvcRef, girSvcRef} {
@@ -192,22 +207,22 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			)).Build()
 		rtest.ValidateAndNormalize(t, registry, route1)
 
-		requireTracking(t, m, route1, apiComputedRoutes)
+		requireTracking(t, c, m, route1, apiComputedRoutes)
 
 		// Now 'api' references should trigger more, but be duplicate-suppressed.
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes)
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes)
 
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{apiSvcRef}, m.BackendServiceRefsByRouteID(route1.Id))
@@ -236,22 +251,22 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		// Now witness the update.
-		requireTracking(t, m, route1, apiComputedRoutes)
+		requireTracking(t, c, m, route1, apiComputedRoutes)
 
 		// Now 'api' references should trigger different things.
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes)
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
 
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{wwwSvcRef}, m.BackendServiceRefsByRouteID(route1.Id))
@@ -287,26 +302,26 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		// Now witness a route with multiple parents, overlapping the other route.
-		requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
 
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, route1, apiComputedRoutes)
+		requireTracking(t, c, m, route1, apiComputedRoutes)
 		// skip re-verifying route2
-		// requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		// requireTracking(t,c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{wwwSvcRef}, m.BackendServiceRefsByRouteID(route1.Id))
@@ -337,26 +352,26 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		apiFail = newFailPolicy("api",
 			newRef(pbcatalog.ServiceType, "foo"),
 			newRef(pbcatalog.ServiceType, "zim"))
-		requireTracking(t, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
 
 		// skipping verification of apiFail b/c it happened above already
-		// requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		// requireTracking(t,c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, route1, apiComputedRoutes)
-		requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route1, apiComputedRoutes)
+		requireTracking(t, c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{wwwSvcRef}, m.BackendServiceRefsByRouteID(route1.Id))
@@ -386,26 +401,26 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	testutil.RunStep(t, "set a new failover policy for a service in route2", func(t *testing.T) {
 		barFail = newFailPolicy("bar",
 			newRef(pbcatalog.ServiceType, "gir"))
-		requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes, apiComputedRoutes)
 
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes, apiComputedRoutes)
 		// skipping verification of barFail b/c it happened above already
-		// requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		// requireTracking(t,c, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, route1, apiComputedRoutes)
-		requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route1, apiComputedRoutes)
+		requireTracking(t, c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{wwwSvcRef}, m.BackendServiceRefsByRouteID(route1.Id))
@@ -436,22 +451,22 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		m.UntrackXRoute(route1.Id)
 		route1 = nil
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes, apiComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes)
 
-		requireTracking(t, m, apiFail, apiComputedRoutes)
-		requireTracking(t, m, wwwFail, wwwComputedRoutes)
-		requireTracking(t, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiFail, apiComputedRoutes)
+		requireTracking(t, c, m, wwwFail, wwwComputedRoutes)
+		requireTracking(t, c, m, barFail, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{barSvcRef}, m.BackendServiceRefsByRouteID(route2.Id))
@@ -473,26 +488,26 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 	})
 
 	testutil.RunStep(t, "delete all failover", func(t *testing.T) {
-		m.UntrackFailoverPolicy(apiFail.Id)
-		m.UntrackFailoverPolicy(wwwFail.Id)
-		m.UntrackFailoverPolicy(barFail.Id)
+		c.Delete(apiFail)
+		c.Delete(wwwFail)
+		c.Delete(barFail)
 
 		apiFail = nil
 		wwwFail = nil
 		barFail = nil
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes, apiComputedRoutes, fooComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes)
 
-		requireTracking(t, m, route2, apiComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route2, apiComputedRoutes, fooComputedRoutes)
 
 		// verify other helper methods
 		prototest.AssertElementsMatch(t, []*pbresource.Reference{barSvcRef}, m.BackendServiceRefsByRouteID(route2.Id))
@@ -517,16 +532,16 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		m.UntrackXRoute(route2.Id)
 		route2 = nil
 
-		requireTracking(t, m, apiSvc, apiComputedRoutes)
-		requireTracking(t, m, wwwSvc, wwwComputedRoutes)
-		requireTracking(t, m, barSvc, barComputedRoutes)
+		requireTracking(t, c, m, apiSvc, apiComputedRoutes)
+		requireTracking(t, c, m, wwwSvc, wwwComputedRoutes)
+		requireTracking(t, c, m, barSvc, barComputedRoutes)
 
-		requireTracking(t, m, fooSvc, fooComputedRoutes)
-		requireTracking(t, m, zimSvc, zimComputedRoutes)
-		requireTracking(t, m, girSvc, girComputedRoutes)
+		requireTracking(t, c, m, fooSvc, fooComputedRoutes)
+		requireTracking(t, c, m, zimSvc, zimComputedRoutes)
+		requireTracking(t, c, m, girSvc, girComputedRoutes)
 
-		requireTracking(t, m, apiDest, apiComputedRoutes)
-		requireTracking(t, m, wwwDest, wwwComputedRoutes)
+		requireTracking(t, c, m, apiDest, apiComputedRoutes)
+		requireTracking(t, c, m, wwwDest, wwwComputedRoutes)
 
 		// verify other helper methods
 		for _, ref := range []*pbresource.Reference{apiSvcRef, wwwSvcRef, barSvcRef, fooSvcRef, zimSvcRef, girSvcRef} {
@@ -549,7 +564,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 			)).Build()
 		rtest.ValidateAndNormalize(t, registry, route1)
 
-		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route1, barComputedRoutes, fooComputedRoutes)
 
 		// Simulate a Reconcile that would update the mapper.
 		//
@@ -577,7 +592,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		m.TrackComputedRoutes(rtest.MustDecode[*pbmesh.ComputedRoutes](t, barCR))
 
 		// Still has the same tracking.
-		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route1, barComputedRoutes, fooComputedRoutes)
 
 		// Now change the route to remove "bar"
 
@@ -594,7 +609,7 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		rtest.ValidateAndNormalize(t, registry, route1)
 
 		// Now we see that it still emits the event for bar, so we get a chance to update it.
-		requireTracking(t, m, route1, barComputedRoutes, fooComputedRoutes)
+		requireTracking(t, c, m, route1, barComputedRoutes, fooComputedRoutes)
 
 		// Update the bound references on 'bar' to remove the route
 		barCR = rtest.ResourceID(barComputedRoutes).
@@ -608,12 +623,13 @@ func testMapper_Tracking(t *testing.T, typ *pbresource.Type, newRoute func(t *te
 		m.TrackComputedRoutes(rtest.MustDecode[*pbmesh.ComputedRoutes](t, barCR))
 
 		// Now 'bar' no longer has a link to the route.
-		requireTracking(t, m, route1, fooComputedRoutes)
+		requireTracking(t, c, m, route1, fooComputedRoutes)
 	})
 }
 
 func requireTracking(
 	t *testing.T,
+	c cache.Cache,
 	mapper *Mapper,
 	res *pbresource.Resource,
 	computedRoutesIDs ...*pbresource.ID,
@@ -628,17 +644,20 @@ func requireTracking(
 	)
 	switch {
 	case resource.EqualType(pbmesh.HTTPRouteType, res.Id.Type):
-		reqs, err = mapper.MapHTTPRoute(context.Background(), controller.Runtime{}, res)
+		reqs, err = mapper.MapHTTPRoute(context.Background(), controller.Runtime{Cache: c}, res)
 	case resource.EqualType(pbmesh.GRPCRouteType, res.Id.Type):
-		reqs, err = mapper.MapGRPCRoute(context.Background(), controller.Runtime{}, res)
+		reqs, err = mapper.MapGRPCRoute(context.Background(), controller.Runtime{Cache: c}, res)
 	case resource.EqualType(pbmesh.TCPRouteType, res.Id.Type):
-		reqs, err = mapper.MapTCPRoute(context.Background(), controller.Runtime{}, res)
+		reqs, err = mapper.MapTCPRoute(context.Background(), controller.Runtime{Cache: c}, res)
 	case resource.EqualType(pbmesh.DestinationPolicyType, res.Id.Type):
-		reqs, err = mapper.MapDestinationPolicy(context.Background(), controller.Runtime{}, res)
+		reqs, err = mapper.MapDestinationPolicy(context.Background(), controller.Runtime{Cache: c}, res)
 	case resource.EqualType(pbcatalog.FailoverPolicyType, res.Id.Type):
-		reqs, err = mapper.MapFailoverPolicy(context.Background(), controller.Runtime{}, res)
+		// insert into the cache - this should probably be temporary until most indexing
+		// and mapping has been moved to the cache
+		require.NoError(t, c.Insert(res))
+		reqs, err = mapper.MapFailoverPolicy(context.Background(), controller.Runtime{Cache: c}, res)
 	case resource.EqualType(pbcatalog.ServiceType, res.Id.Type):
-		reqs, err = mapper.MapService(context.Background(), controller.Runtime{}, res)
+		reqs, err = mapper.MapService(context.Background(), controller.Runtime{Cache: c}, res)
 	default:
 		t.Fatalf("unhandled resource type: %s", resource.TypeToString(res.Id.Type))
 	}

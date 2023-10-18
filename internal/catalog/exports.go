@@ -9,8 +9,10 @@ import (
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/failover"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/indexers"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -102,4 +104,8 @@ func IsValidUnixSocketPath(host string) bool {
 
 func ValidateProtocol(protocol pbcatalog.Protocol) error {
 	return types.ValidateProtocol(protocol)
+}
+
+func FailoverDestinationsIndex() *cache.Index {
+	return indexers.FailoverDestinationsIndex()
 }

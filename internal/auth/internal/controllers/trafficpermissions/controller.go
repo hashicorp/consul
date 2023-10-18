@@ -9,26 +9,15 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/auth/internal/indexers"
 	"github.com/hashicorp/consul/internal/controller"
+	cacheindexers "github.com/hashicorp/consul/internal/controller/cache/indexers"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// TrafficPermissionsMapper is used to map a watch event for a TrafficPermissions resource and translate
-// it to a ComputedTrafficPermissions resource which contains the effective permissions
-// from all referencing TrafficPermissions resources.
-type TrafficPermissionsMapper interface {
-	// MapTrafficPermissions will take a TrafficPermission resource and return controller requests for all
-	// ComputedTrafficPermissions associated with that TrafficPermission.
-	MapTrafficPermissions(context.Context, controller.Runtime, *pbresource.Resource) ([]controller.Request, error)
-
-	// UntrackTrafficPermissions instructs the Mapper to forget about the TrafficPermission.
-	UntrackTrafficPermissions(*pbresource.ID)
-
-	// GetTrafficPermissionsForCTP returns the tracked TrafficPermissions that are used to create a CTP
-	GetTrafficPermissionsForCTP(*pbresource.ID) []*pbresource.Reference
-}
+type TrafficPermissionsMapper = controller.DependencyMapper
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
@@ -37,14 +26,31 @@ func Controller(mapper TrafficPermissionsMapper) controller.Controller {
 		panic("No TrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
 	}
 
+	boundRefsIndex := cacheindexers.RefIndex[*pbauth.ComputedTrafficPermissions](
+		func(res *resource.DecodedResource[*pbauth.ComputedTrafficPermissions]) []*pbresource.Reference {
+			return res.Data.BoundReferences
+		},
+	)
+
 	return controller.ForType(pbauth.ComputedTrafficPermissionsType).
+		WithIndex(pbauth.ComputedTrafficPermissionsType, "bound_references", boundRefsIndex).
 		WithWatch(pbauth.WorkloadIdentityType, controller.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
-		WithWatch(pbauth.TrafficPermissionsType, mapper.MapTrafficPermissions).
-		WithReconciler(&reconciler{mapper: mapper})
+		// This cache index is being kept to allow listing off all TrafficPermissions linked to a ComputedTrafficPermissions
+		// resource. It will not be used for event mapping.
+		WithIndex(pbauth.TrafficPermissionsType, "computed", indexers.TrafficPermissionsIndex()).
+		// We need to handle the case where a TrafficPermissions Identity has been altered. To do so we will
+		// store references to all TrafficPermissions included in the ComputedTrafficPermissions within the
+		// resource and keep an index on that
+		WithWatch(pbauth.TrafficPermissionsType, controller.MultiMapper(
+			// generates events for all ComputedTrafficPermissions that current reference this TrafficPermissions
+			controller.CacheListMapper(pbauth.ComputedTrafficPermissionsType, "bound_references"),
+			// generates events for the ComputedTrafficPermissions that this resource should now map to.
+			mapper,
+		)).
+		WithReconciler(&reconciler{})
 }
 
 type reconciler struct {
-	mapper TrafficPermissionsMapper
 }
 
 // Reconcile will reconcile one ComputedTrafficPermission (CTP) in response to some event.
@@ -91,7 +97,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Part 2: Recompute a CTP from TP create / modify / delete, or create a new CTP from existing TPs:
-	latestTrafficPermissions, err := computeNewTrafficPermissions(ctx, rt, r.mapper, ctpID, oldResource)
+	latestTrafficPermissions, err := computeNewTrafficPermissions(ctx, rt, ctpID, oldResource)
 	if err != nil {
 		rt.Logger.Error("error calculating computed permissions", "error", err)
 		return err
@@ -156,10 +162,13 @@ func writeFailedStatus(ctx context.Context, rt controller.Runtime, ctp *pbresour
 }
 
 // computeNewTrafficPermissions will use all associated Traffic Permissions to create new ComputedTrafficPermissions data
-func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm TrafficPermissionsMapper, ctpID *pbresource.ID, ctp *pbresource.Resource) (*pbauth.ComputedTrafficPermissions, error) {
+func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, ctpID *pbresource.ID, ctp *pbresource.Resource) (*pbauth.ComputedTrafficPermissions, error) {
 	// Part 1: Get all TPs that apply to workload identity
 	// Get already associated WorkloadIdentities/CTPs for reconcile requests:
-	trackedTPs := wm.GetTrafficPermissionsForCTP(ctpID)
+	trackedTPs, err := rt.Cache.List(pbauth.TrafficPermissionsType, "computed", ctpID)
+	if err != nil {
+		return nil, err
+	}
 	if len(trackedTPs) > 0 {
 		rt.Logger.Trace("got tracked traffic permissions for CTP", "tps:", trackedTPs)
 	} else {
@@ -168,19 +177,23 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 	ap := make([]*pbauth.Permission, 0)
 	dp := make([]*pbauth.Permission, 0)
 	isDefault := true
+	var boundRefs []*pbresource.Reference
 	for _, t := range trackedTPs {
-		rsp, err := resource.GetDecodedResource[*pbauth.TrafficPermissions](ctx, rt.Client, resource.IDFromReference(t))
+		rsp, err := resource.GetDecodedResource[*pbauth.TrafficPermissions](ctx, rt.Client, t.GetId())
 		if err != nil {
 			rt.Logger.Error("error reading traffic permissions resource for computation", "error", err)
-			writeFailedStatus(ctx, rt, ctp, resource.IDFromReference(t), err.Error())
+			writeFailedStatus(ctx, rt, ctp, t.GetId(), err.Error())
 			return nil, err
 		}
-		if rsp == nil {
-			rt.Logger.Trace("untracking deleted TrafficPermissions", "traffic-permissions-name", t.Name)
-			wm.UntrackTrafficPermissions(resource.IDFromReference(t))
+		// The TrafficPermissions doesn't exist or is no longer linked with this ComputedTrafficPermissions
+		// The second case may happen if an update event for the TrafficPermissions happened after the
+		// cache lookup at the beginning of this function but before we retrieved the latest resource.
+		if rsp == nil || rsp.Data.Destination.IdentityName != ctpID.Name {
 			continue
 		}
 		isDefault = false
+
+		boundRefs = append(boundRefs, resource.ReferenceFromReferenceOrID(rsp.Resource.Id))
 		if rsp.Data.Action == pbauth.Action_ACTION_ALLOW {
 			ap = append(ap, rsp.Data.Permissions...)
 		} else {
@@ -191,5 +204,6 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 		AllowPermissions: ap,
 		DenyPermissions:  dp,
 		IsDefault:        isDefault,
+		BoundReferences:  boundRefs,
 	}, nil
 }

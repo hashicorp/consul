@@ -129,6 +129,8 @@ message Status {
 
   // UpdatedAt is the time at which the status was last written.
   google.protobuf.Timestamp updated_at = 3;
+  
+  google.protobuf.Any computed = 4;
 }
 
 // Condition represents a discreet observation about a resource in relation to

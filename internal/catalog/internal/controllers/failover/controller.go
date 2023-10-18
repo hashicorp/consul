@@ -16,7 +16,7 @@ import (
 
 func FailoverPolicyController() controller.Controller {
 	return controller.ForType(pbcatalog.FailoverPolicyType).
-		WithIndex(pbcatalog.FailoverPolicyType, "destinations", indexers.FailoverDestinationsIndexer()).
+		WithIndex(pbcatalog.FailoverPolicyType, "destinations", indexers.FailoverDestinationsIndex()).
 		WithWatch(pbcatalog.ServiceType, controller.CacheListMapper(pbcatalog.FailoverPolicyType, "destinations")).
 		WithReconciler(newFailoverPolicyReconciler())
 }

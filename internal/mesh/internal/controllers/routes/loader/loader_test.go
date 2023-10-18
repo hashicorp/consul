@@ -16,6 +16,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -26,12 +27,26 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
+func testCache() cache.Cache {
+	c := cache.New()
+	c.AddType(pbmesh.ComputedRoutesType)
+	c.AddType(pbmesh.HTTPRouteType)
+	c.AddType(pbmesh.GRPCRouteType)
+	c.AddType(pbmesh.TCPRouteType)
+	c.AddType(pbmesh.DestinationPolicyType)
+	c.AddIndex(pbcatalog.FailoverPolicyType, "destinations", catalog.FailoverDestinationsIndex())
+	c.AddType(pbcatalog.ServiceType)
+	return c
+}
+
 func TestLoadResourcesForComputedRoutes(t *testing.T) {
+	c := testCache()
 	ctx := testutil.TestContext(t)
 	rclient := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	rt := controller.Runtime{
-		Client: rclient,
+		Client: cache.NewCachedClient(c, rclient),
 		Logger: testutil.Logger(t),
+		Cache:  c,
 	}
 	client := rtest.NewClient(rclient)
 
@@ -47,8 +62,6 @@ func TestLoadResourcesForComputedRoutes(t *testing.T) {
 			switch {
 			case types.IsRouteType(id.Type):
 				mapper.UntrackXRoute(id)
-			case types.IsFailoverPolicyType(id.Type):
-				mapper.UntrackFailoverPolicy(id)
 			}
 		}
 	}

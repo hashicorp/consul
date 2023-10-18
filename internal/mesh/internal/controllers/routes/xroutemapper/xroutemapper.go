@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -38,8 +37,6 @@ type Mapper struct {
 	httpRouteBackendMapper *bimapper.Mapper
 	grpcRouteBackendMapper *bimapper.Mapper
 	tcpRouteBackendMapper  *bimapper.Mapper
-
-	failMapper catalog.FailoverPolicyMapper
 }
 
 // New creates a new Mapper.
@@ -54,8 +51,6 @@ func New() *Mapper {
 		httpRouteBackendMapper: bimapper.New(pbmesh.HTTPRouteType, pbcatalog.ServiceType),
 		grpcRouteBackendMapper: bimapper.New(pbmesh.GRPCRouteType, pbcatalog.ServiceType),
 		tcpRouteBackendMapper:  bimapper.New(pbmesh.TCPRouteType, pbcatalog.ServiceType),
-
-		failMapper: catalog.NewFailoverPolicyMapper(),
 	}
 }
 
@@ -209,35 +204,14 @@ func mapXRouteToComputedRoutes[T types.XRouteData](res *pbresource.Resource, m *
 
 func (m *Mapper) MapFailoverPolicy(
 	_ context.Context,
-	_ controller.Runtime,
+	rt controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
-	if !types.IsFailoverPolicyType(res.Id.Type) {
-		return nil, fmt.Errorf("type is not a failover policy type: %s", res.Id.Type)
-	}
-
-	dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
-	if err != nil {
-		return nil, fmt.Errorf("error unmarshalling failover policy: %w", err)
-	}
-
-	m.failMapper.TrackFailover(dec)
-
 	// Since this is name-aligned, just switch the type and find routes that
 	// will route any traffic to this destination service.
 	svcID := resource.ReplaceType(pbcatalog.ServiceType, res.Id)
 
 	return m.mapXRouteDirectServiceRefToComputedRoutesByID(svcID)
-}
-
-func (m *Mapper) TrackFailoverPolicy(failover *types.DecodedFailoverPolicy) {
-	if failover != nil {
-		m.failMapper.TrackFailover(failover)
-	}
-}
-
-func (m *Mapper) UntrackFailoverPolicy(failoverPolicyID *pbresource.ID) {
-	m.failMapper.UntrackFailover(failoverPolicyID)
 }
 
 func (m *Mapper) MapDestinationPolicy(
@@ -258,7 +232,7 @@ func (m *Mapper) MapDestinationPolicy(
 
 func (m *Mapper) MapService(
 	_ context.Context,
-	_ controller.Runtime,
+	rt controller.Runtime,
 	res *pbresource.Resource,
 ) ([]controller.Request, error) {
 	// Ultimately we want to wake up a ComputedRoutes if either of the
@@ -268,8 +242,15 @@ func (m *Mapper) MapService(
 	// 2. xRoute[parentRef=OUTPUT_EVENT; backendRef=SOMETHING], FailoverPolicy[name=SOMETHING, destRef=INPUT_EVENT]
 
 	// (case 2) First find all failover policies that have a reference to our input service.
-	failPolicyIDs := m.failMapper.FailoverIDsByService(res.Id)
-	effectiveServiceIDs := sliceReplaceType(failPolicyIDs, pbcatalog.ServiceType)
+	iter, err := rt.Cache.ListIterator(pbcatalog.FailoverPolicyType, "destinations", res.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	var effectiveServiceIDs []*pbresource.ID
+	for failover := iter.Next(); failover != nil; failover = iter.Next() {
+		effectiveServiceIDs = append(effectiveServiceIDs, resource.ReplaceType(pbcatalog.ServiceType, failover.GetId()))
+	}
 
 	// (case 1) Do the direct mapping also.
 	effectiveServiceIDs = append(effectiveServiceIDs, res.Id)

@@ -13,7 +13,7 @@ import (
 
 func TestServiceWorkloadIndexer(t *testing.T) {
 	c := cache.New()
-	require.NoError(t, c.AddIndex(pbcatalog.ServiceType, "workloads", ServiceWorkloadIndexer()))
+	require.NoError(t, c.AddIndex(pbcatalog.ServiceType, "workloads", ServiceWorkloadIndex()))
 
 	foo := rtest.Resource(pbcatalog.ServiceType, "foo").
 		WithData(t, &pbcatalog.Service{

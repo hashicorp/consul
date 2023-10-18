@@ -30,7 +30,7 @@ type ControllerDependencies = controllers.Dependencies
 
 func DefaultControllerDependencies() ControllerDependencies {
 	return ControllerDependencies{
-		TrafficPermissionsMapper: trafficpermissionsmapper.New(),
+		TrafficPermissionsMapper: trafficpermissionsmapper.MapTrafficPermissions,
 	}
 }
 

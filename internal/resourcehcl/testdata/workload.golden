@@ -1,0 +1,1 @@
+{"id":{"name":"work1", "type":{"group":"catalog", "groupVersion":"v2beta1", "kind":"Workload"}}, "metadata":{"foo":"bar"}, "data":{"@type":"hashicorp.consul.catalog.v2beta1.Workload", "addresses":[{"host":"127.0.0.1"}], "ports":{"http":{"port":8080}}}}

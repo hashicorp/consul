@@ -69,6 +69,42 @@ func ReplaceType(desiredType *pbresource.Type) DependencyMapper {
 	}
 }
 
+func CacheGetMapper(indexedType *pbresource.Type, indexName string) DependencyMapper {
+	return func(_ context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapping dependencies from cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+			)
+		}
+		mapped, err := rt.Cache.Get(indexedType, indexName, res.GetId())
+		if err != nil {
+			rt.Logger.Error("failed to map dependencies from the cache",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"error", err,
+			)
+			return nil, fmt.Errorf("failed to list from cache index %q on type %q: %w", indexName, resource.ToGVK(indexedType), err)
+		}
+
+		results := []Request{
+			{ID: mapped.GetId()},
+		}
+		if rt.Logger.IsTrace() {
+			rt.Logger.Trace("mapped dependencies",
+				"type", resource.ToGVK(indexedType),
+				"index", indexName,
+				"resource", resource.IDToString(res.GetId()),
+				"dependency", mapped.GetId(),
+			)
+		}
+
+		return results, nil
+	}
+}
+
 func CacheListMapper(indexedType *pbresource.Type, indexName string) DependencyMapper {
 	return func(_ context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
 		if rt.Logger.IsTrace() {
@@ -156,4 +192,25 @@ func WrapAndReplaceType(desiredType *pbresource.Type, mapper DependencyMapper) D
 		}
 		return reqs, nil
 	}
+}
+
+type multiMapper struct {
+	mappers []DependencyMapper
+}
+
+func (mm *multiMapper) Map(ctx context.Context, rt Runtime, res *pbresource.Resource) ([]Request, error) {
+	var results []Request
+	for _, mapper := range mm.mappers {
+		reqs, err := mapper(ctx, rt, res)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, reqs...)
+	}
+	return results, nil
+}
+
+func MultiMapper(mappers ...DependencyMapper) DependencyMapper {
+	mm := &multiMapper{mappers: mappers}
+	return mm.Map
 }

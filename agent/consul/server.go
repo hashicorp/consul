@@ -941,7 +941,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 	}
 
 	if s.useV2Resources {
-		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		catalog.RegisterControllers(s.controllerManager)
 
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {

@@ -183,14 +183,14 @@ func (suite *reconciliationDataSuite) TestGetWorkloadDataWithFilter() {
 	// This is like TestGetWorkloadData except it exercises the post-read
 	// filter on the selector.
 	data, err := getWorkloadData(suite.ctx, suite.rt, &serviceData{
-		resource: suite.apiServiceSubset,
-		service:  suite.apiServiceSubsetData,
+		Resource: suite.apiServiceSubset,
+		Data:     suite.apiServiceSubsetData,
 	})
 
 	require.NoError(suite.T(), err)
 	require.Len(suite.T(), data, 2)
-	prototest.AssertDeepEqual(suite.T(), suite.api123Workload, data[0].resource)
-	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[1].resource)
+	prototest.AssertDeepEqual(suite.T(), suite.api123Workload, data[0].Resource)
+	prototest.AssertDeepEqual(suite.T(), suite.web1Workload, data[1].Resource)
 }
 
 func TestReconciliationData(t *testing.T) {

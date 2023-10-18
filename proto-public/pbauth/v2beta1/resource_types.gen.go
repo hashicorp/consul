@@ -9,42 +9,99 @@ import (
 const (
 	GroupName = "auth"
 	Version   = "v2beta1"
-
-	ComputedTrafficPermissionsKind  = "ComputedTrafficPermissions"
-	NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
-	PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
-	TrafficPermissionsKind          = "TrafficPermissions"
-	WorkloadIdentityKind            = "WorkloadIdentity"
 )
 
-var (
-	ComputedTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedTrafficPermissionsKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
 
-	NamespaceTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceTrafficPermissionsKind,
-	}
+const ComputedTrafficPermissionsKind = "ComputedTrafficPermissions"
 
-	PartitionTrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         PartitionTrafficPermissionsKind,
-	}
+var ComputedTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ComputedTrafficPermissionsKind,
+}
 
-	TrafficPermissionsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         TrafficPermissionsKind,
-	}
+func (_ *ComputedTrafficPermissions) GetResourceType() *pbresource.Type {
+	return ComputedTrafficPermissionsType
+}
 
-	WorkloadIdentityType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         WorkloadIdentityKind,
-	}
-)
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+
+const NamespaceTrafficPermissionsKind = "NamespaceTrafficPermissions"
+
+var NamespaceTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceTrafficPermissionsKind,
+}
+
+func (_ *NamespaceTrafficPermissions) GetResourceType() *pbresource.Type {
+	return NamespaceTrafficPermissionsType
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+
+const PartitionTrafficPermissionsKind = "PartitionTrafficPermissions"
+
+var PartitionTrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         PartitionTrafficPermissionsKind,
+}
+
+func (_ *PartitionTrafficPermissions) GetResourceType() *pbresource.Type {
+	return PartitionTrafficPermissionsType
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.auth.v2beta1.TrafficPermissions
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+
+const TrafficPermissionsKind = "TrafficPermissions"
+
+var TrafficPermissionsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         TrafficPermissionsKind,
+}
+
+func (_ *TrafficPermissions) GetResourceType() *pbresource.Type {
+	return TrafficPermissionsType
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.auth.v2beta1.WorkloadIdentity
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+
+const WorkloadIdentityKind = "WorkloadIdentity"
+
+var WorkloadIdentityType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         WorkloadIdentityKind,
+}
+
+func (_ *WorkloadIdentity) GetResourceType() *pbresource.Type {
+	return WorkloadIdentityType
+}

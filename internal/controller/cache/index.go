@@ -204,7 +204,7 @@ func (t *txn) deleteOne(idxVal []byte, r *pbresource.Resource) bool {
 
 	existingIdx := -1
 	for idx, rsc := range existing {
-		if !resource.EqualID(rsc.GetId(), r.GetId()) {
+		if resource.EqualID(rsc.GetId(), r.GetId()) {
 			existingIdx = idx
 			break
 		}

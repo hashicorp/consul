@@ -10,9 +10,14 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	cacheindexers "github.com/hashicorp/consul/internal/controller/cache/indexers"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/loader"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/indexers"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/servicenamealigned"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/xroute"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -26,12 +31,59 @@ func Controller() controller.Controller {
 	r := &routesReconciler{
 		mapper: mapper,
 	}
+
+	boundRefsIndex := cacheindexers.RefIndex[*pbmesh.ComputedRoutes](
+		func(res *resource.DecodedResource[*pbmesh.ComputedRoutes]) []*pbresource.Reference {
+			return res.Data.BoundReferences
+		},
+	)
+
 	return controller.ForType(pbmesh.ComputedRoutesType).
-		WithWatch(pbmesh.HTTPRouteType, mapper.MapHTTPRoute).
-		WithWatch(pbmesh.GRPCRouteType, mapper.MapGRPCRoute).
-		WithWatch(pbmesh.TCPRouteType, mapper.MapTCPRoute).
-		WithWatch(pbmesh.DestinationPolicyType, mapper.MapDestinationPolicy).
-		WithWatch(pbcatalog.FailoverPolicyType, mapper.MapFailoverPolicy).
+		// The bound references index will be used to remember which routes used to be used
+		// for generating a ComputedRoutes resource so we can trigger recomputation when
+		// the ref is removed.
+		WithIndex(pbmesh.ComputedRoutesType, "bound_references", boundRefsIndex).
+
+		// HTTPRoute index & watch configuration
+		WithIndex(pbmesh.HTTPRouteType, "backend_refs", indexers.BackendRefsIndex[*pbmesh.HTTPRoute]()).
+		WithIndex(pbmesh.HTTPRouteType, "parent_refs", indexers.ParentRefsIndex[*pbmesh.HTTPRoute]()).
+		WithWatch(pbmesh.HTTPRouteType, controller.MultiMapper(
+			// Reconcile all things this HTTPRoute used to point at.
+			controller.CacheListMapper(pbmesh.ComputedRoutesType, "bound_references"),
+			// Reconcile all things this HTTPRoute currently points at.
+			xroute.MapParentRefs[*pbmesh.HTTPRoute](),
+		)).
+
+		// GRPCRoute index & watch configuration
+		WithIndex(pbmesh.GRPCRouteType, "backend_refs", indexers.BackendRefsIndex[*pbmesh.GRPCRoute]()).
+		WithIndex(pbmesh.GRPCRouteType, "parent_refs", indexers.ParentRefsIndex[*pbmesh.GRPCRoute]()).
+		WithWatch(pbmesh.GRPCRouteType, controller.MultiMapper(
+			// Reconcile all things this GRPCRoute used to point at.
+			controller.CacheListMapper(pbmesh.ComputedRoutesType, "bound_references"),
+			// Reconcile all thins this GRPCRoute currently points at.
+			xroute.MapParentRefs[*pbmesh.GRPCRoute](),
+		)).
+
+		// TCPRoute index & watch configuration
+		WithIndex(pbmesh.TCPRouteType, "backend_refs", indexers.BackendRefsIndex[*pbmesh.TCPRoute]()).
+		WithIndex(pbmesh.TCPRouteType, "parent_refs", indexers.ParentRefsIndex[*pbmesh.TCPRoute]()).
+		WithWatch(pbmesh.TCPRouteType, controller.MultiMapper(
+			// Reconcile all things this TCPRoute used to point at.
+			controller.CacheListMapper(pbmesh.ComputedRoutesType, "bound_references"),
+			// Reconcile all thins this TCPRoute currently points at.
+			xroute.MapParentRefs[*pbmesh.TCPRoute](),
+		)).
+
+		// DestinationPolicy index & watch configuration
+		WithWatch(pbmesh.DestinationPolicyType, servicenamealigned.Map).
+
+		// FailoverPolicy index & watch configuration
+		WithWatch(pbcatalog.FailoverPolicyType, servicenamealigned.Map).
+		
+		// This index will be used in the xroutemapper to lookup failover policies associated with services
+		WithIndex(pbcatalog.FailoverPolicyType, "destinations", catalog.FailoverDestinationsIndex()).
+
+		// Service index & watch configuration
 		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithReconciler(r)
 }

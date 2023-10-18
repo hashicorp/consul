@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func FailoverDestinationsIndexer() *cache.Index {
+func FailoverDestinationsIndex() *cache.Index {
 	return cache.NewIndex(failoverDestinationsIndexer{})
 }
 

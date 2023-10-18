@@ -27,7 +27,7 @@ var (
 
 func WorkloadHealthController() controller.Controller {
 	return controller.ForType(pbcatalog.WorkloadType).
-		WithIndex(pbcatalog.WorkloadType, "node", indexers.WorkloadNodeIndexer()).
+		WithIndex(pbcatalog.WorkloadType, "node", indexers.WorkloadNodeIndex()).
 		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.WorkloadType)).
 		WithWatch(pbcatalog.NodeType, controller.CacheListMapper(pbcatalog.WorkloadType, "node")).
 		WithReconciler(&workloadHealthReconciler{})
@@ -77,7 +77,7 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 	// passing the workload from the response because getWorkloadHealth uses
 	// resourceClient.ListByOwner which requires ownerID have a Uid and this is the
 	// safest way for application and test code to ensure Uid is provided.
-	workloadHealth, err := getWorkloadHealth(ctx, rt, rsp.Resource.Id)
+	workloadHealth, err := getWorkloadHealth(ctx, rt, workload.Id)
 	if err != nil {
 		// This should be impossible under normal operations and will not be exercised
 		// within the unit tests. This can only fail if the resource service fails

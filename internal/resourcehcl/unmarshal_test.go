@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
@@ -105,6 +106,7 @@ func TestUnmarshal(t *testing.T) {
 			registry := resource.NewRegistry()
 			demo.RegisterTypes(registry)
 			mesh.RegisterTypes(registry)
+			catalog.RegisterTypes(registry)
 
 			output, err := resourcehcl.UnmarshalOptions{SourceFileName: name}.
 				Unmarshal(input, registry)

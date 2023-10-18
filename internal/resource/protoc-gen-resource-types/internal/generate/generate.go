@@ -139,20 +139,26 @@ import (
 const (
 	GroupName = "{{.Name}}"
 	Version = "{{.Version}}"
-
+)
 {{range $kind := .Kinds}}
-	{{$kind.Name}}Kind = "{{$kind.Name}}"
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.{{$.Name}}.{{$.Version}}.{{$kind.Name}}
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/ 
+
+const {{$kind.Name}}Kind = "{{$kind.Name}}"
+
+var {{$kind.Name}}Type = &pbresource.Type{
+	Group: GroupName,
+	GroupVersion: Version,
+	Kind: {{$kind.Name}}Kind,
+}
+
+func (_ *{{$kind.Name}}) GetResourceType() *pbresource.Type {
+	return {{$kind.Name}}Type
+}	
 {{- end}}
-)
-
-var (
-{{range $kind := .Kinds}}
-	{{$kind.Name}}Type = &pbresource.Type{
- 		Group:        GroupName,
- 		GroupVersion: Version,
- 		Kind:         {{$kind.Name}}Kind,
- 	}
-{{end}}	
-)
 `))
 )

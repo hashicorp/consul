@@ -9,14 +9,23 @@ import (
 const (
 	GroupName = "tenancy"
 	Version   = "v2beta1"
-
-	NamespaceKind = "Namespace"
 )
 
-var (
-	NamespaceType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceKind,
-	}
-)
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.tenancy.v2beta1.Namespace
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+
+const NamespaceKind = "Namespace"
+
+var NamespaceType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceKind,
+}
+
+func (_ *Namespace) GetResourceType() *pbresource.Type {
+	return NamespaceType
+}

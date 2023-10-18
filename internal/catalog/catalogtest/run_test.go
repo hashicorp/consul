@@ -37,7 +37,7 @@ func runInMemResourceServiceAndControllers(t *testing.T) pbresource.ResourceServ
 
 func TestControllers_Integration(t *testing.T) {
 	client := runInMemResourceServiceAndControllers(t)
-	RunCatalogV1Alpha1IntegrationTest(t, client)
+	RunCatalogV2Beta1IntegrationTest(t, client)
 }
 
 func TestControllers_Lifecycle(t *testing.T) {

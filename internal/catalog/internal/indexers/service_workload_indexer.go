@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func ServiceWorkloadIndexer() *cache.Index {
+func ServiceWorkloadIndex() *cache.Index {
 	return cache.NewIndex(serviceWorkloadIndexer{})
 }
 

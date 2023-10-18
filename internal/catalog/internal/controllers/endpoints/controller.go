@@ -27,7 +27,7 @@ const (
 func ServiceEndpointsController() controller.Controller {
 	return controller.ForType(pbcatalog.ServiceEndpointsType).
 		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbcatalog.ServiceEndpointsType)).
-		WithIndex(pbcatalog.ServiceType, "services", indexers.ServiceWorkloadIndexer()).
+		WithIndex(pbcatalog.ServiceType, "services", indexers.ServiceWorkloadIndex()).
 		// We want to rereconcile any ServiceEndpoints when one of the associated workloads
 		// has changed
 		WithWatch(pbcatalog.WorkloadType,
@@ -114,7 +114,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		latestEndpoints := workloadsToEndpoints(service.Data, workloadData)
 
 		// Add status
-		if endpointsData != nil {
+		if endpoints != nil {
 			statusConditions = append(statusConditions,
 				workloadIdentityStatusFromEndpoints(latestEndpoints))
 		}
@@ -184,7 +184,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	// whether we are automatically managing the endpoints to set expectations
 	// for that object existing or not.
 	newStatus := &pbresource.Status{
-		ObservedGeneration: serviceData.Generation,
+		ObservedGeneration: service.Generation,
 		Conditions:         statusConditions,
 	}
 	// If the status is unchanged then we should return and avoid the unnecessary write

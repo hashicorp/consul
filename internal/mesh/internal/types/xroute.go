@@ -24,6 +24,7 @@ type XRouteData interface {
 }
 
 type XRouteWithRefs interface {
+	GetResourceType() *pbresource.Type
 	GetParentRefs() []*pbmesh.ParentReference
 	GetUnderlyingBackendRefs() []*pbmesh.BackendReference
 }
