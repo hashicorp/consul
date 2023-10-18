@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
+  SPDX-License-Identifier: MPL-2.0
 }}
 
 <ListCollection
@@ -36,12 +36,12 @@ as |item|>
     </BlockSlot>
     <BlockSlot @name="actions" as |Actions|>
     {{#if item.hasSecretID}}
-      <ConsulCopyButton
+      <CopyButton
         @value={{item.SecretID}}
         @name={{t "components.consul.token.secretID"}}
       >
         {{t "components.consul.token.secretID"}}
-      </ConsulCopyButton>
+      </CopyButton>
     {{/if}}
       <Actions as |Action|>
         <Action data-test-edit-action @href={{href-to 'dc.acls.tokens.edit' item.AccessorID}}>

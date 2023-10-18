@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 // All of the configuration here is shared between buildtime and runtime and

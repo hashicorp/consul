@@ -1,5 +1,4 @@
 {
-  "connectTimeout": "5s",
   "loadAssignment": {
     "clusterName": "jwks_cluster_okta",
     "endpoints": [
@@ -23,9 +22,9 @@
   "transportSocket": {
     "name": "tls",
     "typedConfig": {
-      "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+      "@type":"type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
       "commonTlsContext": {
-        "validationContext": {
+        "validationContext":  {
           "trustedCa": {
             "filename": "mycert.crt"
           }
@@ -33,5 +32,6 @@
       }
     }
   },
+  "connectTimeout": "5s",
   "type": "STATIC"
 }

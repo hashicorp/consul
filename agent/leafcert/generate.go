@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package leafcert
 
 import (
@@ -11,6 +8,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/agent/connect"
+	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
@@ -230,15 +228,6 @@ func (m *Manager) generateNewLeaf(
 	var ipAddresses []net.IP
 
 	switch {
-	case req.WorkloadIdentity != "":
-		id = &connect.SpiffeIDWorkloadIdentity{
-			TrustDomain:      roots.TrustDomain,
-			Partition:        req.TargetPartition(),
-			Namespace:        req.TargetNamespace(),
-			WorkloadIdentity: req.WorkloadIdentity,
-		}
-		dnsNames = append(dnsNames, req.DNSSAN...)
-
 	case req.Service != "":
 		id = &connect.SpiffeIDService{
 			Host:       roots.TrustDomain,
@@ -281,7 +270,7 @@ func (m *Manager) generateNewLeaf(
 		dnsNames = append(dnsNames, connect.PeeringServerSAN(req.Datacenter, roots.TrustDomain))
 
 	default:
-		return nil, newState, errors.New("URI must be either workload identity, service, agent, server, or kind")
+		return nil, newState, errors.New("URI must be either service, agent, server, or kind")
 	}
 
 	// Create a new private key
@@ -316,7 +305,7 @@ func (m *Manager) generateNewLeaf(
 
 	reply, err := m.certSigner.SignCert(context.Background(), &args)
 	if err != nil {
-		if err.Error() == structs.ErrRateLimited.Error() {
+		if err.Error() == consul.ErrRateLimited.Error() {
 			if firstTime {
 				// This was a first fetch - we have no good value in cache. In this case
 				// we just return the error to the caller rather than rely on surprising

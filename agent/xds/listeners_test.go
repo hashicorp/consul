@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
@@ -10,8 +10,8 @@ import (
 	"testing"
 	"text/template"
 
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/protobuf/proto"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -19,11 +19,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/configfetcher"
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -38,7 +33,6 @@ type listenerTestCase struct {
 	// test input.
 	overrideGoldenName string
 	generatorSetup     func(*ResourceGenerator)
-	alsoRunTestForV2   bool
 }
 
 func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
@@ -70,14 +64,12 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-http-chain",
@@ -92,7 +84,6 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-http2-chain",
@@ -107,7 +98,6 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-grpc-chain",
@@ -122,35 +112,30 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-and-overrides",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-jwt-config-entry-with-local",
@@ -241,7 +226,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-min-version",
@@ -261,7 +245,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-max-version",
@@ -281,7 +264,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tls-incoming-cipher-suites",
@@ -304,7 +286,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					},
 				})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "grpc-public-listener",
@@ -313,7 +294,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "grpc"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-address",
@@ -322,7 +302,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_address"] = "127.0.0.2"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-port",
@@ -331,7 +310,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_port"] = 8888
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-address-port",
@@ -341,7 +319,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["bind_port"] = 8888
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-unix-domain-socket",
@@ -353,7 +330,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].LocalBindSocketMode = "0640"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-max-inbound-connections",
@@ -362,7 +338,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["max_inbound_connections"] = 222
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "http2-public-listener",
@@ -371,7 +346,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http2"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-balance-inbound-connections",
@@ -380,7 +354,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["balance_inbound_connections"] = "exact_balance"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-balance-outbound-connections-bind-port",
@@ -389,7 +362,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["balance_outbound_connections"] = "exact_balance"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-public-listener",
@@ -398,7 +370,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-public-listener-no-xfcc",
@@ -420,7 +391,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					})
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-listener-with-timeouts",
@@ -432,7 +402,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["local_idle_timeout_ms"] = 3456
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-upstream",
@@ -441,7 +410,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-public-listener",
@@ -528,31 +496,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "custom-upstream-with-prepared-query",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					for i := range ns.Proxy.Upstreams {
-						if ns.Proxy.Upstreams[i].DestinationName != "db" {
-							continue // only tweak the db upstream
-						}
-						if ns.Proxy.Upstreams[i].Config == nil {
-							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-						}
-
-						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
-
-						// Triggers an override with the presence of the escape hatch listener
-						ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
-
-						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
-							customListenerJSON(t, customListenerJSONOptions{
-								Name: uid.EnvoyID() + ":custom-upstream",
-							})
-					}
-				}, nil)
-			},
-		},
-		{
 			name: "connect-proxy-upstream-defaults",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
@@ -569,7 +512,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 				}, nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "expose-paths-local-app-paths",
@@ -592,34 +534,10 @@ func TestListenersFromSnapshot(t *testing.T) {
 		},
 		{
 			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
+			// kernelSupportsIPv6() then this test will fail because the golden
 			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http",
+			name:   "expose-checks",
 			create: proxycfg.TestConfigSnapshotExposeChecks,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http-with-bind-override",
-			create: proxycfg.TestConfigSnapshotExposeChecksWithBindOverride,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-grpc",
-			create: proxycfg.TestConfigSnapshotExposeChecksGRPC,
 			generatorSetup: func(s *ResourceGenerator) {
 				s.CfgFetcher = configFetcherFunc(func() string {
 					return "192.0.2.1"
@@ -636,12 +554,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name: "mesh-gateway-using-federation-states",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-using-federation-control-plane",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
 			},
 		},
 		{
@@ -961,16 +873,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "terminating-gateway-custom-trace-listener",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{}
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
-				}, nil)
-			},
-		},
-		{
 			name: "terminating-gateway-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
@@ -1093,12 +995,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Bundles: []*pbpeering.PeeringTrustBundle{
 								{
 									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc2",
+									PeerName:    "dc1",
 									Partition:   "default",
 									RootPEMs: []string{
 										roots.Roots[0].RootCert,
 									},
-									ExportedPartition: "default",
+									ExportedPartition: "dc1",
 									CreateIndex:       0,
 									ModifyIndex:       0,
 								},
@@ -1109,11 +1011,8 @@ func TestListenersFromSnapshot(t *testing.T) {
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
-								SourceName:           "source",
-								SourcePeer:           "dc2",
-								DestinationName:      "web",
-								DestinationPartition: "default",
-								Action:               structs.IntentionActionAllow,
+								SourceName:      "*",
+								DestinationName: "web",
 							},
 						},
 					},
@@ -1179,14 +1078,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners,
 		},
 		{
-			name:   "ingress-with-tls-mixed-max-version-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedMaxVersionListeners,
-		},
-		{
-			name:   "ingress-with-tls-mixed-cipher-suites-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners,
-		},
-		{
 			name:   "ingress-with-sds-listener-gw-level",
 			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_GatewayLevel,
 		},
@@ -1235,27 +1126,22 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
-			name:             "transparent-proxy-with-resolver-redirect-upstream",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-with-resolver-redirect-upstream",
+			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
 		},
 		{
-			name:             "transparent-proxy-catalog-destinations-only",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-catalog-destinations-only",
+			create: proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 		},
 		{
-			name:             "transparent-proxy-dial-instances-directly",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-dial-instances-directly",
+			create: proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
 		},
 		{
-			name:             "transparent-proxy-terminating-gateway",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
-			alsoRunTestForV2: true,
+			name:   "transparent-proxy-terminating-gateway",
+			create: proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 		},
 		{
 			name: "custom-trace-listener",
@@ -1314,11 +1200,9 @@ func TestListenersFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
 					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
 					ns.Proxy.Mode = structs.ProxyModeTransparent
-					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
 				},
 					nil)
 			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-without-tproxy-and-permissive-mtls",
@@ -1328,7 +1212,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 				},
 					nil)
 			},
-			alsoRunTestForV2: true,
 		},
 	}
 
@@ -1341,7 +1224,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
 			for _, tt := range tests {
 				t.Run(tt.name, func(t *testing.T) {
-
 					// Sanity check default with no overrides first
 					snap := tt.create(t)
 
@@ -1353,26 +1235,26 @@ func TestListenersFromSnapshot(t *testing.T) {
 					// golder files for every test case and so not be any use!
 					testcommon.SetupTLSRootsAndLeaf(t, snap)
 
-					var listeners []proto.Message
-
 					// Need server just for logger dependency
 					g := NewResourceGenerator(testutil.Logger(t), nil, false)
 					g.ProxyFeatures = sf
 					if tt.generatorSetup != nil {
 						tt.generatorSetup(g)
 					}
-					listeners, err = g.listenersFromSnapshot(snap)
+
+					listeners, err := g.listenersFromSnapshot(snap)
 					require.NoError(t, err)
+
 					// The order of listeners returned via LDS isn't relevant, so it's safe
 					// to sort these for the purposes of test comparisons.
 					sort.Slice(listeners, func(i, j int) bool {
 						return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
 					})
 
-					r, err := response.CreateResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
+					r, err := createResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
 					require.NoError(t, err)
 
-					t.Run("current-xdsv1", func(t *testing.T) {
+					t.Run("current", func(t *testing.T) {
 						gotJSON := protoToJSON(t, r)
 
 						gName := tt.name
@@ -1383,39 +1265,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 						expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
 						require.JSONEq(t, expectedJSON, gotJSON)
 					})
-
-					if tt.alsoRunTestForV2 {
-						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
-						converter := proxystateconverter.NewConverter(testutil.Logger(t), nil)
-						proxyState, err := converter.ProxyStateFromSnapshot(snap)
-						require.NoError(t, err)
-
-						res, err := generator.AllResourcesFromIR(proxyState)
-						require.NoError(t, err)
-
-						listeners = res[xdscommon.ListenerType]
-						// The order of listeners returned via LDS isn't relevant, so it's safe
-						// to sort these for the purposes of test comparisons.
-						sort.Slice(listeners, func(i, j int) bool {
-							return listeners[i].(*envoy_listener_v3.Listener).Name < listeners[j].(*envoy_listener_v3.Listener).Name
-						})
-
-						r, err := response.CreateResponse(xdscommon.ListenerType, "00000001", "00000001", listeners)
-						require.NoError(t, err)
-
-						t.Run("current-xdsv2", func(t *testing.T) {
-							gotJSON := protoToJSON(t, r)
-
-							gName := tt.name
-							if tt.overrideGoldenName != "" {
-								gName = tt.overrideGoldenName
-							}
-
-							expectedJSON := goldenEnvoy(t, filepath.Join("listeners", gName), envoyVersion, latestEnvoyVersion, gotJSON)
-							require.JSONEq(t, expectedJSON, gotJSON)
-						})
-					}
-
 				})
 			}
 		})
@@ -1573,7 +1422,7 @@ func customTraceJSON(t testinf.T) string {
 
 type configFetcherFunc func() string
 
-var _ configfetcher.ConfigFetcher = (configFetcherFunc)(nil)
+var _ ConfigFetcher = (configFetcherFunc)(nil)
 
 func (f configFetcherFunc) AdvertiseAddrLAN() string {
 	return f()

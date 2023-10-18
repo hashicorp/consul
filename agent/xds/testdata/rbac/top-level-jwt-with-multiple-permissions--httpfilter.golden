@@ -23,12 +23,8 @@
                           "metadata": {
                             "filter": "envoy.filters.http.jwt_authn",
                             "path": [
-                              {
-                                "key": "jwt_payload_auth0"
-                              },
-                              {
-                                "key": "iss"
-                              }
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "iss"}
                             ],
                             "value": {
                               "stringMatch": {
@@ -41,15 +37,9 @@
                           "metadata": {
                             "filter": "envoy.filters.http.jwt_authn",
                             "path": [
-                              {
-                                "key": "jwt_payload_auth0"
-                              },
-                              {
-                                "key": "perms"
-                              },
-                              {
-                                "key": "role"
-                              }
+                              {"key": "jwt_payload_auth0"},
+                              {"key": "perms"},
+                              {"key": "role"}
                             ],
                             "value": {
                               "stringMatch": {
@@ -90,49 +80,39 @@
                     }
                   },
                   {
-                    "andRules": {
-                      "rules": [
-                        {
-                          "metadata": {
-                            "filter": "envoy.filters.http.jwt_authn",
-                            "path": [
-                              {
-                                "key": "jwt_payload_auth0"
-                              },
-                              {
-                                "key": "iss"
+                     "andRules": {
+                        "rules": [
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "iss"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "mytest.auth0-issuer"
+                                }
                               }
-                            ],
-                            "value": {
-                              "stringMatch": {
-                                "exact": "mytest.auth0-issuer"
+                            }
+                          },
+                          {
+                            "metadata": {
+                              "filter": "envoy.filters.http.jwt_authn",
+                              "path": [
+                                {"key": "jwt_payload_auth0"},
+                                {"key": "perms"},
+                                {"key": "role"}
+                              ],
+                              "value": {
+                                "stringMatch": {
+                                  "exact": "admin"
+                                }
                               }
                             }
                           }
-                        },
-                        {
-                          "metadata": {
-                            "filter": "envoy.filters.http.jwt_authn",
-                            "path": [
-                              {
-                                "key": "jwt_payload_auth0"
-                              },
-                              {
-                                "key": "perms"
-                              },
-                              {
-                                "key": "role"
-                              }
-                            ],
-                            "value": {
-                              "stringMatch": {
-                                "exact": "admin"
-                              }
-                            }
-                          }
-                        }
-                      ]
-                    }
+                        ]
+                     }
                   }
                 ]
               }
@@ -146,7 +126,9 @@
                     "authenticated": {
                       "principalName": {
                         "safeRegex": {
-                          "googleRe2": {},
+                          "googleRe2": {
+
+                          },
                           "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                         }
                       }
@@ -155,16 +137,12 @@
                   {
                     "andIds": {
                       "ids": [
-                        {
+                        { 
                           "metadata": {
-                            "filter": "envoy.filters.http.jwt_authn",
+                            "filter":"envoy.filters.http.jwt_authn",
                             "path": [
-                              {
-                                "key": "jwt_payload_okta"
-                              },
-                              {
-                                "key": "iss"
-                              }
+                              {"key": "jwt_payload_okta"},
+                              {"key": "iss"}
                             ],
                             "value": {
                               "stringMatch": {
@@ -173,16 +151,12 @@
                             }
                           }
                         },
-                        {
+                        { 
                           "metadata": {
-                            "filter": "envoy.filters.http.jwt_authn",
+                            "filter":"envoy.filters.http.jwt_authn",
                             "path": [
-                              {
-                                "key": "jwt_payload_okta"
-                              },
-                              {
-                                "key": "roles"
-                              }
+                              {"key": "jwt_payload_okta"},
+                              {"key": "roles"}
                             ],
                             "value": {
                               "stringMatch": {

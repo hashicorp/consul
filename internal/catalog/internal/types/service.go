@@ -1,51 +1,37 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+)
+
+const (
+	ServiceKind = "Service"
+)
+
+var (
+	ServiceV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         ServiceKind,
+	}
+
+	ServiceType = ServiceV1Alpha1Type
 )
 
 func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbcatalog.ServiceType,
+		Type:     ServiceV1Alpha1Type,
 		Proto:    &pbcatalog.Service{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateService,
-		Mutate:   MutateService,
-		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.Service](),
 	})
-}
-
-func MutateService(res *pbresource.Resource) error {
-	var service pbcatalog.Service
-
-	if err := res.Data.UnmarshalTo(&service); err != nil {
-		return err
-	}
-
-	changed := false
-
-	// Default service port protocols.
-	for _, port := range service.Ports {
-		if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
-			port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
-			changed = true
-		}
-	}
-
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&service)
 }
 
 func ValidateService(res *pbresource.Resource) error {
@@ -62,7 +48,7 @@ func ValidateService(res *pbresource.Resource) error {
 	// ServiceEndpoints objects for this service such as when desiring to
 	// configure endpoint information for external services that are not
 	// registered as workloads
-	if selErr := ValidateSelector(service.Workloads, true); selErr != nil {
+	if selErr := validateSelector(service.Workloads, true); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -90,24 +76,13 @@ func ValidateService(res *pbresource.Resource) error {
 		}
 
 		// validate the target port
-		if nameErr := ValidatePortName(port.TargetPort); nameErr != nil {
+		if nameErr := validatePortName(port.TargetPort); nameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ports",
 				Index: idx,
 				Wrapped: resource.ErrInvalidField{
 					Name:    "target_port",
 					Wrapped: nameErr,
-				},
-			})
-		}
-
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
-			err = multierror.Append(err, resource.ErrInvalidListElement{
-				Name:  "ports",
-				Index: idx,
-				Wrapped: resource.ErrInvalidField{
-					Name:    "protocol",
-					Wrapped: protoErr,
 				},
 			})
 		}

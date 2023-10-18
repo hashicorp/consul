@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package catalogtest
 
 import (
@@ -38,10 +35,5 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 
 func TestControllers_Integration(t *testing.T) {
 	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV2Beta1IntegrationTest(t, client)
-}
-
-func TestControllers_Lifecycle(t *testing.T) {
-	client := runInMemResourceServiceAndControllers(t, catalog.DefaultControllerDependencies())
-	RunCatalogV2Beta1LifecycleIntegrationTest(t, client)
+	RunCatalogV1Alpha1IntegrationTest(t, client)
 }

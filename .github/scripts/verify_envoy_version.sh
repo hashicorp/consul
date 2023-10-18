@@ -1,10 +1,10 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 set -euo pipefail
 
-current_branch=$GITHUB_REF_NAME
+current_branch=$GITHUB_REF
 GITHUB_DEFAULT_BRANCH='main'
 
 if [ -z "$GITHUB_TOKEN" ]; then
@@ -13,13 +13,8 @@ if [ -z "$GITHUB_TOKEN" ]; then
 fi
 
 if [ -z "$current_branch" ]; then
-  echo "GITHUB_REF_NAME must be set"
+  echo "GITHUB_REF must be set"
   exit 1
-fi
-
-if [[ "$SKIP_VERIFY_ENVOY_VERSION" = "true" ]]; then
-  echo -e "*************** VERIFY ENVOY VERSION IS DISABLED. To enable, set the environment variable SKIP_VERIFY_ENVOY_VERSION to false in .github/workflows/verify-envoy-version.yml *****************"
-  exit 0
 fi
 
 # Get Consul and Envoy version 
@@ -81,6 +76,7 @@ released_envoy_version=$(get_latest_envoy_version)
 major_released_envoy_version="${released_envoy_version[@]:1:4}"
 
 validate_envoy_version_main(){
+  echo "verify "main" GitHub branch has latest envoy version"
   # Get envoy version for current branch
   ENVOY_VERSIONS=$(sanitize_consul_envoy_version | awk '{print $2}' | tr ',' ' ')
   envoy_version_main_branch=$(get_major_version ${ENVOY_VERSIONS})
@@ -122,8 +118,8 @@ echo checking out branch: "${current_branch}"
 git checkout "${current_branch}"
 
 echo
-echo "Branch ${current_branch} => Consul version: ${CONSUL_VERSION}; Envoy Version: ${ENVOY_VERSIONS}" 
-echo "Branch ${GITHUB_DEFAULT_BRANCH} => Consul version: ${CONSUL_VERSION_DEFAULT_BRANCH}; Envoy Version: ${ENVOY_VERSIONS_DEFAULT_BRANCH}" 
+echo "Branch ${current_branch} =>Consul version: ${CONSUL_VERSION}; Envoy Version: ${ENVOY_VERSIONS}" 
+echo "Branch ${GITHUB_DEFAULT_BRANCH} =>Consul version: ${CONSUL_VERSION_DEFAULT_BRANCH}; Envoy Version: ${ENVOY_VERSIONS_DEFAULT_BRANCH}" 
 
 ## Get major Consul and Envoy versions on release and default branch
 MAJOR_CONSUL_VERSION=$(get_major_version ${CONSUL_VERSION})

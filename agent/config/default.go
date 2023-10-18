@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package config
 
@@ -145,6 +145,7 @@ func DefaultSource() Source {
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 		raft_logstore {
+			backend = "boltdb"
 			wal {
 				segment_size_mb = 64
 			}
@@ -208,7 +209,9 @@ func DevSource() Source {
 		ports = {
 			grpc = 8502
 		}
-		experiments = []
+		experiments = [
+			"resource-apis"
+		]
 	`,
 	}
 }

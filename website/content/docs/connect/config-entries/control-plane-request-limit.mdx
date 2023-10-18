@@ -10,7 +10,7 @@ This topic describes the configuration options for the `control-plane-request-li
 
 <EnterpriseAlert>
 
-This feature requires Consul Enterprise. Refer to the [feature compatibility matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+This feature requires Consul Enterprise. Refer to the [feature compatibility matrix](/consul/docs/v1.16.x/enterprise#consul-enterprise-feature-availability) for additional information.
 
 </EnterpriseAlert>
 
@@ -87,25 +87,20 @@ Catalog = {
 ```
 
 ```yaml
-apiVersion: consul.hashicorp.com/v1alpha1
-kind: ControlPlaneRequestLimit
-metadata:
-  name: <name-for-the-entry>
-spec:
-  mode: permissive
-  # the maximum number of read requests per second that the agent allows.
-  readRate: 100
-  # the maximum number of write requests per second that the agent allows.
-  writeRate: 100
-  kv:
-    readRate: 100
-    writeRate: 100
-  acl:
-    readRate: 100
-    writeRate: 100
-  catalog:
-    readRate: 100
-    writeRate: 100
+kind: control-plane-request-limit
+mode: permissive
+name: <name-for-the-entry>
+read_rate: 100
+write_rate: 100
+kv:
+  read_rate: 100
+  write_rate: 100
+acl:
+  read_rate: 100
+  write_rate: 100
+catalog:
+  read_rate: 100
+  write_rate: 100
 ```
 
 </CodeTabs>

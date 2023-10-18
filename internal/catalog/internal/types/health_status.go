@@ -1,28 +1,34 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
+)
+
+const (
+	HealthStatusKind = "HealthStatus"
+)
+
+var (
+	HealthStatusV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         HealthStatusKind,
+	}
+
+	HealthStatusType = HealthStatusV1Alpha1Type
 )
 
 func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbcatalog.HealthStatusType,
+		Type:     HealthStatusV1Alpha1Type,
 		Proto:    &pbcatalog.HealthStatus{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthStatus,
-		ACLs: &resource.ACLHooks{
-			Read:  aclReadHookHealthStatus,
-			Write: aclWriteHookHealthStatus,
-			List:  resource.NoOpACLListHook,
-		},
 	})
 }
 
@@ -66,38 +72,9 @@ func ValidateHealthStatus(res *pbresource.Resource) error {
 			Name:    "owner",
 			Wrapped: resource.ErrMissing,
 		})
-	} else if !resource.EqualType(res.Owner.Type, pbcatalog.WorkloadType) && !resource.EqualType(res.Owner.Type, pbcatalog.NodeType) {
+	} else if !resource.EqualType(res.Owner.Type, WorkloadType) && !resource.EqualType(res.Owner.Type, NodeType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 
 	return err
-}
-
-func aclReadHookHealthStatus(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
-	if res == nil {
-		return resource.ErrNeedResource
-	}
-	// For a health status of a workload we need to check service:read perms.
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.WorkloadType) {
-		return authorizer.ToAllowAuthorizer().ServiceReadAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.NodeType) {
-		return authorizer.ToAllowAuthorizer().NodeReadAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
-	return acl.PermissionDenied("cannot read catalog.HealthStatus because there is no owner")
-}
-
-func aclWriteHookHealthStatus(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	// For a health status of a workload we need to check service:write perms.
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.WorkloadType) {
-		return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.NodeType) {
-		return authorizer.ToAllowAuthorizer().NodeWriteAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
-	return acl.PermissionDenied("cannot write catalog.HealthStatus because there is no owner")
 }

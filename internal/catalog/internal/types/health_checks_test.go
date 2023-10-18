@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -7,21 +7,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/durationpb"
-
-	"github.com/hashicorp/consul/internal/catalog/internal/testhelpers"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func createHealthChecksResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: pbcatalog.HealthChecksType,
+			Type: HealthChecksType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
@@ -196,13 +194,4 @@ func TestValidateHealthChecks_EmptySelector(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
-}
-
-func TestHealthChecksACLs(t *testing.T) {
-	testhelpers.RunWorkloadSelectingTypeACLsTests[*pbcatalog.HealthChecks](t, pbcatalog.HealthChecksType,
-		func(selector *pbcatalog.WorkloadSelector) *pbcatalog.HealthChecks {
-			return &pbcatalog.HealthChecks{Workloads: selector}
-		},
-		RegisterHealthChecks,
-	)
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -1628,10 +1628,8 @@ func TestAllowedNets(t *testing.T) {
 }
 
 // assertIndex tests that X-Consul-Index is set and non-zero
-func assertIndex(t require.TestingT, resp *httptest.ResponseRecorder) {
-	if tt, ok := t.(*testing.T); ok {
-		tt.Helper()
-	}
+func assertIndex(t *testing.T, resp *httptest.ResponseRecorder) {
+	t.Helper()
 	require.NoError(t, checkIndex(resp))
 }
 

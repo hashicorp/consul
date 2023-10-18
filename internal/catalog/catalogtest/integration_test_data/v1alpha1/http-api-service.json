@@ -1,0 +1,29 @@
+{
+   "id": {
+      "type": {
+         "group": "catalog",
+         "group_version": "v1alpha1",
+         "kind": "Service"
+      },
+      "tenancy": {
+         "partition": "default",
+         "namespace": "default",
+         "peer_name": "local"
+      },
+      "name": "http-api"
+   },
+   "data": {
+      "@type": "hashicorp.consul.catalog.v1alpha1.Service",
+      "workloads": {
+         "prefixes": [
+            "api-1"
+         ]
+      },
+      "ports": [
+         {
+            "target_port": "http",
+            "protocol": "PROTOCOL_HTTP"
+         }
+      ]
+   }
+}

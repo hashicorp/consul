@@ -17,13 +17,10 @@ $ mkdir proto-public/pbfoo/v1alpha1
 syntax = "proto3";
 
 import "pbresource/resource.proto";
-import "pbresource/annotations.proto";
 
 package hashicorp.consul.foo.v1alpha1;
 
 message Bar {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
-  
   string baz = 1;
   hashicorp.consul.resource.ID qux = 2;
 }
@@ -50,22 +47,22 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+var BarV1Alpha1Type = &pbresource.Type{
+	Group:        "foo",
+	GroupVersion: "v1alpha1",
+	Kind:         "bar",
+}
+
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType, 
-		Scope: resource.ScopePartition,
+		Type:  BarV1Alpha1Type,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
-Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
-mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
-and a partition.
 
-Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
-package's type registration method:
-
-[`type_registry.go`]: ../../agent/consul/type_registry.go
+Update the `registerResources` method in [`server.go`] to call your package's
+type registration method:
 
 ```Go
 import (
@@ -74,12 +71,14 @@ import (
 	// …
 )
 
-func NewTypeRegistry() resource.Registry {
+func (s *Server) registerResources() {
 	// …
-    foo.RegisterTypes(registry)
+	foo.RegisterTypes(s.typeRegistry)
 	// …
 }
 ```
+
+[`server.go`]: ../../agent/consul/server.go
 
 That should be all you need to start using your new resource type. Test it out
 by starting an agent in dev mode:
@@ -140,9 +139,8 @@ using a validation hook provided in the type registration:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbv1alpha1.BarType,
-		Proto:    &pbv1alpha1.Bar{}, 
-		Scope:    resource.ScopeNamespace,
+		Type:     BarV1Alpha1Type,
+		Proto:    &pbv1alpha1.Bar{},
 		Validate: validateBar,
 	})
 }
@@ -173,9 +171,8 @@ a set of ACL hooks:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbv1alpha1.BarType,
-		Proto: &pbv1alpha1.Bar{}, 
-		Scope: resource.ScopeNamespace,
+		Type:  BarV1Alpha1Type,
+		Proto: &pbv1alpha1.Bar{},
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -184,19 +181,19 @@ func RegisterTypes(r resource.Registry) {
 	})
 }
 
-func authzReadBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID,  _ *pbresource.Resource) error {
+func authzReadBar(authz acl.Authorizer, id *pbresource.ID) error {
 	return authz.ToAllowAuthorizer().
-		BarReadAllowed(id.Name, authzContext)
+		BarReadAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
 }
 
-func authzWriteBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+func authzWriteBar(authz acl.Authorizer, id *pbresource.ID) error {
 	return authz.ToAllowAuthorizer().
-		BarWriteAllowed(res.ID().Name, authzContext)
+		BarWriteAllowed(id.Name, resource.AuthorizerContext(id.Tenancy))
 }
 
-func authzListBar(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+func authzListBar(authz acl.Authorizer, ten *pbresource.Tenancy) error {
 	return authz.ToAllowAuthorizer().
-		BarListAllowed(authzContext)
+		BarListAllowed(resource.AuthorizerContext(ten))
 }
 ```
 
@@ -212,9 +209,8 @@ by providing a mutation hook:
 ```Go
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:   pbv1alpha1.BarType,
-		Proto:  &pbv1alpha1.Bar{}, 
-		Scope:  resource.ScopeNamespace,
+		Type:   BarV1Alpha1Type,
+		Proto:  &pbv1alpha1.Bar{},
 		Mutate: mutateBar,
 	})
 }
@@ -251,7 +247,7 @@ import (
 )
 
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.ForType(BarV1Alpha1Type).
 		WithReconciler(barReconciler{})
 }
 
@@ -281,9 +277,7 @@ func (barReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 Next, register your controller with the controller manager. Another common
 pattern is to have your package expose a method for registering controllers,
-which is called from `registerControllers` in [`server.go`].
-
-[`server.go`]: ../../agent/consul/server.go
+which is also called from `registerResources` in [`server.go`].
 
 ```Go
 package foo
@@ -296,7 +290,7 @@ func RegisterControllers(mgr *controller.Manager) {
 ```Go
 package consul
 
-func (s *Server) registerControllers() {
+func (s *Server) registerResources() {
 	// …
 	foo.RegisterControllers(s.controllerManager)
 	// …
@@ -387,8 +381,8 @@ controller also watches workloads and services.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
-		WithWatch(pbv1alpha1.BazType, controller.MapOwner)
+	return controller.ForType(BarV1Alpha1Type).
+		WithWatch(BazV1Alpha1Type, controller.MapOwner)
 		WithReconciler(barReconciler{})
 }
 ```
@@ -413,7 +407,7 @@ the controller's placement.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.ForType(BarV1Alpha1Type).
 		WithPlacement(controller.PlacementEachServer)
 		WithReconciler(barReconciler{})
 }

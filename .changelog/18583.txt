@@ -1,3 +1,0 @@
-```release-note:feature
-mesh: **(Enterprise only)** Adds rate limiting config to service-defaults
-```

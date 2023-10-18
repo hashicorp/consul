@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package cluster
 
@@ -8,30 +8,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"time"
 
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const bootLogLine = "Consul agent running"
-
 const disableRYUKEnv = "TESTCONTAINERS_RYUK_DISABLED"
 
 // Exposed ports info
@@ -63,14 +58,10 @@ type consulContainerNode struct {
 	clientCACertFile string
 	ip               string
 
-	grpcConn *grpc.ClientConn
-
 	nextAdminPortOffset   int
 	nextConnectPortOffset int
 
 	info AgentInfo
-
-	apiClientConfig api.Config
 }
 
 func (c *consulContainerNode) GetPod() testcontainers.Container {
@@ -136,13 +127,6 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		if err != nil {
 			return nil, fmt.Errorf("error copying persistent data from %s: %w", config.ExternalDataDir, err)
 		}
-		// NOTE: make sure the new version can access the persistent data
-		// This is necessary for running on Linux
-		cmd := exec.Command("chmod", "-R", "777", tmpDirData)
-		err = cmd.Run()
-		if err != nil {
-			return nil, fmt.Errorf("error changing ownership of persistent data: %w", err)
-		}
 	}
 
 	var caCertFileForAPI string
@@ -188,8 +172,7 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		clientAddr       string
 		clientCACertFile string
 
-		info     AgentInfo
-		grpcConn *grpc.ClientConn
+		info AgentInfo
 	)
 	debugURI := ""
 	if utils.Debug {
@@ -253,28 +236,6 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		info.CACertFile = clientCACertFile
 	}
 
-	// TODO: Support gRPC+TLS port.
-	if pc.Ports.GRPC > 0 {
-		port, err := nat.NewPort("tcp", strconv.Itoa(pc.Ports.GRPC))
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse gRPC TLS port: %w", err)
-		}
-		endpoint, err := podContainer.PortEndpoint(ctx, port, "tcp")
-		if err != nil {
-			return nil, fmt.Errorf("failed to get gRPC TLS endpoint: %w", err)
-		}
-		url, err := url.Parse(endpoint)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse gRPC endpoint URL: %w", err)
-		}
-		conn, err := grpc.Dial(url.Host, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return nil, fmt.Errorf("failed to dial gRPC connection: %w", err)
-		}
-		deferClean.Add(func() { _ = conn.Close() })
-		grpcConn = conn
-	}
-
 	ip, err := podContainer.ContainerIP(ctx)
 	if err != nil {
 		return nil, err
@@ -321,7 +282,6 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		name:       name,
 		ip:         ip,
 		info:       info,
-		grpcConn:   grpcConn,
 	}
 
 	if httpPort > 0 || httpsPort > 0 {
@@ -340,14 +300,12 @@ func NewConsulContainer(ctx context.Context, config Config, cluster *Cluster, po
 		}
 
 		node.client = apiClient
-		node.apiClientConfig = *apiConfig
 		node.clientAddr = clientAddr
 		node.clientCACertFile = clientCACertFile
 	}
 
-	// Inject node token if ACL is enabled, the bootstrap token not null, and cluster
-	// has at least one agent
-	if cluster.TokenBootstrap != "" && cluster.ACLEnabled && len(cluster.Agents) > 0 {
+	// Inject node token if ACL is enabled and the bootstrap token is generated
+	if cluster.TokenBootstrap != "" && cluster.ACLEnabled {
 		agentToken, err := cluster.CreateAgentToken(pc.Datacenter, name)
 		if err != nil {
 			return nil, err
@@ -418,10 +376,6 @@ func (c *consulContainerNode) GetClient() *api.Client {
 	return c.client
 }
 
-func (c *consulContainerNode) GetGRPCConn() *grpc.ClientConn {
-	return c.grpcConn
-}
-
 // NewClient returns an API client by making a new one based on the provided token
 // - updateDefault: if true update the default client
 func (c *consulContainerNode) NewClient(token string, updateDefault bool) (*api.Client, error) {
@@ -455,10 +409,6 @@ func (c *consulContainerNode) GetInfo() AgentInfo {
 
 func (c *consulContainerNode) GetIP() string {
 	return c.ip
-}
-
-func (c *consulContainerNode) GetAPIClientConfig() api.Config {
-	return c.apiClientConfig
 }
 
 func (c *consulContainerNode) RegisterTermination(f func() error) {
@@ -543,11 +493,9 @@ func (c *consulContainerNode) Upgrade(ctx context.Context, config Config) error 
 func (c *consulContainerNode) Terminate() error {
 	return c.terminate(false, false)
 }
-
 func (c *consulContainerNode) TerminateAndRetainPod(skipFuncs bool) error {
 	return c.terminate(true, skipFuncs)
 }
-
 func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	// Services might register a termination function that should also fire
 	// when the "agent" is cleaned up.
@@ -560,10 +508,6 @@ func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 				continue
 			}
 		}
-
-		// if the pod is retained and therefore the IP then the grpc conn
-		// should handle reconnecting so there is no reason to close it.
-		c.closeGRPC()
 	}
 
 	var merr error
@@ -583,16 +527,6 @@ func (c *consulContainerNode) terminate(retainPod bool, skipFuncs bool) error {
 	}
 
 	return merr
-}
-
-func (c *consulContainerNode) closeGRPC() error {
-	if c.grpcConn != nil {
-		if err := c.grpcConn.Close(); err != nil {
-			return err
-		}
-		c.grpcConn = nil
-	}
-	return nil
 }
 
 func (c *consulContainerNode) DataDir() string {
@@ -631,8 +565,6 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 		ExposedPorts: []string{
 			"8500/tcp", // Consul HTTP API
 			"8501/tcp", // Consul HTTPs API
-			"8502/tcp", // Consul gRPC API
-			"8600/udp", // Consul DNS API
 
 			"8443/tcp", // Envoy Gateway Listener
 
@@ -649,8 +581,6 @@ func newContainerRequest(config Config, opts containerOpts, ports ...int) (podRe
 			"9997/tcp", // Envoy App Listener
 			"9998/tcp", // Envoy App Listener
 			"9999/tcp", // Envoy App Listener
-
-			"80/tcp", // Nginx - http port used in wasm tests
 		},
 		Hostname: opts.hostname,
 		Networks: opts.addtionalNetworks,

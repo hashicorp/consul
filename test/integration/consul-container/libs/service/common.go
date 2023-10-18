@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package service
 
@@ -9,5 +9,5 @@ import (
 
 const (
 	envoyLogLevel        = "debug"
-	HashicorpDockerProxy = "docker.mirror.hashicorp.services"
+	hashicorpDockerProxy = "docker.mirror.hashicorp.services"
 )
