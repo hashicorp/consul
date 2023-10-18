@@ -176,11 +176,17 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 			v.stopWatcher()
 		}
 		v.stopWatcher = cancel
+		// NOTE: Any codepaths after v.renewToken(...) which return an error
+		// _must_ call v.stopWatcher() to prevent the renewal goroutine from
+		// leaking when the CA initialization fails and gets retried later.
 		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
 	// Update the intermediate (managed) PKI mount and role
 	if err := v.setupIntermediatePKIPath(); err != nil {
+		if v.stopWatcher != nil {
+			v.stopWatcher()
+		}
 		return err
 	}
 
