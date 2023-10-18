@@ -53,7 +53,7 @@
       },
       "name": "server.dc3.peering.f622dc37-7238-4485-ab58-0f53864a9ae5",
       "outlierDetection": {},
-      "type": "LOGICAL_DNS"
+      "type": "STRICT_DNS"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
