@@ -107,6 +107,9 @@ func (authz testAuthorizer) ServiceRead(string, *AuthorizerContext) EnforcementD
 func (authz testAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }
+func (authz testAuthorizer) ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision {
+	return EnforcementDecision(authz)
+}
 func (authz testAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	return EnforcementDecision(authz)
 }

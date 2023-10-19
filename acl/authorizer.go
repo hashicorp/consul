@@ -171,6 +171,9 @@ type Authorizer interface {
 	// ServiceReadAll checks for permission to read all services
 	ServiceReadAll(*AuthorizerContext) EnforcementDecision
 
+	// ServiceReadPrefix checks for permission to read services within the given prefix.
+	ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision
+
 	// ServiceWrite checks for permission to create or update a given
 	// service
 	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
@@ -503,6 +506,14 @@ func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
 	if a.Authorizer.ServiceReadAll(ctx) != Allow {
 		// This is only used to gate certain UI functions right now (e.g metrics)
 		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, "all services") // read
+	}
+	return nil
+}
+
+// ServiceReadPrefixAllowed checks for permission to read services within the given prefix
+func (a AllowAuthorizer) ServiceReadPrefixAllowed(prefix string, ctx *AuthorizerContext) error {
+	if a.Authorizer.ServiceReadPrefix(prefix, ctx) != Allow {
+		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, prefix) // read
 	}
 	return nil
 }
