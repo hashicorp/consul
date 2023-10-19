@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -225,8 +226,68 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 			testcase.expectedValue(t, provider)
 		})
 	}
+}
 
-	return
+// This test must not run in parallel
+func TestVaultCAProvider_ConfigureWithBadToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+	SkipIfVaultNotPresent(t)
+
+	testVault := NewTestVaultServer(t)
+
+	attr := &VaultTokenAttributes{
+		RootPath:         "pki-root",
+		IntermediatePath: "pki-intermediate",
+		ConsulManaged:    true,
+	}
+	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
+
+	provider := NewVaultProvider(hclog.New(&hclog.LoggerOptions{Name: "ca.vault"}))
+
+	t.Run("bad token does not leak renewal routine on Configure", func(t *testing.T) {
+		config := map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "badbadbad/",
+		}
+		cfg := vaultProviderConfig(t, testVault.Addr, token, config)
+
+		err := provider.Configure(cfg)
+		require.Error(t, err)
+
+		retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
+			profile := pprof.Lookup("goroutine")
+			sb := strings.Builder{}
+			require.NoError(r, profile.WriteTo(&sb, 2))
+			require.NotContains(r, sb.String(),
+				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
+				"found renewal goroutine leak")
+			// If this test is failing because you added a new goroutine to
+			// (*VaultProvider).Configure AND that goroutine should persist
+			// even if Configure errored, then you should change the checked
+			// string to (*VaultProvider).renewToken.
+		})
+	})
+
+	t.Run("correct token starts renewal routine", func(t *testing.T) {
+		config := map[string]any{
+			"RootPKIPath":         "pki-root/",
+			"IntermediatePKIPath": "pki-intermediate/",
+		}
+		cfg := vaultProviderConfig(t, testVault.Addr, token, config)
+
+		require.NoError(t, provider.Configure(cfg))
+
+		retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
+			profile := pprof.Lookup("goroutine")
+			sb := strings.Builder{}
+			require.NoError(r, profile.WriteTo(&sb, 2))
+			require.Contains(r, sb.String(),
+				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
+				"expected renewal goroutine, got none")
+		})
+	})
 }
 
 func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
