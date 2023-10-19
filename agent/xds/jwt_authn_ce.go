@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 //go:build !consulent
-// +build !consulent
 
 package xds
 
@@ -15,7 +14,7 @@ import (
 
 type GatewayAuthFilterBuilder struct {
 	listener       structs.APIGatewayListener
-	route          *structs.HTTPRouteConfigEntry
+	routes         []*structs.HTTPRouteConfigEntry
 	providers      map[string]*structs.JWTProviderConfigEntry
 	envoyProviders map[string]*envoy_http_jwt_authn_v3.JwtProvider
 }

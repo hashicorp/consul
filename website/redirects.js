@@ -138,6 +138,61 @@ module.exports = [
     permanent: true,
   },
   {
+    source: '/consul/docs/connect/gateways/api-gateway/usage',
+    destination:
+      '/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/agi-gateway',
+    destination: '/consul/docs/connect/gateways/agi-gateway',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/install',
+    destination: '/consul/docs/connect/gateways/api-gateway/deploy/install-k8s',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/usage/reroute-http-requests',
+    destination:
+      '/consul/docs/connect/gateways/api-gateway/define-routes/reroute-http-requests',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/usage/route-to-peered-services',
+    destination:
+      '/consul/docs/connect/gateways/api-gateway/route-to-peered-services',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/usage/errors',
+    destination: '/consul/docs/connect/gateways/api-gateway/errors',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/usage/usage',
+    destination:
+      '/consul/docs/connect/gateways/api-gateway/deploy/listeners-k8s',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/upgrades',
+    destination: '/consul/docs/connect/gateways/api-gateway/upgrades-k8s',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/configuration/',
+    destination: '/consul/docs/connect/gateways/api-gateway/configuration/',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/api-gateway/configuration/:slug',
+    destination:
+      '/consul/docs/connect/gateways/api-gateway/configuration/:slug',
+    permanent: true,
+  },
+  {
     source: '/consul/docs/connect/failover',
     destination: '/consul/docs/connect/manage-traffic/failover',
     permanent: true,

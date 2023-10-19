@@ -6,23 +6,67 @@ package agent
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 )
+
+func TestCatalogEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
+		})
+	}
+
+	checkRequest("PUT", "/v1/catalog/register")
+	checkRequest("GET", "/v1/catalog/connect/")
+	checkRequest("PUT", "/v1/catalog/deregister")
+	checkRequest("GET", "/v1/catalog/datacenters")
+	checkRequest("GET", "/v1/catalog/nodes")
+	checkRequest("GET", "/v1/catalog/services")
+	checkRequest("GET", "/v1/catalog/service/")
+	checkRequest("GET", "/v1/catalog/node/")
+	checkRequest("GET", "/v1/catalog/node-services/")
+	checkRequest("GET", "/v1/catalog/gateway-services/")
+}
+
+func assertV1CatalogEndpointDoesNotWorkWithV2(t *testing.T, a *TestAgent, method, url string, requestBody string) {
+	var body io.Reader
+	switch method {
+	case http.MethodPost, http.MethodPut:
+		body = strings.NewReader(requestBody + "\n")
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	require.NoError(t, err)
+
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+	require.Equal(t, http.StatusBadRequest, resp.Code)
+
+	got, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	require.Contains(t, string(got), structs.ErrUsingV2CatalogExperiment.Error())
+}
 
 func TestCatalogRegister_PeeringRegistration(t *testing.T) {
 	if testing.Short() {

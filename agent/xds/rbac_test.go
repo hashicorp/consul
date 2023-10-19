@@ -1085,7 +1085,7 @@ func TestMakeRBACNetworkAndHTTPFilters(t *testing.T) {
 
 					tt.v2L4TrafficPermissions.DefaultAllow = tt.intentionDefaultAllow
 
-					filters, err := xdsv2.MakeL4RBAC(tt.v2L4TrafficPermissions)
+					filters, err := xdsv2.MakeRBACNetworkFilters(tt.v2L4TrafficPermissions)
 					require.NoError(t, err)
 
 					var gotJSON string

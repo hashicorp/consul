@@ -18,7 +18,7 @@ func RegisterWorkloadIdentity(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkloadIdentity,
 			Write: aclWriteHookWorkloadIdentity,
-			List:  aclListHookWorkloadIdentity,
+			List:  resource.NoOpACLListHook,
 		},
 		Validate: nil,
 	})
@@ -36,7 +36,7 @@ func aclReadHookWorkloadIdentity(
 	if res != nil {
 		return authorizer.ToAllowAuthorizer().IdentityReadAllowed(res.Id.Name, authzCtx)
 	}
-	return resource.ErrNeedData
+	return resource.ErrNeedResource
 }
 
 func aclWriteHookWorkloadIdentity(
@@ -44,13 +44,7 @@ func aclWriteHookWorkloadIdentity(
 	authzCtx *acl.AuthorizerContext,
 	res *pbresource.Resource) error {
 	if res == nil {
-		return resource.ErrNeedData
+		return resource.ErrNeedResource
 	}
 	return authorizer.ToAllowAuthorizer().IdentityWriteAllowed(res.Id.Name, authzCtx)
-}
-
-func aclListHookWorkloadIdentity(authorizer acl.Authorizer, context *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement
-	return nil
 }

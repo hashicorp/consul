@@ -30,6 +30,10 @@ message ProxyConfiguration {
 
   // deprecated: prevent usage when using v2 APIs directly.
   // needed for backwards compatibility
+  //
+  // +kubebuilder:validation:Type=object
+  // +kubebuilder:validation:Schemaless
+  // +kubebuilder:pruning:PreserveUnknownFields
   google.protobuf.Struct opaque_config = 4 [deprecated = true];
 }
 
@@ -56,18 +60,16 @@ message DynamicConfig {
   // AccessLogs configures the output and format of Envoy access logs
   AccessLogsConfig access_logs = 8;
 
-  repeated EnvoyExtension envoy_extensions = 9;
-
-  string public_listener_json = 10;
-  string listener_tracing_json = 11;
-  string local_cluster_json = 12;
+  string public_listener_json = 9;
+  string listener_tracing_json = 10;
+  string local_cluster_json = 11;
 
   // deprecated:
   // local_workload_address, local_workload_port, and local_workload_socket_path
   // are deprecated and are only needed for migration of existing resources.
-  string local_workload_address = 13 [deprecated = true];
-  uint32 local_workload_port = 14 [deprecated = true];
-  string local_workload_socket_path = 15 [deprecated = true];
+  string local_workload_address = 12 [deprecated = true];
+  uint32 local_workload_port = 13 [deprecated = true];
+  string local_workload_socket_path = 14 [deprecated = true];
 }
 
 message TransparentProxy {
@@ -99,6 +101,8 @@ message BootstrapConfig {
   string telemetry_collector_bind_socket_dir = 14;
 }
 
+// +kubebuilder:validation:Enum=PROXY_MODE_DEFAULT;PROXY_MODE_TRANSPARENT;PROXY_MODE_DIRECT
+// +kubebuilder:validation:Type=string
 enum ProxyMode {
   // ProxyModeDefault represents no specific mode and should
   // be used to indicate that a different layer of the configuration
@@ -132,11 +136,13 @@ message AccessLogsConfig {
   string path = 4;
 
   // The presence of one format string or the other implies the access log string encoding.
-  // Defining Both is invalid.
+  // Defining both is invalid.
   string json_format = 5;
   string text_format = 6;
 }
 
+// +kubebuilder:validation:Enum=LOG_SINK_TYPE_DEFAULT;LOG_SINK_TYPE_FILE;LOG_SINK_TYPE_STDERR;LOG_SINK_TYPE_STDOUT
+// +kubebuilder:validation:Type=string
 enum LogSinkType {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   LOG_SINK_TYPE_DEFAULT = 0;
@@ -149,11 +155,16 @@ enum LogSinkType {
 message EnvoyExtension {
   string name = 1;
   bool required = 2;
+  // +kubebuilder:validation:Type=object
+  // +kubebuilder:validation:Schemaless
+  // +kubebuilder:pruning:PreserveUnknownFields
   google.protobuf.Struct arguments = 3;
   string consul_version = 4;
   string envoy_version = 5;
 }
 
+// +kubebuilder:validation:Enum=MUTUAL_TLS_MODE_DEFAULT;MUTUAL_TLS_MODE_STRICT;MUTUAL_TLS_MODE_PERMISSIVE
+// +kubebuilder:validation:Type=string
 enum MutualTLSMode {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   MUTUAL_TLS_MODE_DEFAULT = 0;

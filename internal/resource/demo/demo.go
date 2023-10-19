@@ -22,8 +22,16 @@ import (
 )
 
 var (
+	// TypeV1Executive represents a a C-suite executive of the company.
+	// Used as a resource to test cluster scope.
+	TypeV1Executive = &pbresource.Type{
+		Group:        "demo",
+		GroupVersion: "v1",
+		Kind:         "Executive",
+	}
+
 	// TypeV1RecordLabel represents a record label which artists are signed to.
-	// Used specifically as a resource to test partition only scoped resources.
+	// Used as a resource to test partiion scope.
 	TypeV1RecordLabel = &pbresource.Type{
 		Group:        "demo",
 		GroupVersion: "v1",
@@ -72,8 +80,12 @@ const (
 	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
 	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
-	LabelV1ReadPolicy   = `key_prefix "resource/demo.v1.Label/" { policy = "read" }`
-	LabelV1WritePolicy  = `key_prefix "resource/demo.v1.Label/" { policy = "write" }`
+
+	ExecutiveV1ReadPolicy  = `key_prefix "resource/demo.v1.Executive/" { policy = "read" }`
+	ExecutiveV1WritePolicy = `key_prefix "resource/demo.v1.Executive/" { policy = "write" }`
+
+	LabelV1ReadPolicy  = `key_prefix "resource/demo.v1.Label/" { policy = "read" }`
+	LabelV1WritePolicy = `key_prefix "resource/demo.v1.Label/" { policy = "write" }`
 )
 
 // RegisterTypes registers the demo types. Should only be called in tests and
@@ -85,7 +97,7 @@ func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
 		if resource.EqualType(TypeV1RecordLabel, id.Type) {
 			if res == nil {
-				return resource.ErrNeedData
+				return resource.ErrNeedResource
 			}
 		}
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
@@ -138,6 +150,17 @@ func RegisterTypes(r resource.Registry) {
 		}
 		return nil
 	}
+
+	r.Register(resource.Registration{
+		Type:  TypeV1Executive,
+		Proto: &pbdemov1.Executive{},
+		Scope: resource.ScopeCluster,
+		ACLs: &resource.ACLHooks{
+			Read:  readACL,
+			Write: writeACL,
+			List:  makeListACL(TypeV1Executive),
+		},
+	})
 
 	r.Register(resource.Registration{
 		Type:  TypeV1RecordLabel,
@@ -207,6 +230,26 @@ func RegisterTypes(r resource.Registry) {
 			List:  makeListACL(TypeV2Album),
 		},
 	})
+}
+
+// GenerateV1Executive generates a named Executive resource.
+func GenerateV1Executive(name, position string) (*pbresource.Resource, error) {
+	data, err := anypb.New(&pbdemov1.Executive{Position: position})
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbresource.Resource{
+		Id: &pbresource.ID{
+			Type:    TypeV1Executive,
+			Tenancy: resource.DefaultClusteredTenancy(),
+			Name:    name,
+		},
+		Data: data,
+		Metadata: map[string]string{
+			"generated_at": time.Now().Format(time.RFC3339),
+		},
+	}, nil
 }
 
 // GenerateV1RecordLabel generates a named RecordLabel resource.
@@ -311,7 +354,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
 			Tenancy: clone(artistID.Tenancy),
-			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
+			Name:    fmt.Sprintf("%s-%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,
 		Data:  data,

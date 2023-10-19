@@ -21,13 +21,14 @@ func TestTypeRegistration(t *testing.T) {
 	requiredKinds := []string{
 		pbmesh.ProxyConfigurationKind,
 		pbmesh.DestinationsKind,
-		pbmesh.DestinationsConfigurationKind,
 		pbmesh.ProxyStateTemplateKind,
 		pbmesh.HTTPRouteKind,
 		pbmesh.TCPRouteKind,
 		pbmesh.GRPCRouteKind,
 		pbmesh.DestinationPolicyKind,
 		pbmesh.ComputedRoutesKind,
+		// todo (v2): re-enable once we implement it.
+		//pbmesh.DestinationsConfigurationKind,
 	}
 
 	r := resource.NewRegistry()

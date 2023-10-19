@@ -30,12 +30,11 @@ type ParentReference struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// For east/west configuration, this should point to a pbcatalog.Service.
-	// For north/south it should point to a gateway (TBD)
+	// For east/west configuration, this should point to a Service.
+	// For north/south it should point to a Gateway.
 	Ref *pbresource.Reference `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
 	// For east/west this is the name of the Consul Service port to direct traffic to
 	// or empty to imply all.
-	//
 	// For north/south this is TBD.
 	Port string `protobuf:"bytes,2,opt,name=port,proto3" json:"port,omitempty"`
 }
@@ -91,7 +90,7 @@ type BackendReference struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// For east/west configuration, this should point to a pbcatalog.Service.
+	// For east/west configuration, this should point to a Service.
 	Ref *pbresource.Reference `protobuf:"bytes,1,opt,name=ref,proto3" json:"ref,omitempty"`
 	// For east/west this is the name of the Consul Service port to direct traffic to
 	// or empty to imply using the same value as the parent ref.

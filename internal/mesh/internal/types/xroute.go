@@ -60,7 +60,7 @@ func mutateXRouteRef(xrouteTenancy *pbresource.Tenancy, ref *pbresource.Referenc
 	return !proto.Equal(orig, ref)
 }
 
-func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
+func validateParentRefs(id *pbresource.ID, parentRefs []*pbmesh.ParentReference) error {
 	var merr error
 	if len(parentRefs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
@@ -92,6 +92,12 @@ func validateParentRefs(parentRefs []*pbmesh.ParentReference) error {
 		if err := catalog.ValidateLocalServiceRefNoSection(parent.Ref, wrapRefErr); err != nil {
 			merr = multierror.Append(merr, err)
 		} else {
+			if !resource.EqualTenancy(id.Tenancy, parent.Ref.Tenancy) {
+				merr = multierror.Append(merr, wrapRefErr(resource.ErrInvalidField{
+					Name:    "tenancy",
+					Wrapped: resource.ErrReferenceTenancyNotEqual,
+				}))
+			}
 			prk := portedRefKey{
 				Key:  resource.NewReferenceKey(parent.Ref),
 				Port: parent.Port,
@@ -284,7 +290,7 @@ func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
 	hooks := &resource.ACLHooks{
 		Read:  aclReadHookXRoute[R],
 		Write: aclWriteHookXRoute[R],
-		List:  aclListHookXRoute[R],
+		List:  resource.NoOpACLListHook,
 	}
 
 	return hooks
@@ -292,7 +298,7 @@ func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
 
 func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
 	if res == nil {
-		return resource.ErrNeedData
+		return resource.ErrNeedResource
 	}
 
 	dec, err := resource.Decode[R](res)
@@ -343,11 +349,5 @@ func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.Authoriz
 		}
 	}
 
-	return nil
-}
-
-func aclListHookXRoute[R XRouteData](authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
 	return nil
 }

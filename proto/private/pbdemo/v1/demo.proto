@@ -7,11 +7,18 @@ syntax = "proto3";
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v1;
 
+// Cluster scoped resource.
+message Executive {
+  string position = 1;
+}
+
+// Partition scoped resource.
 message RecordLabel {
   string name = 1;
   string description = 2;
 }
 
+// Namespace scoped resource.
 message Artist {
   string name = 1;
   string description = 2;
