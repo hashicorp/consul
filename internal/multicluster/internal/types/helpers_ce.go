@@ -29,7 +29,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 		{
 			if consumer.GetPeer() != "" {
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Peer",
+					Name:    "peer",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
