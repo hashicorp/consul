@@ -64,6 +64,8 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "DefaultPreparedQueryRead", prefix: "foo", check: checkDefaultPreparedQueryRead},
 				{name: "DefaultPreparedQueryWrite", prefix: "foo", check: checkDefaultPreparedQueryWrite},
 				{name: "DefaultServiceRead", prefix: "foo", check: checkDefaultServiceRead},
+				{name: "DefaultServiceReadAll", prefix: "foo", check: checkDefaultServiceReadAll},
+				{name: "DefaultServiceReadPrefix", prefix: "foo", check: checkDefaultServiceReadPrefix},
 				{name: "DefaultServiceWrite", prefix: "foo", check: checkDefaultServiceWrite},
 				{name: "DefaultServiceWriteAny", prefix: "", check: checkDefaultServiceWriteAny},
 				{name: "DefaultSessionRead", prefix: "foo", check: checkDefaultSessionRead},
@@ -396,6 +398,7 @@ func TestPolicyAuthorizer(t *testing.T) {
 				{name: "ServiceReadDenied", prefix: "football", check: checkDenyServiceRead},
 				{name: "ServiceWriteDenied", prefix: "football", check: checkDenyServiceWrite},
 				{name: "ServiceWriteAnyAllowed", prefix: "", check: checkAllowServiceWriteAny},
+				{name: "ServiceReadWithinPrefixDenied", prefix: "foot", check: checkDenyServiceReadPrefix},
 
 				{name: "IdentityReadPrefixAllowed", prefix: "fo", check: checkAllowIdentityRead},
 				{name: "IdentityWritePrefixDenied", prefix: "fo", check: checkDenyIdentityWrite},
@@ -568,6 +571,214 @@ func TestPolicyAuthorizer(t *testing.T) {
 			checks: []aclCheck{
 				{name: "AnyDefault", prefix: "*", check: checkDefaultIntentionRead},
 				{name: "AllDenied", prefix: "*", check: checkDenyIntentionWrite},
+			},
+		},
+		"Service Read Prefix - read allowed with write policy and exact prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - read allowed with read policy and exact prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - read denied with deny policy and exact prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo", check: checkDenyServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - read allowed with write policy and shorter prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo1", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - read allowed with read policy and shorter prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo1", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - read denied with deny policy and shorter prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo1", check: checkDenyServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - default with write policy and longer prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo1",
+						Policy: PolicyWrite,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDefault", prefix: "foo", check: checkDefaultServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - default with read policy and longer prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo1",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDefault", prefix: "foo", check: checkDefaultServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - deny with deny policy and longer prefix": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "foo1",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo", check: checkDenyServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - allow with two shorter prefixes - more specific one allowing read and less specific denying": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "fo",
+						Policy: PolicyDeny,
+					},
+					{
+						Name:   "foo",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - deny with two shorter prefixes - more specific one denying and less specific allowing read": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "fo",
+						Policy: PolicyRead,
+					},
+					{
+						Name:   "foo",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo", check: checkDenyServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - deny with exact match denying": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "fo",
+						Policy: PolicyRead,
+					},
+				},
+				Services: []*ServiceRule{
+					{
+						Name:   "foo-123",
+						Policy: PolicyDeny,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo", check: checkDenyServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - allow with exact match allowing read": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "fo",
+						Policy: PolicyRead,
+					},
+				},
+				Services: []*ServiceRule{
+					{
+						Name:   "foo-123",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixAllowed", prefix: "foo", check: checkAllowServiceReadPrefix},
+			},
+		},
+		"Service Read Prefix - deny with exact match allowing read but prefix match denying": {
+			policy: &Policy{PolicyRules: PolicyRules{
+				ServicePrefixes: []*ServiceRule{
+					{
+						Name:   "fo",
+						Policy: PolicyDeny,
+					},
+				},
+				Services: []*ServiceRule{
+					{
+						Name:   "foo-123",
+						Policy: PolicyRead,
+					},
+				},
+			}},
+			checks: []aclCheck{
+				{name: "ServiceReadPrefixDenied", prefix: "foo", check: checkDenyServiceReadPrefix},
 			},
 		},
 	}
