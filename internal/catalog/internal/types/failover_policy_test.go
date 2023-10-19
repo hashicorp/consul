@@ -4,7 +4,7 @@
 package types
 
 import (
-	"strings"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -140,7 +140,7 @@ func TestMutateFailoverPolicy(t *testing.T) {
 			},
 		},
 		"dest ref tenancy defaulting": {
-			policyTenancy: newTestTenancy("foo.bar"),
+			policyTenancy: resourcetest.Tenancy("foo.bar"),
 			failover: &pbcatalog.FailoverPolicy{
 				Config: &pbcatalog.FailoverConfig{
 					Mode:    pbcatalog.FailoverMode_FAILOVER_MODE_SEQUENTIAL,
@@ -685,105 +685,147 @@ func TestFailoverPolicyACLs(t *testing.T) {
 	registry := resource.NewRegistry()
 	Register(registry)
 
+	newFailover := func(t *testing.T, name, tenancyStr string, destRefs []*pbresource.Reference) []*pbresource.Resource {
+		var dr []*pbcatalog.FailoverDestination
+		for _, destRef := range destRefs {
+			dr = append(dr, &pbcatalog.FailoverDestination{Ref: destRef})
+		}
+
+		res1 := resourcetest.Resource(pbcatalog.FailoverPolicyType, name).
+			WithTenancy(resourcetest.Tenancy(tenancyStr)).
+			WithData(t, &pbcatalog.FailoverPolicy{
+				Config: &pbcatalog.FailoverConfig{Destinations: dr},
+			}).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res1)
+
+		res2 := resourcetest.Resource(pbcatalog.FailoverPolicyType, name).
+			WithTenancy(resourcetest.Tenancy(tenancyStr)).
+			WithData(t, &pbcatalog.FailoverPolicy{
+				PortConfigs: map[string]*pbcatalog.FailoverConfig{
+					"http": {Destinations: dr},
+				},
+			}).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res2)
+
+		return []*pbresource.Resource{res1, res2}
+	}
+
 	type testcase struct {
+		res     *pbresource.Resource
 		rules   string
 		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
 		readOK  string
 		writeOK string
-		listOK  string
 	}
 
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
 
-	checkF := func(t *testing.T, expect string, got error) {
-		switch expect {
-		case ALLOW:
-			if acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be allowed")
-			}
-		case DENY:
-			if !acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be denied")
-			}
-		case DEFAULT:
-			require.Nil(t, got, "expected fallthrough decision")
-		default:
-			t.Fatalf("unexpected expectation: %q", expect)
-		}
+	serviceRef := func(tenancy, name string) *pbresource.Reference {
+		return newRefWithTenancy(pbcatalog.ServiceType, tenancy, name)
 	}
 
-	reg, ok := registry.Resolve(pbcatalog.FailoverPolicyType)
-	require.True(t, ok)
-
-	run := func(t *testing.T, tc testcase) {
-		failoverData := &pbcatalog.FailoverPolicy{
-			Config: &pbcatalog.FailoverConfig{
-				Destinations: []*pbcatalog.FailoverDestination{
-					{Ref: newRef(pbcatalog.ServiceType, "api-backup")},
-				},
-			},
-		}
-		res := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api").
-			WithTenancy(resource.DefaultNamespacedTenancy()).
-			WithData(t, failoverData).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res)
-
-		config := acl.Config{
-			WildcardName: structs.WildcardSpecifier,
-		}
-		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
-		require.NoError(t, err)
-		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
-
-		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, nil)
-			checkF(t, tc.readOK, err)
-		})
-		t.Run("write", func(t *testing.T) {
-			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
-			checkF(t, tc.writeOK, err)
-		})
-		t.Run("list", func(t *testing.T) {
-			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
-			checkF(t, tc.listOK, err)
+	resOneDest := func(tenancy, destTenancy string) []*pbresource.Resource {
+		return newFailover(t, "api", tenancy, []*pbresource.Reference{
+			serviceRef(destTenancy, "dest1"),
 		})
 	}
 
-	cases := map[string]testcase{
-		"no rules": {
-			rules:   ``,
-			readOK:  DENY,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api read": {
-			rules:   `service "api" { policy = "read" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api write": {
-			rules:   `service "api" { policy = "write" }`,
-			readOK:  ALLOW,
-			writeOK: DENY,
-			listOK:  DEFAULT,
-		},
-		"service api write and api-backup read": {
-			rules:   `service "api" { policy = "write" } service "api-backup" { policy = "read" }`,
-			readOK:  ALLOW,
-			writeOK: ALLOW,
-			listOK:  DEFAULT,
-		},
+	resTwoDests := func(tenancy, destTenancy string) []*pbresource.Resource {
+		return newFailover(t, "api", tenancy, []*pbresource.Reference{
+			serviceRef(destTenancy, "dest1"),
+			serviceRef(destTenancy, "dest2"),
+		})
 	}
 
-	for name, tc := range cases {
+	run := func(t *testing.T, name string, tc resourcetest.ACLTestCase) {
 		t.Run(name, func(t *testing.T) {
-			run(t, tc)
+			resourcetest.RunACLTestCase(t, tc, registry)
+		})
+	}
+
+	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+
+	serviceRead := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "read" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "read" } `, name)
+	}
+	serviceWrite := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "write" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "write" } `, name)
+	}
+
+	assert := func(t *testing.T, name string, rules string, resList []*pbresource.Resource, readOK, writeOK string) {
+		for i, res := range resList {
+			tc := resourcetest.ACLTestCase{
+				AuthCtx: resource.AuthorizerContext(res.Id.Tenancy),
+				Res:     res,
+				Rules:   rules,
+				ReadOK:  readOK,
+				WriteOK: writeOK,
+				ListOK:  DEFAULT,
+			}
+			run(t, fmt.Sprintf("%s-%d", name, i), tc)
+		}
+	}
+
+	tenancies := []string{"default.default"}
+	if isEnterprise {
+		tenancies = append(tenancies, "default.foo", "alpha.default", "alpha.foo")
+	}
+
+	for _, policyTenancyStr := range tenancies {
+		t.Run("policy tenancy: "+policyTenancyStr, func(t *testing.T) {
+			for _, destTenancyStr := range tenancies {
+				t.Run("dest tenancy: "+destTenancyStr, func(t *testing.T) {
+					for _, aclTenancyStr := range tenancies {
+						t.Run("acl tenancy: "+aclTenancyStr, func(t *testing.T) {
+							aclTenancy := resourcetest.Tenancy(aclTenancyStr)
+
+							maybe := func(match string, parentOnly bool) string {
+								if policyTenancyStr != aclTenancyStr {
+									return DENY
+								}
+								if !parentOnly && destTenancyStr != aclTenancyStr {
+									return DENY
+								}
+								return match
+							}
+
+							t.Run("no rules", func(t *testing.T) {
+								rules := ``
+								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), DENY, DENY)
+								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), DENY, DENY)
+							})
+							t.Run("api:read", func(t *testing.T) {
+								rules := serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "api")
+								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
+							})
+							t.Run("api:write", func(t *testing.T) {
+								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api")
+								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
+								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
+							})
+							t.Run("api:write dest1:read", func(t *testing.T) {
+								rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api") +
+									serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "dest1")
+								assert(t, "1dest", rules, resOneDest(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), maybe(ALLOW, false))
+								assert(t, "2dests", rules, resTwoDests(policyTenancyStr, destTenancyStr), maybe(ALLOW, true), DENY)
+							})
+						})
+					}
+				})
+			}
 		})
 	}
 }
@@ -796,7 +838,7 @@ func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
 
 func newRefWithTenancy(typ *pbresource.Type, tenancyStr, name string) *pbresource.Reference {
 	return resourcetest.Resource(typ, name).
-		WithTenancy(newTestTenancy(tenancyStr)).
+		WithTenancy(resourcetest.Tenancy(tenancyStr)).
 		Reference("")
 }
 
@@ -804,23 +846,4 @@ func newRefWithPeer(typ *pbresource.Type, name string, peer string) *pbresource.
 	ref := newRef(typ, name)
 	ref.Tenancy.PeerName = peer
 	return ref
-}
-
-func newTestTenancy(s string) *pbresource.Tenancy {
-	parts := strings.Split(s, ".")
-	switch len(parts) {
-	case 0:
-		return resource.DefaultClusteredTenancy()
-	case 1:
-		v := resource.DefaultPartitionedTenancy()
-		v.Partition = parts[0]
-		return v
-	case 2:
-		v := resource.DefaultNamespacedTenancy()
-		v.Partition = parts[0]
-		v.Namespace = parts[1]
-		return v
-	default:
-		return &pbresource.Tenancy{Partition: "BAD", Namespace: "BAD", PeerName: "BAD"}
-	}
 }

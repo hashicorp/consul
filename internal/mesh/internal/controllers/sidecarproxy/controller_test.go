@@ -553,7 +553,7 @@ func (suite *controllerTestSuite) TestController() {
 		}).Write(suite.T(), suite.client)
 
 	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
 	})
@@ -613,7 +613,7 @@ func (suite *controllerTestSuite) TestController() {
 		})
 
 		// We should get a new web proxy template resource because this destination should be removed.
-		webProxyStateTemplate = suite.client.WaitForNewVersion(t, webProxyStateTemplateID, webProxyStateTemplate.Version)
+		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
 		requireExplicitDestinationsNotFound(t, "api", webProxyStateTemplate)
 	})

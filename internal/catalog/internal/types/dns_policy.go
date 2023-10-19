@@ -19,6 +19,7 @@ func RegisterDNSPolicy(r resource.Registry) {
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
+		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.DNSPolicy](),
 	})
 }
 
@@ -32,7 +33,7 @@ func ValidateDNSPolicy(res *pbresource.Resource) error {
 	var err error
 	// Ensure that this resource isn't useless and is attempting to
 	// select at least one workload.
-	if selErr := validateSelector(policy.Workloads, false); selErr != nil {
+	if selErr := ValidateSelector(policy.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,

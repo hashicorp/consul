@@ -258,3 +258,47 @@ func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
 	require.True(t, resource.EqualTenancy(res.Owner.Tenancy, defaultEndpointTenancy))
 	require.Equal(t, res.Owner.Name, res.Id.Name)
 }
+
+func TestServiceEndpointsACLs(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
+	service := rtest.Resource(pbcatalog.ServiceType, "test").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	serviceEndpointsData := &pbcatalog.ServiceEndpoints{}
+	cases := map[string]rtest.ACLTestCase{
+		"no rules": {
+			Rules:   ``,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.DENY,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.DEFAULT,
+		},
+		"service test read": {
+			Rules:   `service "test" { policy = "read" }`,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.DEFAULT,
+		},
+		"service test write": {
+			Rules:   `service "test" { policy = "write" }`,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.ALLOW,
+			ListOK:  rtest.DEFAULT,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			rtest.RunACLTestCase(t, tc, registry)
+		})
+	}
+}

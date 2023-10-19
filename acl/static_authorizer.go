@@ -257,6 +257,13 @@ func (s *staticAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecisio
 	return Deny
 }
 
+func (s *staticAuthorizer) ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow

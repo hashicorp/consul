@@ -48,6 +48,12 @@ var (
 	FailoverStatusConditionAcceptedUsingMeshDestinationPortReason  = failover.UsingMeshDestinationPortReason
 )
 
+type WorkloadSelecting = types.WorkloadSelecting
+
+func ACLHooksForWorkloadSelectingType[T WorkloadSelecting]() *resource.ACLHooks {
+	return types.ACLHooksForWorkloadSelectingType[T]()
+}
+
 // RegisterTypes adds all resource types within the "catalog" API group
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
@@ -100,4 +106,21 @@ func NewFailoverPolicyMapper() FailoverPolicyMapper {
 // being collected in a multierror.Error.
 func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
 	return types.ValidateLocalServiceRefNoSection(ref, wrapErr)
+}
+
+// ValidateSelector ensures that the selector has at least one exact or prefix
+// match constraint, and that if a filter is present it is valid.
+//
+// The selector can be nil, and have zero exact/prefix matches if allowEmpty is
+// set to true.
+func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+	return types.ValidateSelector(sel, allowEmpty)
+}
+
+func ValidatePortName(name string) error {
+	return types.ValidatePortName(name)
+}
+
+func IsValidUnixSocketPath(host string) bool {
+	return types.IsValidUnixSocketPath(host)
 }

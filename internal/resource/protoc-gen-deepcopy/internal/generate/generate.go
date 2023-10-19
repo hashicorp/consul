@@ -37,8 +37,8 @@ func Generate(gen *protogen.Plugin) error {
 				// Generate DeepCopyInto() method for this type
 				p.P(`// DeepCopyInto supports using `, typeName, ` within kubernetes types, where deepcopy-gen is used.`)
 				p.P(`func (in *`, typeName, `) DeepCopyInto(out *`, typeName, `) {`)
-				p.P(`p := `, protoIdent, `(in).(*`, typeName, `)`)
-				p.P(`*out = *p`)
+				p.P(`proto.Reset(out)`)
+				p.P(`proto.Merge(out,`, protoIdent, `(in))`)
 				p.P(`}`)
 
 				// Generate DeepCopy() method for this type

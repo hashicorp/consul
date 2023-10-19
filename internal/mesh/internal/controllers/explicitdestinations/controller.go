@@ -92,7 +92,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	destinationIDs := r.mapper.DestinationsForWorkload(req.ID)
 	rt.Logger.Trace("cached destinations IDs", "ids", destinationIDs)
 
-	decodedDestinations, err := r.fetchDestinations(ctx, rt.Client, destinationIDs)
+	decodedDestinations, err := r.fetchDestinations(ctx, rt.Client, destinationIDs, workload)
 	if err != nil {
 		rt.Logger.Error("error fetching mapper", "error", err)
 		return err
@@ -241,8 +241,9 @@ func validate(
 func (r *reconciler) fetchDestinations(
 	ctx context.Context,
 	client pbresource.ResourceServiceClient,
-	destinationIDs []*pbresource.ID) ([]*types.DecodedDestinations, error) {
-
+	destinationIDs []*pbresource.ID,
+	workload *types.DecodedWorkload,
+) ([]*types.DecodedDestinations, error) {
 	// Sort all configs alphabetically.
 	sort.Slice(destinationIDs, func(i, j int) bool {
 		return destinationIDs[i].GetName() < destinationIDs[j].GetName()
@@ -259,6 +260,17 @@ func (r *reconciler) fetchDestinations(
 			r.mapper.UntrackDestinations(id)
 			continue
 		}
+
+		if res.Data.Workloads.Filter != "" {
+			match, err := resource.FilterMatchesResourceMetadata(workload.Resource, res.Data.Workloads.Filter)
+			if err != nil {
+				return nil, fmt.Errorf("error checking selector filters: %w", err)
+			}
+			if !match {
+				continue
+			}
+		}
+
 		decoded = append(decoded, res)
 	}
 

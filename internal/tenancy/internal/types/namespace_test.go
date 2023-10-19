@@ -6,13 +6,14 @@ package types
 import (
 	"context"
 	"errors"
+	"testing"
+
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"testing"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -20,13 +21,13 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    NamespaceV1Alpha1Type,
+			Type:    NamespaceV2Beta1Type,
 			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name:    "ns1234",
 		},
@@ -185,19 +186,6 @@ func TestDelete_Success(t *testing.T) {
 	_, err = client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
 	require.Error(t, err)
 	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-
-}
-
-func TestRead_MixedCases_Success(t *testing.T) {
-	client := svctest.RunResourceService(t, Register)
-	client = rtest.NewClient(client)
-
-	res := rtest.Resource(NamespaceType, "nS1").
-		WithData(t, validNamespace()).Write(t, client)
-
-	readRsp, err := client.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
-	require.NoError(t, err)
-	prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
 
 }
 

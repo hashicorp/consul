@@ -275,6 +275,12 @@ func (c *ChainedAuthorizer) ServiceReadAll(entCtx *AuthorizerContext) Enforcemen
 	})
 }
 
+func (c *ChainedAuthorizer) ServiceReadPrefix(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.ServiceReadPrefix(prefix, entCtx)
+	})
+}
+
 // ServiceWrite checks for permission to create or update a given
 // service
 func (c *ChainedAuthorizer) ServiceWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {

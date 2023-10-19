@@ -143,6 +143,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -185,6 +186,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -287,7 +289,12 @@ func (b *Builder) buildDestination(
 		)
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
-		egBase := b.newClusterEndpointGroup("", sni, portName, details.IdentityRefs, connectTimeout, loadBalancer)
+		egName := ""
+
+		if details.FailoverConfig != nil {
+			egName = fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, 0, clusterName)
+		}
+		egBase := b.newClusterEndpointGroup(egName, sni, portName, details.IdentityRefs, connectTimeout, loadBalancer)
 
 		var endpointGroups []*pbproxystate.EndpointGroup
 
@@ -319,7 +326,10 @@ func (b *Builder) buildDestination(
 					destDC,
 					b.trustDomain,
 				)
-				destClusterName := fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, i, clusterName)
+
+				// index 0 was already given to non-fail original
+				failoverGroupIndex := i + 1
+				destClusterName := fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, failoverGroupIndex, clusterName)
 
 				egDest := b.newClusterEndpointGroup(destClusterName, destSNI, destPortName, destDetails.IdentityRefs, destConnectTimeout, destLoadBalancer)
 
