@@ -1,0 +1,3 @@
+```release-note:bug
+command: Fix a bug where `-disable-upgrade-migration false` was not working in command `operator autopilot set-config`.
+```
