@@ -15,12 +15,31 @@ import (
 	"testing"
 )
 
+func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
+	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+		{
+			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+				{
+					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
+						Peer: "peer",
+					},
+				},
+			},
+		},
+	}
+	return &multiclusterv1alpha1.ComputedExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestComputedExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidateComputedExportedServices(tc.Resource)
+		err := MutateComputedExportedServices(tc.Resource)
+		require.NoError(t, err)
+		err = ValidateComputedExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 

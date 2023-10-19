@@ -14,12 +14,28 @@ import (
 	"testing"
 )
 
+func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.NamespaceExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestNamespaceExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidateNamespaceExportedServices(tc.Resource)
+		err := MutateNamespaceExportedServices(tc.Resource)
+		require.NoError(t, err)
+
+		err = ValidateNamespaceExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 

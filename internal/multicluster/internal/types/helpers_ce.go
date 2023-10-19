@@ -86,16 +86,6 @@ func ValidateComputedExportedServicesEnterprise(computedExportedServices *multic
 						})
 					}
 				}
-			case *multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer:
-				{
-					if computedExportedServiceConsumer.GetPeer() != "" {
-						merr = multierror.Append(merr, resource.ErrInvalidListElement{
-							Name:    "Peer",
-							Index:   indx,
-							Wrapped: fmt.Errorf("can only be set in Enterprise"),
-						})
-					}
-				}
 			}
 		}
 	}
@@ -131,6 +121,19 @@ func MutateComputedExportedServices(res *pbresource.Resource) error {
 	return res.Data.MarshalFrom(&ces)
 }
 
+func updatePartitionInConsumers(exportedServiceConsumers []*multiclusterv1alpha1.ExportedServicesConsumer) bool {
+	var changed bool
+
+	for _, consumer := range exportedServiceConsumers {
+		changed = changed || updatePartitionIfNotSet(consumer)
+	}
+
+	if !changed {
+		return true
+	}
+	return false
+}
+
 func MutateExportedServices(res *pbresource.Resource) error {
 	var es multiclusterv1alpha1.ExportedServices
 
@@ -138,13 +141,9 @@ func MutateExportedServices(res *pbresource.Resource) error {
 		return err
 	}
 
-	var changed bool
+	notChanged := updatePartitionInConsumers(es.Consumers)
 
-	for _, consumer := range es.Consumers {
-		changed = changed || updatePartitionIfNotSet(consumer)
-	}
-
-	if !changed {
+	if notChanged {
 		return nil
 	}
 
@@ -158,13 +157,9 @@ func MutateNamespaceExportedServices(res *pbresource.Resource) error {
 		return err
 	}
 
-	var changed bool
+	notChanged := updatePartitionInConsumers(nes.Consumers)
 
-	for _, consumer := range nes.Consumers {
-		changed = changed || updatePartitionIfNotSet(consumer)
-	}
-
-	if !changed {
+	if notChanged {
 		return nil
 	}
 
@@ -178,13 +173,9 @@ func MutatePartitionExportedServices(res *pbresource.Resource) error {
 		return err
 	}
 
-	var changed bool
+	notChanged := updatePartitionInConsumers(pes.Consumers)
 
-	for _, consumer := range pes.Consumers {
-		changed = changed || updatePartitionIfNotSet(consumer)
-	}
-
-	if !changed {
+	if notChanged {
 		return nil
 	}
 

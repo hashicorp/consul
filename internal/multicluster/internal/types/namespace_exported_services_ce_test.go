@@ -10,24 +10,11 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 )
 
-func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
-		Consumers: consumers,
-	}
-}
-
 func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "default",
+				Partition: "",
 			},
 		},
 	}

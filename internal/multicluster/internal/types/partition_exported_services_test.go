@@ -14,12 +14,28 @@ import (
 	"testing"
 )
 
+func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.PartitionExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestPartitionExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := ValidatePartitionExportedServices(tc.Resource)
+		err := MutatePartitionExportedServices(tc.Resource)
+		require.NoError(t, err)
+
+		err = ValidatePartitionExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 

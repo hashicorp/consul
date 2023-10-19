@@ -10,24 +10,11 @@ import (
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
 )
 
-func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.PartitionExportedServices{
-		Consumers: consumers,
-	}
-}
-
 func validPartitionExportedServicesWithPartition() *multiclusterv1alpha1.PartitionExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "default",
+				Partition: "",
 			},
 		},
 	}

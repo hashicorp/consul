@@ -15,6 +15,20 @@ import (
 	"testing"
 )
 
+func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.ExportedServices{
+		Services:  []string{"api", "frontend", "backend"},
+		Consumers: consumers,
+	}
+}
+
 func TestExportedServicesValidation(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource
