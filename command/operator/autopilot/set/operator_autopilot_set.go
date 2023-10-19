@@ -6,6 +6,7 @@ package set
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/consul/api"
@@ -73,7 +74,20 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
-	if err := c.flags.Parse(args); err != nil {
+	var args_upd []string
+
+	// Ref - Issue #19266
+	// converts 'arg val' to 'arg=val'
+	for i := 0; i < len(args); i++ {
+		if strings.Contains(args[i], "=") || i == len(args)-1 {
+			args_upd = append(args_upd, args[i])
+		} else {
+			args_upd = append(args_upd, args[i]+"="+args[i+1])
+			i++
+		}
+	}
+
+	if err := c.flags.Parse(args_upd); err != nil {
 		if err == flag.ErrHelp {
 			return 0
 		}
