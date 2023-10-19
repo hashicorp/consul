@@ -27,7 +27,7 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 		})
 	}
 
-	vmerr := ValidateExportedServicesEnterprise(res, &exportedService)
+	vmerr := ValidateExportedServicesEnterprise(&exportedService)
 
 	if vmerr != nil {
 		merr = multierror.Append(merr, vmerr)
@@ -43,7 +43,7 @@ func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&exportedService, err)
 	}
 
-	return ValidateNamespaceExportedServicesEnterprise(res, &exportedService)
+	return ValidateNamespaceExportedServicesEnterprise(&exportedService)
 }
 
 func ValidatePartitionExportedServices(res *pbresource.Resource) error {
@@ -53,7 +53,7 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&exportedService, err)
 	}
 
-	return ValidatePartitionExportedServicesEnterprise(res, &exportedService)
+	return ValidatePartitionExportedServicesEnterprise(&exportedService)
 }
 
 func ValidateComputedExportedServices(res *pbresource.Resource) error {
@@ -72,7 +72,7 @@ func ValidateComputedExportedServices(res *pbresource.Resource) error {
 		})
 	}
 
-	vmerr := ValidateComputedExportedServicesEnterprise(res, &computedExportedServices)
+	vmerr := ValidateComputedExportedServicesEnterprise(&computedExportedServices)
 
 	if vmerr != nil {
 		merr = multierror.Append(merr, vmerr)

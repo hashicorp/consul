@@ -25,16 +25,6 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 				})
 			}
 		}
-	case *multiclusterv1alpha1.ExportedServicesConsumer_Peer:
-		{
-			if consumer.GetPeer() != "" {
-				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "peer",
-					Index:   indx,
-					Wrapped: fmt.Errorf("can only be set in Enterprise"),
-				})
-			}
-		}
 	case *multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup:
 		{
 			if consumer.GetSamenessGroup() != "" {
@@ -49,7 +39,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 	return merr
 }
 
-func ValidateExportedServicesEnterprise(_ *pbresource.Resource, exportedService *multiclusterv1alpha1.ExportedServices) error {
+func ValidateExportedServicesEnterprise(exportedService *multiclusterv1alpha1.ExportedServices) error {
 	var merr error
 
 	for indx, consumer := range exportedService.Consumers {
@@ -59,7 +49,7 @@ func ValidateExportedServicesEnterprise(_ *pbresource.Resource, exportedService 
 	return merr
 }
 
-func ValidateNamespaceExportedServicesEnterprise(_ *pbresource.Resource, exportedService *multiclusterv1alpha1.NamespaceExportedServices) error {
+func ValidateNamespaceExportedServicesEnterprise(exportedService *multiclusterv1alpha1.NamespaceExportedServices) error {
 	var merr error
 
 	for indx, consumer := range exportedService.Consumers {
@@ -69,7 +59,7 @@ func ValidateNamespaceExportedServicesEnterprise(_ *pbresource.Resource, exporte
 	return merr
 }
 
-func ValidatePartitionExportedServicesEnterprise(_ *pbresource.Resource, exportedService *multiclusterv1alpha1.PartitionExportedServices) error {
+func ValidatePartitionExportedServicesEnterprise(exportedService *multiclusterv1alpha1.PartitionExportedServices) error {
 	var merr error
 
 	for indx, consumer := range exportedService.Consumers {
@@ -79,7 +69,7 @@ func ValidatePartitionExportedServicesEnterprise(_ *pbresource.Resource, exporte
 	return merr
 }
 
-func ValidateComputedExportedServicesEnterprise(_ *pbresource.Resource, computedExportedServices *multiclusterv1alpha1.ComputedExportedServices) error {
+func ValidateComputedExportedServicesEnterprise(computedExportedServices *multiclusterv1alpha1.ComputedExportedServices) error {
 
 	var merr error
 
