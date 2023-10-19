@@ -880,13 +880,7 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 		Endpoints:   make([]*envoy_endpoint_v3.LocalityLbEndpoints, 0, len(endpointGroups)),
 	}
 
-	if len(endpointGroups) > 1 {
-		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
-			// We choose such a large value here that the failover math should
-			// in effect not happen until zero instances are healthy.
-			OverprovisioningFactor: response.MakeUint32Value(100000),
-		}
-	}
+	setFullFailoverProvisioningFactor := len(endpointGroups) > 1
 
 	var priority uint32
 
@@ -895,6 +889,10 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 
 		if err != nil {
 			continue
+		}
+
+		if len(endpointsByLocality) > 1 {
+			setFullFailoverProvisioningFactor = true
 		}
 
 		for _, endpoints := range endpointsByLocality {
@@ -927,6 +925,14 @@ func makeLoadAssignment(logger hclog.Logger, cfgSnap *proxycfg.ConfigSnapshot, c
 			})
 
 			priority++
+		}
+	}
+
+	if setFullFailoverProvisioningFactor {
+		cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
+			// We choose such a large value here that the failover math should
+			// in effect not happen until zero instances are healthy.
+			OverprovisioningFactor: response.MakeUint32Value(100000),
 		}
 	}
 
