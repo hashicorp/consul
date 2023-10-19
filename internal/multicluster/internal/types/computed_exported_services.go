@@ -29,11 +29,14 @@ func RegisterComputedExportedServices(r resource.Registry) {
 	})
 }
 
-func aclReadHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+func aclReadHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
 	return authorizer.ToAllowAuthorizer().MeshReadAllowed(authzContext)
 }
 
-func aclWriteHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+func aclWriteHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.Resource) error {
 	return authorizer.ToAllowAuthorizer().MeshWriteAllowed(authzContext)
 }
 

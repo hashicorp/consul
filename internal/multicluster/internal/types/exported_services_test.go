@@ -5,8 +5,6 @@ package types
 
 import (
 	"errors"
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
@@ -87,7 +85,6 @@ func TestExportedServicesACLs(t *testing.T) {
 
 	type testcase struct {
 		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
 		readOK  string
 		writeOK string
 		listOK  string
@@ -99,55 +96,13 @@ func TestExportedServicesACLs(t *testing.T) {
 		DEFAULT = "default"
 	)
 
-	checkF := func(t *testing.T, expect string, got error) {
-		switch expect {
-		case ALLOW:
-			if acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be allowed")
-			}
-		case DENY:
-			if !acl.IsErrPermissionDenied(got) {
-				t.Fatal("should be denied")
-			}
-		case DEFAULT:
-			require.Nil(t, got, "expected fallthrough decision")
-		default:
-			t.Fatalf("unexpected expectation: %q", expect)
-		}
+	exportedServiceData := &multiclusterv1alpha1.ExportedServices{
+		Services: []string{"api", "backend"},
 	}
-
-	reg, ok := registry.Resolve(multiclusterv1alpha1.ExportedServicesType)
-	require.True(t, ok)
-
-	run := func(t *testing.T, tc testcase) {
-		exportedServiceData := &multiclusterv1alpha1.ExportedServices{
-			Services: []string{"api", "backend"},
-		}
-		res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exps").
-			WithData(t, exportedServiceData).
-			Build()
-		resourcetest.ValidateAndNormalize(t, registry, res)
-
-		config := acl.Config{
-			WildcardName: structs.WildcardSpecifier,
-		}
-		authz, err := acl.NewAuthorizerFromRules(tc.rules, &config, nil)
-		require.NoError(t, err)
-		authz = acl.NewChainedAuthorizer([]acl.Authorizer{authz, acl.DenyAll()})
-
-		t.Run("read", func(t *testing.T) {
-			err := reg.ACLs.Read(authz, &acl.AuthorizerContext{}, res.Id, res)
-			checkF(t, tc.readOK, err)
-		})
-		t.Run("write", func(t *testing.T) {
-			err := reg.ACLs.Write(authz, &acl.AuthorizerContext{}, res)
-			checkF(t, tc.writeOK, err)
-		})
-		t.Run("list", func(t *testing.T) {
-			err := reg.ACLs.List(authz, &acl.AuthorizerContext{})
-			checkF(t, tc.listOK, err)
-		})
-	}
+	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exps").
+		WithData(t, exportedServiceData).
+		Build()
+	resourcetest.ValidateAndNormalize(t, registry, res)
 
 	cases := map[string]testcase{
 		"no rules": {
@@ -182,9 +137,14 @@ func TestExportedServicesACLs(t *testing.T) {
 		},
 	}
 
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
+	for _, tc := range cases {
+		aclTestCase := resourcetest.ACLTestCase{
+			Rules:   tc.rules,
+			Res:     res,
+			ReadOK:  tc.readOK,
+			WriteOK: tc.writeOK,
+			ListOK:  tc.listOK,
+		}
+		resourcetest.RunACLTestCase(t, aclTestCase, registry)
 	}
 }

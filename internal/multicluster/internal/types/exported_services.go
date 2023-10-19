@@ -26,6 +26,10 @@ func RegisterExportedServices(r resource.Registry) {
 }
 
 func aclReadHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
+
 	var exportedService pbmulticluster.ExportedServices
 
 	if err := res.Data.UnmarshalTo(&exportedService); err != nil {

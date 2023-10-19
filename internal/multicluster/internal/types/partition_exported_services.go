@@ -25,7 +25,10 @@ func RegisterPartitionExportedServices(r resource.Registry) {
 	})
 }
 
-func aclReadHookPartitionExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+func aclReadHookPartitionExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
 	return authorizer.ToAllowAuthorizer().MeshReadAllowed(authzContext)
 }
 
