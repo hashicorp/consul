@@ -96,21 +96,7 @@ func parseJson(js string) (*pbresource.Resource, error) {
 }
 
 func ParseResourceFromFile(filePath string) (*pbresource.Resource, error) {
-	data, err := helpers.LoadDataSourceNoRaw(filePath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load data: %v", err)
-	}
-	var parsedResource *pbresource.Resource
-	if isHCL([]byte(data)) {
-		parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
-	} else {
-		parsedResource, err = parseJson(data)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-	}
-
-	return parsedResource, nil
+	return ParseResourceInput(filePath, nil)
 }
 
 // this is an inlined variant of hcl.lexMode()
@@ -276,12 +262,17 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 
 func inferGVKFromResourceType(resourceType string) (*GVK, error) {
 	s := strings.Split(resourceType, ".")
-	if len(s) == 1 {
+	switch length := len(s); {
+	// only kind is provided
+	case length == 1:
 		kindToGVKMap := BuildKindToGVKMap()
 		kind := strings.ToLower(s[0])
-		if len(kindToGVKMap[kind]) == 0 {
+		switch len(kindToGVKMap[kind]) {
+		// no g.v.k is found
+		case 0:
 			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
-		} else if len(kindToGVKMap[kind]) == 1 {
+		// only one is found
+		case 1:
 			// infer gvk from resource kind
 			gvkSplit := strings.Split(kindToGVKMap[kind][0], ".")
 			return &GVK{
@@ -289,12 +280,11 @@ func inferGVKFromResourceType(resourceType string) (*GVK, error) {
 				Version: gvkSplit[1],
 				Kind:    gvkSplit[2],
 			}, nil
-		} else {
+		// it alerts error if any conflict is found
+		default:
 			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
 		}
-	}
-
-	if len(s) != 3 {
+	case length != 3:
 		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
 	}
 
@@ -306,8 +296,7 @@ func inferGVKFromResourceType(resourceType string) (*GVK, error) {
 }
 
 func BuildKindToGVKMap() map[string][]string {
-	// this will generate the map everytime when we execute the CLI
-	// do we need to build this beforehand and save it somewhere?
+	// this use the local copy of registration to build map
 	typeRegistry := consul.NewTypeRegistry()
 	kindToGVKMap := map[string][]string{}
 	for _, r := range typeRegistry.Types() {
