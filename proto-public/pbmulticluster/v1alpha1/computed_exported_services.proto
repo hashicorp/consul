@@ -15,7 +15,7 @@ message ComputedExportedServices {
 }
 
 message ComputedExportedService {
-  hashicorp.consul.resource.ID target_ref = 1;
+  hashicorp.consul.resource.Reference target_ref = 1;
   repeated ComputedExportedServicesConsumer consumers = 2;
 }
 
