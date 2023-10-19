@@ -39,7 +39,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 		{
 			if consumer.GetSamenessGroup() != "" {
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Sameness Group",
+					Name:    "sameness_group",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
