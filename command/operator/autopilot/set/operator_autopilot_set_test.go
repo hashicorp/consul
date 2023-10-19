@@ -77,3 +77,64 @@ func TestOperatorAutopilotSetConfigCommand(t *testing.T) {
 		t.Fatalf("bad: %#v", reply)
 	}
 }
+
+// This tests command having flags in both styles (`=` and ` ` .i.e. combination of equals and space)
+// Example : `consul operator autopilot set-config -disable-upgrade-migration false -cleanup-dead-servers=false`
+func TestOperatorAutopilotSetConfigCommand_noEquals(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := agent.NewTestAgent(t, ``)
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+
+	ui := cli.NewMockUi()
+	c := New(ui)
+	args := []string{
+		"-http-addr=" + a.HTTPAddr(),
+		"-cleanup-dead-servers=false",
+		"-max-trailing-logs=99",
+		"-last-contact-threshold=123ms",
+		"-server-stabilization-time=123ms",
+		"-min-quorum=3",
+		"-disable-upgrade-migration", "false", //without equals but space, input : -disable-upgrade-migration false
+	}
+
+	code := c.Run(args)
+	if code != 0 {
+		t.Fatalf("bad: %d. %#v", code, ui.ErrorWriter.String())
+	}
+	output := strings.TrimSpace(ui.OutputWriter.String())
+	if !strings.Contains(output, "Configuration updated") {
+		t.Fatalf("bad: %s", output)
+	}
+
+	req := structs.DCSpecificRequest{
+		Datacenter: "dc1",
+	}
+	var reply structs.AutopilotConfig
+	if err := a.RPC(context.Background(), "Operator.AutopilotGetConfiguration", &req, &reply); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if reply.CleanupDeadServers {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.MaxTrailingLogs != 99 {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.LastContactThreshold != 123*time.Millisecond {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.ServerStabilizationTime != 123*time.Millisecond {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.MinQuorum != 3 {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.DisableUpgradeMigration {
+		t.Fatalf("bad: %#v", reply)
+	}
+}
