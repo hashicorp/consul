@@ -15,7 +15,7 @@ on:
       - release/**
 
 env:
-  SKIP_VERIFY_ENVOY_VERSION: "true" ## temporarily disabled; set to false to enable script
+  SKIP_VERIFY_ENVOY_VERSION: "false" ## temporarily disabled; set to true to disable script
 
 jobs:
   verify-envoy-version:
