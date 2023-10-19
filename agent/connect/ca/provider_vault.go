@@ -244,7 +244,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 		case err := <-watcher.DoneCh():
 			// Watcher has stopped
 			if err != nil {
-				v.logger.Error("Error renewing token for Vault provider", "error", err, "fails", retrier.Failures())
+				v.logger.Error("Error renewing token for Vault provider", "error", err, "retries", retrier.Failures())
 			}
 
 			// Although the vault watcher has its own retry logic, we have encountered
