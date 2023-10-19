@@ -19,7 +19,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 		{
 			if consumer.GetPartition() != resource.DefaultPartitionName {
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Partition",
+					Name:    "partition",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
@@ -29,7 +29,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 		{
 			if consumer.GetPeer() != "" {
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Peer",
+					Name:    "peer",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
@@ -39,7 +39,7 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 		{
 			if consumer.GetSamenessGroup() != "" {
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Sameness Group",
+					Name:    "sameness_group",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
