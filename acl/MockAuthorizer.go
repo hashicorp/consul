@@ -224,6 +224,11 @@ func (m *MockAuthorizer) ServiceReadAll(ctx *AuthorizerContext) EnforcementDecis
 	return ret.Get(0).(EnforcementDecision)
 }
 
+func (m *MockAuthorizer) ServiceReadPrefix(prefix string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // ServiceWrite checks for permission to create or update a given
 // service
 func (m *MockAuthorizer) ServiceWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
