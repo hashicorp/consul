@@ -976,7 +976,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		demo.RegisterControllers(s.controllerManager)
 	}
 
-	return nil
+	return s.controllerManager.ValidateDependencies(s.registry.Types())
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {
