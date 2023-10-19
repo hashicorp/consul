@@ -184,6 +184,9 @@
       "default/local/default/api-app": {
         "virtualHosts": [
           {
+            "domains": [
+              "*"
+            ],
             "name": "default/local/default/api-app",
             "routeRules": [
               {

@@ -17,12 +17,12 @@
         "endpointGroup": {
           "static": {
             "config": {
-              "connectTimeout": "6s",
               "circuitBreakers": {
                 "upstreamLimits": {
                   "maxConnections": 123
                 }
-              }
+              },
+              "connectTimeout": "6s"
             }
           }
         },
@@ -32,12 +32,12 @@
         "endpointGroup": {
           "static": {
             "config": {
-              "connectTimeout": "8s",
               "circuitBreakers": {
                 "upstreamLimits": {
                   "maxConnections": 123
                 }
-              }
+              },
+              "connectTimeout": "8s"
             }
           }
         },
@@ -101,6 +101,7 @@
     },
     "listeners": [
       {
+        "balanceConnections": "BALANCE_CONNECTIONS_EXACT",
         "capabilities": [
           "CAPABILITY_L4_TLS_INSPECTION"
         ],
@@ -110,7 +111,6 @@
           "port": 20000
         },
         "name": "public_listener",
-        "balanceConnections": "BALANCE_CONNECTIONS_EXACT",
         "routers": [
           {
             "inboundTls": {
@@ -127,7 +127,7 @@
               "cluster": {
                 "name": "local_app:port1"
               },
-              "maxInboundConnections": 123,
+              "maxInboundConnections": "123",
               "statPrefix": "public_listener",
               "trafficPermissions": {}
             },
@@ -149,10 +149,10 @@
               }
             },
             "l7": {
+              "maxInboundConnections": "123",
               "route": {
                 "name": "public_listener:port3"
               },
-              "maxInboundConnections": 123,
               "statPrefix": "public_listener",
               "staticRoute": true,
               "trafficPermissions": {}
