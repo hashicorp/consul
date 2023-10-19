@@ -81,6 +81,7 @@ jobs:
     strategy:
       matrix:
         nomad-version: ['v1.6.2', 'v1.5.9', 'v1.4.13']
+
     steps:
       - name: Checkout Nomad
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -259,8 +260,8 @@ jobs:
         env:
           # this is further going to multiplied in envoy-integration tests by the
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
-          # multiplied by 8 based on these values:
-          # envoy-version: ["1.24.10", "1.25.9", "1.26.4", "1.27.0"]
+          # multiplied by 2 based on these values:
+          # envoy-version: ["1.27.2"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -294,7 +295,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.27.0"]
+        envoy-version: ["1.27.2"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
