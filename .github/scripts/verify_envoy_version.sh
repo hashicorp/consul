@@ -18,7 +18,7 @@ if [ -z "$current_branch" ]; then
 fi
 
 if [[ "$SKIP_VERIFY_ENVOY_VERSION" = "true" ]]; then
-  echo -e "*************** VERIFY ENVOY VERSION IS DISABLED. To enable, set the environment variable SKIP_VERIFY_ENVOY_VERSION to false in .github/workflows/verify-envoy-version.yml *****************"
+  echo -e "*************** VERIFY ENVOY VERSION IS DISABLED. To enable, update environment variable in Github settings *****************"
   exit 0
 fi
 
