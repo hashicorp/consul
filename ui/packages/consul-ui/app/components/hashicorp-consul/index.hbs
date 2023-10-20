@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav>
+    <Hds::SideNav @isResponsive={{true}} class='consul-side-nav'>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -115,7 +115,19 @@
         </Hds::SideNav::Header>
       </:header>
       <:body>
-        <Hds::SideNav::List as |SNL|>
+        <Hds::SideNav::List
+          class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
+          as |SNL|
+        >
+          <Consul::Datacenter::Selector
+            @list={{SNL}}
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @dcs={{@dcs}}
+          />
+        </Hds::SideNav::List>
+        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
           {{#if (can 'access overview')}}
             <SNL.Link
               @text='Overview'
@@ -181,7 +193,7 @@
         </Hds::SideNav::List>
       </:body>
       <:footer>
-        <Hds::Text::Display @size='100' @color='disabled'>
+        <Hds::Text::Display class='hds-side-nav-hide-when-minimized' @size='100' @color='disabled'>
           Consul v{{env 'CONSUL_VERSION'}}
         </Hds::Text::Display>
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}

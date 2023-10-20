@@ -3,7 +3,46 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<li class='dcs' data-test-datacenter-menu>
+{{#let @list as |SNL|}}
+  {{#if (gt @dcs.length 1)}}
+    <SNL.Title>Datacenter</SNL.Title>
+    <SNL.Item class='consul-side-nav__selector'>
+      <Hds::Dropdown
+        @listPosition='left'
+        @width='15.5rem'
+        class='hds-side-nav__dropdown'
+        @isInline={{true}}
+        as |DD|
+      >
+        <DD.ToggleButton
+          class='consul-side-nav__selector-toggle'
+          @icon='server-cluster'
+          @text={{@dc.Name}}
+        />
+        <DD.Header @hasDivider={{true}}>
+          <Hds::Form::TextInput::Base
+            @type='search'
+            @value={{this.search}}
+            placeholder='Search'
+            aria-label='Search datacenters'
+            {{on 'input' this.onSearchInput}}
+          />
+        </DD.Header>
+        {{#each this.filteredItems as |item|}}
+          <DD.Checkmark
+            @selected={{eq @dc.Name item.Name}}
+            @href={{href-to
+              '.'
+              params=(hash
+                dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
+              )
+            }}
+            @isHrefExternal={{false}}
+          >{{item.Name}}</DD.Checkmark>
+        {{/each}}
+      </Hds::Dropdown>
+    </SNL.Item>
+    {{!-- <li class='dcs' data-test-datacenter-menu>
   {{#if (gt @dcs.length 1)}}
     <DisclosureMenu
       aria-label='Datacenter'
@@ -66,4 +105,14 @@
       {{/let}}
     </div>
   {{/if}}
-</li>
+</li> --}}
+  {{else}}
+    <SNL.Item class='consul-side-nav__datacenter'>
+      <FlightIcon
+        @name='server-cluster'
+        @color='var(--token-form-control-disabled-foreground-color)'
+      />
+      <Hds::Text::Display @size='200' @color='disabled'>{{@dc.Name}}</Hds::Text::Display>
+    </SNL.Item>
+  {{/if}}
+{{/let}}
