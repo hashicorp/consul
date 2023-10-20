@@ -75,7 +75,7 @@ func testServer(t *testing.T) *Server {
 			}
 		})
 
-	// Mock the V1 tenancy bridge since we can't use the real thing.
+	// Mock the tenancy bridge since we can't use the real thing.
 	mockTenancyBridge := &MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)

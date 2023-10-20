@@ -78,13 +78,13 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
-	// Check V1 tenancy exists for the V2 resource
-	if err = v1TenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+	// Check tenancy exists for the V2 resource
+	if err = tenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
-	// Check V1 tenancy not marked for deletion.
-	if err = v1TenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+	// Check tenancy not marked for deletion.
+	if err = tenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
 		return nil, err
 	}
 
