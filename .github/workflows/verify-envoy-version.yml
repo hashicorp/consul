@@ -13,9 +13,10 @@ on:
     branches:
       - main
       - release/**
+      - disable_envoy_check
 
 env:
-  SKIP_VERIFY_ENVOY_VERSION: "false" ## temporarily disabled; set to true to disable script
+  SKIP_VERIFY_ENVOY_VERSION: ${{ vars.SKIP_VERIFY_ENVOY_VERSION }}
 
 jobs:
   verify-envoy-version:
