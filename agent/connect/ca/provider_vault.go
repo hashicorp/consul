@@ -230,6 +230,10 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	// These values are chosen to start the exponential backoff
+	// immediately. Since the Vault client implements its own
+	// retries, this retry is mostly to avoid resource contention
+	// and log spam.
 	retrier := retry.Waiter{
 		MinFailures: 1,
 		MinWait:     1 * time.Second,
