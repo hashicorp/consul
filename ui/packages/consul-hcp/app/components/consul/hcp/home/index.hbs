@@ -3,11 +3,10 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-<div
-  class="consul-hcp-home"
-  ...attributes
->
-  <a href={{env 'CONSUL_HCP_URL'}} data-native-href="true">
-    Back to HCP
-  </a>
-</div>
+{{#let @list as |SNL|}}
+  <SNL.BackLink
+    @text="Back to HCP"
+    @href={{env "CONSUL_HCP_URL"}}
+    @isHrefExternal={{true}}
+  />
+{{/let}}
