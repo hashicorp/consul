@@ -78,12 +78,15 @@ func (c *cmd) Run(args []string) int {
 	var args_2 []string
 
 	// Ref - Issue #19266
-	// converts 'arg val' to 'arg=val' , 'arg = val' to 'arg=val'
-	// 'arg= val' to 'arg=val' , 'arg =val' to 'arg=val'
+	// converts 'arg1 = val1 arg2 = val2' -> 'arg1 val1 arg2 val2'
+	// converts 'arg1= val1 arg2= val2' -> 'arg1 val1 arg2 val2'
+	// converts 'arg1 =val1 arg2 =val2' -> 'arg1 val1 arg2 val2'
 	for i := 0; i < len(args); i++ {
-		if args[i] != "=" { // takes care of 'arg  =  val' scenario
+		if args[i] != "=" {
 			if args[i][0] == '=' { // 'arg =val' scenario
 				args_1 = append(args_1, args[i][1:])
+			} else if strings.Contains(args[i], "/") { // 'arg /usr/bin/val' scenario
+				args_1 = append(args_1, args[i][strings.LastIndex(args[i], "/")+1:])
 			} else if args[i][len(args[i])-1] == '=' { // 'arg= val' scenario
 				args_1 = append(args_1, args[i][0:len(args[i])-1])
 			} else {
@@ -91,6 +94,7 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	}
+	// converts 'arg1 val1 arg2 val2' -> 'arg1=val1 arg2=val2'
 	for i := 0; i < len(args_1); i++ {
 		if strings.Contains(args_1[i], "=") || i == len(args_1)-1 {
 			args_2 = append(args_2, args_1[i])
