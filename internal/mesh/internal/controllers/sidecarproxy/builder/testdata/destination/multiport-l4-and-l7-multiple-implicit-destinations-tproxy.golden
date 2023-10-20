@@ -328,6 +328,9 @@
       "default/local/default/api-app": {
         "virtualHosts": [
           {
+            "domains": [
+              "*"
+            ],
             "name": "default/local/default/api-app",
             "routeRules": [
               {
@@ -349,6 +352,9 @@
       "default/local/default/api-app2": {
         "virtualHosts": [
           {
+            "domains": [
+              "*"
+            ],
             "name": "default/local/default/api-app2",
             "routeRules": [
               {
