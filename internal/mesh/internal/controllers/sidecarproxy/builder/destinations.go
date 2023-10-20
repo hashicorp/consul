@@ -143,6 +143,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -185,6 +186,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})
