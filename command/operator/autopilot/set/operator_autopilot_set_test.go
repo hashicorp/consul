@@ -94,11 +94,11 @@ func TestOperatorAutopilotSetConfigCommand_noEquals(t *testing.T) {
 	c := New(ui)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
-		"-cleanup-dead-servers=false",
+		"-cleanup-dead-servers=", "false",
 		"-max-trailing-logs=99",
 		"-last-contact-threshold=123ms",
-		"-server-stabilization-time=123ms",
-		"-min-quorum=3",
+		"-server-stabilization-time", "=123ms",
+		"-min-quorum", "=", "3",
 		"-disable-upgrade-migration", "false", //without equals but space, input : -disable-upgrade-migration false
 	}
 
