@@ -229,7 +229,7 @@ func TestVaultCAProvider_Configure(t *testing.T) {
 }
 
 // This test must not run in parallel
-func TestVaultCAProvider_ConfigureWithBadToken(t *testing.T) {
+func TestVaultCAProvider_ConfigureFailureGoroutineLeakCheck(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -246,7 +246,7 @@ func TestVaultCAProvider_ConfigureWithBadToken(t *testing.T) {
 
 	provider := NewVaultProvider(hclog.New(&hclog.LoggerOptions{Name: "ca.vault"}))
 
-	t.Run("bad token does not leak renewal routine on Configure", func(t *testing.T) {
+	t.Run("error on Configure does not leak renewal routine", func(t *testing.T) {
 		config := map[string]any{
 			"RootPKIPath":         "pki-root/",
 			"IntermediatePKIPath": "badbadbad/",
@@ -270,7 +270,7 @@ func TestVaultCAProvider_ConfigureWithBadToken(t *testing.T) {
 		})
 	})
 
-	t.Run("correct token starts renewal routine", func(t *testing.T) {
+	t.Run("successful Configure starts renewal routine", func(t *testing.T) {
 		config := map[string]any{
 			"RootPKIPath":         "pki-root/",
 			"IntermediatePKIPath": "pki-intermediate/",
@@ -283,6 +283,7 @@ func TestVaultCAProvider_ConfigureWithBadToken(t *testing.T) {
 			profile := pprof.Lookup("goroutine")
 			sb := strings.Builder{}
 			require.NoError(r, profile.WriteTo(&sb, 2))
+			t.Log(sb.String())
 			require.Contains(r, sb.String(),
 				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
 				"expected renewal goroutine, got none")
