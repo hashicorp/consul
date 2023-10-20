@@ -4,13 +4,33 @@
 }}
 
 {{#let
+  @list (or @partition (hash Name="default")) (is-href "dc.partitions" @dc.Name)
+  as |SNL partition isManaging|
+}}
+  {{#if
+    (and (gt @partitions.length 1) (can "choose partitions" dc=@dc))
+  }}{{else}}
+    <SNL.Item class="consul-side-nav__datacenter">
+      <FlightIcon
+        @name="users"
+        @color="var(--token-form-control-disabled-foreground-color)"
+      />
+      <Hds::Text::Display
+        @size="200"
+        @color="disabled"
+      >{{@partition.Name}}</Hds::Text::Display>
+    </SNL.Item>
+  {{/if}}
+{{/let}}
+{{!-- 
+{{#let
   (or @partition "default")
   (is-href "dc.partitions" @dc.Name)
   as |partition isManaging|
 }}
   {{#if (can "choose partitions" dc=@dc)}}
     <li class="partitions" data-test-partition-menu>
-      <DisclosureMenu
+     <DisclosureMenu
         aria-label="Admin Partition"
         @items={{append
           (hash
@@ -71,4 +91,4 @@
       {{"default"}}
     </li>
   {{/if}}
-{{/let}}
+{{/let}} --}}

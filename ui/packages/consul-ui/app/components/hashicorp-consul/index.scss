@@ -4,57 +4,86 @@
  */
 
 %hashicorp-consul {
-  nav .dcs {
-    @extend %main-nav-vertical-hoisted;
-    left: 100px;
+  // nav .dcs {
+  //   @extend %main-nav-vertical-hoisted;
+  //   left: 100px;
 
-    .dcs-message {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--token-color-foreground-disabled);
-      max-width: fit-content;
-      background-color: var(--token-color-hashicorp-brand);
-      color: var(--token-color-palette-neutral-300);
+  //   .dcs-message {
+  //     padding: 8px 12px;
+  //     border-bottom: 1px solid var(--token-color-foreground-disabled);
+  //     max-width: fit-content;
+  //     background-color: var(--token-color-hashicorp-brand);
+  //     color: var(--token-color-palette-neutral-300);
+  //   }
+  // }
+  // nav .dcs li.is-primary span,
+  // nav .dcs li.is-local span {
+  //   @extend %menu-panel-badge;
+  // }
+  // nav .dcs .dc-name {
+  //   color: var(--token-color-foreground-faint);
+  //   padding: 3.25px 0px;
+  //   font-weight: var(--token-typography-font-weight-semibold);
+  // }
+  // nav .dcs .dc-name span {
+  //   @extend %pill-200;
+  //   margin-left: 1rem;
+  //   background-color: var(--token-color-palette-neutral-300);
+  //   color: var(--token-color-hashicorp-brand);
+  // }
+  // nav li.partitions,
+  // nav li.nspaces {
+  //   @extend %main-nav-vertical-popover-menu;
+  // }
+  // nav li.dcs [aria-expanded] ~ * {
+  //   min-width: 250px;
+  // }
+  // nav li.dcs [aria-expanded] ~ * {
+  //   max-height: 560px;
+  //   --paged-row-height: 43px;
+  // }
+  // nav li.partitions [aria-expanded] ~ *,
+  // nav li.nspaces [aria-expanded] ~ * {
+  //   max-height: 360px;
+  //   --paged-row-height: 43px;
+  // }
+  .consul-side-nav {
+    li.consul-disabled-nav {
+      width: 100%;
+      min-height: var(--token-side-nav-body-list-item-height);
+      padding: var(--token-side-nav-body-list-item-padding-vertical)
+        var(--token-side-nav-body-list-item-padding-horizontal);
+      color: var(--token-color-foreground-disabled);
+    }
+
+    li.consul-side-nav__selector {
+      .consul-side-nav__selector-toggle {
+        width: 15.5rem;
+      }
+
+      .hds-dropdown__content {
+        width: 15.5rem;
+      }
+    }
+
+    .hds-side-nav__wrapper-body {
+      overflow-y: unset;
+      overflow-x: unset;
+    }
+
+    li.consul-side-nav__datacenter {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      padding-left: 0.5rem;
+    }
+
+    .consul-side-nav__selector-group {
+      margin-bottom: 1.5rem;
     }
   }
-  nav .dcs li.is-primary span,
-  nav .dcs li.is-local span {
-    @extend %menu-panel-badge;
-  }
-  nav .dcs .dc-name {
-    color: var(--token-color-foreground-faint);
-    padding: 3.25px 0px;
-    font-weight: var(--token-typography-font-weight-semibold);
-  }
-  nav .dcs .dc-name span {
-    @extend %pill-200;
-    margin-left: 1rem;
-    background-color: var(--token-color-palette-neutral-300);
-    color: var(--token-color-hashicorp-brand);
-  }
-  nav li.partitions,
-  nav li.nspaces {
-    @extend %main-nav-vertical-popover-menu;
-  }
-  nav li.dcs [aria-expanded] ~ * {
-    min-width: 250px;
-  }
-  nav li.dcs [aria-expanded] ~ * {
-    max-height: 560px;
-    --paged-row-height: 43px;
-  }
-  nav li.partitions [aria-expanded] ~ *,
-  nav li.nspaces [aria-expanded] ~ * {
-    max-height: 360px;
-    --paged-row-height: 43px;
-  }
-  nav li.consul-disabled-nav {
-    width: 100%;
-    min-height: var(--token-side-nav-body-list-item-height);
-    padding: var(--token-side-nav-body-list-item-padding-vertical)
-      var(--token-side-nav-body-list-item-padding-horizontal);
-    color: var(--token-color-foreground-disabled);
-  }
 }
+
 .hashicorp-consul {
   @extend %hashicorp-consul;
 }
