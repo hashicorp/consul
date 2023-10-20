@@ -13,8 +13,7 @@ on:
     branches:
       - main
       - release/**
-      - disable_envoy_check
-
+      
 env:
   SKIP_VERIFY_ENVOY_VERSION: ${{ vars.SKIP_VERIFY_ENVOY_VERSION }}
 
