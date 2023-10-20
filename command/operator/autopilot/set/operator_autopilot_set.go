@@ -74,8 +74,7 @@ func (c *cmd) init() {
 }
 
 func (c *cmd) Run(args []string) int {
-	var args_1 []string
-	var args_2 []string
+	var args_1, args_2 []string
 
 	// Ref - Issue #19266
 	// converts 'arg1 = val1 arg2 = val2' -> 'arg1 val1 arg2 val2'
