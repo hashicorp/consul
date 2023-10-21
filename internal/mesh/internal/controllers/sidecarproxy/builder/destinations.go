@@ -94,7 +94,7 @@ func (b *Builder) buildDestination(
 	if destination.Explicit != nil {
 		routeName = lb.listener.Name
 	} else {
-		routeName = DestinationResourceID(cpr.ParentRef.Ref)
+		routeName = DestinationResourceID(cpr.ParentRef.Ref, cpr.ParentRef.Port)
 	}
 
 	var (
@@ -143,6 +143,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})
@@ -185,6 +186,7 @@ func (b *Builder) buildDestination(
 		b.addRoute(routeName, &pbproxystate.Route{
 			VirtualHosts: []*pbproxystate.VirtualHost{{
 				Name:       routeName,
+				Domains:    []string{"*"},
 				RouteRules: proxyRouteRules,
 			}},
 		})

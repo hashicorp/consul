@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"reflect"
 	"regexp"
 	"sort"
@@ -226,6 +227,9 @@ const (
 )
 
 var allowedConsulMetaKeysForMeshGateway = map[string]struct{}{MetaWANFederationKey: {}}
+
+// CEDowngrade indicates if we are in downgrading from ent to ce
+var CEDowngrade = os.Getenv("CONSUL_ENTERPRISE_DOWNGRADE_TO_CE") == "true"
 
 var (
 	NodeMaintCheckID = NewCheckID(NodeMaint, nil)
