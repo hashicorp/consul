@@ -59,8 +59,8 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
-	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
+	// Check tenancy exists for the V2 resource.
+	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
