@@ -7,12 +7,19 @@ import Component from '@glimmer/component';
 import { action } from '@ember/object';
 import { tracked } from '@glimmer/tracking';
 
-export default class DatacenterSelectorComponent extends Component {
+export default class NavSelectorComponent extends Component {
   @tracked search = '';
 
   get filteredItems() {
     const lowerCaseSearch = this.search.toLowerCase();
-    return this.args.dcs.filter((dc) => dc.Name.toLowerCase().includes(lowerCaseSearch));
+
+    if (lowerCaseSearch) {
+      return this.args.items.filter((item) =>
+        item[this.args.key].toLowerCase().includes(lowerCaseSearch)
+      );
+    } else {
+      return this.args.items;
+    }
   }
 
   @action

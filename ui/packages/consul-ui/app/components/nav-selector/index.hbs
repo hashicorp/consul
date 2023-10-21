@@ -1,0 +1,58 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#let @list as |SNL|}}
+  <SNL.Item class='consul-side-nav__selector'>
+    <Hds::Dropdown
+      @listPosition='left'
+      @width='15.5rem'
+      class='hds-side-nav__dropdown'
+      @isInline={{true}}
+      ...attributes
+      as |DD|
+    >
+      <DD.ToggleButton
+        class='consul-side-nav__selector-toggle'
+        @icon={{@icon}}
+        @text={{get @item @key}}
+      />
+      <DD.Header @hasDivider={{true}}>
+        {{! <Hds::Text::Body @size='100' @color='faint'>WAN federated datacenters</Hds::Text::Body> }}
+        <Hds::Form::TextInput::Base
+          @type='search'
+          @value={{this.search}}
+          placeholder={{@placeholder}}
+          aria-label={{@placeholder}}
+          {{on 'input' this.onSearchInput}}
+        />
+      </DD.Header>
+      {{#each this.filteredItems as |item|}}
+        {{yield DD item}}
+        {{!-- <DD.Checkmark
+          @selected={{eq (get @selected @key) (get item @key)}}
+          @href={{href-to
+            '.'
+            params=(hash
+              dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
+            )
+          }}
+          @isHrefExternal={{false}}
+        >{{item.Name}}</DD.Checkmark> --}}
+      {{/each}}
+      {{#if @footerLink}}
+        <DD.Footer @hasDivider={{true}}>
+          <Hds::Link::Standalone
+            @href={{@footerLink}}
+            @isHrefExternal={{false}}
+            @text={{@footerLinkText}}
+            @iconPosition='trailing'
+            @icon='arrow-right'
+            @color='secondary'
+          />
+        </DD.Footer>
+      {{/if}}
+    </Hds::Dropdown>
+  </SNL.Item>
+{{/let}}

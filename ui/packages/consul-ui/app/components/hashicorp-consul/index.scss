@@ -58,11 +58,11 @@
 
     li.consul-side-nav__selector {
       .consul-side-nav__selector-toggle {
-        width: 15.5rem;
+        min-width: 15.5rem;
       }
 
       .hds-dropdown__content {
-        width: 15.5rem;
+        min-width: 15.5rem;
       }
     }
 
@@ -80,6 +80,16 @@
 
     .consul-side-nav__selector-group {
       margin-bottom: 1.5rem;
+    }
+
+    .consul-datacenter-selector__dc-name {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      .consul-datacenter-selector__badges {
+        display: flex;
+        gap: 0.25rem;
+      }
     }
   }
 }
