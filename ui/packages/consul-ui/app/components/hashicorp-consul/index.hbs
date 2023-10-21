@@ -119,6 +119,7 @@
           class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
           as |SNL|
         >
+          <Consul::Hcp::Home @list={{SNL}} />
           <Consul::Datacenter::Selector
             @list={{SNL}}
             @dc={{@dc}}

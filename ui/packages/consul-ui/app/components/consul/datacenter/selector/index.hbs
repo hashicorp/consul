@@ -6,106 +6,52 @@
 {{#let @list as |SNL|}}
   {{#if (gt @dcs.length 1)}}
     <SNL.Title>Datacenter</SNL.Title>
-    <SNL.Item class='consul-side-nav__selector'>
-      <Hds::Dropdown
-        @listPosition='left'
-        @width='15.5rem'
-        class='hds-side-nav__dropdown'
-        @isInline={{true}}
-        as |DD|
-      >
-        <DD.ToggleButton
-          class='consul-side-nav__selector-toggle'
-          @icon='server-cluster'
-          @text={{@dc.Name}}
-        />
-        <DD.Header @hasDivider={{true}}>
-          <Hds::Form::TextInput::Base
-            @type='search'
-            @value={{this.search}}
-            placeholder='Search'
-            aria-label='Search datacenters'
-            {{on 'input' this.onSearchInput}}
-          />
-        </DD.Header>
-        {{#each this.filteredItems as |item|}}
-          <DD.Checkmark
-            @selected={{eq @dc.Name item.Name}}
-            @href={{href-to
-              '.'
-              params=(hash
-                dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
-              )
-            }}
-            @isHrefExternal={{false}}
-          >{{item.Name}}</DD.Checkmark>
-        {{/each}}
-      </Hds::Dropdown>
-    </SNL.Item>
-    {{!-- <li class='dcs' data-test-datacenter-menu>
-  {{#if (gt @dcs.length 1)}}
-    <DisclosureMenu
-      aria-label='Datacenter'
+    <NavSelector
+      @list={{SNL}}
       @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
+      @item={{@dc}}
+      @key='Name'
+      @icon='server-cluster'
+      @placeholder='Search datacenters'
+      @footerLink={{href-to
+        '.'
+        params=(hash
+          dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
+        )
+      }}
+      @footerLinkText='View datacenters'
+      class='consul-datacenter-selector'
       data-test-datacenter-disclosure-menu
-      as |disclosure|
+      as |Dropdown item|
     >
-      <disclosure.Action {{on 'click' disclosure.toggle}}>
-        {{@dc.Name}}
-      </disclosure.Action>
-      <disclosure.Menu as |panel|>
-        <DataSource
-          @src={{uri '/*/*/*/datacenters'}}
-          @onchange={{action (mut @dcs) value='data'}}
-        />
-        <p class='dcs-message'>
-          Datacenters shown in this dropdown are available through WAN Federation.
-        </p>
-        <panel.Menu as |menu|>
-          <menu.Separator>
-            DATACENTERS
-          </menu.Separator>
-          {{#each menu.items as |item|}}
-            <menu.Item
-              data-test-dc-item
-              aria-current={{if (eq @dc.Name item.Name) 'true'}}
-              class={{class-map (array 'is-local' item.Local) (array 'is-primary' item.Primary)}}
-            >
-              <menu.Action
-                {{on 'click' disclosure.close}}
-                @href={{href-to
-                  '.'
-                  params=(hash
-                    dc=item.Name
-                    partition=undefined
-                    nspace=(if (gt @nspace.length 0) @nspace undefined)
-                  )
-                }}
-              >
-                {{item.Name}}
-                {{#if item.Primary}}
-                  <span>Primary</span>
-                {{/if}}
-                {{#if item.Local}}
-                  <span>Local</span>
-                {{/if}}
-              </menu.Action>
-            </menu.Item>
-          {{/each}}
-        </panel.Menu>
-      </disclosure.Menu>
-    </DisclosureMenu>
-  {{else}}
-    <div class='dc-name' data-test-datacenter-single>
-      {{@dcs.firstObject.Name}}
-      {{#let (env 'CONSUL_HCP_MANAGED_RUNTIME') as |managedRuntime|}}
-        {{#if managedRuntime}}
-          <span>{{capitalize managedRuntime}}</span>
-        {{/if}}
-      {{/let}}
-    </div>
-  {{/if}}
-</li> --}}
+      <Dropdown.Checkmark
+        @selected={{eq @dc.Name item.Name}}
+        @href={{href-to
+          '.'
+          params=(hash
+            dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
+          )
+        }}
+        @isHrefExternal={{false}}
+        class='consul-datacenter-selector__item'
+        data-test-dc-item
+      >
+        <span class='consul-datacenter-selector__dc-name'>
+          {{item.Name}}
+
+          {{#if (or item.Local item.Primary)}}
+            <span class='consul-datacenter-selector__badges'>
+              {{#if item.Primary}}
+                <Hds::Badge @text='Primary' />
+              {{/if}}
+              {{#if item.Local}}
+                <Hds::Badge @text='Local' />
+              {{/if}}
+            </span>
+          {{/if}}
+        </span>
+      </Dropdown.Checkmark>
+    </NavSelector>
   {{else}}
     <SNL.Item class='consul-side-nav__datacenter'>
       <FlightIcon
