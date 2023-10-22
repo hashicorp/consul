@@ -35,35 +35,51 @@ type cmd struct {
 	redundancyZoneTag       flags.StringValue
 	disableUpgradeMigration flags.BoolValue
 	upgradeVersionTag       flags.StringValue
+
+	// flag names in cmd
+	cmdFlagNames map[string]string
 }
 
 func (c *cmd) init() {
+	c.cmdFlagNames = make(map[string]string)
+
+	// Add new flags here
+	c.cmdFlagNames["cleanupDeadServers"] = "cleanup-dead-servers"
+	c.cmdFlagNames["maxTrailingLogs"] = "max-trailing-logs"
+	c.cmdFlagNames["minQuorum"] = "min-quorum"
+	c.cmdFlagNames["lastContactThreshold"] = "last-contact-threshold"
+	c.cmdFlagNames["serverStabilizationTime"] = "server-stabilization-time"
+	c.cmdFlagNames["redundancyZoneTag"] = "redundancy-zone-tag"
+	c.cmdFlagNames["disableUpgradeMigration"] = "disable-upgrade-migration"
+	c.cmdFlagNames["upgradeVersionTag"] = "upgrade-version-tag"
+
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.flags.Var(&c.cleanupDeadServers, "cleanup-dead-servers",
+
+	c.flags.Var(&c.cleanupDeadServers, c.cmdFlagNames["cleanupDeadServers"],
 		"Controls whether Consul will automatically remove dead servers "+
 			"when new ones are successfully added. Must be one of `true|false`.")
-	c.flags.Var(&c.maxTrailingLogs, "max-trailing-logs",
+	c.flags.Var(&c.maxTrailingLogs, c.cmdFlagNames["maxTrailingLogs"],
 		"Controls the maximum number of log entries that a server can trail the "+
 			"leader by before being considered unhealthy.")
-	c.flags.Var(&c.minQuorum, "min-quorum",
+	c.flags.Var(&c.minQuorum, c.cmdFlagNames["minQuorum"],
 		"Sets the minimum number of servers required in a cluster before autopilot "+
 			"is allowed to prune dead servers.")
-	c.flags.Var(&c.lastContactThreshold, "last-contact-threshold",
+	c.flags.Var(&c.lastContactThreshold, c.cmdFlagNames["lastContactThreshold"],
 		"Controls the maximum amount of time a server can go without contact "+
 			"from the leader before being considered unhealthy. Must be a duration value "+
 			"such as `200ms`.")
-	c.flags.Var(&c.serverStabilizationTime, "server-stabilization-time",
+	c.flags.Var(&c.serverStabilizationTime, c.cmdFlagNames["serverStabilizationTime"],
 		"Controls the minimum amount of time a server must be stable in the "+
 			"'healthy' state before being added to the cluster. Only takes effect if all "+
 			"servers are running Raft protocol version 3 or higher. Must be a duration "+
 			"value such as `10s`.")
-	c.flags.Var(&c.redundancyZoneTag, "redundancy-zone-tag",
+	c.flags.Var(&c.redundancyZoneTag, c.cmdFlagNames["redundancyZoneTag"],
 		"(Enterprise-only) Controls the node_meta tag name used for separating servers into "+
 			"different redundancy zones.")
-	c.flags.Var(&c.disableUpgradeMigration, "disable-upgrade-migration",
+	c.flags.Var(&c.disableUpgradeMigration, c.cmdFlagNames["disableUpgradeMigration"],
 		"(Enterprise-only) Controls whether Consul will avoid promoting new servers until "+
 			"it can perform a migration. Must be one of `true|false`.")
-	c.flags.Var(&c.upgradeVersionTag, "upgrade-version-tag",
+	c.flags.Var(&c.upgradeVersionTag, c.cmdFlagNames["upgradeVersionTag"],
 		"(Enterprise-only) The node_meta tag to use for version info when performing upgrade "+
 			"migrations. If left blank, the Consul version will be used.")
 
@@ -93,9 +109,12 @@ func (c *cmd) Run(args []string) int {
 			}
 		}
 	}
+	// converts 'boolarg1 nonboolarg2 val2' -> 'boolarg1 nonboolarg2=val2'
 	// converts 'arg1 val1 arg2 val2' -> 'arg1=val1 arg2=val2'
+	// converts 'arg1=val1 arg2 val2' -> 'arg1=val1 arg2=val2'
 	for i := 0; i < len(args_1); i++ {
-		if strings.Contains(args_1[i], "=") || i == len(args_1)-1 {
+		if strings.Contains(args_1[i], "=") || i == len(args_1)-1 ||
+			areConsecutiveArgsFlags(c, c.cmdFlagNames, args_1[i], args_1[i+1]) {
 			args_2 = append(args_2, args_1[i])
 		} else {
 			args_2 = append(args_2, args_1[i]+"="+args_1[i+1])
@@ -157,6 +176,34 @@ func (c *cmd) Run(args []string) int {
 	}
 	c.UI.Output("Configuration could not be atomically updated, please try again")
 	return 1
+}
+
+// Checks if input cmd is like - `boolarg1 nonboolarg2 val2` where value
+// for boolarg1 is not specified and its value to be assumed as true.
+// Example : `cleanup-dead-servers min-quorum=5`
+// Returns true if above is the case for consecutive arguments passed
+func areConsecutiveArgsFlags(c *cmd, cmdFlagNames map[string]string, arg1 string, arg2 string) bool {
+	var firstArg = arg1
+	var secondArg = arg2
+	var isFirstArgFlag, isSecArgFlag bool
+
+	if arg1[0] == '-' { // -flag
+		firstArg = arg1[1:]
+		if firstArg[0] == '-' { // --flag
+			firstArg = arg1[2:]
+		}
+	}
+
+	for _, value := range cmdFlagNames {
+		if firstArg == value {
+			isFirstArgFlag = true
+		}
+		if strings.Contains(secondArg, value) {
+			isSecArgFlag = true
+		}
+	}
+
+	return isFirstArgFlag && isSecArgFlag
 }
 
 func (c *cmd) Synopsis() string {
