@@ -94,8 +94,9 @@ func TestOperatorAutopilotSetConfigCommand_noEquals(t *testing.T) {
 	c := New(ui)
 	args := []string{
 		"-http-addr=" + a.HTTPAddr(),
-		"-cleanup-dead-servers=", "false",
-		"-max-trailing-logs=99",
+		"-cleanup-dead-servers",
+		"--upgrade-version-tag", "xyz",
+		"-max-trailing-logs=", "99",
 		"-last-contact-threshold=123ms",
 		"-server-stabilization-time", "=123ms",
 		"-min-quorum", "=", "3",
@@ -119,7 +120,7 @@ func TestOperatorAutopilotSetConfigCommand_noEquals(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if reply.CleanupDeadServers {
+	if !reply.CleanupDeadServers {
 		t.Fatalf("bad: %#v", reply)
 	}
 	if reply.MaxTrailingLogs != 99 {
@@ -135,6 +136,9 @@ func TestOperatorAutopilotSetConfigCommand_noEquals(t *testing.T) {
 		t.Fatalf("bad: %#v", reply)
 	}
 	if reply.DisableUpgradeMigration {
+		t.Fatalf("bad: %#v", reply)
+	}
+	if reply.UpgradeVersionTag != "xyz" {
 		t.Fatalf("bad: %#v", reply)
 	}
 }
