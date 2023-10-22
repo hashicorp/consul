@@ -114,7 +114,7 @@ func (c *cmd) Run(args []string) int {
 	// converts 'arg1=val1 arg2 val2' -> 'arg1=val1 arg2=val2'
 	for i := 0; i < len(args_1); i++ {
 		if strings.Contains(args_1[i], "=") || i == len(args_1)-1 ||
-			areConsecutiveArgsFlags(c, c.cmdFlagNames, args_1[i], args_1[i+1]) {
+			areConsecutiveArgsFlags(c.cmdFlagNames, args_1[i], args_1[i+1]) {
 			args_2 = append(args_2, args_1[i])
 		} else {
 			args_2 = append(args_2, args_1[i]+"="+args_1[i+1])
@@ -182,7 +182,7 @@ func (c *cmd) Run(args []string) int {
 // for boolarg1 is not specified and its value to be assumed as true.
 // Example : `cleanup-dead-servers min-quorum=5`
 // Returns true if above is the case for consecutive arguments passed
-func areConsecutiveArgsFlags(c *cmd, cmdFlagNames map[string]string, arg1 string, arg2 string) bool {
+func areConsecutiveArgsFlags(cmdFlagNames map[string]string, arg1 string, arg2 string) bool {
 	var firstArg = arg1
 	var secondArg = arg2
 	var isFirstArgFlag, isSecArgFlag bool
