@@ -3,9 +3,6 @@
  * SPDX-License-Identifier: BUSL-1.1
  */
 
-.app .skip-links {
-  @extend %skip-links;
-}
 .app .notifications {
   @extend %app-notifications;
 }

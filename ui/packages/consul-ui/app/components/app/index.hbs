@@ -6,20 +6,6 @@
 {{#let (hash main=(concat guid '-main') Notification=(component 'app/notification')) as |exported|}}
 
   <div class='app' ...attributes>
-
-    <div class='skip-links' {{on 'click' this.focus}}>
-      <PortalTarget @name='app-before-skip-links' @multiple={{true}} />
-      <a href={{concat '#' exported.main}}>{{t 'components.app.skip_to_content'}}</a>
-      {{!
-      In order to add further skip links from within other templates use:
-      <Portal @target="app-skip-links">
-        <a href="#sub-content">Skip to subcontent</a>
-      </Portal>
-      from within your template
-    }}
-      <PortalTarget @name='app-after-skip-links' @multiple={{true}} />
-    </div>
-
     <ModalLayer />
 
     {{yield exported to='side-nav'}}
