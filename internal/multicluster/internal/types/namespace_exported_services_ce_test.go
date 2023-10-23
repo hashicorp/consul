@@ -19,10 +19,7 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutateNamespaceExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidateNamespaceExportedServices(tc.Resource)
+		err := ValidateNamespaceExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 
@@ -46,10 +43,7 @@ func TestNamespaceExportedServicesValidations_Error(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutateNamespaceExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidateNamespaceExportedServices(tc.Resource)
+		err := ValidateNamespaceExportedServices(tc.Resource)
 		require.Error(t, err)
 	}
 

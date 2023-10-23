@@ -63,10 +63,7 @@ func TestExportedServicesValidation_NoServices(t *testing.T) {
 		WithData(t, inValidExportedServices()).
 		Build()
 
-	err := MutateExportedServices(res)
-	require.NoError(t, err)
-
-	err = ValidateExportedServices(res)
+	err := ValidateExportedServices(res)
 	require.Error(t, err)
 	expectedError := errors.New("invalid \"services\" field: at least one service must be set")
 	require.ErrorAs(t, err, &expectedError)

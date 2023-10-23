@@ -15,7 +15,6 @@ func RegisterPartitionExportedServices(r resource.Registry) {
 		Type:     pbmulticluster.PartitionExportedServicesType,
 		Proto:    &pbmulticluster.PartitionExportedServices{},
 		Scope:    resource.ScopePartition,
-		Mutate:   MutatePartitionExportedServices,
 		Validate: ValidatePartitionExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookPartitionExportedServices,

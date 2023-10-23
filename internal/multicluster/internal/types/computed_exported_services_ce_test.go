@@ -19,9 +19,7 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutateComputedExportedServices(tc.Resource)
-		require.NoError(t, err)
-		err = ValidateComputedExportedServices(tc.Resource)
+		err := ValidateComputedExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 
@@ -45,9 +43,7 @@ func TestComputedExportedServicesValidations_Error(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutateComputedExportedServices(tc.Resource)
-		require.NoError(t, err)
-		err = ValidateComputedExportedServices(tc.Resource)
+		err := ValidateComputedExportedServices(tc.Resource)
 		require.Error(t, err)
 	}
 

@@ -19,10 +19,7 @@ func TestPartitionExportedServicesValidations(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutatePartitionExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidatePartitionExportedServices(tc.Resource)
+		err := ValidatePartitionExportedServices(tc.Resource)
 		require.NoError(t, err)
 	}
 
@@ -46,10 +43,7 @@ func TestPartitionExportedServicesValidations_Error(t *testing.T) {
 		Resource *pbresource.Resource
 	}
 	run := func(t *testing.T, tc testcase) {
-		err := MutatePartitionExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidatePartitionExportedServices(tc.Resource)
+		err := ValidatePartitionExportedServices(tc.Resource)
 		require.Error(t, err)
 	}
 
