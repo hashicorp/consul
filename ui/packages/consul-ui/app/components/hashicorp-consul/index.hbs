@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @isResponsive={{true}} class='consul-side-nav'>
+    <Hds::SideNav @isResponsive={{true}} @isCollapsible={{true}} class='consul-side-nav'>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -96,7 +96,7 @@
               <dd.Interactive
                 @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
                 @isHrefExternal={{true}}
-                @text='Tuorials'
+                @text='Tutorials'
               />
               <dd.Separator />
               <dd.Interactive
@@ -109,7 +109,11 @@
               <dd.ToggleIcon @icon='user' @text='Account menu' />
               <dd.Title @text='Signed In' />
               <dd.Description @text='email@domain.com' />
-              <dd.Interactive @href='#' @text='Account Settings' />
+              <dd.Interactive
+                @href={{href-to 'settings' params=(hash nspace=undefined partition=undefined)}}
+                @text='Settings'
+                @isHrefExternal={{false}}
+              />
             </Hds::Dropdown>
           </:actions>
         </Hds::SideNav::Header>
