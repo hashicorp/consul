@@ -127,6 +127,23 @@
             @nspace={{@nspace}}
             @dcs={{@dcs}}
           />
+
+          <Consul::Partition::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @partitions={{this.partitions}}
+            @list={{SNL}}
+            @onchange={{action (mut this.partitions) value='data'}}
+          />
+          <Consul::Nspace::Selector
+            @list={{SNL}}
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @nspaces={{this.nspaces}}
+            @onchange={{action (mut this.nspaces) value='data'}}
+          />
         </Hds::SideNav::List>
         <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
           {{#if (can 'access overview')}}

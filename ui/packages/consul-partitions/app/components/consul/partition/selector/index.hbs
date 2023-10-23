@@ -4,12 +4,52 @@
 }}
 
 {{#let
-  @list (or @partition (hash Name="default")) (is-href "dc.partitions" @dc.Name)
+  @list
+  (if @partition (hash Name=@partition) (hash Name="default"))
+  (is-href "dc.partitions" @dc.Name)
   as |SNL partition isManaging|
 }}
-  {{#if
-    (and (gt @partitions.length 1) (can "choose partitions" dc=@dc))
-  }}{{else}}
+  {{#if (can "choose partitions" dc=@dc)}}
+    <DataSource
+      @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
+      @onchange={{fn (optional @onchange)}}
+    />
+    <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
+    <NavSelector
+      @list={{@list}}
+      @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
+      @item={{partition}}
+      @key="Name"
+      @icon="users"
+      @placeholder="Search partitions"
+      @footerLink={{href-to "dc.partitions" @dc.Name}}
+      @footerLinkText="View all partitions"
+      data-test-datacenter-disclosure-menu
+      as |Dropdown item|
+    >
+      <Dropdown.Checkmark
+        @selected={{eq partition.Name item.Name}}
+        @href={{if
+          item.href
+          item.href
+          (if
+            isManaging
+            (href-to
+              "dc.services.index"
+              params=(hash partition=item.Name nspace=undefined dc=@dc.Name)
+            )
+            (href-to "." params=(hash partition=item.Name nspace=undefined))
+          )
+        }}
+        @isHrefExternal={{false}}
+        data-test-partiton-item
+      >
+        {{item.Name}}
+      </Dropdown.Checkmark>
+    </NavSelector>
+
+  {{else}}
+    <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
     <SNL.Item class="consul-side-nav__datacenter">
       <FlightIcon
         @name="users"
@@ -18,7 +58,7 @@
       <Hds::Text::Display
         @size="200"
         @color="disabled"
-      >{{@partition.Name}}</Hds::Text::Display>
+      >{{partition.Name}}</Hds::Text::Display>
     </SNL.Item>
   {{/if}}
 {{/let}}
