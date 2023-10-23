@@ -6,8 +6,10 @@
       "name":  "default/local/default/api-app2:http",
       "virtualHosts":  [
         {
-          "domains": ["*"],
           "name":  "default/local/default/api-app2:http",
+          "domains":  [
+            "*"
+          ],
           "routes":  [
             {
               "match":  {
@@ -27,8 +29,10 @@
       "name":  "default/local/default/api-app:http",
       "virtualHosts":  [
         {
-          "domains": ["*"],
           "name":  "default/local/default/api-app:http",
+          "domains":  [
+            "*"
+          ],
           "routes":  [
             {
               "match":  {

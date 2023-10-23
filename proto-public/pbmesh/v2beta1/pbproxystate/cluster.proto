@@ -8,6 +8,7 @@ package hashicorp.consul.mesh.v2beta1.pbproxystate;
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
 import "pbmesh/v2beta1/pbproxystate/header_mutations.proto";
+import "pbmesh/v2beta1/pbproxystate/protocol.proto";
 import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
 
 message Cluster {
@@ -23,7 +24,7 @@ message Cluster {
   // alt_stat_name is the name used for observability in place of cluster name if provided.
   string alt_stat_name = 5;
   // protocol is the local path protocol or the service protocol.
-  string protocol = 6;
+  Protocol protocol = 6;
 }
 
 message FailoverGroup {

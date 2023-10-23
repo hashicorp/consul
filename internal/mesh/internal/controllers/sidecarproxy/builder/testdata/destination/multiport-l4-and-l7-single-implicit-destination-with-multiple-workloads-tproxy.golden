@@ -1,6 +1,34 @@
 {
   "proxyState": {
     "clusters": {
+      "tcp2.api-app.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp2.api-app.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp2"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "tcp2.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
+      },
       "http.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "http.api-app.default.dc1.internal.foo.consul",
         "endpointGroup": {
@@ -26,7 +54,8 @@
             }
           }
         },
-        "name": "http.api-app.default.dc1.internal.foo.consul"
+        "name": "http.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
       },
       "original-destination": {
         "endpointGroup": {
@@ -36,7 +65,8 @@
             }
           }
         },
-        "name": "original-destination"
+        "name": "original-destination",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-app.default.dc1.internal.foo.consul",
@@ -63,34 +93,8 @@
             }
           }
         },
-        "name": "tcp.api-app.default.dc1.internal.foo.consul"
-      },
-      "tcp2.api-app.default.dc1.internal.foo.consul": {
-        "altStatName": "tcp2.api-app.default.dc1.internal.foo.consul",
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "connectTimeout": "5s",
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "alpnProtocols": [
-                "consul~tcp2"
-              ],
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "sni": "api-app.default.dc1.internal.foo.consul",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
-                  ],
-                  "trustBundlePeerNameKey": "local"
-                }
-              }
-            }
-          }
-        },
-        "name": "tcp2.api-app.default.dc1.internal.foo.consul"
+        "name": "tcp.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -208,6 +212,22 @@
     }
   },
   "requiredEndpoints": {
+    "tcp2.api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
     "http.api-app.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app",
@@ -225,22 +245,6 @@
       "port": "mesh"
     },
     "tcp.api-app.default.dc1.internal.foo.consul": {
-      "id": {
-        "name": "api-app",
-        "tenancy": {
-          "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
-        },
-        "type": {
-          "group": "catalog",
-          "groupVersion": "v2beta1",
-          "kind": "ServiceEndpoints"
-        }
-      },
-      "port": "mesh"
-    },
-    "tcp2.api-app.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app",
         "tenancy": {

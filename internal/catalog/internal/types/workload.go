@@ -70,7 +70,7 @@ func ValidateWorkload(res *pbresource.Resource) error {
 			})
 		}
 
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+		if protoErr := ValidateProtocol(port.Protocol); protoErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapValue{
 				Map: "ports",
 				Key: portName,
