@@ -31,16 +31,6 @@ func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedSer
 	return merr
 }
 
-func ValidateExportedServicesConsumersEnterprise(consumers []*multiclusterv1alpha1.ExportedServicesConsumer) error {
-	var merr error
-
-	for indx, consumer := range consumers {
-		merr = validateExportedServicesConsumer(consumer, merr, indx)
-	}
-
-	return merr
-}
-
 func ValidateComputedExportedServicesEnterprise(computedExportedServices *multiclusterv1alpha1.ComputedExportedServices) error {
 
 	var merr error

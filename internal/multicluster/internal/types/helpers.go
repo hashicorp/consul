@@ -11,6 +11,16 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+func ValidateExportedServicesConsumersEnterprise(consumers []*pbmulticluster.ExportedServicesConsumer) error {
+	var merr error
+
+	for indx, consumer := range consumers {
+		merr = validateExportedServicesConsumer(consumer, merr, indx)
+	}
+
+	return merr
+}
+
 func ValidateExportedServices(res *pbresource.Resource) error {
 	var exportedService pbmulticluster.ExportedServices
 
