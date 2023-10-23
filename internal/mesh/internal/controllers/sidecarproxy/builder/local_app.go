@@ -40,7 +40,7 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 			if isL7(port.Protocol) {
 				b.addLocalAppRoute(routeName, clusterName, portName)
 			}
-			b.addLocalAppCluster(clusterName, &portName).
+			b.addLocalAppCluster(clusterName, &portName, pbproxystate.Protocol(port.Protocol)).
 				addLocalAppStaticEndpoints(clusterName, port.GetPort())
 		}
 	}
@@ -313,7 +313,7 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
 			Destination: &pbproxystate.Router_L7{
 				L7: &pbproxystate.L7Destination{
 					StatPrefix:         l.listener.Name,
-					Protocol:           protocolMap[port.Protocol],
+					Protocol:           protocolMapCatalogToL7[port.Protocol],
 					TrafficPermissions: tp,
 					StaticRoute:        true,
 					// Route name for l7 local app destinations differentiates between routes for each port.
@@ -410,7 +410,7 @@ func isL7(protocol pbcatalog.Protocol) bool {
 	return false
 }
 
-func (b *Builder) addLocalAppCluster(clusterName string, portName *string) *Builder {
+func (b *Builder) addLocalAppCluster(clusterName string, portName *string, protocol pbproxystate.Protocol) *Builder {
 	// Make cluster for this router destination.
 	cluster := &pbproxystate.Cluster{
 		Group: &pbproxystate.Cluster_EndpointGroup{
@@ -420,6 +420,7 @@ func (b *Builder) addLocalAppCluster(clusterName string, portName *string) *Buil
 				},
 			},
 		},
+		Protocol: protocol,
 	}
 
 	// configure inbound connections or connection timeout if either is defined
@@ -448,7 +449,7 @@ func (b *Builder) addLocalAppCluster(clusterName string, portName *string) *Buil
 }
 
 func (b *Builder) addBlackHoleCluster() *Builder {
-	return b.addLocalAppCluster(xdscommon.BlackHoleClusterName, nil)
+	return b.addLocalAppCluster(xdscommon.BlackHoleClusterName, nil, pbproxystate.Protocol_PROTOCOL_TCP)
 }
 
 func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port uint32) {
@@ -492,7 +493,7 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 	return l
 }
 
-var protocolMap = map[pbcatalog.Protocol]pbproxystate.L7Protocol{
+var protocolMapCatalogToL7 = map[pbcatalog.Protocol]pbproxystate.L7Protocol{
 	pbcatalog.Protocol_PROTOCOL_HTTP:  pbproxystate.L7Protocol_L7_PROTOCOL_HTTP,
 	pbcatalog.Protocol_PROTOCOL_HTTP2: pbproxystate.L7Protocol_L7_PROTOCOL_HTTP2,
 	pbcatalog.Protocol_PROTOCOL_GRPC:  pbproxystate.L7Protocol_L7_PROTOCOL_GRPC,

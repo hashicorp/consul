@@ -5,13 +5,15 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:admin-port"
+        "name": "local_app:admin-port",
+        "protocol": "PROTOCOL_TCP"
       },
       "local_app:api-port": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:api-port"
+        "name": "local_app:api-port",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "endpoints": {

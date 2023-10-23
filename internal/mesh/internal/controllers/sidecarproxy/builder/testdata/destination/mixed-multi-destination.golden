@@ -59,7 +59,8 @@
             }
           ]
         },
-        "name": "http.api-1.default.dc1.internal.foo.consul"
+        "name": "http.api-1.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
       },
       "http.api-2.default.dc1.internal.foo.consul": {
         "altStatName": "http.api-2.default.dc1.internal.foo.consul",
@@ -86,7 +87,8 @@
             }
           }
         },
-        "name": "http.api-2.default.dc1.internal.foo.consul"
+        "name": "http.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
       },
       "null_route_cluster": {
         "endpointGroup": {
@@ -96,7 +98,8 @@
             }
           }
         },
-        "name": "null_route_cluster"
+        "name": "null_route_cluster",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-1.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-1.default.dc1.internal.foo.consul",
@@ -123,7 +126,8 @@
             }
           }
         },
-        "name": "tcp.api-1.default.dc1.internal.foo.consul"
+        "name": "tcp.api-1.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-2.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-2.default.dc1.internal.foo.consul",
@@ -150,7 +154,8 @@
             }
           }
         },
-        "name": "tcp.api-2.default.dc1.internal.foo.consul"
+        "name": "tcp.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {

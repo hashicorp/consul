@@ -462,7 +462,7 @@ func (s *Converter) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathP
 	if protocol == "" {
 		protocol = cfg.Protocol
 	}
-	namedCluster.cluster.Protocol = protocol
+	namedCluster.cluster.Protocol = protocolMap[protocol]
 	if cfg.MaxInboundConnections > 0 {
 		namedCluster.cluster.GetEndpointGroup().GetStatic().GetConfig().
 			CircuitBreakers = &pbproxystate.CircuitBreakers{
@@ -646,7 +646,7 @@ func (s *Converter) makeUpstreamClusterForPreparedQuery(upstream structs.Upstrea
 
 	if c == nil {
 		c = &pbproxystate.Cluster{
-			Protocol: cfg.Protocol,
+			Protocol: protocolMap[cfg.Protocol],
 			Group: &pbproxystate.Cluster_EndpointGroup{
 				EndpointGroup: &pbproxystate.EndpointGroup{
 					Group: &pbproxystate.EndpointGroup_Dynamic{
@@ -932,7 +932,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			} else {
 				cluster := &pbproxystate.Cluster{
 					AltStatName: mappedTargets.baseClusterName,
-					Protocol:    upstreamConfig.Protocol,
+					Protocol:    protocolMap[upstreamConfig.Protocol],
 					Group: &pbproxystate.Cluster_EndpointGroup{
 						EndpointGroup: &pbproxystate.EndpointGroup{
 							Group: &pbproxystate.EndpointGroup_Dynamic{
@@ -952,7 +952,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			failoverGroup.EndpointGroups = endpointGroups
 			cluster := &pbproxystate.Cluster{
 				AltStatName: mappedTargets.baseClusterName,
-				Protocol:    upstreamConfig.Protocol,
+				Protocol:    protocolMap[upstreamConfig.Protocol],
 				Group: &pbproxystate.Cluster_FailoverGroup{
 					FailoverGroup: failoverGroup,
 				},
@@ -1250,4 +1250,14 @@ func makeOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passi
 	}
 
 	return od
+}
+
+// protocolMap converts config entry protocols to proxystate protocol values.
+// As documented on config entry protos, the valid values are "tcp", "http",
+// "http2" and "grpc". Anything else is treated as tcp.
+var protocolMap = map[string]pbproxystate.Protocol{
+	"http":  pbproxystate.Protocol_PROTOCOL_HTTP,
+	"http2": pbproxystate.Protocol_PROTOCOL_HTTP2,
+	"grpc":  pbproxystate.Protocol_PROTOCOL_GRPC,
+	"tcp":   pbproxystate.Protocol_PROTOCOL_TCP,
 }
