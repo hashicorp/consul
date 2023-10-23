@@ -34,7 +34,7 @@ func validExportedServicesWithPartition() *multiclusterv1alpha1.ExportedServices
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "default",
+				Partition: "partition",
 			},
 		},
 	}
@@ -48,7 +48,7 @@ func validExportedServicesWithSamenessGroup() *multiclusterv1alpha1.ExportedServ
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "",
+				SamenessGroup: "sameness_group",
 			},
 		},
 	}

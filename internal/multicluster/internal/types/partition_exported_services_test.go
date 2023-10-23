@@ -27,7 +27,7 @@ func validPartitionExportedServicesWithPartition() *multiclusterv1alpha1.Partiti
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "default",
+				Partition: "partition",
 			},
 		},
 	}

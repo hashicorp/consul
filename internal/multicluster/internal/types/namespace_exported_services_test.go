@@ -27,7 +27,7 @@ func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.Namespa
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "default",
+				Partition: "partition",
 			},
 		},
 	}
