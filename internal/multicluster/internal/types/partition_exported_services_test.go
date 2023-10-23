@@ -43,16 +43,6 @@ func TestPartitionExportedServicesValidations(t *testing.T) {
 				WithData(t, validPartitionExportedServicesWithPeer()).
 				Build(),
 		},
-		"partition exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
-				WithData(t, validPartitionExportedServicesWithPartition()).
-				Build(),
-		},
-		"partition exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
-				WithData(t, validPartitionExportedServicesWithSamenessGroup()).
-				Build(),
-		},
 	}
 
 	for name, tc := range cases {

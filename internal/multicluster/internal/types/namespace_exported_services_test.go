@@ -43,16 +43,6 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 				WithData(t, validNamespaceExportedServicesWithPeer()).
 				Build(),
 		},
-		"namespace exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPartition()).
-				Build(),
-		},
-		"namespace exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
-				Build(),
-		},
 	}
 
 	for name, tc := range cases {

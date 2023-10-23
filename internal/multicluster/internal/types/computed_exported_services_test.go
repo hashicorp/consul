@@ -47,11 +47,6 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 				WithData(t, validComputedExportedServicesWithPeer()).
 				Build(),
 		},
-		"computed exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPartition()).
-				Build(),
-		},
 	}
 
 	for name, tc := range cases {

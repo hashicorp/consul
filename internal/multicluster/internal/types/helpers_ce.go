@@ -16,53 +16,25 @@ import (
 func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedServicesConsumer, merr error, indx int) error {
 	switch consumer.GetConsumerTenancy().(type) {
 	case *multiclusterv1alpha1.ExportedServicesConsumer_Partition:
-		{
-			if consumer.GetPartition() != resource.DefaultPartitionName {
-				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "partition",
-					Index:   indx,
-					Wrapped: fmt.Errorf("can only be set in Enterprise"),
-				})
-			}
-		}
+		merr = multierror.Append(merr, resource.ErrInvalidListElement{
+			Name:    "partition",
+			Index:   indx,
+			Wrapped: fmt.Errorf("can only be set in Enterprise"),
+		})
 	case *multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup:
-		{
-			if consumer.GetSamenessGroup() != "" {
-				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "sameness_group",
-					Index:   indx,
-					Wrapped: fmt.Errorf("can only be set in Enterprise"),
-				})
-			}
-		}
+		merr = multierror.Append(merr, resource.ErrInvalidListElement{
+			Name:    "sameness_group",
+			Index:   indx,
+			Wrapped: fmt.Errorf("can only be set in Enterprise"),
+		})
 	}
 	return merr
 }
 
-func ValidateExportedServicesEnterprise(exportedService *multiclusterv1alpha1.ExportedServices) error {
+func ValidateExportedServicesConsumersEnterprise(consumers []*multiclusterv1alpha1.ExportedServicesConsumer) error {
 	var merr error
 
-	for indx, consumer := range exportedService.Consumers {
-		merr = validateExportedServicesConsumer(consumer, merr, indx)
-	}
-
-	return merr
-}
-
-func ValidateNamespaceExportedServicesEnterprise(exportedService *multiclusterv1alpha1.NamespaceExportedServices) error {
-	var merr error
-
-	for indx, consumer := range exportedService.Consumers {
-		merr = validateExportedServicesConsumer(consumer, merr, indx)
-	}
-
-	return merr
-}
-
-func ValidatePartitionExportedServicesEnterprise(exportedService *multiclusterv1alpha1.PartitionExportedServices) error {
-	var merr error
-
-	for indx, consumer := range exportedService.Consumers {
+	for indx, consumer := range consumers {
 		merr = validateExportedServicesConsumer(consumer, merr, indx)
 	}
 
@@ -77,15 +49,11 @@ func ValidateComputedExportedServicesEnterprise(computedExportedServices *multic
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
 			switch computedExportedServiceConsumer.GetConsumerTenancy().(type) {
 			case *multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition:
-				{
-					if computedExportedServiceConsumer.GetPartition() != resource.DefaultPartitionName {
-						merr = multierror.Append(merr, resource.ErrInvalidListElement{
-							Name:    "Partition",
-							Index:   indx,
-							Wrapped: fmt.Errorf("can only be set in Enterprise"),
-						})
-					}
-				}
+				merr = multierror.Append(merr, resource.ErrInvalidListElement{
+					Name:    "Partition",
+					Index:   indx,
+					Wrapped: fmt.Errorf("can only be set in Enterprise"),
+				})
 			}
 		}
 	}

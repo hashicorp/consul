@@ -41,18 +41,8 @@ func TestExportedServicesValidation(t *testing.T) {
 
 	cases := map[string]testcase{
 		"exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices").
 				WithData(t, validExportedServicesWithPeer()).
-				Build(),
-		},
-		"exported services with partition": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
-				WithData(t, validExportedServicesWithPartition()).
-				Build(),
-		},
-		"exported services with sameness_group": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
-				WithData(t, validExportedServicesWithSamenessGroup()).
 				Build(),
 		},
 	}
