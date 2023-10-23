@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"io"
 	"net"
 	"os"
@@ -19,6 +18,9 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hashicorp/consul/internal/multicluster"
+	"github.com/hashicorp/consul/internal/tenancy"
 
 	"github.com/armon/go-metrics"
 	"github.com/hashicorp/go-connlimit"
@@ -71,10 +73,8 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
@@ -84,7 +84,6 @@ import (
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
@@ -931,44 +930,45 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	if s.useV2Resources {
+	if true {
+		fmt.Println("aahel")
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
+		multicluster.RegisterControllers(s.controllerManager)
+		// defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
+		// if err != nil {
+		// 	return err
+		// }
 
-		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
-		if err != nil {
-			return err
-		}
+		// mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
+		// 	TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
+		// 		var bundle pbproxystate.TrustBundle
+		// 		roots, err := s.getCARoots(nil, s.GetState())
+		// 		if err != nil {
+		// 			return nil, err
+		// 		}
+		// 		bundle.TrustDomain = roots.TrustDomain
+		// 		for _, root := range roots.Roots {
+		// 			bundle.Roots = append(bundle.Roots, root.RootCert)
+		// 		}
+		// 		return &bundle, nil
+		// 	},
+		// 	// This function is adapted from server_connect.go:getCARoots.
+		// 	TrustDomainFetcher: func() (string, error) {
+		// 		_, caConfig, err := s.fsm.State().CAConfig(nil)
+		// 		if err != nil {
+		// 			return "", err
+		// 		}
 
-		mesh.RegisterControllers(s.controllerManager, mesh.ControllerDependencies{
-			TrustBundleFetcher: func() (*pbproxystate.TrustBundle, error) {
-				var bundle pbproxystate.TrustBundle
-				roots, err := s.getCARoots(nil, s.GetState())
-				if err != nil {
-					return nil, err
-				}
-				bundle.TrustDomain = roots.TrustDomain
-				for _, root := range roots.Roots {
-					bundle.Roots = append(bundle.Roots, root.RootCert)
-				}
-				return &bundle, nil
-			},
-			// This function is adapted from server_connect.go:getCARoots.
-			TrustDomainFetcher: func() (string, error) {
-				_, caConfig, err := s.fsm.State().CAConfig(nil)
-				if err != nil {
-					return "", err
-				}
+		// 		return s.getTrustDomain(caConfig)
+		// 	},
 
-				return s.getTrustDomain(caConfig)
-			},
+		// 	LeafCertManager: deps.LeafCertManager,
+		// 	LocalDatacenter: s.config.Datacenter,
+		// 	DefaultAllow:    defaultAllow,
+		// 	ProxyUpdater:    proxyUpdater,
+		// })
 
-			LeafCertManager: deps.LeafCertManager,
-			LocalDatacenter: s.config.Datacenter,
-			DefaultAllow:    defaultAllow,
-			ProxyUpdater:    proxyUpdater,
-		})
-
-		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
+		// auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
 	reaper.RegisterControllers(s.controllerManager)
