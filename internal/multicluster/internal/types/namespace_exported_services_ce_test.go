@@ -14,19 +14,6 @@ import (
 	"testing"
 )
 
-func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.NamespaceExportedServices{
-		Consumers: consumers,
-	}
-}
-
 func TestNamespaceExportedServicesValidations(t *testing.T) {
 	type testcase struct {
 		Resource *pbresource.Resource

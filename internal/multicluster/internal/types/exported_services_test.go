@@ -12,6 +12,24 @@ import (
 	"testing"
 )
 
+func inValidExportedServices() *multiclusterv1alpha1.ExportedServices {
+	return &multiclusterv1alpha1.ExportedServices{}
+}
+
+func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.ExportedServices{
+		Services:  []string{"api", "frontend", "backend"},
+		Consumers: consumers,
+	}
+}
+
 func TestExportedServicesValidation_NoServices(t *testing.T) {
 	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").
 		WithData(t, inValidExportedServices()).

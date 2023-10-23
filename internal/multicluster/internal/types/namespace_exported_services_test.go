@@ -10,6 +10,19 @@ import (
 	"testing"
 )
 
+func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.NamespaceExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestNamespaceExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()

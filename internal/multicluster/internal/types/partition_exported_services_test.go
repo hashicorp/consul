@@ -10,6 +10,19 @@ import (
 	"testing"
 )
 
+func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
+				Peer: "peer",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.PartitionExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestPartitionExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()
