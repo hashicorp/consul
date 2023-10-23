@@ -48,6 +48,10 @@
         "path": "acl/policies"
       },
       {
+        "title": "Templated Policies",
+        "path": "acl/templated-policies"
+      },
+      {
         "title": "Roles",
         "path": "acl/roles"
       },
