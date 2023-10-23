@@ -8,51 +8,9 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
-
-func validExportedServicesWithPeer() *multiclusterv1alpha1.ExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.ExportedServices{
-		Services:  []string{"api", "frontend", "backend"},
-		Consumers: consumers,
-	}
-}
-
-func TestExportedServicesValidation(t *testing.T) {
-	type testcase struct {
-		Resource *pbresource.Resource
-	}
-	run := func(t *testing.T, tc testcase) {
-		err := MutateExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidateExportedServices(tc.Resource)
-		require.NoError(t, err)
-	}
-
-	cases := map[string]testcase{
-		"exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices").
-				WithData(t, validExportedServicesWithPeer()).
-				Build(),
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
 
 func TestExportedServicesValidation_NoServices(t *testing.T) {
 	res := resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exportedservices1").

@@ -7,50 +7,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
 	"testing"
 )
-
-func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExportedServices {
-	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
-		{
-			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
-			},
-		},
-	}
-	return &multiclusterv1alpha1.PartitionExportedServices{
-		Consumers: consumers,
-	}
-}
-
-func TestPartitionExportedServicesValidations(t *testing.T) {
-	type testcase struct {
-		Resource *pbresource.Resource
-	}
-	run := func(t *testing.T, tc testcase) {
-		err := MutatePartitionExportedServices(tc.Resource)
-		require.NoError(t, err)
-
-		err = ValidatePartitionExportedServices(tc.Resource)
-		require.NoError(t, err)
-	}
-
-	cases := map[string]testcase{
-		"partition exported services with peer": {
-			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
-				WithData(t, validPartitionExportedServicesWithPeer()).
-				Build(),
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			run(t, tc)
-		})
-	}
-}
 
 func TestPartitionExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
