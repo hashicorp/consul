@@ -1,0 +1,43 @@
+---
+layout: commands
+page_title: 'Commands: ACL Templated Policy List'
+description: |
+  The `consul acl templated-policy list` command lists names for all ACL templated policies in the cluster.
+---
+
+# Consul ACL Templated Policy List
+
+Command: `consul acl templated-policy list`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/acl/templated-policies](/consul/api-docs/acl/templated-policies#list-templated-policies)
+
+Use the `acl templated-policy list` command to list all templated policies.
+
+You must provide an ACL token with `acl:read` permissions to use the `consul all templated-policy list` command.
+
+The command does not support [blocking queries](/consul/api-docs/features/blocking) and [agent caching](/consul/api-docs/features/caching).
+
+## Usage
+
+Usage: `consul acl templated-policy list`
+
+### Command options
+
+- `-format`: Specifies the output format. You can specify either `pretty` or `json`. The default value is `pretty`.
+
+### API options
+
+@include 'http_api_options_client.mdx'
+
+@include 'http_api_options_server.mdx'
+
+## Example
+
+```shell-session
+$ consul acl templated-policy list
+builtin/dns
+builtin/node
+builtin/nomad-server
+builtin/service
+builtin/workload-identity
+```

@@ -102,6 +102,27 @@
         ]
       },
       {
+        "title": "templated policy",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/templated-policy"
+          },
+          {
+            "title": "list",
+            "path": "acl/templated-policy/list"
+          },
+          {
+            "title": "preview",
+            "path": "acl/templated-policy/preview"
+          },
+          {
+            "title": "read",
+            "path": "acl/templated-policy/read"
+          }
+        ]
+      },
+      {
         "title": "role",
         "routes": [
           {
