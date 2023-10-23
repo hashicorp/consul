@@ -151,6 +151,9 @@ func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
 }
 
 func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e error) {
+	if len(args) < 2 {
+		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")
+	}
 	// it has to be resource name after the type
 	if strings.HasPrefix(args[1], "-") {
 		return nil, "", fmt.Errorf("Must provide resource name right after type")
@@ -284,15 +287,15 @@ func inferGVKFromResourceType(resourceType string) (*GVK, error) {
 		default:
 			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
 		}
-	case length != 3:
+	case length == 3:
+		return &GVK{
+			Group:   s[0],
+			Version: s[1],
+			Kind:    s[2],
+		}, nil
+	default:
 		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
 	}
-
-	return &GVK{
-		Group:   s[0],
-		Version: s[1],
-		Kind:    s[2],
-	}, nil
 }
 
 func BuildKindToGVKMap() map[string][]string {
