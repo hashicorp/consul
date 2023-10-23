@@ -42,8 +42,8 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
-	// Check v1 tenancy exists for the v2 resource.
-	if err = v1TenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
+	// Check tenancy exists for the v2 resource.
+	if err = tenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 

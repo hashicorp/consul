@@ -8,6 +8,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"io"
 	"net"
 	"os"
@@ -1456,7 +1457,8 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 
 	tenancyBridge := NewV1TenancyBridge(s)
 	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
-		tenancyBridge = resource.NewV2TenancyBridge()
+		tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
+		tenancyBridge = tenancyBridgeV2.WithClient(s.insecureResourceServiceClient)
 	}
 
 	s.resourceServiceServer = resourcegrpc.NewServer(resourcegrpc.Config{
@@ -1477,8 +1479,9 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 	}
 
 	tenancyBridge := NewV1TenancyBridge(s)
+	tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
 	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
-		tenancyBridge = resource.NewV2TenancyBridge()
+		tenancyBridge = tenancyBridgeV2
 	}
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
 		Registry:      typeRegistry,
@@ -1493,7 +1496,7 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 		return err
 	}
 	s.insecureResourceServiceClient = pbresource.NewResourceServiceClient(conn)
-
+	tenancyBridgeV2.WithClient(s.insecureResourceServiceClient)
 	return nil
 }
 
