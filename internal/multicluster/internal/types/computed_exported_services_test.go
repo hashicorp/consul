@@ -12,13 +12,13 @@ import (
 	"testing"
 )
 
-func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.ComputedExportedServices {
+func validComputedExportedServicesWithPartition(partitionName string) *multiclusterv1alpha1.ComputedExportedServices {
 	consumers := []*multiclusterv1alpha1.ComputedExportedService{
 		{
 			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
 				{
 					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
-						Partition: "partition",
+						Partition: partitionName,
 					},
 				},
 			},
@@ -29,13 +29,13 @@ func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.Computed
 	}
 }
 
-func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
+func validComputedExportedServicesWithPeer(peerName string) *multiclusterv1alpha1.ComputedExportedServices {
 	consumers := []*multiclusterv1alpha1.ComputedExportedService{
 		{
 			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
 				{
 					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
-						Peer: "peer",
+						Peer: peerName,
 					},
 				},
 			},
@@ -48,7 +48,7 @@ func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExpor
 
 func TestComputedExportedServicesValidations_InvalidName(t *testing.T) {
 	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "computed-exported-services").
-		WithData(t, validComputedExportedServicesWithPeer()).
+		WithData(t, validComputedExportedServicesWithPeer("peer")).
 		Build()
 
 	err := ValidateComputedExportedServices(res)

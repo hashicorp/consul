@@ -28,7 +28,7 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 	cases := map[string]testcase{
 		"computed exported services with peer": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPeer()).
+				WithData(t, validComputedExportedServicesWithPeer("peer")).
 				Build(),
 		},
 	}
@@ -54,7 +54,7 @@ func TestComputedExportedServicesValidations_Error(t *testing.T) {
 	cases := map[string]testcase{
 		"computed exported services with partition value other than default": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPartition()).
+				WithData(t, validComputedExportedServicesWithPartition("default")).
 				Build(),
 		},
 	}

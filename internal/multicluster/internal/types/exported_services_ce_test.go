@@ -29,7 +29,7 @@ func TestExportedServicesValidation(t *testing.T) {
 	cases := map[string]testcase{
 		"exported services with peer": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPeer()).
+				WithData(t, validExportedServicesWithPeer("peer")).
 				Build(),
 		},
 	}
@@ -56,12 +56,12 @@ func TestExportedServicesValidation_Error(t *testing.T) {
 	cases := map[string]testcase{
 		"exported services with partition": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPartition()).
+				WithData(t, validExportedServicesWithPartition("default")).
 				Build(),
 		},
 		"exported services with sameness_group": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithSamenessGroup()).
+				WithData(t, validExportedServicesWithSamenessGroup("sameness_group")).
 				Build(),
 		},
 	}

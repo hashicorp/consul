@@ -29,7 +29,7 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 	cases := map[string]testcase{
 		"namespace exported services with peer": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPeer()).
+				WithData(t, validNamespaceExportedServicesWithPeer("peer")).
 				Build(),
 		},
 	}
@@ -56,12 +56,12 @@ func TestNamespaceExportedServicesValidations_Error(t *testing.T) {
 	cases := map[string]testcase{
 		"namespace exported services with partition": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithPartition()).
+				WithData(t, validNamespaceExportedServicesWithPartition("default")).
 				Build(),
 		},
 		"namespace exported services with sameness_group": {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
-				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
+				WithData(t, validNamespaceExportedServicesWithSamenessGroup("sameness_group")).
 				Build(),
 		},
 	}

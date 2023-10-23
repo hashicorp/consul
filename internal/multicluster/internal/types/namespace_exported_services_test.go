@@ -10,11 +10,11 @@ import (
 	"testing"
 )
 
-func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExportedServices {
+func validNamespaceExportedServicesWithPeer(peerName string) *multiclusterv1alpha1.NamespaceExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Peer{
-				Peer: "peer",
+				Peer: peerName,
 			},
 		},
 	}
@@ -23,11 +23,11 @@ func validNamespaceExportedServicesWithPeer() *multiclusterv1alpha1.NamespaceExp
 	}
 }
 
-func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.NamespaceExportedServices {
+func validNamespaceExportedServicesWithPartition(partitionName string) *multiclusterv1alpha1.NamespaceExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
-				Partition: "partition",
+				Partition: partitionName,
 			},
 		},
 	}
@@ -36,11 +36,11 @@ func validNamespaceExportedServicesWithPartition() *multiclusterv1alpha1.Namespa
 	}
 }
 
-func validNamespaceExportedServicesWithSamenessGroup() *multiclusterv1alpha1.NamespaceExportedServices {
+func validNamespaceExportedServicesWithSamenessGroup(samenessGroupName string) *multiclusterv1alpha1.NamespaceExportedServices {
 	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
-				SamenessGroup: "sameness_group",
+				SamenessGroup: samenessGroupName,
 			},
 		},
 	}
