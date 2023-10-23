@@ -67,3 +67,19 @@ func ReplaceType(desiredType *pbresource.Type) DependencyMapper {
 		}, nil
 	}
 }
+
+func ReplaceTypeForpartiton(desiredType *pbresource.Type) DependencyMapper {
+	return func(_ context.Context, _ Runtime, res *pbresource.Resource) ([]Request, error) {
+		return []Request{
+			{
+				ID: &pbresource.ID{
+					Type: desiredType,
+					Tenancy: &pbresource.Tenancy{
+						Partition: res.Id.Tenancy.Partition,
+					},
+					Name: res.Id.Name,
+				},
+			},
+		}, nil
+	}
+}
