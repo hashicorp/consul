@@ -212,10 +212,16 @@
         </Hds::SideNav::List>
       </:body>
       <:footer>
-        <Hds::Text::Display class='hds-side-nav-hide-when-minimized' @size='100' @color='disabled'>
-          Consul v{{env 'CONSUL_VERSION'}}
-        </Hds::Text::Display>
-        {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+        <footer role='contentinfo' data-test-footer>
+          <Hds::Text::Display
+            class='hds-side-nav-hide-when-minimized'
+            @size='100'
+            @color='disabled'
+          >
+            Consul v{{env 'CONSUL_VERSION'}}
+          </Hds::Text::Display>
+          {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+        </footer>
       </:footer>
     </Hds::SideNav>
   </:side-nav>
@@ -225,12 +231,4 @@
       (hash login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined)))
     }}
   </:main>
-
-  <:content-info>
-    <p>
-      Consul v{{env 'CONSUL_VERSION'}}
-    </p>
-    {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-  </:content-info>
-
 </App>
