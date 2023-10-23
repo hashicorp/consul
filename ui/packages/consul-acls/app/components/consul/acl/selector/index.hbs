@@ -8,29 +8,29 @@
     <SNL.Title>Access Controls</SNL.Title>
     <SNL.Link
       @text="Tokens"
-      @route="dc.acls.tokens"
-      @models={{array @dc.Name}}
+      @href={{href-to "dc.acls.tokens" @dc.Name}}
+      @isHrefExternal={{false}}
       @isActive={{is-href "dc.acls.tokens" @dc.Name}}
       data-test-main-nav-tokens
     />
     <SNL.Link
       @text="Policies"
-      @route="dc.acls.policies"
-      @models={{array @dc.Name}}
+      @href={{href-to "dc.acls.policies" @dc.Name}}
+      @isHrefExternal={{false}}
       @isActive={{is-href "dc.acls.policies" @dc.Name}}
       data-test-main-nav-policies
     />
     <SNL.Link
       @text="Roles"
-      @route="dc.acls.roles"
-      @models={{array @dc.Name}}
+      @href={{href-to "dc.acls.roles" @dc.Name}}
+      @isHrefExternal={{false}}
       @isActive={{is-href "dc.acls.roles" @dc.Name}}
       data-test-main-nav-roles
     />
     <SNL.Link
       @text="Auth Methods"
-      @route="dc.acls.auth-methods"
-      @models={{array @dc.Name}}
+      @href={{href-to "dc.acls.auth-methods" @dc.Name}}
+      @isHrefExternal={{false}}
       @isActive={{is-href "dc.acls.auth-methods" @dc.Name}}
       data-test-main-nav-auth-methods
     />
@@ -40,9 +40,8 @@
     </SNL.Title>
     <SNL.Link
       @text="Tokens"
-      @route="dc.acls.tokens"
-      @models={{array @dc.Name}}
-      @query={{hash peer=undefined}}
+      @href={{href-to "dc.acls.tokens" @dc.Name}}
+      @isHrefExternal={{false}}
       @isActive={{is-href "dc.acls.tokens" @dc.Name}}
       data-test-main-nav-tokens
     />

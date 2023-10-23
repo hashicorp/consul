@@ -163,9 +163,8 @@
           {{#if (can 'read services')}}
             <SNL.Link
               @text='Services'
-              @route='dc.services'
-              @models={{array @dc.Name}}
-              @query={{hash peer=undefined}}
+              @href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
               @isActive={{is-href 'dc.services' @dc.Name}}
               data-test-main-nav-services
             />
@@ -173,9 +172,8 @@
           {{#if (can 'read nodes')}}
             <SNL.Link
               @text='Nodes'
-              @route='dc.nodes'
-              @models={{array @dc.Name}}
-              @query={{hash peer=undefined}}
+              @href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
               @isActive={{is-href 'dc.nodes' @dc.Name}}
               data-test-main-nav-nodes
             />
@@ -183,9 +181,8 @@
           {{#if (can 'read kv')}}
             <SNL.Link
               @text='Key/Value'
-              @route='dc.kv'
-              @models={{array @dc.Name}}
-              @query={{hash peer=undefined}}
+              @href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
               @isActive={{is-href 'dc.kv' @dc.Name}}
               data-test-main-nav-kv
             />
@@ -193,9 +190,8 @@
           {{#if (can 'read intentions')}}
             <SNL.Link
               @text='Intentions'
-              @route='dc.intentions'
-              @models={{array @dc.Name}}
-              @query={{hash peer=undefined}}
+              @href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
               @isActive={{is-href 'dc.intentions' @dc.Name}}
               data-test-main-nav-intentions
             />
@@ -222,87 +218,7 @@
         {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
       </:footer>
     </Hds::SideNav>
-
   </:side-nav>
-
-  {{!-- <:main-nav>
-    <Consul::Hcp::Home />
-    <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
-      <Consul::Partition::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @partitions={{this.partitions}}
-        @onchange={{action (mut this.partitions) value='data'}}
-      />
-      <Consul::Nspace::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @nspaces={{this.nspaces}}
-        @onchange={{action (mut this.nspaces) value='data'}}
-      />
-    </ul>
-  </:main-nav>
-
-  <:complementary-nav>
-    <ul>
-      <Debug::Navigation />
-      <li data-test-main-nav-help>
-        <DisclosureMenu as |disclosure|>
-          <disclosure.Action {{on 'click' disclosure.toggle}}>
-            Help
-          </disclosure.Action>
-          <disclosure.Menu as |panel|>
-            <panel.Menu as |menu|>
-              <menu.Separator>
-                Consul v{{env 'CONSUL_VERSION'}}
-              </menu.Separator>
-              <menu.Item class='docs-link'>
-                <menu.Action @href={{env 'CONSUL_DOCS_URL'}} @external={{true}}>
-                  Documentation
-                </menu.Action>
-              </menu.Item>
-              <menu.Item class='learn-link'>
-                <menu.Action
-                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-                  @external={{true}}
-                >
-                  HashiCorp Learn
-                </menu.Action>
-              </menu.Item>
-              <menu.Separator />
-              <menu.Item class='feedback-link'>
-                <menu.Action @href={{env 'CONSUL_REPO_ISSUES_URL'}} @external={{true}}>
-                  Provide Feedback
-                </menu.Action>
-              </menu.Item>
-            </panel.Menu>
-          </disclosure.Menu>
-        </DisclosureMenu>
-      </li>
-      <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-        <a href={{href-to 'settings' params=(hash nspace=undefined partition=undefined)}}>
-          Settings
-        </a>
-      </li>
-      <Consul::Token::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @onchange={{@onchange}}
-        as |selector|
-      >
-        <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
-      </Consul::Token::Selector>
-    </ul>
-  </:complementary-nav> --}}
 
   <:main>
     {{yield
