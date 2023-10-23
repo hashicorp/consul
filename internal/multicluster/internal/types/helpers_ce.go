@@ -8,7 +8,7 @@ package types
 import (
 	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
-	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
+	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/go-multierror"
 )
 
