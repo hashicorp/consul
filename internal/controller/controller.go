@@ -22,6 +22,7 @@ import (
 // including creating watches, calling the reconciler, handling retries, etc.
 type controllerRunner struct {
 	ctrl   Controller
+	registry resource.Registry
 	client pbresource.ResourceServiceClient
 	logger hclog.Logger
 }
@@ -90,13 +91,36 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl Controller) queue.Work
 }
 
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
-	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
-		Type: typ,
-		Tenancy: &pbresource.Tenancy{
+	reg, ok := c.registry.Resolve(typ)
+	if !ok {
+		panic(fmt.Sprintf("unknown watch type %s", typ))
+	}
+
+	var wildcardTenancy *pbresource.Tenancy
+
+	switch reg.Scope {
+	case resource.ScopeCluster:
+		wildcardTenancy = &pbresource.Tenancy{
+			PeerName:  storage.Wildcard,
+		}
+	case resource.ScopePartition:
+		wildcardTenancy = &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			PeerName:  storage.Wildcard,
-			Namespace: "",
-		},
+		}
+	case resource.ScopeNamespace:
+		fallthrough
+	default:
+		wildcardTenancy = &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			PeerName:  storage.Wildcard,
+			Namespace: storage.Wildcard,
+		}
+	}
+
+	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type: typ,
+		Tenancy: wildcardTenancy,
 	})
 	if err != nil {
 		c.logger.Error("failed to create watch", "error", err)

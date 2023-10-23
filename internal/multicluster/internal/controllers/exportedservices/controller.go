@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v1alpha1"
@@ -37,6 +38,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
+			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.ExportedServicesType,
 	})
@@ -47,6 +49,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
+			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.NamespaceExportedServicesType,
 	})
@@ -56,6 +59,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	partitionedExportedServices, err := rt.Client.List(ctx, &pbresource.ListRequest{
 		Tenancy: &pbresource.Tenancy{
 			Partition: req.ID.Tenancy.Partition,
+			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.PartitionExportedServicesType,
 	})

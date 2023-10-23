@@ -858,6 +858,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 
 	s.controllerManager = controller.NewManager(
 		s.insecureResourceServiceClient,
+		s.registry,
 		logger.Named(logging.ControllerRuntime),
 	)
 	if err := s.registerControllers(flat, proxyUpdater); err != nil {
