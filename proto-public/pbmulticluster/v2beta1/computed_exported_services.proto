@@ -3,7 +3,7 @@
 
 syntax = "proto3";
 
-package hashicorp.consul.multicluster.v1alpha1;
+package hashicorp.consul.multicluster.v2beta1;
 
 import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
