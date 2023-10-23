@@ -1,5 +1,5 @@
 package exportedservices
 
 const (
-	StatusKey = "consul.io/node-health"
+	StatusKey = "consul.io/exported-services"
 )

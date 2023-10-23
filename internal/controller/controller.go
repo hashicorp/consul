@@ -95,7 +95,7 @@ func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add 
 		Tenancy: &pbresource.Tenancy{
 			Partition: storage.Wildcard,
 			PeerName:  storage.Wildcard,
-			Namespace: storage.Wildcard,
+			Namespace: "",
 		},
 	})
 	if err != nil {
