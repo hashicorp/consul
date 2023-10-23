@@ -10,9 +10,9 @@ import (
 
 var (
 	// API Group Information
-	APIGroup        = types.GroupName
-	VersionV1Alpha1 = types.VersionV1Alpha1
-	CurrentVersion  = types.CurrentVersion
+	APIGroup       = types.GroupName
+	VersionV2Beta1 = types.VersionV2Beta1
+	CurrentVersion = types.CurrentVersion
 )
 
 // RegisterTypes adds all resource types within the "multicluster" API group
