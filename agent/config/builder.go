@@ -1019,6 +1019,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCPort:                   grpcPort,
 		GRPCTLSAddrs:               grpcTlsAddrs,
 		GRPCTLSPort:                grpcTlsPort,
+		GRPCKeepaliveInterval:      b.durationValWithDefaultMin("performance.grpc_keepalive_interval", c.Performance.GRPCKeepaliveInterval, 30*time.Second, time.Second),
+		GRPCKeepaliveTimeout:       b.durationValWithDefaultMin("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second, time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
