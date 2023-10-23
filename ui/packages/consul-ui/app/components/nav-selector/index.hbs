@@ -30,16 +30,6 @@
       </DD.Header>
       {{#each this.filteredItems as |item|}}
         {{yield DD item}}
-        {{!-- <DD.Checkmark
-          @selected={{eq (get @selected @key) (get item @key)}}
-          @href={{href-to
-            '.'
-            params=(hash
-              dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
-            )
-          }}
-          @isHrefExternal={{false}}
-        >{{item.Name}}</DD.Checkmark> --}}
       {{/each}}
       {{#if @footerLink}}
         <DD.Footer @hasDivider={{true}}>

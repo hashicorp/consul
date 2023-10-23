@@ -5,7 +5,7 @@
 
 {{#let @list as |SNL|}}
   {{#if (gt @dcs.length 1)}}
-    <SNL.Title>Datacenter</SNL.Title>
+    <SNL.Title class='consul-side-nav__selector-title'>Datacenter</SNL.Title>
     <NavSelector
       @list={{SNL}}
       @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
@@ -13,13 +13,6 @@
       @key='Name'
       @icon='server-cluster'
       @placeholder='Search datacenters'
-      @footerLink={{href-to
-        '.'
-        params=(hash
-          dc=item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
-        )
-      }}
-      @footerLinkText='View datacenters'
       class='consul-datacenter-selector'
       data-test-datacenter-disclosure-menu
       as |Dropdown item|

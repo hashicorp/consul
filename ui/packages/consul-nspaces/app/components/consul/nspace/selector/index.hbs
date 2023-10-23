@@ -3,93 +3,58 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#if (can "use nspaces")}}
-  {{#if (can "choose nspaces")}}
-    {{#let
-      (or @nspace 'default')
-      (is-href 'dc.nspaces' @dc.Name)
-    as |nspace isManaging|}}
-        <li
-          class="nspaces"
-          data-test-nspace-menu
-        >
-          <DisclosureMenu
-            aria-label="Namespace"
-            @items={{append 
-              (hash 
-                Name="Manage Namespaces"
-                href=(href-to 'dc.nspaces' @dc.Name)
-              ) 
-              (reject-by 'DeletedAt' @nspaces)
-            }}
-          as |disclosure|>
-            <disclosure.Action
-              {{on 'click' disclosure.toggle}}
-            >
-              {{if isManaging 'Manage Namespaces' nspace}}
-            </disclosure.Action>
-            <disclosure.Menu as |panel|>
-              {{#if (gt @nspaces.length 0)}}
-                <DataSource
-                  @src={{uri
-                  '/${partition}/*/${dc}/namespaces'
-                    (hash
-                      partition=@partition
-                      dc=@dc.Name
-                    )
-                  }}
-                  @onchange={{fn (optional @onchange)}}
-                />
-              {{else}}
-                <DataSource
-                  @src={{uri
-                  '/${partition}/*/${dc}/namespaces'
-                    (hash
-                      partition=@partition
-                      dc=@dc.Name
-                    )
-                  }}
-                  @onchange={{fn (optional @onchange)}}
-                />
-              {{/if}}
-              <panel.Menu as |menu|>
-                {{#each menu.items as |item|}}
-
-                  <menu.Item
-                    data-test-main-nav-nspaces={{not-eq item.href undefined}}
-                    aria-current={{if 
-                      (or 
-                        (and isManaging item.href)
-                        (and (not isManaging) (eq nspace item.Name))
-                      )
-                      'true'
-                    }}
-                  >
-                    <menu.Action
-                      {{on 'click' disclosure.close}}
-                      @href={{if item.href 
-                        item.href 
-                        (if isManaging 
-                          (href-to 'dc.services.index' params=(hash
-                            partition=(if (gt @partition.length 0) @partition undefined)
-                            nspace=item.Name
-                            dc=@dc.Name
-                          ))
-                          (href-to '.' params=(hash
-                            partition=(if (gt @partition.length 0) @partition undefined)
-                            nspace=item.Name
-                          ))
-                        )
-                      }}
-                    >
-                      {{item.Name}}
-                    </menu.Action>
-                  </menu.Item>
-                {{/each}}
-              </panel.Menu>
-            </disclosure.Menu>
-          </DisclosureMenu>
-        </li>
-    {{/let}}
-  {{/if}}
+{{#if (and (can "use nspaces") (can "choose nspaces"))}}
+  <DataSource
+    @src={{uri
+      "/${partition}/*/${dc}/namespaces"
+      (hash partition=@partition dc=@dc.Name)
+    }}
+    @onchange={{fn (optional @onchange)}}
+  />
+  {{#let
+    @list
+    (if @nspace (hash Name=@nspace) (hash Name="default"))
+    (is-href "dc.nspaces" @dc.Name)
+    as |SNL nspace isManaging|
+  }}
+    <SNL.Title class="consul-side-nav__selector-title">Namespace</SNL.Title>
+    <NavSelector
+      @list={{@list}}
+      @items={{sort-by "Name:asc" (reject-by "DeletedAt" @nspaces)}}
+      @item={{nspace}}
+      @key="Name"
+      @icon="folder"
+      @placeholder="Search namespaces"
+      @footerLink={{href-to "dc.nspaces" @dc.Name}}
+      @footerLinkText="View all namespaces"
+      data-test-nspace-menu
+      as |Dropdown item|
+    >
+      <Dropdown.Checkmark
+        @selected={{eq nspace.Name item.Name}}
+        @href={{if
+          isManaging
+          (href-to
+            "dc.services.index"
+            params=(hash
+              partition=(if (gt @partition.length 0) @partition undefined)
+              nspace=item.Name
+              dc=@dc.Name
+            )
+          )
+          (href-to
+            "."
+            params=(hash
+              partition=(if (gt @partition.length 0) @partition undefined)
+              nspace=item.Name
+            )
+          )
+        }}
+        @isHrefExternal={{false}}
+        data-test-nspace-item
+      >
+        {{item.Name}}
+      </Dropdown.Checkmark>
+    </NavSelector>
+  {{/let}}
 {{/if}}
