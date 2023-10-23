@@ -28,9 +28,13 @@
           {{on 'input' this.onSearchInput}}
         />
       </DD.Header>
-      {{#each this.filteredItems as |item|}}
-        {{yield DD item}}
-      {{/each}}
+      {{#if (eq this.filteredItems.length 0)}}
+        <DD.Description @text="No results" />
+      {{else}}
+        {{#each this.filteredItems as |item|}}
+          {{yield DD item}}
+        {{/each}}
+      {{/if}}
       {{#if @footerLink}}
         <DD.Footer @hasDivider={{true}}>
           <Hds::Link::Standalone
