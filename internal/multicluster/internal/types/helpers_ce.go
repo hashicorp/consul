@@ -40,7 +40,7 @@ func ValidateComputedExportedServicesEnterprise(computedExportedServices *multic
 			switch computedExportedServiceConsumer.GetConsumerTenancy().(type) {
 			case *multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition:
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
-					Name:    "Partition",
+					Name:    "partition",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
