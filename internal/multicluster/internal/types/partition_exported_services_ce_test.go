@@ -40,3 +40,35 @@ func TestPartitionExportedServicesValidations(t *testing.T) {
 		})
 	}
 }
+
+func TestPartitionExportedServicesValidations_Error(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		err := MutatePartitionExportedServices(tc.Resource)
+		require.NoError(t, err)
+
+		err = ValidatePartitionExportedServices(tc.Resource)
+		require.Error(t, err)
+	}
+
+	cases := map[string]testcase{
+		"partition exported services with partition": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithPartition()).
+				Build(),
+		},
+		"partition exported services with sameness_group": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.PartitionExportedServicesType, "partition-exported-services").
+				WithData(t, validPartitionExportedServicesWithSamenessGroup()).
+				Build(),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}

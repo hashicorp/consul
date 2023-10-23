@@ -39,3 +39,29 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 		})
 	}
 }
+
+func TestComputedExportedServicesValidations_Error(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		err := MutateComputedExportedServices(tc.Resource)
+		require.NoError(t, err)
+		err = ValidateComputedExportedServices(tc.Resource)
+		require.Error(t, err)
+	}
+
+	cases := map[string]testcase{
+		"computed exported services with partition value other than default": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPartition()).
+				Build(),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}

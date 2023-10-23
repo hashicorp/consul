@@ -23,6 +23,32 @@ func validPartitionExportedServicesWithPeer() *multiclusterv1alpha1.PartitionExp
 	}
 }
 
+func validPartitionExportedServicesWithPartition() *multiclusterv1alpha1.PartitionExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_Partition{
+				Partition: "default",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.PartitionExportedServices{
+		Consumers: consumers,
+	}
+}
+
+func validPartitionExportedServicesWithSamenessGroup() *multiclusterv1alpha1.PartitionExportedServices {
+	consumers := []*multiclusterv1alpha1.ExportedServicesConsumer{
+		{
+			ConsumerTenancy: &multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup{
+				SamenessGroup: "sameness_group",
+			},
+		},
+	}
+	return &multiclusterv1alpha1.PartitionExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func TestPartitionExportedServicesACLs(t *testing.T) {
 	// Wire up a registry to generically invoke hooks
 	registry := resource.NewRegistry()

@@ -12,6 +12,23 @@ import (
 	"testing"
 )
 
+func validComputedExportedServicesWithPartition() *multiclusterv1alpha1.ComputedExportedServices {
+	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+		{
+			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+				{
+					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
+						Partition: "partition",
+					},
+				},
+			},
+		},
+	}
+	return &multiclusterv1alpha1.ComputedExportedServices{
+		Consumers: consumers,
+	}
+}
+
 func validComputedExportedServicesWithPeer() *multiclusterv1alpha1.ComputedExportedServices {
 	consumers := []*multiclusterv1alpha1.ComputedExportedService{
 		{

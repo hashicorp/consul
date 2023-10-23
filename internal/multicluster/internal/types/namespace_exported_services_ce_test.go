@@ -40,3 +40,35 @@ func TestNamespaceExportedServicesValidations(t *testing.T) {
 		})
 	}
 }
+
+func TestNamespaceExportedServicesValidations_Error(t *testing.T) {
+	type testcase struct {
+		Resource *pbresource.Resource
+	}
+	run := func(t *testing.T, tc testcase) {
+		err := MutateNamespaceExportedServices(tc.Resource)
+		require.NoError(t, err)
+
+		err = ValidateNamespaceExportedServices(tc.Resource)
+		require.Error(t, err)
+	}
+
+	cases := map[string]testcase{
+		"namespace exported services with partition": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithPartition()).
+				Build(),
+		},
+		"namespace exported services with sameness_group": {
+			Resource: resourcetest.Resource(multiclusterv1alpha1.NamespaceExportedServicesType, "namespace-exported-services").
+				WithData(t, validNamespaceExportedServicesWithSamenessGroup()).
+				Build(),
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
