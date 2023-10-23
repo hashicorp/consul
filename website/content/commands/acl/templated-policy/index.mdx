@@ -1,0 +1,72 @@
+---
+layout: commands
+page_title: 'Commands: ACL Templated Policy'
+description: |
+  The `consul acl templated-policy` command interacts with Consul's ACL templated policies. It exposes commands for reading, previewing and listing templated policies.
+---
+
+# Consul ACL Templated Policies
+
+Command: `consul acl templated-policy`
+
+Use the `acl templated-policy` command  to manage templated ACL policies.
+It exposes commands for reading, previewing, and listing templated policies.
+
+You can also manage ACL templated policies using the [/`templated-policies` HTTP API endpoint](/consul/api-docs/acl/templated-policies).
+
+All of the example subcommands require a valid Consul token with the appropriate permissions. Either set the `CONSUL_HTTP_TOKEN` environment variable to the token's secret ID or pass the
+secret ID as the value of the `-token` parameter.
+
+## Usage
+
+Usage: `consul acl templated-policy <subcommand>`
+
+For the exact documentation for your Consul version, run `consul acl templated-policy -h` to view the complete list of subcommands.
+
+```text
+Usage: consul acl templated-policy <subcommand> [options] [args]
+
+  ...
+
+  List all templated policies:
+
+      $ consul acl templated-policy list
+
+  Preview the policy rendered by the ACL templated policy:
+
+      $ consul acl templated-policy preview -name "builtin/service" -var "name:api"
+
+  Read a templated policy with name:
+
+      $ consul acl templated-policy read -name "builtin/service"
+
+  For more examples, ask for subcommand help or view the documentation.
+
+Subcommands:
+    list       Lists ACL templated policies
+    preview    Preview the policy rendered by the ACL templated policy
+    read       Read an ACL Templated Policy
+```
+
+For more information, examples, and usage about a subcommand, click on the name
+of the subcommand in the sidebar.
+
+## Basic examples
+
+Read a ACl templated policy:
+
+```shell-session
+$ consul acl templated-policy read -name "builtin/service"
+```
+
+List all templated policies:
+
+```shell-session
+$ consul acl templated-policy list
+```
+
+Preview a templated policy:
+
+```shell-session
+$ consul acl templated-policy preview -name "builtin/service" -var "name:api"
+```
