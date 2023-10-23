@@ -205,6 +205,11 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
 	}
 
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = resource.DefaultPeerName
+	}
+
 	return nil
 }
 
