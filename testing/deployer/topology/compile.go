@@ -502,14 +502,14 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 						}
 					}
 
-					if len(svc.WorkloadIdentities) == 0 {
-						svc.WorkloadIdentities = []string{svc.ID.Name}
+					if svc.WorkloadIdentity == "" {
+						svc.WorkloadIdentity = svc.ID.Name
 					}
 				} else {
 					if len(svc.V2Services) > 0 {
 						return nil, fmt.Errorf("cannot specify v2 services for v1")
 					}
-					if len(svc.WorkloadIdentities) > 0 {
+					if svc.WorkloadIdentity != "" {
 						return nil, fmt.Errorf("cannot specify workload identities for v1")
 					}
 				}

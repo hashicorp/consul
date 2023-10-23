@@ -118,7 +118,7 @@ func AssertUpstreamEndpointStatusWithClient(
 			clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
 		require.NoErrorf(r, err, "could not find cluster name %q: %v \n%s", clusterName, err, clusters)
-		require.Len(r, results, 1) // the final part of the pipeline is "length" which only ever returns 1 result
+		require.Len(r, results, 1, "clusters: "+clusters) // the final part of the pipeline is "length" which only ever returns 1 result
 
 		result, err := strconv.Atoi(results[0])
 		assert.NoError(r, err)

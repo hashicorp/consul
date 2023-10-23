@@ -196,8 +196,9 @@ func (s *Sprawl) registerServicesForDataplaneInstances(cluster *topology.Cluster
 			if node.IsV2() {
 				pending := serviceInstanceToResources(node, svc)
 
-				if _, ok := identityInfo[svc.ID]; !ok {
-					identityInfo[svc.ID] = pending.WorkloadIdentity
+				workloadID := topology.NewServiceID(svc.WorkloadIdentity, svc.ID.Namespace, svc.ID.Partition)
+				if _, ok := identityInfo[workloadID]; !ok {
+					identityInfo[workloadID] = pending.WorkloadIdentity
 				}
 
 				// Write workload
@@ -545,15 +546,13 @@ func serviceInstanceToResources(
 				},
 			},
 		}
-
-		worloadIdentityRes = &Resource[*pbauth.WorkloadIdentity]{
+		workloadIdentityRes = &Resource[*pbauth.WorkloadIdentity]{
 			Resource: &pbresource.Resource{
 				Id: &pbresource.ID{
 					Type:    pbauth.WorkloadIdentityType,
-					Name:    svc.ID.Name,
+					Name:    svc.WorkloadIdentity,
 					Tenancy: tenancy,
 				},
-				Metadata: svc.Meta,
 			},
 			Data: &pbauth.WorkloadIdentity{},
 		}
@@ -646,7 +645,7 @@ func serviceInstanceToResources(
 		Workload:           workloadRes,
 		HealthStatuses:     healthResList,
 		Destinations:       destinationsRes,
-		WorkloadIdentity:   worloadIdentityRes,
+		WorkloadIdentity:   workloadIdentityRes,
 		ProxyConfiguration: proxyConfigRes,
 	}
 }

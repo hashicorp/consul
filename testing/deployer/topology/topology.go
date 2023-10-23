@@ -767,14 +767,14 @@ type Service struct {
 	// This only applies for multi-port (v2).
 	V2Services []string `json:",omitempty"`
 
-	// WorkloadIdentities contains named WorkloadIdentities to assign to this
+	// WorkloadIdentity contains named WorkloadIdentity to assign to this
 	// workload.
 	//
 	// If omitted it is inferred that the ID.Name field is the singular
 	// identity for this workload.
 	//
 	// This only applies for multi-port (v2).
-	WorkloadIdentities []string `json:",omitempty"`
+	WorkloadIdentity string `json:",omitempty"`
 
 	Disabled bool `json:",omitempty"` // TODO
 
