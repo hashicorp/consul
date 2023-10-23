@@ -29,7 +29,7 @@ func DestinationStatPrefix(serviceRef *pbresource.Reference, portName, datacente
 }
 
 func DestinationListenerName(destinationRef *pbresource.Reference, portName string, address string, port uint32) string {
-	name := fmt.Sprintf("%s:%s:%s", DestinationResourceID(destinationRef), portName, address)
+	name := fmt.Sprintf("%s:%s", DestinationResourceID(destinationRef, portName), address)
 	if port != 0 {
 		return fmt.Sprintf("%s:%d", name, port)
 	}
@@ -39,8 +39,8 @@ func DestinationListenerName(destinationRef *pbresource.Reference, portName stri
 
 // DestinationResourceID returns a string representation that uniquely identifies the
 // upstream in a canonical but human readable way.
-func DestinationResourceID(destinationRef *pbresource.Reference) string {
+func DestinationResourceID(destinationRef *pbresource.Reference, port string) string {
 	tenancyPrefix := fmt.Sprintf("%s/%s/%s", destinationRef.Tenancy.Partition,
 		destinationRef.Tenancy.PeerName, destinationRef.Tenancy.Namespace)
-	return fmt.Sprintf("%s/%s", tenancyPrefix, destinationRef.Name)
+	return fmt.Sprintf("%s/%s:%s", tenancyPrefix, destinationRef.Name, port)
 }

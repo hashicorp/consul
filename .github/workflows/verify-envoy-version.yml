@@ -13,9 +13,9 @@ on:
     branches:
       - main
       - release/**
-
+      
 env:
-  SKIP_VERIFY_ENVOY_VERSION: "true" ## temporarily disabled; set to false to enable script
+  SKIP_VERIFY_ENVOY_VERSION: ${{ vars.SKIP_VERIFY_ENVOY_VERSION }}
 
 jobs:
   verify-envoy-version:
