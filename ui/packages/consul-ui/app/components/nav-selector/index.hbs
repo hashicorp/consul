@@ -19,7 +19,11 @@
         @text={{get @item @key}}
       />
       <DD.Header @hasDivider={{true}}>
-        {{! <Hds::Text::Body @size='100' @color='faint'>WAN federated datacenters</Hds::Text::Body> }}
+        {{#if @description}}
+          <div class='consul-side-nav__selector-description'>
+            <Hds::Text::Body @size='100' @color='faint'>{{@description}}</Hds::Text::Body>
+          </div>
+        {{/if}}
         <Hds::Form::TextInput::Base
           @type='search'
           @value={{this.search}}
@@ -29,7 +33,7 @@
         />
       </DD.Header>
       {{#if (eq this.filteredItems.length 0)}}
-        <DD.Description @text="No results" />
+        <DD.Description @text='No results' />
       {{else}}
         {{#each this.filteredItems as |item|}}
           {{yield DD item}}

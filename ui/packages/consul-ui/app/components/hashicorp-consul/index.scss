@@ -63,6 +63,7 @@
 
       .hds-dropdown__content {
         min-width: 15.5rem;
+        max-height: 500px;
       }
     }
 
@@ -94,6 +95,10 @@
 
     .consul-side-nav__selector-title {
       margin-top: 0.5rem;
+    }
+
+    .consul-side-nav__selector-description {
+      padding-top: 0.5rem;
     }
   }
 }
