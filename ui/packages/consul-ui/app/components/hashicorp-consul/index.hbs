@@ -105,16 +105,16 @@
                 @text='Give feedback'
               />
             </Hds::Dropdown>
-            <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='left' as |dd|>
-              <dd.ToggleIcon @icon='user' @text='Account menu' />
-              <dd.Title @text='Signed In' />
-              <dd.Description @text='email@domain.com' />
-              <dd.Interactive
-                @href={{href-to 'settings' params=(hash nspace=undefined partition=undefined)}}
-                @text='Settings'
-                @isHrefExternal={{false}}
-              />
-            </Hds::Dropdown>
+
+            <Consul::Token::Selector
+              @dc={{@dc}}
+              @partition={{@partition}}
+              @nspace={{@nspace}}
+              @onchange={{@onchange}}
+              as |selector|
+            >
+              <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
+            </Consul::Token::Selector>
           </:actions>
         </Hds::SideNav::Header>
       </:header>
@@ -154,6 +154,7 @@
             <SNL.Link
               @text='Overview'
               @route='dc.show'
+              @models={{array @dc.Name}}
               @query={{hash peer=undefined}}
               @isActive={{is-href 'dc.show' @dc.Name}}
               data-test-main-nav-overview
