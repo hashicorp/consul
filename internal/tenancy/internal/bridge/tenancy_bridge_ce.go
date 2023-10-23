@@ -3,7 +3,7 @@
 
 //go:build !consulent
 
-package resource
+package bridge
 
 func (b *V2TenancyBridge) PartitionExists(partition string) (bool, error) {
 	if partition == "default" {
@@ -13,16 +13,5 @@ func (b *V2TenancyBridge) PartitionExists(partition string) (bool, error) {
 }
 
 func (b *V2TenancyBridge) IsPartitionMarkedForDeletion(partition string) (bool, error) {
-	return false, nil
-}
-
-func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
-	if partition == "default" && namespace == "default" {
-		return true, nil
-	}
-	return false, nil
-}
-
-func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error) {
 	return false, nil
 }

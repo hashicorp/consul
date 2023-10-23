@@ -5,14 +5,13 @@ package testing
 
 import (
 	"context"
-	"testing"
-
+	"github.com/hashicorp/consul/internal/tenancy"
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-
-	"github.com/hashicorp/go-uuid"
+	"testing"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -98,6 +97,12 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", "foo").Return(false, nil)
 		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 		config.TenancyBridge = mockTenancyBridge
+	} else {
+		switch config.TenancyBridge.(type) {
+		case *tenancy.V2TenancyBridge:
+			err = initTenancy(ctx, backend)
+			require.NoError(t, err)
+		}
 	}
 
 	if config.ACLResolver == nil {
@@ -140,6 +145,14 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
+	client := pbresource.NewResourceServiceClient(conn)
+	if config.TenancyBridge != nil {
+		switch config.TenancyBridge.(type) {
+		case *tenancy.V2TenancyBridge:
+			config.TenancyBridge.(*tenancy.V2TenancyBridge).WithClient(client)
+		}
 
-	return pbresource.NewResourceServiceClient(conn)
+	}
+
+	return client
 }

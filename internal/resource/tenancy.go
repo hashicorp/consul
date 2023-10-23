@@ -24,15 +24,6 @@ const (
 	DefaultPeerName      = "local"
 )
 
-// V2TenancyBridge is used by the resource service to access V2 implementations of
-// partitions and namespaces.
-type V2TenancyBridge struct {
-}
-
-func NewV2TenancyBridge() TenancyBridge {
-	return &V2TenancyBridge{}
-}
-
 // Scope describes the tenancy scope of a resource.
 type Scope int
 

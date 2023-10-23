@@ -157,7 +157,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
 	})
-
+	var readRsp *pbresource.ReadResponse
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
 		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
@@ -183,7 +183,8 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 
-		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+		var err error
+		readRsp, err = client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
 				Tenancy: resource.DefaultNamespacedTenancy(),
@@ -200,7 +201,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should update the record with version parameter", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
+		req := httptest.NewRequest("PUT", fmt.Sprintf("/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=%s", readRsp.Resource.Version), strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
