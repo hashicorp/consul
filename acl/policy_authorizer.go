@@ -712,7 +712,7 @@ func (p *policyAuthorizer) KeyWritePrefix(prefix string, _ *AuthorizerContext) E
 	//     that do NOT grant AccessWrite.
 	//
 	// Conditions for Default:
-	//   * There is no prefix match rule that would appy to the given prefix.
+	//   * There is no prefix match rule that would apply to the given prefix.
 	//   AND
 	//   * There are no rules (exact or prefix match) within/under the given prefix
 	//     that would NOT grant AccessWrite.
@@ -914,6 +914,62 @@ func (p *policyAuthorizer) ServiceRead(name string, ctx *AuthorizerContext) Enfo
 
 func (p *policyAuthorizer) ServiceReadAll(_ *AuthorizerContext) EnforcementDecision {
 	return p.allAllowed(p.serviceRules, AccessRead)
+}
+
+// ServiceReadPrefix determines whether service read is allowed within the given prefix.
+//
+// Access is allowed iff all the following are true:
+// - There's a read policy for the longest prefix that's shorter or equal to the provided prefix.
+// - There's no deny policy for any prefix that's longer than the given prefix.
+// - There's no deny policy for any exact match that's within the given prefix.
+func (p *policyAuthorizer) ServiceReadPrefix(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	access := Default
+
+	// 1. Walk the prefix tree from root to the given prefix. Find the longest prefix matching ours,
+	//    and use that policy to determine our access as that is the most specific prefix, and it
+	//    should take precedence.
+	p.serviceRules.WalkPath(prefix, func(path string, leaf interface{}) bool {
+		rule := leaf.(*policyAuthorizerRadixLeaf)
+
+		if rule.prefix != nil {
+			switch rule.prefix.access {
+			case AccessRead, AccessWrite:
+				access = Allow
+			default:
+				access = Deny
+			}
+		}
+
+		// Don't stop iteration because we want to visit all nodes down to our leaf to find the more specific match
+		// as it should take precedence.
+		return false
+	})
+
+	// 2. Check rules "below" the given prefix. Access is allowed if there's no deny policy
+	//    for any prefix longer than ours or for any exact match that's within the prefix.
+	p.serviceRules.WalkPrefix(prefix, func(path string, leaf interface{}) bool {
+		rule := leaf.(*policyAuthorizerRadixLeaf)
+
+		if rule.prefix != nil && (rule.prefix.access != AccessRead && rule.prefix.access != AccessWrite) {
+			// If any prefix longer than the provided prefix has "deny" policy, then access is denied.
+			access = Deny
+
+			// We don't need to look at the rest of the tree in this case, so terminate early.
+			return true
+		}
+
+		if rule.exact != nil && (rule.exact.access != AccessRead && rule.exact.access != AccessWrite) {
+			// If any exact match policy has an explicit deny, then access is denied.
+			access = Deny
+
+			// We don't need to look at the rest of the tree in this case, so terminate early.
+			return true
+		}
+
+		return false
+	})
+
+	return access
 }
 
 // ServiceWrite checks if writing (registering) a service is allowed

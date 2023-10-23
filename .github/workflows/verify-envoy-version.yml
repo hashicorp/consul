@@ -14,6 +14,9 @@ on:
       - main
       - release/**
 
+env:
+  SKIP_VERIFY_ENVOY_VERSION: "false" ## temporarily disabled; set to true to disable script
+
 jobs:
   verify-envoy-version:
     runs-on: ubuntu-latest
