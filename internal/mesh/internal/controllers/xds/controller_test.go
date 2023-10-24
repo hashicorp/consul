@@ -1016,7 +1016,7 @@ func TestXdsController(t *testing.T) {
 func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
 	path := "../sidecarproxy/builder/testdata"
 	cases := []string{
-		// destinations
+		// destinations - please add in alphabetical order
 		"destination/l4-single-destination-ip-port-bind-address",
 		"destination/l4-single-destination-unix-socket-bind-address",
 		"destination/l4-single-implicit-destination-tproxy",
@@ -1028,8 +1028,18 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
 		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
 
-		//sources
-
+		//sources - please add in alphabetical order
+		"source/l4-multiple-workload-addresses-with-specific-ports",
+		"source/l4-multiple-workload-addresses-without-ports",
+		"source/l4-single-workload-address-without-ports",
+		"source/l7-expose-paths",
+		"source/local-and-inbound-connections",
+		"source/multiport-l4-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l4-multiple-workload-addresses-without-ports",
+		"source/multiport-l4-workload-with-only-mesh-port",
+		"source/multiport-l7-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
 	}
 
 	for _, name := range cases {
