@@ -31,6 +31,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -635,6 +636,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			incomingRPCLimiter,
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
@@ -666,6 +671,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			rpcRate.NullRequestLimitsHandler(),
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
