@@ -157,6 +157,15 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced type with empty peername": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "",
+			},
+		},
 		"namespaced type with empty partition and namespace": {
 			typ: demo.TypeV2Artist,
 			tenancy: &pbresource.Tenancy{
