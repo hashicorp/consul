@@ -24,6 +24,8 @@ Feature: token-header
       dc: dc1
     ---
     Then the url should be /dc1/acls/tokens
+    And I click ".hds-side-nav__toggle-button"
+    And I click authMenu on the navigation
     And I click login on the navigation
     And I fill in the auth form with yaml
     ---
