@@ -247,7 +247,7 @@
         {
           "l7": {
             "route": {
-              "name": "default/local/default/api-app"
+              "name": "default/local/default/api-app:http"
             },
             "statPrefix": "upstream."
           },
@@ -264,7 +264,7 @@
         {
           "l7": {
             "route": {
-              "name": "default/local/default/api-app2"
+              "name": "default/local/default/api-app2:http"
             },
             "statPrefix": "upstream."
           },
@@ -324,10 +324,11 @@
     }
   ],
   "routes": {
-    "default/local/default/api-app": {
+    "default/local/default/api-app:http": {
       "virtualHosts": [
         {
-          "name": "default/local/default/api-app",
+          "domains": ["*"],
+          "name": "default/local/default/api-app:http",
           "routeRules": [
             {
               "destination": {
@@ -345,10 +346,11 @@
         }
       ]
     },
-    "default/local/default/api-app2": {
+    "default/local/default/api-app2:http": {
       "virtualHosts": [
         {
-          "name": "default/local/default/api-app2",
+          "domains": ["*"],
+          "name": "default/local/default/api-app2:http",
           "routeRules": [
             {
               "destination": {

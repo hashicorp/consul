@@ -238,6 +238,7 @@
     "default/local/default/api-1:http:1.1.1.1:1234": {
       "virtualHosts": [
         {
+          "domains": ["*"],
           "name": "default/local/default/api-1:http:1.1.1.1:1234",
           "routeRules": [
             {
