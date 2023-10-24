@@ -1039,7 +1039,6 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 		"source/multiport-l4-workload-with-only-mesh-port",
 		"source/multiport-l7-multiple-workload-addresses-with-specific-ports",
 		"source/multiport-l7-multiple-workload-addresses-without-ports",
-		"source/multiport-l7-multiple-workload-addresses-without-ports",
 	}
 
 	for _, name := range cases {
