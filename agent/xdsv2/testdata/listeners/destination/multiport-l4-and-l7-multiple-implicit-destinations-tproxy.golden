@@ -53,7 +53,7 @@
                     "ads":  {},
                     "resourceApiVersion":  "V3"
                   },
-                  "routeConfigName":  "default/local/default/api-app"
+                  "routeConfigName":  "default/local/default/api-app:http"
                 },
                 "httpFilters":  [
                   {
@@ -146,7 +146,7 @@
                     "ads":  {},
                     "resourceApiVersion":  "V3"
                   },
-                  "routeConfigName":  "default/local/default/api-app2"
+                  "routeConfigName":  "default/local/default/api-app2:http"
                 },
                 "httpFilters":  [
                   {
