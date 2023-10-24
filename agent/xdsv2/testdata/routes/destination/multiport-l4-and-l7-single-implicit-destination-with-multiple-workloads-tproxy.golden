@@ -3,10 +3,11 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "default/local/default/api-app",
+      "name":  "default/local/default/api-app:http",
       "virtualHosts":  [
         {
-          "name":  "default/local/default/api-app",
+          "domains": ["*"],
+          "name":  "default/local/default/api-app:http",
           "routes":  [
             {
               "match":  {
