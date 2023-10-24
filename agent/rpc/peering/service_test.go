@@ -18,6 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gogrpc "google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
 	grpcstatus "google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -1811,7 +1812,7 @@ func newTestServer(t *testing.T, cb func(conf *consul.Config)) testingServer {
 	conf.ACLResolverSettings.EnterpriseMeta = *conf.AgentEnterpriseMeta()
 
 	deps := newDefaultDeps(t, conf)
-	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator)
+	externalGRPCServer := external.NewServer(deps.Logger, nil, deps.TLSConfigurator, keepalive.ServerParameters{})
 
 	server, err := consul.NewServer(conf, deps, externalGRPCServer)
 	require.NoError(t, err)

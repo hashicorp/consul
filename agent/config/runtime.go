@@ -719,6 +719,19 @@ type RuntimeConfig struct {
 	// hcl: client_addr = string addresses { grpc_tls = string } ports { grpc_tls = int }
 	GRPCTLSAddrs []net.Addr
 
+	// GRPCKeepaliveInterval determines how frequently an HTTP2 keepalive will be broadcast
+	// whenever a GRPC connection is idle. This helps detect xds connections that have died.
+	//
+	// Since the xds load balancing between servers relies on knowing how many connections
+	// are active, this configuration ensures that they are routinely detected / cleaned up
+	// on an interval.
+	GRPCKeepaliveInterval time.Duration
+
+	// GRPCKeepaliveTimeout specifies how long a GRPC client has to reply to the keepalive
+	// messages spawned from GRPCKeepaliveInterval. If a client does not reply in this amount of
+	// time, the connection will be closed by the server.
+	GRPCKeepaliveTimeout time.Duration
+
 	// HTTPAddrs contains the list of TCP addresses and UNIX sockets the HTTP
 	// server will bind to. If the HTTP endpoint is disabled (ports.http <= 0)
 	// the list is empty.

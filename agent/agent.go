@@ -31,6 +31,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -570,6 +571,10 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.logger.Named("grpc.external"),
 		metrics.Default(),
 		a.tlsConfigurator,
+		keepalive.ServerParameters{
+			Time:    a.config.GRPCKeepaliveInterval,
+			Timeout: a.config.GRPCKeepaliveTimeout,
+		},
 	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
