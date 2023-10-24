@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -40,11 +41,13 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 
 func TestComputedExportedServicesValidations_Error(t *testing.T) {
 	type testcase struct {
-		Resource *pbresource.Resource
+		Resource    *pbresource.Resource
+		expectError string
 	}
 	run := func(t *testing.T, tc testcase) {
 		err := ValidateComputedExportedServices(tc.Resource)
 		require.Error(t, err)
+		testutil.RequireErrorContains(t, err, tc.expectError)
 	}
 
 	cases := map[string]testcase{
@@ -52,6 +55,7 @@ func TestComputedExportedServicesValidations_Error(t *testing.T) {
 			Resource: resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, ComputedExportedServicesName).
 				WithData(t, validComputedExportedServicesWithPartition("default")).
 				Build(),
+			expectError: `invalid element at index 0 of list "partition": can only be set in Enterprise`,
 		},
 	}
 
