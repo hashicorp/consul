@@ -3,10 +3,10 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "exposed_path_filter_GetHealth_1235",
+      "name":  "exposed_path_route_GetHealth1235",
       "virtualHosts":  [
         {
-          "name":  "exposed_path_filter_GetHealth_1235",
+          "name":  "exposed_path_route_GetHealth1235",
           "domains":  [
             "*"
           ],
@@ -26,10 +26,10 @@
     },
     {
       "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name":  "exposed_path_filter_health_1234",
+      "name":  "exposed_path_route_health1234",
       "virtualHosts":  [
         {
-          "name":  "exposed_path_filter_health_1234",
+          "name":  "exposed_path_route_health1234",
           "domains":  [
             "*"
           ],
