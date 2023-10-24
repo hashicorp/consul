@@ -290,6 +290,7 @@ func (b *Builder) buildDestination(
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
 		egName := ""
+
 		if details.FailoverConfig != nil {
 			egName = fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, 0, clusterName)
 		}
