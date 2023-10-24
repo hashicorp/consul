@@ -5,6 +5,7 @@ package builder
 
 import (
 	"fmt"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"time"
 
 	"github.com/hashicorp/consul/agent/xds/naming"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/mesh/internal/types/intermediate"
 	"github.com/hashicorp/consul/internal/protoutil"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -529,7 +529,7 @@ func (b *Builder) addTransparentProxyOutboundListener(port uint32) *ListenerBuil
 }
 
 func isProtocolHTTPLike(protocol pbcatalog.Protocol) bool {
-	// enumcover:pbcatalog.Protocol
+	// enumcover:pbproxystate.Protocol
 	switch protocol {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
 		return false
