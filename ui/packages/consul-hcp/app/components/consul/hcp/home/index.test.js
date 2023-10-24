@@ -35,7 +35,11 @@ module('Integration | Component | consul hcp home', function(hooks) {
       }
     );
 
-    await render(hbs`<Consul::Hcp::Home />`);
+    await render(hbs`
+      <Hds::SideNav::List as |SNL|>
+        <Consul::Hcp::Home @list={{SNL}} />
+      </Hds::SideNav::List>
+    `);
 
     assert.dom('a').hasAttribute('href', 'http://hcp');
 
