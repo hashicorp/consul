@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/go-multierror"
