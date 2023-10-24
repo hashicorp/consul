@@ -377,6 +377,9 @@ type Agent struct {
 	// server to be pushed out to Envoy.
 	proxyConfig *proxycfg.Manager
 
+	// proxyTracker is used to track connected proxies in agentless mode when using V2 APIs.
+	proxyTracker *proxytracker.ProxyTracker
+
 	// serviceManager is the manager for combining local service registrations with
 	// the centrally configured proxy/service defaults.
 	serviceManager *ServiceManager
@@ -656,7 +659,7 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	// Create proxy config manager now because it is a dependency of creating the proxyWatcher
+	// Create proxy config manager now because it is a dependency of creating the proxyTracker
 	// which will be passed to consul.NewServer so that it is then passed to the
 	// controller registration for the XDS controller in v2 mode, and the xds server in v1 and v2 mode.
 	intentionDefaultAllow, err := a.config.ACLResolverSettings.IsDefaultAllow()
@@ -666,31 +669,8 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
-	// Start the proxy config manager.
-	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		DataSources: a.proxyDataSources(),
-		Logger:      a.logger.Named(logging.ProxyConfig),
-		Source: &structs.QuerySource{
-			Datacenter:    a.config.Datacenter,
-			Segment:       a.config.SegmentName,
-			Node:          a.config.NodeName,
-			NodePartition: a.config.PartitionOrEmpty(),
-		},
-		DNSConfig: proxycfg.DNSConfig{
-			Domain:    a.config.DNSDomain,
-			AltDomain: a.config.DNSAltDomain,
-		},
-		TLSConfigurator:       a.tlsConfigurator,
-		IntentionDefaultAllow: intentionDefaultAllow,
-		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
-	})
-	if err != nil {
-		return err
-	}
-
-	// proxyWatcher will be used in the creation of the XDS server and also
+	// proxyTracker will be used in the creation of the XDS server and also
 	// in the registration of the xds controller.
-	proxyWatcher := a.getProxyWatcher()
 
 	// Setup either the client or the server.
 	if c.ServerMode {
@@ -729,11 +709,14 @@ func (a *Agent) Start(ctx context.Context) error {
 			},
 		)
 
-		var pt *proxytracker.ProxyTracker
 		if a.baseDeps.UseV2Resources() {
-			pt = proxyWatcher.(*proxytracker.ProxyTracker)
+			a.proxyTracker = proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
+				Logger:         a.logger.Named("proxy-tracker"),
+				SessionLimiter: a.baseDeps.XDSStreamLimiter,
+			})
 		}
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, pt)
+
+		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, a.proxyTracker)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
@@ -773,6 +756,28 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
 		a.delegate = client
+	}
+
+	// Start the proxy config manager.
+	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
+		DataSources: a.proxyDataSources(),
+		Logger:      a.logger.Named(logging.ProxyConfig),
+		Source: &structs.QuerySource{
+			Datacenter:    a.config.Datacenter,
+			Segment:       a.config.SegmentName,
+			Node:          a.config.NodeName,
+			NodePartition: a.config.PartitionOrEmpty(),
+		},
+		DNSConfig: proxycfg.DNSConfig{
+			Domain:    a.config.DNSDomain,
+			AltDomain: a.config.DNSAltDomain,
+		},
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
+		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
+	})
+	if err != nil {
+		return err
 	}
 
 	// The staggering of the state syncing depends on the cluster size.
@@ -856,7 +861,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// Start grpc and grpc_tls servers.
-	if err := a.listenAndServeGRPC(proxyWatcher); err != nil {
+	if err := a.listenAndServeGRPC(a.getProxyWatcher()); err != nil {
 		return err
 	}
 
@@ -927,11 +932,16 @@ func (a *Agent) Failed() <-chan struct{} {
 func (a *Agent) getProxyWatcher() xds.ProxyWatcher {
 	if a.baseDeps.UseV2Resources() {
 		a.logger.Trace("returning proxyTracker for getProxyWatcher")
-		return proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
-			Logger:         a.logger.Named("proxy-tracker"),
-			SessionLimiter: a.baseDeps.XDSStreamLimiter,
-		})
+		// If proxy tracker is not initialized, panic!
+		if a.proxyTracker == nil {
+			panic("proxyTracker should be initialized prior to calling getProxyWatcher")
+		}
+		return a.proxyTracker
 	} else {
+		// If proxyConfig is not initialized, panic!
+		if a.proxyConfig == nil {
+			panic("proxyConfig should be initialized prior to calling getProxyWatcher")
+		}
 		a.logger.Trace("returning configSource for getProxyWatcher")
 		return localproxycfg.NewConfigSource(a.proxyConfig)
 	}
@@ -4606,6 +4616,11 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
 	}
 
+	// If there's no delegate yet, panic. This should prevent bad refactors when we
+	// call this function before a.delegate is set.
+	if a.delegate == nil {
+		panic("agent's delegate must be initialized prior to calling proxyDataSources")
+	}
 	if server, ok := a.delegate.(*consul.Server); ok {
 		deps := proxycfgglue.ServerDataSourceDeps{
 			Datacenter:     a.config.Datacenter,
