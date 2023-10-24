@@ -7,26 +7,28 @@
   @list
   (if @partition (hash Name=@partition) (hash Name="default"))
   (is-href "dc.partitions" @dc.Name)
-  as |SNL partition isManaging|
+  (can "choose partitions" dc=@dc)
+  as |SNL partition isManaging canChoose|
 }}
-  {{#if (can "choose partitions" dc=@dc)}}
-    <DataSource
-      @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
-      @onchange={{fn (optional @onchange)}}
-    />
-    <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
-    <NavSelector
-      @list={{@list}}
-      @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
-      @item={{partition}}
-      @key="Name"
-      @icon="users"
-      @placeholder="Search partitions"
-      @footerLink={{href-to "dc.partitions" @dc.Name}}
-      @footerLinkText="View all partitions"
-      data-test-datacenter-disclosure-menu
-      as |Dropdown item|
-    >
+  <DataSource
+    @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
+    @onchange={{fn (optional @onchange)}}
+  />
+  <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
+  <NavSelector
+    @list={{@list}}
+    @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
+    @item={{partition}}
+    @key="Name"
+    @icon="users"
+    @placeholder="Search partitions"
+    @footerLink={{href-to "dc.partitions" @dc.Name}}
+    @footerLinkText="View all partitions"
+    @disabled={{not canChoose}}
+    data-test-datacenter-disclosure-menu
+    as |Dropdown item|
+  >
+    {{#if canChoose}}
       <Dropdown.Checkmark
         @selected={{eq partition.Name item.Name}}
         @href={{if
@@ -46,21 +48,8 @@
       >
         {{item.Name}}
       </Dropdown.Checkmark>
-    </NavSelector>
-
-  {{else}}
-    <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
-    <SNL.Item class="consul-side-nav__datacenter">
-      <FlightIcon
-        @name="users"
-        @color="var(--token-form-control-disabled-foreground-color)"
-      />
-      <Hds::Text::Display
-        @size="200"
-        @color="disabled"
-      >{{partition.Name}}</Hds::Text::Display>
-    </SNL.Item>
-  {{/if}}
+    {{/if}}
+  </NavSelector>
 {{/let}}
 {{!-- 
 {{#let

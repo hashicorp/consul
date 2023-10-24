@@ -17,6 +17,7 @@
         class='consul-side-nav__selector-toggle'
         @icon={{@icon}}
         @text={{get @item @key}}
+        disabled={{eq @disabled true}}
       />
       <DD.Header @hasDivider={{true}}>
         {{#if @description}}
