@@ -666,28 +666,6 @@ func (a *Agent) Start(ctx context.Context) error {
 
 	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
 
-	// Start the proxy config manager.
-	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		DataSources: a.proxyDataSources(),
-		Logger:      a.logger.Named(logging.ProxyConfig),
-		Source: &structs.QuerySource{
-			Datacenter:    a.config.Datacenter,
-			Segment:       a.config.SegmentName,
-			Node:          a.config.NodeName,
-			NodePartition: a.config.PartitionOrEmpty(),
-		},
-		DNSConfig: proxycfg.DNSConfig{
-			Domain:    a.config.DNSDomain,
-			AltDomain: a.config.DNSAltDomain,
-		},
-		TLSConfigurator:       a.tlsConfigurator,
-		IntentionDefaultAllow: intentionDefaultAllow,
-		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
-	})
-	if err != nil {
-		return err
-	}
-
 	// proxyWatcher will be used in the creation of the XDS server and also
 	// in the registration of the xds controller.
 	proxyWatcher := a.getProxyWatcher()
@@ -773,6 +751,28 @@ func (a *Agent) Start(ctx context.Context) error {
 			return fmt.Errorf("Failed to start Consul client: %v", err)
 		}
 		a.delegate = client
+	}
+
+	// Start the proxy config manager.
+	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
+		DataSources: a.proxyDataSources(),
+		Logger:      a.logger.Named(logging.ProxyConfig),
+		Source: &structs.QuerySource{
+			Datacenter:    a.config.Datacenter,
+			Segment:       a.config.SegmentName,
+			Node:          a.config.NodeName,
+			NodePartition: a.config.PartitionOrEmpty(),
+		},
+		DNSConfig: proxycfg.DNSConfig{
+			Domain:    a.config.DNSDomain,
+			AltDomain: a.config.DNSAltDomain,
+		},
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
+		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
+	})
+	if err != nil {
+		return err
 	}
 
 	// The staggering of the state syncing depends on the cluster size.
