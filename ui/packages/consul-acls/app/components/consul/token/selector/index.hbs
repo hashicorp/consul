@@ -72,8 +72,8 @@
           @isHrefExternal={{false}}
         />
         <dd.Interactive
-          @text="Sign in"
-          data-test-auth-menu-signin
+          @text="Log in"
+          data-test-auth-menu-login
           {{on "click" (optional this.modal.open)}}
         />
       </Hds::Dropdown>
@@ -120,11 +120,14 @@
       >
         <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
         {{#if authDialog.token.AccessorID}}
-          <dd.Title @text="Signed in with ACL Token" />
           <dd.Description
-            @text={{string-substring
-              authDialog.token.AccessorID
-              (sub authDialog.token.AccessorID.length 8)
+            @text={{t
+              "components.consul.token.selector.logged-in"
+              token=(string-substring
+                authDialog.token.AccessorID
+                (sub authDialog.token.AccessorID.length 8)
+              )
+              htmlSafe=true
             }}
           />
         {{/if}}
@@ -138,8 +141,8 @@
           @isHrefExternal={{false}}
         />
         <dd.Interactive
-          @text="Sign out"
-          data-test-auth-menu-signout
+          @text="Log out"
+          data-test-auth-menu-logout
           {{on "click" (optional authDialog.logout)}}
         />
       </Hds::Dropdown>

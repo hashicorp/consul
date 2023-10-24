@@ -43,7 +43,7 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => (
     },
   };
   page.navigation.authMenu = clickable('[data-test-auth-menu]');
-  page.navigation.login = clickable('[data-test-auth-menu-signin]');
+  page.navigation.login = clickable('[data-test-auth-menu-login]');
   page.navigation.dc = clickable('[data-test-datacenter-menu] button');
   page.navigation.nspace = clickable('[data-test-nspace-menu] button');
   page.navigation.manageNspaces = clickable(

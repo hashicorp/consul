@@ -59,6 +59,15 @@
     li.consul-side-nav__selector {
       .consul-side-nav__selector-toggle {
         min-width: 15.5rem;
+
+        &:disabled {
+          color: var(--token-color-foreground-disabled);
+          border-color: var(--token-color-border-primary);
+
+          &:hover {
+            background-color: transparent;
+          }
+        }
       }
 
       .hds-dropdown__content {

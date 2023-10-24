@@ -73,7 +73,7 @@
   </:notifications>
 
   <:side-nav>
-    <Hds::SideNav @isResponsive={{true}} @isCollapsible={{true}} class='consul-side-nav' data-test-navigation>
+    <Hds::SideNav @isResponsive={{true}} class='consul-side-nav' data-test-navigation>
       <:header>
         <Hds::SideNav::Header>
           <:logo>
@@ -87,7 +87,6 @@
           <:actions>
             <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='left' as |dd|>
               <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
-              <dd.Title @text='Help & Support' />
               <dd.Interactive
                 @href={{env 'CONSUL_DOCS_URL'}}
                 @isHrefExternal={{true}}
@@ -98,7 +97,6 @@
                 @isHrefExternal={{true}}
                 @text='Tutorials'
               />
-              <dd.Separator />
               <dd.Interactive
                 @href={{env 'CONSUL_REPO_ISSUES_URL'}}
                 @isHrefExternal={{true}}
