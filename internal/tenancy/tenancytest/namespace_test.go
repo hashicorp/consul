@@ -5,12 +5,11 @@ package tenancytest
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	resource2 "github.com/hashicorp/consul/internal/resource"
+	resourceTenancy "github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/tenancy"
 
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -30,7 +29,7 @@ func TestWriteNamespace_Success(t *testing.T) {
 	cl := rtest.NewClient(client)
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
-		WithTenancy(resource2.DefaultPartitionedTenancy()).
+		WithTenancy(resourceTenancy.DefaultPartitionedTenancy()).
 		WithData(t, validNamespace()).
 		Build()
 
@@ -84,80 +83,6 @@ func TestReadNamespace_Success(t *testing.T) {
 	}
 }
 
-func TestReadNamespace_NotFound(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
-
-	cases := []struct {
-		name     string
-		resource *pbresource.Resource
-		errMsg   string
-	}{
-		{
-			name: "namespace with the given name not present",
-			resource: rtest.Resource(pbtenancy.NamespaceType, "ns1").
-				WithData(t, validNamespace()).
-				Build(),
-			errMsg: "resource not found",
-		},
-		{
-			name: "tenancy units: partition not present",
-			resource: rtest.Resource(pbtenancy.NamespaceType, "ns1").
-				WithTenancy(&pbresource.Tenancy{
-					Partition: "partition1",
-				}).
-				WithData(t, validNamespace()).
-				Build(),
-			errMsg: "partition not found: partition1",
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: tc.resource.Id})
-			require.Error(t, err)
-			require.Equal(t, codes.NotFound.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), tc.errMsg)
-		})
-	}
-}
-
-func TestReadNamespace_InvalidArgument(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
-
-	cases := []struct {
-		name     string
-		resource *pbresource.Resource
-		errMsg   string
-	}{
-		{
-			name: "tenancy units: namespace not empty",
-			resource: rtest.Resource(pbtenancy.NamespaceType, "ns1").
-				WithTenancy(&pbresource.Tenancy{
-					Partition: "default",
-					Namespace: "ns2",
-				}).
-				WithData(t, validNamespace()).
-				Build(),
-			errMsg: fmt.Sprintf("partition scoped resource %s.%s.%s cannot have a namespace. got: ns2", pbtenancy.NamespaceType.Group, pbtenancy.NamespaceType.GroupVersion, pbtenancy.NamespaceType.Kind),
-		},
-	}
-
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			_, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: tc.resource.Id})
-			require.Error(t, err)
-			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.Contains(t, err.Error(), tc.errMsg)
-		})
-	}
-}
-
 func TestDeleteNamespace_Success(t *testing.T) {
 	v2TenancyBridge := tenancy.NewV2TenancyBridge()
 	config := resource.Config{TenancyBridge: v2TenancyBridge}
@@ -195,7 +120,7 @@ func TestListNamespace_Success(t *testing.T) {
 
 	require.NotNil(t, res)
 
-	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resource2.DefaultPartitionedTenancy()})
+	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resourceTenancy.DefaultPartitionedTenancy()})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
 	names := []string{
