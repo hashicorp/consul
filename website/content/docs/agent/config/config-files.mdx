@@ -607,6 +607,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     This was added in Consul 1.0. Must be a duration value such as 10s. Defaults
     to 7s.
 
+  - `grpc_keepalive_interval` - A duration that determines the frequency that Consul servers send keep-alive messages to inactive gRPC clients. Configure this setting to modify how quickly Consul detects and removes improperly closed xDS or peering connections. Default is `30s`.
+
+  - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
+
 - `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
