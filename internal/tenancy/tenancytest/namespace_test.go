@@ -7,9 +7,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	resourceTenancy "github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/tenancy"
 
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -24,12 +24,12 @@ import (
 
 func TestWriteNamespace_Success(t *testing.T) {
 	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
+	config := svc.Config{TenancyBridge: v2TenancyBridge}
 	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
 	cl := rtest.NewClient(client)
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
-		WithTenancy(resourceTenancy.DefaultPartitionedTenancy()).
+		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, validNamespace()).
 		Build()
 
@@ -43,7 +43,7 @@ func TestWriteNamespace_Success(t *testing.T) {
 
 func TestReadNamespace_Success(t *testing.T) {
 	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
+	config := svc.Config{TenancyBridge: v2TenancyBridge}
 	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
 	cl := rtest.NewClient(client)
 
@@ -85,7 +85,7 @@ func TestReadNamespace_Success(t *testing.T) {
 
 func TestDeleteNamespace_Success(t *testing.T) {
 	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
+	config := svc.Config{TenancyBridge: v2TenancyBridge}
 	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
 	cl := rtest.NewClient(client)
 
@@ -107,7 +107,7 @@ func TestDeleteNamespace_Success(t *testing.T) {
 
 func TestListNamespace_Success(t *testing.T) {
 	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
+	config := svc.Config{TenancyBridge: v2TenancyBridge}
 	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
 	cl := rtest.NewClient(client)
 
@@ -120,7 +120,7 @@ func TestListNamespace_Success(t *testing.T) {
 
 	require.NotNil(t, res)
 
-	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resourceTenancy.DefaultPartitionedTenancy()})
+	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resource.DefaultPartitionedTenancy()})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
 	names := []string{
