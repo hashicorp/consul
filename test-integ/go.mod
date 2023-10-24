@@ -127,7 +127,7 @@ require (
 	github.com/hashicorp/raft v1.5.0 // indirect
 	github.com/hashicorp/raft-autopilot v0.1.6 // indirect
 	github.com/hashicorp/raft-boltdb/v2 v2.2.2 // indirect
-	github.com/hashicorp/raft-wal v0.3.0 // indirect
+	github.com/hashicorp/raft-wal v0.4.1 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0 // indirect
 	github.com/hashicorp/vault/api v1.8.3 // indirect
