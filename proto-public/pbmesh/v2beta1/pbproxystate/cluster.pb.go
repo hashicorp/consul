@@ -10,7 +10,6 @@
 package pbproxystate
 
 import (
-	v2beta1 "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
