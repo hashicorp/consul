@@ -20,3 +20,11 @@ func clusterPrefixForUpstream(u *topology.Upstream) string {
 		return strings.Join([]string{u.ID.Name, u.ID.Namespace, u.Peer, "external"}, ".")
 	}
 }
+
+func clusterPrefix(port string, svcID topology.ServiceID, cluster string) string {
+	if svcID.PartitionOrDefault() == "default" {
+		return strings.Join([]string{port, svcID.Name, svcID.Namespace, cluster, "internal"}, ".")
+	} else {
+		return strings.Join([]string{port, svcID.Name, svcID.Namespace, svcID.Partition, cluster, "internal-v1"}, ".")
+	}
+}

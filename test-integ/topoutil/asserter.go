@@ -52,6 +52,10 @@ func NewAsserter(sp SprawlLite) *Asserter {
 	}
 }
 
+func (a *Asserter) MustGetHTTPClient(t *testing.T, cluster string) *http.Client {
+	return a.mustGetHTTPClient(t, cluster)
+}
+
 func (a *Asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client {
 	client, err := a.httpClientFor(cluster)
 	require.NoError(t, err)
@@ -260,7 +264,7 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 
 	var (
 		node   = fortioSvc.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault(upstream.PortName))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
@@ -286,7 +290,7 @@ func (a *Asserter) FortioFetch2FortioName(
 
 	var (
 		node   = fortioSvc.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault("http"))
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioSvc.PortOrDefault(upstream.PortName))
 		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 

@@ -29,10 +29,7 @@ func (i Images) LocalDataplaneImage() string {
 		tag = "latest"
 	}
 
-	repo, name, ok := strings.Cut(img, "/")
-	if ok {
-		name = repo + "-" + name
-	}
+	name := strings.ReplaceAll(img, "/", "-")
 
 	// ex: local/hashicorp-consul-dataplane:1.1.0
 	return "local/" + name + ":" + tag
@@ -60,19 +57,8 @@ func spliceImageNamesAndTags(base1, base2, nameSuffix string) string {
 		tag2 = "latest"
 	}
 
-	repo1, name1, ok1 := strings.Cut(img1, "/")
-	repo2, name2, ok2 := strings.Cut(img2, "/")
-
-	if ok1 {
-		name1 = repo1 + "-" + name1
-	} else {
-		name1 = repo1
-	}
-	if ok2 {
-		name2 = repo2 + "-" + name2
-	} else {
-		name2 = repo2
-	}
+	name1 := strings.ReplaceAll(img1, "/", "-")
+	name2 := strings.ReplaceAll(img2, "/", "-")
 
 	if nameSuffix != "" {
 		nameSuffix = "-" + nameSuffix

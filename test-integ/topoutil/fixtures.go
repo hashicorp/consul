@@ -4,6 +4,7 @@
 package topoutil
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
@@ -20,6 +21,7 @@ func NewFortioServiceWithDefaults(
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
+		tcpPort   = 8078
 		adminPort = 19000
 	)
 	sid.Normalize()
@@ -36,19 +38,61 @@ func NewFortioServiceWithDefaults(
 			"server",
 			"-http-port", strconv.Itoa(httpPort),
 			"-grpc-port", strconv.Itoa(grpcPort),
+			"-tcp-port", strconv.Itoa(tcpPort),
 			"-redirect-port", "-disabled",
 		},
 	}
 
 	if nodeVersion == topology.NodeVersionV2 {
 		svc.Ports = map[string]*topology.Port{
-			// TODO(rb/v2): once L7 works in v2 switch these back
-			"http":     {Number: httpPort, Protocol: "tcp"},
-			"http-alt": {Number: httpPort, Protocol: "tcp"},
-			"grpc":     {Number: grpcPort, Protocol: "tcp"},
-			// "http":     {Number: httpPort, Protocol: "http"},
-			// "http-alt": {Number: httpPort, Protocol: "http"},
-			// "grpc":     {Number: grpcPort, Protocol: "grpc"},
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
+		}
+	} else {
+		svc.Port = httpPort
+	}
+
+	if mut != nil {
+		mut(svc)
+	}
+	return svc
+}
+
+func NewBlankspaceServiceWithDefaults(
+	cluster string,
+	sid topology.ServiceID,
+	nodeVersion topology.NodeVersion,
+	mut func(s *topology.Service),
+) *topology.Service {
+	const (
+		httpPort  = 8080
+		grpcPort  = 8079
+		tcpPort   = 8078
+		adminPort = 19000
+	)
+	sid.Normalize()
+
+	svc := &topology.Service{
+		ID:             sid,
+		Image:          HashicorpDockerProxy + "/rboyer/blankspace",
+		EnvoyAdminPort: adminPort,
+		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
+		Command: []string{
+			"-name", cluster + "::" + sid.String(),
+			"-http-addr", fmt.Sprintf(":%d", httpPort),
+			"-grpc-addr", fmt.Sprintf(":%d", grpcPort),
+			"-tcp-addr", fmt.Sprintf(":%d", tcpPort),
+		},
+	}
+
+	if nodeVersion == topology.NodeVersionV2 {
+		svc.Ports = map[string]*topology.Port{
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
 		}
 	} else {
 		svc.Port = httpPort
