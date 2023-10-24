@@ -1039,9 +1039,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
 
 			// Destinations will need endpoint refs set up.
-			proxyType := strings.Split(name, "/")[0]
-			if proxyType == "destination" && len(pst.ProxyState.Endpoints) == 0 {
-				suite.addRequiredEndpointsAndRefs(pst, proxyType)
+			if strings.Split(name, "/")[0] == "destination" && len(pst.ProxyState.Endpoints) == 0 {
+				suite.addRequiredEndpointsAndRefs(pst)
 			}
 
 			// Store the initial ProxyStateTemplate.
@@ -1085,7 +1084,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 	}
 }
 
-func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.ProxyStateTemplate, proxyType string) {
+func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.ProxyStateTemplate) {
 	//get service data
 	serviceData := &pbcatalog.Service{}
 	var vp uint32 = 7000
