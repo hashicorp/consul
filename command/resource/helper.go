@@ -96,21 +96,7 @@ func parseJson(js string) (*pbresource.Resource, error) {
 }
 
 func ParseResourceFromFile(filePath string) (*pbresource.Resource, error) {
-	data, err := helpers.LoadDataSourceNoRaw(filePath, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to load data: %v", err)
-	}
-	var parsedResource *pbresource.Resource
-	if isHCL([]byte(data)) {
-		parsedResource, err = resourcehcl.Unmarshal([]byte(data), consul.NewTypeRegistry())
-	} else {
-		parsedResource, err = parseJson(data)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("Failed to decode resource from input file: %v", err)
-	}
-
-	return parsedResource, nil
+	return ParseResourceInput(filePath, nil)
 }
 
 // this is an inlined variant of hcl.lexMode()
@@ -165,23 +151,17 @@ func ParseInputParams(inputArgs []string, flags *flag.FlagSet) error {
 }
 
 func GetTypeAndResourceName(args []string) (gvk *GVK, resourceName string, e error) {
+	if len(args) < 2 {
+		return nil, "", fmt.Errorf("Must specify two arguments: resource type and resource name")
+	}
 	// it has to be resource name after the type
 	if strings.HasPrefix(args[1], "-") {
 		return nil, "", fmt.Errorf("Must provide resource name right after type")
 	}
-
-	s := strings.Split(args[0], ".")
-	if len(s) != 3 {
-		return nil, "", fmt.Errorf("Must include resource type argument in group.verion.kind format")
-	}
-
-	gvk = &GVK{
-		Group:   s[0],
-		Version: s[1],
-		Kind:    s[2],
-	}
-
 	resourceName = args[1]
+
+	gvk, e = inferGVKFromResourceType(args[0])
+
 	return
 }
 
@@ -281,4 +261,55 @@ func (resource *Resource) List(gvk *GVK, q *client.QueryOptions) (*ListResponse,
 	}
 
 	return out, nil
+}
+
+func inferGVKFromResourceType(resourceType string) (*GVK, error) {
+	s := strings.Split(resourceType, ".")
+	switch length := len(s); {
+	// only kind is provided
+	case length == 1:
+		kindToGVKMap := BuildKindToGVKMap()
+		kind := strings.ToLower(s[0])
+		switch len(kindToGVKMap[kind]) {
+		// no g.v.k is found
+		case 0:
+			return nil, fmt.Errorf("The shorthand name does not map to any existing resource type, please check `consul api-resources`")
+		// only one is found
+		case 1:
+			// infer gvk from resource kind
+			gvkSplit := strings.Split(kindToGVKMap[kind][0], ".")
+			return &GVK{
+				Group:   gvkSplit[0],
+				Version: gvkSplit[1],
+				Kind:    gvkSplit[2],
+			}, nil
+		// it alerts error if any conflict is found
+		default:
+			return nil, fmt.Errorf("The shorthand name has conflicts %v, please use the full name", kindToGVKMap[s[0]])
+		}
+	case length == 3:
+		return &GVK{
+			Group:   s[0],
+			Version: s[1],
+			Kind:    s[2],
+		}, nil
+	default:
+		return nil, fmt.Errorf("Must provide resource type argument with either in group.verion.kind format or its shorthand name")
+	}
+}
+
+func BuildKindToGVKMap() map[string][]string {
+	// this use the local copy of registration to build map
+	typeRegistry := consul.NewTypeRegistry()
+	kindToGVKMap := map[string][]string{}
+	for _, r := range typeRegistry.Types() {
+		gvkString := fmt.Sprintf("%s.%s.%s", r.Type.Group, r.Type.GroupVersion, r.Type.Kind)
+		kindKey := strings.ToLower(r.Type.Kind)
+		if len(kindToGVKMap[kindKey]) == 0 {
+			kindToGVKMap[kindKey] = []string{gvkString}
+		} else {
+			kindToGVKMap[kindKey] = append(kindToGVKMap[kindKey], gvkString)
+		}
+	}
+	return kindToGVKMap
 }
