@@ -7,6 +7,7 @@ package hashicorp.consul.mesh.v2beta1.pbproxystate;
 
 import "google/protobuf/duration.proto";
 import "google/protobuf/wrappers.proto";
+import "pbcatalog/v2beta1/protocol.proto";
 import "pbmesh/v2beta1/pbproxystate/header_mutations.proto";
 import "pbmesh/v2beta1/pbproxystate/protocol.proto";
 import "pbmesh/v2beta1/pbproxystate/transport_socket.proto";
