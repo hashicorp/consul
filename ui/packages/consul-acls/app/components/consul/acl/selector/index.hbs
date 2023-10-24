@@ -6,13 +6,21 @@
 {{#let @list as |SNL|}}
   {{#if (can "use acls")}}
     <SNL.Title>Access Controls</SNL.Title>
-    <SNL.Link
-      @text="Tokens"
-      @href={{href-to "dc.acls.tokens" @dc.Name}}
-      @isHrefExternal={{false}}
-      @isActive={{is-href "dc.acls.tokens" @dc.Name}}
-      data-test-main-nav-tokens
-    />
+  {{else}}
+    <SNL.Title {{tooltip "ACLs are not currently enabled in this cluster"}}>
+      Access Controls
+    </SNL.Title>
+  {{/if}}
+
+  <SNL.Link
+    @text="Tokens"
+    @href={{href-to "dc.acls.tokens" @dc.Name}}
+    @isHrefExternal={{false}}
+    @isActive={{is-href "dc.acls.tokens" @dc.Name}}
+    data-test-main-nav-tokens
+  />
+
+  {{#if (can "read acls")}}
     <SNL.Link
       @text="Policies"
       @href={{href-to "dc.acls.policies" @dc.Name}}
@@ -34,26 +42,9 @@
       @isActive={{is-href "dc.acls.auth-methods" @dc.Name}}
       data-test-main-nav-auth-methods
     />
-  {{else}}
-    <SNL.Title {{tooltip "ACLs are not currently enabled in this cluster"}}>
-      Access Controls
-    </SNL.Title>
-    <SNL.Link
-      @text="Tokens"
-      @href={{href-to "dc.acls.tokens" @dc.Name}}
-      @isHrefExternal={{false}}
-      @isActive={{is-href "dc.acls.tokens" @dc.Name}}
-      data-test-main-nav-tokens
-    />
-    <SNL.Item
-      class="consul-disabled-nav"
-      data-test-main-nav-policies
-    >Policies</SNL.Item>
-    <SNL.Item
-      class="consul-disabled-nav"
-      data-test-main-nav-roles
-    >Roles</SNL.Item>
-    <SNL.Item class="consul-disabled-nav" data-test-main-nav-auth-methods>Auth
-      Methods</SNL.Item>
+  {{else if (not (can "use acls"))}}
+    <SNL.Item class="consul-disabled-nav" data-test-main-nav-policies>Policies</SNL.Item>
+    <SNL.Item class="consul-disabled-nav" data-test-main-nav-roles>Roles</SNL.Item>
+    <SNL.Item class="consul-disabled-nav" data-test-main-nav-auth-methods>Auth Methods</SNL.Item>
   {{/if}}
 {{/let}}
