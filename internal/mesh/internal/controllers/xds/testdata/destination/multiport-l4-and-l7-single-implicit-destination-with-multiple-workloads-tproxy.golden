@@ -145,7 +145,7 @@
         {
           "l7": {
             "route": {
-              "name": "default/local/default/api-app"
+              "name": "default/local/default/api-app:http"
             },
             "statPrefix": "upstream."
           },
@@ -180,10 +180,11 @@
     }
   ],
   "routes": {
-    "default/local/default/api-app": {
+    "default/local/default/api-app:http": {
       "virtualHosts": [
         {
-          "name": "default/local/default/api-app",
+          "domains": ["*"],
+          "name": "default/local/default/api-app:http",
           "routeRules": [
             {
               "destination": {
