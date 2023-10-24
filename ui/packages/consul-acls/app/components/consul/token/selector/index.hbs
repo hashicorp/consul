@@ -57,7 +57,7 @@
 
     <Hds::Dropdown class="hds-side-nav__dropdown" @listPosition="left" as |dd|>
 
-      <dd.ToggleIcon @icon="user" @text="Account menu" />
+      <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
       <dd.Interactive
         @href={{href-to
           "settings"
@@ -68,6 +68,7 @@
       />
       <dd.Interactive
         @text="Sign in"
+        data-test-auth-menu-signin
         {{on "click" (optional this.modal.open)}}
       />
     </Hds::Dropdown>
@@ -108,7 +109,7 @@
     </ModalDialog>
 
     <Hds::Dropdown class="hds-side-nav__dropdown" @listPosition="left" as |dd|>
-      <dd.ToggleIcon @icon="user" @text="Account menu" />
+      <dd.ToggleIcon @icon="user" @text="Auth menu" data-test-auth-menu />
       {{#if authDialog.token.AccessorID}}
         <dd.Title @text="Signed in with ACL Token" />
         <dd.Description
@@ -129,6 +130,7 @@
       />
       <dd.Interactive
         @text="Sign out"
+        data-test-auth-menu-signout
         {{on "click" (optional authDialog.logout)}}
       />
     </Hds::Dropdown>
