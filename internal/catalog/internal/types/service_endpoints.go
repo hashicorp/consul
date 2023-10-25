@@ -144,7 +144,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 			})
 		}
 
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+		if protoErr := ValidateProtocol(port.Protocol); protoErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapValue{
 				Map: "ports",
 				Key: portName,

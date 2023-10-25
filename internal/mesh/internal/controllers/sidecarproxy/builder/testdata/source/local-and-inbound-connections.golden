@@ -5,13 +5,15 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "exposed_cluster_9090"
+        "name": "exposed_cluster_9090",
+        "protocol": "PROTOCOL_HTTP"
       },
       "exposed_cluster_9091": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "exposed_cluster_9091"
+        "name": "exposed_cluster_9091",
+        "protocol": "PROTOCOL_HTTP2"
       },
       "local_app:port1": {
         "endpointGroup": {
@@ -26,7 +28,8 @@
             }
           }
         },
-        "name": "local_app:port1"
+        "name": "local_app:port1",
+        "protocol": "PROTOCOL_TCP"
       },
       "local_app:port3": {
         "endpointGroup": {
@@ -41,7 +44,8 @@
             }
           }
         },
-        "name": "local_app:port3"
+        "name": "local_app:port3",
+        "protocol": "PROTOCOL_HTTP"
       }
     },
     "endpoints": {

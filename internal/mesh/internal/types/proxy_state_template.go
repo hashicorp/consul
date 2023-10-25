@@ -5,7 +5,8 @@ package types
 
 import (
 	"fmt"
-
+	"github.com/hashicorp/consul/internal/catalog"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
@@ -89,6 +90,28 @@ func ValidateProxyStateTemplate(res *pbresource.Resource) error {
 				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
 					Name:    "name",
 					Wrapped: fmt.Errorf("cluster name %q does not match map key %q", cluster.Name, name),
+				}))
+			}
+
+			if portErr := catalog.ValidateProtocol(pbcatalog.Protocol(cluster.Protocol)); portErr != nil {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: portErr,
+				}))
+			}
+
+			if pbcatalog.Protocol(cluster.Protocol) == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: resource.ErrMissing,
+				}))
+			}
+
+			if pbcatalog.Protocol(cluster.Protocol) == pbcatalog.Protocol_PROTOCOL_MESH {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name: "protocol",
+					Wrapped: fmt.Errorf("protocol %q is not a valid cluster traffic protocol",
+						cluster.Protocol.String()),
 				}))
 			}
 

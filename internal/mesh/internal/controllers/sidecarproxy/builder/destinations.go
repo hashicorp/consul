@@ -290,7 +290,6 @@ func (b *Builder) buildDestination(
 		clusterName := fmt.Sprintf("%s.%s", portName, sni)
 
 		egName := ""
-
 		if details.FailoverConfig != nil {
 			egName = fmt.Sprintf("%s%d~%s", xdscommon.FailoverClusterNamePrefix, 0, clusterName)
 		}
@@ -338,7 +337,7 @@ func (b *Builder) buildDestination(
 			}
 		}
 
-		b.addCluster(clusterName, endpointGroups, connectTimeout)
+		b.addCluster(clusterName, endpointGroups, connectTimeout, pbproxystate.Protocol(effectiveProtocol))
 	}
 
 	return b
@@ -360,6 +359,7 @@ func (b *Builder) addNullRouteCluster() *Builder {
 				},
 			},
 		},
+		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
 	}
 
 	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
@@ -403,6 +403,7 @@ func (b *Builder) addL4ClusterForDirect(clusterName string) *Builder {
 				},
 			},
 		},
+		Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
 	}
 
 	b.proxyStateTemplate.ProxyState.Clusters[cluster.Name] = cluster
@@ -460,6 +461,7 @@ func (b *ListenerBuilder) addL7Router(routeName string, statPrefix string, proto
 			},
 			StatPrefix:  statPrefix,
 			StaticRoute: false,
+			Protocol:    protocolMapCatalogToL7[protocol],
 		},
 	}
 
@@ -573,10 +575,12 @@ func (b *Builder) addCluster(
 	clusterName string,
 	endpointGroups []*pbproxystate.EndpointGroup,
 	connectTimeout *durationpb.Duration,
+	protocol pbproxystate.Protocol,
 ) {
 	cluster := &pbproxystate.Cluster{
 		Name:        clusterName,
 		AltStatName: clusterName,
+		Protocol:    protocol,
 	}
 	switch len(endpointGroups) {
 	case 0:

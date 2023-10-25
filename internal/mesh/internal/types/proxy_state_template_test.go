@@ -51,7 +51,8 @@ func TestValidateProxyStateTemplate(t *testing.T) {
 
 	clusterForGroups := func(name string, groups ...*pbproxystate.EndpointGroup) *pbproxystate.Cluster {
 		cluster := &pbproxystate.Cluster{
-			Name: name,
+			Name:     name,
+			Protocol: pbproxystate.Protocol_PROTOCOL_TCP,
 		}
 
 		require.NotEmpty(t, groups)
@@ -83,6 +84,27 @@ func TestValidateProxyStateTemplate(t *testing.T) {
 	// also empty map keys
 	cases := map[string]testcase{
 		// ============== COMMON ==============
+		"cluster with invalid protocol": {
+			pst: pstForCluster("api-cluster", &pbproxystate.Cluster{
+				Name:     "api-cluster",
+				Protocol: 100,
+			}),
+			expectErr: `invalid value of key "api-cluster" within clusters: invalid "protocol" field: not a supported enum value: 100`,
+		},
+		"cluster with mesh protocol": {
+			pst: pstForCluster("api-cluster", &pbproxystate.Cluster{
+				Name:     "api-cluster",
+				Protocol: pbproxystate.Protocol_PROTOCOL_MESH,
+			}),
+			expectErr: `invalid value of key "api-cluster" within clusters: invalid "protocol" field: protocol "PROTOCOL_MESH" is not a valid cluster traffic protocol`,
+		},
+		"cluster with missing protocol": {
+			pst: pstForCluster("api-cluster", &pbproxystate.Cluster{
+				Name:     "api-cluster",
+				Protocol: pbproxystate.Protocol_PROTOCOL_UNSPECIFIED,
+			}),
+			expectErr: `invalid value of key "api-cluster" within clusters: invalid "protocol" field: missing required field`,
+		},
 		"cluster with missing cluster group": {
 			pst: pstForCluster("api-cluster", &pbproxystate.Cluster{
 				Name: "api-cluster",
