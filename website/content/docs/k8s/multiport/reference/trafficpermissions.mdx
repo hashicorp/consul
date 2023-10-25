@@ -1,0 +1,116 @@
+---
+layout: docs
+page_title: Reference topic for structured information
+description: Front-load meta descriptions with keywords and keyword 
+phrases to help readers find the information they are searching for.
+---
+
+# TrafficPermissions configuration reference
+
+This sample page template shows how to format high structured reference 
+information.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, 
+and requirements in <this configuration entry>. Click on a property name 
+to view additional details, including default values.
+
+- [`elem_a`](#elema): data type | default
+- [`elem_b`](#elemb): data type | default
+- [`spec`](#elemb): data type | default
+- [`elem_ba`](#elembelemba): data type | default
+- [`elem_baa`](#elembelembaelembaa): data type | default
+- [`elem_baaa`](#elembelembaelembaa): data type | default
+- [`elem_baab`](#elembelembaelembaa): data type | default
+- [`elem_baac`](#elembelembaelembaa): data type | default
+- [`element_bab`](#elembelembaelembab): data type | default
+
+## Complete configuration
+
+The complete configuration follows the configuration model. Use tabs for 
+each markup language you expect pracitioners to use.
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1    # required
+kind: TrafficPermissions                         # required
+metadata:
+  name: <permissionsResourceName>
+  namespace: <default>
+spec:
+  destination:
+    identityName: <permissionsDestinationService>
+  action: allow
+  permissions:
+    - sources:
+        - namespace: <originNamespace>
+    identityName: <permissionsOriginService>
+      destinationRules:
+        - pathExact:<path/to>
+	    methods: ["GET", "POST"]
+    portNames: ["<servicePortName>"]
+``` 
+## Specification
+
+The specification block contains the details about each configuration. It 
+is a flattened representation of the configuration model block that allows 
+for extended descriptions, examples, and other information to help readers 
+understand the behavior of the configurations. 
+
+### `Elem_a`
+
+Use this space to thoroughly, but succinctly, document the configuration 
+item. This format is intended to allow you to create complete documentation, 
+however, _stay within the scope of the reference_. If the description 
+deviates from the reference material, create a new Concept topic or add the 
+information to an existing Concept.
+
+#### Values
+
+- Default: default value or none
+- This field is required. <Omit this line of the field is optional)
+- Data type: data type
+
+Specify any additional information about the values that you can specify.     
+
+### `Elem_b`
+
+Add your description. You can include example configurations and describe 
+any dependencies or cascading effects that the configuration may have.
+
+#### Values
+
+- Default: default value or none
+- This field is required. <Omit this line of the field is optional)
+- Data type: data type
+
+Specify any additional information about the values that you can specify. 
+
+## Examples
+
+If you have more than one example to show, create an Examples section 
+(general block) and introduce the examples per the style guide.
+
+### Specific use case 
+
+Introduce examples clearly and help readers understand the connections 
+between the example snippet and the configuration element you are trying to 
+explain. Use phrases such as "In the following example, the `elem` performs 
+some action on a service named `service-name`". 
+
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: web-to-api-port-deny
+spec:
+  destination:
+    identityName: api
+  action: deny
+  permissions:
+    - sources:
+        - identityName: web
+      destinationRules:
+        - portNames: ["api"]
+```

@@ -1539,8 +1539,33 @@
             "path": "k8s/multiport/configure"
           },
           {
-            "title": "Consul resource command",
-            "path": "k8s/multiport/reference/resource-command"
+            "title": "Reference",
+            "routes": [
+              {
+                "title": "Consul resource command",
+                "path": "k8s/multiport/reference/resource-command"
+              },
+              {
+                "title": "GRPCRoute resource",
+                "path": "k8s/multiport/reference/grpcroute"
+              },
+              {
+                "title": "HTTPRoute resource",
+                "path": "k8s/multiport/reference/httproute"
+              },
+              {
+                "title": "ProxyConfiguration resource",
+                "path": "k8s/multiport/reference/grpcroute"
+              },
+              {
+                "title": "TCPRoute resource",
+                "path": "k8s/multiport/reference/tcproute"
+              },
+              {
+                "title": "TrafficPermissions resource",
+                "path": "k8s/multiport/reference/trafficpermissions"
+              }
+            ]
           }
         ]
       },
