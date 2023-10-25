@@ -261,15 +261,15 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1TCPRoute)
 
-	api1GRPCRoute := resourcetest.Resource(pbmesh.TCPRouteType, "api-1-grpc-route").
+	api1TCP2Route := resourcetest.Resource(pbmesh.TCPRouteType, "api-1-tcp2-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, &pbmesh.GRPCRoute{
+		WithData(t, &pbmesh.TCPRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
 				Ref:  resource.Reference(api1Service.Id, ""),
-				Port: "grpc",
+				Port: "tcp2",
 			}},
-			Rules: []*pbmesh.GRPCRouteRule{{
-				BackendRefs: []*pbmesh.GRPCBackendRef{
+			Rules: []*pbmesh.TCPRouteRule{{
+				BackendRefs: []*pbmesh.TCPBackendRef{
 					{
 						BackendRef: &pbmesh.BackendReference{
 							Ref: resource.Reference(api2Service.Id, ""),
@@ -303,7 +303,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
 		resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
-		resourcetest.MustDecode[*pbmesh.GRPCRoute](t, api1GRPCRoute),
+		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCP2Route),
 	)
 	require.NotNil(t, api1ComputedRoutes)
 
