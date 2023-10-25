@@ -87,6 +87,7 @@
           <:actions>
             <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='left' as |dd|>
               <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
+              <Debug::Navigation @dropdown={{dd}} />
               <dd.Interactive
                 @href={{env 'CONSUL_DOCS_URL'}}
                 @isHrefExternal={{true}}
