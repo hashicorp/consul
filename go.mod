@@ -27,7 +27,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/fatih/color v1.14.1
+	github.com/fatih/color v1.15.0
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-openapi/runtime v0.25.0
 	github.com/go-openapi/strfmt v0.21.3
@@ -56,23 +56,23 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.7
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.1.6
-	github.com/hashicorp/go-sockaddr v1.0.2
+	github.com/hashicorp/go-sockaddr v1.0.5
 	github.com/hashicorp/go-syslog v1.0.0
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.2.1
-	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/hcdiag v0.5.1
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/hcl/v2 v2.14.1
 	github.com/hashicorp/hcp-scada-provider v0.2.3
 	github.com/hashicorp/hcp-sdk-go v0.61.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
-	github.com/hashicorp/memberlist v0.5.0
-	github.com/hashicorp/raft v1.5.0
+	github.com/hashicorp/memberlist v0.5.1-0.20231024164941-f2362678b85d
+	github.com/hashicorp/raft v1.5.1-0.20231024165115-d79654935a01
 	github.com/hashicorp/raft-autopilot v0.1.6
-	github.com/hashicorp/raft-boltdb/v2 v2.2.2
+	github.com/hashicorp/raft-boltdb/v2 v2.2.3-0.20231024164814-4cd9b96914bd
 	github.com/hashicorp/raft-wal v0.3.0
-	github.com/hashicorp/serf v0.10.1
+	github.com/hashicorp/serf v0.10.2-0.20231025180740-47cf9d6680b5
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0
 	github.com/hashicorp/vault/api v1.8.3
 	github.com/hashicorp/vault/api/auth/gcp v0.3.0
@@ -80,7 +80,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/imdario/mergo v0.3.15
 	github.com/kr/text v0.2.0
-	github.com/miekg/dns v1.1.50
+	github.com/miekg/dns v1.1.56
 	github.com/mitchellh/cli v1.1.5
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.0
@@ -187,7 +187,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/btree v1.0.1 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
@@ -213,7 +213,7 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20220913051719-115f729f3c8c // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
-	github.com/mattn/go-isatty v0.0.17 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
@@ -278,11 +278,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace github.com/hashicorp/raft-boltdb/v2 => /Users/swenson/projects/raft-boltdb/v2
-
-replace github.com/hashicorp/memberlist => /Users/swenson/projects/memberlist
-
-replace github.com/hashicorp/raft => /Users/swenson/projects/raft
-
-replace github.com/hashicorp/serf => /Users/swenson/projects/serf
