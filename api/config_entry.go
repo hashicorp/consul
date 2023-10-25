@@ -341,6 +341,7 @@ type InstanceLevelRateLimits struct {
 	RequestsMaxBurst int `alias:"requests_max_burst"`
 
 	// Routes is a list of rate limits applied to specific routes.
+	// For a given request, the first matching route will be applied, if any
 	// Overrides any top-level configuration.
 	Routes []InstanceLevelRouteRateLimits
 }
