@@ -1,0 +1,62 @@
+---
+layout: docs
+page_title: v1 Catalog API
+description: 
+---
+
+# v1 Catalog API
+
+This topic provides conceptual information about version 1 (v1) of the Consul catalog API. The catalog tracks registered services and their locations for both service discovery and service mesh use cases.
+
+For more information about the information returned when querying the catalog, including filtering options when querying the catalog for a list of nodes, services, or gateways, refer to the [`/catalog` endpoint reference in the HTTP API documentation](/consul/api-docs/catalog).
+
+## Introduction
+
+Consul tracks information about registered services through its Catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/architecture/consensus) when the instance is registered and modified.
+
+Consul uses v1 of the Catalog API by default. Consul v1.17.0 introduces a second version of the Catalog API for testing and development purposes. The catalog APIs cannot run concurrently in a Consul deployment. There is no migration path between catalog versions at this time. For more information, refer to [Consul v2 Catalog API](/consul/docs/architecture/catalog/v2).
+
+## Catalog structure
+
+When Consul registers a service instance using the v1 catalog API, it records the following information about each instance:
+
+v1 Catalog field
+Description
+User-defined or Consul-computed?
+ID
+A unique identifier for a service instance.
+Consul
+Node
+
+Consul
+Address
+The address of the node where the service instance is running.
+Consul
+Tagged Addresses
+
+
+User
+NodeMeta
+
+
+User
+Datacenter
+The name of the datacenter the service is registered in.
+User
+Service
+The name of the service Consul registers the service instance under.
+User
+Agent Check
+The health status of service last reported by the Consul agent.
+Consul
+Health Checks
+The health checks defined for the service. Refer to [define health checks](/consul/docs/services/usage/checks) for more information.
+User
+Partition
+The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
+User
+Locality
+Refer to [`locality`](/consul/docs/agent/config/config-files#locality) for more information.
+User
+
+Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/connect/config-entries/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).

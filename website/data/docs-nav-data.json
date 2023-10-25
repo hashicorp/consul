@@ -103,6 +103,19 @@
         "path": "architecture"
       },
       {
+        "title": "Catalog",
+        "routes": [
+          {
+            "title": "v1 API",
+            "path": "architecture/catalog/v1"
+          },
+          {
+            "title": "v2 API",
+            "path": "architecture/catalog/v2"
+          }
+        ]
+      },
+      {
         "title": "Improving Consul Resilience",
         "path": "architecture/improving-consul-resilience"
       },
