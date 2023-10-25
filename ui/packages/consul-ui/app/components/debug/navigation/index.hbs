@@ -3,6 +3,6 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-  <li>
-    <a href={{href-to 'docs'}} target="_blank">Eng Docs</a>
-  </li>
+{{#let @dropdown as |DD|}}
+  <DD.Interactive @href={{href-to "docs"}} @isHrefExternal={{true}} @text="Eng docs" />
+{{/let}}
