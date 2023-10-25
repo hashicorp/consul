@@ -641,10 +641,13 @@ func (s *ResourceGenerator) makePeerServerClusters(cfgSnap *proxycfg.ConfigSnaps
 
 		var cluster *envoy_cluster_v3.Cluster
 		if servers.UseCDS {
+			// we use strict DNS here since multiple gateways with hostnames
+			// would result in an invalid cluster due to logical DNS requiring
+			// only a single host
 			cluster = s.makeExternalHostnameCluster(cfgSnap, clusterOpts{
 				name:      name,
 				addresses: servers.Addresses,
-			})
+			}, envoy_cluster_v3.Cluster_STRICT_DNS)
 		} else {
 			cluster = s.makeGatewayCluster(cfgSnap, clusterOpts{
 				name: name,
@@ -842,7 +845,7 @@ func (s *ResourceGenerator) makeDestinationClusters(cfgSnap *proxycfg.ConfigSnap
 			if structs.IsIP(address) {
 				cluster = s.makeExternalIPCluster(cfgSnap, opts)
 			} else {
-				cluster = s.makeExternalHostnameCluster(cfgSnap, opts)
+				cluster = s.makeExternalHostnameCluster(cfgSnap, opts, envoy_cluster_v3.Cluster_LOGICAL_DNS)
 			}
 			if err := s.injectGatewayDestinationAddons(cfgSnap, cluster, svcName); err != nil {
 				return nil, err
@@ -1865,8 +1868,8 @@ func (s *ResourceGenerator) makeExternalIPCluster(snap *proxycfg.ConfigSnapshot,
 }
 
 // makeExternalHostnameCluster creates an Envoy cluster for hostname endpoints that will be resolved with DNS
-// This is used by both terminating gateways for Destinations, and Mesh Gateways for peering control plane traffice
-func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSnapshot, opts clusterOpts) *envoy_cluster_v3.Cluster {
+// This is used by both terminating gateways for Destinations, and Mesh Gateways for peering control plane traffic
+func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSnapshot, opts clusterOpts, discoveryType envoy_cluster_v3.Cluster_DiscoveryType) *envoy_cluster_v3.Cluster {
 	cfg, err := config.ParseGatewayConfig(snap.Proxy.Config)
 	if err != nil {
 		// Don't hard fail on a config typo, just warn. The parse func returns
@@ -1881,7 +1884,7 @@ func (s *ResourceGenerator) makeExternalHostnameCluster(snap *proxycfg.ConfigSna
 
 		// Having an empty config enables outlier detection with default config.
 		OutlierDetection:     &envoy_cluster_v3.OutlierDetection{},
-		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_LOGICAL_DNS},
+		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: discoveryType},
 		DnsLookupFamily:      envoy_cluster_v3.Cluster_V4_ONLY,
 	}
 
