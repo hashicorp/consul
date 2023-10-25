@@ -1,124 +1,6 @@
 {
   "proxyState": {
     "clusters": {
-      "http.api-app.default.dc1.internal.foo.consul": {
-        "altStatName": "http.api-app.default.dc1.internal.foo.consul",
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "connectTimeout": "5s",
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "alpnProtocols": [
-                "consul~http"
-              ],
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "sni": "api-app.default.dc1.internal.foo.consul",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
-                  ],
-                  "trustBundlePeerNameKey": "local"
-                }
-              }
-            }
-          }
-        },
-        "name": "http.api-app.default.dc1.internal.foo.consul"
-      },
-      "http.api-app2.default.dc1.internal.foo.consul": {
-        "altStatName": "http.api-app2.default.dc1.internal.foo.consul",
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "connectTimeout": "5s",
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "alpnProtocols": [
-                "consul~http"
-              ],
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "sni": "api-app2.default.dc1.internal.foo.consul",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
-                  ],
-                  "trustBundlePeerNameKey": "local"
-                }
-              }
-            }
-          }
-        },
-        "name": "http.api-app2.default.dc1.internal.foo.consul"
-      },
-      "original-destination": {
-        "endpointGroup": {
-          "passthrough": {
-            "config": {
-              "connectTimeout": "5s"
-            }
-          }
-        },
-        "name": "original-destination"
-      },
-      "tcp.api-app.default.dc1.internal.foo.consul": {
-        "altStatName": "tcp.api-app.default.dc1.internal.foo.consul",
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "connectTimeout": "5s",
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "alpnProtocols": [
-                "consul~tcp"
-              ],
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "sni": "api-app.default.dc1.internal.foo.consul",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
-                  ],
-                  "trustBundlePeerNameKey": "local"
-                }
-              }
-            }
-          }
-        },
-        "name": "tcp.api-app.default.dc1.internal.foo.consul"
-      },
-      "tcp.api-app2.default.dc1.internal.foo.consul": {
-        "altStatName": "tcp.api-app2.default.dc1.internal.foo.consul",
-        "endpointGroup": {
-          "dynamic": {
-            "config": {
-              "connectTimeout": "5s",
-              "disablePanicThreshold": true
-            },
-            "outboundTls": {
-              "alpnProtocols": [
-                "consul~tcp"
-              ],
-              "outboundMesh": {
-                "identityKey": "test-identity",
-                "sni": "api-app2.default.dc1.internal.foo.consul",
-                "validationContext": {
-                  "spiffeIds": [
-                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
-                  ],
-                  "trustBundlePeerNameKey": "local"
-                }
-              }
-            }
-          }
-        },
-        "name": "tcp.api-app2.default.dc1.internal.foo.consul"
-      },
       "grpc.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "grpc.api-app.default.dc1.internal.foo.consul",
         "endpointGroup": {
@@ -144,7 +26,8 @@
             }
           }
         },
-        "name": "grpc.api-app.default.dc1.internal.foo.consul"
+        "name": "grpc.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_GRPC"
       },
       "grpc.api-app2.default.dc1.internal.foo.consul": {
         "altStatName": "grpc.api-app2.default.dc1.internal.foo.consul",
@@ -171,7 +54,131 @@
             }
           }
         },
-        "name": "grpc.api-app2.default.dc1.internal.foo.consul"
+        "name": "grpc.api-app2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_GRPC"
+      },
+      "http.api-app.default.dc1.internal.foo.consul": {
+        "altStatName": "http.api-app.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~http"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "http.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
+      },
+      "http.api-app2.default.dc1.internal.foo.consul": {
+        "altStatName": "http.api-app2.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~http"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "http.api-app2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
+      },
+      "original-destination": {
+        "endpointGroup": {
+          "passthrough": {
+            "config": {
+              "connectTimeout": "5s"
+            }
+          }
+        },
+        "name": "original-destination",
+        "protocol": "PROTOCOL_TCP"
+      },
+      "tcp.api-app.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp.api-app.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "tcp.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
+      },
+      "tcp.api-app2.default.dc1.internal.foo.consul": {
+        "altStatName": "tcp.api-app2.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "tcp.api-app2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -284,11 +291,12 @@
             }
           },
           {
-            "l4": {
-              "cluster": {
-                "name": "grpc.api-app.default.dc1.internal.foo.consul"
+            "l7": {
+              "protocol": "L7_PROTOCOL_GRPC",
+              "route": {
+                "name": "default/local/default/api-app:grpc"
               },
-              "statPrefix": "upstream.grpc.api-app.default.default.dc1"
+              "statPrefix": "upstream."
             },
             "match": {
               "destinationPort": 8081,
@@ -301,11 +309,12 @@
             }
           },
           {
-            "l4": {
-              "cluster": {
-                "name": "grpc.api-app2.default.dc1.internal.foo.consul"
+            "l7": {
+              "protocol": "L7_PROTOCOL_GRPC",
+              "route": {
+                "name": "default/local/default/api-app2:grpc"
               },
-              "statPrefix": "upstream.grpc.api-app2.default.default.dc1"
+              "statPrefix": "upstream."
             },
             "match": {
               "destinationPort": 8081,
@@ -325,6 +334,30 @@
       }
     ],
     "routes": {
+      "default/local/default/api-app2:grpc": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "default/local/default/api-app2:grpc",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "grpc.api-app2.default.dc1.internal.foo.consul"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
       "default/local/default/api-app2:http": {
         "virtualHosts": [
           {
@@ -337,6 +370,30 @@
                 "destination": {
                   "cluster": {
                     "name": "http.api-app2.default.dc1.internal.foo.consul"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "default/local/default/api-app:grpc": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "default/local/default/api-app:grpc",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "grpc.api-app.default.dc1.internal.foo.consul"
                   }
                 },
                 "match": {
@@ -376,6 +433,38 @@
     }
   },
   "requiredEndpoints": {
+    "grpc.api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "grpc.api-app2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
     "http.api-app.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app",
@@ -425,38 +514,6 @@
       "port": "mesh"
     },
     "tcp.api-app2.default.dc1.internal.foo.consul": {
-      "id": {
-        "name": "api-app2",
-        "tenancy": {
-          "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
-        },
-        "type": {
-          "group": "catalog",
-          "groupVersion": "v2beta1",
-          "kind": "ServiceEndpoints"
-        }
-      },
-      "port": "mesh"
-    },
-    "grpc.api-app.default.dc1.internal.foo.consul": {
-      "id": {
-        "name": "api-app",
-        "tenancy": {
-          "namespace": "default",
-          "partition": "default",
-          "peerName": "local"
-        },
-        "type": {
-          "group": "catalog",
-          "groupVersion": "v2beta1",
-          "kind": "ServiceEndpoints"
-        }
-      },
-      "port": "mesh"
-    },
-    "grpc.api-app2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
