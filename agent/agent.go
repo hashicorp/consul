@@ -925,6 +925,7 @@ func (a *Agent) Failed() <-chan struct{} {
 // the PRoxyWatcher interface and registers the XDS server with Consul's
 // external facing GRPC server.
 func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul.Server) {
+	a.logger.Debug("configureXDSServer", "proxyWatcher", proxyWatcher, "server", server)
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
 	if server != nil {
@@ -964,6 +965,7 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul
 }
 
 func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, server *consul.Server) error {
+	a.logger.Debug("listenAndServeGRPC", "proxyTracker", proxyTracker, "server", server)
 	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
 		return nil
 	}
@@ -4570,6 +4572,7 @@ func (a *Agent) listenerPortLocked(svcID structs.ServiceID, checkID structs.Chec
 }
 
 func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
+	a.logger.Debug("proxyDataSources", "server", server)
 	sources := proxycfg.DataSources{
 		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
 		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),

@@ -505,6 +505,9 @@ type ProxyUpdater interface {
 func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	incomingRPCLimiter rpcRate.RequestLimitsHandler, serverLogger hclog.InterceptLogger, proxyUpdater ProxyUpdater) (*Server, error) {
 	logger := flat.Logger
+	logger.Debug("NewServer", "config", config, "flat", flat, "externalGRPCServer", externalGRPCServer,
+		"incomingRPCLimiter", incomingRPCLimiter, "serverLogger", serverLogger, "proxyUpdater", proxyUpdater)
+
 	if err := config.CheckProtocolVersion(); err != nil {
 		return nil, err
 	}
