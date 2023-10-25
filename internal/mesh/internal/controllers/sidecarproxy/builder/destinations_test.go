@@ -32,7 +32,8 @@ var (
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"tcp":  {Port: 7070, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"tcp2": {Port: 7071, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
@@ -48,9 +49,14 @@ var (
 				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
 			},
 			{
+				TargetPort:  "tcp2",
+				VirtualPort: 7071,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+			},
+			{
 				TargetPort:  "grpc",
 				VirtualPort: 8081,
-				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_GRPC,
 			},
 			{
 				TargetPort:  "http",
@@ -257,13 +263,13 @@ func TestBuildExplicitDestinations(t *testing.T) {
 
 	api1GRPCRoute := resourcetest.Resource(pbmesh.TCPRouteType, "api-1-grpc-route").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, &pbmesh.TCPRoute{
+		WithData(t, &pbmesh.GRPCRoute{
 			ParentRefs: []*pbmesh.ParentReference{{
 				Ref:  resource.Reference(api1Service.Id, ""),
 				Port: "grpc",
 			}},
-			Rules: []*pbmesh.TCPRouteRule{{
-				BackendRefs: []*pbmesh.TCPBackendRef{
+			Rules: []*pbmesh.GRPCRouteRule{{
+				BackendRefs: []*pbmesh.GRPCBackendRef{
 					{
 						BackendRef: &pbmesh.BackendReference{
 							Ref: resource.Reference(api2Service.Id, ""),
@@ -297,7 +303,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
 		resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
-		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1GRPCRoute),
+		resourcetest.MustDecode[*pbmesh.GRPCRoute](t, api1GRPCRoute),
 	)
 	require.NotNil(t, api1ComputedRoutes)
 
@@ -334,20 +340,20 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	destinationIpPort2 := &intermediate.Destination{
 		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
-			DestinationPort: "grpc",
+			DestinationPort: "tcp2",
 			Datacenter:      "dc1",
 			ListenAddr: &pbmesh.Destination_IpPort{
 				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 2345},
 			},
 		},
 		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
-		ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "grpc", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+		ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 			switch {
-			case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "grpc":
+			case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 				details.ServiceEndpointsId = api1Endpoints.Id
 				details.ServiceEndpoints = endpointsData
 				details.IdentityRefs = []*pbresource.Reference{api1Identity}
-			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "grpc":
+			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 				details.ServiceEndpointsId = api2Endpoints.Id
 				details.ServiceEndpoints = endpointsData
 				details.IdentityRefs = []*pbresource.Reference{api2Identity}
@@ -378,16 +384,16 @@ func TestBuildExplicitDestinations(t *testing.T) {
 	destinationUnix2 := &intermediate.Destination{
 		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api2Endpoints.Id, ""),
-			DestinationPort: "grpc",
+			DestinationPort: "tcp2",
 			Datacenter:      "dc1",
 			ListenAddr: &pbmesh.Destination_Unix{
 				Unix: &pbmesh.UnixSocketAddress{Path: "/path/to/socket", Mode: "0666"},
 			},
 		},
 		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api2Service),
-		ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "grpc", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+		ComputedPortRoutes: routestest.MutateTargets(t, api2ComputedRoutes.Data, "tcp2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
 			switch {
-			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "grpc":
+			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "tcp2":
 				details.ServiceEndpointsId = api2Endpoints.Id
 				details.ServiceEndpoints = endpointsData
 				details.IdentityRefs = []*pbresource.Reference{api2Identity}
