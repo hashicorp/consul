@@ -59,7 +59,7 @@ We are pleased to announce the following Consul updates.
 
 ## What's deprecated
 
-**Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below: 
+- **Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below: 
 
    ```bash
    $ consul services register -name 'foo~bar%'
