@@ -101,7 +101,7 @@ func ValidateService(res *pbresource.Resource) error {
 			})
 		}
 
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+		if protoErr := ValidateProtocol(port.Protocol); protoErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ports",
 				Index: idx,
