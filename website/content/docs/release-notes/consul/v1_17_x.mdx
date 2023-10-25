@@ -25,7 +25,7 @@ We are pleased to announce the following Consul updates.
 
   <Note> Multi-port is currently a beta feature in Consul v1.17. </Note>
 
-- **Locality-aware service mesh routing:** Locality-aware routing lets operators prioritize routing to upstream instances located in the same zone over instances in alternate zones. If all of the instances of an upstream service within a zone are unavailable, Consul service mesh automatically fails over to healthy instances in adjacent zones, ensuring service connectivity and availability within the datacenter.
+- **Locality-aware service mesh routing (Enterprise):** Locality-aware routing lets operators prioritize routing to upstream instances located in the same zone over instances in alternate zones. If all of the instances of an upstream service within a zone are unavailable, Consul service mesh automatically fails over to healthy instances in adjacent zones, ensuring service connectivity and availability within the datacenter.
 
   This enables operators to reduce service-to-service latency, which helps improve overall service performance and decrease infrastructure costs.
 
@@ -37,13 +37,13 @@ We are pleased to announce the following Consul updates.
 
   Refer to the documentation for [creating sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [creating sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for more information.
 
-- **JWT-based authentication and authorization for API Gateway:** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs. 
+- **JWT-based authentication and authorization for API Gateway (Enterprise):** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs. 
 
   Administrators can control access to services from outside the service mesh without having to modify services that do not support JWT-based authentication/authorization.
 
   Refer to the API gateway JWT documentation for [virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and [Kubernetes-orchestrated](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) networks for more information.
 
-- **Traffic rate limiting for services:**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size. 
+- **Traffic rate limiting for services (Enterprise):**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size. 
 
   Rate limiting helps operators protect service instances from becoming overloaded with requests. They also enable operators to define criteria for allowing traffic to service instances and ensure service capacity is shared fairly. 
 
@@ -59,7 +59,15 @@ We are pleased to announce the following Consul updates.
 
 ## What's deprecated
 
-**Non DNS-compatible service name:** Starting with this release, non DNS-compatible service names are deprecated.
+**Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below: 
+
+   ```bash
+   $ consul services register -name 'foo~bar%'
+   Registered service: foo~bar%
+   $ consul catalog services
+   consul
+   foo~bar%
+   ```
 
 ## Upgrading
 
