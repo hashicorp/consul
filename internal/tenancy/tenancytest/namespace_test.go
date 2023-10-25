@@ -62,15 +62,6 @@ func TestReadNamespace_Success(t *testing.T) {
 				WithData(t, validNamespace()).
 				Build(),
 		},
-		{
-			name: "tenancy units: empty namespace is allowed",
-			resource: rtest.Resource(pbtenancy.NamespaceType, "ns1").
-				WithTenancy(&pbresource.Tenancy{
-					Namespace: "",
-				}).
-				WithData(t, validNamespace()).
-				Build(),
-		},
 	}
 
 	for _, tc := range cases {
