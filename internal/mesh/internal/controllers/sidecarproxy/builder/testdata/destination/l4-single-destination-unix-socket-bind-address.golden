@@ -26,7 +26,8 @@
             }
           }
         },
-        "name": "tcp.api-2.default.dc1.internal.foo.consul"
+        "name": "tcp.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
