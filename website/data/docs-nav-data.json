@@ -1540,7 +1540,7 @@
           },
           {
             "title": "Consul resource command",
-            "path": "k8s/multiport/resource-command"
+            "path": "k8s/multiport/reference/resource-command"
           }
         ]
       },
