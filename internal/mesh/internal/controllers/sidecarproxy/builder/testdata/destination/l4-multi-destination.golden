@@ -198,10 +198,23 @@
         "routers": [
           {
             "l4": {
-              "cluster": {
-                "name": "tcp2.api-1.default.dc1.internal.foo.consul"
-              },
-              "statPrefix": "upstream.tcp2.api-1.default.default.dc1"
+              "statPrefix": "upstream.tcp2.api-1.default.default.dc1",
+              "weightedClusters": {
+                "clusters": [
+                  {
+                    "name": "tcp2.api-2.default.dc1.internal.foo.consul",
+                    "weight": 60
+                  },
+                  {
+                    "name": "tcp2.api-1.default.dc1.internal.foo.consul",
+                    "weight": 40
+                  },
+                  {
+                    "name": "null_route_cluster",
+                    "weight": 10
+                  }
+                ]
+              }
             }
           }
         ]
