@@ -1,20 +1,18 @@
 ---
 layout: docs
-page_title: Reference topic for structured information
-description: Front-load meta descriptions with keywords and keyword 
-phrases to help readers find the information they are searching for.
+page_title: HTTPRoute resource configuration reference
+description: The HTTPRoute resource CRD configures L7 GRPC traffic behavior within the service mesh. GRPCRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the HTTPRoute CRD with specifications and example configurations.
 ---
 
-# HTTPRoute configuration reference
+# HTTPRoute resource configuration reference
 
-This sample page template shows how to format high structured reference 
-information.
+This page provides reference information for the GRPCRoute resource, which defines L7 GRPC traffic within the service mesh.
+
+This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, 
-and requirements in <this configuration entry>. Click on a property name 
-to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and requirements in an HTTPRoute CRD. Click on a property name to view additional details, including default values.
 
 - [`apiVersion`](#apiversion): string | required
 - [`kind`](#kind): string | required
@@ -25,7 +23,7 @@ to view additional details, including default values.
 	- [`parentRefs`](#spec-parentrefs): 
 		- [`ref`](#spec-parentrefs-ref): 
 			- [`type`](#spec-parentrefs-ref-type): 
-- [`group`]              
+- [`group`]
 - [`groupVersion`]
 - [`kind`]
 - [`name`]
@@ -51,17 +49,19 @@ to view additional details, including default values.
 			- [`peerName`]
 				- [`datacenter`]
 - [`port`]
-			- [`weight`]
+- [`weight`]
 
 ## Complete configuration
 
-The complete configuration follows the configuration model. Use tabs for 
-each markup language you expect pracitioners to use.
+When every field is defined, an HTTPRoute CRD has the following form:
 
 ```yaml
-apiVersion:
+apiVersion: mesh.consul.hashicorp.com/v2beta1       
 kind: HTTPRoute
 metadata:
+  name: <resourceName>
+  namespace: <namespace>
+hostnames: 
 spec:
   parentRefs:
     port:
@@ -170,6 +170,7 @@ spec:
                   type:
                 lastSyncedTime:
 ``` 
+
 ## Specification
 
 The specification block contains the details about each configuration. It 

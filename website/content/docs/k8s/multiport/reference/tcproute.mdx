@@ -32,16 +32,61 @@ The complete configuration follows the configuration model. Use tabs for
 each markup language you expect pracitioners to use.
 
 ```yaml
-element_a: <default or description of value>
-element_b:
-element_bb: <default or description of value>
-element_bbb:
-element_bbba: <default or description of value>
-element_bbbb: <default or description of value>
-element_bbbc:
-- <description of value>
-element_bbbd: <default or description of value>
+apiVersion: mesh.consul.hashicorp.com/v2beta1       
+kind: HTTPRoute
+metadata:
+hostnames: 
+spec:
+  parentRefs:
+    port:
+    ref:
+      name:
+      section:
+      tenancy:
+        namespace:
+        partition:
+        peerName:
+        type:
+          group:
+          groupVersion:
+          kind:
+    rules:
+      backendRefs:
+        backendRef:
+          datacenter:
+          port:
+          ref:
+            name:
+            tenancy:
+              namespace:
+              partition:
+              peerName:
+            type:
+              group:
+              groupVersion:
+              kind:
+      retries:
+        number:
+          onConditions:
+          onConnectFailure:
+          onStatusCodes:
+        timeouts:
+          idle:
+            nanos:
+            seconds:
+          request:
+            nanos:
+            seconds:
+          status:
+              conditions:
+                lastTransitionTime:
+                  message:
+                  reason:
+                  status:
+                  type:
+                lastSyncedTime:
 ``` 
+
 ## Specification
 
 The specification block contains the details about each configuration. It 

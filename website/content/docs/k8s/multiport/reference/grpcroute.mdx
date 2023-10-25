@@ -1,20 +1,18 @@
 ---
 layout: docs
-page_title: Reference topic for structured information
-description: Front-load meta descriptions with keywords and keyword 
-phrases to help readers find the information they are searching for.
+page_title: GRPCRoute resource configuration reference
+description: The GRPCRoute resource CRD configures L7 GRPC traffic behavior within the service mesh. GRPCRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the GRPCRoute CRD with specifications and example configurations.
 ---
 
-# GRPCRoute configuration reference
+# GRPCRoute resource configuration reference
 
-This sample page template shows how to format high structured reference 
-information.
+This page provides reference information for the GRPCRoute resource, which defines L7 GRPC traffic within the service mesh.
+
+This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, 
-and requirements in <this configuration entry>. Click on a property name 
-to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
 
 - [`elem_a`](#elema): data type | default
 - [`elem_b`](#elemb): data type | default
@@ -28,26 +26,125 @@ to view additional details, including default values.
 
 ## Complete configuration
 
-The complete configuration follows the configuration model. Use tabs for 
-each markup language you expect pracitioners to use.
+When every field is defined, a GRPCRoute CRD has the following form:
 
 ```yaml
-element_a: <default or description of value>
-element_b:
-element_bb: <default or description of value>
-element_bbb:
-element_bbba: <default or description of value>
-element_bbbb: <default or description of value>
-element_bbbc:
-- <description of value>
-element_bbbd: <default or description of value>
+apiVersion: mesh.consul.hashicorp.com/v2beta1       
+kind: HTTPRoute
+metadata:
+hostnames: 
+spec:
+  parentRefs:
+    port:
+    ref:
+      name:
+      section:
+      tenancy:
+        namespace:
+        partition:
+        peerName:
+        type:
+          group:
+          groupVersion:
+          kind:
+    rules:
+      backendRefs:
+        backendRef:
+          datacenter:
+          port:
+          ref:
+            name:
+            tenancy:
+              namespace:
+              partition:
+              peerName:
+            type:
+              group:
+              groupVersion:
+              kind:
+        filters:
+          requestHeaderModifier:
+            add:
+              name:
+              value:
+            remove:
+              name:
+              value:
+            set:
+              name:
+              value:
+          responseHeaderModifier:
+            add:
+              name:
+              value:
+            remove:
+              name:
+              value:
+            set:
+              name:
+              value:
+          urlRewrite:
+            pathPrefix:
+        weight:
+      filters:
+        requestHeaderModifier:
+          add:
+            name:
+            value:
+          remove:
+            name:
+            value:
+          set:
+            name:
+            value:
+        responseHeaderModifier:
+          add:
+            name:
+            value:
+          remove:
+            name:
+            value:
+          set:
+            name:
+            value:                             
+        urlRewrite:
+          pathPrefix:
+        matches:
+          headers:
+            invert:
+            name:
+            type:
+          method:
+          path:
+            type:
+          queryParams:
+            name:
+            type:
+      retries:
+        number:
+          onConditions:
+          onConnectFailure:
+          onStatusCodes:
+        timeouts:
+          idle:
+            nanos:
+            seconds:
+          request:
+            nanos:
+            seconds:
+          status:
+              conditions:
+                lastTransitionTime:
+                  message:
+                  reason:
+                  status:
+                  type:
+                lastSyncedTime:
 ``` 
+
 ## Specification
 
-The specification block contains the details about each configuration. It 
-is a flattened representation of the configuration model block that allows 
-for extended descriptions, examples, and other information to help readers 
-understand the behavior of the configurations. 
+This section provides details about the fields you can configure in the GRPCRoute CRD.
 
 ### `Elem_a`
 
