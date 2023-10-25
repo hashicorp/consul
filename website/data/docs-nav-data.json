@@ -1555,7 +1555,7 @@
               },
               {
                 "title": "ProxyConfiguration resource",
-                "path": "k8s/multiport/reference/grpcroute"
+                "path": "k8s/multiport/reference/proxyconfiguration"
               },
               {
                 "title": "TCPRoute resource",
