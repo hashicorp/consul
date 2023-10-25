@@ -1,0 +1,130 @@
+---
+layout: commands
+page_title: 'Commands: Resource'
+description: >-
+  The `consul resource` command interacts with Consul's v2 catalog of services and its resources. It exposes top-level commands for reading and filtering data from the registry.
+---
+
+# Consul Resource
+
+Command: `consul resource`
+
+Use the `resource` command to apply, list, read, and delete resources when interacting with Consul's v2 catalog through the command line. For more information, refer to [v2 catalog API](/consul/docs/concept/catalog/v2).
+
+## Usage
+
+```text
+Usage: consul resource <subcommand> [options]
+
+  # ...
+
+Subcommands:
+
+    apply     Write or update resource information
+    delete    Delete resource information
+    list      Read all resources by type
+    read      Read resource information
+```
+
+On Kubernetes deployments, you must use a `kubectl exec` command to open a shell to the Consul server's container before you can run this Consul CLI command.
+
+## Subcommands
+
+You can issue the following subcommands with the `consul resource` command.
+
+### `apply`
+
+`consul resource apply` writes or updates a resource at a given file path. 
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required |
+| ------------ |
+| `operator:write`  |
+
+#### Command Options
+
+- `-f=<filepath>` - (Required) The path to the file that defines the Consul resource. When the file that defines the resource is in the current working directory, you may optionally omit this flag and pass the resource filename only.
+
+#### Example usage
+
+The following command applies a TrafficPermissions resource to Consul that restricts service-to-service communication to authorized services only.
+
+```shell-session hideClipboard
+$ consul resource apply -f=trafficpermissions.yaml
+```
+
+### `delete`
+
+`consul resource delete`removes a Consul resource at a given file path.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required |
+| ------------ |
+| `operator:write`  |
+
+#### Command Options
+
+- `-f=<filepath>` - (Required) The path to the file that defines the Consul resource. When the file that defines the resource is in the current working directory, you may optionally omit this flag and pass the resource filename only.
+
+#### Example usage
+
+The following command removes a TrafficPermissions resource from Consul that restricts service-to-service communication to authorized services only.
+
+```shell-session hideClipboard
+$ consul resource delete -f=trafficpermissions.yaml
+```
+
+### `list`
+
+`consul resource list` outputs names of resources according to the type of resource and the location where the resource is applied. 
+
+This command must be issued with a resource type. All resource definitions include a `type` configuration block that contains a `group`, `groupVersion`, and `kind`. By formatting the `type` on the command line as `group.groupVersion.kind`, you can return all resources with a matching `type` in the configuration.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required |
+| ------------ |
+| `operator:read`  |
+
+#### Command Options
+
+The following flags enable you to filter results.
+
+- `-partition=<string>` - The partition where the resources apply.
+- `-namespace=<string>` - The namespace where the resources apply.
+- `-peer=<string>` - The clusters with established cluster peering connections where the resources apply.
+
+#### Example usage
+
+The following command lists resources that apply to the `card-processor` service when the service runs on the `billing partition` in the `payments` namespace on peer cluster `dc2-store`.
+
+```shell-session hideClipboard
+$ consul resource list catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=dc2-store
+```
+
+### `read`
+
+`consul resource list` outputs names of resources according to the type of resource or where the resource is applied.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required |
+| ------------ |
+| `operator:read`  |
+
+#### Command Options
+
+- `-partition=<string>` - The partition where the resource applies.
+- `-namespace=<string>` - The namespace where the resource applies.
+- `-peer=<string>` - The clusters with established cluster peering connections where the resource applies.
+- `-consistent=<false>` - Determines whether Consul returns stale resource information. Set this flag to `true` to prevent Consul from returning stale information.
+- `-json` - Include this flag to output the response in JSON format.
+
+#### Example usage
+
+The following command outputs the resource that applies to a specific `card-processor` service when the service runs on the `billing partition` in the `payments` namespace on peer cluster `dc2-store`.
+
+```shell-session hideClipboard
+$ consul resource read catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=dc2-store
+```

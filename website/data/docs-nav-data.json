@@ -1537,6 +1537,10 @@
           {
             "title": "Configure multi-port services",
             "path": "k8s/multiport/configure"
+          },
+          {
+            "title": "Consul resource command",
+            "path": "k8s/multiport/resource-command"
           }
         ]
       },
