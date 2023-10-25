@@ -47,7 +47,7 @@ func TestReadNamespace_Success(t *testing.T) {
 	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
 	cl := rtest.NewClient(client)
 
-	writeResp := rtest.Resource(pbtenancy.NamespaceType, "ns1").
+	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).
 		Write(t, cl)
 
@@ -77,8 +77,8 @@ func TestReadNamespace_Success(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			readRsp, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: tc.resource.Id})
 			require.NoError(t, err)
-			prototest.AssertDeepEqual(t, writeResp.Id, readRsp.Resource.Id)
-			prototest.AssertDeepEqual(t, writeResp.Data, readRsp.Resource.Data)
+			prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
+			prototest.AssertDeepEqual(t, res.Data, readRsp.Resource.Data)
 		})
 	}
 }
