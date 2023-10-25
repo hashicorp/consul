@@ -5,49 +5,51 @@ package types
 
 import (
 	"errors"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
 
-func validComputedExportedServicesWithPartition(partitionName string) *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+func validComputedExportedServicesWithPartition(partitionName string) *pbmulticluster.ComputedExportedServices {
+	consumers := []*pbmulticluster.ComputedExportedService{
 		{
-			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
 				{
-					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition{
+					ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
 						Partition: partitionName,
 					},
 				},
 			},
 		},
 	}
-	return &multiclusterv1alpha1.ComputedExportedServices{
+	return &pbmulticluster.ComputedExportedServices{
 		Consumers: consumers,
 	}
 }
 
-func validComputedExportedServicesWithPeer(peerName string) *multiclusterv1alpha1.ComputedExportedServices {
-	consumers := []*multiclusterv1alpha1.ComputedExportedService{
+func validComputedExportedServicesWithPeer(peerName string) *pbmulticluster.ComputedExportedServices {
+	consumers := []*pbmulticluster.ComputedExportedService{
 		{
-			Consumers: []*multiclusterv1alpha1.ComputedExportedServicesConsumer{
+			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
 				{
-					ConsumerTenancy: &multiclusterv1alpha1.ComputedExportedServicesConsumer_Peer{
+					ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
 						Peer: peerName,
 					},
 				},
 			},
 		},
 	}
-	return &multiclusterv1alpha1.ComputedExportedServices{
+	return &pbmulticluster.ComputedExportedServices{
 		Consumers: consumers,
 	}
 }
 
 func TestComputedExportedServicesValidations_InvalidName(t *testing.T) {
-	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "computed-exported-services").
+	res := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "computed-exported-services").
 		WithData(t, validComputedExportedServicesWithPeer("peer")).
 		Build()
 
@@ -75,8 +77,8 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 		DEFAULT = "default"
 	)
 
-	exportedServiceData := &multiclusterv1alpha1.ComputedExportedServices{}
-	res := resourcetest.Resource(multiclusterv1alpha1.ComputedExportedServicesType, "global").
+	exportedServiceData := &pbmulticluster.ComputedExportedServices{}
+	res := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
 		WithData(t, exportedServiceData).
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, res)
@@ -111,5 +113,66 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			ListOK:  tc.listOK,
 		}
 		resourcetest.RunACLTestCase(t, aclTestCase, registry)
+	}
+}
+
+func TestComputedExportedServicesValidations(t *testing.T) {
+	type testcase struct {
+		Resource       *pbresource.Resource
+		expectErrorCE  []string
+		expectErrorENT []string
+	}
+
+	isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+
+	run := func(t *testing.T, tc testcase) {
+		expectError := tc.expectErrorCE
+		if isEnterprise {
+			expectError = tc.expectErrorENT
+		}
+		err := ValidateComputedExportedServices(tc.Resource)
+		if len(expectError) == 0 {
+			require.NoError(t, err)
+		} else {
+			require.Error(t, err)
+			for _, er := range expectError {
+				require.ErrorContains(t, err, er)
+			}
+		}
+	}
+
+	cases := map[string]testcase{
+		"computed exported services with peer": {
+			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPeer("peer")).
+				Build(),
+		},
+		"computed exported services with partition": {
+			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPartition("partition")).
+				Build(),
+			expectErrorCE: []string{`invalid element at index 0 of list "partition": can only be set in Enterprise`},
+		},
+		"computed exported services with peer empty": {
+			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPeer("")).
+				Build(),
+			expectErrorCE:  []string{`invalid element at index 0 of list "peer": can not be empty`},
+			expectErrorENT: []string{`invalid element at index 0 of list "peer": can not be empty`},
+		},
+		"computed exported services with partition empty": {
+			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
+				WithData(t, validComputedExportedServicesWithPartition("")).
+				Build(),
+			expectErrorCE: []string{`invalid element at index 0 of list "partition": can not be empty`,
+				`invalid element at index 0 of list "partition": can only be set in Enterprise`},
+			expectErrorENT: []string{`invalid element at index 0 of list "partition": can not be empty`},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			run(t, tc)
+		})
 	}
 }

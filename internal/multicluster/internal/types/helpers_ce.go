@@ -8,41 +8,56 @@ package types
 import (
 	"fmt"
 	"github.com/hashicorp/consul/internal/resource"
-	multiclusterv1alpha1 "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/go-multierror"
 )
 
-func validateExportedServicesConsumer(consumer *multiclusterv1alpha1.ExportedServicesConsumer, merr error, indx int) error {
+func validateExportedServicesConsumer(consumer *pbmulticluster.ExportedServicesConsumer, indx int) error {
 	switch consumer.GetConsumerTenancy().(type) {
-	case *multiclusterv1alpha1.ExportedServicesConsumer_Partition:
-		merr = multierror.Append(merr, resource.ErrInvalidListElement{
+	case *pbmulticluster.ExportedServicesConsumer_Partition:
+		return resource.ErrInvalidListElement{
 			Name:    "partition",
 			Index:   indx,
 			Wrapped: fmt.Errorf("can only be set in Enterprise"),
-		})
-	case *multiclusterv1alpha1.ExportedServicesConsumer_SamenessGroup:
-		merr = multierror.Append(merr, resource.ErrInvalidListElement{
+		}
+	case *pbmulticluster.ExportedServicesConsumer_SamenessGroup:
+		return resource.ErrInvalidListElement{
 			Name:    "sameness_group",
 			Index:   indx,
 			Wrapped: fmt.Errorf("can only be set in Enterprise"),
-		})
+		}
 	}
-	return merr
+	return nil
 }
 
-func ValidateComputedExportedServicesEnterprise(computedExportedServices *multiclusterv1alpha1.ComputedExportedServices) error {
+func ValidateComputedExportedServicesEnterprise(computedExportedServices *pbmulticluster.ComputedExportedServices) error {
 
 	var merr error
 
 	for indx, consumer := range computedExportedServices.GetConsumers() {
 		for _, computedExportedServiceConsumer := range consumer.GetConsumers() {
 			switch computedExportedServiceConsumer.GetConsumerTenancy().(type) {
-			case *multiclusterv1alpha1.ComputedExportedServicesConsumer_Partition:
+			case *pbmulticluster.ComputedExportedServicesConsumer_Partition:
 				merr = multierror.Append(merr, resource.ErrInvalidListElement{
 					Name:    "partition",
 					Index:   indx,
 					Wrapped: fmt.Errorf("can only be set in Enterprise"),
 				})
+				if computedExportedServiceConsumer.GetPartition() == "" {
+					merr = multierror.Append(merr, resource.ErrInvalidListElement{
+						Name:    "partition",
+						Index:   indx,
+						Wrapped: fmt.Errorf("can not be empty"),
+					})
+				}
+			case *pbmulticluster.ComputedExportedServicesConsumer_Peer:
+				if computedExportedServiceConsumer.GetPeer() == "" {
+					merr = multierror.Append(merr, resource.ErrInvalidListElement{
+						Name:    "peer",
+						Index:   indx,
+						Wrapped: fmt.Errorf("can not be empty"),
+					})
+				}
 			}
 		}
 	}

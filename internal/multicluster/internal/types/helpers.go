@@ -11,11 +11,54 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
+func validateExportedServiceConsumerCommon(consumer *pbmulticluster.ExportedServicesConsumer, indx int) error {
+	switch consumer.GetConsumerTenancy().(type) {
+	case *pbmulticluster.ExportedServicesConsumer_Peer:
+		{
+			if consumer.GetPeer() == "" || consumer.GetPeer() == "local" {
+				return resource.ErrInvalidListElement{
+					Name:    "peer",
+					Index:   indx,
+					Wrapped: fmt.Errorf("can not be empty or local"),
+				}
+			}
+		}
+	case *pbmulticluster.ExportedServicesConsumer_Partition:
+		{
+			if consumer.GetPartition() == "" {
+				return resource.ErrInvalidListElement{
+					Name:    "partition",
+					Index:   indx,
+					Wrapped: fmt.Errorf("can not be empty"),
+				}
+			}
+		}
+	case *pbmulticluster.ExportedServicesConsumer_SamenessGroup:
+		{
+			if consumer.GetSamenessGroup() == "" {
+				return resource.ErrInvalidListElement{
+					Name:    "sameness_group",
+					Index:   indx,
+					Wrapped: fmt.Errorf("can not be empty"),
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func ValidateExportedServicesConsumersEnterprise(consumers []*pbmulticluster.ExportedServicesConsumer) error {
 	var merr error
 
 	for indx, consumer := range consumers {
-		merr = validateExportedServicesConsumer(consumer, merr, indx)
+		vmerr := validateExportedServiceConsumerCommon(consumer, indx)
+		if vmerr != nil {
+			merr = multierror.Append(merr, vmerr)
+		}
+		vmerr = validateExportedServicesConsumer(consumer, indx)
+		if vmerr != nil {
+			merr = multierror.Append(merr, vmerr)
+		}
 	}
 
 	return merr
