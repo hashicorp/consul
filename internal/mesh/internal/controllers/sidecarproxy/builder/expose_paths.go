@@ -21,8 +21,18 @@ func (b *Builder) buildExposePaths(workload *pbcatalog.Workload) {
 				addExposePathsRouter(exposePath).
 				buildListener()
 
+			var protocol pbcatalog.Protocol
+			switch exposePath.Protocol {
+			case pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP:
+				protocol = pbcatalog.Protocol_PROTOCOL_HTTP
+			case pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP2:
+				protocol = pbcatalog.Protocol_PROTOCOL_HTTP2
+			default:
+				panic("unsupported expose paths protocol")
+			}
+
 			b.addExposePathsRoute(exposePath, clusterName).
-				addLocalAppCluster(clusterName, nil).
+				addLocalAppCluster(clusterName, nil, pbproxystate.Protocol(protocol)).
 				addLocalAppStaticEndpoints(clusterName, exposePath.LocalPathPort)
 		}
 	}

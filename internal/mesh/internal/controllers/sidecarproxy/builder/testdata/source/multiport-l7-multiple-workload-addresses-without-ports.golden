@@ -5,19 +5,22 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:admin-port"
+        "name": "local_app:admin-port",
+        "protocol": "PROTOCOL_HTTP"
       },
       "local_app:api-port": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:api-port"
+        "name": "local_app:api-port",
+        "protocol": "PROTOCOL_HTTP2"
       },
       "local_app:grpc-port": {
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:grpc-port"
+        "name": "local_app:grpc-port",
+        "protocol": "PROTOCOL_GRPC"
       }
     },
     "endpoints": {
