@@ -19,14 +19,8 @@ func RegisterNamespace(r resource.Registry) {
 		Proto:    &pbtenancy.Namespace{},
 		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
-		Mutate:   MutateNamespace,
 		// ACLs: TODO
 	})
-}
-
-func MutateNamespace(res *pbresource.Resource) error {
-	res.Id.Name = strings.ToLower(res.Id.Name)
-	return nil
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
