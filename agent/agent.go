@@ -4613,7 +4613,7 @@ func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
 		sources.CompiledDiscoveryChain = proxycfgglue.ServerCompiledDiscoveryChain(deps, proxycfgglue.CacheCompiledDiscoveryChain(a.cache))
 		sources.ExportedPeeredServices = proxycfgglue.ServerExportedPeeredServices(deps)
 		sources.FederationStateListMeshGateways = proxycfgglue.ServerFederationStateListMeshGateways(deps)
-		sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
+		//sources.GatewayServices = proxycfgglue.ServerGatewayServices(deps)
 		// We do not use this health check currently due to a bug with the way that service exports
 		// interact with ACLs and the streaming backend. See comments in `proxycfgglue.ServerHealthBlocking`
 		// for more details.
