@@ -1,12 +1,12 @@
 ---
 layout: docs
 page_title: HTTPRoute resource configuration reference
-description: The HTTPRoute resource CRD configures L7 HTTP traffic behavior within the service mesh. GRPCRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the HTTPRoute CRD with specifications and example configurations.
+description: The HTTPRoute resource CRD configures L7 HTTP traffic behavior within the service mesh. HTTPRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the HTTPRoute CRD with specifications and example configurations.
 ---
 
 # HTTPRoute resource configuration reference
 
-This page provides reference information for the GRPCRoute resource, which defines L7 HTTP traffic within the service mesh.
+This page provides reference information for the HTTPRoute resource, which defines L7 HTTP traffic within the service mesh.
 
 This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
@@ -14,10 +14,12 @@ This custom resource definition (CRD) describes a GAMMA resource that requires t
 
 The following list outlines field hierarchy, language-specific data types, and requirements in an HTTPRoute CRD. Click on a property name to view additional details, including default values.
 
-The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
 
 - [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
-- [`kind`](#kind): string | required | must be set to `GRPCRoute`
+- [`kind`](#kind): string | required | must be set to `HTTPRoute`
 - [`metadata`](#metadata): object | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
@@ -52,11 +54,11 @@ The following list outlines field hierarchy, language-specific data types, and r
             - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
             - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
       - [`filters`](#spec-rules-backendrefs-filters): map
-        - [`requestHeaderModifier`]: map(#spec-rules-backendrefs-filters-requestheadermodifier): map
+        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-        - [`responseHeaderModifier`]: map(#spec-rules-backendrefs-filters-responseheadermodifier): map
+        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
@@ -97,13 +99,20 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`nanos`](#spec-rules-timeouts-request): integer
         - [`seconds`](#spec-rules-timeouts-request): integer
 
+</Tab>
+</Tabs>
+
 ## Complete configuration
 
 When every field is defined, an HTTPRoute CRD has the following form:
 
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
-kind: GRPCRoute                                      # required
+kind: HTTPRoute                                      # required
 metadata:
   name: <CRDName>
   namespace: <namespace>
@@ -184,8 +193,12 @@ spec:
         seconds: 1
 ```
 
+</Tab>
+</Tabs>
+
 ## Specification
-This section provides details about the fields you can configure in the GRPCRoute custom resource definition (CRD).
+
+This section provides details about the fields you can configure in the HTTPRoute custom resource definition (CRD).
 
 ### `apiVersion`
 
@@ -199,15 +212,15 @@ Specifies the version of the Consul API for integrating with Kubernetes. The val
 
 ### `kind`
 
-Specifies the type of CRD to implement. Must be set to `GRPCRoute`.
+Specifies the type of CRD to implement. Must be set to `HTTPRoute`.
 
 #### Values
 
 - Default: None
 - This field is required.
-- Data type: String value that must be set to `GRPCRoute`.
+- Data type: String value that must be set to `HTTPRoute`.
 
-## `metadata`
+### `metadata`
 
 Map that contains an arbitrary name for the CRD and the namespace it applies to.
 
@@ -237,9 +250,9 @@ Specifies the namespace that the service resolver applies to. Refer to [namespac
 
 ### `spec`
 
-Map that contains the details about the `GRPCRoute` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+Map that contains the details about the `HTTPRoute` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
-When using this CRD, the `spec` field must align with GAMMAs resource. Refer to [GRPCRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.GRPCRoute).
+When using this CRD, the `spec` field must align with GAMMAs resource. Refer to [HTTPRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute).
 
 #### Values
 
@@ -439,7 +452,7 @@ Specifies filtering behavior for services configured in the same [`spec.rules.ba
 
 ### `spec.rules.backendRefs.filters.requestHeaderModifier`
 
-Specifies a set of header modification rules applied to requests routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to requests routed with the HTTPRoute resource.
 
 #### Values
 
@@ -459,7 +472,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.backendRefs.filters.responseHeaderModifier`
 
-Specifies a set of header modification rules applied to responses routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to responses routed with the HTTPRoute resource.
 
 #### Values
 
@@ -747,7 +760,7 @@ Specifies the total amount of time spent processing the entire downstream reques
 
 ## Examples
 
-The following examples demonstrate common GRPCRoute CRD configuration patterns for specific use cases.
+The following examples demonstrate common HTTPRoute CRD configuration patterns for specific use cases.
 
 ### Split HTTP traffic between two ports
 

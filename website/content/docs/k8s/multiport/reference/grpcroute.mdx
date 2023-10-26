@@ -14,6 +14,10 @@ This custom resource definition (CRD) describes a GAMMA resource that requires t
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
 
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
 - [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `GRPCRoute`
 - [`metadata`](#metadata): object | required
@@ -50,11 +54,11 @@ The following list outlines field hierarchy, language-specific data types, and r
             - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
             - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
       - [`filters`](#spec-rules-backendrefs-filters): map
-        - [`requestHeaderModifier`]: map(#spec-rules-backendrefs-filters-requestheadermodifier): map
+        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-        - [`responseHeaderModifier`]: map(#spec-rules-backendrefs-filters-responseheadermodifier): map
+        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
@@ -95,9 +99,16 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`nanos`](#spec-rules-timeouts-request): integer
         - [`seconds`](#spec-rules-timeouts-request): integer
 
+</Tab>
+</Tabs>
+
 ## Complete configuration
 
 When every field is defined, a GRPCRoute resource CRD has the following form:
+
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
@@ -182,6 +193,9 @@ spec:
         seconds: 1
 ```
 
+</Tab>
+</Tabs>
+
 ## Specification
 
 This section provides details about the fields you can configure in the GRPCRoute custom resource definition (CRD).
@@ -206,7 +220,7 @@ Specifies the type of CRD to implement. Must be set to `GRPCRoute`.
 - This field is required.
 - Data type: String value that must be set to `GRPCRoute`.
 
-## `metadata`
+### `metadata`
 
 Map that contains an arbitrary name for the CRD and the namespace it applies to.
 
