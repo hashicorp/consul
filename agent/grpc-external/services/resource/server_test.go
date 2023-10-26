@@ -75,7 +75,7 @@ func testServer(t *testing.T) *Server {
 			}
 		})
 
-	// Mock the V1 tenancy bridge since we can't use the real thing.
+	// Mock the tenancy bridge since we can't use the real thing.
 	mockTenancyBridge := &MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
@@ -155,6 +155,15 @@ func wildcardTenancyCases() map[string]struct {
 				Partition: resource.DefaultPartitionName,
 				Namespace: "",
 				PeerName:  "local",
+			},
+		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced type with empty peername": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "",
 			},
 		},
 		"namespaced type with empty partition and namespace": {

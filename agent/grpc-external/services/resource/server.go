@@ -205,13 +205,18 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
 	}
 
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = resource.DefaultPeerName
+	}
+
 	return nil
 }
 
-// v1TenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
-func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
+// tenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
+func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
-		exists, err := v1Bridge.PartitionExists(tenancy.Partition)
+		exists, err := tenancyBridge.PartitionExists(tenancy.Partition)
 		switch {
 		case err != nil:
 			return err
@@ -221,7 +226,7 @@ func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy
 	}
 
 	if reg.Scope == resource.ScopeNamespace {
-		exists, err := v1Bridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
+		exists, err := tenancyBridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
 			return err
@@ -232,10 +237,10 @@ func v1TenancyExists(reg *resource.Registration, v1Bridge TenancyBridge, tenancy
 	return nil
 }
 
-// v1TenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
-func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+// tenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
+func tenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
-		marked, err := v1Bridge.IsPartitionMarkedForDeletion(tenancy.Partition)
+		marked, err := tenancyBridge.IsPartitionMarkedForDeletion(tenancy.Partition)
 		switch {
 		case err != nil:
 			return err
@@ -245,7 +250,7 @@ func v1TenancyMarkedForDeletion(reg *resource.Registration, v1Bridge TenancyBrid
 	}
 
 	if reg.Scope == resource.ScopeNamespace {
-		marked, err := v1Bridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
+		marked, err := tenancyBridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
 			return err

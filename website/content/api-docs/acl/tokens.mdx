@@ -9,8 +9,10 @@ description: The /acl/token endpoints manage Consul's ACL Tokens.
 The `/acl/token` endpoints [create](#create-a-token), [read](#read-a-token),
 [update](#update-a-token), [list](#list-tokens), [clone](#clone-a-token) and [delete](#delete-a-token) ACL tokens in Consul.
 
-For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+For more information on how to setup ACLs, refer to the following resources: 
+
+- [Access control list (ACL) overview](/consul/docs/security/acl)
+- [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
 
 ## Create a Token
 
@@ -63,6 +65,14 @@ The corresponding CLI command is [`consul acl token create`](/consul/commands/ac
   name or by the role ID. When roles are linked by name they will be internally
   resolved to the role ID. With linking tokens internally by IDs, Consul
   enables role renaming without breaking tokens. Added in Consul 1.5.0.
+
+- `TemplatedPolicies` `(list of maps)` - The list of [templated policies](/consul/docs/security/acl#templated-policies)
+  that should be applied to the role.
+
+    - `TemplateName` `(string: <required>)` - The templated policy name.
+    
+    - `TemplateVariables` `(map of strings|maps: <optional>)` - The templated policy variables. Not all templated policies
+      require variables.
 
 - `ServiceIdentities` `(array<ServiceIdentity>)` - The list of [service
   identities](/consul/docs/security/acl#service-identities) that should be
@@ -121,6 +131,14 @@ The corresponding CLI command is [`consul acl token create`](/consul/commands/ac
       "Name": "node-read"
     }
   ],
+  "TemplatedPolicies": [
+    {
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
+    }
+  ],
   "Local": false
 }
 ```
@@ -148,6 +166,15 @@ $ curl --request PUT \
     {
       "ID": "e359bd81-baca-903e-7e64-1ccd9fdc78f5",
       "Name": "node-read"
+    }
+  ],
+  "TemplatedPolicies": [
+    {
+      "TemplateID": "00000000-0000-0000-0000-000000000003",
+      "TemplateName": "builtin/service",
+      "TemplateVariables": {
+        "Name": "api"
+      }
     }
   ],
   "Local": false,
@@ -762,7 +789,7 @@ for reading other secrets which given even more permissions.
 ]
 ```
 
-## Methods to Specify Namespace <EnterpriseAlert inline />
+## Methods to specify namespace <EnterpriseAlert inline />
 
 ACL token endpoints
 support several methods for specifying the namespace of the ACL token resources
