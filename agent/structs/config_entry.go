@@ -666,6 +666,26 @@ func DecodeConfigEntry(raw map[string]interface{}) (ConfigEntry, error) {
 	return entry, nil
 }
 
+// DeepCopyConfigEntry takes in a generic ConfigEntry and returns a deep copied version of it
+func DeepCopyConfigEntry(ce ConfigEntry) (ConfigEntry, error) {
+	switch kind := ce.(type) {
+	case *BoundAPIGatewayConfigEntry:
+		asserted := ce.(*BoundAPIGatewayConfigEntry)
+		return asserted.DeepCopy(), nil
+	case *InlineCertificateConfigEntry:
+		asserted := ce.(*InlineCertificateConfigEntry)
+		return asserted.DeepCopy(), nil
+	case *HTTPRouteConfigEntry:
+		asserted := ce.(*HTTPRouteConfigEntry)
+		return asserted.DeepCopy(), nil
+	case *TCPRouteConfigEntry:
+		asserted := ce.(*TCPRouteConfigEntry)
+		return asserted.DeepCopy(), nil
+	default:
+		return nil, fmt.Errorf("confignetry not deepcopyable or DeepCopyConfigEntry not implemented for: %s", kind)
+	}
+}
+
 type ConfigEntryOp string
 
 const (

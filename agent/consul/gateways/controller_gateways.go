@@ -84,6 +84,11 @@ func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger 
 		return cleaner(ctx, req, store)
 	}
 
+	copiedEntry, err := structs.DeepCopyConfigEntry(entry)
+	if err == nil {
+		entry = copiedEntry
+	}
+
 	return reconciler(ctx, req, store, entry.(T))
 }
 
