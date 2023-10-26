@@ -19,7 +19,7 @@ func RegisterExportedServices(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookExportedServices,
 			Write: aclWriteHookExportedServices,
-			List:  aclListHookExportedServices,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -56,10 +56,4 @@ func aclWriteHookExportedServices(authorizer acl.Authorizer, authzContext *acl.A
 		}
 	}
 	return nil
-}
-
-func aclListHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return resource.NoOpACLListHook(authorizer, authzContext)
 }

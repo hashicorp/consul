@@ -19,7 +19,7 @@ func RegisterPartitionExportedServices(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookPartitionExportedServices,
 			Write: aclWriteHookPartitionExportedServices,
-			List:  aclListHookPartitionExportedServices,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -33,10 +33,4 @@ func aclReadHookPartitionExportedServices(authorizer acl.Authorizer, authzContex
 
 func aclWriteHookPartitionExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authorizer.ToAllowAuthorizer().MeshWriteAllowed(authzContext)
-}
-
-func aclListHookPartitionExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return resource.NoOpACLListHook(authorizer, authzContext)
 }

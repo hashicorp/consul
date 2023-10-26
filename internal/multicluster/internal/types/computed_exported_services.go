@@ -23,7 +23,7 @@ func RegisterComputedExportedServices(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookComputedExportedServices,
 			Write: aclWriteHookComputedExportedServices,
-			List:  aclListHookComputedExportedServices,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -37,10 +37,4 @@ func aclReadHookComputedExportedServices(authorizer acl.Authorizer, authzContext
 
 func aclWriteHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.Resource) error {
 	return authorizer.ToAllowAuthorizer().MeshWriteAllowed(authzContext)
-}
-
-func aclListHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return resource.NoOpACLListHook(authorizer, authzContext)
 }

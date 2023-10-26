@@ -19,7 +19,7 @@ func RegisterNamespaceExportedServices(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNamespaceExportedServices,
 			Write: aclWriteHookNamespaceExportedServices,
-			List:  aclListHookNamespaceExportedServices,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -33,10 +33,4 @@ func aclReadHookNamespaceExportedServices(authorizer acl.Authorizer, authzContex
 
 func aclWriteHookNamespaceExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
 	return authorizer.ToAllowAuthorizer().MeshWriteAllowed(authzContext)
-}
-
-func aclListHookNamespaceExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return resource.NoOpACLListHook(authorizer, authzContext)
 }
