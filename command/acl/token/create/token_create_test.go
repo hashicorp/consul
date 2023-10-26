@@ -128,6 +128,21 @@ func TestTokenCreateCommand_Pretty(t *testing.T) {
 		require.Equal(t, a.Config.NodeName, nodes[0].Node)
 	})
 
+	t.Run("prevent templated-policy and templated-policy-file simultaneous use", func(t *testing.T) {
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		code := cmd.Run(append([]string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-token=root",
+			"-templated-policy=builtin/node",
+			"-var=name:" + a.Config.NodeName,
+			"-templated-policy-file=test.hcl",
+		}, "-format=json"))
+		require.Equal(t, 1, code)
+		require.Contains(t, ui.ErrorWriter.String(), "Cannot combine the use of templated-policy flag with templated-policy-file.")
+	})
+
 	// create with accessor and secret
 	t.Run("predefined-ids", func(t *testing.T) {
 		token := run(t, []string{
