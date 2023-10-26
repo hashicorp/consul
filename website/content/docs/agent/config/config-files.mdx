@@ -230,6 +230,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
   - `upgrade_version_tag` <EnterpriseAlert inline /> -
     The node_meta tag to use for version info when performing upgrade migrations.
+    The version must follow [SemVer](https://semver.org/) and can be parsed by
+    [hashicorp/go-version](https://github.com/hashicorp/go-version).
     If this is not set, the Consul version will be used.
 
 - `auto_config` This object allows setting options for the `auto_config` feature.
