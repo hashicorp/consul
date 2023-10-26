@@ -14,15 +14,82 @@ This custom resource definition (CRD) describes a GAMMA resource that requires t
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
 
-- [`elem_a`](#elema): data type | default
-- [`elem_b`](#elemb): data type | default
-- [`spec`](#elemb): data type | default
-- [`elem_ba`](#elembelemba): data type | default
-- [`elem_baa`](#elembelembaelembaa): data type | default
-- [`elem_baaa`](#elembelembaelembaa): data type | default
-- [`elem_baab`](#elembelembaelembaa): data type | default
-- [`elem_baac`](#elembelembaelembaa): data type | default
-- [`element_bab`](#elembelembaelembab): data type | default
+- [`apiVersion`](#apiversion): string | required
+- [`kind`](#kind): string | required
+- [`metadata`](#metadata): object | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): object | required
+  - [`parentRefs`](#spec-parentrefs):
+    - [`port`](#spec-parentrefs-port): 
+    - [`ref`](#spec-parentrefs-ref): 
+      - [`name`](#spec-parentrefs-ref-name):
+        - [`section`](#spec-parentrefs-ref-section):
+        - [`tenancy`](#spec-parentrefs-ref-tenancy):
+          - [`namespace`](#spec-parentrefs-ref-tenancy):
+            - [`partition`](#spec-parentrefs-ref-tenancy):
+            - [`peerName`](#spec-parentrefs-ref-tenancy):
+  - [`rules`](#spec-rules):
+    - [`backendRefs`](#spec-rules-backendrefs):
+      - [`backendRef`](#spec-rules-backendrefs-backendref):
+        - [`datacenter`](#spec-rules-backendrefs-backendref-datacenter):
+        - [`port`](#spec-rules-backendrefs-backendref-port):
+        - [`ref`](#spec-rules-backendrefs-backendref-ref):
+          - [`name`](#spec-rules-backendrefs-backendref-ref-name):
+          - [`section`](#spec-rules-backendrefs-backendref-ref-section):
+          - [`tenancy`](#spec-rules-backendrefs-backendref-ref-tenancy):
+            - [`namespace`](#spec-rules-backendrefs-backendref-ref-tenancy):
+            - [`partition`](#spec-rules-backendrefs-backendref-ref-tenancy):
+            - [`peerName`](#spec-rules-backendrefs-backendref-ref-tenancy):
+          - [`type`](#spec-rules-backendrefs-backendref-ref-type):
+            - [`group`](#spec-rules-backendrefs-backendref-ref-type):
+            - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type):
+            - [`kind`](#spec-rules-backendrefs-backendref-ref-type):
+      - [`filters`](#spec-rules-backendrefs-filters):
+        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+        - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite):
+          - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite):
+      - [`weight`](#spec-rules-backendrefs-weight):
+    - [`filters`](#spec-rules-filters):
+      - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
+        - [`add`](#spec-rules-filters-requestheadermodifier): map
+        - [`set`](#spec-rules-filters-requestheadermodifier): map
+        - [`remove`](#spec-rules-filters-requestheadermodifier): map
+      - [`responseHeaderModifier`](#spec-rules-filters-responseheadermodifier): map
+        - [`add`](#spec-rules-filters-responseheadermodifier): map
+        - [`set`](#spec-rules-filters-responseheadermodifier): map
+        - [`remove`](#spec-rules-filters-responseheadermodifier): map
+      - [`urlRewrite`](#spec-rules-filters-urlrewrite):
+        - [`pathPrefix`](#spec-rules-filters-urlrewrite):
+    - [`matches`](#spec-rules-matches):
+      - [`headers`](#spec-rules-matches-headers):
+        - [`name`](#spec-rules-matches-headers-name):
+        - [`type`](#spec-rules-matches-headers-type):
+        - [`value`](#spec-rules-matches-headers-value):
+      - [`method`](#spec-rules-matches-method):
+        - [`method`](#spec-rules-matches-method-method):
+        - [`service`](#spec-rules-matches-method-service):
+        - [`type`](#spec-rules-matches-method-type):
+    - [`retries`](#spec-rules-retries):
+      - [`number`](#spec-rules-retries-number):
+        - [`value`](#spec-rules-retries-number):
+      - [`onConditions`](#spec-rules-retries-onconditions):
+      - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
+      - [`onStatusCodes`](#spec-rules-retries-onconditions): array of integers
+    - [`timeouts`](#spec-rules-timeouts):
+      - [`idle`](#spec-rules-timeouts-idle):
+        - [`nanos`](#spec-rules-timeouts-idle):
+        - [`seconds`](#spec-rules-timeouts-idle):
+      - [`request`](#spec-rules-timeouts-request):
+        - [`nanos`](#spec-rules-timeouts-request):
+        - [`seconds`](#spec-rules-timeouts-request):
 
 ## Complete configuration
 
@@ -62,13 +129,25 @@ spec:
             kind:
       filters:
         requestHeaderModifier:
+          add:
+          set:
+          remove:
         responseHeaderModifier:
+          add:
+          set:
+          remove:
         urlRewrite:
           pathPrefix:
       weight:
     filters:
       requestHeaderModifier:
-      responseHeaderModifier:                        
+          add:
+          set:
+          remove:
+      responseHeaderModifier:      
+          add:
+          set:
+          remove:                  
       urlRewrite:
         pathPrefix:
     matches:
@@ -76,10 +155,10 @@ spec:
         name:
         type:
         value:
-    method:
       method:
-      service:
-      type:
+        method:
+        service:
+        type:
     retries:
       number:
         value: 
@@ -97,7 +176,7 @@ spec:
 
 ## Specification
 
-This section provides details about the fields you can configure in the GRPCRoute CRD.
+This section provides details about the fields you can configure in the GRPCRoute custom resource definition (CRD).
 
 ### `apiVersion`
 
