@@ -225,7 +225,7 @@ type RetryFilter struct {
 	NumRetries            *uint32
 	RetryOn               []string
 	RetryOnStatusCodes    []uint32
-	RetryOnConnectFailure *bool
+	RetryOnConnectFailure bool
 }
 
 type TimeoutFilter struct {

@@ -412,10 +412,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					cp.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes = make([]uint32, len(o.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes))
 					copy(cp.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes, o.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes)
 				}
-				if o.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure != nil {
-					cp.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure = new(bool)
-					*cp.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure = *o.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure
-				}
 			}
 			if o.Rules[i2].Filters.TimeoutFilter != nil {
 				cp.Rules[i2].Filters.TimeoutFilter = new(TimeoutFilter)
@@ -504,10 +500,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 						if o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes != nil {
 							cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes = make([]uint32, len(o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes))
 							copy(cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes, o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes)
-						}
-						if o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure != nil {
-							cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure = new(bool)
-							*cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure = *o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure
 						}
 					}
 					if o.Rules[i2].Services[i4].Filters.TimeoutFilter != nil {

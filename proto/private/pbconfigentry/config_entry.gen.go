@@ -1825,7 +1825,7 @@ func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
 	t.NumRetries = &s.NumRetries
 	t.RetryOn = s.RetryOn
 	t.RetryOnStatusCodes = s.RetryOnStatusCodes
-	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
+	t.RetryOnConnectFailure = s.RetryOnConnectFailure
 }
 func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
 	if s == nil {
@@ -1834,7 +1834,7 @@ func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
 	s.NumRetries = *t.NumRetries
 	s.RetryOn = t.RetryOn
 	s.RetryOnStatusCodes = t.RetryOnStatusCodes
-	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
+	s.RetryOnConnectFailure = t.RetryOnConnectFailure
 }
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {
