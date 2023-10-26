@@ -232,6 +232,11 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	var bound structs.ConfigEntry
 	// construct the tuple we'll be working on to update state
 	_, rawBoundGateway, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	if err != nil {
+		logger.Warn("error retrieving bound gateway", "error", err)
+		return err
+	}
+
 	if rawBoundGateway != nil { // for singular returns
 		boundGateway := rawBoundGateway.(*structs.BoundAPIGatewayConfigEntry)
 		bound = boundGateway.DeepCopy()
@@ -1168,9 +1173,15 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
+	_, rawHTTPRoute, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
+	}
+
+	httpRoutes := make([]structs.ConfigEntry, len(rawHTTPRoute))
+	for i, rawRoute := range rawHTTPRoute {
+		asserted := rawRoute.(*structs.HTTPRouteConfigEntry)
+		httpRoutes[i] = asserted.DeepCopy()
 	}
 
 	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
