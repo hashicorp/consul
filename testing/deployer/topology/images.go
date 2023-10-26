@@ -8,8 +8,12 @@ import (
 )
 
 type Images struct {
-	Consul           string `json:",omitempty"`
-	ConsulCE         string `json:",omitempty"`
+	// Consul is the image used for creating the container,
+	// Use ChooseConsul() to control which image (ConsulCE or ConsulEnterprise) assign to Consul
+	Consul string `json:",omitempty"`
+	// ConsulCE sets the CE image
+	ConsulCE string `json:",omitempty"`
+	// ConsulEnterprise sets the ent image
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
 	Dataplane        string
@@ -82,6 +86,7 @@ func (i Images) ChooseNode(kind NodeKind) Images {
 	return i
 }
 
+// ChooseConsul controls which image assigns to Consul
 func (i Images) ChooseConsul(enterprise bool) Images {
 	if enterprise {
 		i.Consul = i.ConsulEnterprise
