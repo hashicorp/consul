@@ -81,7 +81,7 @@ func (pr *ProxyResources) makeClusters(name string) ([]proto.Message, error) {
 	return clusters, nil
 }
 
-func (pr *ProxyResources) makeEnvoyCluster(name string, protocol string, eg *pbproxystate.EndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyCluster(name string, protocol pbproxystate.Protocol, eg *pbproxystate.EndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	if eg != nil {
 		switch t := eg.Group.(type) {
 		case *pbproxystate.EndpointGroup_Dynamic:
@@ -103,7 +103,7 @@ func (pr *ProxyResources) makeEnvoyCluster(name string, protocol string, eg *pbp
 	return nil, fmt.Errorf("no endpoint group")
 }
 
-func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, dynamic *pbproxystate.DynamicEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol pbproxystate.Protocol, dynamic *pbproxystate.DynamicEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
@@ -153,7 +153,7 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 
 }
 
-func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol pbproxystate.Protocol, static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
@@ -182,11 +182,11 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 	return cluster, nil
 }
 
-func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol string, dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol pbproxystate.Protocol, dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	return nil, nil
 }
 
-func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol string, passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol pbproxystate.Protocol, passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ConnectTimeout:       passthrough.Config.ConnectTimeout,
@@ -207,7 +207,7 @@ func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol stri
 	return cluster, nil
 }
 
-func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string, fg *pbproxystate.FailoverGroup) ([]*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol pbproxystate.Protocol, fg *pbproxystate.FailoverGroup) ([]*envoy_cluster_v3.Cluster, error) {
 	var clusters []*envoy_cluster_v3.Cluster
 	if fg != nil {
 		var egNames []string
@@ -250,8 +250,8 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 	return clusters, nil
 }
 
-func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
-	if !(protocol == "http2" || protocol == "grpc") {
+func addLocalAppHttpProtocolOptions(protocol pbproxystate.Protocol, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == pbproxystate.Protocol_PROTOCOL_HTTP2 || protocol == pbproxystate.Protocol_PROTOCOL_GRPC) {
 		// do not error.  returning nil means it won't get set.
 		return nil
 	}
@@ -274,8 +274,8 @@ func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster
 	return nil
 }
 
-func addHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
-	if !(protocol == "http2" || protocol == "grpc") {
+func addHttpProtocolOptions(protocol pbproxystate.Protocol, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == pbproxystate.Protocol_PROTOCOL_HTTP2 || protocol == pbproxystate.Protocol_PROTOCOL_GRPC) {
 		// do not error.  returning nil means it won't get set.
 		return nil
 	}

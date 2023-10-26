@@ -124,3 +124,7 @@ func ValidatePortName(name string) error {
 func IsValidUnixSocketPath(host string) bool {
 	return types.IsValidUnixSocketPath(host)
 }
+
+func ValidateProtocol(protocol pbcatalog.Protocol) error {
+	return types.ValidateProtocol(protocol)
+}

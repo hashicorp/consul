@@ -41,6 +41,31 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 		},
 	}
 
+	multiportServiceData := &pbcatalog.Service{
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort:  "tcp",
+				VirtualPort: 7070,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+			},
+			{
+				TargetPort:  "tcp2",
+				VirtualPort: 8081,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+			},
+			{
+				TargetPort:  "http",
+				VirtualPort: 8080,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
+			},
+			{
+				TargetPort:  "mesh",
+				VirtualPort: 20000,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_MESH,
+			},
+		},
+	}
+
 	multiportEndpointsData := &pbcatalog.ServiceEndpoints{
 		Endpoints: []*pbcatalog.Endpoint{
 			{
@@ -57,12 +82,12 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 	}
 	apiAppService := resourcetest.Resource(pbcatalog.ServiceType, apiApp).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, serviceData).
+		WithData(t, multiportServiceData).
 		Build()
 
 	apiApp2Service := resourcetest.Resource(pbcatalog.ServiceType, apiApp2).
 		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, serviceData).
+		WithData(t, multiportServiceData).
 		Build()
 
 	apiAppEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, apiApp).
