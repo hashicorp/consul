@@ -14,50 +14,54 @@ This custom resource definition (CRD) describes a GAMMA resource that requires t
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
 
-- [`apiVersion`](#apiversion): string | required
-- [`kind`](#kind): string | required
+- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `GRPCRoute`
 - [`metadata`](#metadata): object | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
 - [`spec`](#spec): object | required
-  - [`parentRefs`](#spec-parentrefs):
-    - [`port`](#spec-parentrefs-port): 
-    - [`ref`](#spec-parentrefs-ref): 
-      - [`name`](#spec-parentrefs-ref-name):
-        - [`section`](#spec-parentrefs-ref-section):
-        - [`tenancy`](#spec-parentrefs-ref-tenancy):
-          - [`namespace`](#spec-parentrefs-ref-tenancy):
-            - [`partition`](#spec-parentrefs-ref-tenancy):
-            - [`peerName`](#spec-parentrefs-ref-tenancy):
-  - [`rules`](#spec-rules):
-    - [`backendRefs`](#spec-rules-backendrefs):
-      - [`backendRef`](#spec-rules-backendrefs-backendref):
-        - [`datacenter`](#spec-rules-backendrefs-backendref-datacenter):
-        - [`port`](#spec-rules-backendrefs-backendref-port):
-        - [`ref`](#spec-rules-backendrefs-backendref-ref):
-          - [`name`](#spec-rules-backendrefs-backendref-ref-name):
-          - [`section`](#spec-rules-backendrefs-backendref-ref-section):
-          - [`tenancy`](#spec-rules-backendrefs-backendref-ref-tenancy):
-            - [`namespace`](#spec-rules-backendrefs-backendref-ref-tenancy):
-            - [`partition`](#spec-rules-backendrefs-backendref-ref-tenancy):
-            - [`peerName`](#spec-rules-backendrefs-backendref-ref-tenancy):
-          - [`type`](#spec-rules-backendrefs-backendref-ref-type):
-            - [`group`](#spec-rules-backendrefs-backendref-ref-type):
-            - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type):
-            - [`kind`](#spec-rules-backendrefs-backendref-ref-type):
-      - [`filters`](#spec-rules-backendrefs-filters):
-        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+  - [`parentRefs`](#spec-parentrefs): map | required
+    - [`port`](#spec-parentrefs-port): string
+    - [`ref`](#spec-parentrefs-ref):  string | required
+      - [`name`](#spec-parentrefs-ref-name): string
+      - [`section`](#spec-parentrefs-ref-section): string
+      - [`tenancy`](#spec-parentrefs-ref-tenancy): string
+        - [`namespace`](#spec-parentrefs-ref-tenancy): string <EnterpriseAlert inline />
+        - [`partition`](#spec-parentrefs-ref-tenancy): string <EnterpriseAlert inline />
+        - [`peerName`](#spec-parentrefs-ref-tenancy): string
+      - [`type`](#spec-parentrefs-ref-type): map
+         - [`group`](#spec-parentrefs-ref-type): string
+         - [`groupVersion`](#spec-parentrefs-ref-type): string
+         - [`kind`](#spec-parentrefs-ref-type): string
+  - [`rules`](#spec-rules): map | required
+    - [`backendRefs`](#spec-rules-backendrefs): map
+      - [`backendRef`](#spec-rules-backendrefs-backendref): map
+        - [`datacenter`](#spec-rules-backendrefs-backendref-datacenter): string
+        - [`port`](#spec-rules-backendrefs-backendref-port): string
+        - [`ref`](#spec-rules-backendrefs-backendref-ref): map
+          - [`name`](#spec-rules-backendrefs-backendref-ref-name): string
+          - [`section`](#spec-rules-backendrefs-backendref-ref-section): string
+          - [`tenancy`](#spec-rules-backendrefs-backendref-ref-tenancy): map
+            - [`namespace`](#spec-rules-backendrefs-backendref-ref-tenancy): string
+            - [`partition`](#spec-rules-backendrefs-backendref-ref-tenancy): string
+            - [`peerName`](#spec-rules-backendrefs-backendref-ref-tenancy): string
+          - [`type`](#spec-rules-backendrefs-backendref-ref-type): map
+            - [`group`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
+      - [`filters`](#spec-rules-backendrefs-filters): map
+        - [`requestHeaderModifier`]: map(#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+        - [`responseHeaderModifier`]: map(#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
           - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
-        - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite):
-          - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite):
-      - [`weight`](#spec-rules-backendrefs-weight):
-    - [`filters`](#spec-rules-filters):
+        - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite): map
+          - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite): string
+      - [`weight`](#spec-rules-backendrefs-weight): integer
+    - [`filters`](#spec-rules-filters): map
       - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
         - [`add`](#spec-rules-filters-requestheadermodifier): map
         - [`set`](#spec-rules-filters-requestheadermodifier): map
@@ -66,112 +70,116 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`add`](#spec-rules-filters-responseheadermodifier): map
         - [`set`](#spec-rules-filters-responseheadermodifier): map
         - [`remove`](#spec-rules-filters-responseheadermodifier): map
-      - [`urlRewrite`](#spec-rules-filters-urlrewrite):
-        - [`pathPrefix`](#spec-rules-filters-urlrewrite):
-    - [`matches`](#spec-rules-matches):
-      - [`headers`](#spec-rules-matches-headers):
-        - [`name`](#spec-rules-matches-headers-name):
-        - [`type`](#spec-rules-matches-headers-type):
-        - [`value`](#spec-rules-matches-headers-value):
-      - [`method`](#spec-rules-matches-method):
-        - [`method`](#spec-rules-matches-method-method):
-        - [`service`](#spec-rules-matches-method-service):
-        - [`type`](#spec-rules-matches-method-type):
-    - [`retries`](#spec-rules-retries):
-      - [`number`](#spec-rules-retries-number):
-        - [`value`](#spec-rules-retries-number):
-      - [`onConditions`](#spec-rules-retries-onconditions):
+      - [`urlRewrite`](#spec-rules-filters-urlrewrite): map
+        - [`pathPrefix`](#spec-rules-filters-urlrewrite): string
+    - [`matches`](#spec-rules-matches): map
+      - [`headers`](#spec-rules-matches-headers): map
+        - [`name`](#spec-rules-matches-headers-name): string
+        - [`type`](#spec-rules-matches-headers-type): string
+        - [`value`](#spec-rules-matches-headers-value): string
+      - [`method`](#spec-rules-matches-method): map
+        - [`method`](#spec-rules-matches-method-method): string
+        - [`service`](#spec-rules-matches-method-service): string
+        - [`type`](#spec-rules-matches-method-type): string
+    - [`retries`](#spec-rules-retries): map
+      - [`number`](#spec-rules-retries-number): map
+        - [`value`](#spec-rules-retries-number): integer
+      - [`onConditions`](#spec-rules-retries-onconditions): map of strings
       - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
-      - [`onStatusCodes`](#spec-rules-retries-onconditions): array of integers
-    - [`timeouts`](#spec-rules-timeouts):
-      - [`idle`](#spec-rules-timeouts-idle):
-        - [`nanos`](#spec-rules-timeouts-idle):
-        - [`seconds`](#spec-rules-timeouts-idle):
-      - [`request`](#spec-rules-timeouts-request):
-        - [`nanos`](#spec-rules-timeouts-request):
-        - [`seconds`](#spec-rules-timeouts-request):
+      - [`onStatusCodes`](#spec-rules-retries-onconditions): map of integers
+    - [`timeouts`](#spec-rules-timeouts): map
+      - [`idle`](#spec-rules-timeouts-idle): map
+        - [`nanos`](#spec-rules-timeouts-idle): integer
+        - [`seconds`](#spec-rules-timeouts-idle): integer
+      - [`request`](#spec-rules-timeouts-request): map
+        - [`nanos`](#spec-rules-timeouts-request): integer
+        - [`seconds`](#spec-rules-timeouts-request): integer
 
 ## Complete configuration
 
 When every field is defined, a GRPCRoute resource CRD has the following form:
 
 ```yaml
-apiVersion: mesh.consul.hashicorp.com/v2beta1        # required
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
 kind: GRPCRoute                                      # required
 metadata:
-  name:
-  namespace:
+  name: <CRDName>
+  namespace: <namespace>
 spec:
   parentRefs:
-    port:
-    ref:
-      name:
-      section:
+    port: "<portNameRoutedFrom>"
+    - ref:
+      name: <nameRoutedFrom>
+      section: <sectionRoutedFrom>
       tenancy:
-        namespace:
-        partition:
-        peerName:
+        namespace: <namespaceRoutedFrom>
+        partition: <adminPartitionRoutedFrom>
+        peerName: <clusterPeerRoutedFrom>
+      type: 
+        group: <catalog>
+        groupVersion: <v2beta1>
+        kind: <Service>
   rules:
-    backendRefs:
-      backendRef:
-        datacenter:
-        port:
+    - backendRefs:
+      - backendRef:
+        datacenter: <datacenterRoutedTo>
+        port: "<portNameRoutedTo>"
         ref:
-          name:
-          section:
+          name: <nameRoutedTo>
+          section: <sectionRoutedTo>
           tenancy:
-            namespace:
-            partition:
-            peerName:
+            namespace: <namespaceRoutedTo>
+            partition: <partitionRoutedTo>
+            peerName: <clusterPeerRoutedTo>
           type:
-            group:
-            groupVersion:
-            kind:
+            group: <catalog>
+            groupVersion: <v2beta1>
+            kind: <Service>
       filters:
-        requestHeaderModifier:
+        - requestHeaderModifier:
           add:
+            name: "<foo>"
+            value: "<bar>"
+        - responseHeaderModifier:
           set:
-          remove:
-        responseHeaderModifier:
-          add:
-          set:
-          remove:
+            name: "<foo>"
+            value: "<bar>"
         urlRewrite:
-          pathPrefix:
-      weight:
+          pathPrefix: <path/prefix>
+      weight: 1
     filters:
       requestHeaderModifier:
-          add:
-          set:
           remove:
+            name: "<foo>"
+            value: "<bar>"
       responseHeaderModifier:      
           add:
-          set:
-          remove:                  
+            name: "<foo>"
+            value: "<bar>"              
       urlRewrite:
-        pathPrefix:
+        pathPrefix: <path/prefix>
     matches:
       headers:
-        name:
-        type:
-        value:
+        name: <nameToMatch>
+        type: <typeToMatch>
+        value: <valueToMatch>
       method:
-        method:
-        service:
-        type:
+        method: <methodToMatch>
+        service: <serviceToMatch>
+        type: <typeToMatch>
     retries:
       number:
-        value: 
-      onConditions:
+        value: 1
+      onConditions: ["cancelled", "unavailable"]
       onConnectFailure: false
       onStatusCodes: [400, 404]
     timeouts:
       idle:
-        nanos:
-        seconds:
+        nanos: 15
+        seconds: 1
       request:
-        nanos:
-        seconds:
+        nanos: 10
+        seconds: 1
 ```
 
 ## Specification
@@ -240,10 +248,7 @@ When using this CRD, the `spec` field must align with GAMMAs resource. Refer to 
 
 ### `spec.parentRefs`
 
-References the resources (usually Services)
-                  that a Route wants to be attached to. \n It is invalid to reference
-                  an identical parent more than once. It is valid to reference multiple
-                  distinct sections within the same parent resource.
+Specifies the resources to attach the route to. Usually these are services. You cannot reference the same `parentsRefs` multiple times. Instead, specify each [`spec.parentRefs.ref`](#spec-parentrefs-ref) in the same block.
 
 #### Values
 
@@ -253,7 +258,7 @@ References the resources (usually Services)
 
 ### `spec.parentRefs.port`
 
-For east/west this is the name of the Consul Service port to direct traffic to or empty to imply all.
+Specifies the name of the Consul service's port that the configuration applies to.
 
 #### Values
 
@@ -262,7 +267,7 @@ For east/west this is the name of the Consul Service port to direct traffic to o
 
 ### `spec.parentRefs.ref`
 
-For east/west configuration, this should point to a Service.
+Specifies the resource that the configuration applies to.
 
 #### Values
 
@@ -271,8 +276,7 @@ For east/west configuration, this should point to a Service.
 
 ### `spec.parentRefs.ref.name`
 
-Name is the user-given name of the resource
-                            (e.g. the "billing" service).
+Specifies the user-defined name of the resource that the configuration applies to.
 
 #### Values
 
@@ -281,7 +285,7 @@ Name is the user-given name of the resource
 
 ### `spec.parentRefs.ref.section`
 
-Section identifies which part of the resource the condition relates to.
+Specifies the section of the resource that the configuration applies to.
 
 #### Values
 
@@ -290,7 +294,7 @@ Section identifies which part of the resource the condition relates to.
 
 ### `spec.parentRefs.ref.tenancy`
 
-Tenancy identifies the tenancy units (i.e. partition, namespace) in which the resource resides.
+Specifies the user-defined namespace, partition, or cluster peer of the resource that the configuration applies to.
 
 #### Values
 
@@ -299,13 +303,28 @@ Tenancy identifies the tenancy units (i.e. partition, namespace) in which the re
 
   | Parameter     | Description                                                          | Data type | Default  |
   | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
-  | `namespace`   | Identifies the namespace where the resource applies.                 | String    | None     |
-  | `partition`   | Identifies the admin partition where the resource applies.           | String    | None     |
-  | `peerName`    | Identifies the name of a cluster peer the resource is imported from. | String    | None     |
+  | `namespace`   | Identifies the namespace of the resource the configuration applies to.                 | String    | None     |
+  | `partition`   | Identifies the admin partition of the resource the configuration applies to.           | String    | None     |
+  | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration applies to. | String    | None     |
+
+### `spec.parentRefs.ref.type`
+
+Specifies the type of resource that the configuration applies to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+
+  | Parameter     | Description                                                          | Data type | Default  |
+  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String (in code, should be int based on desc.)   | None     |
+  | `kind`    | Specifies the kind of the Kubernetes object the resource applies to. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
 ### `spec.rules`
 
-Rules are a list of GRPC matchers, filters and actions.
+Specifies rules for sidecar proxies to direct a service's GRPC traffic within the service mesh, including filtering, retry, and timeout behavior.
 
 #### Values
 
@@ -314,9 +333,11 @@ Rules are a list of GRPC matchers, filters and actions.
 
 ### `spec.rules.backendRefs`
 
-BackendRefs defines the backend(s) where matching requests should be sent. Failure behavior here depends on how many BackendRefs are specified and how many are invalid. If all entries in BackendRefs are invalid, and there are also no filters specified in this route rule, all traffic which matches this rule MUST receive a 500 status code. See the GRPCBackendRef definition for the rules about what makes a single GRPCBackendRef invalid. When a GRPCBackendRef is invalid, 500 status codes MUST be returned for requests that would have otherwise been routed to an invalid backend.
+Specifies the Kubernetes Service backend to direct GRPC traffic to when a request matches the service described in [`spec.parentRefs`](#spec-parentrefs). The Service backend is the collection of endpoint IPs for the service. Refer to [the Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/concepts/gamma/#an-overview-of-the-gateway-api-for-service-mesh) for more information about Service backends.
 
-If multiple backends are specified, and some are invalid, the proportion of requests that would otherwise have been routed to an invalid backend MUST receive a 500 status code. For example, if two backends are specified with equal weights, and one is invalid, 50 percent of traffic must receive a 500. Implementations may choose how that 50 percent is determined.
+When a valid Service backend cannot be reached and no additional filters apply, traffic that matches the rule returns a 500 status code.
+
+When different Service backends are specified in [`spec.rules.backendRefs.weight`](#spec-rules-backendrefs-weight) and one is invalid, the relative weights are maintained and traffic is not redirected automatically. For example, when traffic is configured in a 50-50 split between `api` and `admin` and no valid endpoints for `admin` can be reached, the 50% of traffic intended for `admin` returns with a 500 status code.
 
 #### Values
 
@@ -325,7 +346,7 @@ If multiple backends are specified, and some are invalid, the proportion of requ
 
 ### `spec.rules.backendRefs.backendRef`
 
-Defines an individual backend where matching requests should be sent.
+Specifies an individual Service backend where matching requests should be sent.
 
 #### Values
 
@@ -334,7 +355,7 @@ Defines an individual backend where matching requests should be sent.
 
 ### `spec.rules.backendRefs.backendRef.datacenter`
 
-Specifies the name of the datacenter
+Specifies the name of the Consul datacenter that registered the Service backend that the configuration routes traffic to.
 
 #### Values
 
@@ -343,7 +364,7 @@ Specifies the name of the datacenter
 
 ### `spec.rules.backendRefs.backendRef.port`
 
-For east/west this is the name of the Consul Service port to direct traffic to or empty to imply using the same value as the parent ref.
+Specifies the name of the port for the Consul service that the configuration routes traffic to.
 
 #### Values
 
@@ -352,7 +373,7 @@ For east/west this is the name of the Consul Service port to direct traffic to o
 
 ### `spec.rules.backendRefs.backendRef.ref`
 
-For east/west configuration, this should point to a Service.
+The Consul service that the configuration routes traffic to.
 
 #### Values
 
@@ -361,7 +382,7 @@ For east/west configuration, this should point to a Service.
 
 ### `spec.rules.backendRefs.backendRef.ref.name`
 
-Name is the user-given name of the resource(e.g. the "billing" service).
+Specifies the user-defined name of the resource that the configuration routes traffic to.
 
 #### Values
 
@@ -370,7 +391,7 @@ Name is the user-given name of the resource(e.g. the "billing" service).
 
 ### `spec.rules.backendRefs.backendRef.ref.section`
 
-Section identifies which part of the resource the condition relates to.
+Specifies the section the resource that the configuration routes traffic to.
 
 #### Values
 
@@ -379,7 +400,7 @@ Section identifies which part of the resource the condition relates to.
 
 ### `spec.rules.backendRefs.backendRef.ref.tenancy`
 
-Tenancy identifies the tenancy units (i.e. partition, namespace) where the rule applies.
+Specifies the user-defined namespace, partition, or cluster peer of the resource that the configuration routes to.
 
 #### Values
 
@@ -388,13 +409,13 @@ Tenancy identifies the tenancy units (i.e. partition, namespace) where the rule 
 
   | Parameter     | Description                                                          | Data type | Default  |
   | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
-  | `namespace`   | Identifies the namespace where the resource applies.                 | String    | None     |
-  | `partition`   | Identifies the admin partition where the resource applies.           | String    | None     |
-  | `peerName`    | Identifies the name of a cluster peer the resource is imported from. | String    | None     |
+  | `namespace`   | Identifies the namespace of the resource the configuration routes traffic to.                 | String    | None     |
+  | `partition`   | Identifies the admin partition of the resource the configuration routes traffic to.         | String    | None     |
+  | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration routes traffic to. | String    | None     |
 
 ### `spec.rules.backendRefs.backendRef.ref.type`
 
-Type identifies the resource's type.
+Specifies the type of resource that the configuration routes traffic to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
 
 #### Values
 
@@ -402,14 +423,13 @@ Type identifies the resource's type.
 - Data type: Map containing the following parameters:
 
   | Parameter     | Description                                                          | Data type | Default  |
-  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
-  | `group`   | Describes the area of functionality to which this resource type relates. | String    | None     |
-  | `groupVersion` | Increments when sweeping or backward-incompatible changes are made to the group's resource types. | String (in code, should be int based on desc.)   | None     |
-  | `kind`    | Iidentifies the specific resource type within the group.                 | String    | None     |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String (in code, should be int based on desc.)   | None     |
+  | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
 ### `spec.rules.backendRefs.filters`
 
-Filters defined at this level should be executed if and only if the request is being forwarded to the backend defined here.
+Specifies filtering behavior for services configured in the same [`spec.rules.backendRefs`](#spec-rules-backendrefs) block.
 
 #### Values
 
@@ -418,7 +438,7 @@ Filters defined at this level should be executed if and only if the request is b
 
 ### `spec.rules.backendRefs.filters.requestHeaderModifier`
 
-Specifies a set of HTTP-specific header modification rules applied to requests routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to requests routed with the GRPCRoute resource.
 
 #### Values
 
@@ -438,7 +458,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.backendRefs.filters.responseHeaderModifier`
 
-Specifies a set of HTTP-specific header modification rules applied to responses routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to responses routed with the GRPCRoute resource.
 
 #### Values
 
@@ -458,7 +478,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.backendRefs.filters.urlRewrite`
 
-URLRewrite defines a schema for a filter that modifies a request during forwarding.
+Specifies a path to modify the URL with when a request is forwarded.
 
 #### Values
 
@@ -467,11 +487,15 @@ URLRewrite defines a schema for a filter that modifies a request during forwardi
 
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
-  | `pathPrefix` | Specifies the number of random healthy hosts from which to select the one with the least requests.  | String    | None    |
+  | `pathPrefix` | Specifies the path that is prepended to the URL.  | String    | None    |
 
 ### `spec.rules.backendRefs.weight`
 
-Weight specifies the proportion of requests forwarded to the referenced backend. This is computed as weight/(sum of all weights in this BackendRefs list). For non-zero values, there may be some epsilon from the exact proportion defined here depending on the precision an implementation supports. Weight is not a percentage and the sum of weights does not need to equal 100. If only one backend is specified and it has a weight greater than 0, 100% of the traffic is forwarded to that backend. If weight is set to 0, no traffic should be forwarded for this entry. If unspecified, weight defaults to 1.
+Specifies the proportion of requests routed to the specified service. 
+
+This proportion is relative to the sum of all weights in the [`spec.rules.backendRefs`](#spec-rules-backendrefs) block. As a result, weights do not need to add up to 100. When only one backend is specified and the weight is greater then 0, 100% of traffic is forwarded. 
+
+When this parameter is not specified, it assumes the default value `1`.
 
 #### Values
 
@@ -480,7 +504,7 @@ Weight specifies the proportion of requests forwarded to the referenced backend.
 
 ### `spec.rules.filters`
 
-Weight specifies the proportion of requests forwarded to the referenced backend. This is computed as weight/(sum of all weights in this BackendRefs list). For non-zero values, there may be some epsilon from the exact proportion defined here depending on the precision an implementation supports. Weight is not a percentage and the sum of weights does not need to equal 100. If only one backend is specified and it has a weight greater than 0, 100% of the traffic is forwarded to that backend. If weight is set to 0, no traffic should be forwarded for this entry. If unspecified, weight defaults to 1.
+Specifies filtering behavior for all requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
 
 #### Values
 
@@ -489,7 +513,7 @@ Weight specifies the proportion of requests forwarded to the referenced backend.
 
 ### `spec.rules.filters.requestHeaderModifier`
 
-Specifies a set of HTTP-specific header modification rules applied to requests routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
 
 #### Values
 
@@ -509,7 +533,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.filters.responseHeaderModifier`
 
-Specifies a set of HTTP-specific header modification rules applied to responses routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to responses from services matching [`spec.parentRefs`](#spec-parent-refs).
 
 #### Values
 
@@ -529,7 +553,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.filters.urlRewrite`
 
-URLRewrite defines a schema for a filter that modifies a request during forwarding.
+Specifies a path to modify the URL with when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.
 
 #### Values
 
@@ -538,11 +562,11 @@ URLRewrite defines a schema for a filter that modifies a request during forwardi
 
   | Parameter     | Description                                                                                        | Data type | Default |
   | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
-  | `pathPrefix` | Specifies the number of random healthy hosts from which to select the one with the least requests.  | String    | None    |
+  | `pathPrefix` | Specifies a path to prepend to the URL when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.  | String    | None    |
 
 ### `spec.rules.matches`
 
-Specifies matching rules
+Specifies rules for matching services described in [`spec.parentRefs`](#spec-parent-refs) according to the request header or method.
 
 #### Values
 
@@ -551,7 +575,9 @@ Specifies matching rules
 
 ### `spec.rules.matches.headers`
 
-Headers specifies gRPC request header matchers. Multiple match values are ANDed together, meaning, a request MUST match all the specified headers to select the route.
+Specifies criteria for matching gRPC request headers.
+
+When [`spec.rules.matches.headers.value`] is specified multiple times, a request must match all of the specified values for the route to be selected.
 
 #### Values
 
@@ -560,7 +586,7 @@ Headers specifies gRPC request header matchers. Multiple match values are ANDed 
 
 ### `spec.rules.matches.headers.name`
 
-Name of the header to match on.
+Specifies the name of a gRPC request header to match on.
 
 #### Values
 
@@ -569,7 +595,7 @@ Name of the header to match on.
 
 ### `spec.rules.matches.headers.type`
 
-HeaderMatchType specifies the semantics of how HTTP header values should be compared. Valid HeaderMatchType values, along with their conformance levels, are: \n Note that values may be added to this enum, implementations must ensure that unknown values will not cause a crash. Unknown values here must result in the implementation setting the Accepted Condition for the Route to status: False, with a Reason of UnsupportedValue.
+Specifies a type of match to perform on the gRPC request header. Supported match types include: unspecified, exact, regex, present, prefix, and suffix.
 
 #### Values
 
@@ -585,7 +611,7 @@ HeaderMatchType specifies the semantics of how HTTP header values should be comp
 
 ### `spec.rules.matches.headers.value`
 
-Specifies the value of the header to match.
+Specifies the value of the gRPC request header to match. When this field is specified multiple times, a request must match all of the specified values for the route to be selected.
 
 #### Values
 
@@ -594,7 +620,7 @@ Specifies the value of the header to match.
 
 ### `spec.rules.matches.method`
 
-Specifies a gRPC request service/method matcher. If this field is not specified, all services and methods will match.
+Specifies criteria for matching a service and a gRPC request method. When configuring this field, either [`spec.rules.matches.method.method`](#spec-rules-matches-method-method) or [`spec.rules.matches.method.service`](#spec-rules-matches-method-service) must be a non-empty string.
 
 #### Values
 
@@ -603,7 +629,7 @@ Specifies a gRPC request service/method matcher. If this field is not specified,
 
 ### `spec.rules.matches.method.method`
 
-Value of the method to match against. If left empty or omitted, will match all services. At least one of Service and Method MUST be a non-empty string.
+Specifies the value of the method to match. When empty or omitted, all methods match.
 
 #### Values
 
@@ -612,7 +638,7 @@ Value of the method to match against. If left empty or omitted, will match all s
 
 ### `spec.rules.matches.method.service`
 
-Value of the service to match against. If left empty or omitted, will match any service. At least one of Service and Method MUST be a non-empty string.
+Specifies the value of the service to match. When empty or omitted, all services match.
 
 #### Values
 
@@ -621,7 +647,7 @@ Value of the service to match against. If left empty or omitted, will match any 
 
 ### `spec.rules.matches.method.type`
 
-Type specifies how to match against the service and/or method.
+Specifies a type of match to perform on the gRPC request method. Supported match types include: unspecified, exact, and regex.
 
 #### Values
 
@@ -634,7 +660,7 @@ Type specifies how to match against the service and/or method.
 
 ### `spec.rules.retries`
 
-Specifies retry logic for the resource.
+Specifies retry logic for routing gRPC traffic.
 
 #### Values
 
@@ -643,7 +669,7 @@ Specifies retry logic for the resource.
 
 ### `spec.rules.retries.number`
 
-Specifies retry logic for the resource.
+Specifies the number of retries to attempt when a request fails.
 
 #### Values
 
@@ -656,16 +682,16 @@ Specifies retry logic for the resource.
 
 ### `spec.rules.retries.onConditions`
 
-RetryOn allows setting envoy specific conditions when a request should be automatically retried.
+Specifies Envoy conditions that cause an automatic retry attempt.
 
 #### Values
 
 - Default: None
-- Data type: Array of strings
+- Data type: Map of strings
 
 ### `spec.rules.retries.onConnnectFailure`
 
-Allows for connection failure errors to trigger a retry.
+Enables an automatic retry attempt when a connection failure error occurs.
 
 #### Values
 
@@ -674,16 +700,16 @@ Allows for connection failure errors to trigger a retry.
 
 ### `spec.rules.retries.onStatusCodes`
 
-Flat list of http response status codes that are eligible for retry. This again should be feasible in any reasonable proxy.
+Specifies the response status codes that are eligible for retry attempts.
 
 #### Values
 
 - Default: None
-- Data type: Array of integers
+- Data type: Map of integers
 
 ### `spec.rules.timeouts`
 
-Specifies timeout logic for the resource.
+Specifies timeout logic when routing gRPC traffic
 
 #### Values
 
@@ -692,7 +718,7 @@ Specifies timeout logic for the resource.
 
 ### `spec.rules.timeouts.idle`
 
-Specifies the total amount of time permitted for the request stream to be idle.
+Specifies the total amount of time permitted for the request stream to be idle before a timeout occurs.
 
 #### Values
 
@@ -706,7 +732,7 @@ Specifies the total amount of time permitted for the request stream to be idle.
 
 ### `spec.rules.timeouts.request`
 
-Specifies the total amount of time permitted for the entire downstream request and retries to be processed before triggering a timeout.
+Specifies the total amount of time spent processing the entire downstream request, including retries, before triggering a timeout.
 
 #### Values
 
@@ -722,7 +748,7 @@ Specifies the total amount of time permitted for the entire downstream request a
 
 If you have more than one example to show, create an Examples section (general block) and introduce the examples per the style guide.
 
-### Split service traffic between two ports
+### Split gRPC traffic between two ports
 
 The following configuration splits traffic for the `api` service. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
 
@@ -741,7 +767,7 @@ spec:
           kind: Service
         name: api
       # Note that right now, we must target the workload port,
-      # not the service port. This is likely to change in 1.18+.
+      # not the service port. 
       port: "api-workload"
   rules:
     - backendRefs:
@@ -753,7 +779,7 @@ spec:
               kind: Service
             name: api
           # Note that right now, we must target the workload port,
-          # not the service port. This is likely to change in 1.18+.
+          # not the service port.
           port: "api-workload"
         weight: 50
       - backendRef:
@@ -764,7 +790,84 @@ spec:
               kind: Service
             name: api
           # Note that right now, we must target the workload port,
-          # not the service port. This is likely to change in 1.18+.
+          # not the service port. 
           port: "admin-workload"
         weight: 50
+```
+
+### Route traffic by matching header
+
+The following configuration routes gRPC traffic for the `api` service according to its header GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
+
+- Traffic with a header that contains a `x-debug` value of exactly `1` has their response and request headers modified and is routed to the service with the `api` workload identity.
+- Traffic with a header that contains a `x-debug` value of exactly `2` has their response and request headers modified and is routed to the service with the `api-admin` workload identity.
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: GRPCRoute
+metadata:
+  name: api-match-split
+  namespace: default
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      # Note that right now, we must target the workload port,
+      # not the service port.
+      port: "api-workload"
+  rules:
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "1"
+      filters:
+       - requestHeaderModifier:
+           add:
+           - name: "request-foo"
+             value: "request-bar"
+       - responseHeaderModifier:
+           add:
+           - name: "response-foo"
+             value: "response-bar"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # Note that right now, we must target the workload port,
+          # not the service port.
+          port: "api-workload"
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "2"
+      filters:
+       - requestHeaderModifier:
+           add:
+           - name: "request-foo"
+             value: "request-bar"
+       - responseHeaderModifier:
+           add:
+           - name: "response-foo"
+             value: "response-bar"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api-admin
+          # Note that right now, we must target the workload port,
+          # not the service port.
+          port: "admin-workload"
 ```
