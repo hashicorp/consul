@@ -47,7 +47,7 @@ func validateExportedServiceConsumerCommon(consumer *pbmulticluster.ExportedServ
 	return nil
 }
 
-func ValidateExportedServicesConsumersEnterprise(consumers []*pbmulticluster.ExportedServicesConsumer) error {
+func validateExportedServicesConsumersEnterprise(consumers []*pbmulticluster.ExportedServicesConsumer) error {
 	var merr error
 
 	for indx, consumer := range consumers {
@@ -80,7 +80,7 @@ func ValidateExportedServices(res *pbresource.Resource) error {
 		})
 	}
 
-	vmerr := ValidateExportedServicesConsumersEnterprise(exportedService.Consumers)
+	vmerr := validateExportedServicesConsumersEnterprise(exportedService.Consumers)
 
 	if vmerr != nil {
 		merr = multierror.Append(merr, vmerr)
@@ -96,7 +96,7 @@ func ValidateNamespaceExportedServices(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&exportedService, err)
 	}
 
-	return ValidateExportedServicesConsumersEnterprise(exportedService.Consumers)
+	return validateExportedServicesConsumersEnterprise(exportedService.Consumers)
 }
 
 func ValidatePartitionExportedServices(res *pbresource.Resource) error {
@@ -106,7 +106,7 @@ func ValidatePartitionExportedServices(res *pbresource.Resource) error {
 		return resource.NewErrDataParse(&exportedService, err)
 	}
 
-	return ValidateExportedServicesConsumersEnterprise(exportedService.Consumers)
+	return validateExportedServicesConsumersEnterprise(exportedService.Consumers)
 }
 
 func ValidateComputedExportedServices(res *pbresource.Resource) error {

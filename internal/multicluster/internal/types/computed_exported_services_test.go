@@ -14,7 +14,7 @@ import (
 	"testing"
 )
 
-func validComputedExportedServicesWithPartition(partitionName string) *pbmulticluster.ComputedExportedServices {
+func computedExportedServicesWithPartition(partitionName string) *pbmulticluster.ComputedExportedServices {
 	consumers := []*pbmulticluster.ComputedExportedService{
 		{
 			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
@@ -31,7 +31,7 @@ func validComputedExportedServicesWithPartition(partitionName string) *pbmulticl
 	}
 }
 
-func validComputedExportedServicesWithPeer(peerName string) *pbmulticluster.ComputedExportedServices {
+func computedExportedServicesWithPeer(peerName string) *pbmulticluster.ComputedExportedServices {
 	consumers := []*pbmulticluster.ComputedExportedService{
 		{
 			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
@@ -50,7 +50,7 @@ func validComputedExportedServicesWithPeer(peerName string) *pbmulticluster.Comp
 
 func TestComputedExportedServicesValidations_InvalidName(t *testing.T) {
 	res := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "computed-exported-services").
-		WithData(t, validComputedExportedServicesWithPeer("peer")).
+		WithData(t, computedExportedServicesWithPeer("peer")).
 		Build()
 
 	err := ValidateComputedExportedServices(res)
@@ -72,9 +72,9 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 	}
 
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
 
 	exportedServiceData := &pbmulticluster.ComputedExportedServices{}
@@ -100,7 +100,7 @@ func TestComputedExportedServicesACLs(t *testing.T) {
 			rules:   `mesh = "write"`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 	}
 
@@ -144,25 +144,25 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 	cases := map[string]testcase{
 		"computed exported services with peer": {
 			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPeer("peer")).
+				WithData(t, computedExportedServicesWithPeer("peer")).
 				Build(),
 		},
 		"computed exported services with partition": {
 			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPartition("partition")).
+				WithData(t, computedExportedServicesWithPartition("partition")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "partition": can only be set in Enterprise`},
 		},
 		"computed exported services with peer empty": {
 			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPeer("")).
+				WithData(t, computedExportedServicesWithPeer("")).
 				Build(),
 			expectErrorCE:  []string{`invalid element at index 0 of list "peer": can not be empty`},
 			expectErrorENT: []string{`invalid element at index 0 of list "peer": can not be empty`},
 		},
 		"computed exported services with partition empty": {
 			Resource: resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, ComputedExportedServicesName).
-				WithData(t, validComputedExportedServicesWithPartition("")).
+				WithData(t, computedExportedServicesWithPartition("")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "partition": can not be empty`,
 				`invalid element at index 0 of list "partition": can only be set in Enterprise`},

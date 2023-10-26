@@ -18,7 +18,7 @@ func inValidExportedServices() *pbmulticluster.ExportedServices {
 	return &pbmulticluster.ExportedServices{}
 }
 
-func validExportedServicesWithPeer(peerName string) *pbmulticluster.ExportedServices {
+func exportedServicesWithPeer(peerName string) *pbmulticluster.ExportedServices {
 	consumers := []*pbmulticluster.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &pbmulticluster.ExportedServicesConsumer_Peer{
@@ -32,7 +32,7 @@ func validExportedServicesWithPeer(peerName string) *pbmulticluster.ExportedServ
 	}
 }
 
-func validExportedServicesWithPartition(partitionName string) *pbmulticluster.ExportedServices {
+func exportedServicesWithPartition(partitionName string) *pbmulticluster.ExportedServices {
 	consumers := []*pbmulticluster.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &pbmulticluster.ExportedServicesConsumer_Partition{
@@ -46,7 +46,7 @@ func validExportedServicesWithPartition(partitionName string) *pbmulticluster.Ex
 	}
 }
 
-func validExportedServicesWithSamenessGroup(samenessGroupName string) *pbmulticluster.ExportedServices {
+func exportedServicesWithSamenessGroup(samenessGroupName string) *pbmulticluster.ExportedServices {
 	consumers := []*pbmulticluster.ExportedServicesConsumer{
 		{
 			ConsumerTenancy: &pbmulticluster.ExportedServicesConsumer_SamenessGroup{
@@ -84,9 +84,9 @@ func TestExportedServicesACLs(t *testing.T) {
 	}
 
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
 
 	exportedServiceData := &pbmulticluster.ExportedServices{
@@ -108,25 +108,25 @@ func TestExportedServicesACLs(t *testing.T) {
 			rules:   `service "api" { policy = "read" } service "backend" {policy = "read"}`,
 			readOK:  ALLOW,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"all services has write policy": {
 			rules:   `service "api" { policy = "write" } service "backend" {policy = "write"}`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"only one services has read policy": {
 			rules:   `service "api" { policy = "read" }`,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"only one services has write policy": {
 			rules:   `service "api" { policy = "write" }`,
 			readOK:  DENY,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 	}
 
@@ -170,31 +170,31 @@ func TestExportedServicesValidation(t *testing.T) {
 	cases := map[string]testcase{
 		"exported services with peer": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPeer("peer")).
+				WithData(t, exportedServicesWithPeer("peer")).
 				Build(),
 		},
 		"exported services with partition": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPartition("partition")).
+				WithData(t, exportedServicesWithPartition("partition")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "partition": can only be set in Enterprise`},
 		},
 		"exported services with sameness_group": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithSamenessGroup("sameness_group")).
+				WithData(t, exportedServicesWithSamenessGroup("sameness_group")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "sameness_group": can only be set in Enterprise`},
 		},
 		"exported services with peer empty": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPeer("")).
+				WithData(t, exportedServicesWithPeer("")).
 				Build(),
 			expectErrorCE:  []string{`invalid element at index 0 of list "peer": can not be empty or local`},
 			expectErrorENT: []string{`invalid element at index 0 of list "peer": can not be empty or local`},
 		},
 		"exported services with partition empty": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithPartition("")).
+				WithData(t, exportedServicesWithPartition("")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "partition": can not be empty`,
 				`invalid element at index 0 of list "partition": can only be set in Enterprise`},
@@ -202,7 +202,7 @@ func TestExportedServicesValidation(t *testing.T) {
 		},
 		"exported services with sameness_group empty": {
 			Resource: resourcetest.Resource(pbmulticluster.ExportedServicesType, "exported-services").
-				WithData(t, validExportedServicesWithSamenessGroup("")).
+				WithData(t, exportedServicesWithSamenessGroup("")).
 				Build(),
 			expectErrorCE: []string{`invalid element at index 0 of list "sameness_group": can not be empty`,
 				`invalid element at index 0 of list "sameness_group": can only be set in Enterprise`},

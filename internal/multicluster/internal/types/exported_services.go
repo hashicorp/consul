@@ -61,5 +61,5 @@ func aclWriteHookExportedServices(authorizer acl.Authorizer, authzContext *acl.A
 func aclListHookExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
 	// No-op List permission as we want to default to filtering resources
 	// from the list using the Read enforcement.
-	return nil
+	return resource.NoOpACLListHook(authorizer, authzContext)
 }

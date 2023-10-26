@@ -65,9 +65,9 @@ func TestPartitionExportedServicesACLs(t *testing.T) {
 	}
 
 	const (
-		DENY    = "deny"
-		ALLOW   = "allow"
-		DEFAULT = "default"
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
 	)
 
 	cases := map[string]testcase{
@@ -81,13 +81,13 @@ func TestPartitionExportedServicesACLs(t *testing.T) {
 			rules:   `mesh = "read"`,
 			readOK:  ALLOW,
 			writeOK: DENY,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 		"mesh write policy": {
 			rules:   `mesh = "write"`,
 			readOK:  ALLOW,
 			writeOK: ALLOW,
-			listOK:  ALLOW,
+			listOK:  DEFAULT,
 		},
 	}
 
