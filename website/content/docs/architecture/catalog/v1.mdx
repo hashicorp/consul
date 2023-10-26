@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: v1 Catalog API
-description: 
+description: Learn about version 1 of the Consul catalog, including what Consul servers record when they register a service.
 ---
 
 # v1 Catalog API
@@ -20,43 +20,18 @@ Consul uses v1 of the Catalog API by default. Consul v1.17.0 introduces a second
 
 When Consul registers a service instance using the v1 catalog API, it records the following information about each instance:
 
-v1 Catalog field
-Description
-User-defined or Consul-computed?
-ID
-A unique identifier for a service instance.
-Consul
-Node
-
-Consul
-Address
-The address of the node where the service instance is running.
-Consul
-Tagged Addresses
-
-
-User
-NodeMeta
-
-
-User
-Datacenter
-The name of the datacenter the service is registered in.
-User
-Service
-The name of the service Consul registers the service instance under.
-User
-Agent Check
-The health status of service last reported by the Consul agent.
-Consul
-Health Checks
-The health checks defined for the service. Refer to [define health checks](/consul/docs/services/usage/checks) for more information.
-User
-Partition
-The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information.
-User
-Locality
-Refer to [`locality`](/consul/docs/agent/config/config-files#locality) for more information.
-User
+| v1 Catalog field | Description | Source |
+| :--------------- | :---------- | :----- |
+| ID | A unique identifier for a service instance. | Computed by Consul |
+| Node | The connection point where the service is available. | Computed by Consul |
+| Address  | The address of the node where the service instance is running. | Computed by Consul |
+| Tagged Addresses | User-defined metadata about addresses. | Defined by user |
+| NodeMeta | User-defined metadata about the node. | Defined by user |
+| Datacenter | The name of the datacenter the service is registered in. | Defined by user |
+| Service | The name of the service Consul registers the service instance under. | Defined by user |
+| Agent Check | The health status of service last reported by the Consul agent. | Computed by Consul |
+| Health Checks | The health checks defined for the service. Refer to [define health checks](/consul/docs/services/usage/checks) for more information. | Defined by user |
+| Partition | The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information. | Defined by user |
+| Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/agent/config/config-files#locality) for more information. | Defined by user |
 
 Depending on the configuration entries or custom resource definitions you apply to your Consul installation, additional information such as [proxy default behavior](/consul/docs/connect/config-entries/proxy-defaults) is automatically recorded to the catalog for services. You can return this information using the [`/catalog` HTTP API endpoint](/consul/api-docs/catalog).
