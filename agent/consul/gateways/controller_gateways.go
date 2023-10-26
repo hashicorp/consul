@@ -74,7 +74,6 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 // along to either a cleanup function if the entry no longer exists (it's been deleted),
 // or a reconciler if the entry has been updated or created.
 func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger hclog.Logger, ctx context.Context, req controller.Request, reconciler func(ctx context.Context, req controller.Request, store *state.Store, entry T) error, cleaner func(ctx context.Context, req controller.Request, store *state.Store) error) error {
-	//TODO sarah.alsmiller create generic casting function to make it so we can easily deepcopy these generic configentries
 	_, entry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
 	if err != nil {
 		requestLogger(logger, req).Warn("error fetching config entry for reconciliation request", "error", err)
@@ -236,11 +235,6 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	if rawBoundGateway != nil { // for singular returns
 		boundGateway := rawBoundGateway.(*structs.BoundAPIGatewayConfigEntry)
 		bound = boundGateway.DeepCopy()
-	}
-	// or for the slice returns do a slice copy with a DeepCopy of all elements
-	if err != nil {
-		logger.Warn("error retrieving bound api gateway", "error", err)
-		return err
 	}
 
 	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
@@ -1174,34 +1168,18 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, rawHTTPRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
-	if err != nil {
-		return nil, err
-	}
-	httpRoutes := make([]structs.ConfigEntry, len(rawHTTPRoutes))
-	for i, rawRoute := range rawHTTPRoutes {
-		if rawRoute == nil {
-			continue
-		}
-		httpRoutes[i] = rawRoute.(*structs.HTTPRouteConfigEntry).DeepCopy()
-	}
-
-	_, rawTCPRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
+	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	tcpRoutes := make([]structs.ConfigEntry, len(rawTCPRoutes))
-	for i, rawRoute := range rawTCPRoutes {
-		if rawRoute == nil {
-			continue
-		}
-		tcpRoutes[i] = rawRoute.(*structs.TCPRouteConfigEntry).DeepCopy()
+	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
+	if err != nil {
+		return nil, err
 	}
 
 	routes := make([]structs.BoundRoute, 0, len(tcpRoutes)+len(httpRoutes))
 
-	//TODO sarah.alsmiller this can probably be cleaned up when we're not in active fire mode
 	for _, route := range httpRoutes {
 		routes = append(routes, route.(*structs.HTTPRouteConfigEntry))
 	}
