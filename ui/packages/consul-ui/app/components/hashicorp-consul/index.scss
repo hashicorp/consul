@@ -4,49 +4,6 @@
  */
 
 %hashicorp-consul {
-  // nav .dcs {
-  //   @extend %main-nav-vertical-hoisted;
-  //   left: 100px;
-
-  //   .dcs-message {
-  //     padding: 8px 12px;
-  //     border-bottom: 1px solid var(--token-color-foreground-disabled);
-  //     max-width: fit-content;
-  //     background-color: var(--token-color-hashicorp-brand);
-  //     color: var(--token-color-palette-neutral-300);
-  //   }
-  // }
-  // nav .dcs li.is-primary span,
-  // nav .dcs li.is-local span {
-  //   @extend %menu-panel-badge;
-  // }
-  // nav .dcs .dc-name {
-  //   color: var(--token-color-foreground-faint);
-  //   padding: 3.25px 0px;
-  //   font-weight: var(--token-typography-font-weight-semibold);
-  // }
-  // nav .dcs .dc-name span {
-  //   @extend %pill-200;
-  //   margin-left: 1rem;
-  //   background-color: var(--token-color-palette-neutral-300);
-  //   color: var(--token-color-hashicorp-brand);
-  // }
-  // nav li.partitions,
-  // nav li.nspaces {
-  //   @extend %main-nav-vertical-popover-menu;
-  // }
-  // nav li.dcs [aria-expanded] ~ * {
-  //   min-width: 250px;
-  // }
-  // nav li.dcs [aria-expanded] ~ * {
-  //   max-height: 560px;
-  //   --paged-row-height: 43px;
-  // }
-  // nav li.partitions [aria-expanded] ~ *,
-  // nav li.nspaces [aria-expanded] ~ * {
-  //   max-height: 360px;
-  //   --paged-row-height: 43px;
-  // }
   .consul-side-nav {
     li.consul-disabled-nav {
       width: 100%;
