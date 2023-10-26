@@ -746,11 +746,11 @@ Specifies the total amount of time spent processing the entire downstream reques
 
 ## Examples
 
-If you have more than one example to show, create an Examples section (general block) and introduce the examples per the style guide.
+The following examples demonstrate common GRPCRoute CRD configuration patterns for specific use cases.
 
 ### Split gRPC traffic between two ports
 
-The following configuration splits traffic for the `api` service. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
+The following example splits traffic for the `api` service. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
@@ -797,7 +797,7 @@ spec:
 
 ### Route traffic by matching header
 
-The following configuration routes gRPC traffic for the `api` service according to its header GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
+The following examples routes gRPC traffic for the `api` service according to its header GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
 
 - Traffic with a header that contains a `x-debug` value of exactly `1` has their response and request headers modified and is routed to the service with the `api` workload identity.
 - Traffic with a header that contains a `x-debug` value of exactly `2` has their response and request headers modified and is routed to the service with the `api-admin` workload identity.
