@@ -13,7 +13,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterHTTPRoute(r resource.Registry) {
@@ -27,20 +26,16 @@ func RegisterHTTPRoute(r resource.Registry) {
 	})
 }
 
-func MutateHTTPRoute(res *pbresource.Resource) error {
-	var route pbmesh.HTTPRoute
+var MutateHTTPRoute = resource.DecodeAndMutate(mutateHTTPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func mutateHTTPRoute(res *DecodedHTTPRoute) (bool, error) {
 	changed := false
 
-	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+	if mutateParentRefs(res.Id.Tenancy, res.Data.ParentRefs) {
 		changed = true
 	}
 
-	for _, rule := range route.Rules {
+	for _, rule := range res.Data.Rules {
 		for _, match := range rule.Matches {
 			if match.Method != "" {
 				norm := strings.ToUpper(match.Method)
@@ -60,33 +55,25 @@ func MutateHTTPRoute(res *pbresource.Resource) error {
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&route)
+	return changed, nil
 }
 
-func ValidateHTTPRoute(res *pbresource.Resource) error {
-	var route pbmesh.HTTPRoute
+var ValidateHTTPRoute = resource.DecodeAndValidate(validateHTTPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func validateHTTPRoute(res *DecodedHTTPRoute) error {
 	var merr error
-	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, res.Data.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
-	if len(route.Hostnames) > 0 {
+	if len(res.Data.Hostnames) > 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "hostnames",
 			Wrapped: errors.New("should not populate hostnames"),
 		})
 	}
 
-	for i, rule := range route.Rules {
+	for i, rule := range res.Data.Rules {
 		wrapRuleErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "rules",
