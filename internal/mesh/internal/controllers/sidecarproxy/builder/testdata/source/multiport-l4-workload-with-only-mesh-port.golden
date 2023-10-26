@@ -5,7 +5,8 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "black-hole-cluster"
+        "name": "black-hole-cluster",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {

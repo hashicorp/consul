@@ -5,7 +5,8 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:port1"
+        "name": "local_app:port1",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "endpoints": {

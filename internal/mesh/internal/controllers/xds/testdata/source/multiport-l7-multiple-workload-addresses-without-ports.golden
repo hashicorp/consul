@@ -4,19 +4,22 @@
       "endpointGroup": {
         "static": {}
       },
-      "name": "local_app:admin-port"
+      "name": "local_app:admin-port",
+      "protocol": "PROTOCOL_HTTP"
     },
     "local_app:api-port": {
       "endpointGroup": {
         "static": {}
       },
-      "name": "local_app:api-port"
+      "name": "local_app:api-port",
+      "protocol": "PROTOCOL_HTTP2"
     },
     "local_app:grpc-port": {
       "endpointGroup": {
         "static": {}
       },
-      "name": "local_app:grpc-port"
+      "name": "local_app:grpc-port",
+      "protocol": "PROTOCOL_GRPC"
     }
   },
   "endpoints": {
@@ -62,6 +65,12 @@
       "group": "auth",
       "groupVersion": "v2beta1",
       "kind": "WorkloadIdentity"
+    }
+  },
+  "leafCertificates": {
+    "test-identity": {
+      "cert": "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
+      "key": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFIFkTIL1iUV4O/RpveVHzHs7ZzhSkvYIzbdXDttz9EooAoGCCqGSM49\nAwEHoUQDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9ta/bGT+5\norZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJQ==\n-----END EC PRIVATE KEY-----\n"
     }
   },
   "listeners": [
@@ -237,12 +246,6 @@
         "some-other-root"
       ],
       "trustDomain": "some-trust-domain"
-    }
-  },
-  "leafCertificates": {
-    "test-identity": {
-      "cert": "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
-      "key": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFIFkTIL1iUV4O/RpveVHzHs7ZzhSkvYIzbdXDttz9EooAoGCCqGSM49\nAwEHoUQDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9ta/bGT+5\norZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJQ==\n-----END EC PRIVATE KEY-----\n"
     }
   }
 }

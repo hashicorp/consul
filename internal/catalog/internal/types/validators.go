@@ -151,7 +151,8 @@ func ValidatePortName(name string) error {
 	return nil
 }
 
-func validateProtocol(protocol pbcatalog.Protocol) error {
+func ValidateProtocol(protocol pbcatalog.Protocol) error {
+	// enumcover:pbcatalog.Protocol
 	switch protocol {
 	case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED,
 		// means pbcatalog.FailoverMode_FAILOVER_MODE_TCP
@@ -240,6 +241,7 @@ func validateReference(allowedType *pbresource.Type, allowedTenancy *pbresource.
 }
 
 func validateHealth(health pbcatalog.Health) error {
+	// enumcover:pbcatalog.Health
 	switch health {
 	case pbcatalog.Health_HEALTH_ANY,
 		pbcatalog.Health_HEALTH_PASSING,
