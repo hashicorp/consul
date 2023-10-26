@@ -307,7 +307,7 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 	// now we bind all of the routes we can
 	updatedRoutes := []structs.ControlledConfigEntry{}
 	for _, route := range routes {
-		routeUpdater := structs.NewStatusUpdater(deepCopiedRoute)
+		routeUpdater := structs.NewStatusUpdater(route)
 		_, boundRefs, bindErrors := bindRoutesToGateways(route, meta)
 
 		// unset the old gateway binding in case it's stale
