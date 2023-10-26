@@ -574,7 +574,7 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 									NumRetries:            pointer.Uint32(3),
 									RetryOn:               []string{"cancelled"},
 									RetryOnStatusCodes:    []uint32{500},
-									RetryOnConnectFailure: pointer.Bool(true),
+									RetryOnConnectFailure: true,
 								},
 								TimeoutFilter: &structs.TimeoutFilter{
 									IdleTimeout:    time.Second * 30,
