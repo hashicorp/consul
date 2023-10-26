@@ -29,9 +29,6 @@ func RegisterComputedExportedServices(r resource.Registry) {
 }
 
 func aclReadHookComputedExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
-	if res == nil {
-		return resource.ErrNeedResource
-	}
 	return authorizer.ToAllowAuthorizer().MeshReadAllowed(authzContext)
 }
 

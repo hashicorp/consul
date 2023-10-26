@@ -25,9 +25,6 @@ func RegisterNamespaceExportedServices(r resource.Registry) {
 }
 
 func aclReadHookNamespaceExportedServices(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
-	if res == nil {
-		return resource.ErrNeedResource
-	}
 	return authorizer.ToAllowAuthorizer().MeshReadAllowed(authzContext)
 }
 
