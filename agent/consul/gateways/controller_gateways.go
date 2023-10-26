@@ -229,8 +229,14 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		return err
 	}
 
+	var bound structs.ConfigEntry
 	// construct the tuple we'll be working on to update state
-	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	_, rawBoundGateway, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	if rawBoundGateway != nil { // for singular returns
+		boundGateway := bound.(*structs.BoundAPIGatewayConfigEntry)
+		bound = boundGateway.DeepCopy()
+	}
+	// or for the slice returns do a slice copy with a DeepCopy of all elements
 	if err != nil {
 		logger.Warn("error retrieving bound api gateway", "error", err)
 		return err
@@ -606,9 +612,18 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
+	_, rawBoundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
+	}
+
+	boundGateways := make([]structs.ConfigEntry, len(rawBoundGateways))
+
+	for i, gw := range rawBoundGateways {
+		if gw != nil { // for singular returns
+			boundGateway := gw.(*structs.BoundAPIGatewayConfigEntry)
+			boundGateways[i] = boundGateway.DeepCopy()
+		}
 	}
 
 	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
