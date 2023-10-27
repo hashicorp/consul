@@ -24,7 +24,7 @@ require (
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	github.com/testcontainers/testcontainers-go v0.22.0
 	golang.org/x/mod v0.12.0
-	google.golang.org/grpc v1.57.0
+	google.golang.org/grpc v1.57.2
 )
 
 require (
@@ -88,6 +88,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230807174057-1744710a1577 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gotest.tools/v3 v3.5.1 // indirect
 )
 
 replace (
