@@ -26,7 +26,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`spec`](#spec): object | required
   - [`workloads`](#spec-workloads): map
     - [`filter`](#spec-workloads): string
-    - [`names`](#spec-workloads): list of strings
+    - [`names`](#spec-workloads): array of strings
     - [`prefixes`](#spec-workloads): array of strings
   - [`bootstrapConfig`](#spec-bootstrapconfig): map
     - [`dogstatsdUrl`](#spec-bootstrapconfig): string
@@ -51,12 +51,6 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`path`](#spec-dynamicconfig-accesslogs-path): string
       - [`textFormat`](#spec-dynamicconfig-accesslogs-textformat): string
       - [`type`](#spec-dynamicconfig-accesslogs-type): string
-    - [`envoyExtensions`](#spec-dynamicconfig-envoyextensions): map
-      - [`arguments`](#spec-dynamicconfig-envoyextensions-arguments): map
-      - [`consulVersion`](#spec-dynamicconfig-envoyextensions-consulVersion): string
-      - [`envoyVersion`](#spec-dynamicconfig-envoyextensions-envoyVersion): string
-      - [`name`](#spec-dynamicconfig-envoyextensions-name): string
-      - [`required`](#spec-dynamicconfig-envoyextensions-required): boolean | `false`
     - [`exposeConfig`](#spec-dynamicconfig-exposeconfig): map
       - [`exposePaths`](#spec-dynamicconfig-exposeconfig-exposepaths): map
         - [`listenerPort`](#spec-dynamicconfig-exposeconfig-exposepaths-listenerport): integer
@@ -77,7 +71,6 @@ The following list outlines field hierarchy, language-specific data types, and r
        - [`seconds`](#spec-dynamicconfig-localconnection-requesttimeout): integer
     - [`meshGatewayMode`](#spec-dynamicconfig-meshgatewaymode): string
     - [`mode`](#spec-dynamicconfig-mode): string
-    - [`mutualTLSMode`](#spec-dynamicconfig-mutualtlsmode): string
     - [`publicListenerJson`](#spec-dynamicconfig-publiclistenerjson): string
     - [`transparentProxy`](#spec-dynamicconfig-transparentproxy): map
       - [`dialedDirectly`](#spec-dynamicconfig-transparentproxy-dialeddirectly): boolean | `false`
@@ -88,19 +81,79 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 ## Complete configuration
 
-The complete configuration follows the configuration model. Use tabs for 
-each markup language you expect pracitioners to use.
+When every field is defined, an ProxyCOnfigurations CRD has the following form:
+
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
+<CodeBlockConfig hideClipboard>
 
 ```yaml
-element_a: <default or description of value>
-element_b:
-element_bb: <default or description of value>
-element_bbb:
-element_bbba: <default or description of value>
-element_bbbb: <default or description of value>
-element_bbbc:
-element_bbbd: <default or description of value>
-``` 
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
+kind: ProxyConfiguration                             # required
+metadata:
+  name: <crdName>
+  namespace: <namespace>
+spec: 
+  workloads:                                         # required
+    filter: "Service.Meta.version == v1"
+    names: ["api", "admin"]
+    prefixes: ["<pre>", "<fix>"]
+  bootstrapConfig: 
+    dogstatsdUrl: 
+    overrideJsonTpl: 
+    prometheusBindAddr:
+    readyBindAddr: 
+    staticClustersJson:
+    staticListenersJson:
+    statsBindAddr:
+    statsConfigJson:
+    statsFlushInterval:
+    statsSinkJson:
+    statsTags:
+      - string
+    statsdUrl:
+    telemetryCollectorBindSocketDir:
+    tracingConfigJson:
+  dynamicConfig:
+    accessLogs:
+      enabled: false
+      disableListenerLogs: false
+      jsonFormat: 
+      path: 
+      textFormat: 
+      type: 
+    exposeConfig:
+      exposePaths:
+        listenerPort: <42>
+        localPathPort: <4242>
+        path: </metrics>
+        protocol: <EXPOSE_PATH_PROTOCOL_HTTP>
+      inboundConnections:
+        balanceInboundConnections:
+        maxInboundConnections:
+    listenerTracingJson:
+    localClusterJson:
+    localConnection:
+      connectTimeout:
+        nanos: 
+        seconds: 
+      requestTimeout:
+        nanos:
+        seconds:
+    meshGatewayMode:
+    mode:
+    publicListenerJson:
+    transparentProxy:
+      dialedDirectly: false
+      outboundListenerPort: 15001
+```
+
+</CodeBlockConfig>
+
+</Tab>
+</Tabs>
 
 ## Specification
 
@@ -158,25 +211,496 @@ Specifies the namespace that the service resolver applies to. Refer to [namespac
 
 Map that contains the details about the `ProxyConfiguration` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
 
-When using this CRD, the `spec` field must align with GAMMAs resource. Refer to [HTTPRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute).
-
 #### Values
 
 - Default: None
 - This field is required.
 - Data type: Map
 
-### `spec`
+### `spec.workloads`
+
+Specifies the workloads that the proxy configuration applies to. You can select workloads by name, prefix, or by using a filter expression.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map that can contain the following parameters:
+
+ | Parameter     | Description                                                                                                                                                                                                                                                                                   | Data type | Default |
+    | :------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- | ------- |
+    | `filter`      | Specifies an expression that filters workloads.  For more information about creating and using expressions to filter, refer to [filtering](/consul/api-docs/features/filtering).   | String    | None    |
+    | `names` | Specifies one or more names of workloads the proxy configuration applies to. | Array of strings | None |
+    | `prefixes` | Specifies one or more prefixes. Proxy configurations apply to workloads with one of the prefixes. | Array of strings | None |
+
+### `spec.bootstrapConfig`
+
+Specifies initial bootstrap settings for the Envoy proxy, as well as proxy configuration settings that require the proxy to restart when applied. For more information, refer to [Envoy proxy bootstrap configuration](/consul/docs/connect/proxies/envoy#bootstrap-configuration).
 
 #### Values
 
 - Default: None
 - Data type: Map
 
+### `spec.bootstrapConfig.dogstatsdUrl`
+
+Specifies a URL that identifies a DataDog DogStatsD listener. Envoy sends metrics to this listener.
+
+Format the URL as `udp://ip:port` or `unix://uds/path`. For example, `udp://127.0.0.1:8125` configures a local UDP DogStatsD listener for every host. Currently, TCP is not supported.
+
+The UDP URL must use an IP address. DNS names are not supported.
+
+For more information about configuring a UNIX domain socket with DogStatsD, refer to [the DataDog documentation](https://docs.datadoghq.com/developers/dogstatsd/unix_socket?tab=kubernetes#setup).
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.overrideJsonTpl`
+
+Specifies a template in Go template syntax to use in place of [the default template](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L129) when generating bootstrap via [`consul connect envoy` command](/consul/commands/connect/envoy). The variables that are available to be interpolated are [documented in `bootstrap_tpl.go`](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L5).
+
+This field offers complete control of the proxy's bootstrap. Be aware that major deviations from the default template may break Consul's ability to correctly manage the proxy or enforce its security model.
+
+Refer to [Envoy proxy escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.prometheusBindAddr`
+
+Specifies that the proxy should expose a Prometheus metrics endpoint to the _public_ network. It must be supplied in the form `ip:port` and port and the IP and port combination must be free within the network namespace where the proxy runs. The IP `0.0.0.0` binds to all available interfaces or a pod IP address if supported by your existing network settings.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.readyBindAddr`
+
+ Specifies the location to confiugure the proxy's readiness probe, specified as `ip:port`. 
+ 
+ By default the proxy does not have a readiness probe configured on it.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.staticClustersJson`
+
+Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto) to append to the array of [static clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) in the bootstrap config.
+
+This field enables you to add custom clusters, such as tracing sinks, to the bootstrap configuration. In order to configure a single cluster, specify a single JSON object with the cluster details.
+
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.staticListenersJson`
+
+Specifies one or more [Envoy listeners](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/listener/v3/listener.proto) to append to the array of [static listeners](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-listeners) definitions.
+
+You can use this field to set up limited access that bypasses the service mesh's mTLS or authorization for health checks or metrics.
+
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.statsBindAddr`
+
+Specifies that the proxy should expose the `/stats` prefix to the _public_ network at the `ip:port` provided. The IP and port combination must be free within the network namespace where the proxy runs. The IP `0.0.0.0` binds to all available interfaces or a pod IP address if supported by your existing network settings.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.statsConfigJson`
+
+Specifies a complete [stats config](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-config).
+
+When provided, this field overrides [`spec.bootstrapConfig.statsTags`](#spec-boostrapconfig-statstags) and enables full control over dynamic tag replacements.
+
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.statsFlushInterval`
+
+ Configures Envoy's [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval), which measures the length of the interval between stats sink flushes.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.statsSinkJson`
+
+Specifies one or more [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-sinks) to append to sinks defined using [`spec.bootstrapConfig.statsdUrl`](#spec-bootstrapconfig-statsdurl) or [`spec.bootstrapConfig.dogstatsdUrl`](#spec-boostrapconfig-dogstatsdurl).
+
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.statsTags`
+
+Specifies one or more static tags to add to all metrics produced by the proxy.
+
+#### Values
+
+- Default: None
+- Data type: Array of strings
+
+### `spec.bootstrapConfig.statsdUrl`
+
+Specifies a URL that identifies a StatsD listener. Envoy sends metrics to this listener.
+
+Format the URL as `udp://ip:port`. For example, `udp://127.0.0.1:8125` configures a local StatsD listener for every host. Currently, TCP is not supported.
+
+The URL must use an IP address. DNS names are not supported.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.telemetryCollectorBindSocketDir`
+
+Specifies the directory of the Unix socket Envoy sends metrics to so that the Consul telemetry collector can collect them.
+
+The socket is not configured by default.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.bootstrapConfig.tracingConfigJson`
+
+Specifies a configuration for an external tracing provider as described in [the Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-tracing). Most tracing providers also require adding static clusters to define the endpoints to send tracing data to.
+
+Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig`
+
+Specifies configuration settings for the Envoy proxy that are applied without restarting the proxy. For more information, refer to [Envoy proxy dynamic configuration](/consul/docs/connect/proxies/envoy#dynamic-configuration).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.accessLogs`
+
+Specifies the format and output for the proxy's access logs.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.accessLogs.enabled`
+
+When set to `true`, this parameter enables access logs for the proxy.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.dynamicConfig.accessLogs.usableListenerLogs`
+
+When set to `true`, this parameter disables listener logs for connections that the proxy rejected because they did not have a matching listener filter.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.dynamicConfig.accessLogs.jsonFormat`
+
+Specifies a JSON format dictionary for the access logs. Refer to [format dictionaries in the Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#format-dictionaries) for more information.
+
+When this field is specified, you cannot also specify [`spec.dynamicConfig.accessLogs.textFormat`](#spec-dynamicconfig-accesslogs-textformat) in the same configuration.
+
+### `spec.dynamicConfig.accessLogs.path`
+
+Specifies a file output path for the access logs.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.accessLogs.textFormat`
+
+Specifies a format string for the access logs. Refer to [default format string in the Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#default-format-string) for more information.
+
+When this field is specified, you cannot also specify [`spec.dynamicConfig.accessLogs.jsonFormat`](#spec-dynamicconfig-accesslogs-jsonformat) in the same configuration.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.accessLogs.type`
+
+Specifies the output type for the access logs.
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `LOG_SINK_TYPE_DEFAULT`
+  - `LOG_SINK_TYPE_FILE`
+  - `LOG_SINK_TYPE_STDERR`
+  - `LOG_SINK_TYPE_STDOUT`
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.exposeConfig`
+
+Specifies configurations to expose the proxy.
+
+Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.exposeConfig.exposePaths`
+
+Specifies a configuration for exposing a HTTP path through the proxy.
+
+Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.exposeConfig.exposePaths.listenerPort`
+
+Specifies the port where the proxy listens for connections. This port must be available for the listener to be set up. If the port is not free, Envoy does not expose a listener for the path but the proxy registration does not fail.
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `spec.dynamicConfig.exposeConfig.exposePaths.localPathPort`
+
+Specifies the port where the local service is listening for connections to the path.
+
+#### Values
+
+- Default: None
+- Data type: Integer
+
+### `spec.dynamicConfig.exposeConfig.exposePaths.path`
+
+The HTTP path to expose. Prefix the path with a slash. For example, `/metrics`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.exposeConfig.exposePaths.protocol`
+
+Specifies the protocol of the listener, either HTTP or HTTP/2. For gRPC, use HTTP/2.
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `EXPOSE_PATH_PROTOCOL_HTTP`
+  - `EXPOSE_PATH_PROTOCOL_HTTP2`
+
+### `spec.dynamicConfig.inboundConnections`
+
+Specifies configurations for how the proxy handles inbound connections.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.inboundConnections.balanceInboundConnections`
+
+Specifies the strategy for balancing inbound connections across Envoy worker threads. Consul's service mesh Envoy integration supports the following values:
+
+| Value | Description |
+| :---- | :---------- |
+| Empty string | Inbound connections are not balanced. |
+| `exact_balance` | Balances inbound connections with [Envoy's Exact Balance Strategy](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance). |
+
+#### Values
+
+- Default: `""`
+- Data type: String
+
+### `spec.dynamicConfig.inboundConnections.maxInboundConnections`
+
+ Specifies the maximum number of concurrent inbound connections to the local application instance. If not specified, inherits the Envoy default of `1024`.
+
+#### Values
+
+- Default: `1024`
+- Data type: Integer
+
+### `spec.dynamicConfig.listenerTracingJson`
+
+Specifies a tracing configuration to be inserted in the proxy's public and upstreams listeners. Refer to [the Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/network/http_connection_manager/v3/http_connection_manager.proto#envoy-v3-api-msg-extensions-filters-network-http-connection-manager-v3-httpconnectionmanager-tracing) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.localClusterJson`
+
+Specifies a complete Envoy cluster to be delivered in place of the local application cluster. This field enables customization of timeouts, rate limits, and load balancing strategy.
+
+Refer to [cluster configuration in the Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.localConnection`
+
+Specifies timeout settings for the proxy's connection to the local application. Apply settings separately for each port.
+
+Specify this field as a map containing a key/value. The map keys correspond to port names on the workload. The value contains this parameter's sub-fields.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.localConnection.connectTimeout`
+
+Specifies the length of time the proxy is allowed to attempt connections to the local application instance before timing out.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  | Parameter | Description                                                      | Data type | Default |
+  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
+  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
+  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+
+### `spec.dynamicConfig.localConnection.requestTimeout`
+
+Specifies the length of time the proxy is allowed to attempt HTTP requests to the local application instance. Applies to HTTP based protocols only.
+
+#### Values
+
+- Default: None
+- Data type: Map that can contain the following parameters:
+
+  | Parameter | Description                                                      | Data type | Default |
+  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
+  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
+  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+
+### `spec.dynamicConfig.meshGatewayMode`
+
+Specifies the mode of operation for how upstreams with a remote destination datacenter are resolved. Refer to [Mesh gateway configuration reference](/consul/docs/connect/proxies/proxy-config-reference#mesh-gateway-configuration-reference) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `MESH_GATEWAY_MODE_UNSPECIFIED`
+  - `MESH_GATEWAY_MODE_NONE`
+  - `MESH_GATEWAY_MODE_LOCAL`
+  - `MESH_GATEWAY_MODE_REMOTE`
+
+### `spec.dynamicConfig.mode`
+
+Specifies the mode the proxy operates in: default, transparent, or direct. Refer to [proxy modes](/consul/docs/connect/proxies/proxy-config-reference#proxy-modes) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String containing one of the following values:
+
+  - `PROXY_MODE_DEFAULT`
+  - `PROXY_MODE_TRANSPARENT`
+  - `PROXY_MODE_DIRECT`
+
+### `spec.dynamicConfig.publicListenerJson`
+
+Specifies a complete Envoy listener to be delivered in place of the main public listener that the proxy used to accept inbound connections. Refer to [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.dynamicConfig.transparentProxy`
+
+Specifies additional configurations for the transparent proxy. Refer to [transparent proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference#transparent-proxy-configuration-reference) for more information.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.dynamicConfig.transparentProxy.dialedDirectly`
+
+Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual" tagged address, which load balances across instances. A database cluster with a leader is an example where dialing individual instances can be helpful.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.dynamicConfig.transparentProxy.outboundListenerPort`
+
+Specifies the port the proxy listens on for outbound traffic to capture and redirect.
+
+#### Values
+
+- Default: `15001`
+- Data type: Integer
+
 ## Examples
 
-If you have more than one example to show, create an Examples section 
-(general block) and introduce the examples per the style guide.
+The following examples demonstrate common ProxyConfiguration CRD configuration patterns for specific use cases.
 
 ### Specific use case 
 
