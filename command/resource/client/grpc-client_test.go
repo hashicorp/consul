@@ -26,13 +26,16 @@ func TestResourceRead(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "ports { grpc = 8502 }")
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	grpcConfig := GetDefaultGRPCConfig()
+	gRPCClient, err := NewGRPCClient(grpcConfig)
+
+	t.Cleanup(func() {
+		a.Shutdown()
+		gRPCClient.Conn.Close()
+	})
 
 	t.Run("test", func(t *testing.T) {
-		grpcConfig := GetDefaultGRPCConfig()
-		client, err := NewGRPCClient(grpcConfig)
-		defer client.Conn.Close()
 		if err != nil {
 			fmt.Println("error when create new grpc client")
 		}
@@ -40,13 +43,13 @@ func TestResourceRead(t *testing.T) {
 		v2Artist, err := demo.GenerateV2Artist()
 		require.NoError(t, err)
 
-		_, err = client.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+		_, err = gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 
-		writeRsp, err := client.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2Artist})
+		writeRsp, err := gRPCClient.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2Artist})
 		require.NoError(t, err)
 
-		readRsp, err := client.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+		readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.NoError(t, err)
 		require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
 		prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
@@ -57,14 +60,18 @@ func TestResourceList(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "ports { grpc = 8602 }")
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	grpcConfig := GetDefaultGRPCConfig()
+	grpcConfig.Address = "localhost:8602"
+	gRPCClient, err := NewGRPCClient(grpcConfig)
+
+	t.Cleanup(func() {
+		a.Shutdown()
+		gRPCClient.Conn.Close()
+	})
 
 	t.Run("test", func(t *testing.T) {
-		grpcConfig := GetDefaultGRPCConfig()
-		grpcConfig.Address = "localhost:8602"
-		client, err := NewGRPCClient(grpcConfig)
-		defer client.Conn.Close()
+		defer gRPCClient.Conn.Close()
 		if err != nil {
 			fmt.Println("error when create new grpc client")
 		}
@@ -74,7 +81,7 @@ func TestResourceList(t *testing.T) {
 		v2ArtistTwo, err := demo.GenerateV2Artist()
 		require.NoError(t, err)
 
-		rsp, err := client.Client.List(context.Background(), &pbresource.ListRequest{
+		rsp, err := gRPCClient.Client.List(context.Background(), &pbresource.ListRequest{
 			Type:       demo.TypeV2Artist,
 			Tenancy:    resource.DefaultNamespacedTenancy(),
 			NamePrefix: "",
@@ -88,15 +95,15 @@ func TestResourceList(t *testing.T) {
 		v2ArtistOne.Id.Name = fmt.Sprintf("%s-%d", v2ArtistOne.Id.Name, 0)
 		v2ArtistTwo.Id.Name = fmt.Sprintf("%s-%d", v2ArtistTwo.Id.Name, 1)
 
-		writeRspOne, err := client.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2ArtistOne})
+		writeRspOne, err := gRPCClient.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2ArtistOne})
 		require.NoError(t, err)
-		writeRspTwo, err := client.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2ArtistTwo})
+		writeRspTwo, err := gRPCClient.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2ArtistTwo})
 		require.NoError(t, err)
 
 		resources[0] = writeRspOne.Resource
 		resources[1] = writeRspTwo.Resource
 
-		rsp, err = client.Client.List(context.Background(), &pbresource.ListRequest{
+		rsp, err = gRPCClient.Client.List(context.Background(), &pbresource.ListRequest{
 			Type:       demo.TypeV2Artist,
 			Tenancy:    resource.DefaultNamespacedTenancy(),
 			NamePrefix: "",
@@ -110,14 +117,18 @@ func TestResourceDelete(t *testing.T) {
 	t.Parallel()
 
 	a := agent.NewTestAgent(t, "ports { grpc = 8702 }")
-	defer a.Shutdown()
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	grpcConfig := GetDefaultGRPCConfig()
+	grpcConfig.Address = "localhost:8702"
+	gRPCClient, err := NewGRPCClient(grpcConfig)
+
+	t.Cleanup(func() {
+		a.Shutdown()
+		gRPCClient.Conn.Close()
+	})
 
 	t.Run("test", func(t *testing.T) {
-		grpcConfig := GetDefaultGRPCConfig()
-		grpcConfig.Address = "localhost:8702"
-		client, err := NewGRPCClient(grpcConfig)
-		defer client.Conn.Close()
+		defer gRPCClient.Conn.Close()
 		if err != nil {
 			fmt.Println("error when create new grpc client")
 		}
@@ -125,21 +136,21 @@ func TestResourceDelete(t *testing.T) {
 		v2Artist, err := demo.GenerateV2Artist()
 		require.NoError(t, err)
 
-		_, err = client.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+		_, err = gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 
-		writeRsp, err := client.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2Artist})
+		writeRsp, err := gRPCClient.Client.Write(testutil.TestContext(t), &pbresource.WriteRequest{Resource: v2Artist})
 		require.NoError(t, err)
 
-		readRsp, err := client.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+		readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.NoError(t, err)
 		require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
 		prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
 
-		_, err = client.Client.Delete(context.Background(), &pbresource.DeleteRequest{Id: readRsp.Resource.Id})
+		_, err = gRPCClient.Client.Delete(context.Background(), &pbresource.DeleteRequest{Id: readRsp.Resource.Id})
 		require.NoError(t, err)
 
-		_, err = client.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
+		_, err = gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 	})
 }
