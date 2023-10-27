@@ -1311,6 +1311,14 @@
     ember-cli-version-checker "^5.1.2"
     semver "^7.3.5"
 
+"@embroider/addon-shim@1.8.3":
+  version "1.8.3"
+  resolved "https://registry.yarnpkg.com/@embroider/addon-shim/-/addon-shim-1.8.3.tgz#2368510b8ce42d50d02cb3289c32e260dfa34bd9"
+  integrity sha512-7pyHwzT6ESXc3nZsB8rfnirLkUhQWdvj6CkYH+0MUPN74mX4rslf7pnBqZE/KZkW3uBIaBYvU8fxi0hcKC/Paw==
+  dependencies:
+    "@embroider/shared-internals" "^1.8.3"
+    semver "^7.3.5"
+
 "@embroider/addon-shim@^1.0.0", "@embroider/addon-shim@^1.2.0", "@embroider/addon-shim@^1.8.4":
   version "1.8.4"
   resolved "https://registry.npmjs.org/@embroider/addon-shim/-/addon-shim-1.8.4.tgz"
@@ -1411,7 +1419,7 @@
     resolve "^1.20.0"
     semver "^7.3.2"
 
-"@embroider/macros@^0.50.0 || ^1.0.0", "@embroider/macros@^1.13.0", "@embroider/macros@^1.2.0", "@embroider/macros@^1.8.1":
+"@embroider/macros@^0.50.0 || ^1.0.0", "@embroider/macros@^1.13.0", "@embroider/macros@^1.2.0":
   version "1.13.2"
   resolved "https://registry.yarnpkg.com/@embroider/macros/-/macros-1.13.2.tgz#07dda11313a2539f403404881b729e622a80ca17"
   integrity sha512-AUgJ71xG8kjuTx8XB1AQNBiebJuXRfhcHr318dCwnQz9VRXdYSnEEqf38XRvGYIoCvIyn/3c72LrSwzaJqknOA==
@@ -1507,7 +1515,7 @@
     semver "^7.3.5"
     typescript-memoize "^1.0.1"
 
-"@embroider/shared-internals@^1.0.0":
+"@embroider/shared-internals@^1.0.0", "@embroider/shared-internals@^1.8.3":
   version "1.8.3"
   resolved "https://registry.npmjs.org/@embroider/shared-internals/-/shared-internals-1.8.3.tgz"
   integrity sha512-N5Gho6Qk8z5u+mxLCcMYAoQMbN4MmH+z2jXwQHVs859bxuZTxwF6kKtsybDAASCtd2YGxEmzcc1Ja/wM28824w==
@@ -1530,7 +1538,7 @@
     broccoli-funnel "^3.0.5"
     ember-cli-babel "^7.23.1"
 
-"@embroider/util@^0.39.1 || ^0.40.0 || ^0.41.0 || ^1.0.0":
+"@embroider/util@^0.39.1 || ^0.40.0 || ^0.41.0 || ^1.0.0", "@embroider/util@^1.0.0":
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/@embroider/util/-/util-1.12.0.tgz#4b7828650b55f8498f1e78bb63e27e77835e926f"
   integrity sha512-P4M1QADEH9ceIYC9mwHeV+6DDgEIQQYFfZi728nVKqTAxakXoiLgu/BCyQmEGyow9fYEPYaC1boDCZxW2JQAXg==
@@ -1852,24 +1860,24 @@
     faker "^4.1.0"
     js-yaml "^3.13.1"
 
-"@hashicorp/design-system-components@^2.14.1":
-  version "2.14.1"
-  resolved "https://registry.npmjs.org/@hashicorp/design-system-components/-/design-system-components-2.14.1.tgz"
-  integrity sha512-EgUpKUAQlTXKnJfv98RHFz1rqcb3xWE8CiLgiEcjN8RuX5P05D0llHKMlbdhsuzqe0D72c//wesk9Mlbb9tngw==
+"@hashicorp/design-system-components@^3.0.2":
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/@hashicorp/design-system-components/-/design-system-components-3.0.2.tgz#f9bf18f0f20f6396d4afc2ed138056c27dff8a38"
+  integrity sha512-Pt3dgCxzutIJ3LDtVgT0NSU5oTV8OFzgK9Nx1tTzIpMOfbCRzZuBmJB06ZPCdyP9Vs7lQVrn/kKzZaKJejrXiQ==
   dependencies:
     "@ember/render-modifiers" "^2.0.5"
     "@ember/test-waiters" "^3.0.2"
     "@hashicorp/design-system-tokens" "^1.9.0"
-    "@hashicorp/ember-flight-icons" "^3.1.3"
+    "@hashicorp/ember-flight-icons" "^4.0.1"
     dialog-polyfill "^0.5.6"
     ember-a11y-refocus "^3.0.2"
     ember-auto-import "^2.6.3"
     ember-cached-decorator-polyfill "^0.1.4"
     ember-cli-babel "^7.26.11"
-    ember-cli-clipboard "^1.0.0"
     ember-cli-htmlbars "^6.2.0"
     ember-cli-sass "^10.0.1"
     ember-composable-helpers "^4.5.0"
+    ember-element-helper "^0.8.5"
     ember-focus-trap "^1.0.2"
     ember-keyboard "^8.2.0"
     ember-stargate "^0.4.3"
@@ -1898,15 +1906,16 @@
     pretender "^3.2.0"
     recursive-readdir-sync "^1.0.6"
 
-"@hashicorp/ember-flight-icons@^3.1.3":
-  version "3.1.3"
-  resolved "https://registry.npmjs.org/@hashicorp/ember-flight-icons/-/ember-flight-icons-3.1.3.tgz"
-  integrity sha512-Cy/zD6aKqwN1Q+jnF1wJ2QzRx4/6XIVM4x3qO0poi2RHBSzZS/jxwAIqyDXdKiqJha7i/vWP3aGQmDEBqoGKjA==
+"@hashicorp/ember-flight-icons@^4.0.1":
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/@hashicorp/ember-flight-icons/-/ember-flight-icons-4.0.1.tgz#08499f495f8f9ff9eb9eb6c439f1861f8411c047"
+  integrity sha512-8xkU+2ATX/a5pofmwO51YXgwHamG6YUpxOXxcPbA+9/TKNn1HFbrk3TWJBuDIwz2kdk9hXRZBri2XIR18BFrTA==
   dependencies:
     "@hashicorp/flight-icons" "^2.20.0"
     ember-auto-import "^2.6.3"
     ember-cli-babel "^7.26.11"
     ember-cli-htmlbars "^6.2.0"
+    ember-get-config "^2.1.1"
 
 "@hashicorp/flight-icons@^2.20.0":
   version "2.20.0"
@@ -6082,18 +6091,6 @@ ember-a11y-refocus@^3.0.2:
     ember-cli-babel "^7.26.11"
     ember-cli-htmlbars "^6.0.1"
 
-ember-arg-types@^1.0.0:
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/ember-arg-types/-/ember-arg-types-1.1.0.tgz"
-  integrity sha512-hWpUz0eiNkWzi3FgHW5QU6LyCDyUlTWwuIROHluEKZoa9m6LJVXbb/EVFgIG3FkAib6a5Ie00WvkXEZFXxh3+A==
-  dependencies:
-    "@embroider/macros" "^1.8.1"
-    ember-auto-import "^2.4.2"
-    ember-cli-babel "^7.26.11"
-    ember-cli-typescript "^5.1.1"
-    ember-get-config "^2.1.1"
-    prop-types "^15.8.1"
-
 ember-array-fns@^1.4.0:
   version "1.4.2"
   resolved "https://registry.npmjs.org/ember-array-fns/-/ember-array-fns-1.4.2.tgz"
@@ -6355,20 +6352,6 @@ ember-cli-babel@^7.0.0, ember-cli-babel@^7.1.3, ember-cli-babel@^7.10.0, ember-c
     rimraf "^3.0.1"
     semver "^5.5.0"
 
-ember-cli-clipboard@^1.0.0:
-  version "1.1.0"
-  resolved "https://registry.npmjs.org/ember-cli-clipboard/-/ember-cli-clipboard-1.1.0.tgz"
-  integrity sha512-gqFMeLCMe7OKP8rtZluV3BsP03bnjqD/f1QQLdOB9gAbdiHzMIAbwIA/RhccGtGQgy5AlnxkkQ+7j/h6UDluPQ==
-  dependencies:
-    "@embroider/macros" "^1.10.0"
-    clipboard "^2.0.11"
-    ember-arg-types "^1.0.0"
-    ember-auto-import "^2.4.2"
-    ember-cli-babel "^7.26.11"
-    ember-cli-htmlbars "^6.1.0"
-    ember-modifier "^3.2.7 || ^4.1.0"
-    prop-types "^15.8.1"
-
 ember-cli-code-coverage@^1.0.0-beta.4:
   version "1.0.3"
   resolved "https://registry.npmjs.org/ember-cli-code-coverage/-/ember-cli-code-coverage-1.0.3.tgz"
@@ -6471,7 +6454,7 @@ ember-cli-htmlbars@^5.0.0, ember-cli-htmlbars@^5.1.0, ember-cli-htmlbars@^5.1.2,
     strip-bom "^4.0.0"
     walk-sync "^2.2.0"
 
-ember-cli-htmlbars@^6.0.0, ember-cli-htmlbars@^6.0.1, ember-cli-htmlbars@^6.1.0, ember-cli-htmlbars@^6.1.1, ember-cli-htmlbars@^6.2.0:
+ember-cli-htmlbars@^6.0.0, ember-cli-htmlbars@^6.0.1, ember-cli-htmlbars@^6.1.1, ember-cli-htmlbars@^6.2.0:
   version "6.2.0"
   resolved "https://registry.npmjs.org/ember-cli-htmlbars/-/ember-cli-htmlbars-6.2.0.tgz"
   integrity sha512-j5EGixjGau23HrqRiW/JjoAovg5UBHfjbyN7wX5ekE90knIEqUUj1z/Mo/cTx/J2VepQ2lE6HdXW9LWQ/WdMtw==
@@ -6709,7 +6692,7 @@ ember-cli-typescript@^4.0.0, ember-cli-typescript@^4.1.0, ember-cli-typescript@^
     stagehand "^1.0.0"
     walk-sync "^2.2.0"
 
-ember-cli-typescript@^5.0.0, ember-cli-typescript@^5.1.0, ember-cli-typescript@^5.1.1:
+ember-cli-typescript@^5.0.0, ember-cli-typescript@^5.1.0:
   version "5.2.1"
   resolved "https://registry.npmjs.org/ember-cli-typescript/-/ember-cli-typescript-5.2.1.tgz"
   integrity sha512-qqp5TAIuPHxHiGXJKL+78Euyhy0zSKQMovPh8sJpN/ZBYx0H90pONufHR3anaMcp1snVfx4B+mb9+7ijOik8ZA==
@@ -7010,6 +6993,14 @@ ember-element-helper@^0.5.5:
     ember-cli-babel "^7.17.2"
     ember-cli-htmlbars "^5.1.0"
 
+ember-element-helper@^0.8.5:
+  version "0.8.5"
+  resolved "https://registry.yarnpkg.com/ember-element-helper/-/ember-element-helper-0.8.5.tgz#5a53d4e3aa8379694c2002a3097269aeb7c2621b"
+  integrity sha512-yZYzuasn6ZC8Nwv0MpaLYGtm68ZxIBSNSe/CYxNWkDdgcuAb2lAG1gx37XkwBIiwPQET0W2agwq7++/HwdMF8g==
+  dependencies:
+    "@embroider/addon-shim" "1.8.3"
+    "@embroider/util" "^1.0.0"
+
 ember-exam@^6.1.0:
   version "6.1.0"
   resolved "https://registry.npmjs.org/ember-exam/-/ember-exam-6.1.0.tgz"
@@ -7189,7 +7180,7 @@ ember-modifier@^2.1.0:
     ember-destroyable-polyfill "^2.0.2"
     ember-modifier-manager-polyfill "^1.2.0"
 
-"ember-modifier@^2.1.2 || ^3.1.0 || ^4.0.0", "ember-modifier@^3.2.7 || ^4.0.0", "ember-modifier@^3.2.7 || ^4.1.0", ember-modifier@^4.1.0:
+"ember-modifier@^2.1.2 || ^3.1.0 || ^4.0.0", "ember-modifier@^3.2.7 || ^4.0.0", ember-modifier@^4.1.0:
   version "4.1.0"
   resolved "https://registry.npmjs.org/ember-modifier/-/ember-modifier-4.1.0.tgz"
   integrity sha512-YFCNpEYj6jdyy3EjslRb2ehNiDvaOrXTilR9+ngq+iUqSHYto2zKV0rleiA1XJQ27ELM1q8RihT29U6Lq5EyqQ==
@@ -10831,7 +10822,7 @@ longest-streak@^2.0.0:
   resolved "https://registry.npmjs.org/longest-streak/-/longest-streak-2.0.4.tgz"
   integrity sha512-vM6rUVCVUJJt33bnmHiZEvr7wPT78ztX7rojL+LW51bHtLh6HTjx84LA5W4+oa6aKEJA7jJu5LR6vQRBpA5DVg==
 
-loose-envify@^1.0.0, loose-envify@^1.4.0:
+loose-envify@^1.0.0:
   version "1.4.0"
   resolved "https://registry.npmjs.org/loose-envify/-/loose-envify-1.4.0.tgz"
   integrity sha512-lyuxPGr/Wfhrlem2CL/UcnUc1zcqKAImBDzukY7Y5F/yQiNdko6+fRLevlw1HgMySw7f611UIY408EtxRSoK3Q==
@@ -12525,15 +12516,6 @@ promise.hash.helper@^1.0.7:
   resolved "https://registry.npmjs.org/promise.hash.helper/-/promise.hash.helper-1.0.8.tgz"
   integrity sha512-KYcnXctWUWyVD3W3Ye0ZDuA1N8Szrh85cVCxpG6xYrOk/0CttRtYCmU30nWsUch0NuExQQ63QXvzRE6FLimZmg==
 
-prop-types@^15.8.1:
-  version "15.8.1"
-  resolved "https://registry.npmjs.org/prop-types/-/prop-types-15.8.1.tgz"
-  integrity sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==
-  dependencies:
-    loose-envify "^1.4.0"
-    object-assign "^4.1.1"
-    react-is "^16.13.1"
-
 property-information@^5.0.0:
   version "5.6.0"
   resolved "https://registry.npmjs.org/property-information/-/property-information-5.6.0.tgz"
@@ -12718,11 +12700,6 @@ raw-body@~1.1.0:
   dependencies:
     bytes "1"
     string_decoder "0.10"
-
-react-is@^16.13.1:
-  version "16.13.1"
-  resolved "https://registry.npmjs.org/react-is/-/react-is-16.13.1.tgz"
-  integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
 
 react-is@^17.0.1:
   version "17.0.2"
