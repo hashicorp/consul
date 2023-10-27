@@ -711,5 +711,20 @@ some action on a service named `service-name`".
 
 
 ```yaml
-[Example goes here]
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: ProxyConfiguration
+metadata:
+  name: static-server-override-one
+spec:
+  workloads:
+    prefixes:
+    - "static-server-"
+  bootstrapConfig:
+    statsBindAddr: "127.0.0.1:6666"
+  dynamicConfig:
+    # Only the web port should be enabled using the TPs
+    localConnection:
+      web:
+        connectTimeout: "123s" # This ALWAYS has to end in 's'. If you want ms, you need to use "0.123s"
+        requestTimeout: "123s"
 ```
