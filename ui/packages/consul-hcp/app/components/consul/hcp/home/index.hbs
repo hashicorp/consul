@@ -5,7 +5,7 @@
 
 {{#let @list as |SNL|}}
   <SNL.BackLink
-    @text="Back to HCP"
+    @text={{t "components.hashicorp-consul.side-nav.hcp"}}
     @href={{env "CONSUL_HCP_URL"}}
     @isHrefExternal={{true}}
   />

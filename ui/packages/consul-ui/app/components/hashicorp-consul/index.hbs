@@ -21,15 +21,15 @@
               <T.Description>
                 {{#if (eq type 'logout')}}
                   {{#if (eq status 'success')}}
-                    You are now logged out.
+                    {{t "components.hashicorp-consul.notifications.logged-out"}}
                   {{else}}
-                    There was an error logging out.
+                    {{t "components.hashicorp-consul.notifications.logged-out-error"}}
                   {{/if}}
                 {{else if (eq type 'authorize')}}
                   {{#if (eq status 'success')}}
-                    You are now logged in.
+                    {{t "components.hashicorp-consul.notifications.logged-in"}}
                   {{else}}
-                    There was an error, please check your SecretID/Token
+                    {{t "components.hashicorp-consul.notifications.logged-in-error"}}
                   {{/if}}
                 {{else}}
                   {{#if (or (eq type 'use') (eq flash.model 'token'))}}
@@ -91,17 +91,17 @@
               <dd.Interactive
                 @href={{env 'CONSUL_DOCS_URL'}}
                 @isHrefExternal={{true}}
-                @text='Documentation'
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
               />
               <dd.Interactive
                 @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
                 @isHrefExternal={{true}}
-                @text='Tutorials'
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
               />
               <dd.Interactive
                 @href={{env 'CONSUL_REPO_ISSUES_URL'}}
                 @isHrefExternal={{true}}
-                @text='Give feedback'
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
               />
             </Hds::Dropdown>
 
@@ -151,7 +151,7 @@
         <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
           {{#if (can 'access overview')}}
             <SNL.Link
-              @text='Overview'
+              @text={{t "components.hashicorp-consul.side-nav.overview"}}
               @route='dc.show'
               @models={{array @dc.Name}}
               @query={{hash peer=undefined}}
@@ -161,7 +161,7 @@
           {{/if}}
           {{#if (can 'read services')}}
             <SNL.Link
-              @text='Services'
+              @text={{t "components.hashicorp-consul.side-nav.services"}}
               @href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}
               @isHrefExternal={{false}}
               @isActive={{is-href 'dc.services' @dc.Name}}
@@ -170,7 +170,7 @@
           {{/if}}
           {{#if (can 'read nodes')}}
             <SNL.Link
-              @text='Nodes'
+              @text={{t "components.hashicorp-consul.side-nav.nodes"}}
               @href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}
               @isHrefExternal={{false}}
               @isActive={{is-href 'dc.nodes' @dc.Name}}
@@ -179,7 +179,7 @@
           {{/if}}
           {{#if (can 'read kv')}}
             <SNL.Link
-              @text='Key/Value'
+              @text={{t "components.hashicorp-consul.side-nav.kv"}}
               @href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}
               @isHrefExternal={{false}}
               @isActive={{is-href 'dc.kv' @dc.Name}}
@@ -188,7 +188,7 @@
           {{/if}}
           {{#if (can 'read intentions')}}
             <SNL.Link
-              @text='Intentions'
+              @text={{t "components.hashicorp-consul.side-nav.intentions"}}
               @href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}
               @isHrefExternal={{false}}
               @isActive={{is-href 'dc.intentions' @dc.Name}}
@@ -217,7 +217,7 @@
             @size='100'
             @color='disabled'
           >
-            Consul v{{env 'CONSUL_VERSION'}}
+            {{t "components.hashicorp-consul.side-nav.footer" version=(env 'CONSUL_VERSION')}}
           </Hds::Text::Display>
           {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
         </footer>

@@ -68,11 +68,11 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text="Settings"
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
         />
         <dd.Interactive
-          @text="Log in"
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-in"}}
           data-test-auth-menu-login
           {{on "click" (optional this.modal.open)}}
         />
@@ -137,11 +137,11 @@
             "settings"
             params=(hash nspace=undefined partition=undefined)
           }}
-          @text="Settings"
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
           @isHrefExternal={{false}}
         />
         <dd.Interactive
-          @text="Log out"
+          @text={{t "components.hashicorp-consul.side-nav.user-menu.log-out"}}
           data-test-auth-menu-logout
           {{on "click" (optional authDialog.logout)}}
         />
@@ -157,7 +157,7 @@
         "settings"
         params=(hash nspace=undefined partition=undefined)
       }}
-      @text="Settings"
+      @text={{t "components.hashicorp-consul.side-nav.user-menu.settings"}}
       @isHrefExternal={{false}}
     />
   </Hds::Dropdown>

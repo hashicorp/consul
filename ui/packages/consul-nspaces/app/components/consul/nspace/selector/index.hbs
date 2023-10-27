@@ -17,16 +17,16 @@
     (is-href "dc.nspaces" @dc.Name)
     as |SNL nspace isManaging|
   }}
-    <SNL.Title class="consul-side-nav__selector-title">Namespace</SNL.Title>
+    <SNL.Title class="consul-side-nav__selector-title">{{t "components.hashicorp-consul.side-nav.nspaces.title"}}</SNL.Title>
     <NavSelector
       @list={{@list}}
       @items={{sort-by "Name:asc" (reject-by "DeletedAt" @nspaces)}}
       @item={{nspace}}
       @key="Name"
       @icon="folder"
-      @placeholder="Search namespaces"
+      @placeholder={{t "components.hashicorp-consul.side-nav.nspaces.placeholder"}}
       @footerLink={{href-to "dc.nspaces" @dc.Name}}
-      @footerLinkText="View all namespaces"
+      @footerLinkText={{t "components.hashicorp-consul.side-nav.nspaces.footer"}}
       data-test-nspace-menu
       as |Dropdown item|
     >
