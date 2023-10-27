@@ -5,13 +5,13 @@ package testing
 
 import (
 	"context"
-	"github.com/hashicorp/consul/internal/tenancy"
+	"testing"
+
 	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"testing"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -93,6 +94,7 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 		mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
+		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", "foo").Return(false, nil)
 		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)

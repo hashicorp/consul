@@ -35,6 +35,11 @@ type Config struct {
 	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
 	TenancyBridge TenancyBridge
+
+	// UseV2Tenancy is true if the "v2tenancy" experiement is active, false otherwise.
+	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
+	// flag is false.
+	UseV2Tenancy bool
 }
 
 //go:generate mockery --name Registry --inpackage

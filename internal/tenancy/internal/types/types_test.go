@@ -4,16 +4,16 @@
 package types
 
 import (
-	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
 )
 
 func createNamespaceResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
@@ -84,28 +84,6 @@ func TestValidateNamespace_ParseError(t *testing.T) {
 	err := ValidateNamespace(res)
 	require.Error(t, err)
 	require.ErrorAs(t, err, &resource.ErrDataParse{})
-}
-
-func TestMutateNamespace(t *testing.T) {
-	tests := []struct {
-		name          string
-		namespaceName string
-		expectedName  string
-		err           error
-	}{
-		{"lower", "lower", "lower", nil},
-		{"mixed", "MiXeD", "mixed", nil},
-		{"upper", "UPPER", "upper", nil},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := &pbresource.Resource{Id: &pbresource.ID{Name: tt.namespaceName}}
-			if err := MutateNamespace(res); !errors.Is(err, tt.err) {
-				t.Errorf("MutateNamespace() error = %v", err)
-			}
-			require.Equal(t, res.Id.Name, tt.expectedName)
-		})
-	}
 }
 
 func TestValidateNamespace(t *testing.T) {

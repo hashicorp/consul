@@ -159,6 +159,10 @@ func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
 	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
