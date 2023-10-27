@@ -6,7 +6,7 @@ description: The HTTPRoute resource CRD configures L7 HTTP traffic behavior with
 
 # HTTPRoute resource configuration reference
 
-This page provides reference information for the HTTPRoute resource, which defines L7 HTTP traffic within the service mesh.
+This page provides reference information for the HTTPRoute resource, which defines behavior for L7 HTTP traffic within the service mesh.
 
 This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
@@ -64,7 +64,7 @@ The following list outlines field hierarchy, language-specific data types, and r
           - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
         - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite): map
           - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite): string
-      - [`weight`](#spec-rules-backendrefs-weight): integer
+      - [`weight`](#spec-rules-backendrefs-weight): integer | `1`
     - [`filters`](#spec-rules-filters): map
       - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
         - [`add`](#spec-rules-filters-requestheadermodifier): map
@@ -81,10 +81,14 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`name`](#spec-rules-matches-headers-name): string
         - [`type`](#spec-rules-matches-headers-type): string
         - [`value`](#spec-rules-matches-headers-value): string
-      - [`method`](#spec-rules-matches-method): map
-        - [`method`](#spec-rules-matches-method-method): string
-        - [`service`](#spec-rules-matches-method-service): string
-        - [`type`](#spec-rules-matches-method-type): string
+      - [`method`](#spec-rules-matches-method): string
+      - [`path`](#spec-rules-matches-path): map
+        - [`type`](#spec-rules-matches-path-type): string
+        - [`value`](#spec-rules-matches-path-value): string
+      - [`queryParams`](#spec-rules-matches-queryparams): map
+        - [`name`](#spec-rules-matches-queryparams-name): string
+        - [`type`](#spec-rules-matches-queryparams-type): string
+        - [`value`](#spec-rules-matches-queryparams-value): string
     - [`retries`](#spec-rules-retries): map
       - [`number`](#spec-rules-retries-number): map
         - [`value`](#spec-rules-retries-number): integer
@@ -114,7 +118,7 @@ When every field is defined, an HTTPRoute CRD has the following form:
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
 kind: HTTPRoute                                      # required
 metadata:
-  name: <CRDName>
+  name: <crdName>
   namespace: <namespace>
 spec:
   parentRefs:
@@ -172,12 +176,16 @@ spec:
     matches:
       headers:
         name: <nameToMatch>
-        type: <typeToMatch>
+        type: <HEADER_MATCH_TYPE_EXACT>
         value: <valueToMatch>
-      method:
-        method: <methodToMatch>
-        service: <serviceToMatch>
-        type: <typeToMatch>
+      method: <methodToMatch>
+      path: 
+        type: <PATH_MATCH_TYPE_EXACT>
+        value: /
+      queryParams:
+        name: <nameToMatch>
+        type: <QUERY_PARAM_MATCH_TYPE_EXACT>
+        value: <valueToMatch>
     retries:
       number:
         value: 1
@@ -634,43 +642,89 @@ Specifies the value of the HTTP request header to match. When this field is spec
 
 ### `spec.rules.matches.method`
 
-Specifies criteria for matching a service and a HTTP request method. When configuring this field, either [`spec.rules.matches.method.method`](#spec-rules-matches-method-method) or [`spec.rules.matches.method.service`](#spec-rules-matches-method-service) must be a non-empty string.
+Specifies the value of the HTTP method to match.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.matches.path`
+
+Specifies an HTTP request path to match. When this field is not specified, the CRD matches on the `/` path by default.
 
 #### Values
 
 - Default: None
 - Data type: Map
 
-### `spec.rules.matches.method.method`
+### `spec.rules.matches.path.type`
 
-Specifies the value of the method to match. When empty or omitted, all methods match.
+Specifies a type of match to perform on the HTTP path. Supported match types include: unspecified, exact, prefix, and regex.
+
+#### Values
+
+- Default: None
+- Data type: String that should match one of the following values:
+
+- `PATH_MATCH_TYPE_UNSPECIFIED`
+- `PATH_MATCH_TYPE_EXACT`
+- `PATH_MATCH_TYPE_PREFIX`
+- `PATH_MATCH_TYPE_REGEX`
+
+### `spec.rules.matches.path.value`
+
+Value of the HTTP path to match on.
+
+#### Values
+
+- Default: `/`
+- Data type:  String
+
+### `spec.rules.matches.queryParams`
+
+Specifies HTTP query parameters to match on. When [`spec.rules.matches.queryParams.value`] is specified multiple times, a request must match all of the specified values for the route to be selected.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.matches.queryParams.name`
+
+Specifies the name of the HTTP query parameter to match. Query parameters matches require exact matches between strings.
+
+If multiple entries specify identical query parameter names, only the first entry with an equivalent name matches. Subsequent entries with an equivalent query parameter name are ignored. If an HTTP request repeats a query parameter, the behavior is intentionally undefined because different data planes have different capabilities. However, we recommend that matching against the first value of the parameter if the data plane supports it, as this behavior is expected in other load balancing contexts.
+
+Do not route traffic based on repeated query parameters, as differences in data plane implementations may produce errors.
 
 #### Values
 
 - Default: None
 - Data type: String
 
-### `spec.rules.matches.method.service`
+### `spec.rules.matches.queryParams.type`
 
-Specifies the value of the service to match. When empty or omitted, all services match.
+Specifies a type of match to perform on the HTTP request header. Supported match types include: unspecified, exact, regex, and present.
+
+#### Values
+
+- Default: None
+- Data type: String that should match one of the following values:
+
+  - `HEADER_MATCH_TYPE_UNSPECIFIED`
+  - `HEADER_MATCH_TYPE_EXACT`
+  - `HEADER_MATCH_TYPE_REGEX`
+  - `HEADER_MATCH_TYPE_PRESENT`
+
+### `spec.rules.matches.queryParams.value`
+
+Specifies the value of the HTTP query parameter to match.
 
 #### Values
 
 - Default: None
 - Data type: String
-
-### `spec.rules.matches.method.type`
-
-Specifies a type of match to perform on the HTTP request method. Supported match types include: unspecified, exact, and regex.
-
-#### Values
-
-- Default: None
-- Data type:  String that should match one of the following values:
-
-  - `GRPC_METHOD_MATCH_TYPE_UNSPECIFIED`
-  - `GRPC_METHOD_MATCH_TYPE_EXACT`
-  - `GRPC_METHOD_MATCH_TYPE_REGEX`
 
 ### `spec.rules.retries`
 
