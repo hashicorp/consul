@@ -1,29 +1,90 @@
 ---
 layout: docs
 page_title: ProxyConfiguration resource configuration reference
-description: Front-load meta descriptions with keywords and keyword phrases to help readers find the information they are searching for.
+description: The ProxyConfiguration resource CRD configures sidecar proxy behavior within the service mesh. Learn how to configure bootstrap and dynamic configurations for proxies according to Workload characteristics with specifications and example configurations.
 ---
 
 # ProxyConfiguration resource configuration reference
 
-This sample page template shows how to format high structured reference 
-information.
+This page provides reference information for the ProxyConfigurations resource, which defines proxy behavior for traffic within the service mesh. The resource specifies both bootstrap and dynamic configurations for proxies.
+
+This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, 
-and requirements in this configuration entry. Click on a property name 
-to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and requirements in a ProxyConfiguration CRD. Click on a property name to view additional details, including default values.
 
-- [`elem_a`](#elema): data type | default
-- [`elem_b`](#elemb): data type | default
-- [`spec`](#elemb): data type | default
-- [`elem_ba`](#elembelemba): data type | default
-- [`elem_baa`](#elembelembaelembaa): data type | default
-- [`elem_baaa`](#elembelembaelembaa): data type | default
-- [`elem_baab`](#elembelembaelembaa): data type | default
-- [`elem_baac`](#elembelembaelembaa): data type | default
-- [`element_bab`](#elembelembaelembab): data type | default
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `ProxyConfiguration`
+- [`metadata`](#metadata): object | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): object | required
+  - [`workloads`](#spec-workloads): map
+    - [`filter`](#spec-workloads): string
+    - [`names`](#spec-workloads): list of strings
+    - [`prefixes`](#spec-workloads): array of strings
+  - [`bootstrapConfig`](#spec-bootstrapconfig): map
+    - [`dogstatsdUrl`](#spec-bootstrapconfig): string
+    - [`overrideJsonTpl`](#spec-bootstrapconfig): string
+    - [`prometheusBindAddr`](#spec-bootstrapconfig): string
+    - [`readyBindAddr`](#spec-bootstrapconfig): string
+    - [`staticClustersJson`](#spec-bootstrapconfig): string
+    - [`staticListenersJson`](#spec-bootstrapconfig): string
+    - [`statsBindAddr`](#spec-bootstrapconfig): string
+    - [`statsConfigJson`](#spec-bootstrapconfig): string
+    - [`statsFlushInterval`](#spec-bootstrapconfig): string
+    - [`statsSinksJson`](#spec-bootstrapconfig): string
+    - [`statsTags`](#spec-bootstrapconfig): array of strings
+    - [`statsdUrl`](#spec-bootstrapconfig): string
+    - [`telemetryCollectorBindSocketDir`](#spec-bootstrapconfig): string
+    - [`tracingConfigJson`](#spec-bootstrapconfig): string
+  - [`dynamicConfig`](#spec-dynamicconfig): map
+    - [`accessLogs`](#spec-dynamicconfig-accesslogs): map
+      - [`enabled`](#spec-dynamicconfig-accesslogs-enabled): boolean | `false`
+      - [`disableListenerLogs`](#spec-dynamicconfig-accesslogs-disablelistenerlogs): boolean | `false`
+      - [`jsonFormat`](#spec-dynamicconfig-accesslogs-jsonformat): string
+      - [`path`](#spec-dynamicconfig-accesslogs-path): string
+      - [`textFormat`](#spec-dynamicconfig-accesslogs-textformat): string
+      - [`type`](#spec-dynamicconfig-accesslogs-type): string
+    - [`envoyExtensions`](#spec-dynamicconfig-envoyextensions): map
+      - [`arguments`](#spec-dynamicconfig-envoyextensions-arguments): map
+      - [`consulVersion`](#spec-dynamicconfig-envoyextensions-consulVersion): string
+      - [`envoyVersion`](#spec-dynamicconfig-envoyextensions-envoyVersion): string
+      - [`name`](#spec-dynamicconfig-envoyextensions-name): string
+      - [`required`](#spec-dynamicconfig-envoyextensions-required): boolean | `false`
+    - [`exposeConfig`](#spec-dynamicconfig-exposeconfig): map
+      - [`exposePaths`](#spec-dynamicconfig-exposeconfig-exposepaths): map
+        - [`listenerPort`](#spec-dynamicconfig-exposeconfig-exposepaths-listenerport): integer
+        - [`localPathPort`](#spec-dynamicconfig-exposeconfig-exposepaths-localpathport): integer
+        - [`path`](#spec-dynamicconfig-exposeconfig-exposepaths-path): string
+        - [`protocol`](#spec-dynamicconfig-exposeconfig-exposepaths-protocol): string
+    - [`inboundConnections`](#spec-dynamicconfig-inboundconnections): map
+      - [`balanceInboundConnections`](#spec-dynamicconfig-inboundconnections-balanceinboundconnections): string
+      - [`maxInboundConnections`](#spec-dynamicconfig-exposeconfig-inboundconnections-maxinboundconnections): integer
+    - [`listenerTracingJson`](#spec-dynamicconfig-listenertracingjson): string
+    - [`localClusterJson`](#spec-dynamicconfig-localclusterjson): string
+    - [`localConnection`](#spec-dynamicconfig-localconnection): map
+      - [`connectTimeout`](#spec-dynamicconfig-localconnection-connecttimeout): map
+       - [`nanos`](#spec-dynamicconfig-localconnection-connecttimeout): integer
+       - [`seconds`](#spec-dynamicconfig-localconnection-connecttimeout): integer
+      - [`requestTimeout`](#spec-dynamicconfig-localconnection-requesttimeout): map
+       - [`nanos`](#spec-dynamicconfig-localconnection-requesttimeout): integer
+       - [`seconds`](#spec-dynamicconfig-localconnection-requesttimeout): integer
+    - [`meshGatewayMode`](#spec-dynamicconfig-meshgatewaymode): string
+    - [`mode`](#spec-dynamicconfig-mode): string
+    - [`mutualTLSMode`](#spec-dynamicconfig-mutualtlsmode): string
+    - [`publicListenerJson`](#spec-dynamicconfig-publiclistenerjson): string
+    - [`transparentProxy`](#spec-dynamicconfig-transparentproxy): map
+      - [`dialedDirectly`](#spec-dynamicconfig-transparentproxy-dialeddirectly): boolean | `false`
+      - [`outboundListenerPort`](#spec-dynamicconfig-transparentproxy-outboundlistenerport): integer | `15001`
+
+</Tab>
+</Tabs>
 
 ## Complete configuration
 
@@ -43,39 +104,74 @@ element_bbbd: <default or description of value>
 
 ## Specification
 
-The specification block contains the details about each configuration. It 
-is a flattened representation of the configuration model block that allows 
-for extended descriptions, examples, and other information to help readers 
-understand the behavior of the configurations. 
+This section provides details about the fields you can configure in the ProxyConfiguration custom resource definition (CRD).
 
-### `Elem_a`
+### `apiVersion`
 
-Use this space to thoroughly, but succinctly, document the configuration 
-item. This format is intended to allow you to create complete documentation, 
-however, _stay within the scope of the reference_. If the description 
-deviates from the reference material, create a new Concept topic or add the 
-information to an existing Concept.
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `mesh.consul.hashicorp.com/v2beta1`.
 
 #### Values
 
-- Default: default value or none
-- This field is required. 
-- Data type: data type
+- Default: None
+- This field is required.
+- String value that must be set to `mesh.consul.hashicorp.com/v2beta1`.
 
-Specify any additional information about the values that you can specify.     
+### `kind`
 
-### `Elem_b`
-
-Add your description. You can include example configurations and describe 
-any dependencies or cascading effects that the configuration may have.
+Specifies the type of CRD to implement. Must be set to `ProxyConfiguration`.
 
 #### Values
 
-- Default: default value or none
-- This field is required. 
-- Data type: data type
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `ProxyConfiguration`.
 
-Specify any additional information about the values that you can specify. 
+### `metadata`
+
+Map that contains an arbitrary name for the CRD and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the CRD. The name is metadata that you can use to reference the resource when performing Consul operations, such as using the `consul resource` command. Refer to [`consul resource`](/consul/docs/k8s/connect/multiport/reference/resource-command) for more information.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `ProxyConfiguration` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+When using this CRD, the `spec` field must align with GAMMAs resource. Refer to [HTTPRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRoute).
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec`
+
+#### Values
+
+- Default: None
+- Data type: Map
 
 ## Examples
 
