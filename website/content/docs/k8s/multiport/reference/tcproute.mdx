@@ -53,42 +53,7 @@ The following list outlines field hierarchy, language-specific data types, and r
             - [`group`](#spec-rules-backendrefs-backendref-ref-type): string
             - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
             - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
-      - [`filters`](#spec-rules-backendrefs-filters): map
-        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-          - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-          - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-          - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
-        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
-          - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
-          - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
-          - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
-        - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite): map
-          - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite): string
       - [`weight`](#spec-rules-backendrefs-weight): integer
-    - [`filters`](#spec-rules-filters): map
-      - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
-        - [`add`](#spec-rules-filters-requestheadermodifier): map
-        - [`set`](#spec-rules-filters-requestheadermodifier): map
-        - [`remove`](#spec-rules-filters-requestheadermodifier): map
-      - [`responseHeaderModifier`](#spec-rules-filters-responseheadermodifier): map
-        - [`add`](#spec-rules-filters-responseheadermodifier): map
-        - [`set`](#spec-rules-filters-responseheadermodifier): map
-        - [`remove`](#spec-rules-filters-responseheadermodifier): map
-      - [`urlRewrite`](#spec-rules-filters-urlrewrite): map
-        - [`pathPrefix`](#spec-rules-filters-urlrewrite): string
-    - [`retries`](#spec-rules-retries): map
-      - [`number`](#spec-rules-retries-number): map
-        - [`value`](#spec-rules-retries-number): integer
-      - [`onConditions`](#spec-rules-retries-onconditions): map of strings
-      - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
-      - [`onStatusCodes`](#spec-rules-retries-onconditions): map of integers
-    - [`timeouts`](#spec-rules-timeouts): map
-      - [`idle`](#spec-rules-timeouts-idle): map
-        - [`nanos`](#spec-rules-timeouts-idle): integer
-        - [`seconds`](#spec-rules-timeouts-idle): integer
-      - [`request`](#spec-rules-timeouts-request): map
-        - [`nanos`](#spec-rules-timeouts-request): integer
-        - [`seconds`](#spec-rules-timeouts-request): integer
 
 </Tab>
 </Tabs>
@@ -105,7 +70,7 @@ When every field is defined, a TCPRoute CRD has the following form:
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
 kind: TCPRoute                                       # required
 metadata:
-  name: <CRDName>
+  name: <crdName>
   namespace: <namespace>
 spec:
   parentRefs:
@@ -137,42 +102,7 @@ spec:
             group: <catalog>
             groupVersion: <v2beta1>
             kind: <Service>
-      filters:
-        - requestHeaderModifier:
-          add:
-            name: "<foo>"
-            value: "<bar>"
-        - responseHeaderModifier:
-          set:
-            name: "<foo>"
-            value: "<bar>"
-        urlRewrite:
-          pathPrefix: <path/prefix>
       weight: 1
-    filters:
-      requestHeaderModifier:
-          remove:
-            name: "<foo>"
-            value: "<bar>"
-      responseHeaderModifier:      
-          add:
-            name: "<foo>"
-            value: "<bar>"              
-      urlRewrite:
-        pathPrefix: <path/prefix>
-    retries:
-      number:
-        value: 1
-      onConditions: ["cancelled", "unavailable"]
-      onConnectFailure: false
-      onStatusCodes: [400, 404]
-    timeouts:
-      idle:
-        nanos: 15
-        seconds: 1
-      request:
-        nanos: 10
-        seconds: 1
 ```
 
 </Tab>
@@ -320,7 +250,7 @@ Specifies the type of resource that the configuration applies to. To reference a
 
 ### `spec.rules`
 
-Specifies rules for sidecar proxies to direct a service's TCP traffic within the service mesh, including filtering, retry, and timeout behavior.
+Specifies rules for sidecar proxies to direct a service's TCP traffic within the service mesh.
 
 #### Values
 
@@ -333,7 +263,7 @@ Specifies the Kubernetes Service backend to direct TCP traffic to when a request
 
 When a valid Service backend cannot be reached and no additional filters apply, traffic that matches the rule returns a 500 status code.
 
-When different Service backends are specified in [`spec.rules.backendRefs.weight`](#spec-rules-backendrefs-weight) and one is invalid, the relative weights are maintained and traffic is not redirected automatically. For example, when traffic is configured in a 50-50 split between `api` and `admin` and no valid endpoints for `admin` can be reached, the 50% of traffic intended for `admin` returns with a 500 status code.
+When different Service backends are specified with [`spec.rules.backendRefs.weight`](#spec-rules-backendrefs-weight) and one is invalid, the relative weights are maintained and traffic is not adjusted automatically. For example, when traffic is configured in a 50-50 split between `api` and `admin` and no valid endpoints for `admin` can be reached, the 50% of traffic intended for `admin` returns with a 500 status code.
 
 #### Values
 
@@ -423,68 +353,6 @@ Specifies the type of resource that the configuration routes traffic to. To refe
   | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String (in code, should be int based on desc.)   | None     |
   | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
-### `spec.rules.backendRefs.filters`
-
-Specifies filtering behavior for services configured in the same [`spec.rules.backendRefs`](#spec-rules-backendrefs) block.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rules.backendRefs.filters.requestHeaderModifier`
-
-Specifies a set of header modification rules applied to requests routed with the TCPRoute resource.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-### `spec.rules.backendRefs.filters.responseHeaderModifier`
-
-Specifies a set of header modification rules applied to responses routed with the TCPRoute resource.
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-### `spec.rules.backendRefs.filters.urlRewrite`
-
-Specifies a path to modify the URL with when a request is forwarded.
-
-#### Values
-
-- Default: None
-- Data type: Map containing the following parameter:
-
-  | Parameter     | Description                                                                                        | Data type | Default |
-  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
-  | `pathPrefix` | Specifies the path that is prepended to the URL.  | String    | None    |
-
 ### `spec.rules.backendRefs.weight`
 
 Specifies the proportion of requests routed to the specified service. 
@@ -497,154 +365,6 @@ When this parameter is not specified, it assumes the default value `1`.
 
 - Default: `1`
 - Data type: Integer
-
-### `spec.rules.filters`
-
-Specifies filtering behavior for all requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rules.filters.requestHeaderModifier`
-
-Specifies a set of header modification rules applied to requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-### `spec.rules.filters.responseHeaderModifier`
-
-Specifies a set of header modification rules applied to responses from services matching [`spec.parentRefs`](#spec-parent-refs).
-
-#### Values
-
-- Default: None
-- Values: Object containing one or more fields that define header modification rules:
-  - `add`: Map of one or more key-value pairs.
-  - `set`: Map of one or more key-value pairs.
-  - `remove`: Map of one or more key-value pairs.
-
-The following table describes how to configure values for request headers:
-
-| Rule | Description | Type |
-| --- 	    | ---	       | ---         |
-| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
-| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
-
-### `spec.rules.filters.urlRewrite`
-
-Specifies a path to modify the URL with when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.
-
-#### Values
-
-- Default: None
-- Data type: Map containing the following parameter:
-
-  | Parameter     | Description                                                                                        | Data type | Default |
-  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
-  | `pathPrefix` | Specifies a path to prepend to the URL when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.  | String    | None    |
-
-### `spec.rules.retries`
-
-Specifies retry logic for routing TCP traffic.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rules.retries.number`
-
-Specifies the number of retries to attempt when a request fails.
-
-#### Values
-
-- Default: None
-- Data type: Map that contains the following parameter:
-
-  | Parameter | Description                                  | Data type | Default |
-  | :-------- | :------------------------------------------- | --------- | ------- |
-  | `value`   | Specifies the number of retries to attempt.  | Integer   | None    |
-
-### `spec.rules.retries.onConditions`
-
-Specifies Envoy conditions that cause an automatic retry attempt.
-
-#### Values
-
-- Default: None
-- Data type: Map of strings
-
-### `spec.rules.retries.onConnnectFailure`
-
-Enables an automatic retry attempt when a connection failure error occurs.
-
-#### Values
-
-- Default: `false`
-- Data type: Boolean
-
-### `spec.rules.retries.onStatusCodes`
-
-Specifies the response status codes that are eligible for retry attempts.
-
-#### Values
-
-- Default: None
-- Data type: Map of integers
-
-### `spec.rules.timeouts`
-
-Specifies timeout logic when routing TCP traffic
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rules.timeouts.idle`
-
-Specifies the total amount of time permitted for the request stream to be idle before a timeout occurs.
-
-#### Values
-
-- Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
-
-### `spec.rules.timeouts.request`
-
-Specifies the total amount of time spent processing the entire downstream request, including retries, before triggering a timeout.
-
-#### Values
-
-- Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
 
 ## Examples
 
@@ -669,7 +389,7 @@ spec:
           kind: Service
         name: api
       # Note that right now, we must target the workload port,
-      # not the service port. This is likely to change in 1.18+.
+      # not the service port. 
       port: "api-workload"
   rules:
     - backendRefs:
@@ -681,7 +401,7 @@ spec:
               kind: Service
             name: api
           # Note that right now, we must target the workload port,
-          # not the service port. This is likely to change in 1.18+.
+          # not the service port. 
           port: "api-workload"
         weight: 50
       - backendRef:
@@ -692,7 +412,7 @@ spec:
               kind: Service
             name: api
           # Note that right now, we must target the workload port,
-          # not the service port. This is likely to change in 1.18+.
+          # not the service port. 
           port: "admin-workload"
         weight: 50
 ```
