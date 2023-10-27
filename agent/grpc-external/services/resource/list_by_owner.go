@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerRequest) (*pbresource.ListByOwnerResponse, error) {
-	reg, err := s.ensureListByOwnerRequestValid(req)
+	reg, err := s.validateListByOwnerRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -42,8 +42,8 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
-	// Check tenancy exists for the v2 resource.
-	if err = tenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
+	// Check v1 tenancy exists for the v2 resource.
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 	return &pbresource.ListByOwnerResponse{Resources: result}, nil
 }
 
-func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerRequest) (*resource.Registration, error) {
+func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) (*resource.Registration, error) {
 	if req.Owner == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "owner is required")
 	}
@@ -105,9 +105,8 @@ func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerReques
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Owner.Type); err != nil {
-		return nil, err
-	}
+	// Lowercase
+	resource.Normalize(req.Owner.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {
