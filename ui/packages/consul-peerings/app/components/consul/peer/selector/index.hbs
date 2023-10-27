@@ -4,9 +4,9 @@
 }}
 
 {{#let @list as |SNL|}}
-  <SNL.Title ...attributes>Organization</SNL.Title>
+  <SNL.Title ...attributes>{{t "components.hashicorp-consul.side-nav.organization.title"}}</SNL.Title>
   <SNL.Link
-    @text="Peers"
+    @text={{t "components.hashicorp-consul.side-nav.organization.peers"}}
     @route="dc.peers"
     @models={{array @dc.Name}}
     @query={{hash peer=undefined}}

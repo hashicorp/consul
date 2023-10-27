@@ -14,16 +14,16 @@
     @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
     @onchange={{fn (optional @onchange)}}
   />
-  <SNL.Title class="consul-side-nav__selector-title">Admin partition</SNL.Title>
+  <SNL.Title class="consul-side-nav__selector-title">{{t "components.hashicorp-consul.side-nav.partitions.title"}}</SNL.Title>
   <NavSelector
     @list={{@list}}
     @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
     @item={{partition}}
     @key="Name"
     @icon="users"
-    @placeholder="Search partitions"
+    @placeholder={{t "components.hashicorp-consul.side-nav.partitions.placeholder"}}
     @footerLink={{href-to "dc.partitions" @dc.Name}}
-    @footerLinkText="View all partitions"
+    @footerLinkText={{t "components.hashicorp-consul.side-nav.partitions.footer"}}
     @disabled={{not canChoose}}
     data-test-datacenter-disclosure-menu
     as |Dropdown item|
