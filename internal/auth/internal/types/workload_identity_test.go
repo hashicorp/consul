@@ -144,3 +144,13 @@ func TestWorkloadIdentityACLs(t *testing.T) {
 		})
 	}
 }
+
+func TestWorkloadIdentity_ParseError(t *testing.T) {
+	rsc := resourcetest.Resource(pbauth.WorkloadIdentityType, "example").
+		WithData(t, &pbauth.TrafficPermissions{}).
+		Build()
+
+	err := ValidateWorkloadIdentity(rsc)
+	var parseErr resource.ErrDataParse
+	require.ErrorAs(t, err, &parseErr)
+}

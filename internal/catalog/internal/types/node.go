@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
+
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbcatalog.NodeType,
@@ -31,16 +33,12 @@ func RegisterNode(r resource.Registry) {
 	})
 }
 
-func ValidateNode(res *pbresource.Resource) error {
-	var node pbcatalog.Node
+var ValidateNode = resource.DecodeAndValidate(validateNode)
 
-	if err := res.Data.UnmarshalTo(&node); err != nil {
-		return resource.NewErrDataParse(&node, err)
-	}
-
+func validateNode(res *DecodedNode) error {
 	var err error
 	// Validate that the node has at least 1 address
-	if len(node.Addresses) < 1 {
+	if len(res.Data.Addresses) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "addresses",
 			Wrapped: resource.ErrEmpty,
@@ -48,7 +46,7 @@ func ValidateNode(res *pbresource.Resource) error {
 	}
 
 	// Validate each node address
-	for idx, addr := range node.Addresses {
+	for idx, addr := range res.Data.Addresses {
 		if addrErr := validateNodeAddress(addr); addrErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "addresses",

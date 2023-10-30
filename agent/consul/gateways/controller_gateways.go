@@ -686,14 +686,16 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 				errors[ref] = err
 			}
 
+			isValidJWT := true
 			if httpRoute, ok := route.(*structs.HTTPRouteConfigEntry); ok {
 				var jwtErrors map[structs.ResourceReference]error
-				didBind, jwtErrors = g.validateJWTForRoute(httpRoute)
+				isValidJWT, jwtErrors = g.validateJWTForRoute(httpRoute)
 				for ref, err := range jwtErrors {
 					errors[ref] = err
 				}
 			}
-			if didBind {
+
+			if didBind && isValidJWT {
 				refDidBind = true
 				listenerBound[listener.Name] = true
 			}

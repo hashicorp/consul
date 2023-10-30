@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterTCPRoute(r resource.Registry) {
@@ -24,20 +23,16 @@ func RegisterTCPRoute(r resource.Registry) {
 	})
 }
 
-func MutateTCPRoute(res *pbresource.Resource) error {
-	var route pbmesh.TCPRoute
+var MutateTCPRoute = resource.DecodeAndMutate(mutateTCPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func mutateTCPRoute(res *DecodedTCPRoute) (bool, error) {
 	changed := false
 
-	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+	if mutateParentRefs(res.Id.Tenancy, res.Data.ParentRefs) {
 		changed = true
 	}
 
-	for _, rule := range route.Rules {
+	for _, rule := range res.Data.Rules {
 		for _, backend := range rule.BackendRefs {
 			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
 				continue
@@ -48,34 +43,26 @@ func MutateTCPRoute(res *pbresource.Resource) error {
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&route)
+	return changed, nil
 }
 
-func ValidateTCPRoute(res *pbresource.Resource) error {
-	var route pbmesh.TCPRoute
+var ValidateTCPRoute = resource.DecodeAndValidate(validateTCPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func validateTCPRoute(res *DecodedTCPRoute) error {
 	var merr error
 
-	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, res.Data.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
-	if len(route.Rules) > 1 {
+	if len(res.Data.Rules) > 1 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "rules",
 			Wrapped: fmt.Errorf("must only specify a single rule for now"),
 		})
 	}
 
-	for i, rule := range route.Rules {
+	for i, rule := range res.Data.Rules {
 		wrapRuleErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "rules",

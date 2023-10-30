@@ -8,15 +8,17 @@ package testing
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	"github.com/oklog/ulid/v2"
-	"google.golang.org/protobuf/types/known/anypb"
-	"time"
 )
 
 func FillEntMeta(entMeta *acl.EnterpriseMeta) {

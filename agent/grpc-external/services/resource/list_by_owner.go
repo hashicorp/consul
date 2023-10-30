@@ -105,6 +105,10 @@ func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) 
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Owner.Type); err != nil {
+		return nil, err
+	}
+
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
