@@ -525,7 +525,9 @@ jobs:
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
-            -json .
+            -json . \
+            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --target-version local
         env:
           # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml

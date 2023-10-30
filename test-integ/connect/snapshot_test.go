@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
@@ -40,9 +41,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	staticClientSID := topology.NewServiceID("static-client", "default", "default")
 
 	clu := &topology.Config{
-		Images: topology.Images{
-			ConsulEnterprise: "hashicorp/consul-enterprise:local",
-		},
+		Images: utils.TargetImages(),
 		Networks: []*topology.Network{
 			{Name: "dc1"},
 		},
