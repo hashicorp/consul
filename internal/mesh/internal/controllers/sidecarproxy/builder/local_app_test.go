@@ -28,7 +28,7 @@ func TestBuildLocalApp(t *testing.T) {
 		ctp          *pbauth.ComputedTrafficPermissions
 		defaultAllow bool
 	}{
-		"source/l4-single-workload-address-without-ports": {
+		"source/single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -36,12 +36,15 @@ func TestBuildLocalApp(t *testing.T) {
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
-		"source/l4-multiple-workload-addresses-without-ports": {
+		"source/multiple-workload-addresses-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -52,26 +55,32 @@ func TestBuildLocalApp(t *testing.T) {
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
-		"source/l4-multiple-workload-addresses-with-specific-ports": {
+		"source/multiple-workload-addresses-with-specific-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "127.0.0.1",
-						Ports: []string{"port1"},
+						Ports: []string{"tcp", "grpc", "mesh"},
 					},
 					{
 						Host:  "10.0.0.2",
-						Ports: []string{"port2"},
+						Ports: []string{"http", "http2", "mesh"},
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 			ctp: &pbauth.ComputedTrafficPermissions{
