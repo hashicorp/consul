@@ -87,11 +87,47 @@
           },
           "filters":  [
             {
-              "name":  "envoy.filters.network.tcp_proxy",
+              "name":  "envoy.filters.network.http_connection_manager",
               "typedConfig":  {
-                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "statPrefix":  "upstream.tcp2.api-app.default.default.dc1",
-                "cluster":  "tcp2.api-app.default.dc1.internal.foo.consul"
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix":  "upstream.",
+                "rds":  {
+                  "configSource":  {
+                    "ads":  {},
+                    "resourceApiVersion":  "V3"
+                  },
+                  "routeConfigName":  "default/local/default/api-app:grpc"
+                },
+                "httpFilters":  [
+                  {
+                    "name":  "envoy.filters.http.grpc_stats",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
+                      "statsForAllMethods":  true
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.router",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "tracing":  {
+                  "randomSampling":  {}
+                },
+                "http2ProtocolOptions":  {},
+                "upgradeConfigs":  [
+                  {
+                    "upgradeType":  "websocket"
+                  }
+                ]
               }
             }
           ]
