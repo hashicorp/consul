@@ -1,5 +1,61 @@
 {
   "clusters": {
+    "grpc.api-1.default.dc1.internal.foo.consul": {
+      "altStatName": "grpc.api-1.default.dc1.internal.foo.consul",
+      "endpointGroup": {
+        "dynamic": {
+          "config": {
+            "connectTimeout": "5s",
+            "disablePanicThreshold": true
+          },
+          "outboundTls": {
+            "alpnProtocols": [
+              "consul~grpc"
+            ],
+            "outboundMesh": {
+              "identityKey": "test-identity",
+              "sni": "api-1.default.dc1.internal.foo.consul",
+              "validationContext": {
+                "spiffeIds": [
+                  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                ],
+                "trustBundlePeerNameKey": "local"
+              }
+            }
+          }
+        }
+      },
+      "name": "grpc.api-1.default.dc1.internal.foo.consul",
+      "protocol": "PROTOCOL_TCP"
+    },
+    "grpc.api-2.default.dc1.internal.foo.consul": {
+      "altStatName": "grpc.api-2.default.dc1.internal.foo.consul",
+      "endpointGroup": {
+        "dynamic": {
+          "config": {
+            "connectTimeout": "5s",
+            "disablePanicThreshold": true
+          },
+          "outboundTls": {
+            "alpnProtocols": [
+              "consul~grpc"
+            ],
+            "outboundMesh": {
+              "identityKey": "test-identity",
+              "sni": "api-2.default.dc1.internal.foo.consul",
+              "validationContext": {
+                "spiffeIds": [
+                  "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
+                ],
+                "trustBundlePeerNameKey": "local"
+              }
+            }
+          }
+        }
+      },
+      "name": "grpc.api-2.default.dc1.internal.foo.consul",
+      "protocol": "PROTOCOL_GRPC"
+    },
     "null_route_cluster": {
       "endpointGroup": {
         "static": {
@@ -66,65 +122,31 @@
       },
       "name": "tcp.api-2.default.dc1.internal.foo.consul",
       "protocol": "PROTOCOL_TCP"
-    },
-    "tcp2.api-1.default.dc1.internal.foo.consul": {
-      "altStatName": "tcp2.api-1.default.dc1.internal.foo.consul",
-      "endpointGroup": {
-        "dynamic": {
-          "config": {
-            "connectTimeout": "5s",
-            "disablePanicThreshold": true
-          },
-          "outboundTls": {
-            "alpnProtocols": [
-              "consul~tcp2"
-            ],
-            "outboundMesh": {
-              "identityKey": "test-identity",
-              "sni": "api-1.default.dc1.internal.foo.consul",
-              "validationContext": {
-                "spiffeIds": [
-                  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
-                ],
-                "trustBundlePeerNameKey": "local"
-              }
-            }
-          }
-        }
-      },
-      "name": "tcp2.api-1.default.dc1.internal.foo.consul",
-      "protocol": "PROTOCOL_TCP"
-    },
-    "tcp2.api-2.default.dc1.internal.foo.consul": {
-      "altStatName": "tcp2.api-2.default.dc1.internal.foo.consul",
-      "endpointGroup": {
-        "dynamic": {
-          "config": {
-            "connectTimeout": "5s",
-            "disablePanicThreshold": true
-          },
-          "outboundTls": {
-            "alpnProtocols": [
-              "consul~tcp2"
-            ],
-            "outboundMesh": {
-              "identityKey": "test-identity",
-              "sni": "api-2.default.dc1.internal.foo.consul",
-              "validationContext": {
-                "spiffeIds": [
-                  "spiffe://foo.consul/ap/default/ns/default/identity/api2-identity"
-                ],
-                "trustBundlePeerNameKey": "local"
-              }
-            }
-          }
-        }
-      },
-      "name": "tcp2.api-2.default.dc1.internal.foo.consul",
-      "protocol": "PROTOCOL_TCP"
     }
   },
   "endpoints": {
+    "grpc.api-1.default.dc1.internal.foo.consul": {
+      "endpoints": [
+        {
+          "healthStatus": "HEALTH_STATUS_HEALTHY",
+          "hostPort": {
+            "host": "10.1.1.1",
+            "port": 20000
+          }
+        }
+      ]
+    },
+    "grpc.api-2.default.dc1.internal.foo.consul": {
+      "endpoints": [
+        {
+          "healthStatus": "HEALTH_STATUS_HEALTHY",
+          "hostPort": {
+            "host": "10.1.1.1",
+            "port": 20000
+          }
+        }
+      ]
+    },
     "tcp.api-1.default.dc1.internal.foo.consul": {
       "endpoints": [
         {
@@ -137,28 +159,6 @@
       ]
     },
     "tcp.api-2.default.dc1.internal.foo.consul": {
-      "endpoints": [
-        {
-          "healthStatus": "HEALTH_STATUS_HEALTHY",
-          "hostPort": {
-            "host": "10.1.1.1",
-            "port": 20000
-          }
-        }
-      ]
-    },
-    "tcp2.api-1.default.dc1.internal.foo.consul": {
-      "endpoints": [
-        {
-          "healthStatus": "HEALTH_STATUS_HEALTHY",
-          "hostPort": {
-            "host": "10.1.1.1",
-            "port": 20000
-          }
-        }
-      ]
-    },
-    "tcp2.api-2.default.dc1.internal.foo.consul": {
       "endpoints": [
         {
           "healthStatus": "HEALTH_STATUS_HEALTHY",
@@ -245,19 +245,19 @@
         "host": "1.1.1.1",
         "port": 2345
       },
-      "name": "default/local/default/api-1:tcp2:1.1.1.1:2345",
+      "name": "default/local/default/api-1:grpc:1.1.1.1:2345",
       "routers": [
         {
           "l4": {
-            "statPrefix": "upstream.tcp2.api-1.default.default.dc1",
+            "statPrefix": "upstream.grpc.api-1.default.default.dc1",
             "weightedClusters": {
               "clusters": [
                 {
-                  "name": "tcp2.api-2.default.dc1.internal.foo.consul",
+                  "name": "grpc.api-2.default.dc1.internal.foo.consul",
                   "weight": 60
                 },
                 {
-                  "name": "tcp2.api-1.default.dc1.internal.foo.consul",
+                  "name": "grpc.api-1.default.dc1.internal.foo.consul",
                   "weight": 40
                 },
                 {
@@ -272,14 +272,15 @@
     },
     {
       "direction": "DIRECTION_OUTBOUND",
-      "name": "default/local/default/api-2:tcp2:/path/to/socket",
+      "name": "default/local/default/api-2:grpc:/path/to/socket",
       "routers": [
         {
-          "l4": {
-            "cluster": {
-              "name": "tcp2.api-2.default.dc1.internal.foo.consul"
+          "l7": {
+            "protocol": "L7_PROTOCOL_GRPC",
+            "route": {
+              "name": "default/local/default/api-2:grpc:/path/to/socket"
             },
-            "statPrefix": "upstream.tcp2.api-2.default.default.dc1"
+            "statPrefix": "upstream."
           }
         }
       ],
@@ -289,6 +290,32 @@
       }
     }
   ],
+  "routes": {
+    "default/local/default/api-2:grpc:/path/to/socket": {
+      "virtualHosts": [
+        {
+          "domains": [
+            "*"
+          ],
+          "name": "default/local/default/api-2:grpc:/path/to/socket",
+          "routeRules": [
+            {
+              "destination": {
+                "cluster": {
+                  "name": "grpc.api-2.default.dc1.internal.foo.consul"
+                }
+              },
+              "match": {
+                "pathMatch": {
+                  "prefix": "/"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
   "trustBundles": {
     "local": {
       "roots": [
