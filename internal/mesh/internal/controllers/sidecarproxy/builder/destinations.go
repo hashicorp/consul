@@ -529,7 +529,7 @@ func (b *Builder) addTransparentProxyOutboundListener(port uint32) *ListenerBuil
 }
 
 func isProtocolHTTPLike(protocol pbcatalog.Protocol) bool {
-	// enumcover:pbproxystate.Protocol
+	// enumcover:pbcatalog.Protocol
 	switch protocol {
 	case pbcatalog.Protocol_PROTOCOL_TCP:
 		return false
