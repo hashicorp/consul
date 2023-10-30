@@ -18,7 +18,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 <Tab heading="YAML" group="yaml">
 
-- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`apiVersion`](#apiversion): string | required | must be set to `auth.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `TrafficPermissions`
 - [`metadata`](#metadata): object | required
   - [`name`](#metadata-name): string | required
@@ -26,22 +26,54 @@ The following list outlines field hierarchy, language-specific data types, and r
 - [`spec`](#spec): object | required
   - [`destination`](#spec-destination):
     - [`identityName`](#spec-destination-identityname):
-  - [`action`](#spec-action):
-  - [`permissions`](#spec-permissions):
+  - [`action`](#spec-action): string
+  - [`permissions`](#spec-permissions): list of maps
     - [`sources`](#spec-permissions-sources):
-      - [`namespace`](#spec-permissions-sources):
-    - [`identityName`](#spec-permissions-identityname):
-      - [`destinationRules`](#spec-permissions-identityname-destinationrules):
-        - [`pathExact`](#spec-permissions-identityname-destinationrules):
-      - [`methods`](#spec-permissions-identityname-methods): array of strings
-    - [`portNames`](#spec-permissions-portnames): array of strings
-
+      - [`identityName`](#spec-permissions-sources-identityname): string
+      - [`namespace`](#spec-permissions-sources-namespace): string
+      - [`partition`](#spec-permissions-sources-partition): string
+      - [`peer`](#spec-permissions-sources-peer): string
+      - [`samenessGroup`](#spec-permissions-sources-samenessgroup): string
+      - [`exclude`](#spec-permissions-sources-exclude): Map
+        - [`identityName`](#spec-permissions-sources-exclude): string
+        - [`namespace`](#spec-permissions-sources-exclude): string
+        - [`partition`](#spec-permissions-sources-exclude): string
+        - [`peer`](#spec-permissions-sources-exclude): string
+        - [`samenessGroup`](#spec-permissions-sources-exclude): string
+    - [`destinationRules`](#spec-permissions-destinationrules):
+      - [`header`](#spec-permissions-destinationrules-header): map
+        - [`exact`](#spec-permissions-destinationrules-header): string
+        - [`invert`](#spec-permissions-destinationrules-header): boolean | `false`
+        - [`name`](#spec-permissions-destinationrules-header): string
+        - [`prefix`](#spec-permissions-destinationrules-header): string
+        - [`present`](#spec-permissions-destinationrules-header): boolean | `false`
+        - [`regex`](#spec-permissions-destinationrules-header): string
+        - [`suffix`](#spec-permissions-destinationrules-header): string
+      - [`methods`](#spec-permissions-destinationrules-methods): array of strings
+      - [`pathExact`](#spec-permissions-destinationrules-pathexact): string
+      - [`pathPrefix`](#spec-permissions-destinationrules-pathprefix): string
+      - [`pathRegex`](#spec-permissions-destinationrules-pathregex): string
+      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
+      - [`exclude`](#spec-permissions-destinationrules-exclude): map
+        - [`header`](#spec-permissions-destinationrules-exclude-header): map
+          - [`exact`](#spec-permissions-destinationrules-exclude-header): string
+          - [`invert`](#spec-permissions-destinationrules-exclude-header): boolean | `false`
+          - [`name`](#spec-permissions-destinationrules-exclude-header): string
+          - [`prefix`](#spec-permissions-destinationrules-exclude-header): string
+          - [`present`](#spec-permissions-destinationrules-exclude-header): boolean | `false`
+          - [`regex`](#spec-permissions-destinationrules-exclude-header): string
+          - [`suffix`](#spec-permissions-destinationrules-exclude-header): string
+        - [`methods`](#spec-permissions-destinationrules-exclude-methods): array of strings
+        - [`pathExact`](#spec-permissions-destinationrules-exclude-pathexact): string
+        - [`pathPrefix`](#spec-permissions-destinationrules-exclude-pathprefix): string
+        - [`pathRegex`](#spec-permissions-destinationrules-exclude-pathregex): string
+        - [`portNames`](#spec-permissions-destinationrules-exclude-portNames): array of strings
 </Tab>
 </Tabs>
 
 ## Complete configuration
 
-The [configuration model](#configuration-model) provides an overview of configurable fields and links to each field's specifications. The complete configuration provides the same basic structure, including field hierarchy and data types, in a code block that you can copy and paste into your preferred coding environment.
+The previous section's [configuration model](#configuration-model) provides an overview of configurable fields and links directly to each field's specifications. The complete configuration provides the same basic structure, including field hierarchy and data types, in a code block that you can copy and paste into your preferred coding environment.
 
 When every field is defined, a TrafficPermissions CRD has the following form:
 
@@ -57,16 +89,48 @@ spec:
   action: allow
   permissions:
     - sources:
-        - namespace: <originNamespace>
-    identityName: <permissionsOriginService>
-      destinationRules:
-        - pathExact: <path/to>
+      identityName: <workloadIdentityAtSource> 
+      namespace: <originNamespace>
+      partition:
+      peer:
+      samenessGroup:
+      exclude:
+        identityName:
+        namespace:
+        partition:
+        peer:
+        samenessGroup:
+    destinationRules:
+      - header:
+        exact:
+        invert:
+        name:
+        prefix:
+        present:
+        regex:
+        suffix:
       methods: ["GET", "POST"]
-    portNames: ["<servicePortName>"]
+      pathExact: <path/to>
+      pathReges:
+      portNames: ["<servicePortName>"]
+      exclude:
+        - header:
+          exact:
+          invert:
+          name:
+          prefix:
+          present:
+          regex:
+          suffix:
+        methods:
+        pathExact:
+        pathPrefix:
+        pathRegex:
 ```
 
 ## Specification
-This section provides details about the fields you can configure in the ProxyConfiguration custom resource definition (CRD).
+
+This section provides details about the fields you can configure in the TrafficPermissions custom resource definition (CRD).
 
 ### `apiVersion`
 
@@ -124,6 +188,117 @@ Map that contains the details about the `TrafficPermissions` CRD. The `apiVersio
 
 - Default: None
 - This field is required.
+- Data type: Map
+
+### `spec.destination`
+
+Destination is a configuration of the destination proxies
+                  where these traffic permissions should apply.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.destination.identityName`
+
+
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.action`
+
+"Action can be either allow or deny for the entire object.
+                  It will default to allow. \n If action is allow, we will allow the
+                  connection if one of the rules in Rules matches, in other words,
+                  we will deny all requests except for the ones that match Rules.
+                  If Consul is in default allow mode, then allow actions have no effect
+                  without a deny permission as everything is allowed by default. \n
+                  If action is deny, we will deny the connection if one of the rules
+                  in Rules match, in other words, we will allow all requests except
+                  for the ones that match Rules. If Consul is default deny mode, then
+                  deny permissions have no effect without an allow permission as everything
+                  is denied by default. \n Action unspecified is reserved for compatibility
+                  with the addition of future actions."
+
+#### Values
+
+- Default: None
+- Data type: String that must contain one of the following values:
+
+  - `ACTION_ALLOW`
+  - `ACTION_DENY`
+  - `ACTION_UNKNOWN`
+
+### `spec.permissions`
+
+Permissions is a list of permissions to match on. They
+                  are applied using OR semantics.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `spec.permissions.exclude`
+
+Permissions is a list of permissions to match on. They
+                  are applied using OR semantics.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `spec.permissions.sources`
+
+Sources is a list of sources in this traffic permission. Source represents the source identity. To specify
+                          any of the wildcard sources, the specific fields need to
+                          be omitted. For example, for a wildcard namespace, identity_name
+                          should be omitted.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.identityName`
+
+
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.identityName.destinationRules`
+
+
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.identityName.methods`
+
+
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.portNames`
+
+
+
+#### Values
+
+- Default: None
 - Data type: Map
 
 ## Examples
