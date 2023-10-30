@@ -6,10 +6,11 @@ package workloadhealth
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/resource"
-	"google.golang.org/protobuf/testing/protocmp"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/internal/resource"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -17,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
@@ -45,10 +47,15 @@ var (
 	}
 )
 
-func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
+func resourceID(rtype *pbresource.Type, name string, tenancy *pbresource.Tenancy) *pbresource.ID {
+	defaultTenancy := resource.DefaultNamespacedTenancy()
+	if tenancy != nil {
+		defaultTenancy = tenancy
+	}
+
 	return &pbresource.ID{
 		Type:    rtype,
-		Tenancy: resource.DefaultNamespacedTenancy(),
+		Tenancy: defaultTenancy,
 		Name:    name,
 	}
 }
@@ -79,18 +86,31 @@ type controllerSuite struct {
 	suite.Suite
 	client  pbresource.ResourceServiceClient
 	runtime controller.Runtime
+
+	isEnterprise bool
+	tenancy      *pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
 	suite.client = svctest.RunResourceService(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
+	suite.isEnterprise = (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+
+	tenancy := resource.DefaultNamespacedTenancy()
+	if suite.isEnterprise {
+		tenancy = &pbresource.Tenancy{
+			Namespace: "foo",
+			Partition: "bar",
+		}
+	}
+	suite.tenancy = tenancy
 }
 
 // injectNodeWithStatus is a helper method to write a Node resource and synthesize its status
 // in a manner consistent with the node-health controller. This allows us to not actually
 // run and test the node-health controller but consume its "api" in the form of how
 // it encodes status.
-func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog.Health) *pbresource.Resource {
+func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog.Health, partition string) *pbresource.Resource {
 	suite.T().Helper()
 	state := pbresource.Condition_STATE_TRUE
 	if health >= pbcatalog.Health_HEALTH_WARNING {
@@ -99,6 +119,7 @@ func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog
 
 	return resourcetest.Resource(pbcatalog.NodeType, name).
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: partition}).
 		WithStatus(nodehealth.StatusKey, &pbresource.Status{
 			Conditions: []*pbresource.Condition{
 				{
@@ -142,18 +163,25 @@ func (suite *workloadHealthControllerTestSuite) SetupTest() {
 //
 // * The node to workload association is now being tracked by the node mapper
 // * The workloads status was updated and now matches the expected value
-func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth, workloadHealth pbcatalog.Health, status *pbresource.Condition) *pbresource.Resource {
+func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth, workloadHealth pbcatalog.Health, tenancy *pbresource.Tenancy, status *pbresource.Condition) *pbresource.Resource {
 	suite.T().Helper()
 
-	node := suite.injectNodeWithStatus("test-node", nodeHealth)
+	testPartition := "default"
+	if tenancy != nil {
+		testPartition = tenancy.Partition
+	}
+
+	node := suite.injectNodeWithStatus("test-node", nodeHealth, testPartition)
 
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData(node.Id.Name)).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: workloadHealth}).
 		WithOwner(workload.Id).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	err := suite.reconciler.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -189,14 +217,16 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 // This is really just a tirmmed down version of testReconcileWithNode. It seemed
 // simpler and easier to read if these were two separate methods instead of combining
 // them in one with more branching based off of detecting whether nodes are in use.
-func (suite *workloadHealthControllerTestSuite) testReconcileWithoutNode(workloadHealth pbcatalog.Health, status *pbresource.Condition) *pbresource.Resource {
+func (suite *workloadHealthControllerTestSuite) testReconcileWithoutNode(workloadHealth pbcatalog.Health, tenancy *pbresource.Tenancy, status *pbresource.Condition) *pbresource.Resource {
 	suite.T().Helper()
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData("")).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: workloadHealth}).
+		WithTenancy(tenancy).
 		WithOwner(workload.Id).
 		Write(suite.T(), suite.client)
 
@@ -356,10 +386,11 @@ func (suite *workloadHealthControllerTestSuite) TestReconcile() {
 
 	for name, tcase := range cases {
 		suite.Run(name, func() {
+			tenancy := suite.tenancy
 			if tcase.nodeHealth != pbcatalog.Health_HEALTH_ANY {
-				suite.testReconcileWithNode(tcase.nodeHealth, tcase.workloadHealth, tcase.expectedStatus)
+				suite.testReconcileWithNode(tcase.nodeHealth, tcase.workloadHealth, tenancy, tcase.expectedStatus)
 			} else {
-				suite.testReconcileWithoutNode(tcase.workloadHealth, tcase.expectedStatus)
+				suite.testReconcileWithoutNode(tcase.workloadHealth, tenancy, tcase.expectedStatus)
 			}
 		})
 	}
@@ -372,7 +403,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileReadError() {
 	// Passing a resource with an unknown type isn't particularly realistic as the controller
 	// manager running our reconciliation will ensure all resource ids used are valid. However
 	// its a really easy way right not to force the error.
-	id := resourceID(fakeType, "blah")
+	id := resourceID(fakeType, "blah", suite.tenancy)
 
 	err := suite.reconciler.Reconcile(context.Background(), suite.runtime, controller.Request{ID: id})
 	require.Error(suite.T(), err)
@@ -383,16 +414,18 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 	// This test wants to ensure that tracking for a workload is removed when the workload is deleted
 	// so this test will inject the tracking, issue the Reconcile call which will get a
 	// not found error and then ensure that the tracking was removed.
+	tenancy := suite.tenancy
 
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "foo").
 		WithData(suite.T(), workloadData("test-node")).
 		// don't write this because then in the call to reconcile the resource
 		// would be found and defeat the purpose of the tes
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		Build()
 
 	node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 		// Whether this gets written or not doesn't matter
 		Build()
 
@@ -434,17 +467,22 @@ func (suite *workloadHealthControllerTestSuite) TestGetNodeHealthError() {
 	// but the exact error isn't very relevant to the core reason this
 	// test exists.
 
+	tenancy := suite.tenancy
+
 	node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: tenancy.Partition}).
 		Write(suite.T(), suite.client)
 
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData(node.Id.Name)).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 		WithOwner(workload.Id).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	err := suite.reconciler.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -467,7 +505,7 @@ func (suite *workloadHealthControllerTestSuite) TestReconcile_AvoidReconciliatio
 		Reason:  "HEALTH_WARNING",
 		Message: WorkloadUnhealthyMessage,
 	}
-	res1 := suite.testReconcileWithoutNode(pbcatalog.Health_HEALTH_WARNING, status)
+	res1 := suite.testReconcileWithoutNode(pbcatalog.Health_HEALTH_WARNING, suite.tenancy, status)
 
 	err := suite.reconciler.Reconcile(context.Background(), suite.runtime, controller.Request{ID: res1.Id})
 	require.NoError(suite.T(), err)
@@ -498,19 +536,21 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	// run the manager
 	go mgr.Run(ctx)
 
+	tenancy := suite.tenancy
 	// create a node to link things with
-	node := suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_PASSING)
+	node := suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_PASSING, tenancy.Partition)
 
 	// create the workload
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData(node.Id.Name)).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	// Wait for reconciliation to occur and mark the workload as passing.
 	suite.waitForReconciliation(workload.Id, "HEALTH_PASSING")
 
 	// Simulate a node unhealthy
-	suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_WARNING)
+	suite.injectNodeWithStatus("test-node", pbcatalog.Health_HEALTH_WARNING, tenancy.Partition)
 
 	// Wait for reconciliation to occur and mark the workload as warning
 	// due to the node going into the warning state.
@@ -522,6 +562,7 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 		WithOwner(workload.Id).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	// Wait for reconciliation to occur again and mark the workload as unhealthy
@@ -531,9 +572,11 @@ func (suite *workloadHealthControllerTestSuite) TestController() {
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: pbcatalog.Health_HEALTH_PASSING}).
 		WithOwner(workload.Id).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 	workload = resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData("")).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
 	// Now that the workload health is passing and its not associated with the node its status should
@@ -601,7 +644,7 @@ func (suite *getWorkloadHealthTestSuite) TestListError() {
 	// getWorkloadHealth. When the resource listing fails, we want to
 	// propagate the error which should eventually result in retrying
 	// the operation.
-	health, err := getWorkloadHealth(context.Background(), suite.runtime, resourceID(fakeType, "foo"))
+	health, err := getWorkloadHealth(context.Background(), suite.runtime, resourceID(fakeType, "foo", suite.tenancy))
 
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
@@ -613,6 +656,7 @@ func (suite *getWorkloadHealthTestSuite) TestNoHealthStatuses() {
 	// workload that the health is assumed to be passing.
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "foo").
 		WithData(suite.T(), workloadData("")).
+		WithTenancy(suite.tenancy).
 		Write(suite.T(), suite.client)
 
 	health, err := getWorkloadHealth(context.Background(), suite.runtime, workload.Id)
@@ -635,6 +679,7 @@ func (suite *getWorkloadHealthTestSuite) TestWithStatuses() {
 		suite.Run(status, func() {
 			workload := resourcetest.Resource(pbcatalog.WorkloadType, "foo").
 				WithData(suite.T(), workloadData("")).
+				WithTenancy(suite.tenancy).
 				Write(suite.T(), suite.client)
 
 			suite.addHealthStatuses(workload.Id, health)
@@ -659,7 +704,7 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 	// present in the system results in a the critical health but no error. This situation
 	// could occur when a linked node gets removed without the workloads being modified/removed.
 	// When that occurs we want to steer traffic away from the linked node as soon as possible.
-	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found"))
+	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", suite.tenancy))
 	require.NoError(suite.T(), err)
 	require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 
@@ -668,7 +713,7 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 func (suite *getNodeHealthTestSuite) TestReadError() {
 	// This test's goal is to ensure the getNodeHealth propagates unexpected errors from
 	// its resource read call back to the caller.
-	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(fakeType, "not-found"))
+	health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(fakeType, "not-found", suite.tenancy))
 	require.Error(suite.T(), err)
 	require.Equal(suite.T(), codes.InvalidArgument, status.Code(err))
 	require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
@@ -680,6 +725,7 @@ func (suite *getNodeHealthTestSuite) TestUnreconciled() {
 	// the workload health until the associated nodes health is known.
 	node := resourcetest.Resource(pbcatalog.NodeType, "unreconciled").
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: suite.tenancy.Partition}).
 		Write(suite.T(), suite.client).
 		GetId()
 
@@ -691,13 +737,14 @@ func (suite *getNodeHealthTestSuite) TestUnreconciled() {
 
 func (suite *getNodeHealthTestSuite) TestNoConditions() {
 	// This test's goal is to ensure that if a node's health status doesn't have
-	// the expected condition then its deemedd critical. This should never happen
+	// the expected condition then its deemed critical. This should never happen
 	// in the integrated system as the node health controller would have to be
 	// buggy to add an empty status. However it could also indicate some breaking
 	// change went in. Regardless, the code to handle this state is written
 	// and it will be tested here.
 	node := resourcetest.Resource(pbcatalog.NodeType, "no-conditions").
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: suite.tenancy.Partition}).
 		WithStatus(nodehealth.StatusKey, &pbresource.Status{}).
 		Write(suite.T(), suite.client).
 		GetId()
@@ -718,6 +765,7 @@ func (suite *getNodeHealthTestSuite) TestInvalidReason() {
 	// would be good to ensure the defined behavior works as expected.
 	node := resourcetest.Resource(pbcatalog.NodeType, "invalid-reason").
 		WithData(suite.T(), nodeData).
+		WithTenancy(&pbresource.Tenancy{Partition: suite.tenancy.Partition}).
 		WithStatus(nodehealth.StatusKey, &pbresource.Status{
 			Conditions: []*pbresource.Condition{
 				{
@@ -749,7 +797,7 @@ func (suite *getNodeHealthTestSuite) TestValidHealth() {
 		}
 
 		suite.T().Run(healthStr, func(t *testing.T) {
-			node := suite.injectNodeWithStatus("test-node", health)
+			node := suite.injectNodeWithStatus("test-node", health, suite.tenancy.Partition)
 
 			actualHealth, err := getNodeHealth(context.Background(), suite.runtime, node.Id)
 			require.NoError(t, err)
