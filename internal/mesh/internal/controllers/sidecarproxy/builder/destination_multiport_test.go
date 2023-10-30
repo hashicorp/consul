@@ -59,6 +59,11 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
 			},
 			{
+				TargetPort:  "http2",
+				VirtualPort: 8082,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP2,
+			},
+			{
 				TargetPort:  "mesh",
 				VirtualPort: 20000,
 				Protocol:    pbcatalog.Protocol_PROTOCOL_MESH,
@@ -74,7 +79,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
@@ -108,7 +113,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
@@ -118,7 +123,7 @@ func TestBuildMultiportImplicitDestinations(t *testing.T) {
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
 					"admin-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"api-port":   {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"api-port":   {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
 					"mesh":       {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},

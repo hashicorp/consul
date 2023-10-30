@@ -46,6 +46,29 @@
         }
       ],
       "validateClusters":  true
+    },
+    {
+      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name":  "default/local/default/api-app:http2",
+      "virtualHosts":  [
+        {
+          "name":  "default/local/default/api-app:http2",
+          "domains":  [
+            "*"
+          ],
+          "routes":  [
+            {
+              "match":  {
+                "prefix":  "/"
+              },
+              "route":  {
+                "cluster":  "http2.api-app.default.dc1.internal.foo.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters":  true
     }
   ],
   "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",

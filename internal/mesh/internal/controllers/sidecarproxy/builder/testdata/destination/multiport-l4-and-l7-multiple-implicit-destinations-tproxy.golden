@@ -113,6 +113,62 @@
         "name": "http.api-app2.default.dc1.internal.foo.consul",
         "protocol": "PROTOCOL_HTTP"
       },
+      "http2.api-app.default.dc1.internal.foo.consul": {
+        "altStatName": "http2.api-app.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~http2"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "http2.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP2"
+      },
+      "http2.api-app2.default.dc1.internal.foo.consul": {
+        "altStatName": "http2.api-app2.default.dc1.internal.foo.consul",
+        "endpointGroup": {
+          "dynamic": {
+            "config": {
+              "connectTimeout": "5s",
+              "disablePanicThreshold": true
+            },
+            "outboundTls": {
+              "alpnProtocols": [
+                "consul~http2"
+              ],
+              "outboundMesh": {
+                "identityKey": "test-identity",
+                "sni": "api-app2.default.dc1.internal.foo.consul",
+                "validationContext": {
+                  "spiffeIds": [
+                    "spiffe://foo.consul/ap/default/ns/default/identity/api-app2-identity"
+                  ],
+                  "trustBundlePeerNameKey": "local"
+                }
+              }
+            }
+          }
+        },
+        "name": "http2.api-app2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP2"
+      },
       "original-destination": {
         "endpointGroup": {
           "passthrough": {
@@ -329,6 +385,46 @@
                 }
               ]
             }
+          },
+          {
+            "l7": {
+              "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "default/local/default/api-app:http2"
+              },
+              "statPrefix": "upstream."
+            },
+            "match": {
+              "destinationPort": 8082,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "1.1.1.1",
+                  "prefixLen": 32
+                }
+              ]
+            }
+          },
+          {
+            "l7": {
+              "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "default/local/default/api-app2:http2"
+              },
+              "statPrefix": "upstream."
+            },
+            "match": {
+              "destinationPort": 8082,
+              "prefixRanges": [
+                {
+                  "addressPrefix": "2.2.2.2",
+                  "prefixLen": 32
+                },
+                {
+                  "addressPrefix": "3.3.3.3",
+                  "prefixLen": 32
+                }
+              ]
+            }
           }
         ]
       }
@@ -382,6 +478,30 @@
           }
         ]
       },
+      "default/local/default/api-app2:http2": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "default/local/default/api-app2:http2",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "http2.api-app2.default.dc1.internal.foo.consul"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
       "default/local/default/api-app:grpc": {
         "virtualHosts": [
           {
@@ -418,6 +538,30 @@
                 "destination": {
                   "cluster": {
                     "name": "http.api-app.default.dc1.internal.foo.consul"
+                  }
+                },
+                "match": {
+                  "pathMatch": {
+                    "prefix": "/"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "default/local/default/api-app:http2": {
+        "virtualHosts": [
+          {
+            "domains": [
+              "*"
+            ],
+            "name": "default/local/default/api-app:http2",
+            "routeRules": [
+              {
+                "destination": {
+                  "cluster": {
+                    "name": "http2.api-app.default.dc1.internal.foo.consul"
                   }
                 },
                 "match": {
@@ -482,6 +626,38 @@
       "port": "mesh"
     },
     "http.api-app2.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app2",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "http2.api-app.default.dc1.internal.foo.consul": {
+      "id": {
+        "name": "api-app",
+        "tenancy": {
+          "namespace": "default",
+          "partition": "default",
+          "peerName": "local"
+        },
+        "type": {
+          "group": "catalog",
+          "groupVersion": "v2beta1",
+          "kind": "ServiceEndpoints"
+        }
+      },
+      "port": "mesh"
+    },
+    "http2.api-app2.default.dc1.internal.foo.consul": {
       "id": {
         "name": "api-app2",
         "tenancy": {
