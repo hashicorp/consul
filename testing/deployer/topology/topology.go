@@ -515,7 +515,7 @@ func (n *Node) LocalAddress() string {
 	for _, a := range n.Addresses {
 		if a.IsLocal() {
 			if a.IPAddress == "" {
-				panic("node has no assigned local address")
+				panic("node has no assigned local address: " + n.Name)
 			}
 			return a.IPAddress
 		}
@@ -538,7 +538,7 @@ func (n *Node) LocalProxyPort() int {
 			if a.ProxyPort > 0 {
 				return a.ProxyPort
 			}
-			panic("node has no assigned local address")
+			panic("node has no assigned local address: " + n.Name)
 		}
 	}
 	panic("node has no local network")
