@@ -68,6 +68,7 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`pathPrefix`](#spec-permissions-destinationrules-exclude-pathprefix): string
         - [`pathRegex`](#spec-permissions-destinationrules-exclude-pathregex): string
         - [`portNames`](#spec-permissions-destinationrules-exclude-portNames): array of strings
+
 </Tab>
 </Tabs>
 
@@ -76,6 +77,10 @@ The following list outlines field hierarchy, language-specific data types, and r
 The previous section's [configuration model](#configuration-model) provides an overview of configurable fields and links directly to each field's specifications. The complete configuration provides the same basic structure, including field hierarchy and data types, in a code block that you can copy and paste into your preferred coding environment.
 
 When every field is defined, a TrafficPermissions CRD has the following form:
+
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: auth.consul.hashicorp.com/v2beta1    # required
@@ -127,6 +132,9 @@ spec:
         pathPrefix:
         pathRegex:
 ```
+
+</Tab>
+</Tabs>
 
 ## Specification
 
