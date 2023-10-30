@@ -1822,19 +1822,19 @@ func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
 	if s == nil {
 		return
 	}
-	t.NumRetries = &s.NumRetries
+	t.NumRetries = s.NumRetries
 	t.RetryOn = s.RetryOn
 	t.RetryOnStatusCodes = s.RetryOnStatusCodes
-	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
+	t.RetryOnConnectFailure = s.RetryOnConnectFailure
 }
 func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
 	if s == nil {
 		return
 	}
-	s.NumRetries = *t.NumRetries
+	s.NumRetries = t.NumRetries
 	s.RetryOn = t.RetryOn
 	s.RetryOnStatusCodes = t.RetryOnStatusCodes
-	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
+	s.RetryOnConnectFailure = t.RetryOnConnectFailure
 }
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {

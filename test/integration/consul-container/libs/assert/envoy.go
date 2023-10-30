@@ -75,6 +75,7 @@ func GetEnvoyListenerTCPFiltersWithClient(
 
 // AssertUpstreamEndpointStatus validates that proxy was configured with provided clusterName in the healthStatus
 func AssertUpstreamEndpointStatus(t *testing.T, adminPort int, clusterName, healthStatus string, count int) {
+	t.Helper()
 	require.True(t, adminPort > 0)
 	AssertUpstreamEndpointStatusWithClient(
 		t,
@@ -94,6 +95,7 @@ func AssertUpstreamEndpointStatusWithClient(
 	healthStatus string,
 	count int,
 ) {
+	t.Helper()
 	require.NotNil(t, client)
 	require.NotEmpty(t, addr)
 	failer := func() *retry.Timer {
@@ -116,7 +118,7 @@ func AssertUpstreamEndpointStatusWithClient(
 			clusterName, healthStatus)
 		results, err := utils.JQFilter(clusters, filter)
 		require.NoErrorf(r, err, "could not find cluster name %q: %v \n%s", clusterName, err, clusters)
-		require.Len(r, results, 1) // the final part of the pipeline is "length" which only ever returns 1 result
+		require.Len(r, results, 1, "clusters: "+clusters) // the final part of the pipeline is "length" which only ever returns 1 result
 
 		result, err := strconv.Atoi(results[0])
 		assert.NoError(r, err)
@@ -126,6 +128,7 @@ func AssertUpstreamEndpointStatusWithClient(
 
 // AssertEnvoyMetricAtMost assert the filered metric by prefix and metric is >= count
 func AssertEnvoyMetricAtMost(t *testing.T, adminPort int, prefix, metric string, count int) {
+	t.Helper()
 	var (
 		stats string
 		err   error

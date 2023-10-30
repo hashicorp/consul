@@ -49,6 +49,7 @@ type Conn struct {
 	refCount    int32
 	shouldClose int32
 
+	dc       string
 	nodeName string
 	addr     net.Addr
 	session  muxSession
@@ -234,7 +235,7 @@ func (p *ConnPool) acquire(dc string, nodeName string, addr net.Addr) (*Conn, er
 
 	addrStr := addr.String()
 
-	poolKey := nodeName + ":" + addrStr
+	poolKey := makePoolKey(dc, nodeName, addrStr)
 
 	// Check to see if there's a pooled connection available. This is up
 	// here since it should the vastly more common case than the rest
@@ -493,6 +494,7 @@ func (p *ConnPool) getNewConn(dc string, nodeName string, addr net.Addr) (*Conn,
 	// Wrap the connection
 	c := &Conn{
 		refCount: 1,
+		dc:       dc,
 		nodeName: nodeName,
 		addr:     addr,
 		session:  session,
@@ -514,7 +516,7 @@ func (p *ConnPool) clearConn(conn *Conn) {
 
 	// Clear from the cache
 	addrStr := conn.addr.String()
-	poolKey := conn.nodeName + ":" + addrStr
+	poolKey := makePoolKey(conn.dc, conn.nodeName, addrStr)
 	p.Lock()
 	if c, ok := p.pool[poolKey]; ok && c == conn {
 		delete(p.pool, poolKey)
@@ -715,4 +717,9 @@ func (p *ConnPool) reap() {
 		}
 		p.Unlock()
 	}
+}
+
+// makePoolKey generates a unique key for grouping connections together into a pool.
+func makePoolKey(dc, nodeName, addrStr string) string {
+	return dc + ":" + nodeName + ":" + addrStr
 }

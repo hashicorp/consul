@@ -3,8 +3,9 @@ module github.com/hashicorp/consul/test-integ
 go 1.20
 
 require (
-	github.com/hashicorp/consul/api v1.24.0
-	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/proto-public v0.5.1
+	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/consul/test/integration/consul-container v0.0.0-20230628201853-bdf4fad7c5a5
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
@@ -57,8 +58,8 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
-	github.com/envoyproxy/go-control-plane v0.11.1-0.20230524094728-9239064ad72f // indirect
-	github.com/envoyproxy/protoc-gen-validate v0.10.1 // indirect
+	github.com/envoyproxy/go-control-plane v0.11.1 // indirect
+	github.com/envoyproxy/protoc-gen-validate v1.0.1 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/fatih/color v1.14.1 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -93,8 +94,8 @@ require (
 	github.com/hashicorp/consul v1.16.1 // indirect
 	github.com/hashicorp/consul-awsauth v0.0.0-20220713182709-05ac1c5c2706 // indirect
 	github.com/hashicorp/consul-net-rpc v0.0.0-20221205195236-156cfab66a69 // indirect
-	github.com/hashicorp/consul/envoyextensions v0.4.1 // indirect
-	github.com/hashicorp/consul/proto-public v0.4.1 // indirect
+	github.com/hashicorp/consul-server-connection-manager v0.1.4 // indirect
+	github.com/hashicorp/consul/envoyextensions v0.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-bexpr v0.1.2 // indirect
 	github.com/hashicorp/go-connlimit v0.3.0 // indirect
@@ -104,6 +105,7 @@ require (
 	github.com/hashicorp/go-msgpack v1.1.5 // indirect
 	github.com/hashicorp/go-msgpack/v2 v2.0.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-netaddrs v0.1.0 // indirect
 	github.com/hashicorp/go-plugin v1.4.5 // indirect
 	github.com/hashicorp/go-raftchunking v0.7.0 // indirect
 	github.com/hashicorp/go-retryablehttp v0.6.7 // indirect
@@ -176,7 +178,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pquerna/cachecontrol v0.0.0-20180517163645-1555304b9b35 // indirect
 	github.com/prometheus/client_golang v1.14.0 // indirect
-	github.com/prometheus/client_model v0.3.0 // indirect
+	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.39.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rboyer/safeio v0.2.3 // indirect
@@ -219,7 +221,7 @@ require (
 	google.golang.org/genproto v0.0.0-20230726155614-23370e0ffb3e // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230706204954-ccb25ca9f130 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230803162519-f966b187b2e5 // indirect
-	google.golang.org/grpc v1.57.0 // indirect
+	google.golang.org/grpc v1.57.2 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect

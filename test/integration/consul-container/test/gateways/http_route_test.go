@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/testcontainers/testcontainers-go"
-	"k8s.io/utils/pointer"
 	"testing"
 	"time"
 
@@ -869,7 +868,7 @@ func TestHTTPRouteRetryAndTimeout(t *testing.T) {
 			{
 				Filters: api.HTTPFilters{
 					RetryFilter: &api.RetryFilter{
-						NumRetries:         pointer.Uint32(10),
+						NumRetries:         10,
 						RetryOnStatusCodes: []uint32{500},
 					},
 				},

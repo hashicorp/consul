@@ -241,10 +241,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 	require.Error(suite.T(), err)
 
 	// Assert on the status reflecting endpoint couldn't be read.
-	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(
-		status.KeyFromID(badID),
-		"rpc error: code = InvalidArgument desc = id.name invalid: a resource name must consist of lower case alphanumeric characters or '-', must start and end with an alphanumeric character and be less than 64 characters, got: \"\"",
-	))
+	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(status.KeyFromID(badID), "rpc error: code = InvalidArgument desc = id.name is required"))
 }
 
 // This test is a happy path creation test to make sure pbproxystate.Endpoints are created in the computed
@@ -1041,7 +1038,6 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 		"source/multiport-l4-multiple-workload-addresses-without-ports",
 		"source/multiport-l4-workload-with-only-mesh-port",
 		"source/multiport-l7-multiple-workload-addresses-with-specific-ports",
-		"source/multiport-l7-multiple-workload-addresses-without-ports",
 		"source/multiport-l7-multiple-workload-addresses-without-ports",
 	}
 
