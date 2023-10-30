@@ -1,34 +1,49 @@
 ---
 layout: docs
 page_title: TrafficPermissions resource configuration reference
-description: Front-load meta descriptions with keywords and keyword phrases to help readers find the information they are searching for.
+description: The TrafficPermissions CRD defines rules for allowing and denying traffic between services within the service mesh. Learn how to configure traffic permissions for the v2 catalog to authorize service-to-service communication in a network with zero-trust security.
 ---
 
 # TrafficPermissions configuration reference
 
-This sample page template shows how to format high structured reference 
-information.
+This page provides reference information for the TrafficPermissions resource, which authorizes east/west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
+
+This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, 
-and requirements in this configuration entry. Click on a property name 
-to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and requirements in a TrafficPermissions CRD. Click on a property name to view additional details, including default values.
 
-- [`elem_a`](#elema): data type | default
-- [`elem_b`](#elemb): data type | default
-- [`spec`](#elemb): data type | default
-- [`elem_ba`](#elembelemba): data type | default
-- [`elem_baa`](#elembelembaelembaa): data type | default
-- [`elem_baaa`](#elembelembaelembaa): data type | default
-- [`elem_baab`](#elembelembaelembaa): data type | default
-- [`elem_baac`](#elembelembaelembaa): data type | default
-- [`element_bab`](#elembelembaelembab): data type | default
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `TrafficPermissions`
+- [`metadata`](#metadata): object | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): object | required
+  - [`destination`](#spec-destination):
+    - [`identityName`](#spec-destination-identityname):
+  - [`action`](#spec-action):
+  - [`permissions`](#spec-permissions):
+    - [`sources`](#spec-permissions-sources):
+      - [`namespace`](#spec-permissions-sources):
+    - [`identityName`](#spec-permissions-identityname):
+      - [`destinationRules`](#spec-permissions-identityname-destinationrules):
+        - [`pathExact`](#spec-permissions-identityname-destinationrules):
+      - [`methods`](#spec-permissions-identityname-methods): array of strings
+    - [`portNames`](#spec-permissions-portnames): array of strings
+
+</Tab>
+</Tabs>
 
 ## Complete configuration
 
-The complete configuration follows the configuration model. Use tabs for 
-each markup language you expect pracitioners to use.
+The [configuration model](#configuration-model) provides an overview of configurable fields and links to each field's specifications. The complete configuration provides the same basic structure, including field hierarchy and data types, in a code block that you can copy and paste into your preferred coding environment.
+
+When every field is defined, a TrafficPermissions CRD has the following form:
 
 ```yaml
 apiVersion: auth.consul.hashicorp.com/v2beta1    # required
@@ -45,58 +60,79 @@ spec:
         - namespace: <originNamespace>
     identityName: <permissionsOriginService>
       destinationRules:
-        - pathExact:<path/to>
-	    methods: ["GET", "POST"]
+        - pathExact: <path/to>
+      methods: ["GET", "POST"]
     portNames: ["<servicePortName>"]
-``` 
+```
 
 ## Specification
+This section provides details about the fields you can configure in the ProxyConfiguration custom resource definition (CRD).
 
-The specification block contains the details about each configuration. It 
-is a flattened representation of the configuration model block that allows 
-for extended descriptions, examples, and other information to help readers 
-understand the behavior of the configurations. 
+### `apiVersion`
 
-### `Elem_a`
-
-Use this space to thoroughly, but succinctly, document the configuration 
-item. This format is intended to allow you to create complete documentation, 
-however, _stay within the scope of the reference_. If the description 
-deviates from the reference material, create a new Concept topic or add the 
-information to an existing Concept.
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `mesh.consul.hashicorp.com/v2beta1`.
 
 #### Values
 
-- Default: default value or none
-- This field is required. 
-- Data type: data type
+- Default: None
+- This field is required.
+- String value that must be set to `mesh.consul.hashicorp.com/v2beta1`.
 
-Specify any additional information about the values that you can specify.
+### `kind`
 
-### `Elem_b`
-
-Add your description. You can include example configurations and describe 
-any dependencies or cascading effects that the configuration may have.
+Specifies the type of CRD to implement. Must be set to `TrafficPermissions`.
 
 #### Values
 
-- Default: default value or none
-- This field is required. 
-- Data type: data type
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `TrafficPermissions`.
 
-Specify any additional information about the values that you can specify. 
+### `metadata`
+
+Map that contains an arbitrary name for the CRD and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the CRD. The name is metadata that you can use to reference the resource when performing Consul operations, such as using the `consul resource` command. Refer to [`consul resource`](/consul/docs/k8s/connect/multiport/reference/resource-command) for more information.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `TrafficPermissions` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
 
 ## Examples
 
-If you have more than one example to show, create an Examples section 
-(general block) and introduce the examples per the style guide.
+The following examples demonstrate common TrafficPermissions CRD configuration patterns for specific use cases.
 
-### Specific use case 
+### Deny traffic between services
 
-Introduce examples clearly and help readers understand the connections 
-between the example snippet and the configuration element you are trying to 
-explain. Use phrases such as "In the following example, the `elem` performs 
-some action on a service named `service-name`". 
+The following example configures traffic permissions to deny traffic when the `web` service makes a request to the `api` service on the `admin` port.
 
 ```yaml
 apiVersion: auth.consul.hashicorp.com/v2beta1
@@ -111,5 +147,5 @@ spec:
     - sources:
         - identityName: web
       destinationRules:
-        - portNames: ["api"]
+        - portNames: ["admin"]
 ```
