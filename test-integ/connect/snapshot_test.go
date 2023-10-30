@@ -123,27 +123,22 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 						},
 					},
 				},
-				Enterprise: true,
+				Enterprise: utils.IsEnterprise(),
 				InitialConfigEntries: []api.ConfigEntry{
 					&api.ProxyConfigEntry{
-						Kind:      api.ProxyDefaults,
-						Name:      "global",
-						Partition: "default",
+						Kind: api.ProxyDefaults,
+						Name: "global",
 						Config: map[string]any{
 							"protocol": "http",
 						},
 					},
 					&api.ServiceConfigEntry{
-						Kind:      api.ServiceDefaults,
-						Name:      "static-server",
-						Partition: "default",
-						Namespace: "default",
+						Kind: api.ServiceDefaults,
+						Name: "static-server",
 					},
 					&api.ServiceIntentionsConfigEntry{
-						Kind:      api.ServiceIntentions,
-						Name:      "static-server",
-						Partition: "default",
-						Namespace: "default",
+						Kind: api.ServiceIntentions,
+						Name: "static-server",
 						Sources: []*api.SourceIntention{
 							{
 								Name:   "static-client",
