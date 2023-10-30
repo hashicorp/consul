@@ -12,6 +12,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
+
 func RegisterComputedTrafficPermission(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.ComputedTrafficPermissionsType,
@@ -26,16 +28,12 @@ func RegisterComputedTrafficPermission(r resource.Registry) {
 	})
 }
 
-func ValidateComputedTrafficPermissions(res *pbresource.Resource) error {
-	var ctp pbauth.ComputedTrafficPermissions
+var ValidateComputedTrafficPermissions = resource.DecodeAndValidate(validateComputedTrafficPermissions)
 
-	if err := res.Data.UnmarshalTo(&ctp); err != nil {
-		return resource.NewErrDataParse(&ctp, err)
-	}
-
+func validateComputedTrafficPermissions(res *DecodedComputedTrafficPermissions) error {
 	var merr error
 
-	for i, permission := range ctp.AllowPermissions {
+	for i, permission := range res.Data.AllowPermissions {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "allow_permissions",
@@ -48,7 +46,7 @@ func ValidateComputedTrafficPermissions(res *pbresource.Resource) error {
 		}
 	}
 
-	for i, permission := range ctp.DenyPermissions {
+	for i, permission := range res.Data.DenyPermissions {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "deny_permissions",

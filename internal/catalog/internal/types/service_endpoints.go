@@ -14,6 +14,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedServiceEndpoints = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
+
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.ServiceEndpointsType,
@@ -45,13 +47,9 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 	return nil
 }
 
-func ValidateServiceEndpoints(res *pbresource.Resource) error {
-	var svcEndpoints pbcatalog.ServiceEndpoints
+var ValidateServiceEndpoints = resource.DecodeAndValidate[*pbcatalog.ServiceEndpoints](validateServiceEndpoints)
 
-	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
-		return resource.NewErrDataParse(&svcEndpoints, err)
-	}
-
+func validateServiceEndpoints(res *DecodedServiceEndpoints) error {
 	var err error
 	if !resource.EqualType(res.Owner.Type, pbcatalog.ServiceType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
@@ -78,8 +76,8 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 		})
 	}
 
-	for idx, endpoint := range svcEndpoints.Endpoints {
-		if endpointErr := validateEndpoint(endpoint, res); endpointErr != nil {
+	for idx, endpoint := range res.Data.Endpoints {
+		if endpointErr := validateEndpoint(endpoint, res.Resource); endpointErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "endpoints",
 				Index:   idx,

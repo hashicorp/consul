@@ -10,7 +10,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterDestinationsConfiguration(r resource.Registry) {
@@ -23,17 +22,13 @@ func RegisterDestinationsConfiguration(r resource.Registry) {
 	})
 }
 
-func ValidateDestinationsConfiguration(res *pbresource.Resource) error {
-	var cfg pbmesh.DestinationsConfiguration
+var ValidateDestinationsConfiguration = resource.DecodeAndValidate(validateDestinationsConfiguration)
 
-	if err := res.Data.UnmarshalTo(&cfg); err != nil {
-		return resource.NewErrDataParse(&cfg, err)
-	}
-
+func validateDestinationsConfiguration(res *DecodedDestinationsConfiguration) error {
 	var merr error
 
 	// Validate the workload selector
-	if selErr := catalog.ValidateSelector(cfg.Workloads, false); selErr != nil {
+	if selErr := catalog.ValidateSelector(res.Data.Workloads, false); selErr != nil {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
