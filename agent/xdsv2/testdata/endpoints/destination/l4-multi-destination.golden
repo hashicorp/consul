@@ -3,27 +3,6 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
-      "clusterName":  "grpc.api-1.default.dc1.internal.foo.consul",
-      "endpoints":  [
-        {
-          "lbEndpoints":  [
-            {
-              "endpoint":  {
-                "address":  {
-                  "socketAddress":  {
-                    "address":  "10.1.1.1",
-                    "portValue":  20000
-                  }
-                }
-              },
-              "healthStatus":  "HEALTHY"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type":  "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
       "clusterName":  "grpc.api-2.default.dc1.internal.foo.consul",
       "endpoints":  [
         {

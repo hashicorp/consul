@@ -31,10 +31,11 @@ var (
 					{Host: "10.0.0.1"},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp":  {Port: 7070, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 7070, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"grpc":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"http":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
@@ -56,6 +57,11 @@ var (
 				TargetPort:  "http",
 				VirtualPort: 8080,
 				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP,
+			},
+			{
+				TargetPort:  "http2",
+				VirtualPort: 8082,
+				Protocol:    pbcatalog.Protocol_PROTOCOL_HTTP2,
 			},
 			{
 				TargetPort:  "mesh",
@@ -207,6 +213,67 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		Build()
 	resourcetest.ValidateAndNormalize(t, registry, api1HTTPRoute)
 
+	api1HTTP2Route := resourcetest.Resource(pbmesh.HTTPRouteType, "api-1-http2-route").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, &pbmesh.HTTPRoute{
+			ParentRefs: []*pbmesh.ParentReference{{
+				Ref:  resource.Reference(api1Service.Id, ""),
+				Port: "http2",
+			}},
+			Rules: []*pbmesh.HTTPRouteRule{
+				{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/split-http2",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api2Service.Id, ""),
+							},
+							Weight: 60,
+						},
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api1Service.Id, ""),
+							},
+							Weight: 40,
+						},
+						{
+							BackendRef: &pbmesh.BackendReference{
+								Ref: resource.Reference(api3Service.Id, ""),
+							},
+							Weight: 10,
+						},
+					},
+				},
+				{
+					Matches: []*pbmesh.HTTPRouteMatch{{
+						Path: &pbmesh.HTTPPathMatch{
+							Type:  pbmesh.PathMatchType_PATH_MATCH_TYPE_PREFIX,
+							Value: "/",
+						},
+					}},
+					BackendRefs: []*pbmesh.HTTPBackendRef{{
+						BackendRef: &pbmesh.BackendReference{
+							Ref: resource.Reference(api1Service.Id, ""),
+						},
+					}},
+					Timeouts: &pbmesh.HTTPRouteTimeouts{
+						Request: durationpb.New(606 * time.Second), // differnet than the 77s
+					},
+					Retries: &pbmesh.HTTPRouteRetries{
+						Number:           wrapperspb.UInt32(4),
+						OnConnectFailure: true,
+					},
+				},
+			},
+		}).
+		Build()
+	resourcetest.ValidateAndNormalize(t, registry, api1HTTP2Route)
+
 	api1FailoverPolicy := resourcetest.Resource(pbcatalog.FailoverPolicyType, "api-1").
 		WithTenancy(resource.DefaultNamespacedTenancy()).
 		WithData(t, &pbcatalog.FailoverPolicy{
@@ -295,6 +362,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		// notably we do NOT include api3Service here so we trigger a null route to be generated
 		resourcetest.MustDecode[*pbmesh.DestinationPolicy](t, api1DestPolicy),
 		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTPRoute),
+		resourcetest.MustDecode[*pbmesh.HTTPRoute](t, api1HTTP2Route),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1TCPRoute),
 		resourcetest.MustDecode[*pbcatalog.FailoverPolicy](t, api1FailoverPolicy),
 		resourcetest.MustDecode[*pbmesh.TCPRoute](t, api1GRPCRoute),
@@ -331,7 +399,7 @@ func TestBuildExplicitDestinations(t *testing.T) {
 		}),
 	}
 
-	destinationIpPort2 := &intermediate.Destination{
+	destinationIpPortGRPC := &intermediate.Destination{
 		Explicit: &pbmesh.Destination{
 			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
 			DestinationPort: "grpc",
@@ -421,6 +489,34 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			}
 		}),
 	}
+
+	destinationIpPortHTTP2 := &intermediate.Destination{
+		Explicit: &pbmesh.Destination{
+			DestinationRef:  resource.Reference(api1Endpoints.Id, ""),
+			DestinationPort: "http2",
+			Datacenter:      "dc1",
+			ListenAddr: &pbmesh.Destination_IpPort{
+				IpPort: &pbmesh.IPPortAddress{Ip: "1.1.1.1", Port: 2345},
+			},
+		},
+		Service: resourcetest.MustDecode[*pbcatalog.Service](t, api1Service),
+		ComputedPortRoutes: routestest.MutateTargets(t, api1ComputedRoutes.Data, "http2", func(t *testing.T, details *pbmesh.BackendTargetDetails) {
+			switch {
+			case resource.ReferenceOrIDMatch(api1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http2":
+				details.ServiceEndpointsId = api1Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{api1Identity}
+			case resource.ReferenceOrIDMatch(api2Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http2":
+				details.ServiceEndpointsId = api2Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{api2Identity}
+			case resource.ReferenceOrIDMatch(backup1Service.Id, details.BackendRef.Ref) && details.BackendRef.Port == "http2":
+				details.ServiceEndpointsId = backup1Endpoints.Id
+				details.ServiceEndpoints = endpointsData
+				details.IdentityRefs = []*pbresource.Reference{backup1Identity}
+			}
+		}),
+	}
 	_ = backup1Identity
 
 	cases := map[string]struct {
@@ -433,10 +529,10 @@ func TestBuildExplicitDestinations(t *testing.T) {
 			destinations: []*intermediate.Destination{destinationUnix},
 		},
 		"destination/l4-multi-destination": {
-			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationIpPort2, destinationUnix2},
+			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationUnix2},
 		},
 		"destination/mixed-multi-destination": {
-			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationIpPortHTTP},
+			destinations: []*intermediate.Destination{destinationIpPort, destinationUnix, destinationIpPortHTTP, destinationIpPortGRPC, destinationIpPortHTTP2},
 		},
 	}
 
