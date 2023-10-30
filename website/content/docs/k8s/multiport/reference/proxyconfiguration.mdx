@@ -702,13 +702,9 @@ Specifies the port the proxy listens on for outbound traffic to capture and redi
 
 The following examples demonstrate common ProxyConfiguration CRD configuration patterns for specific use cases.
 
-### Specific use case 
+### Set a timeout on a subset of proxies
 
-Introduce examples clearly and help readers understand the connections 
-between the example snippet and the configuration element you are trying to 
-explain. Use phrases such as "In the following example, the `elem` performs 
-some action on a service named `service-name`". 
-
+The following example configures sidecar proxies scheduled with workloads whose names begin with `static-server-`. When these workloads attempt connections with the local `web` application, both requests and responses time out after 123 second.
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
