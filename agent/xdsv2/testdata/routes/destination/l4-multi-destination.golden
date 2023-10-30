@@ -1,5 +1,30 @@
 {
   "versionInfo":  "00000001",
+  "resources":  [
+    {
+      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name":  "default/local/default/api-2:grpc:/path/to/socket",
+      "virtualHosts":  [
+        {
+          "name":  "default/local/default/api-2:grpc:/path/to/socket",
+          "domains":  [
+            "*"
+          ],
+          "routes":  [
+            {
+              "match":  {
+                "prefix":  "/"
+              },
+              "route":  {
+                "cluster":  "grpc.api-2.default.dc1.internal.foo.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters":  true
+    }
+  ],
   "typeUrl":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "nonce":  "00000001"
 }
