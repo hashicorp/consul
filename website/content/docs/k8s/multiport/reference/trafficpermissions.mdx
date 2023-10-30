@@ -42,13 +42,13 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`samenessGroup`](#spec-permissions-sources-exclude): string
     - [`destinationRules`](#spec-permissions-destinationrules):
       - [`header`](#spec-permissions-destinationrules-header): map
-        - [`exact`](#spec-permissions-destinationrules-header): string
-        - [`invert`](#spec-permissions-destinationrules-header): boolean | `false`
         - [`name`](#spec-permissions-destinationrules-header): string
-        - [`prefix`](#spec-permissions-destinationrules-header): string
         - [`present`](#spec-permissions-destinationrules-header): boolean | `false`
-        - [`regex`](#spec-permissions-destinationrules-header): string
+        - [`exact`](#spec-permissions-destinationrules-header): string
+        - [`prefix`](#spec-permissions-destinationrules-header): string
         - [`suffix`](#spec-permissions-destinationrules-header): string
+        - [`regex`](#spec-permissions-destinationrules-header): string
+        - [`invert`](#spec-permissions-destinationrules-header): boolean | `false`
       - [`methods`](#spec-permissions-destinationrules-methods): array of strings
       - [`pathExact`](#spec-permissions-destinationrules-pathexact): string
       - [`pathPrefix`](#spec-permissions-destinationrules-pathprefix): string
@@ -73,7 +73,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 ## Complete configuration
 
-The previous section's [configuration model](#configuration-model) provides an overview of configurable fields and links directly to each field's specifications. The complete configuration provides the same basic structure, including field hierarchy and data types, in a code block that you can copy and paste into your preferred coding environment.
+The complete configuration provides the same basic information as the configuration model, including field hierarchy and data types. Instead of linking to specifications, it provides a code block that you can copy and paste into your preferred coding environment.
 
 When every field is defined, a TrafficPermissions CRD has the following form:
 
@@ -134,13 +134,13 @@ This section provides details about the fields you can configure in the TrafficP
 
 ### `apiVersion`
 
-Specifies the version of the Consul API for integrating with Kubernetes. The value must be `mesh.consul.hashicorp.com/v2beta1`.
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `auth.consul.hashicorp.com/v2beta1`.
 
 #### Values
 
 - Default: None
 - This field is required.
-- String value that must be set to `mesh.consul.hashicorp.com/v2beta1`.
+- String value that must be set to `auth.consul.hashicorp.com/v2beta1`.
 
 ### `kind`
 
@@ -192,8 +192,7 @@ Map that contains the details about the `TrafficPermissions` CRD. The `apiVersio
 
 ### `spec.destination`
 
-Destination is a configuration of the destination proxies
-                  where these traffic permissions should apply.
+Specifies the proxies of the services where these traffic permissions apply.
 
 #### Values
 
@@ -202,7 +201,7 @@ Destination is a configuration of the destination proxies
 
 ### `spec.destination.identityName`
 
-
+Specifies the Workload identity for a service. The permissions you configure in this TrafficPermissions CRD apply to sidecar proxies when a request has this identity as their destination.
 
 #### Values
 
@@ -211,18 +210,11 @@ Destination is a configuration of the destination proxies
 
 ### `spec.action`
 
-"Action can be either allow or deny for the entire object.
-                  It will default to allow. \n If action is allow, we will allow the
-                  connection if one of the rules in Rules matches, in other words,
-                  we will deny all requests except for the ones that match Rules.
-                  If Consul is in default allow mode, then allow actions have no effect
-                  without a deny permission as everything is allowed by default. \n
-                  If action is deny, we will deny the connection if one of the rules
-                  in Rules match, in other words, we will allow all requests except
-                  for the ones that match Rules. If Consul is default deny mode, then
-                  deny permissions have no effect without an allow permission as everything
-                  is denied by default. \n Action unspecified is reserved for compatibility
-                  with the addition of future actions."
+Specifies whether the proxy should _allow traffic_ or _deny traffic_ between the destination in [`spec.destination`](#spec-destination) and the sources in [`spec.permissions.sources`](#spec-permissions-sources).
+
+By default, Consul allows traffic between all services.
+
+The "Action unknown" value that this resource accepts is reserved for compatibility with future configurations. Do not invoke this value in the current release.
 
 #### Values
 
@@ -235,18 +227,7 @@ Destination is a configuration of the destination proxies
 
 ### `spec.permissions`
 
-Permissions is a list of permissions to match on. They
-                  are applied using OR semantics.
-
-#### Values
-
-- Default: None
-- Data type: List of maps
-
-### `spec.permissions.exclude`
-
-Permissions is a list of permissions to match on. They
-                  are applied using OR semantics.
+Permissions is a list of the traffic permissions Consul evaluates requests against. When the list contains more than one permission, Consul follows OR semantics to select the permission.
 
 #### Values
 
@@ -255,51 +236,254 @@ Permissions is a list of permissions to match on. They
 
 ### `spec.permissions.sources`
 
-Sources is a list of sources in this traffic permission. Source represents the source identity. To specify
-                          any of the wildcard sources, the specific fields need to
-                          be omitted. For example, for a wildcard namespace, identity_name
-                          should be omitted.
+Lists sources for traffic in the permission. This block contains information Consul uses to evaluate the service that originated the request when the sidecar proxy authorizes incoming traffic.
+
+To specify wildcard references in this block using `*`, omit all other fields. For example, you can apply traffic permissions to all namespaces using the wildcard, but you cannot specify an identity name, partition, peer, or sameness group in the same source.
 
 #### Values
 
 - Default: None
 - Data type: Map
 
-### `spec.permissions.identityName`
+### `spec.permissions.sources.identityName`
 
-
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.permissions.identityName.destinationRules`
-
-
+Specifies the Workload identity for the service that originates the request.
 
 #### Values
 
 - Default: None
 - Data type: Map
 
-### `spec.permissions.identityName.methods`
+### `spec.permissions.sources.namespace`
 
+Specifies the Consul namespace for the service that originates the request.
 
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.sources.partition`
+
+Specifies the Consul admin partition for the service that originates the request.
 
 #### Values
 
 - Default: None
 - Data type: Map
 
-### `spec.permissions.portNames`
+### `spec.permissions.sources.peer`
 
-
+Specifies the Consul cluster peer where the service that originates the request is scheduled.
 
 #### Values
 
 - Default: None
 - Data type: Map
+
+### `spec.permissions.sources.samenessGroup`
+
+Specifies the sameness group that includes the service that originates the request.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.sources.exclude`
+
+Specifies sources to exclude from the defined source.
+
+#### Values
+
+- Default: None
+- Data type: Array of maps
+
+### `spec.permissions.destinationRules`
+
+Specifies L7 properties to match against when Consul enforces traffic permissions.
+
+When [`spec.action`](#spec-action) _allows traffic_, Consul authorizes requests to the destination service when the request matches one or more rules defined in this block. Requests that do not match any rules are denied.
+
+When [`spec.action`](#spec-action) _denies traffic_, Consul denies authorization to requests that match one or more rules defined in this block. Requests that do not match any rules are allowed.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.destinationRules.header`
+
+Specifies a set of criteria for matching HTTP request headers. The request header must match all specified criteria for the permission to apply.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+Each member of the header list is a map that contains a name field and at least one match criterion. The following table describes the parameters that each member of the header list may contain:
+
+| Parameter | Description | Data type | Required |
+| --- | --- | --- | --- |
+| `name` | Specifies the name of the header to match. | string | required |
+| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | boolean | optional |
+| `exact` | Specifies a value for the header key set in the `name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, or `regex` are configured in the same `header` configuration. | string | optional |
+| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, or `suffix` are configured in the same `header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `invert` | Inverts the matching logic configured in the `header`. Default is `false`. | boolean | optional |
+
+### `spec.permissions.destinationRules.methods`
+
+Specifies a list of HTTP methods. Consul applies the permission if the source sent the request using one of the specified methods. Refer to the [Mozilla documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods) for details on supported request methods.
+
+#### Values
+
+- Default: None
+- Data type: List of strings with one or more of the following values:
+
+  - `GET`
+  - `HEAD`
+  - `POST`
+  - `PUT`
+  - `DELETE`
+  - `CONNECT`
+  - `OPTIONS`
+  - `TRACE`
+  - `PATCH`
+
+Refer to the [Mozilla documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods) for more information about each method.
+
+### `spec.permissions.destinationRules.pathExact`
+
+Specifies an exact path to match on the request path. Do not specify `pathExact` if `pathPrefix` or `pathRegex` are configured in the same destination rule.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.pathPrefix`
+
+Specifies a path prefix to match on the request path. Do not specify `pathPrefix` if `pathExact` or `pathRegex` are configured in the same destination rule.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.pathRegex`
+
+Defines a regular expression to match on the request path. Do not specify `pathRegex` if `pathExact` or `pathPrefix` are configured in the same destination rule. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.portNames`
+
+Specifies a port name that the Kubernetes Service exposes at the destination.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.exclude`
+
+Specifies a list of destination rules to exclude when evaluating an incoming connection.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `spec.permissions.destinationRules.exclude.header`
+
+Specifies a set of header information that qualify for an exclusion to the destination rules. When an incoming request contains matching header information, the request will not produce a match when evaluating the destination rule that is otherwise defined.
+
+When [`spec.action`](#spec-action) _allows traffic_, Consul denies permission to the exclusion.
+
+When [`spec.action`](#spec-action) _denies traffic_, Consul allows permission to the exclusion.
+
+The request header must match all specified criteria to be considered an exclusion.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+Each member of the header list is a map that contains a name field and at least one match criterion. The following table describes the parameters that each member of the header list may contain:
+
+| Parameter | Description | Data type | Required |
+| --- | --- | --- | --- |
+| `name` | Specifies the name of the header to match. | string | required |
+| `present` | Enables a match if the header configured in the `name` field appears in the request. Consul matches on any value as long as the header key appears in the request. Do not specify `present` if `exact`, `prefix`, `suffix`, or `regex` are configured in the same `exclude.header` configuration. | boolean | optional |
+| `exact` | Specifies a value for the header key set in the `name` field. If the request header value matches the `exact` value, Consul applies the permission.  Do not specify `exact` if `present`, `prefix`, `suffix`, or `regex` are configured in the same `exclude.header` configuration. | string | optional |
+| `prefix` | Specifies a prefix value for the header key set in the `name` field. If the request header value starts with the `prefix` value, Consul applies the permission.  Do not specify `prefix` if `present`, `exact`, `suffix`, or `regex` are configured in the same `exclude.header` configuration. | string | optional |
+| `suffix` | Specifies a suffix value for the header key set in the `name` field. If the request header value ends with the `suffix` value, Consul applies the permission.  Do not specify `suffix` if `present`, `exact`, `prefix`, or `regex` are configured in the same `exclude.header` configuration. | string | optional |
+| `regex` | Specifies a regular expression pattern as the value for the header key set in the `name` field. If the request header value matches the regex, Consul applies the permission. Do not specify `regex` if `present`, `exact`, `prefix`, or `suffix` are configured in the same `exclude.header` configuration. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details. | string | optional |
+| `invert` | Inverts the matching logic configured in the `exclude.header`. Default is `false`. | boolean | optional |
+
+### `spec.permissions.destinationRules.exclude.methods`
+
+Specifies a set of HTTP methods that qualify a request for an exclusion to the destination rules. When an incoming request uses one of the specified methods, the request will not produce a match when evaluating the destination rule that is otherwise defined.
+
+Refer to the [Mozilla documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods) for details on supported request methods.
+
+#### Values
+
+- Default: None
+- Data type: List of strings with one or more of the following values:
+
+  - `GET`
+  - `HEAD`
+  - `POST`
+  - `PUT`
+  - `DELETE`
+  - `CONNECT`
+  - `OPTIONS`
+  - `TRACE`
+  - `PATCH`
+
+Refer to the [Mozilla documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods) for more information about each method.
+
+### `spec.permissions.destinationRules.exclude.pathExact`
+
+Specifies an exact path that causes a request to be considered an exclusion to the destination rules.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.exclude.pathPrefix`
+
+Specifies a path prefix that causes a request to be considered an exclusion to the destination rules.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.exclude.pathRegex`
+
+Defines a regular expression that causes a request to be considered an exclusion to the destination rules when it matches a request path. The regex syntax is proxy-specific. If using Envoy, refer to the [re2 documentation](https://github.com/google/re2/wiki/Syntax) for details.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.permissions.destinationRules.exclude.portNames`
+
+Specifies a port name that exposes a Kubernetes Service. An incoming requests addressed to the port is considered an exclusion to the destination rules.
+
+#### Values
+
+- Default: None
+- Data type: List of strings
 
 ## Examples
 
