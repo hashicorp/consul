@@ -140,31 +140,6 @@
             }
           },
           "l7": {
-            "route": {
-              "name": "public_listener:http"
-            },
-            "statPrefix": "public_listener",
-            "staticRoute": true,
-            "trafficPermissions": {}
-          },
-          "match": {
-            "alpnProtocols": [
-              "consul~http"
-            ]
-          }
-        },
-        {
-          "inboundTls": {
-            "inboundMesh": {
-              "identityKey": "test-identity",
-              "validationContext": {
-                "trustBundlePeerNameKeys": [
-                  "local"
-                ]
-              }
-            }
-          },
-          "l7": {
             "protocol": "L7_PROTOCOL_HTTP2",
             "route": {
               "name": "public_listener:http2"
