@@ -3,6 +3,29 @@
   "resources":  [
     {
       "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name":  "default/local/default/api-app:grpc",
+      "virtualHosts":  [
+        {
+          "name":  "default/local/default/api-app:grpc",
+          "domains":  [
+            "*"
+          ],
+          "routes":  [
+            {
+              "match":  {
+                "prefix":  "/"
+              },
+              "route":  {
+                "cluster":  "grpc.api-app.default.dc1.internal.foo.consul"
+              }
+            }
+          ]
+        }
+      ],
+      "validateClusters":  true
+    },
+    {
+      "@type":  "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name":  "default/local/default/api-app:http",
       "virtualHosts":  [
         {
