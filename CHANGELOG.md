@@ -161,7 +161,6 @@ BUG FIXES:
 
 * api: add custom marshal/unmarshal for ServiceResolverConfigEntry.RequestTimeout so config entries that set this field can be read using the API. [[GH-19031](https://github.com/hashicorp/consul/issues/19031)]
 * dev-mode: Fix dev mode has new line in responses. Now new line is added only when url has pretty query parameter. [[GH-18367](https://github.com/hashicorp/consul/issues/18367)]
-* docs: fix list of telemetry metrics [[GH-17593](https://github.com/hashicorp/consul/issues/17593)]
 * telemetry: emit consul version metric on a regular interval. [[GH-6876](https://github.com/hashicorp/consul/issues/6876)]
 * tlsutil: Default setting of ServerName field in outgoing TLS configuration for checks now handled by crypto/tls. [[GH-17481](https://github.com/hashicorp/consul/issues/17481)]
 
@@ -494,7 +493,6 @@ IMPROVEMENTS:
 BUG FIXES:
 
 * cache: fix a few minor goroutine leaks in leaf certs and the agent cache [[GH-17636](https://github.com/hashicorp/consul/issues/17636)]
-* docs: fix list of telemetry metrics [[GH-17593](https://github.com/hashicorp/consul/issues/17593)]
 * gateways: **(Enterprise only)** Fixed a bug in API gateways where gateway configuration objects in non-default partitions did not reconcile properly. [[GH-17581](https://github.com/hashicorp/consul/issues/17581)]
 * gateways: Fixed a bug in API gateways where binding a route that only targets a service imported from a peer results
   in the programmed gateway having no routes. [[GH-17609](https://github.com/hashicorp/consul/issues/17609)]
