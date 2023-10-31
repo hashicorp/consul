@@ -6,17 +6,13 @@ description: The GRPCRoute resource CRD configures L7 gRPC traffic behavior with
 
 # GRPCRoute resource configuration reference
 
-This page provides reference information for the gRPC route resource, which defines L7 gRPC traffic within the service mesh.
+This page provides reference information for the `GRPCRoute` resource, which defines L7 gRPC traffic within the service mesh.
 
 This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, and requirements in a GRPCRoute CRD. Click on a property name to view additional details, including default values.
-
-<Tabs>
-
-<Tab heading="YAML" group="yaml">
+The following list outlines field hierarchy, language-specific data types, and requirements in a gRPC route CRD. Click on a property name to view additional details, including default values.
 
 - [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `GRPCRoute`
@@ -99,16 +95,9 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`nanos`](#spec-rules-timeouts-request): numberer
         - [`seconds`](#spec-rules-timeouts-request): number
 
-</Tab>
-</Tabs>
-
 ## Complete configuration
 
 When every field is defined, a gRPC route resource CRD has the following form:
-
-<Tabs>
-
-<Tab heading="YAML" group="yaml">
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
@@ -193,12 +182,9 @@ spec:
         seconds: 1
 ```
 
-</Tab>
-</Tabs>
-
 ## Specification
 
-This section provides details about the fields you can configure in the GRPCRoute custom resource definition (CRD).
+This section provides details about the fields you can configure in the `GRPCRoute` custom resource definition (CRD).
 
 ### `apiVersion`
 
@@ -262,7 +248,7 @@ When using this CRD, the `spec` field closely resembles the `GRPCRoute` GAMMA re
 
 ### `spec.parentRefs`
 
-Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify the name of one port for the route. Any resources that send traffic through the route use the same port. 
+Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify the name of one port for the route. Any resources that send traffic through the route use the same port.
 
 #### Values
 
@@ -272,7 +258,7 @@ Specifies the services and other resources to attach the route to. You can only 
 
 ### `spec.parentRefs.port`
 
-Specifies the name of the Consul service's port that the configuration applies to.
+Specifies the name of the port that the configuration applies to.
 
 #### Values
 
@@ -438,7 +424,7 @@ Specifies the type of resource that the configuration routes traffic to. To refe
 
   | Parameter     | Description                                                          | Data type | Default  |
   | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
-  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String (in code, should be int based on desc.)   | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
   | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
 
 ### `spec.rules.backendRefs.filters`
@@ -469,9 +455,11 @@ The following table describes how to configure values for request headers:
 | `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
+
 ##### Use variable placeholders
 
-For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` in your configuration entry allows you to pass a value that is generated when the split occurs.
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
 ### `spec.rules.backendRefs.filters.responseHeaderModifier`
 
 Specifies a set of header modification rules applied to responses routed with the gRPC route resource.
@@ -491,6 +479,10 @@ The following table describes how to configure values for request headers:
 | `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
 
 ### `spec.rules.backendRefs.filters.urlRewrite`
 
@@ -547,6 +539,10 @@ The following table describes how to configure values for request headers:
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
 
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
 ### `spec.rules.filters.responseHeaderModifier`
 
 Specifies a set of header modification rules applied to responses from services matching [`spec.parentRefs`](#spec-parent-refs).
@@ -566,6 +562,10 @@ The following table describes how to configure values for request headers:
 | `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | map of strings |
 | `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | list of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
 
 ### `spec.rules.filters.urlRewrite`
 
@@ -782,8 +782,7 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      # The configuration targets the workload port,
-      # not the service port. 
+      # The configuration targets the workload port, not the service port.
       port: "api-workload"
   rules:
     - backendRefs:
@@ -794,8 +793,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port,
-          # not the service port.
+          # The configuration targets the workload port, not the service port.
           port: "api-workload"
         weight: 50
       - backendRef:
@@ -805,8 +803,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port,
-          # not the service port. 
+          # The configuration targets the workload port, not the service port.
           port: "admin-workload"
         weight: 50
 ```
@@ -815,10 +812,11 @@ spec:
 
 The following example routes gRPC traffic for the `api` service according to its header. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
 
-- Traffic with a header that contains a `x-debug` value of exactly `1` has their response and request headers modified and is routed to the service with the `api` workload identity.
-- Traffic with a header that contains a `x-debug` value of exactly `2` has their response and request headers modified and is routed to the service with the `api-admin` workload identity.
+- For traffic with a header that contains a `x-debug` value of exactly `1`, Consul modifies the response and request headers and routes to the `api` service at the `api-workload` port.
+- For traffic with a header that contains a `x-debug` value of exactly `2`, Consul modifies the response and request headers and routes to the `api-admin` service at the `admin-workload` port.
 
 This example also includes how to include filters that modify request or response headers.
+
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
 kind: GRPCRoute
@@ -833,8 +831,7 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      # The configuration targets the workload port,
-      # not the service port.
+      # The configuration targets the workload port, not the service port.
       port: "api-workload"
   rules:
     - matches:
@@ -859,8 +856,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          # The configuration targets the workload port,
-          # not the service port.
+          # The configuration targets the workload port, not the service port.
           port: "api-workload"
     - matches:
       - headers:
@@ -884,7 +880,6 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api-admin
-          # The configuration targets the workload port,
-          # not the service port.
+          # The configuration targets the workload port, not the service port.
           port: "admin-workload"
 ```
