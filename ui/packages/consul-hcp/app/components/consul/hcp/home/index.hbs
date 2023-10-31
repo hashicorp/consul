@@ -1,8 +1,10 @@
-<div
-  class="consul-hcp-home"
-  ...attributes
->
-  <a href={{env 'CONSUL_HCP_URL'}} data-native-href="true">
-    Back to HCP
-  </a>
-</div>
+{{#if (env 'CONSUL_HCP_URL')}}
+  <div
+    class="consul-hcp-home"
+    ...attributes
+  >
+    <a href={{env 'CONSUL_HCP_URL'}} data-native-href="true">
+      Back to HCP
+    </a>
+  </div>
+{{/if}}
