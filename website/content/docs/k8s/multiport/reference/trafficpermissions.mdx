@@ -6,13 +6,13 @@ description: The TrafficPermissions CRD defines rules for allowing and denying t
 
 # TrafficPermissions configuration reference
 
-This page provides reference information for the TrafficPermissions resource, which authorizes east-west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
+This page provides reference information for the `TrafficPermissions` resource, which authorizes east-west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
 
 This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, and requirements in a TrafficPermissions CRD. Click on a property name to view additional details, including default values.
+The following list outlines field hierarchy, language-specific data types, and requirements in a traffic permissions CRD. Click on a property name to view additional details, including default values.
 
 <Tabs>
 
@@ -41,6 +41,7 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`peer`](#spec-permissions-sources-exclude): string
         - [`samenessGroup`](#spec-permissions-sources-exclude): string
     - [`destinationRules`](#spec-permissions-destinationrules):
+      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
 <!--
       - [`header`](#spec-permissions-destinationrules-header): map
         - [`name`](#spec-permissions-destinationrules-header): string
@@ -54,9 +55,6 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`pathExact`](#spec-permissions-destinationrules-pathexact): string
       - [`pathPrefix`](#spec-permissions-destinationrules-pathprefix): string
       - [`pathRegex`](#spec-permissions-destinationrules-pathregex): string
--->
-      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
-<!--
       - [`exclude`](#spec-permissions-destinationrules-exclude): map
         - [`header`](#spec-permissions-destinationrules-exclude-header): map
           - [`exact`](#spec-permissions-destinationrules-exclude-header): string
@@ -78,7 +76,7 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 ## Complete configuration
 
-When every field is defined, a `TrafficPermissions` CRD has the following form:
+When every field is defined, a traffic permissions CRD has the following form:
 
 ```yaml
 apiVersion: auth.consul.hashicorp.com/v2beta1    # required
@@ -472,7 +470,7 @@ Specifies a port name that exposes a Kubernetes Service. An incoming requests ad
 
 ## Examples
 
-The following examples demonstrate common `TrafficPermissions`` CRD configuration patterns for specific use cases.
+The following examples demonstrate common `TrafficPermissions` CRD configuration patterns for specific use cases.
 
 ### Deny traffic between services
 

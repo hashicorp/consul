@@ -8,7 +8,7 @@ description: The ProxyConfiguration resource CRD configures sidecar proxy behavi
 
 This page provides reference information for the `ProxyConfigurations` resource, which defines proxy behavior for traffic within the service mesh. The resource specifies both bootstrap and dynamic configurations for proxies.
 
-This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
@@ -88,50 +88,46 @@ spec:
     names: ["api", "admin"]
     prefixes: ["<pre>", "<fix>"]
   bootstrapConfig: 
-    dogstatsdUrl: 
-    overrideJsonTpl: 
-    prometheusBindAddr:
-    readyBindAddr: 
-    staticClustersJson:
-    staticListenersJson:
-    statsBindAddr:
-    statsConfigJson:
-    statsFlushInterval:
-    statsSinkJson:
+    dogstatsdUrl: <udp://127.0.0.1:8125>
+    overrideJsonTpl: <escapeHatchTemplate>
+    prometheusBindAddr: <0.0.0.0>
+    readyBindAddr: <ip:port>
+    staticClustersJson: <jsonObject>
+    staticListenersJson: <jsonObject>
+    statsBindAddr: <0.0.0.0>
+    statsConfigJson: <jsonObject>
+    statsFlushInterval: 5000ms
+    statsSinkJson: <jsonObject>
     statsTags:
-      - string
-    statsdUrl:
-    telemetryCollectorBindSocketDir:
-    tracingConfigJson:
+      - <customTag>
+    statsdUrl: <udp://127.0.0.1:8125>
+    telemetryCollectorBindSocketDir: <path/to/directory>
+    tracingConfigJson: <jsonObject>
   dynamicConfig:
     accessLogs:
       enabled: false
       disableListenerLogs: false
-      jsonFormat: 
-      path: 
-      textFormat: 
-      type: 
+      jsonFormat: <jsonObject>
+      path: <log/output/path>
+      textFormat: <customFormatString>
+      type: <LOG_SINK_TYPE_DEFAULT>
     exposeConfig:
       exposePaths:
-        listenerPort: <42>
-        localPathPort: <4242>
+        listenerPort: 42
+        localPathPort: 4242
         path: </metrics>
         protocol: <EXPOSE_PATH_PROTOCOL_HTTP>
       inboundConnections:
-        balanceInboundConnections:
-        maxInboundConnections:
-    listenerTracingJson:
-    localClusterJson:
+        balanceInboundConnections: <exact_balance>
+        maxInboundConnections: 1024
+    listenerTracingJson: <jsonObject>
+    localClusterJson: <jsonObject>
     localConnection:
-      connectTimeout:
-        nanos: 
-        seconds: 
-      requestTimeout:
-        nanos:
-        seconds:
-    meshGatewayMode:
-    mode:
-    publicListenerJson:
+      connectTimeout: <1s>
+      requestTimeout: <1s>
+    meshGatewayMode: <MESH_GATEWAY_MODE_LOCAL>
+    mode: <PROXY_MODE_TRANSPARENT>
+    publicListenerJson: <jsonObject>
     transparentProxy:
       dialedDirectly: false
       outboundListenerPort: 15001
@@ -139,7 +135,7 @@ spec:
 
 ## Specification
 
-This section provides details about the fields you can configure in the ProxyConfiguration custom resource definition (CRD).
+This section provides details about the fields you can configure in the `ProxyConfiguration` custom resource definition (CRD).
 
 ### `apiVersion`
 
