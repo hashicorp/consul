@@ -6,7 +6,7 @@ description: The ProxyConfiguration resource CRD configures sidecar proxy behavi
 
 # ProxyConfiguration resource configuration reference
 
-This page provides reference information for the ProxyConfigurations resource, which defines proxy behavior for traffic within the service mesh. The resource specifies both bootstrap and dynamic configurations for proxies.
+This page provides reference information for the `ProxyConfigurations` resource, which defines proxy behavior for traffic within the service mesh. The resource specifies both bootstrap and dynamic configurations for proxies.
 
 This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
@@ -14,16 +14,12 @@ This custom resource definition (CRD) describes a GAMMA resource that requires t
 
 The following list outlines field hierarchy, language-specific data types, and requirements in a ProxyConfiguration CRD. Click on a property name to view additional details, including default values.
 
-<Tabs>
-
-<Tab heading="YAML" group="yaml">
-
 - [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `ProxyConfiguration`
-- [`metadata`](#metadata): object | required
+- [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
-- [`spec`](#spec): object | required
+- [`spec`](#spec): map | required
   - [`workloads`](#spec-workloads): map
     - [`filter`](#spec-workloads): string
     - [`names`](#spec-workloads): array of strings
@@ -76,18 +72,9 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`dialedDirectly`](#spec-dynamicconfig-transparentproxy-dialeddirectly): boolean | `false`
       - [`outboundListenerPort`](#spec-dynamicconfig-transparentproxy-outboundlistenerport): integer | `15001`
 
-</Tab>
-</Tabs>
-
 ## Complete configuration
 
 When every field is defined, an ProxyConfigurations CRD has the following form:
-
-<Tabs>
-
-<Tab heading="YAML" group="yaml">
-
-<CodeBlockConfig hideClipboard>
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
@@ -150,11 +137,6 @@ spec:
       outboundListenerPort: 15001
 ```
 
-</CodeBlockConfig>
-
-</Tab>
-</Tabs>
-
 ## Specification
 
 This section provides details about the fields you can configure in the ProxyConfiguration custom resource definition (CRD).
@@ -200,7 +182,7 @@ Specifies a name for the CRD. The name is metadata that you can use to reference
 
 ### `metadata.namespace` <EnterpriseAlert inline />
 
-Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+Specifies the namespace that the proxy configuration applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
 
 #### Values
 
@@ -246,7 +228,7 @@ Specifies initial bootstrap settings for the Envoy proxy, as well as proxy confi
 
 Specifies a URL that identifies a DataDog DogStatsD listener. Envoy sends metrics to this listener.
 
-Format the URL as `udp://ip:port` or `unix://uds/path`. For example, `udp://127.0.0.1:8125` configures a local UDP DogStatsD listener for every host. Currently, TCP is not supported.
+Format the URL as `udp://ip:port` or `unix://uds/path`. For example, `udp://127.0.0.1:8125` configures a local UDP DogStatsD listener for every host. TCP is not supported.
 
 The UDP URL must use an IP address. DNS names are not supported.
 
@@ -259,9 +241,11 @@ For more information about configuring a UNIX domain socket with DogStatsD, refe
 
 ### `spec.bootstrapConfig.overrideJsonTpl`
 
-Specifies a template in Go template syntax to use in place of [the default template](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L129) when generating bootstrap via [`consul connect envoy` command](/consul/commands/connect/envoy). The variables that are available to be interpolated are [documented in `bootstrap_tpl.go`](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L5).
-
+<Warning>
 This field offers complete control of the proxy's bootstrap. Be aware that major deviations from the default template may break Consul's ability to correctly manage the proxy or enforce its security model.
+</Warning>
+
+Specifies a template in Go template syntax to use in place of [the default template](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L129) when generating the bootstrap configuration using the [`consul connect envoy` command](/consul/commands/connect/envoy). For information about the variables Consul can interpolate in the template, refer to the [documentation in `bootstrap_tpl.go`](https://github.com/hashicorp/consul/blob/71d45a34601423abdfc0a64d44c6a55cf88fa2fc/command/connect/envoy/bootstrap_tpl.go#L5).
 
 Refer to [Envoy proxy escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information.
 
@@ -281,9 +265,9 @@ Specifies that the proxy should expose a Prometheus metrics endpoint to the _pub
 
 ### `spec.bootstrapConfig.readyBindAddr`
 
- Specifies the location to confiugure the proxy's readiness probe, specified as `ip:port`. 
- 
- By default the proxy does not have a readiness probe configured on it.
+Specifies the location to configure the proxy's readiness probe. Format as `ip:port`. 
+
+ By default, the proxy does not have a readiness probe configured on it.
 
 #### Values
 
@@ -292,7 +276,7 @@ Specifies that the proxy should expose a Prometheus metrics endpoint to the _pub
 
 ### `spec.bootstrapConfig.staticClustersJson`
 
-Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto) to append to the array of [static clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) in the bootstrap config.
+Specifies one or more [Envoy clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto) to append to the array of [static clusters](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) in the bootstrap configuration.
 
 This field enables you to add custom clusters, such as tracing sinks, to the bootstrap configuration. In order to configure a single cluster, specify a single JSON object with the cluster details.
 
@@ -371,7 +355,7 @@ Specifies one or more static tags to add to all metrics produced by the proxy.
 
 Specifies a URL that identifies a StatsD listener. Envoy sends metrics to this listener.
 
-Format the URL as `udp://ip:port`. For example, `udp://127.0.0.1:8125` configures a local StatsD listener for every host. Currently, TCP is not supported.
+Format the URL as `udp://ip:port`. For example, `udp://127.0.0.1:8125` configures a local StatsD listener for every host. TCP is not supported.
 
 The URL must use an IP address. DNS names are not supported.
 
@@ -496,7 +480,7 @@ Refer to [expose paths configuration reference](/consul/docs/connect/proxies/pro
 
 ### `spec.dynamicConfig.exposeConfig.exposePaths`
 
-Specifies a configuration for exposing a HTTP path through the proxy.
+Specifies a configuration for exposing an HTTP path through the proxy.
 
 Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
 
@@ -569,7 +553,7 @@ Specifies the strategy for balancing inbound connections across Envoy worker thr
 
 ### `spec.dynamicConfig.inboundConnections.maxInboundConnections`
 
- Specifies the maximum number of concurrent inbound connections to the local application instance. If not specified, inherits the Envoy default of `1024`.
+Specifies the maximum number of concurrent inbound connections to the local application instance. If not specified, inherits the Envoy default of `1024`.
 
 #### Values
 
@@ -587,7 +571,7 @@ Specifies a tracing configuration to be inserted in the proxy's public and upstr
 
 ### `spec.dynamicConfig.localClusterJson`
 
-Specifies a complete Envoy cluster to be delivered in place of the local application cluster. This field enables customization of timeouts, rate limits, and load balancing strategy.
+Specifies a complete Envoy cluster to be delivered in place of the local application cluster. Use this field to customize timeouts, rate limits, and load balancing strategy.
 
 Refer to [cluster configuration in the Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/cluster/v3/cluster.proto) for more information.
 
@@ -623,7 +607,7 @@ Specifies the length of time the proxy is allowed to attempt connections to the 
 
 ### `spec.dynamicConfig.localConnection.requestTimeout`
 
-Specifies the length of time the proxy is allowed to attempt HTTP requests to the local application instance. Applies to HTTP based protocols only.
+Specifies the length of time the proxy is allowed to attempt HTTP requests to the local application instance. Applies to HTTP-based protocols only.
 
 #### Values
 
@@ -637,7 +621,7 @@ Specifies the length of time the proxy is allowed to attempt HTTP requests to th
 
 ### `spec.dynamicConfig.meshGatewayMode`
 
-Specifies the mode of operation for how upstreams with a remote destination datacenter are resolved. Refer to [Mesh gateway configuration reference](/consul/docs/connect/proxies/proxy-config-reference#mesh-gateway-configuration-reference) for more information.
+Specifies the proxy's mode of operation for resolving upstreams in remote datacenter destinations. Refer to [Mesh gateway configuration reference](/consul/docs/connect/proxies/proxy-config-reference#mesh-gateway-configuration-reference) for more information.
 
 #### Values
 
@@ -651,7 +635,7 @@ Specifies the mode of operation for how upstreams with a remote destination data
 
 ### `spec.dynamicConfig.mode`
 
-Specifies the mode the proxy operates in: default, transparent, or direct. Refer to [proxy modes](/consul/docs/connect/proxies/proxy-config-reference#proxy-modes) for more information.
+Configures the proxy to operate in transparent, direct, or default mode. Refer to [proxy modes](/consul/docs/connect/proxies/proxy-config-reference#proxy-modes) for more information.
 
 #### Values
 
@@ -664,7 +648,7 @@ Specifies the mode the proxy operates in: default, transparent, or direct. Refer
 
 ### `spec.dynamicConfig.publicListenerJson`
 
-Specifies a complete Envoy listener to be delivered in place of the main public listener that the proxy used to accept inbound connections. Refer to [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information
+Specifies a complete Envoy listener for Consul to deliver in place of the main public listener that the proxy uses to accept inbound connections. Refer to [escape-hatch overrides](/consul/docs/connect/proxies/envoy#escape-hatch-overrides) for more information
 
 #### Values
 
@@ -673,7 +657,7 @@ Specifies a complete Envoy listener to be delivered in place of the main public 
 
 ### `spec.dynamicConfig.transparentProxy`
 
-Specifies additional configurations for the transparent proxy. Refer to [transparent proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference#transparent-proxy-configuration-reference) for more information.
+Specifies additional configurations for operating proxies in transparent proxy mode.  Refer to [transparent proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference#transparent-proxy-configuration-reference) for more information.
 
 #### Values
 
@@ -682,7 +666,7 @@ Specifies additional configurations for the transparent proxy. Refer to [transpa
 
 ### `spec.dynamicConfig.transparentProxy.dialedDirectly`
 
-Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. Transparent proxies typically dial upstreams using the "virtual" tagged address, which load balances across instances. A database cluster with a leader is an example where dialing individual instances can be helpful.
+Determines whether this proxy instance's IP address can be dialed directly by transparent proxies. Transparent proxies typically dial upstreams using the _virtual_ tagged address, which load balances across instances. A database cluster with a leader is an example where dialing individual instances can be helpful.
 
 #### Values
 

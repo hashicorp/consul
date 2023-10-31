@@ -1,14 +1,14 @@
 ---
 layout: docs
 page_title: GRPCRoute resource configuration reference
-description: The GRPCRoute resource CRD configures L7 GRPC traffic behavior within the service mesh. GRPCRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the GRPCRoute CRD with specifications and example configurations.
+description: The GRPCRoute resource CRD configures L7 gRPC traffic behavior within the service mesh. GRPCRoute requires the v2 catalog API. Learn how to configure the GRPCRoute CRD with specifications and example configurations.
 ---
 
 # GRPCRoute resource configuration reference
 
-This page provides reference information for the GRPCRoute resource, which defines L7 GRPC traffic within the service mesh.
+This page provides reference information for the gRPC route resource, which defines L7 gRPC traffic within the service mesh.
 
-This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
 ## Configuration model
 
@@ -20,10 +20,10 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 - [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `GRPCRoute`
-- [`metadata`](#metadata): object | required
+- [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
-- [`spec`](#spec): object | required
+- [`spec`](#spec): map | required
   - [`parentRefs`](#spec-parentrefs): map | required
     - [`port`](#spec-parentrefs-port): string
     - [`ref`](#spec-parentrefs-ref):  string | required
@@ -64,7 +64,7 @@ The following list outlines field hierarchy, language-specific data types, and r
           - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
         - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite): map
           - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite): string
-      - [`weight`](#spec-rules-backendrefs-weight): integer | `1`
+      - [`weight`](#spec-rules-backendrefs-weight): number | `1`
     - [`filters`](#spec-rules-filters): map
       - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
         - [`add`](#spec-rules-filters-requestheadermodifier): map
@@ -87,24 +87,24 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`type`](#spec-rules-matches-method-type): string
     - [`retries`](#spec-rules-retries): map
       - [`number`](#spec-rules-retries-number): map
-        - [`value`](#spec-rules-retries-number): integer
+        - [`value`](#spec-rules-retries-number): number
       - [`onConditions`](#spec-rules-retries-onconditions): map of strings
       - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
-      - [`onStatusCodes`](#spec-rules-retries-onconditions): map of integers
+      - [`onStatusCodes`](#spec-rules-retries-onconditions): map of numbers
     - [`timeouts`](#spec-rules-timeouts): map
       - [`idle`](#spec-rules-timeouts-idle): map
-        - [`nanos`](#spec-rules-timeouts-idle): integer
-        - [`seconds`](#spec-rules-timeouts-idle): integer
+        - [`nanos`](#spec-rules-timeouts-idle): number
+        - [`seconds`](#spec-rules-timeouts-idle): number
       - [`request`](#spec-rules-timeouts-request): map
-        - [`nanos`](#spec-rules-timeouts-request): integer
-        - [`seconds`](#spec-rules-timeouts-request): integer
+        - [`nanos`](#spec-rules-timeouts-request): numberer
+        - [`seconds`](#spec-rules-timeouts-request): number
 
 </Tab>
 </Tabs>
 
 ## Complete configuration
 
-When every field is defined, a GRPCRoute resource CRD has the following form:
+When every field is defined, a gRPC route resource CRD has the following form:
 
 <Tabs>
 
@@ -118,7 +118,7 @@ metadata:
   namespace: <namespace>
 spec:
   parentRefs:
-    port: "<portNameRoutedFrom>"
+    port: <portNameRoutedFrom>
     - ref:
       name: <nameRoutedFrom>
       section: <sectionRoutedFrom>
@@ -149,24 +149,24 @@ spec:
       filters:
         - requestHeaderModifier:
           add:
-            name: "<foo>"
-            value: "<bar>"
+            name: <headerName>
+            value: <headerValue>
         - responseHeaderModifier:
           set:
-            name: "<foo>"
-            value: "<bar>"
+            name: <headerName>
+            value: <headerValue>
         urlRewrite:
           pathPrefix: <path/prefix>
       weight: 1
     filters:
       requestHeaderModifier:
           remove:
-            name: "<foo>"
-            value: "<bar>"
+            name: <headerName>
+            value: <headerValue>
       responseHeaderModifier:      
           add:
-            name: "<foo>"
-            value: "<bar>"              
+            name: <headerName>
+            value: <headerValue>
       urlRewrite:
         pathPrefix: <path/prefix>
     matches:
@@ -452,7 +452,7 @@ Specifies filtering behavior for services configured in the same [`spec.rules.ba
 
 ### `spec.rules.backendRefs.filters.requestHeaderModifier`
 
-Specifies a set of header modification rules applied to requests routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to requests routed with the gRPC route resource.
 
 #### Values
 
@@ -472,7 +472,7 @@ The following table describes how to configure values for request headers:
 
 ### `spec.rules.backendRefs.filters.responseHeaderModifier`
 
-Specifies a set of header modification rules applied to responses routed with the GRPCRoute resource.
+Specifies a set of header modification rules applied to responses routed with the gRPC route resource.
 
 #### Values
 
