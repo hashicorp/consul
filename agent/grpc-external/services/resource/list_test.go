@@ -6,6 +6,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -151,6 +152,46 @@ func TestList_Many(t *testing.T) {
 			})
 			require.NoError(t, err)
 			prototest.AssertElementsMatch(t, resources, rsp.Resources)
+		})
+	}
+}
+
+func TestList_NamePrefix(t *testing.T) {
+	for desc, tc := range listTestCases() {
+		t.Run(desc, func(t *testing.T) {
+			server := testServer(t)
+			demo.RegisterTypes(server.Registry)
+			client := testClient(t, server)
+
+			expectedResources := []*pbresource.Resource{}
+
+			namePrefixIndex := 0
+			// create a name prefix that is always present
+			namePrefix := fmt.Sprintf("%s-", strconv.Itoa(namePrefixIndex))
+			for i := 0; i < 10; i++ {
+				artist, err := demo.GenerateV2Artist()
+				require.NoError(t, err)
+
+				// Prevent test flakes if the generated names collide.
+				artist.Id.Name = fmt.Sprintf("%d-%s", i, artist.Id.Name)
+
+				rsp, err := client.Write(tc.ctx, &pbresource.WriteRequest{Resource: artist})
+				require.NoError(t, err)
+
+				// only matching name prefix are expected
+				if i == namePrefixIndex {
+					expectedResources = append(expectedResources, rsp.Resource)
+				}
+			}
+
+			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
+				Type:       demo.TypeV2Artist,
+				Tenancy:    resource.DefaultNamespacedTenancy(),
+				NamePrefix: namePrefix,
+			})
+
+			require.NoError(t, err)
+			prototest.AssertElementsMatch(t, expectedResources, rsp.Resources)
 		})
 	}
 }

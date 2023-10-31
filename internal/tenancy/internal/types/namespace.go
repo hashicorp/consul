@@ -13,33 +13,14 @@ import (
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
-const (
-	NamespaceKind = "Namespace"
-)
-
-var (
-	NamespaceV2Beta1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV2Beta1,
-		Kind:         NamespaceKind,
-	}
-	NamespaceType = NamespaceV2Beta1Type
-)
-
 func RegisterNamespace(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     NamespaceType,
+		Type:     pbtenancy.NamespaceType,
 		Proto:    &pbtenancy.Namespace{},
 		Scope:    resource.ScopePartition,
 		Validate: ValidateNamespace,
-		Mutate:   MutateNamespace,
 		// ACLs: TODO
 	})
-}
-
-func MutateNamespace(res *pbresource.Resource) error {
-	res.Id.Name = strings.ToLower(res.Id.Name)
-	return nil
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
