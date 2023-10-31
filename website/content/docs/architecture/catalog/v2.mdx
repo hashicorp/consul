@@ -10,7 +10,7 @@ description: Learn about version 2 of the Consul catalog, which uses GAMMA speci
 The v2 catalog API is in a beta release for testing and development purposes. Do not use the v2 catalog or multi-port services in secure production environments.
 </Warning>
 
-This topic provides conceptual information about version 2 of the Consul Catalog API. The catalog tracks registered services and their locations for both service discovery and service mesh use cases.
+This topic provides conceptual information about version 2 of the Consul catalog API. The catalog tracks registered services and their locations for both service discovery and service mesh use cases.
 
 Consul supports the v2 catalog on Kubernetes deployments only. For more information about Consul’s default catalog, refer to [v1 Catalog API](/consul/docs/architecture/catalog/v1).
 
@@ -26,7 +26,7 @@ This information enables Consul to associate service names with the individual i
 
 The [Consul v1 Catalog API](/consul/docs/architecture/catalog/v1) was designed prior to the introduction of Consul’s service mesh features. Communication in Consul’s service mesh is secured through Consul's ACL system, which requires that a Kubernetes ServiceAccount resource match the Service name. As a result, only one service can represent a Kubernetes Workload in the v1 catalog.
 
-Since then, the cloud networking needs for applications have evolved and workarounds were developed. For example, [Kubernetes Pods with multiple ports](/consul/docs/k8s/connect#kubernetes-pods-with-multiple-ports) demonstrates how you can schedule a service with multiple ports so that Consul registers it in the catalog as distinct services with their own service instances. However, this workaround results in additional resource consumption because Consul requires that each service and port use their own proxy and Consul dataplane so that it can recognize them as distinct services.
+The v2 catalog API addresses limitations with the v1 catalog API, allowing functionality such as associating Kubernetes Pods with multiple Kubernetes Services, or allowing Services and Pods registered with Consul to have multiple ports. The v2 catalog APIs align more closely with upstream Kubernetes APIs and some concepts differ from the v1 APIs. These differences are described in the catalog structure section below.
 
 The v2 catalog API is available alongside the existing v1 catalog API, but the catalogs cannot be used simultaneously. The v2 catalog is disabled by default. This beta release is for testing and development purposes only. We do not recommend implementing v2 in production environments or migrating to v2 until the API is generally available.
 
@@ -36,15 +36,15 @@ Consul v1.17 introduces a new version of the catalog API designed to bridge diff
 
 The following table describes resources in the v2 catalog and compares them to the v1 catalog and Kubernetes resources. It also states whether these resources are defined by the user or computed by Consul when it registers a service.
 
-| v2 Catalog resource | Description | Catalog v1 resource analogue | Kubernetes resource analogue | Source |
+| Catalog v2 resource | Description | Catalog v1 resource analogue | Kubernetes resource analogue | Source |
 | :------------------ | :---------- | :--------------------------- | :--------------------------- | :----- |
-| Service | The name of the service Consul registers a workload under | Service | None  | Defined by user in Kubernetes |
-| Node | The address of the node where the workload runs. | Node | Node | Computed by Consul |
-| Workload | An application instance running in a set of one or more Pods scheduled according to a Kubernetes Workload resource such as a Deployment or StatefulSet. | Service instance | Kubernetes Workloads | Defined by user in Kubernetes |
-| Workload identities | Provides a distinct identity for a Kubernetes Workload to assume in a Kubernetes cluster. | Service instance | Kubernetes Service Accounts | Defin by user in Kubernetes |
-| Service endpoints | Maps services to workload addresses and endpoints. | None  | Service backend | Computed by Consul |
+| Service | The name of the service Consul registers a workload under. | Service | None  | Defined by user in Kubernetes |
+| Node | The address of the node where the workload runs. | Node | Kubernetes Node | Computed by Consul |
+| Workload | An application instance running in a set of one or more Pods scheduled according to a Kubernetes Workload resource such as a Deployment or StatefulSet. | Service instance | Kubernetes Pod | Defined by user in Kubernetes |
+| Workload identities | Provides a distinct identity for a workload to assume and is used for Traffic Permissions. | Service instance | Kubernetes Service Accounts | Defined by user in Kubernetes |
+| Service endpoints | Maps services to workload addresses and endpoints. | None  | Kubernetes Endpoints | Computed by Consul |
 | Health status | A resource for reporting the health status of a workload | Agent check | None | Computed by Consul |
-| Health check | A resource for defining the health checks for a workload. | Health check | Liveness, Readiness, and Startup Probes | Defined by user in Kubernetes |
+| Health check | A resource for defining the health checks for a workload. | Service Instance Health check | Liveness, Readiness, and Startup Probes | Defined by user in Kubernetes |
 | Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Defined by user in Consul |
 | Destinations | Represents explicit service upstreams | None | Upstream Service annotation  | Defined by user in Kubernetes |
 | Traffic permissions | Enables L4 traffic authorization according to workload identity instead of service identity. | Service intentions | None | Defined by user in Consul |
@@ -57,9 +57,9 @@ The change in data models introduced by the v2 Catalog API impacts several aspec
 
 ### Traffic permissions resource replaces service intentions
 
-The most significant change to Consul’s architecture and operations when using the v2 catalog structure is the introduction of the TrafficPermissions resource. This resource replaces the service intentions configuration entry, and enables authorized service-to-service communication for both L4 and L7 applications.
+The most significant change to Consul’s architecture and operations when using the v2 catalog structure is the introduction of the traffic permissions resource. This resource replaces the service intentions configuration entry, and enables authorized service-to-service communication for both L4 and L7 applications.
 
-For more information about this resource, including example configurations, refer to [TrafficPermissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions).
+For more information about this resource, including example configurations, refer to [Traffic permissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions).
 
 ### HTTPRoute and GRPCRoute resources for L7 traffic management
 

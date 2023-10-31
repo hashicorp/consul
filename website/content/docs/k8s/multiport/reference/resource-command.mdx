@@ -35,11 +35,7 @@ You can issue the following subcommands with the `consul resource` command.
 ### `apply`
 
 `consul resource apply` writes or updates a resource at a given file path. 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
-
-| ACL Required |
-| ------------ |
-| `operator:write`  |
+You must present a token with `operator:write` [ACL permissions](/consul/api-docs/api-structure#authentication) to use the `apply` command. 
 
 #### Command Options
 
@@ -47,7 +43,7 @@ The table below shows this command's [required ACLs](/consul/api-docs/api-struct
 
 #### Example usage
 
-The following command applies a TrafficPermissions resource to Consul that restricts service-to-service communication to authorized services only.
+The following command applies a traffic permissions resource to Consul that restricts service-to-service communication to authorized services only.
 
 ```shell-session hideClipboard
 $ consul resource apply -f=trafficpermissions.yaml
@@ -69,7 +65,7 @@ The table below shows this command's [required ACLs](/consul/api-docs/api-struct
 
 #### Example usage
 
-The following command removes a TrafficPermissions resource from Consul that restricts service-to-service communication to authorized services only.
+The following command removes a traffic permissions resource from Consul that restricts service-to-service communication to authorized services only.
 
 ```shell-session hideClipboard
 $ consul resource delete -f=trafficpermissions.yaml

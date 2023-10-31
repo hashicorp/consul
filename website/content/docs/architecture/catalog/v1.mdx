@@ -14,7 +14,7 @@ For more information about the information returned when querying the catalog, i
 
 Consul tracks information about registered services through its Catalog API. This API records user-defined information about the external services, such as their partitions and required health checks. It also records information that Consul assigns for its own operations, such as an ID for each service instance and the [Raft indices](/consul/docs/architecture/consensus) when the instance is registered and modified.
 
-Consul uses v1 of the Catalog API by default. Consul v1.17.0 introduces a second version of the Catalog API for testing and development purposes. The catalog APIs cannot run concurrently in a Consul deployment. There is no migration path between catalog versions at this time. For more information, refer to [Consul v2 Catalog API](/consul/docs/architecture/catalog/v2).
+Consul uses v1 of the catalog API by default. Consul v1.17.0 and later ships with version 2 (v2) of the catalog API. V2 is intended to be used for testing and development purposes. V1 and V2 of the catalog APIs cannot run concurrently in a Consul deployment. There is no migration path between catalog versions. For more information, refer to [Consul v2 Catalog API](/consul/docs/architecture/catalog/v2).
 
 ## Catalog structure
 
@@ -29,7 +29,7 @@ When Consul registers a service instance using the v1 catalog API, it records th
 | NodeMeta | User-defined metadata about the node. | Defined by user |
 | Datacenter | The name of the datacenter the service is registered in. | Defined by user |
 | Service | The name of the service Consul registers the service instance under. | Defined by user |
-| Agent Check | The health status of service last reported by the Consul agent. | Computed by Consul |
+| Agent Check | The health checks defined for a service instance managed by a Consul client agent. | Computed by Consul |
 | Health Checks | The health checks defined for the service. Refer to [define health checks](/consul/docs/services/usage/checks) for more information. | Defined by user |
 | Partition | The name of the admin partition the service is registered in. Refer to [admin partitions](/consul/docs/enterprise/admin-partitions) for more information. | Defined by user |
 | Locality | Region and availability zone of the service. Refer to [`locality`](/consul/docs/agent/config/config-files#locality) for more information. | Defined by user |
