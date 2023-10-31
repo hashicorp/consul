@@ -88,18 +88,14 @@ type controllerSuite struct {
 	runtime controller.Runtime
 
 	isEnterprise bool
-	tenancies    []string
+	tenancies    []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
 	suite.client = svctest.RunResourceService(suite.T(), types.Register)
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
 	suite.isEnterprise = (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
-
-	suite.tenancies = []string{"default.default"}
-	if suite.isEnterprise {
-		suite.tenancies = append(suite.tenancies, "default.bar", "foo.default", "foo.bar")
-	}
+	suite.tenancies = resourcetest.TestTenancies()
 }
 
 // injectNodeWithStatus is a helper method to write a Node resource and synthesize its status
@@ -828,8 +824,7 @@ func TestGetNodeHealth(t *testing.T) {
 }
 
 func (suite *controllerSuite) runTestCaseWithTenancies(name string, t func(*pbresource.Tenancy)) {
-	for _, tenancyStr := range suite.tenancies {
-		tenancy := resourcetest.Tenancy(tenancyStr)
+	for _, tenancy := range suite.tenancies {
 		suite.Run(suite.constructTestCaseName(name, tenancy), func() {
 			t(tenancy)
 		})
