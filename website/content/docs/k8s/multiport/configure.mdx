@@ -129,12 +129,11 @@ spec:
       app: api
   template:
     metadata:
-      name: api
       labels:
         app: api
       annotations:
         "consul.hashicorp.com/mesh-inject": "true"
-        'consul.hashicorp.com/transparent-proxy': 'true'
+        "consul.hashicorp.com/transparent-proxy": "true"
     spec:
       containers:
         - name: api
@@ -204,12 +203,11 @@ spec:
       app: api
   template:
     metadata:
-      name: api
       labels:
         app: api
       annotations:
         "consul.hashicorp.com/mesh-inject": "true"
-        'consul.hashicorp.com/transparent-proxy': 'true'
+        "consul.hashicorp.com/transparent-proxy": "true"
     spec:
       containers:
         - name: api
@@ -266,12 +264,11 @@ spec:
       app: web
   template:
     metadata:
-      name: web
       labels:
         app: web
       annotations:
         "consul.hashicorp.com/mesh-inject": "true"
-        'consul.hashicorp.com/transparent-proxy': 'true'
+        "consul.hashicorp.com/transparent-proxy": "true"
     spec:
       containers:
         - name: web

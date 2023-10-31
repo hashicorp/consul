@@ -105,6 +105,13 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	if len(c.templatedPolicyFile) != 0 && len(c.templatedPolicy) != 0 {
+		c.UI.Error("Cannot combine the use of templated-policy flag with templated-policy-file. " +
+			"To create a token with a single templated policy and simple use case, use -templated-policy. " +
+			"For multiple templated policies and more complicated use cases, use -templated-policy-file")
+		return 1
+	}
+
 	client, err := c.http.APIClient()
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connecting to Consul agent: %s", err))

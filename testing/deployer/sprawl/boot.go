@@ -180,6 +180,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress)
 			}
 		}
 	}
@@ -504,7 +505,7 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 			logger.Debug("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
 			return nil
 		}
-		logger.Debug("not all client nodes have posted node updates yet", "nodes", stragglers)
+		logger.Debug("not all nodes have posted node updates yet", "nodes", stragglers)
 
 		time.Sleep(1 * time.Second)
 	}
@@ -514,10 +515,10 @@ func newGossipKey() (string, error) {
 	key := make([]byte, 16)
 	n, err := rand.Reader.Read(key)
 	if err != nil {
-		return "", fmt.Errorf("Error reading random data: %s", err)
+		return "", fmt.Errorf("error reading random data: %s", err)
 	}
 	if n != 16 {
-		return "", fmt.Errorf("Couldn't read enough entropy. Generate more entropy!")
+		return "", fmt.Errorf("couldn't read enough entropy. Generate more entropy")
 	}
 	return base64.StdEncoding.EncodeToString(key), nil
 }

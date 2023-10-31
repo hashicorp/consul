@@ -294,6 +294,10 @@ func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.R
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Resource.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
 	if reg.Scope == resource.ScopePartition && req.Resource.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(

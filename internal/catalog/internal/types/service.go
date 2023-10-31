@@ -10,8 +10,9 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+type DecodedService = resource.DecodedResource[*pbcatalog.Service]
 
 func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
@@ -24,37 +25,25 @@ func RegisterService(r resource.Registry) {
 	})
 }
 
-func MutateService(res *pbresource.Resource) error {
-	var service pbcatalog.Service
+var MutateService = resource.DecodeAndMutate(mutateService)
 
-	if err := res.Data.UnmarshalTo(&service); err != nil {
-		return err
-	}
-
+func mutateService(res *DecodedService) (bool, error) {
 	changed := false
 
 	// Default service port protocols.
-	for _, port := range service.Ports {
+	for _, port := range res.Data.Ports {
 		if port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
 			port.Protocol = pbcatalog.Protocol_PROTOCOL_TCP
 			changed = true
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&service)
+	return changed, nil
 }
 
-func ValidateService(res *pbresource.Resource) error {
-	var service pbcatalog.Service
+var ValidateService = resource.DecodeAndValidate(validateService)
 
-	if err := res.Data.UnmarshalTo(&service); err != nil {
-		return resource.NewErrDataParse(&service, err)
-	}
-
+func validateService(res *DecodedService) error {
 	var err error
 
 	// Validate the workload selector. We are allowing selectors with no
@@ -62,7 +51,7 @@ func ValidateService(res *pbresource.Resource) error {
 	// ServiceEndpoints objects for this service such as when desiring to
 	// configure endpoint information for external services that are not
 	// registered as workloads
-	if selErr := ValidateSelector(service.Workloads, true); selErr != nil {
+	if selErr := ValidateSelector(res.Data.Workloads, true); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -72,7 +61,7 @@ func ValidateService(res *pbresource.Resource) error {
 	usedVirtualPorts := make(map[uint32]int)
 
 	// Validate each port
-	for idx, port := range service.Ports {
+	for idx, port := range res.Data.Ports {
 		if usedIdx, found := usedVirtualPorts[port.VirtualPort]; found {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:  "ports",
@@ -130,7 +119,7 @@ func ValidateService(res *pbresource.Resource) error {
 	}
 
 	// Validate that the Virtual IPs are all IP addresses
-	for idx, vip := range service.VirtualIps {
+	for idx, vip := range res.Data.VirtualIps {
 		if vipErr := validateIPAddress(vip); vipErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "virtual_ips",

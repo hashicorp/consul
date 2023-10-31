@@ -12,7 +12,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/iptables"
 )
 
@@ -27,52 +26,40 @@ func RegisterProxyConfiguration(r resource.Registry) {
 	})
 }
 
-func MutateProxyConfiguration(res *pbresource.Resource) error {
-	var proxyCfg pbmesh.ProxyConfiguration
-	err := res.Data.UnmarshalTo(&proxyCfg)
-	if err != nil {
-		return resource.NewErrDataParse(&proxyCfg, err)
-	}
+var MutateProxyConfiguration = resource.DecodeAndMutate(mutateProxyConfiguration)
 
+func mutateProxyConfiguration(res *DecodedProxyConfiguration) (bool, error) {
 	changed := false
 
 	// Default the tproxy outbound port.
-	if proxyCfg.IsTransparentProxy() {
-		if proxyCfg.GetDynamicConfig().GetTransparentProxy() == nil {
-			proxyCfg.DynamicConfig.TransparentProxy = &pbmesh.TransparentProxy{
+	if res.Data.IsTransparentProxy() {
+		if res.Data.GetDynamicConfig().GetTransparentProxy() == nil {
+			res.Data.DynamicConfig.TransparentProxy = &pbmesh.TransparentProxy{
 				OutboundListenerPort: iptables.DefaultTProxyOutboundPort,
 			}
 			changed = true
-		} else if proxyCfg.GetDynamicConfig().GetTransparentProxy().OutboundListenerPort == 0 {
-			proxyCfg.DynamicConfig.TransparentProxy.OutboundListenerPort = iptables.DefaultTProxyOutboundPort
+		} else if res.Data.GetDynamicConfig().GetTransparentProxy().OutboundListenerPort == 0 {
+			res.Data.DynamicConfig.TransparentProxy.OutboundListenerPort = iptables.DefaultTProxyOutboundPort
 			changed = true
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&proxyCfg)
+	return changed, nil
 }
 
-func ValidateProxyConfiguration(res *pbresource.Resource) error {
-	decodedProxyCfg, decodeErr := resource.Decode[*pbmesh.ProxyConfiguration](res)
-	if decodeErr != nil {
-		return resource.NewErrDataParse(decodedProxyCfg.GetData(), decodeErr)
-	}
-	proxyCfg := decodedProxyCfg.GetData()
+var ValidateProxyConfiguration = resource.DecodeAndValidate(validateProxyConfiguration)
 
+func validateProxyConfiguration(res *DecodedProxyConfiguration) error {
 	var err error
 
-	if selErr := catalog.ValidateSelector(proxyCfg.Workloads, false); selErr != nil {
+	if selErr := catalog.ValidateSelector(res.Data.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
 		})
 	}
 
-	if proxyCfg.GetDynamicConfig() == nil && proxyCfg.GetBootstrapConfig() == nil {
+	if res.Data.GetDynamicConfig() == nil && res.Data.GetBootstrapConfig() == nil {
 		err = multierror.Append(err, resource.ErrInvalidFields{
 			Names:   []string{"dynamic_config", "bootstrap_config"},
 			Wrapped: errMissingProxyConfigData,
@@ -80,14 +67,14 @@ func ValidateProxyConfiguration(res *pbresource.Resource) error {
 	}
 
 	// nolint:staticcheck
-	if proxyCfg.GetOpaqueConfig() != nil {
+	if res.Data.GetOpaqueConfig() != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "opaque_config",
 			Wrapped: resource.ErrUnsupported,
 		})
 	}
 
-	if dynamicCfgErr := validateDynamicProxyConfiguration(proxyCfg.GetDynamicConfig()); dynamicCfgErr != nil {
+	if dynamicCfgErr := validateDynamicProxyConfiguration(res.Data.GetDynamicConfig()); dynamicCfgErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "dynamic_config",
 			Wrapped: dynamicCfgErr,

@@ -16,8 +16,10 @@ import (
 // DecodedResource is a generic holder to contain an original Resource and its
 // decoded contents.
 type DecodedResource[T proto.Message] struct {
-	Resource *pbresource.Resource
-	Data     T
+	// Embedding here allows us to shadow the Resource.Data Any field to fake out
+	// using a single struct with inlined data.
+	*pbresource.Resource
+	Data T
 }
 
 func (d *DecodedResource[T]) GetResource() *pbresource.Resource {
