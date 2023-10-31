@@ -72,3 +72,31 @@ For more information about these resource, including specifications and example 
 In the v1 catalog, a service’s sidecar proxy and its behavior is [defined in the `Proxy` field of the service definition](/consul/docs/services/usage/define-services). You can also separately [define a service mesh proxy](/consul/docs/connect/proxies/deploy-service-mesh-proxies) and [configure proxy defaults](/consul/docs/connect/config-entries/proxy-defaults).
 
 In the v2 catalog, the `ProxyConfiguration` resource configures a workload's sidecar proxy behavior according to Consul workload identity. Refer to [ProxyConfiguration resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration) for more information.
+
+## Constraints and limitations
+
+Be aware of the following constraints and technical limitations on the v2 catalog API:
+
+- The v2 catalog API only supports deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
+- The v1 and v2 catalog APIs cannot run concurrently.
+- The Consul UI does not support the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
+- HCP Consul does not support the v2 catalog API in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- We do not recommend updating existing clusters to enable the v2 catalog in this release. Instead, deploy a new Consul cluster and [enable the v2 catalog in the Helm chart](/consul/docs/k8s/multiport/configure#enable-the-v2-catalog).
+
+## Guidance
+
+The following resources are available to help you use the v2 catalog API:
+
+### Usage documentation
+
+- [Multi-port services overview](/consul/docs/k8s/multiport/configure)
+- [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+
+### Reference documentation
+
+- [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
+- [GRPCRoute configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
+- [HTTPRoute configuration reference](/consul/docs/k8s/multiport/reference/httproute)
+- [ProxyConfiguration configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
+- [TCPRoute configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
+- [TrafficPermissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)

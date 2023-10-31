@@ -31,10 +31,10 @@ For an example configuration and instructions for each of the steps in this work
 
 Be aware of the following constraints and technical limitations on using multi-port services and the v2 catalog API:
 
-- The v2 catalog API only supports using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. This is the default deployment mode in Kubernetes.
-- The v1 and v2 catalog APIs cannot run concurrently.
-- The Consul UI does not support multi-port services or the v2 catalog API in this release. You must disable the UI in the Helm chart in order to use the v2 catalog API.
-- HCP Consul does not support multi-port services or the v2 catalog API in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
+- Multi-port services are available for deployments using [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents. Consul on Kubernetes uses dataplanes by default.
+- When running the v2 catalog for multi-port services, you cannot run the v1 catalog API at the same time.
+- The Consul UI does not support multi-port services in this release. You must disable the UI in the Helm chart in order to use multi-port services.
+- HCP Consul does not support multi-port services in this release. You cannot [link a self-managed cluster to HCP Consul](/hcp/docs/consul/self-managed) to access its UI or view observability metrics when it uses the v2 catalog.
 - We do not recommend updating existing clusters to enable the v2 catalog in this release. To register multi-port services, deploy a new Consul cluster that enables the v2 catalog.
 
 ## Guidance
