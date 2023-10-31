@@ -30,8 +30,6 @@ Limitations
 * The v1 and v2 catalog APIs cannot run concurrently.
 * The Consul UI does not support multi-port services or the v2 catalog API in this release.
 * HCP Consul does not support multi-port services or the v2 catalog API in this release.
-* The v2 API only supports transparent proxy mode where services that have permissions to connect to each other can use
-  Kube DNS to connect.
 
 Significant Pull Requests
 * [[Catalog resource controllers]](https://github.com/hashicorp/consul/tree/e6b724d06249d3e62cd75afe3ee6042ba1fd5415/internal/catalog/internal/controllers)

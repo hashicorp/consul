@@ -10,10 +10,10 @@ require (
 	github.com/evanphx/json-patch v4.12.0+incompatible
 	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/hashicorp/consul v1.16.1
-	github.com/hashicorp/consul/api v1.24.0
-	github.com/hashicorp/consul/envoyextensions v0.4.1
+	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/envoyextensions v0.5.1
 	github.com/hashicorp/consul/proto-public v0.4.1
-	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/consul/testing/deployer v0.0.0-20230811171106-4a0afb5d1373
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-multierror v1.1.1
@@ -31,7 +31,6 @@ require (
 	github.com/testcontainers/testcontainers-go v0.22.0
 	golang.org/x/mod v0.12.0
 	google.golang.org/grpc v1.57.2
-	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 )
 
 require (
@@ -225,6 +224,7 @@ require (
 	k8s.io/client-go v0.26.2 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
