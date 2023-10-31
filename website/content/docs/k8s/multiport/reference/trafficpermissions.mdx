@@ -6,7 +6,7 @@ description: The TrafficPermissions CRD defines rules for allowing and denying t
 
 # TrafficPermissions configuration reference
 
-This page provides reference information for the TrafficPermissions resource, which authorizes east/west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
+This page provides reference information for the TrafficPermissions resource, which authorizes east-west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
 
 This custom resource definition (CRD) describes a GAMMA resource that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
 
@@ -20,21 +20,21 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 - [`apiVersion`](#apiversion): string | required | must be set to `auth.consul.hashicorp.com/v2beta1`
 - [`kind`](#kind): string | required | must be set to `TrafficPermissions`
-- [`metadata`](#metadata): object | required
+- [`metadata`](#metadata): map | required
   - [`name`](#metadata-name): string | required
   - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
-- [`spec`](#spec): object | required
-  - [`destination`](#spec-destination):
-    - [`identityName`](#spec-destination-identityname):
+- [`spec`](#spec): map | required
+  - [`destination`](#spec-destination): map
+    - [`identityName`](#spec-destination-identityname): string
   - [`action`](#spec-action): string
   - [`permissions`](#spec-permissions): list of maps
-    - [`sources`](#spec-permissions-sources):
+    - [`sources`](#spec-permissions-sources): map
       - [`identityName`](#spec-permissions-sources-identityname): string
       - [`namespace`](#spec-permissions-sources-namespace): string
       - [`partition`](#spec-permissions-sources-partition): string
       - [`peer`](#spec-permissions-sources-peer): string
       - [`samenessGroup`](#spec-permissions-sources-samenessgroup): string
-      - [`exclude`](#spec-permissions-sources-exclude): Map
+      - [`exclude`](#spec-permissions-sources-exclude): map
         - [`identityName`](#spec-permissions-sources-exclude): string
         - [`namespace`](#spec-permissions-sources-exclude): string
         - [`partition`](#spec-permissions-sources-exclude): string
@@ -74,9 +74,8 @@ The following list outlines field hierarchy, language-specific data types, and r
 
 ## Complete configuration
 
-The complete configuration provides the same basic information as the configuration model, including field hierarchy and data types. Instead of linking to specifications, it provides a code block that you can copy and paste into your preferred coding environment.
 
-When every field is defined, a TrafficPermissions CRD has the following form:
+When every field is defined, a `TrafficPermissions` CRD has the following form:
 
 <Tabs>
 
@@ -138,7 +137,7 @@ spec:
 
 ## Specification
 
-This section provides details about the fields you can configure in the TrafficPermissions custom resource definition (CRD).
+This section provides details about the fields you can configure in the `TrafficPermissions` custom resource definition (CRD).
 
 ### `apiVersion`
 
@@ -209,7 +208,7 @@ Specifies the proxies of the services where these traffic permissions apply.
 
 ### `spec.destination.identityName`
 
-Specifies the Workload identity for a service. The permissions you configure in this TrafficPermissions CRD apply to sidecar proxies when a request has this identity as their destination.
+Specifies the Workload identity for a service. The permissions you configure in this `TrafficPermissions` CRD apply to sidecar proxies when a request has this identity as their destination.
 
 #### Values
 
@@ -222,7 +221,7 @@ Specifies whether the proxy should _allow traffic_ or _deny traffic_ between the
 
 By default, Consul allows traffic between all services.
 
-The "Action unknown" value that this resource accepts is reserved for compatibility with future configurations. Do not invoke this value in the current release.
+The `ACTION_UNKNOWN` value is a reserved value that enables compatibility with future configurations. Do not specify this value in the current release.
 
 #### Values
 
