@@ -1,3 +1,31 @@
+## 1.16.3 (October 31, 2023)
+
+SECURITY:
+
+* Update `golang.org/x/net` to v0.17.0 to address [CVE-2023-39325](https://nvd.nist.gov/vuln/detail/CVE-2023-39325)
+/ [CVE-2023-44487](https://nvd.nist.gov/vuln/detail/CVE-2023-44487)(`x/net/http2`). [[GH-19225](https://github.com/hashicorp/consul/issues/19225)]
+* Upgrade Go to 1.20.10.
+This resolves vulnerability [CVE-2023-39325](https://nvd.nist.gov/vuln/detail/CVE-2023-39325)
+/ [CVE-2023-44487](https://nvd.nist.gov/vuln/detail/CVE-2023-44487)(`net/http`). [[GH-19225](https://github.com/hashicorp/consul/issues/19225)]
+* Upgrade `google.golang.org/grpc` to 1.56.3.
+This resolves vulnerability [CVE-2023-44487](https://nvd.nist.gov/vuln/detail/CVE-2023-44487). [[GH-19414](https://github.com/hashicorp/consul/issues/19414)]
+* connect: update supported envoy versions to 1.24.12, 1.25.11, 1.26.6 to address [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-19273](https://github.com/hashicorp/consul/issues/19273)]
+
+BUG FIXES:
+
+* Mesh Gateways: Fix a bug where replicated and peered mesh gateways with hostname-based WAN addresses fail to initialize. [[GH-19268](https://github.com/hashicorp/consul/issues/19268)]
+* api-gateway: fix matching for different hostnames on the same listener [[GH-19120](https://github.com/hashicorp/consul/issues/19120)]
+* api: add custom marshal/unmarshal for ServiceResolverConfigEntry.RequestTimeout so config entries that set this field can be read using the API. [[GH-19031](https://github.com/hashicorp/consul/issues/19031)]
+* ca: Fix bug with Vault CA provider where renewing a retracted token would cause retries in a tight loop, degrading performance. [[GH-19285](https://github.com/hashicorp/consul/issues/19285)]
+* ca: Fix bug with Vault CA provider where token renewal goroutines could leak if CA failed to initialize. [[GH-19285](https://github.com/hashicorp/consul/issues/19285)]
+* ca: ensure Vault CA provider respects Vault Enterprise namespace configuration. [[GH-19095](https://github.com/hashicorp/consul/issues/19095)]
+* catalog api: fixes a bug with catalog api where filter query parameter was not working correctly for the `/v1/catalog/services` endpoint [[GH-18322](https://github.com/hashicorp/consul/issues/18322)]
+* connect: Fix bug where uncleanly closed xDS connections would influence connection balancing for too long and prevent envoy instances from starting. Two new configuration fields
+`performance.grpc_keepalive_timeout` and `performance.grpc_keepalive_interval` now exist to allow for configuration on how often these dead connections will be cleaned up. [[GH-19339](https://github.com/hashicorp/consul/issues/19339)]
+* dns: **(Enterprise only)** Fix bug where sameness group queries did not correctly inherit the agent's partition.
+* gateways: Fix a bug where a service in a peered datacenter could not access an external node service through a terminating gateway [[GH-18959](https://github.com/hashicorp/consul/issues/18959)]
+* server: **(Enterprise Only)** Fixed an issue where snake case keys were rejected when configuring the control-plane-request-limit config entry
+
 ## 1.16.2 (September 19, 2023)
 
 SECURITY:
