@@ -1539,6 +1539,10 @@
             "path": "k8s/multiport/configure"
           },
           {
+            "title": "Split traffic between multi-port services",
+            "path": "k8s/multiport/traffic-split"
+          },
+          {
             "title": "Reference",
             "routes": [
               {

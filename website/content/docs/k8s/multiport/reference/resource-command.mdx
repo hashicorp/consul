@@ -35,7 +35,12 @@ You can issue the following subcommands with the `consul resource` command.
 ### `apply`
 
 `consul resource apply` writes or updates a resource at a given file path. 
-You must present a token with `operator:write` [ACL permissions](/consul/api-docs/api-structure#authentication) to use the `apply` command. 
+
+The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `apply` command:
+
+| ACL Required |
+| ------------ |
+| `operator:write`  |
 
 #### Command Options
 
@@ -53,7 +58,7 @@ $ consul resource apply -f=trafficpermissions.yaml
 
 `consul resource delete`removes a Consul resource at a given file path.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `delete` command:
 
 | ACL Required |
 | ------------ |
@@ -77,7 +82,7 @@ $ consul resource delete -f=trafficpermissions.yaml
 
 This command must be issued with a resource type. All resource definitions include a `type` configuration block that contains a `group`, `groupVersion`, and `kind`. By formatting the `type` on the command line as `group.groupVersion.kind`, you can return all resources with a matching `type` in the configuration.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `list` command:
 
 | ACL Required |
 | ------------ |
@@ -101,9 +106,9 @@ $ consul resource list catalog.v2beta1.Service card-processor -partition=billing
 
 ### `read`
 
-`consul resource list` outputs names of resources according to the type of resource or where the resource is applied.
+`consul resource read` outputs names of resources according to the type of resource or where the resource is applied.
 
-The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
 
 | ACL Required |
 | ------------ |

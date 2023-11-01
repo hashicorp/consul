@@ -18,14 +18,21 @@ This topic describes the process to register a service with multiple ports on Ku
 
 To use a multi-port service in Consul on Kubernetes deployments, complete the following steps:
 
-1. Enable the v2 catalog. Add `global.experiments: ["resource-apis"]` and `ui.enabled: false` to a cluster's Helm chart before deploying Consul.
+1. Enable the v2 catalog with ACLs enabled. Add `global.experiments: ["resource-apis"]`, `ui.enabled: false`, and `manageSystemACLs: true` to a cluster's Helm chart before deploying Consul.
 1. Use the `"consul.hashicorp.com/mesh-inject": "true"` annotation so that Consul registers the service automatically when Kubernetes deploys containers.
-1. Configure traffic permissions. In the beta release, services registered to the v2 catalog allow all traffic by default. You can use the `TrafficPermissions` CRD to deny traffic to individual services for testing purposes.
-1. Validate multi-port functionality. Send test traffic to each port to confirm that traffic is authorized and routed correctly.
+1. Configure traffic permissions. When ACLs are enabled, Consul denies all traffic by default. You can use the `TrafficPermissions` CRD to allow traffic to services.
 
 For an example configuration and instructions for each of the steps in this workflow, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
-[Link to/describe advanced routing configurations re: examples on configuration pages]
+### Advanced proxy and route configuration workflow
+
+You can also configure Envoy proxies and sidecar behavior with the proxy configurations resource, and manage traffic between services at the L4 and L7 networking layers with the TCP, HTTP, and gRPC route resources. After you [configure multi-port services](/consul/docs/k8s/multiport/configure), complete the following steps:
+
+1. Define the resource's behavior in a custom resource definition (CRD). For specifications and example configurations, refer to the [configuration reference](#reference-documentation) for each resource.
+1. Apply the resource to your cluster.
+1. Output the resource path with the `consul resource read` command.
+
+For an example configuration and instructions for each of the steps in this workflow, refer to [split service traffic between ports](/consul/docs/k8s/multiport/traffic-split).
 
 ## Constraints and limitations
 
@@ -48,12 +55,13 @@ The following resources are available to help you use multi-port services:
 ### Usage documentation
 
 - [Configure multi-port services](/consul/docs/k8s/multiport/configure)
+- [Split traffic between multi-port services](/consul/docs/k8s/multiport/traffic-split)
 
 ### Reference documentation
 
 - [`consul resource` CLI command](/consul/docs/k8s/multiport/reference/resource-command)
-- [GRPCRoute configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
-- [HTTPRoute configuration reference](/consul/docs/k8s/multiport/reference/httproute)
-- [ProxyConfiguration configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
-- [TCPRoute configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
-- [TrafficPermissions configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)
+- [`GRPCRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/grpcroute)
+- [`HTTPRoute` resource configuration reference](/consul/docs/k8s/multiport/reference/httproute)
+- [`ProxyConfiguration` resource configuration reference](/consul/docs/k8s/multiport/reference/proxyconfiguration)
+- [`TCPRoute` resource  configuration reference](/consul/docs/k8s/multiport/reference/tcproute)
+- [`TrafficPermissions` resource configuration reference](/consul/docs/k8s/multiport/reference/trafficpermissions)

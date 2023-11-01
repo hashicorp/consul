@@ -866,10 +866,10 @@ spec:
 
 The following examples routes HTTP traffic for the `api` service according to its header HTTP traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
 
-- For traffic with a header that contains a `x-debug` value of exactly `1`, Consul modifies the response and request headers and routes to the `api` service at the `api-workload` port.
-- For traffic with a header that contains a `x-debug` value of exactly `2`, Consul modifies the response and request headers and routes to the `api-admin` service at the `admin-workload` port.
+- For traffic with a header that contains a `x-debug` value of exactly `1`, Consul routes to the `api` service at the `api-workload` port.
+- For traffic with a header that contains a `x-debug` value of exactly `2`, Consul routes to the `api-admin` service at the `admin-workload` port.
 
-This example also includes how to include filters that modify request or response headers.
+This example also configures Consul to modify request and response headers when routing traffic.
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
@@ -926,6 +926,70 @@ spec:
            add:
            - name: "response-foo"
              value: "response-bar"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api-admin
+          # The configuration targets the workload port, not the service port.
+          port: "admin-workload"
+```
+
+### Route traffic by matching header and query parameter
+
+The following examples routes HTTP traffic for the `api` service according to its header HTTP traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
+
+- For traffic with a header _and_ a query parameter that both contain `x-debug` values of exactly `1`, Consul routes to the `api` service at the `api-workload` port.
+- For traffic with a header _and_ a query parameter that both contain `x-debug` values of exactly `2`, Consul routes to the `api-admin` service at the `admin-workload` port.
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: HTTPRoute
+metadata:
+  name: api-match-split
+  namespace: default
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      # The configuration targets the workload port, not the service port.
+      port: "api-workload"
+  rules:
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "1"
+        queryParams:
+          - type: "QUERY_PARAM_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "1"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "api-workload"
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "2"
+        queryParams:
+          - type: "QUERY_PARAM_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "2"
       backendRefs:
       - backendRef:
           ref:
