@@ -26,16 +26,6 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`permissions`](#spec-permissions): list of maps
     - [`sources`](#spec-permissions-sources): map
       - [`identityName`](#spec-permissions-sources-identityname): string
-      - [`namespace`](#spec-permissions-sources-namespace): string
-      - [`partition`](#spec-permissions-sources-partition): string
-      - [`peer`](#spec-permissions-sources-peer): string
-      - [`samenessGroup`](#spec-permissions-sources-samenessgroup): string
-      - [`exclude`](#spec-permissions-sources-exclude): map
-        - [`identityName`](#spec-permissions-sources-exclude): string
-        - [`namespace`](#spec-permissions-sources-exclude): string
-        - [`partition`](#spec-permissions-sources-exclude): string
-        - [`peer`](#spec-permissions-sources-exclude): string
-        - [`samenessGroup`](#spec-permissions-sources-exclude): string
     - [`destinationRules`](#spec-permissions-destinationrules):
       - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
 {::comment}
@@ -84,16 +74,6 @@ spec:
   permissions:
     - sources:
       identityName: <sourceWorkloadIdentity> 
-      namespace: <sourceNamespace>
-      partition: <sourceAdminPartition>
-      peer: <sourceClusterPeer>
-      samenessGroup: <sourceSamenessGroup>
-      exclude:
-        identityName: <workloadIdentityExcludedFromPermission>
-        namespace: <namespaceExcludedFromPermission>
-        partition: <adminPartitionExcludedFromPermission>
-        peer: <clusterPeerExcludedFromPermission>
-        samenessGroup: <samenessGroupExcludedFromPermission>
     destinationRules:
       portNames: 
         - <servicePortName>
@@ -228,6 +208,7 @@ Specifies the Workload identity for the service that originates the request.
 - Default: None
 - Data type: Map
 
+{::comment}
 ### `spec.permissions.sources.namespace`
 
 Specifies the Consul namespace for the service that originates the request.
@@ -272,6 +253,7 @@ Specifies sources to exclude from the defined source.
 
 - Default: None
 - Data type: Array of maps
+{:/comment}
 
 ### `spec.permissions.destinationRules`
 

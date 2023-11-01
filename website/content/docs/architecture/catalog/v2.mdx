@@ -45,7 +45,7 @@ The following table describes resources in the v2 catalog and compares them to t
 | Service endpoints | Maps services to workload addresses and endpoints. | None  | [Kubernetes Endpoints](https://kubernetes.io/docs/reference/kubernetes-api/service-resources/endpoints-v1/) | Computed by Consul |
 | Health status | A resource for reporting the health status of a workload. | Service instance health status | None | Computed by Consul |
 | Health check | A resource for defining the health checks for a workload. | [Service instance health check](/consul/docs/services/usage/checks) | [Liveness, Readiness, and Startup Probes](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#container-probes) | Defined by user in Kubernetes |
-| Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Defined by user in Consul |
+| Proxy configuration | Represents a configuration for a sidecar or gateway proxy. | `Proxy` field in service definition | None | Defined by user in Kubernetes or Consul |
 | Destinations | Represents explicit service upstreams. | [Proxy Configuration](/consul/docs/connect/proxies/envoy#envoy-proxy-configuration-for-service-mesh) | [Upstream Service annotation](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)  | Defined by user in Kubernetes |
 | Traffic permissions | Enables L4 traffic authorization according to workload identity instead of service identity. | [Service intentions](/consul/docs/connect/intentions) | None | Defined by user in Consul |
 

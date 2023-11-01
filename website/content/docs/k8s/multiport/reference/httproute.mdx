@@ -24,11 +24,6 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`port`](#spec-parentrefs-port): string
     - [`ref`](#spec-parentrefs-ref):  string | required
       - [`name`](#spec-parentrefs-ref-name): string
-      - [`section`](#spec-parentrefs-ref-section): string
-      - [`tenancy`](#spec-parentrefs-ref-tenancy): string
-        - [`namespace`](#spec-parentrefs-ref-tenancy): string <EnterpriseAlert inline />
-        - [`partition`](#spec-parentrefs-ref-tenancy): string <EnterpriseAlert inline />
-        - [`peerName`](#spec-parentrefs-ref-tenancy): string
       - [`type`](#spec-parentrefs-ref-type): map
          - [`group`](#spec-parentrefs-ref-type): string
          - [`groupVersion`](#spec-parentrefs-ref-type): string
@@ -40,11 +35,6 @@ The following list outlines field hierarchy, language-specific data types, and r
         - [`port`](#spec-rules-backendrefs-backendref-port): string
         - [`ref`](#spec-rules-backendrefs-backendref-ref): map
           - [`name`](#spec-rules-backendrefs-backendref-ref-name): string
-          - [`section`](#spec-rules-backendrefs-backendref-ref-section): string
-          - [`tenancy`](#spec-rules-backendrefs-backendref-ref-tenancy): map
-            - [`namespace`](#spec-rules-backendrefs-backendref-ref-tenancy): string
-            - [`partition`](#spec-rules-backendrefs-backendref-ref-tenancy): string
-            - [`peerName`](#spec-rules-backendrefs-backendref-ref-tenancy): string
           - [`type`](#spec-rules-backendrefs-backendref-ref-type): map
             - [`group`](#spec-rules-backendrefs-backendref-ref-type): string
             - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
@@ -114,11 +104,6 @@ spec:
     port: <portNameRoutedFrom>
     - ref:
       name: <nameRoutedFrom>
-      section: <sectionRoutedFrom>
-      tenancy:
-        namespace: <namespaceRoutedFrom>
-        partition: <adminPartitionRoutedFrom>
-        peerName: <clusterPeerRoutedFrom>
       type: 
         group: <catalog>
         groupVersion: <v2beta1>
@@ -130,11 +115,6 @@ spec:
         port: <portNameRoutedTo>
         ref:
           name: <nameRoutedTo>
-          section: <sectionRoutedTo>
-          tenancy:
-            namespace: <namespaceRoutedTo>
-            partition: <partitionRoutedTo>
-            peerName: <clusterPeerRoutedTo>
           type:
             group: <catalog>
             groupVersion: <v2beta1>
@@ -291,6 +271,7 @@ Specifies the user-defined name of the resource that the configuration applies t
 - Default: None
 - Data type: String
 
+{::comment}
 ### `spec.parentRefs.ref.section`
 
 Specifies the section of the resource that the configuration applies to.
@@ -314,6 +295,7 @@ Specifies the user-defined namespace, partition, or cluster peer of the resource
   | `namespace`   | Identifies the namespace of the resource the configuration applies to.                 | String    | None     |
   | `partition`   | Identifies the admin partition of the resource the configuration applies to.           | String    | None     |
   | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration applies to. | String    | None     |
+{:/comment}
 
 ### `spec.parentRefs.ref.type`
 
@@ -397,6 +379,7 @@ Specifies the user-defined name of the resource that the configuration routes tr
 - Default: None
 - Data type: String
 
+{::comment}
 ### `spec.rules.backendRefs.backendRef.ref.section`
 
 Specifies the section the resource that the configuration routes traffic to.
@@ -420,6 +403,7 @@ Specifies the user-defined namespace, partition, or cluster peer of the resource
   | `namespace`   | Identifies the namespace of the resource the configuration routes traffic to.                 | String    | None     |
   | `partition`   | Identifies the admin partition of the resource the configuration routes traffic to.         | String    | None     |
   | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration routes traffic to. | String    | None     |
+{:/comment}
 
 ### `spec.rules.backendRefs.backendRef.ref.type`
 
