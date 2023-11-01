@@ -245,6 +245,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 	}
+	tests = append(tests, getConnectProxyGoldenTestsCases()...)
 	tests = append(tests, getConnectProxyDiscoChainTests(false)...)
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
@@ -265,7 +266,93 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		})
 	}
 }
-
+func getConnectProxyGoldenTestsCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-tls-outgoing-min-version-auto",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSVersionAuto,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-min-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSv1_3,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-max-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMaxVersion: types.TLSv1_2,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-cipher-suites",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										CipherSuites: []types.TLSCipherSuite{
+											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+	}
+}
 func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 	return []goldenTestCase{
 		{
