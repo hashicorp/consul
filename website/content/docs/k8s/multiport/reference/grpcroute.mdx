@@ -263,32 +263,6 @@ Specifies the user-defined name of the resource that the configuration applies t
 - Default: None
 - Data type: String
 
-{::comment}
-### `spec.parentRefs.ref.section`
-
-Specifies the section of the resource that the configuration applies to.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.parentRefs.ref.tenancy`
-
-Specifies the user-defined namespace, partition, or cluster peer of the resource that the configuration applies to.
-
-#### Values
-
-- Default: None
-- Data type: Map containing the following parameters:
-
-  | Parameter     | Description                                                          | Data type | Default  |
-  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
-  | `namespace`   | Identifies the namespace of the resource the configuration applies to.                 | String    | None     |
-  | `partition`   | Identifies the admin partition of the resource the configuration applies to.           | String    | None     |
-  | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration applies to. | String    | None     |
-{:/comment}
-
 ### `spec.parentRefs.ref.type`
 
 Specifies the type of resource that the configuration applies to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
@@ -370,32 +344,6 @@ Specifies the user-defined name of the resource that the configuration routes tr
 
 - Default: None
 - Data type: String
-
-{::comment}
-### `spec.rules.backendRefs.backendRef.ref.section`
-
-Specifies the section the resource that the configuration routes traffic to.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `spec.rules.backendRefs.backendRef.ref.tenancy`
-
-Specifies the user-defined namespace, partition, or cluster peer of the resource that the configuration routes to.
-
-#### Values
-
-- Default: None
-- Data type: Map containing the following parameters:
-
-  | Parameter     | Description                                                          | Data type | Default  |
-  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
-  | `namespace`   | Identifies the namespace of the resource the configuration routes traffic to.                 | String    | None     |
-  | `partition`   | Identifies the admin partition of the resource the configuration routes traffic to.         | String    | None     |
-  | `peerName`    | Identifies the name of a cluster peer the resource is imported from that the configuration routes traffic to. | String    | None     |
-{:/comment}
 
 ### `spec.rules.backendRefs.backendRef.ref.type`
 
