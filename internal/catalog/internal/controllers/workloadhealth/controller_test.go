@@ -122,6 +122,7 @@ type workloadHealthControllerTestSuite struct {
 
 	mapper     *nodemapper.NodeMapper
 	reconciler *workloadHealthReconciler
+	tenancy    *pbresource.Tenancy
 }
 
 func (suite *workloadHealthControllerTestSuite) SetupTest() {
@@ -148,11 +149,13 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithNode(nodeHealth
 	node := suite.injectNodeWithStatus("test-node", nodeHealth)
 
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
+		WithTenancy(suite.tenancy).
 		WithData(suite.T(), workloadData(node.Id.Name)).
 		Write(suite.T(), suite.client)
 
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: workloadHealth}).
+		WithTenancy(suite.tenancy).
 		WithOwner(workload.Id).
 		Write(suite.T(), suite.client)
 
@@ -193,10 +196,12 @@ func (suite *workloadHealthControllerTestSuite) testReconcileWithoutNode(workloa
 	suite.T().Helper()
 	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), workloadData("")).
+		WithTenancy(suite.tenancy).
 		Write(suite.T(), suite.client)
 
 	resourcetest.Resource(pbcatalog.HealthStatusType, "test-status").
 		WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: workloadHealth}).
+		WithTenancy(suite.tenancy).
 		WithOwner(workload.Id).
 		Write(suite.T(), suite.client)
 
@@ -562,7 +567,11 @@ func (suite *workloadHealthControllerTestSuite) waitForReconciliation(id *pbreso
 }
 
 func TestWorkloadHealthController(t *testing.T) {
-	suite.Run(t, new(workloadHealthControllerTestSuite))
+	for _, tenancy := range resourcetest.TestTenancies() {
+		testSuite := new(workloadHealthControllerTestSuite)
+		testSuite.tenancy = tenancy
+		suite.Run(t, testSuite)
+	}
 }
 
 type getWorkloadHealthTestSuite struct {
