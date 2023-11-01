@@ -74,17 +74,64 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 // along to either a cleanup function if the entry no longer exists (it's been deleted),
 // or a reconciler if the entry has been updated or created.
 func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger hclog.Logger, ctx context.Context, req controller.Request, reconciler func(ctx context.Context, req controller.Request, store *state.Store, entry T) error, cleaner func(ctx context.Context, req controller.Request, store *state.Store) error) error {
-	_, entry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
+	_, rawentry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
 	if err != nil {
 		requestLogger(logger, req).Warn("error fetching config entry for reconciliation request", "error", err)
 		return err
 	}
 
-	if entry == nil {
+	if rawentry == nil {
 		return cleaner(ctx, req, store)
 	}
 
+	entry := attemptConfigEntryDeepCopy(rawentry)
+
 	return reconciler(ctx, req, store, entry.(T))
+}
+
+// attemptConfigEntryDeepCopy casts a generic configentry to the appropriate type and deep copies it, if able, or returns
+// the same uncopied config etnry if it cannot
+func attemptConfigEntryDeepCopy(ce structs.ConfigEntry) structs.ConfigEntry {
+	switch ce.(type) {
+	case *structs.BoundAPIGatewayConfigEntry:
+		return copyConfigEntry[*structs.BoundAPIGatewayConfigEntry](ce)
+	case *structs.InlineCertificateConfigEntry:
+		return copyConfigEntry[*structs.InlineCertificateConfigEntry](ce)
+	case *structs.HTTPRouteConfigEntry:
+		return copyConfigEntry[*structs.HTTPRouteConfigEntry](ce)
+	case *structs.TCPRouteConfigEntry:
+		return copyConfigEntry[*structs.TCPRouteConfigEntry](ce)
+	default:
+		return ce
+	}
+}
+
+// use like: copyConfigEntries[*structs.HTTPRouteConfigEntry](httpRoutes)
+func copyConfigEntries[E interface {
+	structs.ConfigEntry
+	DeepCopy() E
+}](list []structs.ConfigEntry) []structs.ConfigEntry {
+	if len(list) == 0 {
+		return nil
+	}
+
+	out := make([]structs.ConfigEntry, len(list))
+	for i, raw := range list {
+		out[i] = copyConfigEntry[E](raw)
+	}
+	return out
+}
+
+// preforms a deep copy on the config entry if deepcopy has been implemented
+func copyConfigEntry[E interface {
+	structs.ConfigEntry
+	DeepCopy() E
+}](raw structs.ConfigEntry) structs.ConfigEntry {
+	entry, ok := raw.(E)
+	if !ok {
+		return raw
+	}
+	return entry.DeepCopy()
 }
 
 // enqueueCertificateReferencedGateways retrieves all gateway objects, filters to those referencing
@@ -95,6 +142,7 @@ func (r *apiGatewayReconciler) enqueueCertificateReferencedGateways(store *state
 	logger.Trace("certificate changed, enqueueing dependent gateways")
 	defer logger.Trace("finished enqueuing gateways")
 
+	//APIgateway entries don't have deepcopy implemented
 	_, entries, err := store.ConfigEntriesByKind(nil, structs.APIGateway, wildcardMeta())
 	if err != nil {
 		logger.Warn("error retrieving api gateways", "error", err)
@@ -147,10 +195,11 @@ func (r *apiGatewayReconciler) cleanupBoundGateway(_ context.Context, req contro
 	for _, modifiedRoute := range removeGateway(resource, routes...) {
 		routeLogger := routeLogger(logger, modifiedRoute)
 		routeLogger.Trace("persisting route status")
-		if err := r.updater.Update(modifiedRoute); err != nil {
+		if err := r.updater.UpdateWithStatus(modifiedRoute); err != nil {
 			routeLogger.Warn("error removing gateway from route", "error", err)
 			return err
 		}
+
 	}
 
 	return nil
@@ -191,11 +240,12 @@ func (r *apiGatewayReconciler) cleanupGateway(_ context.Context, req controller.
 	logger.Trace("cleaning up deleted gateway")
 	defer logger.Trace("finished cleaning up deleted gateway")
 
-	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	_, rawbound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
 		logger.Warn("error retrieving bound api gateway", "error", err)
 		return err
 	}
+	bound := copyConfigEntry[*structs.BoundAPIGatewayConfigEntry](rawbound)
 
 	logger.Trace("deleting bound api gateway")
 	if err := r.updater.Delete(bound); err != nil {
@@ -229,11 +279,16 @@ func (r *apiGatewayReconciler) reconcileGateway(_ context.Context, req controlle
 		return err
 	}
 
+	var bound structs.ConfigEntry
 	// construct the tuple we'll be working on to update state
-	_, bound, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
+	_, rawBoundGateway, err := store.ConfigEntry(nil, structs.BoundAPIGateway, req.Name, req.Meta)
 	if err != nil {
-		logger.Warn("error retrieving bound api gateway", "error", err)
+		logger.Warn("error retrieving bound gateway", "error", err)
 		return err
+	}
+
+	if rawBoundGateway != nil { // for singular returns
+		bound = copyConfigEntry[*structs.BoundAPIGatewayConfigEntry](rawBoundGateway)
 	}
 
 	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
@@ -606,10 +661,13 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, boundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
+
+	_, rawBoundGateways, err := store.ConfigEntriesByKind(nil, structs.BoundAPIGateway, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
+
+	boundGateways := copyConfigEntries[*structs.BoundAPIGatewayConfigEntry](rawBoundGateways)
 
 	_, jwtProvidersConfigEntries, err := store.ConfigEntriesByKind(nil, structs.JWTProvider, wildcardMeta())
 	if err != nil {
@@ -686,16 +744,14 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 				errors[ref] = err
 			}
 
-			isValidJWT := true
 			if httpRoute, ok := route.(*structs.HTTPRouteConfigEntry); ok {
 				var jwtErrors map[structs.ResourceReference]error
-				isValidJWT, jwtErrors = g.validateJWTForRoute(httpRoute)
+				didBind, jwtErrors = g.validateJWTForRoute(httpRoute)
 				for ref, err := range jwtErrors {
 					errors[ref] = err
 				}
 			}
-
-			if didBind && isValidJWT {
+			if didBind {
 				refDidBind = true
 				listenerBound[listener.Name] = true
 			}
@@ -1160,15 +1216,19 @@ func requestToResourceRef(req controller.Request) structs.ResourceReference {
 
 // retrieveAllRoutesFromStore retrieves all HTTP and TCP routes from the given store
 func retrieveAllRoutesFromStore(store *state.Store) ([]structs.BoundRoute, error) {
-	_, httpRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
+	_, rawHTTPRoutes, err := store.ConfigEntriesByKind(nil, structs.HTTPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
 
-	_, tcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
+	httpRoutes := copyConfigEntries[*structs.HTTPRouteConfigEntry](rawHTTPRoutes)
+
+	_, rawtcpRoutes, err := store.ConfigEntriesByKind(nil, structs.TCPRoute, wildcardMeta())
 	if err != nil {
 		return nil, err
 	}
+
+	tcpRoutes := copyConfigEntries[*structs.TCPRouteConfigEntry](rawtcpRoutes)
 
 	routes := make([]structs.BoundRoute, 0, len(tcpRoutes)+len(httpRoutes))
 
