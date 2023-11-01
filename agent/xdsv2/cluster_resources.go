@@ -348,31 +348,12 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
 	switch l4.Destination.(type) {
 	case *pbproxystate.L4Destination_Cluster:
-		clusterName := l4.GetCluster().Name
-		clusters, _ := pr.makeClusters(clusterName)
-		for name, cluster := range clusters {
-			pr.envoyResources[xdscommon.ClusterType][name] = cluster
-		}
-
-		eps := pr.proxyState.GetEndpoints()[clusterName]
-		if eps != nil {
-			protoEndpoint := makeEnvoyClusterLoadAssignment(clusterName, eps.Endpoints)
-			pr.envoyResources[xdscommon.EndpointType][protoEndpoint.ClusterName] = protoEndpoint
-		}
+		pr.addEnvoyClustersAndEndpointsToEnvoyResources(l4.GetCluster().GetName())
 
 	case *pbproxystate.L4Destination_WeightedClusters:
 		psWeightedClusters := l4.GetWeightedClusters()
 		for _, psCluster := range psWeightedClusters.GetClusters() {
-			clusters, _ := pr.makeClusters(psCluster.Name)
-			for name, cluster := range clusters {
-				pr.envoyResources[xdscommon.ClusterType][name] = cluster
-			}
-
-			eps := pr.proxyState.GetEndpoints()[psCluster.Name]
-			if eps != nil {
-				protoEndpoint := makeEnvoyClusterLoadAssignment(psCluster.Name, eps.Endpoints)
-				pr.envoyResources[xdscommon.EndpointType][psCluster.Name] = protoEndpoint
-			}
+			pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
 		}
 	default:
 		return errors.New("cluster group type should be Endpoint Group or Failover Group")

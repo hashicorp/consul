@@ -20,6 +20,7 @@ type ResourceGenerator struct {
 	ProxyFeatures xdscommon.SupportedProxyFeatures
 }
 
+// NewResourceGenerator will create a new ResourceGenerator.
 func NewResourceGenerator(
 	logger hclog.Logger,
 ) *ResourceGenerator {
@@ -28,8 +29,18 @@ func NewResourceGenerator(
 	}
 }
 
+// ProxyResources is the main state used to convert proxyState resources to Envoy resources.
 type ProxyResources struct {
-	proxyState     *proxytracker.ProxyState
+	// proxyState is the final proxyState computed by Consul controllers.
+	proxyState *proxytracker.ProxyState
+	// envoyResources is a map of each resource type (listener, endpoint, route, cluster, etc.)
+	// with a corresponding map of k/v pairs of resource name to envoy proto message.
+	// map[string]map[string]proto.Message is used over map[string][]proto.Message because
+	// AllResourcesFromIR() will create envoy resource by walking the object graph from listener
+	// to endpoint.  In the process, the same resource might be referenced more than once,
+	// so the map is used to prevent duplicate resources being created and also will use
+	// an O(1) lookup to see if it exists (it actually will set the map key rather than
+	// checks everywhere) where as each lookup would be O(n) with a []proto structure.
 	envoyResources map[string]map[string]proto.Message
 }
 
@@ -43,28 +54,30 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxySta
 	pr.envoyResources[xdscommon.ClusterType] = make(map[string]proto.Message)
 	pr.envoyResources[xdscommon.EndpointType] = make(map[string]proto.Message)
 
-	err := pr.generateXDSResources()
+	err := pr.makeEnvoyResourceGraphsStartingFromListeners()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate xDS resources for ProxyState: %v", err)
 	}
-	envoyResources := make(map[string][]proto.Message)
-	envoyResources[xdscommon.ListenerType] = make([]proto.Message, 0)
-	envoyResources[xdscommon.RouteType] = make([]proto.Message, 0)
-	envoyResources[xdscommon.ClusterType] = make([]proto.Message, 0)
-	envoyResources[xdscommon.EndpointType] = make([]proto.Message, 0)
-	for resourceTypeName, resourceMap := range pr.envoyResources {
-		for _, resource := range resourceMap {
-			envoyResources[resourceTypeName] = append(envoyResources[resourceTypeName], resource)
-		}
-	}
+	envoyResources := convertResourceMapsToResourceArrays(pr.envoyResources)
 	return envoyResources, nil
 }
 
-func (pr *ProxyResources) generateXDSResources() error {
-	err := pr.makeXDSListeners()
-	if err != nil {
-		return err
-	}
+// convertResourceMapsToResourceArrays will convert map[string]map[string]proto.Message, which is used to
+// prevent duplicate resource being created, to map[string][]proto.Message which is used by Delta server.
+func convertResourceMapsToResourceArrays(resourceMap map[string]map[string]proto.Message) map[string][]proto.Message {
+	resources := make(map[string][]proto.Message)
+	resources[xdscommon.ListenerType] = make([]proto.Message, 0)
+	resources[xdscommon.RouteType] = make([]proto.Message, 0)
+	resources[xdscommon.ClusterType] = make([]proto.Message, 0)
+	resources[xdscommon.EndpointType] = make([]proto.Message, 0)
 
-	return nil
+	// This conversion incurs processing cost which is done once in the generating envoy resources.
+	// This tradeoff is preferable to doing array scan every time an envoy resource needs to be
+	// to pr.envoyResource to see if it already exists.
+	for resourceTypeName, resourceMap := range resourceMap {
+		for _, resource := range resourceMap {
+			resources[resourceTypeName] = append(resources[resourceTypeName], resource)
+		}
+	}
+	return resources
 }
