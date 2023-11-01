@@ -16,4 +16,9 @@ module.exports = [
     destination: '/consul/docs/k8s/connect/cluster-peering/k8s-tech-specs',
     permanent: true,
   },
+  {
+    source: '/consul/docs/v1.8.x/connect/config-entries/:slug',
+    destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
+    permanent: true,
+  },
 ]
