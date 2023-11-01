@@ -42,7 +42,7 @@ const (
 	envoyHttpConnectionManagerFilterName       = "envoy.filters.network.http_connection_manager"
 )
 
-func (pr *ProxyResources) makeXDSListeners() error {
+func (pr *ProxyResources) makeEnvoyResourceGraphsStartingFromListeners() error {
 	for _, l := range pr.proxyState.Listeners {
 		protoListener, err := pr.makeListener(l)
 		// TODO: aggregate errors for listeners and still return any properly formed listeners.
