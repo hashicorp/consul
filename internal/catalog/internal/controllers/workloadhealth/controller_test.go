@@ -570,7 +570,9 @@ func TestWorkloadHealthController(t *testing.T) {
 	for _, tenancy := range resourcetest.TestTenancies() {
 		testSuite := new(workloadHealthControllerTestSuite)
 		testSuite.tenancy = tenancy
-		suite.Run(t, testSuite)
+		t.Run(tenancy.Partition+"_"+tenancy.Namespace, func(t *testing.T) {
+			suite.Run(t, testSuite)
+		})
 	}
 }
 
