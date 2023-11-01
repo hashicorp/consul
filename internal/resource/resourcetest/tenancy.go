@@ -50,3 +50,16 @@ func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.
 		return nil
 	}
 }
+
+// TestTenancies returns a list of tenancies which represent
+// the namespace and partition combinations that can be used in unit tests
+func TestTenancies() []*pbresource.Tenancy {
+	//isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+
+	tenancies := []*pbresource.Tenancy{Tenancy("default.default")}
+	//if isEnterprise {
+	tenancies = append(tenancies, Tenancy("default.bar"), Tenancy("foo.default"), Tenancy("foo.bar"))
+	//}
+
+	return tenancies
+}
