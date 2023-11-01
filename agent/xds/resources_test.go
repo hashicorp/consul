@@ -248,6 +248,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getConnectProxyGoldenTestsCases()...)
 	tests = append(tests, getConnectProxyDiscoChainTests(false)...)
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
+	tests = append(tests, getConnectProxyJWTProviderGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
@@ -353,6 +354,73 @@ func getConnectProxyGoldenTestsCases() []goldenTestCase {
 		},
 	}
 }
+
+func getConnectProxyJWTProviderGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-local",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Local: &structs.LocalJWKS{
+											JWKS: "xxx",
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): jwt work will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-remote-jwks",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Remote: &structs.RemoteJWKS{
+											RequestTimeoutMs:    1000,
+											FetchAsynchronously: true,
+											URI:                 "https://test.test.com",
+											JWKSCluster: &structs.JWKSCluster{
+												DiscoveryType:  structs.DiscoveryTypeStatic,
+												ConnectTimeout: time.Duration(5) * time.Second,
+												TLSCertificates: &structs.JWKSTLSCertificate{
+													TrustedCA: &structs.JWKSTLSCertTrustedCA{
+														Filename: "mycert.crt",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): jwt work will come at a later time
+			alsoRunTestForV2: false,
+		},
+	}
+}
+
 func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 	return []goldenTestCase{
 		{
