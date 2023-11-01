@@ -242,6 +242,86 @@ func TestController_NoReconciler(t *testing.T) {
 		func() { mgr.Register(ctrl) })
 }
 
+func TestController_Watch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("partitioned scoped resources", func(t *testing.T) {
+		rec := newTestReconciler()
+
+		client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+		ctrl := controller.
+			ForType(demo.TypeV1RecordLabel).
+			WithReconciler(rec)
+
+		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr.SetRaftLeader(true)
+		mgr.Register(ctrl)
+
+		ctx := testContext(t)
+		go mgr.Run(ctx)
+
+		res, err := demo.GenerateV1RecordLabel("test")
+		require.NoError(t, err)
+
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+		require.NoError(t, err)
+
+		req := rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+	})
+
+	t.Run("cluster scoped resources", func(t *testing.T) {
+		rec := newTestReconciler()
+
+		client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+		ctrl := controller.
+			ForType(demo.TypeV1Executive).
+			WithReconciler(rec)
+
+		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr.SetRaftLeader(true)
+		mgr.Register(ctrl)
+
+		go mgr.Run(testContext(t))
+
+		exec, err := demo.GenerateV1Executive("test", "CEO")
+		require.NoError(t, err)
+
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: exec})
+		require.NoError(t, err)
+
+		req := rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+	})
+
+	t.Run("namespace scoped resources", func(t *testing.T) {
+		rec := newTestReconciler()
+
+		client := svctest.RunResourceService(t, demo.RegisterTypes)
+
+		ctrl := controller.
+			ForType(demo.TypeV2Artist).
+			WithReconciler(rec)
+
+		mgr := controller.NewManager(client, testutil.Logger(t))
+		mgr.SetRaftLeader(true)
+		mgr.Register(ctrl)
+
+		go mgr.Run(testContext(t))
+
+		artist, err := demo.GenerateV2Artist()
+		require.NoError(t, err)
+
+		rsp, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: artist})
+		require.NoError(t, err)
+
+		req := rec.wait(t)
+		prototest.AssertDeepEqual(t, rsp.Resource.Id, req.ID)
+	})
+}
+
 func newTestReconciler() *testReconciler {
 	return &testReconciler{
 		calls:  make(chan controller.Request),

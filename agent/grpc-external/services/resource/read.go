@@ -107,31 +107,9 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 	}
 
 	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped resource %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Id.Type),
-			req.Id.Tenancy.Namespace,
-		)
+	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy); err != nil {
+		return nil, err
 	}
-	if reg.Scope == resource.ScopeCluster {
-		if req.Id.Tenancy.Partition != "" {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"cluster scoped resource %s cannot have a partition: %s",
-				resource.ToGVK(req.Id.Type),
-				req.Id.Tenancy.Partition,
-			)
-		}
-		if req.Id.Tenancy.Namespace != "" {
-			return nil, status.Errorf(
-				codes.InvalidArgument,
-				"cluster scoped resource %s cannot have a namespace: %s",
-				resource.ToGVK(req.Id.Type),
-				req.Id.Tenancy.Namespace,
-			)
-		}
-	}
+
 	return reg, nil
 }
