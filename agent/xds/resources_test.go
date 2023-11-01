@@ -4,6 +4,10 @@
 package xds
 
 import (
+	"fmt"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"google.golang.org/protobuf/proto"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -46,6 +50,7 @@ type goldenTestCase struct {
 	setup              func(snap *proxycfg.ConfigSnapshot)
 	overrideGoldenName string
 	generatorSetup     func(*ResourceGenerator)
+	alsoRunTestForV2   bool
 }
 
 func TestAllResourcesFromSnapshot(t *testing.T) {
@@ -77,6 +82,33 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			tt.setup(snap)
 		}
 
+		typeUrls := []string{
+			xdscommon.ListenerType,
+			xdscommon.RouteType,
+			xdscommon.ClusterType,
+			xdscommon.EndpointType,
+			xdscommon.SecretType,
+		}
+
+		resourceSortingFunc := func(items []proto.Message, typeURL string) func(i, j int) bool {
+			return func(i, j int) bool {
+				switch typeURL {
+				case xdscommon.ListenerType:
+					return items[i].(*envoy_listener_v3.Listener).Name < items[j].(*envoy_listener_v3.Listener).Name
+				case xdscommon.RouteType:
+					return items[i].(*envoy_route_v3.RouteConfiguration).Name < items[j].(*envoy_route_v3.RouteConfiguration).Name
+				case xdscommon.ClusterType:
+					return items[i].(*envoy_cluster_v3.Cluster).Name < items[j].(*envoy_cluster_v3.Cluster).Name
+				case xdscommon.EndpointType:
+					return items[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < items[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
+				case xdscommon.SecretType:
+					return items[i].(*envoy_tls_v3.Secret).Name < items[j].(*envoy_tls_v3.Secret).Name
+				default:
+					panic("not possible")
+				}
+			}
+		}
+
 		// Need server just for logger dependency
 		g := NewResourceGenerator(testutil.Logger(t), nil, false)
 		g.ProxyFeatures = sf
@@ -87,37 +119,15 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		resources, err := g.AllResourcesFromSnapshot(snap)
 		require.NoError(t, err)
 
-		typeUrls := []string{
-			xdscommon.ListenerType,
-			xdscommon.RouteType,
-			xdscommon.ClusterType,
-			xdscommon.EndpointType,
-			xdscommon.SecretType,
-		}
 		require.Len(t, resources, len(typeUrls))
 
 		for _, typeUrl := range typeUrls {
 			prettyName := testTypeUrlToPrettyName[typeUrl]
-			t.Run(prettyName, func(t *testing.T) {
+			t.Run(fmt.Sprintf("xdsv1-%s", prettyName), func(t *testing.T) {
 				items, ok := resources[typeUrl]
 				require.True(t, ok)
 
-				sort.Slice(items, func(i, j int) bool {
-					switch typeUrl {
-					case xdscommon.ListenerType:
-						return items[i].(*envoy_listener_v3.Listener).Name < items[j].(*envoy_listener_v3.Listener).Name
-					case xdscommon.RouteType:
-						return items[i].(*envoy_route_v3.RouteConfiguration).Name < items[j].(*envoy_route_v3.RouteConfiguration).Name
-					case xdscommon.ClusterType:
-						return items[i].(*envoy_cluster_v3.Cluster).Name < items[j].(*envoy_cluster_v3.Cluster).Name
-					case xdscommon.EndpointType:
-						return items[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < items[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
-					case xdscommon.SecretType:
-						return items[i].(*envoy_tls_v3.Secret).Name < items[j].(*envoy_tls_v3.Secret).Name
-					default:
-						panic("not possible")
-					}
-				})
+				sort.Slice(items, resourceSortingFunc(items, typeUrl))
 
 				r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
 				require.NoError(t, err)
@@ -131,7 +141,45 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 				expectedJSON := goldenEnvoy(t, filepath.Join(prettyName, gName), envoyVersion, latestEnvoyVersion, gotJSON)
 				require.JSONEq(t, expectedJSON, gotJSON)
+
 			})
+		}
+
+		if tt.alsoRunTestForV2 {
+			generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
+
+			converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
+			proxyState, err := converter.ProxyStateFromSnapshot(snap)
+			require.NoError(t, err)
+
+			v2Resources, err := generator.AllResourcesFromIR(proxyState)
+			require.NoError(t, err)
+			require.Len(t, v2Resources, len(typeUrls)-1) // secrets are not currently implemented in V2.
+			for _, typeUrl := range typeUrls {
+				prettyName := testTypeUrlToPrettyName[typeUrl]
+				t.Run(fmt.Sprintf("xdsv2-%s", prettyName), func(t *testing.T) {
+					if typeUrl == xdscommon.SecretType {
+						t.Skip("skipping. secrets are not yet implemented in xdsv2")
+					}
+					items, ok := v2Resources[typeUrl]
+					require.True(t, ok)
+
+					sort.Slice(items, resourceSortingFunc(items, typeUrl))
+
+					r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
+					require.NoError(t, err)
+
+					gotJSON := protoToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					expectedJSON := goldenEnvoy(t, filepath.Join(prettyName, gName), envoyVersion, latestEnvoyVersion, gotJSON)
+					require.JSONEq(t, expectedJSON, gotJSON)
+				})
+			}
 		}
 	}
 
@@ -141,6 +189,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-exported-to-peers",
@@ -156,36 +205,44 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 					},
 				})
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "transparent-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxy(t)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeering,
+			name:             "connect-proxy-with-peered-upstreams",
+			create:           proxycfg.TestConfigSnapshotPeering,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
-			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
+			name:             "connect-proxy-with-peered-upstreams-escape-overrides",
+			create:           proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 		{
-			name:   "connect-proxy-with-peered-upstreams-http2",
-			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
+			name:             "connect-proxy-with-peered-upstreams-http2",
+			create:           proxycfg.TestConfigSnapshotPeeringWithHTTP2,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 		{
-			name:   "transparent-proxy-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeeringTProxy,
+			name:             "transparent-proxy-with-peered-upstreams",
+			create:           proxycfg.TestConfigSnapshotPeeringTProxy,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 		{
-			name:   "local-mesh-gateway-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+			name:             "local-mesh-gateway-with-peered-upstreams",
+			create:           proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 		{
-			name:   "telemetry-collector",
-			create: proxycfg.TestConfigSnapshotTelemetryCollector,
+			name:             "telemetry-collector",
+			create:           proxycfg.TestConfigSnapshotTelemetryCollector,
+			alsoRunTestForV2: false, // peering not supported in v2 yet.
 		},
 	}
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
