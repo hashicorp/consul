@@ -413,7 +413,7 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancies []*p
 		// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
 		// to be something that doesn't care about its owner. All we want to prove is that we are
 		// filtering out non-HealthStatus types appropriately.
-		resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy").
+		resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
 			WithData(suite.T(), dnsPolicyData).
 			WithOwner(suite.nodeNoHealth[indx]).
 			Write(suite.T(), suite.resourceClient)
