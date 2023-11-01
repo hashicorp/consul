@@ -18,21 +18,13 @@ This page describes the process for splitting TCP, HTTP, and gRPC traffic betwee
 
 Splitting traffic between two ports of a multi-port service requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). For guidance on enabling the v2 catalog, deploying multi-port services, and applying traffic permissions to them, refer to [configure multi-port services](/consul/docs/k8s/multiport/configure).
 
-## Split traffic using route resources
+## Overview
 
-You can split traffic according to the application traffic's network protocol using the following CRDs:
-
-- [`TCPRoute` resource](/consul/docs/k8s/multiport/reference/tcproute)
-- [`HTTPRoute` resource](/consul/docs/k8s/multiport/reference/httproute)
-- [`GRPCRoute` resource](/consul/docs/k8s/multiport/reference/tcproute)
-
-The process for implementing these resources in your Consul on Kubernetes deployment is the same:
+Complete the following steps to implement a split in TCP traffic between two services:
 
 1. Define the resource's behavior in a custom resource definition (CRD).
 1. Apply the resource to your cluster.
 1. Output the resource path with the `consul resource read` command.
-
-Configurable fields between each resource vary. The usage instructions on this page configure a TCP route resource to use with the [end-to-end multi-port deployment example](/consul/docs/k8s/multiport/configure).
 
 ## Define route resource
 
