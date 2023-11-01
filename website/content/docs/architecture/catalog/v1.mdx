@@ -25,7 +25,7 @@ When Consul registers a service instance using the v1 catalog API, it records th
 | ID | A unique identifier for a service instance. | Defined by user in [service definition](/consul/docs/services/configuration/services-configuration-reference#id). |
 | Node | The connection point where the service is available.  | On VMs, defined by user. <br /><br /> On Kubernetes, computed by Consul according to [Kubernetes Nodes](https://kubernetes.io/docs/concepts/architecture/nodes/). |
 | Address  | The registered address of the service instance. | Defined by user in [service definition](/consul/docs/services/configuration/services-configuration-reference#address). |
-| Tagged Addresses | User-defined labels for addresses. | Defined by user in [service definition](/consul/docs/services/configuration/services-configuration-reference#tags). |
+| Tagged Addresses | User-defined labels for addresses. | Defined by user in [service definition](/consul/docs/services/configuration/services-configuration-reference#tagged_addresses). |
 | NodeMeta | User-defined metadata about the node. | Defined by user |
 | Datacenter | The name of the datacenter the service is registered in. | Defined by user |
 | Service | The name of the service Consul registers the service instance under. | Defined by user |
