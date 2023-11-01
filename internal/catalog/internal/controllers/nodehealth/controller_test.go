@@ -64,7 +64,7 @@ type nodeHealthControllerTestSuite struct {
 
 	ctl nodeHealthReconciler
 
-	nodeNoHealth    *pbresource.ID
+	nodeNoHealth    []*pbresource.ID
 	nodePassing     []*pbresource.ID
 	nodeWarning     []*pbresource.ID
 	nodeCritical    []*pbresource.ID
@@ -131,7 +131,7 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoStatus() {
 	suite.runTestCaseWithTenancies("TestGetNodeHealthNoStatus", func(tenancy *pbresource.Tenancy, indx int) {
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeNoHealth)
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeNoHealth[indx])
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
 	})
@@ -363,6 +363,7 @@ func (suite *nodeHealthControllerTestSuite) constructTestCaseName(name string, t
 func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancies []*pbresource.Tenancy) {
 
 	// The rest of the setup will be to prime the resource service with some data
+	suite.nodeNoHealth = make([]*pbresource.ID, len(tenancies))
 	suite.nodePassing = make([]*pbresource.ID, len(tenancies))
 	suite.nodeWarning = make([]*pbresource.ID, len(tenancies))
 	suite.nodeCritical = make([]*pbresource.ID, len(tenancies))
@@ -370,6 +371,7 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancies []*p
 
 	for indx, tenancy := range tenancies {
 
+		suite.nodeNoHealth[indx] = suite.writeNode("test-node-no-health", tenancy)
 		suite.nodePassing[indx] = suite.writeNode("test-node-passing", tenancy)
 		suite.nodeWarning[indx] = suite.writeNode("test-node-warning", tenancy)
 		suite.nodeCritical[indx] = suite.writeNode("test-node-critical", tenancy)
@@ -413,7 +415,7 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancies []*p
 		// filtering out non-HealthStatus types appropriately.
 		resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy").
 			WithData(suite.T(), dnsPolicyData).
-			WithOwner(suite.nodeNoHealth).
+			WithOwner(suite.nodeNoHealth[indx]).
 			Write(suite.T(), suite.resourceClient)
 	}
 }
