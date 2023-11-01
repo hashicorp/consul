@@ -261,7 +261,15 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 			Cluster: psCluster.GetName(),
 		}
 		clusters, _ := pr.makeClusters(psCluster.Name)
-		pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
+		for name, cluster := range clusters {
+			pr.envoyResources[xdscommon.ClusterType][name] = cluster
+		}
+
+		eps := pr.proxyState.GetEndpoints()[psCluster.Name]
+		if eps != nil {
+			protoEndpoint := makeEnvoyClusterLoadAssignment(psCluster.Name, eps.Endpoints)
+			pr.envoyResources[xdscommon.EndpointType][protoEndpoint.ClusterName] = protoEndpoint
+		}
 
 	case *pbproxystate.RouteDestination_WeightedClusters:
 		psWeightedClusters := psRouteDestination.GetWeightedClusters()
@@ -269,7 +277,16 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 		totalWeight := 0
 		for _, psCluster := range psWeightedClusters.GetClusters() {
 			clusters, _ := pr.makeClusters(psCluster.Name)
-			pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
+			for name, cluster := range clusters {
+				pr.envoyResources[xdscommon.ClusterType][name] = cluster
+			}
+
+			eps := pr.proxyState.GetEndpoints()[psCluster.Name]
+			if eps != nil {
+				protoEndpoint := makeEnvoyClusterLoadAssignment(psCluster.Name, eps.Endpoints)
+				pr.envoyResources[xdscommon.EndpointType][protoEndpoint.ClusterName] = protoEndpoint
+			}
+
 			totalWeight += int(psCluster.Weight.GetValue())
 			envoyClusters = append(envoyClusters, makeEnvoyClusterWeightFromProxystateWeightedCluster(psCluster))
 		}
@@ -318,13 +335,19 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 }
 
 func makeEnvoyClusterWeightFromProxystateWeightedCluster(cluster *pbproxystate.L7WeightedDestinationCluster) *envoy_route_v3.WeightedCluster_ClusterWeight {
-	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
-		Name:   cluster.GetName(),
-		Weight: cluster.GetWeight(),
-	}
+	envoyClusterWeight := makeEnvoyClusterWeightFromNameAndWeight(cluster.GetName(), cluster.GetWeight())
 
 	for _, hm := range cluster.GetHeaderMutations() {
 		injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight, hm)
+	}
+
+	return envoyClusterWeight
+}
+
+func makeEnvoyClusterWeightFromNameAndWeight(name string, weight *wrapperspb.UInt32Value) *envoy_route_v3.WeightedCluster_ClusterWeight {
+	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
+		Name:   name,
+		Weight: weight,
 	}
 
 	return envoyClusterWeight
