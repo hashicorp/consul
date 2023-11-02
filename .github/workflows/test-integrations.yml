@@ -496,6 +496,8 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
+    env:
+      DEPLOYER_CONSUL_DATAPLANE_IMAGE: "docker.mirror.hashicorp.services/hashicorppreview/consul-dataplane:1.3-dev"
     steps:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -513,20 +515,22 @@ jobs:
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           export NOLOGBUFFER=1
-          cd ./test-integ/connect
+          cd ./test-integ
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
             --raw-command \
             --format=standard-verbose \
             --debug \
-            --packages="./..." \
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
-            -json . \
+            -json \
+            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --target-version local
+            --target-version local \
+            --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --latest-version latest
         env:
           # this is needed because of incompatibility between RYUK container and GHA
           GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml

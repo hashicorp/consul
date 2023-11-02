@@ -404,6 +404,7 @@ type ServiceDefinition struct {
 	EnableTagOverride *bool                     `mapstructure:"enable_tag_override"`
 	Proxy             *ServiceProxy             `mapstructure:"proxy"`
 	Connect           *ServiceConnect           `mapstructure:"connect"`
+	Locality          *Locality                 `mapstructure:"locality"`
 
 	EnterpriseMeta `mapstructure:",squash"`
 }
