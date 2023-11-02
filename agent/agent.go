@@ -812,6 +812,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			Logger:          a.proxyConfig.Logger.Named("agent-state"),
 			Tokens:          a.baseDeps.Tokens,
 			NodeName:        a.config.NodeName,
+			NodeLocality:    a.config.StructLocality(),
 			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
@@ -3686,6 +3687,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		ns := service.NodeService()
+
+		// We currently do not persist locality inherited from the node service
+		// (it is inherited at runtime). See agent/proxycfg-sources/local/sync.go.
+		// To support locality-aware service discovery in the future, persisting
+		// this data may be necessary. This does not impact agent-less deployments
+		// because locality is explicitly set on service registration there.
+
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
 			return fmt.Errorf("Failed to validate checks for service %q: %v", service.Name, err)
