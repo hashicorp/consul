@@ -200,6 +200,27 @@ Specifies a port name that the Kubernetes Service exposes at the destination.
 
 The following examples demonstrate common `TrafficPermissions` CRD configuration patterns for specific use cases.
 
+### Allow traffic to multiple ports
+
+The following example configures traffic permissions to allow traffic when the `web` service makes a request to the `api` service on the `api` port or `admin` port.
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: api-allow-web-all
+spec:
+  destination:
+    identityName: "api"
+  action: ACTION_ALLOW
+  permissions:
+    - sources:
+        - identityName: "web"
+      destinationRules:
+        - portNames: ["api", "admin"]
+
+```
+
 ### Deny traffic between services
 
 The following example configures traffic permissions to deny traffic when the `web` service makes a request to the `api` service on the `admin` port.
