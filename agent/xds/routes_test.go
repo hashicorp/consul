@@ -34,37 +34,9 @@ type routeTestCase struct {
 func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
 	return []routeTestCase{
 		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "connect-proxy-splitter-overweight",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-overweight", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
 		},
@@ -86,13 +58,6 @@ func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
 			name: "connect-proxy-with-chain-and-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-lb-in-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
 			},
 			alsoRunTestForV2: true,
 		},
@@ -142,33 +107,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: false,
 		},
 		{
-			name: "ingress-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"simple", nil, nil, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"external-sni", nil, nil, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
-					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
 			name: "ingress-with-chain-and-splitter",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
@@ -192,27 +130,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"chain-and-router", nil, nil, nil)
 			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "ingress-lb-in-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
-					"lb-resolver", nil, nil, nil)
-			},
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "ingress-http-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
-			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "ingress-grpc-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
 			// TODO(proxystate): ingress gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
@@ -254,12 +171,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "sds-service-level-mixed-tls", nil, nil)
 			},
 			// TODO(proxystate): ingress gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "terminating-gateway-lb-config",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfig,
-			// TODO(proxystate): terminating gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
 		{
