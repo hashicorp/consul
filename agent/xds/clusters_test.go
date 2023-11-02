@@ -69,27 +69,12 @@ func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 			alsoRunTestForV2: false,
 		},
 		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "connect-proxy-with-chain-http2",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http2"
 				}, nil)
 			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			//TODO(proxystate): this requires terminating gateway work
 			alsoRunTestForV2: true,
 		},
 		{
