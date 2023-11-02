@@ -6,7 +6,6 @@ package xds
 import (
 	"bytes"
 	"path/filepath"
-	"sort"
 	"testing"
 	"text/template"
 	"time"
@@ -20,12 +19,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 type mockCfgFetcher struct {
@@ -49,95 +42,6 @@ func uint32ptr(i uint32) *uint32 {
 
 func durationPtr(d time.Duration) *time.Duration {
 	return &d
-}
-
-func TestClustersFromSnapshot(t *testing.T) {
-	// TODO: we should move all of these to TestAllResourcesFromSnapshot
-	// eventually to test all of the xDS types at once with the same input,
-	// just as it would be triggered by our xDS server.
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	tests := []clusterTestCase{}
-
-	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
-	for _, envoyVersion := range xdscommon.EnvoyVersions {
-		sf, err := xdscommon.DetermineSupportedProxyFeaturesFromString(envoyVersion)
-		require.NoError(t, err)
-		t.Run("envoy-"+envoyVersion, func(t *testing.T) {
-			for _, tt := range tests {
-				t.Run(tt.name, func(t *testing.T) {
-					// Sanity check default with no overrides first
-					snap := tt.create(t)
-
-					// We need to replace the TLS certs with deterministic ones to make golden
-					// files workable. Note we don't update these otherwise they'd change
-					// golder files for every test case and so not be any use!
-					testcommon.SetupTLSRootsAndLeaf(t, snap)
-
-					// Need server just for logger dependency
-					g := NewResourceGenerator(testutil.Logger(t), nil, false)
-					g.ProxyFeatures = sf
-
-					clusters, err := g.clustersFromSnapshot(snap)
-					require.NoError(t, err)
-
-					sort.Slice(clusters, func(i, j int) bool {
-						return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
-					})
-
-					r, err := response.CreateResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
-					require.NoError(t, err)
-
-					t.Run("current-xdsv1", func(t *testing.T) {
-						gotJSON := protoToJSON(t, r)
-
-						gName := tt.name
-						if tt.overrideGoldenName != "" {
-							gName = tt.overrideGoldenName
-						}
-
-						require.JSONEq(t, goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
-					})
-
-					if tt.alsoRunTestForV2 {
-						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
-
-						converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
-						proxyState, err := converter.ProxyStateFromSnapshot(snap)
-						require.NoError(t, err)
-
-						res, err := generator.AllResourcesFromIR(proxyState)
-						require.NoError(t, err)
-
-						clusters = res[xdscommon.ClusterType]
-
-						// The order of clusters returned via CDS isn't relevant, so it's safe
-						// to sort these for the purposes of test comparisons.
-						sort.Slice(clusters, func(i, j int) bool {
-							return clusters[i].(*envoy_cluster_v3.Cluster).Name < clusters[j].(*envoy_cluster_v3.Cluster).Name
-						})
-
-						r, err := response.CreateResponse(xdscommon.ClusterType, "00000001", "00000001", clusters)
-						require.NoError(t, err)
-
-						t.Run("current-xdsv2", func(t *testing.T) {
-							gotJSON := protoToJSON(t, r)
-
-							gName := tt.name
-							if tt.overrideGoldenName != "" {
-								gName = tt.overrideGoldenName
-							}
-
-							expectedJSON := goldenEnvoy(t, filepath.Join("clusters", gName), envoyVersion, latestEnvoyVersion, gotJSON)
-							require.JSONEq(t, expectedJSON, gotJSON)
-						})
-					}
-				})
-			}
-		})
-	}
 }
 
 type customClusterJSONOptions struct {
