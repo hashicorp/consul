@@ -252,7 +252,7 @@ Refer to [Envoy proxy escape-hatch overrides](/consul/docs/connect/proxies/envoy
 
 ### `spec.bootstrapConfig.prometheusBindAddr`
 
-Specifies that the proxy should expose a Prometheus metrics endpoint to the _public_ network. It must be supplied in the form `ip:port` and port and the IP and port combination must be free within the network namespace where the proxy runs. The IP `0.0.0.0` binds to all available interfaces or a pod IP address if supported by your existing network settings.
+Configures the proxy to expose a Prometheus metrics endpoint to the public network. Format the endpoint as `ip:port`. The port and IP and port combination must be free within the network namespace where the proxy runs. The IP `0.0.0.0` binds to all available interfaces or a pod IP address if supported by your existing network settings.
 
 #### Values
 
@@ -309,7 +309,7 @@ Specifies that the proxy should expose the `/stats` prefix to the _public_ netwo
 
 Specifies a complete [stats config](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-config).
 
-When provided, this field overrides [`spec.bootstrapConfig.statsTags`](#spec-boostrapconfig-statstags) and enables full control over dynamic tag replacements.
+When provided, this field overrides [`spec.bootstrapConfig.statsTags`](#spec-bootstrapconfig-statstags) and enables full control over dynamic tag replacements.
 
 Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
 
@@ -329,7 +329,7 @@ Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/e
 
 ### `spec.bootstrapConfig.statsSinkJson`
 
-Specifies one or more [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-sinks) to append to sinks defined using [`spec.bootstrapConfig.statsdUrl`](#spec-bootstrapconfig-statsdurl) or [`spec.bootstrapConfig.dogstatsdUrl`](#spec-boostrapconfig-dogstatsdurl).
+Specifies one or more [stats sinks](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-sinks) to append to sinks defined using [`spec.bootstrapConfig.statsdUrl`](#spec-bootstrapconfig-statsdurl) or [`spec.bootstrapConfig.dogstatsdUrl`](#spec-bootstrapconfig-dogstatsdurl).
 
 Refer to [Envoy proxy advanced bootstrap options](/consul/docs/connect/proxies/envoy#advanced-bootstrap-options) for more information and examples.
 
@@ -458,14 +458,9 @@ Specifies the output type for the access logs.
   - `LOG_SINK_TYPE_STDERR`
   - `LOG_SINK_TYPE_STDOUT`
 
-#### Values
-
-- Default: None
-- Data type: String
-
 ### `spec.dynamicConfig.exposeConfig`
 
-Specifies configurations to expose the proxy.
+Specifies configurations for exposing the proxy.
 
 Refer to [expose paths configuration reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for more information.
 
