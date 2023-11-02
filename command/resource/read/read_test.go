@@ -67,7 +67,7 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 		"invalid resource type format": {
 			args:         []string{"a.", "name", "-namespace", "default"},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must include resource type argument in group.verion.kind format"),
+			expectedErr:  errors.New("Incorrect argument format: Must provide resource type argument with either in group.verion.kind format or its shorthand name"),
 		},
 	}
 
