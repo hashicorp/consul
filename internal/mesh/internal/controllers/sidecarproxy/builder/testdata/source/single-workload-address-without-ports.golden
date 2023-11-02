@@ -108,32 +108,6 @@
                 }
               }
             },
-            "l7": {
-              "protocol": "L7_PROTOCOL_GRPC",
-              "route": {
-                "name": "public_listener:grpc"
-              },
-              "statPrefix": "public_listener",
-              "staticRoute": true,
-              "trafficPermissions": {}
-            },
-            "match": {
-              "alpnProtocols": [
-                "consul~grpc"
-              ]
-            }
-          },
-          {
-            "inboundTls": {
-              "inboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "trustBundlePeerNameKeys": [
-                    "local"
-                  ]
-                }
-              }
-            },
             "l4": {
               "cluster": {
                 "name": "local_app:tcp"
@@ -195,6 +169,32 @@
             "match": {
               "alpnProtocols": [
                 "consul~http2"
+              ]
+            }
+          },
+          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
+            "l7": {
+              "protocol": "L7_PROTOCOL_GRPC",
+              "route": {
+                "name": "public_listener:grpc"
+              },
+              "statPrefix": "public_listener",
+              "staticRoute": true,
+              "trafficPermissions": {}
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~grpc"
               ]
             }
           }
