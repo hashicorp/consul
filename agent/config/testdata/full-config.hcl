@@ -317,6 +317,10 @@ limits {
         write_rate = 101.0
     }
 }
+locality = {
+    region = "us-east-2"
+    zone = "us-east-2b"
+}
 log_level = "k1zo9Spt"
 log_json = true
 max_query_time = "18237s"
@@ -510,6 +514,10 @@ service = {
     connect {
         native = true
     }
+    locality = {
+        region = "us-west-1"
+        zone = "us-west-1a"
+    }
 }
 services = [
     {
@@ -549,6 +557,10 @@ services = [
         }
         connect {
             sidecar_service {}
+        }
+        locality = {
+            region = "us-east-1"
+            zone = "us-east-1a"
         }
     },
     {
