@@ -180,11 +180,11 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	})
 
 	t.Run("HTTP service fails due to connection timeout", func(t *testing.T) {
-		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort,
+		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/?delay=1000ms", s.upstream.LocalPort)),
 		)
 
-		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort,
+		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/", s.upstream.LocalPort)),
 		)
 

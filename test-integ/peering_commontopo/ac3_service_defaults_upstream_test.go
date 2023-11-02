@@ -11,14 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/itchyny/gojq"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 )
 
 var ac3SvcDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -185,7 +184,7 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	// TODO: what is default? namespace? partition?
 	clusterName := fmt.Sprintf("%s.default.%s.external", s.upstream.ID.Name, s.upstream.Peer)
 	nonceStatus := http.StatusInsufficientStorage
-	url507 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort,
+	url507 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort(""),
 		url.QueryEscape(fmt.Sprintf("http://localhost:%d/?status=%d", s.upstream.LocalPort, nonceStatus)),
 	)
 
@@ -221,7 +220,7 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 		require.True(r, resultAsBool)
 	})
 
-	url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort,
+	url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort(""),
 		url.QueryEscape(fmt.Sprintf("http://localhost:%d/", s.upstream.LocalPort)),
 	)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
