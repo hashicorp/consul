@@ -21,7 +21,10 @@ Registering multi-port services with Consul requires Kubernetes. Multi-port serv
 The following minimum versions are required:
 
 - Consul v1.17.0
-- `consul-k8s` CLI v1.3.0+ or `hashicorp/consul` Helm chart release v1.3.0+
+- `consul-k8s` CLI v1.3.0 or `hashicorp/consul` Helm chart release v1.3.0
+- `consul-dataplanes` v1.3.0
+
+The required version of Consul dataplanes deploy automatically when using the required `consul-k8s` version. To change the dataplane version, [modify `imageConsulDataplane`](/consul/docs/k8s/helm#v-global-imageconsuldataplane).
 
 For more information about upgrading versions for `consul-k8s` and Helm charts, refer to [Update the Consul K8s CLI](/consul/docs/k8s/upgrade/upgrade-cli) and [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
 
