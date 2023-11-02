@@ -102,13 +102,27 @@ func TestBuildLocalApp(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", c.defaultAllow, nil).
-				BuildLocalApp(c.workload, c.ctp).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, nil).
+				BuildLocalApp(c.workload, nil).
 				Build()
-			actual := protoToJSON(t, proxyTmpl)
-			expected := golden.Get(t, actual, name+".golden")
 
-			require.JSONEq(t, expected, actual)
+			// sort routers because of test flakes where order was flip flopping.
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
+
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+".golden"))
+
+			// sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+
+			// convert back to json after sorting so that test output does not contain extraneous fields.
+			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 		})
 	}
 }

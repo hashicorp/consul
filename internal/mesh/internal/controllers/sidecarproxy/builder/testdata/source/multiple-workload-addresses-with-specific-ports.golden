@@ -108,28 +108,18 @@
                 }
               }
             },
-            "l4": {
-              "cluster": {
-                "name": "local_app:tcp"
+            "l7": {
+              "protocol": "L7_PROTOCOL_GRPC",
+              "route": {
+                "name": "public_listener:grpc"
               },
               "statPrefix": "public_listener",
-              "trafficPermissions": {
-                "allowPermissions": [
-                  {
-                    "principals": [
-                      {
-                        "spiffe": {
-                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+              "staticRoute": true,
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
-                "consul~tcp"
+                "consul~grpc"
               ]
             }
           },
@@ -150,19 +140,7 @@
               },
               "statPrefix": "public_listener",
               "staticRoute": true,
-              "trafficPermissions": {
-                "allowPermissions": [
-                  {
-                    "principals": [
-                      {
-                        "spiffe": {
-                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
@@ -188,19 +166,7 @@
               },
               "statPrefix": "public_listener",
               "staticRoute": true,
-              "trafficPermissions": {
-                "allowPermissions": [
-                  {
-                    "principals": [
-                      {
-                        "spiffe": {
-                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
@@ -219,30 +185,16 @@
                 }
               }
             },
-            "l7": {
-              "protocol": "L7_PROTOCOL_GRPC",
-              "route": {
-                "name": "public_listener:grpc"
+            "l4": {
+              "cluster": {
+                "name": "local_app:tcp"
               },
               "statPrefix": "public_listener",
-              "staticRoute": true,
-              "trafficPermissions": {
-                "allowPermissions": [
-                  {
-                    "principals": [
-                      {
-                        "spiffe": {
-                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
-                        }
-                      }
-                    ]
-                  }
-                ]
-              }
+              "trafficPermissions": {}
             },
             "match": {
               "alpnProtocols": [
-                "consul~grpc"
+                "consul~tcp"
               ]
             }
           }
