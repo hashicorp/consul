@@ -35,6 +35,7 @@ Use these links to navigate to a particular top-level stanza.
 - [`webhookCertManager`](#h-webhookcertmanager)
 - [`prometheus`](#h-prometheus)
 - [`tests`](#h-tests)
+- [`telemetryCollector`](#h-telemetrycollector)
 
 ## All Values
 
@@ -133,7 +134,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `vault` ((#v-global-secretsbackend-vault))
 
-      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace`
+      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
         agent annotation and [Vault Connect CA namespace](https://developer.hashicorp.com/consul/docs/connect/ca/vault#namespace).
         To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
 
@@ -181,11 +182,6 @@ Use these links to navigate to a particular top-level stanza.
         $ helm template --show-only templates/partition-init-serviceaccount.yaml -f client-cluster-values.yaml <release-name> hashicorp/consul
         ```
         and check the name of `metadata.name`.
-
-      - `controllerRole` ((#v-global-secretsbackend-vault-controllerrole)) (`string: ""`) - The Vault role to read Consul controller's webhook's
-        CA and issue a certificate and private key.
-        A Vault policy must be created which grants issue capabilities to
-        `global.secretsBackend.vault.controller.tlsCert.secretName`.
 
       - `connectInjectRole` ((#v-global-secretsbackend-vault-connectinjectrole)) (`string: ""`) - The Vault role to read Consul connect-injector webhook's CA
         and issue a certificate and private key.
@@ -248,22 +244,6 @@ Use these links to navigate to a particular top-level stanza.
               }]
             }
           ```
-
-      - `controller` ((#v-global-secretsbackend-vault-controller))
-
-        - `tlsCert` ((#v-global-secretsbackend-vault-controller-tlscert)) - Configuration to the Vault Secret that Kubernetes will use on
-          Kubernetes CRD creation, deletion, and update, to get TLS certificates
-          used issued from vault to send webhooks to the controller.
-
-          - `secretName` ((#v-global-secretsbackend-vault-controller-tlscert-secretname)) (`string: null`) - The Vault secret path that issues TLS certificates for controller
-            webhooks.
-
-        - `caCert` ((#v-global-secretsbackend-vault-controller-cacert)) - Configuration to the Vault Secret that Kubernetes will use on
-          Kubernetes CRD creation, deletion, and update, to get CA certificates
-          used issued from vault to send webhooks to the controller.
-
-          - `secretName` ((#v-global-secretsbackend-vault-controller-cacert-secretname)) (`string: null`) - The Vault secret path that contains the CA certificate for controller
-            webhooks.
 
       - `connectInject` ((#v-global-secretsbackend-vault-connectinject))
 
@@ -412,14 +392,20 @@ Use these links to navigate to a particular top-level stanza.
 
     - `logLevel` ((#v-global-acls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
-    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for
-      creating policies and tokens for all Consul and consul-k8s-control-plane components.
-      If set, we will skip ACL bootstrapping of the servers and will only
-      initialize ACLs for the Consul clients and consul-k8s-control-plane system components.
+    - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for creating policies and
+      tokens for all Consul and consul-k8s-control-plane components. If `secretName` and `secretKey`
+      are unset, a default secret name and secret key are used. If the secret is populated, then
+      we will skip ACL bootstrapping of the servers and will only initialize ACLs for the Consul
+      clients and consul-k8s-control-plane system components.
+      If the secret is empty, then we will bootstrap ACLs on the Consul servers, and write the
+      bootstrap token to this secret. If ACLs are already bootstrapped on the servers, then the
+      secret must contain the bootstrap token.
 
       - `secretName` ((#v-global-acls-bootstraptoken-secretname)) (`string: null`) - The name of the Kubernetes or Vault secret that holds the bootstrap token.
+        If unset, this defaults to `{{ global.name }}-bootstrap-acl-token`.
 
       - `secretKey` ((#v-global-acls-bootstraptoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the bootstrap token.
+        If unset, this defaults to `token`.
 
     - `createReplicationToken` ((#v-global-acls-createreplicationtoken)) (`boolean: false`) - If true, an ACL token will be created that can be used in secondary
       datacenters for replication. This should only be set to true in the
@@ -515,7 +501,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `connectInject.enabled`, and one of
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
       `meshGateway.enabled` or `externalServers.enabled` to be true.
       Requires Consul 1.8+.
 
@@ -539,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/kubernetes).
 
-      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
       `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
@@ -568,6 +554,9 @@ Use these links to navigate to a particular top-level stanza.
     - `enableGatewayMetrics` ((#v-global-metrics-enablegatewaymetrics)) (`boolean: true`) - If true, mesh, terminating, and ingress gateways will expose their
       Envoy metrics on port `20200` at the `/metrics` path and all gateway pods
       will have Prometheus scrape annotations. Only applicable if `global.metrics.enabled` is true.
+
+    - `enableTelemetryCollector` ((#v-global-metrics-enabletelemetrycollector)) (`boolean: false`) - Configures the Helm chart’s components to forward envoy metrics for the Consul service mesh to the
+      consul-telemetry-collector. This includes gateway metrics and sidecar metrics.
 
   - `imageConsulDataplane` ((#v-global-imageconsuldataplane)) (`string: hashicorp/consul-dataplane:<latest supported version>`) - The name (and tag) of the consul-dataplane Docker image used for the
     connect-injected sidecar proxies and mesh, terminating, and ingress gateways.
@@ -637,6 +626,19 @@ Use these links to navigate to a particular top-level stanza.
     extraLabels:
       labelKey: label-value
       anotherLabelKey: another-label-value
+    ```
+
+  - `trustedCAs` ((#v-global-trustedcas)) (`array<string>: []`) - Optional PEM-encoded CA certificates that will be added to trusted system CAs.
+
+    Example:
+
+    ```yaml
+    trustedCAs: [
+      |
+      -----BEGIN CERTIFICATE-----
+      MIIC7jCCApSgAwIBAgIRAIq2zQEVexqxvtxP6J0bXAwwCgYIKoZIzj0EAwIwgbkx
+      ...
+    ]
     ```
 
 ### server ((#h-server))
@@ -1112,7 +1114,7 @@ Use these links to navigate to a particular top-level stanza.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/kubernetes).
 
-    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
     `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:
@@ -2360,8 +2362,8 @@ Use these links to navigate to a particular top-level stanza.
 
   - `gateways` ((#v-ingressgateways-gateways)) (`array<map>`) - Gateways is a list of gateway objects. The only required field for
     each is `name`, though they can also contain any of the fields in
-    `defaults`. You must provide a unique name for each ingress gateway. These names
-    must be unique across different namespaces.
+    `defaults`. You must provide a unique name for each ingress gateway. These names 
+    must be unique across different namespaces. 
     Values defined here override the defaults, except in the case of annotations where both will be applied.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
@@ -2629,6 +2631,78 @@ Use these links to navigate to a particular top-level stanza.
   is only useful when running helm template.
 
   - `enabled` ((#v-tests-enabled)) (`boolean: true`)
+
+### telemetryCollector ((#h-telemetrycollector))
+
+- `telemetryCollector` ((#v-telemetrycollector))
+
+  - `enabled` ((#v-telemetrycollector-enabled)) (`boolean: false`) - Enables the consul-telemetry-collector deployment
+
+  - `logLevel` ((#v-telemetrycollector-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
+
+  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.2`) - The name of the Docker image (including any tag) for the containers running
+    the consul-telemetry-collector
+
+  - `resources` ((#v-telemetrycollector-resources)) (`map`) - The resource settings for consul-telemetry-collector pods.
+
+  - `replicas` ((#v-telemetrycollector-replicas)) (`integer: 1`) - This value sets the number of consul-telemetry-collector replicas to deploy.
+
+  - `customExporterConfig` ((#v-telemetrycollector-customexporterconfig)) (`string: null`) - This value defines additional configuration for the telemetry collector. It should be formatted as a multi-line
+    json blob string
+
+    ```yaml
+    customExporterConfig: |
+      {"http_collector_endpoint": "other-otel-collector"}
+    ```
+
+  - `service` ((#v-telemetrycollector-service))
+
+    - `annotations` ((#v-telemetrycollector-service-annotations)) (`string: null`) - This value defines additional annotations for the server service account. This should be formatted as a multi-line
+      string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
+  - `serviceAccount` ((#v-telemetrycollector-serviceaccount))
+
+    - `annotations` ((#v-telemetrycollector-serviceaccount-annotations)) (`string: null`) - This value defines additional annotations for the telemetry-collector's service account. This should be formatted
+      as a multi-line string.
+
+      ```yaml
+      annotations: |
+        "sample/annotation1": "foo"
+        "sample/annotation2": "bar"
+      ```
+
+  - `cloud` ((#v-telemetrycollector-cloud))
+
+    - `clientId` ((#v-telemetrycollector-cloud-clientid))
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`)
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`)
+
+    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret))
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`)
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientsecret-secretkey)) (`string: null`)
+
+  - `initContainer` ((#v-telemetrycollector-initcontainer))
+
+    - `resources` ((#v-telemetrycollector-initcontainer-resources)) (`map`) - The resource settings for consul-telemetry-collector initContainer.
+
+  - `nodeSelector` ((#v-telemetrycollector-nodeselector)) (`string: null`) - Optional YAML string to specify a nodeSelector config.
+
+  - `priorityClassName` ((#v-telemetrycollector-priorityclassname)) (`string: ""`) - Optional priorityClassName.
+
+  - `extraEnvironmentVars` ((#v-telemetrycollector-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
+    These could be used to include proxy settings required for cloud auto-join
+    feature, in case kubernetes cluster is behind egress http proxies. Additionally,
+    it could be used to configure custom consul parameters.
 
   <!-- codegen: end -->
 
