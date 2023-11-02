@@ -357,6 +357,16 @@ func getConnectProxyGoldenTestsCases() []goldenTestCase {
 			},
 			alsoRunTestForV2: true,
 		},
+		{
+			name:             "transparent-proxy-catalog-destinations-only",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
+			alsoRunTestForV2: true,
+		},
+		{
+			name:             "transparent-proxy-dial-instances-directly",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
+			alsoRunTestForV2: true,
+		},
 	}
 }
 
