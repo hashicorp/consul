@@ -448,7 +448,9 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 						}
 					}
 				} else {
-					return nil, fmt.Errorf("v1 does not support implied upstreams yet")
+					if len(svc.ImpliedUpstreams) > 0 {
+						return nil, fmt.Errorf("v1 does not support implied upstreams yet")
+					}
 				}
 
 				if err := svc.Validate(); err != nil {
