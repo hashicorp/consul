@@ -107,6 +107,7 @@ type ResourceServiceClient interface {
 	//
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(ctx context.Context, in *WatchListRequest, opts ...grpc.CallOption) (ResourceService_WatchListClient, error)
+	POCList(ctx context.Context, in *POCListRequest, opts ...grpc.CallOption) (*POCListResponse, error)
 }
 
 type resourceServiceClient struct {
@@ -203,6 +204,15 @@ func (x *resourceServiceWatchListClient) Recv() (*WatchEvent, error) {
 	return m, nil
 }
 
+func (c *resourceServiceClient) POCList(ctx context.Context, in *POCListRequest, opts ...grpc.CallOption) (*POCListResponse, error) {
+	out := new(POCListResponse)
+	err := c.cc.Invoke(ctx, "/hashicorp.consul.resource.ResourceService/POCList", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ResourceServiceServer is the server API for ResourceService service.
 // All implementations should embed UnimplementedResourceServiceServer
 // for forward compatibility
@@ -292,6 +302,7 @@ type ResourceServiceServer interface {
 	//
 	// buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
 	WatchList(*WatchListRequest, ResourceService_WatchListServer) error
+	POCList(context.Context, *POCListRequest) (*POCListResponse, error)
 }
 
 // UnimplementedResourceServiceServer should be embedded to have forward compatible implementations.
@@ -318,6 +329,9 @@ func (UnimplementedResourceServiceServer) Delete(context.Context, *DeleteRequest
 }
 func (UnimplementedResourceServiceServer) WatchList(*WatchListRequest, ResourceService_WatchListServer) error {
 	return status.Errorf(codes.Unimplemented, "method WatchList not implemented")
+}
+func (UnimplementedResourceServiceServer) POCList(context.Context, *POCListRequest) (*POCListResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method POCList not implemented")
 }
 
 // UnsafeResourceServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -460,6 +474,24 @@ func (x *resourceServiceWatchListServer) Send(m *WatchEvent) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _ResourceService_POCList_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(POCListRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceServiceServer).POCList(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/hashicorp.consul.resource.ResourceService/POCList",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceServiceServer).POCList(ctx, req.(*POCListRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ResourceService_ServiceDesc is the grpc.ServiceDesc for ResourceService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -490,6 +522,10 @@ var ResourceService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Delete",
 			Handler:    _ResourceService_Delete_Handler,
+		},
+		{
+			MethodName: "POCList",
+			Handler:    _ResourceService_POCList_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

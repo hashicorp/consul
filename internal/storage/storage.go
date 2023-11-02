@@ -224,6 +224,8 @@ type Backend interface {
 	// it should not be depended on outside of the backward compatability layer.
 	List(ctx context.Context, consistency ReadConsistency, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
 
+	POCList(ctx context.Context, consistency ReadConsistency, resType UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error)
+
 	// WatchList watches resources of the given type, tenancy, and optionally
 	// matching the given name prefix. Upsert events for the current state of the
 	// world (i.e. existing resources that match the given filters) will be emitted

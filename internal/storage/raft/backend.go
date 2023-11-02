@@ -215,6 +215,10 @@ func (b *Backend) leaderList(ctx context.Context, resType storage.UnversionedTyp
 	return b.store.List(resType, tenancy, namePrefix)
 }
 
+func (b *Backend) POCList(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	return b.store.POCList(resType, tenancy, namePrefix)
+}
+
 // WatchList implements the storage.Backend interface.
 func (b *Backend) WatchList(_ context.Context, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) (storage.Watch, error) {
 	return b.store.WatchList(resType, tenancy, namePrefix)

@@ -247,6 +247,61 @@ func (this *WatchEvent) UnmarshalJSON(b []byte) error {
 	return ResourceUnmarshaler.Unmarshal(b, this)
 }
 
+// MarshalJSON is a custom marshaler for POCListRequest
+func (this *POCListRequest) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for POCListRequest
+func (this *POCListRequest) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for POCListRequest_ListByTypeRequest
+func (this *POCListRequest_ListByTypeRequest) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for POCListRequest_ListByTypeRequest
+func (this *POCListRequest_ListByTypeRequest) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for POCListRequest_ListByNamePrefixRequest
+func (this *POCListRequest_ListByNamePrefixRequest) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for POCListRequest_ListByNamePrefixRequest
+func (this *POCListRequest_ListByNamePrefixRequest) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for POCListRequest_ListByOwnerRequest
+func (this *POCListRequest_ListByOwnerRequest) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for POCListRequest_ListByOwnerRequest
+func (this *POCListRequest_ListByOwnerRequest) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
+// MarshalJSON is a custom marshaler for POCListResponse
+func (this *POCListResponse) MarshalJSON() ([]byte, error) {
+	str, err := ResourceMarshaler.Marshal(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for POCListResponse
+func (this *POCListResponse) UnmarshalJSON(b []byte) error {
+	return ResourceUnmarshaler.Unmarshal(b, this)
+}
+
 var (
 	ResourceMarshaler   = &protojson.MarshalOptions{}
 	ResourceUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

@@ -351,6 +351,13 @@ service ResourceService {
       operation_category: OPERATION_CATEGORY_RESOURCE
     };
   }
+
+  rpc POCList(POCListRequest) returns (POCListResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_RESOURCE
+    };
+  }
 }
 
 // ReadRequest contains the parameters to the Read endpoint.
@@ -487,4 +494,32 @@ message WatchEvent {
 
   // Resource the event relates to.
   Resource resource = 2;
+}
+
+message POCListRequest {
+  oneof Request {
+    ListByTypeRequest filter_by_type = 2;
+    ListByNamePrefixRequest filter_by_name_prefix = 3;
+    ListByOwnerRequest filter_by_owner = 5;
+  }
+
+  message ListByTypeRequest {
+    Type type = 1;
+    Tenancy tenancy = 2;
+  }
+
+  message ListByNamePrefixRequest {
+    Type type = 1;
+    Tenancy tenancy = 2;
+    string name_prefix = 3;
+  }
+
+  message ListByOwnerRequest {
+    ID owner = 1;
+  }
+
+}
+
+message POCListResponse {
+  repeated Resource resources = 1;
 }
