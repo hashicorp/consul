@@ -525,7 +525,7 @@ jobs:
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
-            -json . \
+            -json \
             `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local
