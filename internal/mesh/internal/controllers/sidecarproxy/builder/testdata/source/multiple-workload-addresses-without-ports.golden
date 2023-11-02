@@ -197,30 +197,6 @@
                 "consul~grpc"
               ]
             }
-          },
-          {
-            "inboundTls": {
-              "inboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "trustBundlePeerNameKeys": [
-                    "local"
-                  ]
-                }
-              }
-            },
-            "l4": {
-              "cluster": {
-                "name": "local_app:tcp"
-              },
-              "statPrefix": "public_listener",
-              "trafficPermissions": {}
-            },
-            "match": {
-              "alpnProtocols": [
-                "consul~tcp"
-              ]
-            }
           }
         ]
       }
