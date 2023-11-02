@@ -1656,6 +1656,12 @@ func getIngressGatewayGoldenTestCases() []goldenTestCase {
 			// TODO(proxystate): ingress gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
+		{
+			name:   "ingress-multiple-listeners-duplicate-service",
+			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
 	}
 }
 

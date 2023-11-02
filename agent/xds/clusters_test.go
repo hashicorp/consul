@@ -61,12 +61,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 
 	tests := []clusterTestCase{
 		{
-			name:   "ingress-multiple-listeners-duplicate-service",
-			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
 			name:             "transparent-proxy-catalog-destinations-only",
 			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
 			alsoRunTestForV2: true,
