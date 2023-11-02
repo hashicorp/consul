@@ -297,7 +297,7 @@ The following examples demonstrate common TCPRoute CRD configuration patterns fo
 
 ### Split TCP traffic between two ports
 
-The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
+The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `admin` port.
 
 ```yaml
 apiVersion: mesh.consul.hashicorp.com/v2beta1
@@ -314,7 +314,7 @@ spec:
           kind: Service
         name: api
       # The configuration targets the workload port, not the service port.
-      port: "api-workload"
+      port: "api"
   rules:
     - backendRefs:
       - backendRef:
@@ -325,7 +325,7 @@ spec:
               kind: Service
             name: api
           # The configuration targets the workload port, not the service port.
-          port: "api-workload"
+          port: "api"
         weight: 50
       - backendRef:
           ref: 
@@ -335,6 +335,6 @@ spec:
               kind: Service
             name: api
           # The configuration targets the workload port, not the service port.
-          port: "admin-workload"
+          port: "admin"
         weight: 50
 ```

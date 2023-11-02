@@ -36,7 +36,7 @@ You can issue the following subcommands with the `consul resource` command.
 
 `consul resource apply` writes or updates a resource at a given file path. 
 
-The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `apply` command:
+The following table shows the required [ACLs permission](/consul/api-docs/api-structure#authentication) to run the `apply` command:
 
 | ACL Required |
 | ------------ |
@@ -51,14 +51,14 @@ The following table shows the required [ACLs permissions](/consul/api-docs/api-s
 The following command applies a traffic permissions resource to Consul that restricts service-to-service communication to authorized services only.
 
 ```shell-session hideClipboard
-$ consul resource apply -f=trafficpermissions.yaml
+$ consul resource apply -f=trafficpermissions.hcl
 ```
 
 ### `delete`
 
 `consul resource delete`removes a Consul resource at a given file path.
 
-The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `delete` command:
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `delete` command:
 
 | ACL Required |
 | ------------ |
@@ -73,7 +73,7 @@ The following table shows the required [ACLs permissions](/consul/api-docs/api-s
 The following command removes a traffic permissions resource from Consul that restricts service-to-service communication to authorized services only.
 
 ```shell-session hideClipboard
-$ consul resource delete -f=trafficpermissions.yaml
+$ consul resource delete -f=trafficpermissions.hcl
 ```
 
 ### `list`
@@ -82,7 +82,7 @@ $ consul resource delete -f=trafficpermissions.yaml
 
 This command must be issued with a resource type. All resource definitions include a `type` configuration block that contains a `group`, `groupVersion`, and `kind`. By formatting the `type` on the command line as `group.groupVersion.kind`, you can return all resources with a matching `type` in the configuration.
 
-The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `list` command:
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `list` command:
 
 | ACL Required |
 | ------------ |
@@ -106,9 +106,9 @@ $ consul resource list catalog.v2beta1.Service card-processor -partition=billing
 
 ### `read`
 
-`consul resource read` outputs names of resources according to the type of resource or where the resource is applied.
+`consul resource read` outputs information about resources according to the type of resource or where the resource is applied.
 
-The following table shows the required [ACLs permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
+The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
 
 | ACL Required |
 | ------------ |
@@ -124,8 +124,72 @@ The following table shows the required [ACLs permissions](/consul/api-docs/api-s
 
 #### Example usage
 
-The following command outputs the resource that applies to a specific `card-processor` service when the service runs on the `billing partition` in the `payments` namespace on peer cluster `dc2-store`.
+In the following example, the output for reading the resource for the `web` service includes information such as ports, virtual IPs, and workload identity.
 
 ```shell-session hideClipboard
-$ consul resource read catalog.v2beta1.Service card-processor -partition=billing -namespace=payments -peer=dc2-store
+$ consul resource read catalog.v2beta1.Service web
+
+{
+    "data": {
+        "ports": [
+            {
+                "protocol": "PROTOCOL_TCP",
+                "targetPort": "80",
+                "virtualPort": 80
+            },
+            {
+                "protocol": "PROTOCOL_MESH",
+                "targetPort": "mesh"
+            }
+        ],
+        "virtualIps": [
+            "10.96.98.157"
+        ],
+        "workloads": {
+            "prefixes": [
+                "web-6fd5c8bf57"
+            ]
+        }
+    },
+    "generation": "01HE6MPDXC1J6ZMEMPN1460Z6K",
+    "id": {
+        "name": "web",
+        "tenancy": {
+            "namespace": "default",
+            "partition": "default",
+            "peerName": "local"
+        },
+        "type": {
+            "group": "catalog",
+            "groupVersion": "v2beta1",
+            "kind": "Service"
+        },
+        "uid": "01HE6MPDXC1J6ZMEMPN0648FVB"
+    },
+    "metadata": {
+        "k8s-namespace": "default",
+        "managed-by": "consul-k8s-endpoints-controller-v2"
+    },
+    "status": {
+        "consul.io/endpoint-manager": {
+            "conditions": [
+                {
+                    "message": "A valid workload selector is present within the service.",
+                    "reason": "SelectorFound",
+                    "state": "STATE_TRUE",
+                    "type": "EndpointsManaged"
+                },
+                {
+                    "message": "Found workload identities associated with this service: \"web\".",
+                    "reason": "WorkloadIdentitiesFound",
+                    "state": "STATE_TRUE",
+                    "type": "BoundIdentities"
+                }
+            ],
+            "observedGeneration": "01HE6MPDXC1J6ZMEMPN1460Z6K",
+            "updatedAt": "2023-11-01T23:49:59.172604219Z"
+        }
+    },
+    "version": "137"
+}
 ```
