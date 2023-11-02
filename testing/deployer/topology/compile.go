@@ -13,10 +13,17 @@ import (
 	"sort"
 
 	"github.com/google/go-cmp/cmp"
+	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
+	"golang.org/x/exp/maps"
+
+	"github.com/hashicorp/consul/testing/deployer/util"
 )
 
-const DockerPrefix = "consulcluster"
+const DockerPrefix = "cslc" // ConSuLCluster
 
 func Compile(logger hclog.Logger, raw *Config) (*Topology, error) {
 	return compile(logger, raw, nil)
@@ -122,6 +129,22 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			return nil, fmt.Errorf("cluster %q has no nodes", c.Name)
 		}
 
+		if len(c.Services) == 0 { // always initialize this regardless of v2-ness, because we might late-enable it below
+			c.Services = make(map[ServiceID]*pbcatalog.Service)
+		}
+
+		var implicitV2Services bool
+		if len(c.Services) > 0 {
+			c.EnableV2 = true
+			for name, svc := range c.Services {
+				if svc.Workloads != nil {
+					return nil, fmt.Errorf("the workloads field for v2 service %q is not user settable", name)
+				}
+			}
+		} else {
+			implicitV2Services = true
+		}
+
 		if c.TLSVolumeName != "" {
 			return nil, fmt.Errorf("user cannot specify the TLSVolumeName field")
 		}
@@ -149,6 +172,39 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			addTenancy(ce.GetPartition(), ce.GetNamespace())
 		}
 
+		if len(c.InitialResources) > 0 {
+			c.EnableV2 = true
+		}
+		for _, res := range c.InitialResources {
+			if res.Id.Tenancy == nil {
+				res.Id.Tenancy = &pbresource.Tenancy{}
+			}
+			switch res.Id.Tenancy.PeerName {
+			case "", "local":
+			default:
+				return nil, fmt.Errorf("resources cannot target non-local peers")
+			}
+			res.Id.Tenancy.Partition = PartitionOrDefault(res.Id.Tenancy.Partition)
+			res.Id.Tenancy.Namespace = NamespaceOrDefault(res.Id.Tenancy.Namespace)
+
+			switch {
+			case util.EqualType(pbauth.ComputedTrafficPermissionsType, res.Id.GetType()),
+				util.EqualType(pbauth.WorkloadIdentityType, res.Id.GetType()):
+				fallthrough
+			case util.EqualType(pbmesh.ComputedRoutesType, res.Id.GetType()),
+				util.EqualType(pbmesh.ProxyStateTemplateType, res.Id.GetType()):
+				fallthrough
+			case util.EqualType(pbcatalog.HealthChecksType, res.Id.GetType()),
+				util.EqualType(pbcatalog.HealthStatusType, res.Id.GetType()),
+				util.EqualType(pbcatalog.NodeType, res.Id.GetType()),
+				util.EqualType(pbcatalog.ServiceEndpointsType, res.Id.GetType()),
+				util.EqualType(pbcatalog.WorkloadType, res.Id.GetType()):
+				return nil, fmt.Errorf("you should not create a resource of type %q this way", util.TypeToString(res.Id.Type))
+			}
+
+			addTenancy(res.Id.Tenancy.Partition, res.Id.Tenancy.Namespace)
+		}
+
 		seenNodes := make(map[NodeID]struct{})
 		for _, n := range c.Nodes {
 			if n.Name == "" {
@@ -162,6 +218,20 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			case NodeKindServer, NodeKindClient, NodeKindDataplane:
 			default:
 				return nil, fmt.Errorf("cluster %q node %q has invalid kind: %s", c.Name, n.Name, n.Kind)
+			}
+
+			if n.Version == NodeVersionUnknown {
+				n.Version = NodeVersionV1
+			}
+			switch n.Version {
+			case NodeVersionV1:
+			case NodeVersionV2:
+				if n.Kind == NodeKindClient {
+					return nil, fmt.Errorf("v2 does not support client agents at this time")
+				}
+				c.EnableV2 = true
+			default:
+				return nil, fmt.Errorf("cluster %q node %q has invalid version: %s", c.Name, n.Name, n.Version)
 			}
 
 			n.Partition = PartitionOrDefault(n.Partition)
@@ -257,6 +327,10 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 
 				// Denormalize
 				svc.Node = n
+				svc.NodeVersion = n.Version
+				if n.IsV2() {
+					svc.Workload = svc.ID.Name + "-" + n.PodName()
+				}
 
 				if !IsValidLabel(svc.ID.Partition) {
 					return nil, fmt.Errorf("service partition is not valid: %s", svc.ID.Partition)
@@ -330,14 +404,78 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 						foundPeerNames[c.Name][u.Peer] = struct{}{}
 					}
 
-					if u.ID.Name == "" {
-						return nil, fmt.Errorf("upstream service name is required")
-					}
 					addTenancy(u.ID.Partition, u.ID.Namespace)
+
+					if u.LocalAddress == "" {
+						// v1 defaults to 127.0.0.1 but v2 does not. Safe to do this generally though.
+						u.LocalAddress = "127.0.0.1"
+					}
+
+					if u.PortName != "" && n.IsV1() {
+						return nil, fmt.Errorf("explicit upstreams cannot use port names in v1")
+					}
+					if u.PortName == "" && n.IsV2() {
+						// Assume this is a v1->v2 conversion and name it.
+						u.PortName = "legacy"
+					}
 				}
 
 				if err := svc.Validate(); err != nil {
 					return nil, fmt.Errorf("cluster %q node %q service %q is not valid: %w", c.Name, n.Name, svc.ID.String(), err)
+				}
+
+				if n.IsV2() {
+					if implicitV2Services {
+						svc.V2Services = []string{svc.ID.Name}
+
+						var svcPorts []*pbcatalog.ServicePort
+						for name := range svc.Ports {
+							svcPorts = append(svcPorts, &pbcatalog.ServicePort{
+								TargetPort: name,
+								Protocol:   pbcatalog.Protocol_PROTOCOL_TCP, // TODO
+							})
+						}
+						if !svc.DisableServiceMesh {
+							svcPorts = append(svcPorts, &pbcatalog.ServicePort{
+								TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+							})
+						}
+
+						v2svc := &pbcatalog.Service{
+							Workloads: &pbcatalog.WorkloadSelector{
+								Names: []string{svc.Workload},
+							},
+							Ports: svcPorts,
+						}
+
+						c.Services[svc.ID] = v2svc
+
+					} else {
+						for _, name := range svc.V2Services {
+							v2ID := NewServiceID(name, svc.ID.Namespace, svc.ID.Partition)
+
+							v2svc, ok := c.Services[v2ID]
+							if !ok {
+								return nil, fmt.Errorf("cluster %q node %q service %q has a v2 service reference that does not exist %q",
+									c.Name, n.Name, svc.ID.String(), name)
+							}
+							if v2svc.Workloads == nil {
+								v2svc.Workloads = &pbcatalog.WorkloadSelector{}
+							}
+							v2svc.Workloads.Names = append(v2svc.Workloads.Names, svc.Workload)
+						}
+					}
+
+					if len(svc.WorkloadIdentities) == 0 {
+						svc.WorkloadIdentities = []string{svc.ID.Name}
+					}
+				} else {
+					if len(svc.V2Services) > 0 {
+						return nil, fmt.Errorf("cannot specify v2 services for v1")
+					}
+					if len(svc.WorkloadIdentities) > 0 {
+						return nil, fmt.Errorf("cannot specify workload identities for v1")
+					}
 				}
 			}
 		}
@@ -519,6 +657,9 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			if len(newCluster.InitialConfigEntries) > 0 {
 				logger.Warn("initial config entries were provided, but are skipped on recompile")
 			}
+			if len(newCluster.InitialResources) > 0 {
+				logger.Warn("initial resources were provided, but are skipped on recompile")
+			}
 
 			// Check NODES
 			if err := inheritAndValidateNodes(oldCluster.Nodes, newCluster.Nodes); err != nil {
@@ -553,6 +694,7 @@ func inheritAndValidateNodes(
 		}
 
 		if currNode.Node.Kind != node.Kind ||
+			currNode.Node.Version != node.Version ||
 			currNode.Node.Partition != node.Partition ||
 			currNode.Node.Name != node.Name ||
 			currNode.Node.Index != node.Index ||
@@ -589,6 +731,7 @@ func inheritAndValidateNodes(
 
 			if currSvc.ID != svc.ID ||
 				currSvc.Port != svc.Port ||
+				!maps.Equal(currSvc.Ports, svc.Ports) ||
 				currSvc.EnvoyAdminPort != svc.EnvoyAdminPort ||
 				currSvc.EnvoyPublicListenerPort != svc.EnvoyPublicListenerPort ||
 				isSame(currSvc.Command, svc.Command) != nil ||

@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
@@ -43,7 +45,9 @@ type Sprawl struct {
 	topology  *topology.Topology
 	generator *tfgen.Generator
 
-	clients map[string]*api.Client // one per cluster
+	clients        map[string]*api.Client      // one per cluster
+	grpcConns      map[string]*grpc.ClientConn // one per cluster (when v2 enabled)
+	grpcConnCancel map[string]func()           // one per cluster (when v2 enabled)
 }
 
 // Topology allows access to the topology that defines the resources. Do not
@@ -58,6 +62,12 @@ func (s *Sprawl) Config() *topology.Config {
 		panic(err)
 	}
 	return c2
+}
+
+// ResourceServiceClientForCluster returns a shared common client that defaults
+// to using the management token for this cluster.
+func (s *Sprawl) ResourceServiceClientForCluster(clusterName string) pbresource.ResourceServiceClient {
+	return pbresource.NewResourceServiceClient(s.grpcConns[clusterName])
 }
 
 func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) {
@@ -167,10 +177,12 @@ func Launch(
 	}
 
 	s := &Sprawl{
-		logger:  logger,
-		runner:  runner,
-		workdir: workdir,
-		clients: make(map[string]*api.Client),
+		logger:         logger,
+		runner:         runner,
+		workdir:        workdir,
+		clients:        make(map[string]*api.Client),
+		grpcConns:      make(map[string]*grpc.ClientConn),
+		grpcConnCancel: make(map[string]func()),
 	}
 
 	if err := s.ensureLicense(); err != nil {
