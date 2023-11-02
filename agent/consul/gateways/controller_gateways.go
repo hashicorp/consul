@@ -73,7 +73,7 @@ func (r *apiGatewayReconciler) Reconcile(ctx context.Context, req controller.Req
 // reconcileEntry converts the controller request into a config entry that we then pass
 // along to either a cleanup function if the entry no longer exists (it's been deleted),
 // or a reconciler if the entry has been updated or created.
-func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger hclog.Logger, ctx context.Context, req controller.Request, reconciler func(ctx context.Context, req controller.Request, store *state.Store, entry T) error, cleaner func(ctx context.Context, req controller.Request, store *state.Store) error) error {
+func reconcileEntry[T deepCopyable[T]](store *state.Store, logger hclog.Logger, ctx context.Context, req controller.Request, reconciler func(ctx context.Context, req controller.Request, store *state.Store, entry T) error, cleaner func(ctx context.Context, req controller.Request, store *state.Store) error) error {
 	_, rawentry, err := store.ConfigEntry(nil, req.Kind, req.Name, req.Meta)
 	if err != nil {
 		requestLogger(logger, req).Warn("error fetching config entry for reconciliation request", "error", err)
@@ -84,54 +84,43 @@ func reconcileEntry[T structs.ControlledConfigEntry](store *state.Store, logger 
 		return cleaner(ctx, req, store)
 	}
 
-	entry := attemptConfigEntryDeepCopy(rawentry)
+	//attempt to cast as deep copyable
+	copyable, ok := rawentry.(deepCopyable[T])
+	if !ok {
+		//something is implemented incorrectly, just proceed without copying
+		reconciler(ctx, req, store, rawentry.(T))
+	}
+
+	entry := copyConfigEntry[T](copyable)
 
 	return reconciler(ctx, req, store, entry.(T))
 }
 
-// attemptConfigEntryDeepCopy casts a generic configentry to the appropriate type and deep copies it, if able, or returns
-// the same uncopied config etnry if it cannot
-func attemptConfigEntryDeepCopy(ce structs.ConfigEntry) structs.ConfigEntry {
-	switch ce.(type) {
-	case *structs.BoundAPIGatewayConfigEntry:
-		return copyConfigEntry[*structs.BoundAPIGatewayConfigEntry](ce)
-	case *structs.InlineCertificateConfigEntry:
-		return copyConfigEntry[*structs.InlineCertificateConfigEntry](ce)
-	case *structs.HTTPRouteConfigEntry:
-		return copyConfigEntry[*structs.HTTPRouteConfigEntry](ce)
-	case *structs.TCPRouteConfigEntry:
-		return copyConfigEntry[*structs.TCPRouteConfigEntry](ce)
-	default:
-		return ce
-	}
+type deepCopyable[T any] interface {
+	structs.ControlledConfigEntry
+	DeepCopy() T
 }
 
 // use like: copyConfigEntries[*structs.HTTPRouteConfigEntry](httpRoutes)
-func copyConfigEntries[E interface {
-	structs.ConfigEntry
-	DeepCopy() E
-}](list []structs.ConfigEntry) []structs.ConfigEntry {
+func copyConfigEntries[T deepCopyable[T]](list []structs.ConfigEntry) []structs.ConfigEntry {
 	if len(list) == 0 {
 		return nil
 	}
 
 	out := make([]structs.ConfigEntry, len(list))
 	for i, raw := range list {
-		out[i] = copyConfigEntry[E](raw)
+		out[i] = copyConfigEntry[T](raw)
 	}
 	return out
 }
 
 // preforms a deep copy on the config entry if deepcopy has been implemented
-func copyConfigEntry[E interface {
-	structs.ConfigEntry
-	DeepCopy() E
-}](raw structs.ConfigEntry) structs.ConfigEntry {
-	entry, ok := raw.(E)
+func copyConfigEntry[T deepCopyable[T]](raw structs.ConfigEntry) structs.ConfigEntry {
+	copyable, ok := raw.(T)
 	if !ok {
 		return raw
 	}
-	return entry.DeepCopy()
+	return copyable.DeepCopy()
 }
 
 // enqueueCertificateReferencedGateways retrieves all gateway objects, filters to those referencing

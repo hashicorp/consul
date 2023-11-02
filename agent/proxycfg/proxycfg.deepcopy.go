@@ -38,88 +38,7 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		for k2, v2 := range o.JWTProviders {
 			var cp_JWTProviders_v2 *structs.JWTProviderConfigEntry
 			if v2 != nil {
-				cp_JWTProviders_v2 = new(structs.JWTProviderConfigEntry)
-				*cp_JWTProviders_v2 = *v2
-				if v2.JSONWebKeySet != nil {
-					cp_JWTProviders_v2.JSONWebKeySet = new(structs.JSONWebKeySet)
-					*cp_JWTProviders_v2.JSONWebKeySet = *v2.JSONWebKeySet
-					if v2.JSONWebKeySet.Local != nil {
-						cp_JWTProviders_v2.JSONWebKeySet.Local = new(structs.LocalJWKS)
-						*cp_JWTProviders_v2.JSONWebKeySet.Local = *v2.JSONWebKeySet.Local
-					}
-					if v2.JSONWebKeySet.Remote != nil {
-						cp_JWTProviders_v2.JSONWebKeySet.Remote = new(structs.RemoteJWKS)
-						*cp_JWTProviders_v2.JSONWebKeySet.Remote = *v2.JSONWebKeySet.Remote
-						if v2.JSONWebKeySet.Remote.RetryPolicy != nil {
-							cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = new(structs.JWKSRetryPolicy)
-							*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy = *v2.JSONWebKeySet.Remote.RetryPolicy
-							if v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff != nil {
-								cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = new(structs.RetryPolicyBackOff)
-								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
-							}
-						}
-						if v2.JSONWebKeySet.Remote.JWKSCluster != nil {
-							cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = new(structs.JWKSCluster)
-							*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = *v2.JSONWebKeySet.Remote.JWKSCluster
-							if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates != nil {
-								cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = new(structs.JWKSTLSCertificate)
-								*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates
-								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance != nil {
-									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
-									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
-								}
-								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA != nil {
-									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = new(structs.JWKSTLSCertTrustedCA)
-									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA
-									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes != nil {
-										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes))
-										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes)
-									}
-								}
-							}
-						}
-					}
-				}
-				if v2.Audiences != nil {
-					cp_JWTProviders_v2.Audiences = make([]string, len(v2.Audiences))
-					copy(cp_JWTProviders_v2.Audiences, v2.Audiences)
-				}
-				if v2.Locations != nil {
-					cp_JWTProviders_v2.Locations = make([]*structs.JWTLocation, len(v2.Locations))
-					copy(cp_JWTProviders_v2.Locations, v2.Locations)
-					for i5 := range v2.Locations {
-						if v2.Locations[i5] != nil {
-							cp_JWTProviders_v2.Locations[i5] = new(structs.JWTLocation)
-							*cp_JWTProviders_v2.Locations[i5] = *v2.Locations[i5]
-							if v2.Locations[i5].Header != nil {
-								cp_JWTProviders_v2.Locations[i5].Header = new(structs.JWTLocationHeader)
-								*cp_JWTProviders_v2.Locations[i5].Header = *v2.Locations[i5].Header
-							}
-							if v2.Locations[i5].QueryParam != nil {
-								cp_JWTProviders_v2.Locations[i5].QueryParam = new(structs.JWTLocationQueryParam)
-								*cp_JWTProviders_v2.Locations[i5].QueryParam = *v2.Locations[i5].QueryParam
-							}
-							if v2.Locations[i5].Cookie != nil {
-								cp_JWTProviders_v2.Locations[i5].Cookie = new(structs.JWTLocationCookie)
-								*cp_JWTProviders_v2.Locations[i5].Cookie = *v2.Locations[i5].Cookie
-							}
-						}
-					}
-				}
-				if v2.Forwarding != nil {
-					cp_JWTProviders_v2.Forwarding = new(structs.JWTForwardingConfig)
-					*cp_JWTProviders_v2.Forwarding = *v2.Forwarding
-				}
-				if v2.CacheConfig != nil {
-					cp_JWTProviders_v2.CacheConfig = new(structs.JWTCacheConfig)
-					*cp_JWTProviders_v2.CacheConfig = *v2.CacheConfig
-				}
-				if v2.Meta != nil {
-					cp_JWTProviders_v2.Meta = make(map[string]string, len(v2.Meta))
-					for k5, v5 := range v2.Meta {
-						cp_JWTProviders_v2.Meta[k5] = v5
-					}
-				}
+				cp_JWTProviders_v2 = v2.DeepCopy()
 			}
 			cp.JWTProviders[k2] = cp_JWTProviders_v2
 		}
@@ -325,28 +244,7 @@ func (o *configSnapshotAPIGateway) DeepCopy() *configSnapshotAPIGateway {
 		copy(cp.TLSConfig.CipherSuites, o.TLSConfig.CipherSuites)
 	}
 	if o.GatewayConfig != nil {
-		cp.GatewayConfig = new(structs.APIGatewayConfigEntry)
-		*cp.GatewayConfig = *o.GatewayConfig
-		if o.GatewayConfig.Listeners != nil {
-			cp.GatewayConfig.Listeners = make([]structs.APIGatewayListener, len(o.GatewayConfig.Listeners))
-			copy(cp.GatewayConfig.Listeners, o.GatewayConfig.Listeners)
-			for i4 := range o.GatewayConfig.Listeners {
-				{
-					retV := o.GatewayConfig.Listeners[i4].DeepCopy()
-					cp.GatewayConfig.Listeners[i4] = *retV
-				}
-			}
-		}
-		{
-			retV := o.GatewayConfig.Status.DeepCopy()
-			cp.GatewayConfig.Status = *retV
-		}
-		if o.GatewayConfig.Meta != nil {
-			cp.GatewayConfig.Meta = make(map[string]string, len(o.GatewayConfig.Meta))
-			for k4, v4 := range o.GatewayConfig.Meta {
-				cp.GatewayConfig.Meta[k4] = v4
-			}
-		}
+		cp.GatewayConfig = o.GatewayConfig.DeepCopy()
 	}
 	if o.BoundGatewayConfig != nil {
 		cp.BoundGatewayConfig = o.BoundGatewayConfig.DeepCopy()

@@ -56,4 +56,6 @@ deep-copy \
   -type UpstreamConfiguration \
   -type Status \
   -type BoundAPIGatewayConfigEntry \
+  -type APIGatewayConfigEntry \
+  -type JWTProviderConfigEntry \
   ./
