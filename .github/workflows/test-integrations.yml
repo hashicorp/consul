@@ -528,7 +528,7 @@ jobs:
             -json \
             `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
-            --target-version local
+            --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --latest-version latest
         env:
