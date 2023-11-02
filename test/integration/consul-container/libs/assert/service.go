@@ -63,7 +63,6 @@ func CatalogV2ServiceDoesNotExist(t *testing.T, client pbresource.ResourceServic
 // number of workload endpoints.
 func CatalogV2ServiceHasEndpointCount(t *testing.T, client pbresource.ResourceServiceClient, svc string, tenancy *pbresource.Tenancy, count int) {
 	t.Helper()
-	require.False(t, count == 0)
 
 	ctx := testutil.TestContext(t)
 	retry.Run(t, func(r *retry.R) {

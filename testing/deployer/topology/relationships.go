@@ -22,6 +22,12 @@ func (t *Topology) ComputeRelationships() []Relationship {
 						Upstream: u,
 					})
 				}
+				for _, u := range s.ImpliedUpstreams {
+					out = append(out, Relationship{
+						Caller:   s,
+						Upstream: u,
+					})
+				}
 			}
 		}
 	}
@@ -35,6 +41,10 @@ func RenderRelationships(ships []Relationship) string {
 	w := tabwriter.NewWriter(&buf, 0, 0, 3, ' ', tabwriter.Debug)
 	fmt.Fprintf(w, "DOWN\tnode\tservice\tport\tUP\tservice\t\n")
 	for _, r := range ships {
+		suffix := ""
+		if r.Upstream.Implied {
+			suffix = " (implied)"
+		}
 		fmt.Fprintf(w,
 			"%s\t%s\t%s\t%d\t%s\t%s\t\n",
 			r.downCluster(),
@@ -42,7 +52,7 @@ func RenderRelationships(ships []Relationship) string {
 			r.Caller.ID.String(),
 			r.Upstream.LocalPort,
 			r.upCluster(),
-			r.Upstream.ID.String(),
+			r.Upstream.ID.String()+suffix,
 		)
 	}
 	fmt.Fprintf(w, "\t\t\t\t\t\t\n")
@@ -57,14 +67,19 @@ type Relationship struct {
 }
 
 func (r Relationship) String() string {
+	suffix := ""
+	if r.Upstream.PortName != "" {
+		suffix = " port " + r.Upstream.PortName
+	}
 	return fmt.Sprintf(
-		"%s on %s in %s via :%d => %s in %s",
+		"%s on %s in %s via :%d => %s in %s%s",
 		r.Caller.ID.String(),
 		r.Caller.Node.ID().String(),
 		r.downCluster(),
 		r.Upstream.LocalPort,
 		r.Upstream.ID.String(),
 		r.upCluster(),
+		suffix,
 	)
 }
 

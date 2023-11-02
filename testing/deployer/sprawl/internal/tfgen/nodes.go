@@ -125,7 +125,11 @@ func (g *Generator) generateNodeContainers(
 			var img string
 			if node.IsDataplane() {
 				tmpl = tfAppDataplaneT
-				img = DockerImageResourceName(node.Images.LocalDataplaneImage())
+				if svc.EnableTransparentProxy {
+					img = DockerImageResourceName(node.Images.LocalDataplaneTProxyImage())
+				} else {
+					img = DockerImageResourceName(node.Images.LocalDataplaneImage())
+				}
 			} else {
 				img = DockerImageResourceName(node.Images.EnvoyConsulImage())
 			}

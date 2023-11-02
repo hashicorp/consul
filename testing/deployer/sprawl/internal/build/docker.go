@@ -35,6 +35,64 @@ USER 100:0
 ENTRYPOINT []
 `
 
+const dockerfileDataplaneForTProxy = `
+ARG DATAPLANE_IMAGE
+ARG CONSUL_IMAGE
+FROM ${CONSUL_IMAGE} AS consul
+FROM ${DATAPLANE_IMAGE} AS distroless
+FROM debian:bullseye-slim
+
+# undo the distroless aspect
+COPY --from=distroless /usr/local/bin/discover /usr/local/bin/
+COPY --from=distroless /usr/local/bin/envoy /usr/local/bin/
+COPY --from=distroless /usr/local/bin/consul-dataplane /usr/local/bin/
+COPY --from=distroless /licenses/copyright.txt /licenses/
+
+COPY --from=consul /bin/consul /bin/
+
+# Install iptables and sudo, needed for tproxy.
+RUN apt update -y \
+	&& apt install -y iptables sudo curl dnsutils
+
+RUN sed '/_apt/d' /etc/passwd > /etc/passwd.new \
+    && mv -f /etc/passwd.new /etc/passwd \
+    && adduser --uid=100 consul --no-create-home --disabled-password --system \
+	&& adduser consul sudo \
+	&& echo 'consul ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+COPY <<'EOF' /bin/tproxy-startup.sh
+#!/bin/sh
+
+set -ex
+
+# HACK: UID of consul in the consul-client container
+# This is conveniently also the UID of apt in the envoy container
+CONSUL_UID=100
+ENVOY_UID=$(id -u)
+
+# - We allow 19000 so that the test can directly visit the envoy admin page.
+# - We allow 20000 so that envoy can receive mTLS traffic from other nodes.
+# - We (reluctantly) allow 8080 so that we can bypass envoy and talk to fortio
+#   to do test assertions.
+sudo consul connect redirect-traffic \
+    -proxy-uid $ENVOY_UID \
+    -exclude-uid $CONSUL_UID \
+	-proxy-inbound-port=15001 \
+	-exclude-inbound-port=19000 \
+	-exclude-inbound-port=20000 \
+	-exclude-inbound-port=8080
+exec "$@"
+EOF
+
+RUN chmod +x /bin/tproxy-startup.sh \
+	&& chown 100:0 /bin/tproxy-startup.sh
+
+RUN echo 'consul ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+USER 100:0
+ENTRYPOINT []
+`
+
 func DockerImages(
 	logger hclog.Logger,
 	run *runner.Runner,
@@ -79,6 +137,25 @@ func DockerImages(
 				}
 
 				built[cdp] = struct{}{}
+			}
+
+			cdpTproxy := n.Images.LocalDataplaneTProxyImage()
+			if _, ok := built[cdpTproxy]; cdpTproxy != "" && !ok {
+				logger.Info("building image", "image", cdpTproxy)
+				err := run.DockerExec(context.TODO(), []string{
+					"build",
+					"--build-arg",
+					"DATAPLANE_IMAGE=" + n.Images.Dataplane,
+					"--build-arg",
+					"CONSUL_IMAGE=" + n.Images.Consul,
+					"-t", cdpTproxy,
+					"-",
+				}, logw, strings.NewReader(dockerfileDataplaneForTProxy))
+				if err != nil {
+					return err
+				}
+
+				built[cdpTproxy] = struct{}{}
 			}
 		}
 	}
