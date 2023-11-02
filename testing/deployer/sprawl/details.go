@@ -72,7 +72,7 @@ func (s *Sprawl) PrintDetails() error {
 				} else {
 					ports := make(map[string]int)
 					for name, port := range svc.Ports {
-						ports[name] = node.ExposedPort(port)
+						ports[name] = node.ExposedPort(port.Number)
 					}
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "app",

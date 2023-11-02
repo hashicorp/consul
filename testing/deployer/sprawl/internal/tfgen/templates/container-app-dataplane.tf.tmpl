@@ -17,6 +17,13 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
     read_only      = true
   }
 
+{{ if .Service.EnableTransparentProxy }}
+  capabilities {
+    add = ["NET_ADMIN"]
+  }
+  entrypoint = [ "/bin/tproxy-startup.sh" ]
+{{ end }}
+
   env = [
     "DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
 {{ if .Node.IsV2 }}
@@ -37,6 +44,10 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}-sidec
 {{ if .Token }}
     "DP_CREDENTIAL_TYPE=static",
     "DP_CREDENTIAL_STATIC_TOKEN={{.Token}}",
+{{ end }}
+
+{{ if .Service.EnableTransparentProxy }}
+    "REDIRECT_TRAFFIC_ARGS=-exclude-inbound-port=19000",
 {{ end }}
 
     // for demo purposes
