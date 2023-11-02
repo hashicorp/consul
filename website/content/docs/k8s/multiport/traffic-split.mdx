@@ -36,8 +36,7 @@ The following example splits traffic for the `api` service. TCP traffic for serv
 apiVersion: mesh.consul.hashicorp.com/v2beta1
 kind: TCPRoute
 metadata:
-  name: api-split
-  namespace: default
+  name: api
 spec:
   parentRefs:
     - ref:
@@ -46,7 +45,7 @@ spec:
           groupVersion: v2beta1
           kind: Service
         name: api
-      port: "api-workload"
+      port: "admin"
   rules:
     - backendRefs:
       - backendRef:
@@ -56,7 +55,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          port: "api-workload"
+          port: "api"
         weight: 50
       - backendRef:
           ref: 
@@ -65,7 +64,7 @@ spec:
               groupVersion: v2beta1
               kind: Service
             name: api
-          port: "admin-workload"
+          port: "admin"
         weight: 50
 ```
 
@@ -78,3 +77,11 @@ Use the `kubectl` command to apply the resource to your Consul cluster.
 ```shell-session
 $ kubectl apply -f api-split.yaml
 ```
+
+Then, open a shell session in the `web` container and test the `api` service on port 90. 
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:90
+```
+
+Half of the traffic should respond with the `hello world` response from port 80, instead of port 90's response of `hello world from 9090 admin`. Repeat the command several times to verify that you receive both responses.

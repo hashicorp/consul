@@ -313,7 +313,7 @@ metadata:
 spec:
   destination:
     identityName: api
-  action: allow
+  action: ACTION_ALLOW
   permissions:
     - sources:
         - identityName: web
@@ -333,7 +333,7 @@ metadata:
 spec:
   destination:
     identityName: api
-  action: allow
+  action: ACTION_ALLOW
   permissions:
     - sources:
         - identityName: web
@@ -355,11 +355,15 @@ api-5784b54bcc-tp98l                           3/3     Running   0          6m55
 web-6dcbd684bc-gk8n5                           2/2     Running   0          6m55s
 ```
 
-Set environment variables to remember the pod name for the web workload for use in future commands. 
+Set environment variables to remember the pod name for the web workload for use in future commands.
+
+<CodeBlockConfig hideClipboard>
 
 ```shell-session
 $ export WEB_POD=web-6dcbd684bc-gk8n5
 ```
+
+</CodeBlockConfig>
 
 ### Apply traffic permissions
 
@@ -368,6 +372,8 @@ Use the `web` Pod's name to open a shell session and test the `api` service on b
 <Tabs>
 
 <Tab heading="Method 1" group="method1">
+
+Test the `api` service on port 80.
 
 ```shell-session
 $ kubectl exec -it ${WEB_POD} -c web -- curl api:80
@@ -382,6 +388,8 @@ $ kubectl exec -it ${WEB_POD} -c web -- curl api:90
 </Tab>
 
 <Tab heading="Method 2" group="method2">
+
+Test the `api` service on port 80.
 
 ```shell-session
 $ kubectl exec -it ${WEB_POD} -c web -- curl api:80
