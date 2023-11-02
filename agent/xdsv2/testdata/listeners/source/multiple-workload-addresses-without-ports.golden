@@ -14,24 +14,73 @@
         {
           "filterChainMatch":  {
             "applicationProtocols":  [
-              "consul~tcp"
+              "consul~grpc"
             ]
           },
           "filters":  [
             {
-              "name":  "envoy.filters.network.rbac",
+              "name":  "envoy.filters.network.http_connection_manager",
               "typedConfig":  {
-                "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules":  {},
-                "statPrefix":  "connect_authz"
-              }
-            },
-            {
-              "name":  "envoy.filters.network.tcp_proxy",
-              "typedConfig":  {
-                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                 "statPrefix":  "public_listener",
-                "cluster":  "local_app:tcp"
+                "routeConfig":  {
+                  "name":  "public_listener:grpc",
+                  "virtualHosts":  [
+                    {
+                      "name":  "public_listener:grpc",
+                      "domains":  [
+                        "*"
+                      ],
+                      "routes":  [
+                        {
+                          "match":  {
+                            "prefix":  "/"
+                          },
+                          "route":  {
+                            "cluster":  "local_app:grpc"
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "httpFilters":  [
+                  {
+                    "name":  "envoy.filters.http.grpc_stats",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
+                      "statsForAllMethods":  true
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.grpc_http1_bridge",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.rbac",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+                      "rules":  {}
+                    }
+                  },
+                  {
+                    "name":  "envoy.filters.http.router",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    }
+                  }
+                ],
+                "tracing":  {
+                  "randomSampling":  {}
+                },
+                "http2ProtocolOptions":  {},
+                "upgradeConfigs":  [
+                  {
+                    "upgradeType":  "websocket"
+                  }
+                ]
               }
             }
           ],
@@ -55,7 +104,11 @@
                   "trustedCa":  {
                     "inlineString":  "some-root\nsome-other-root\n"
                   }
-                }
+                },
+                "alpnProtocols":  [
+                  "h2",
+                  "http/1.1"
+                ]
               },
               "requireClientCertificate":  true
             }
@@ -242,73 +295,24 @@
         {
           "filterChainMatch":  {
             "applicationProtocols":  [
-              "consul~grpc"
+              "consul~tcp"
             ]
           },
           "filters":  [
             {
-              "name":  "envoy.filters.network.http_connection_manager",
+              "name":  "envoy.filters.network.rbac",
               "typedConfig":  {
-                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules":  {},
+                "statPrefix":  "connect_authz"
+              }
+            },
+            {
+              "name":  "envoy.filters.network.tcp_proxy",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
                 "statPrefix":  "public_listener",
-                "routeConfig":  {
-                  "name":  "public_listener:grpc",
-                  "virtualHosts":  [
-                    {
-                      "name":  "public_listener:grpc",
-                      "domains":  [
-                        "*"
-                      ],
-                      "routes":  [
-                        {
-                          "match":  {
-                            "prefix":  "/"
-                          },
-                          "route":  {
-                            "cluster":  "local_app:grpc"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "httpFilters":  [
-                  {
-                    "name":  "envoy.filters.http.grpc_stats",
-                    "typedConfig":  {
-                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_stats.v3.FilterConfig",
-                      "statsForAllMethods":  true
-                    }
-                  },
-                  {
-                    "name":  "envoy.filters.http.grpc_http1_bridge",
-                    "typedConfig":  {
-                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.grpc_http1_bridge.v3.Config"
-                    }
-                  },
-                  {
-                    "name":  "envoy.filters.http.rbac",
-                    "typedConfig":  {
-                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules":  {}
-                    }
-                  },
-                  {
-                    "name":  "envoy.filters.http.router",
-                    "typedConfig":  {
-                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "tracing":  {
-                  "randomSampling":  {}
-                },
-                "http2ProtocolOptions":  {},
-                "upgradeConfigs":  [
-                  {
-                    "upgradeType":  "websocket"
-                  }
-                ]
+                "cluster":  "local_app:tcp"
               }
             }
           ],
@@ -332,11 +336,7 @@
                   "trustedCa":  {
                     "inlineString":  "some-root\nsome-other-root\n"
                   }
-                },
-                "alpnProtocols":  [
-                  "h2",
-                  "http/1.1"
-                ]
+                }
               },
               "requireClientCertificate":  true
             }
