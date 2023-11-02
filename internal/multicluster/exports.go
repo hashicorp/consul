@@ -4,6 +4,8 @@
 package multicluster
 
 import (
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/multicluster/internal/controllers"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 )
@@ -19,4 +21,12 @@ var (
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
+}
+
+type ControllerDependencies = controllers.Dependencies
+
+// Registercontrollers registers controllers for the multicluster types with the
+// given controller manager.
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
 }

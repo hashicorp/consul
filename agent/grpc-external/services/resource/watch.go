@@ -119,13 +119,18 @@ func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*re
 	}
 
 	// Error when partition scoped and namespace not empty.
-	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped type %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Type),
-			req.Tenancy.Namespace,
-		)
+	if reg.Scope == resource.ScopePartition {
+		switch req.Tenancy.Namespace {
+		case storage.Wildcard:
+			req.Tenancy.Namespace = ""
+		default:
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"partition scoped type %s cannot have a namespace. got: %s",
+				resource.ToGVK(req.Type),
+				req.Tenancy.Namespace,
+			)
+		}
 	}
 
 	return reg, nil
