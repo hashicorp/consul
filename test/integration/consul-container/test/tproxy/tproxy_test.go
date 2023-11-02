@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tproxy
 
@@ -215,7 +215,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 		client := node.GetClient()
 
 		// Create a client proxy instance with the server as an upstream
-		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true)
+		clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, true, nil)
 		require.NoError(t, err)
 
 		libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", nil)

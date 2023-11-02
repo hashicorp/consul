@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <div
@@ -33,7 +33,7 @@
     </disclosure.Details>
   </Disclosure>
 
-  <CopyButton
+  <ConsulCopyButton
     @value={{@value}}
     @name={{@name}}
   />
@@ -41,7 +41,7 @@
 {{else}}
   <pre><code
   >{{@value}}</code></pre>
-  <CopyButton
+  <ConsulCopyButton
     @value={{@value}}
     @name={{@name}}
   />

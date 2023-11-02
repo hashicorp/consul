@@ -12,13 +12,14 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 ###
 GOLANGCI_LINT_VERSION='v1.51.1'
 MOCKERY_VERSION='v2.20.0'
-BUF_VERSION='v1.14.0'
+BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
-MOG_VERSION='v0.4.0'
+MOG_VERSION='v0.4.1'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+COPYWRITE_TOOL_VERSION='v0.16.4'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -65,6 +66,7 @@ UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
 ENVOY_VERSION?='1.25.4'
+CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
 
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
@@ -262,7 +264,8 @@ lint-container-test-deps: ## Check that the test-container module only imports a
 	@cd test/integration/consul-container && \
 		$(CURDIR)/build-support/scripts/check-allowed-imports.sh \
 			github.com/hashicorp/consul \
-			internal/catalog/catalogtest
+			"internal/catalog/catalogtest" \
+			"internal/resource/resourcetest"
 
 ##@ Testing
 
@@ -334,6 +337,7 @@ other-consul: ## Checking for other consul instances
 # Use GO_TEST_FLAGS to run specific tests:
 #      make test-envoy-integ GO_TEST_FLAGS="-run TestEnvoy/case-basic"
 # NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
+#       You can also specify the envoy version (example: 1.27.0) setting the environment variable: ENVOY_VERSION=1.27.0
 .PHONY: test-envoy-integ
 test-envoy-integ: $(ENVOY_INTEG_DEPS) ## Run integration tests.
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
@@ -345,6 +349,7 @@ test-compat-integ-setup: dev-docker
 	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
 	@#  'consul-envoy:target-version' is needed by compatibility integ test
 	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
+	@docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg CONSUL_DATAPLANE_IMAGE=${CONSUL_DATAPLANE_IMAGE} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
 
 .PHONY: test-compat-integ
 test-compat-integ: test-compat-integ-setup ## Test compat integ
@@ -426,11 +431,16 @@ lint-tools: ## Install tools for linting
 codegen-tools: ## Install tools for codegen
 	@$(SHELL) $(CURDIR)/build-support/scripts/devtools.sh -codegen
 
-.PHONY: deep-copy
-deep-copy: codegen-tools ## Deep copy
+.PHONY: codegen
+codegen: codegen-tools ## Deep copy
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/config/deep-copy.sh
+	copywrite headers
+	# Special case for MPL headers in /api and /sdk
+	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
 
 print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make print-GOPATH')
 

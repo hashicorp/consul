@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -31,6 +31,28 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
+
+func TestUIEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
+		})
+	}
+
+	checkRequest("GET", "/v1/internal/ui/nodes")
+	checkRequest("GET", "/v1/internal/ui/node/web")
+	checkRequest("GET", "/v1/internal/ui/services")
+	checkRequest("GET", "/v1/internal/ui/exported-services")
+	checkRequest("GET", "/v1/internal/ui/catalog-overview")
+	checkRequest("GET", "/v1/internal/ui/gateway-services-nodes/web")
+	checkRequest("GET", "/v1/internal/ui/gateway-intentions/web")
+	checkRequest("GET", "/v1/internal/ui/service-topology/web")
+	checkRequest("PUT", "/v1/internal/service-virtual-ip")
+}
 
 func TestUIIndex(t *testing.T) {
 	if testing.Short() {
@@ -1121,7 +1143,7 @@ func TestUIGatewayServiceNodes_Ingress(t *testing.T) {
 	require.Nil(t, err)
 	assertIndex(t, resp)
 
-	// Construct expected addresses so that differences between OSS/Ent are
+	// Construct expected addresses so that differences between CE/Ent are
 	// handled by code. We specifically don't include the trailing DNS . here as
 	// we are constructing what we are expecting, not the actual value
 	webDNS := serviceIngressDNSName("web", "dc1", "consul", structs.DefaultEnterpriseMetaInDefaultPartition())

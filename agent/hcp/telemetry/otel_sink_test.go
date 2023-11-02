@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package telemetry
 
 import (
@@ -18,8 +21,9 @@ import (
 )
 
 type mockConfigProvider struct {
-	filter *regexp.Regexp
-	labels map[string]string
+	filter   *regexp.Regexp
+	labels   map[string]string
+	disabled bool
 }
 
 func (m *mockConfigProvider) GetLabels() map[string]string {
@@ -28,6 +32,10 @@ func (m *mockConfigProvider) GetLabels() map[string]string {
 
 func (m *mockConfigProvider) GetFilters() *regexp.Regexp {
 	return m.filter
+}
+
+func (m *mockConfigProvider) IsDisabled() bool {
+	return m.disabled
 }
 
 var (
@@ -220,6 +228,29 @@ func TestOTELSink(t *testing.T) {
 	isSame(t, expectedSinkMetrics, collected)
 }
 
+func TestOTELSinkDisabled(t *testing.T) {
+	reader := metric.NewManualReader()
+	ctx := context.Background()
+
+	sink, err := NewOTELSink(ctx, &OTELSinkOpts{
+		ConfigProvider: &mockConfigProvider{
+			filter:   regexp.MustCompile("raft"),
+			disabled: true,
+		},
+		Reader: reader,
+	})
+	require.NoError(t, err)
+
+	sink.SetGauge([]string{"consul", "raft", "gauge"}, 1)
+	sink.IncrCounter([]string{"consul", "raft", "counter"}, 1)
+	sink.AddSample([]string{"consul", "raft", "sample"}, 1)
+
+	var collected metricdata.ResourceMetrics
+	err = reader.Collect(ctx, &collected)
+	require.NoError(t, err)
+	require.Empty(t, collected.ScopeMetrics)
+}
+
 func TestLabelsToAttributes(t *testing.T) {
 	for name, test := range map[string]struct {
 		providerLabels         map[string]string
@@ -303,7 +334,7 @@ func TestLabelsToAttributes(t *testing.T) {
 			sink, err := NewOTELSink(ctx, opts)
 			require.NoError(t, err)
 
-			require.Equal(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
+			require.ElementsMatch(t, test.expectedOTELAttributes, sink.labelsToAttributes(test.goMetricsLabels))
 		})
 	}
 }

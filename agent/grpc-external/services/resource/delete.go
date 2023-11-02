@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -20,24 +21,20 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Deletes a resource.
+// Delete deletes a resource.
 // - To delete a resource regardless of the stored version, set Version = ""
 // - Supports deleting a resource by name, hence Id.Uid may be empty.
 // - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	if err := validateDeleteRequest(req); err != nil {
-		return nil, err
-	}
-
-	reg, err := s.resolveType(req.Id.Type)
+	reg, err := s.validateDeleteRequest(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO(spatel): Refactor _ and entMeta in NET-4919
-	authz, _, err := s.getAuthorizer(tokenFromContext(ctx), acl.DefaultEnterpriseMeta())
+	entMeta := v2TenancyToV1EntMeta(req.Id.Tenancy)
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), entMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -48,6 +45,10 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	if req.Version == "" || req.Id.Uid == "" {
 		consistency = storage.StrongConsistency
 	}
+
+	// Apply defaults when tenancy units empty.
+	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
+
 	existing, err := s.Backend.Read(ctx, consistency, req.Id)
 	switch {
 	case errors.Is(err, storage.ErrNotFound):
@@ -58,7 +59,7 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	}
 
 	// Check ACLs
-	err = reg.ACLs.Write(authz, existing)
+	err = reg.ACLs.Write(authz, authzContext, existing)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
@@ -144,20 +145,40 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	}
 }
 
-func validateDeleteRequest(req *pbresource.DeleteRequest) error {
+func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource.Registration, error) {
 	if req.Id == nil {
-		return status.Errorf(codes.InvalidArgument, "id is required")
+		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
 
 	if err := validateId(req.Id, "id"); err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+
+	reg, err := s.resolveType(req.Id.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
+	// Check scope
+	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Id.Type),
+			req.Id.Tenancy.Namespace,
+		)
+	}
+
+	return reg, nil
 }
 
 // Maintains a deterministic mapping between a resource and it's tombstone's
 // name by embedding the resources's Uid in the name.
 func tombstoneName(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
-	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
+	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, strings.ToLower(deleteId.Uid))
 }

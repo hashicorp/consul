@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package service
 
@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -68,14 +67,17 @@ func (g ConnectContainer) GetPort(port int) (int, error) {
 }
 
 func (g ConnectContainer) Restart() error {
-	_, err := g.GetStatus()
-	if err != nil {
-		return fmt.Errorf("error fetching sidecar container state %s", err)
+	var deferClean utils.ResettableDefer
+	defer deferClean.Execute()
+
+	if utils.FollowLog {
+		if err := g.container.StopLogProducer(); err != nil {
+			return fmt.Errorf("stopping log producer: %w", err)
+		}
 	}
 
 	fmt.Printf("Stopping container: %s\n", g.GetName())
-	err = g.container.Stop(g.ctx, nil)
-
+	err := g.container.Stop(g.ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error stopping sidecar container %s", err)
 	}
@@ -85,6 +87,17 @@ func (g ConnectContainer) Restart() error {
 	if err != nil {
 		return fmt.Errorf("error starting sidecar container %s", err)
 	}
+
+	if utils.FollowLog {
+		if err := g.container.StartLogProducer(g.ctx); err != nil {
+			return fmt.Errorf("starting log producer: %w", err)
+		}
+		g.container.FollowOutput(&LogConsumer{})
+		deferClean.Add(func() {
+			_ = g.container.StopLogProducer()
+		})
+	}
+
 	return nil
 }
 
@@ -149,8 +162,9 @@ func (g ConnectContainer) GetStatus() (string, error) {
 type SidecarConfig struct {
 	Name         string
 	ServiceID    string
-	Namespace    string
 	EnableTProxy bool
+	Namespace    string
+	Partition    string
 }
 
 // NewConnectService returns a container that runs envoy sidecar, launched by
@@ -191,6 +205,7 @@ func NewConnectService(
 			"-sidecar-for", sidecarCfg.ServiceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
 			"-namespace", sidecarCfg.Namespace,
+			"-partition", sidecarCfg.Partition,
 			"--",
 			"--log-level", envoyLogLevel,
 		},

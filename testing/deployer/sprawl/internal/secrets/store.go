@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package secrets
 
 import (
@@ -15,6 +18,7 @@ const (
 	GossipKey      = "gossip"
 	BootstrapToken = "bootstrap-token"
 	AgentRecovery  = "agent-recovery"
+	CAPEM          = "ca-pem"
 )
 
 func (s *Store) SaveGeneric(cluster, name, value string) {

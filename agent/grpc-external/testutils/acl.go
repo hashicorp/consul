@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package testutils
 
@@ -76,6 +76,18 @@ func ACLServiceRead(t *testing.T, serviceName string) resolver.Result {
 		},
 	}
 	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclRule}, nil)
+	require.NoError(t, err)
+
+	return resolver.Result{
+		Authorizer:  authz,
+		ACLIdentity: randomACLIdentity(t),
+	}
+}
+
+func ACLUseProvidedPolicy(t *testing.T, aclPolicy *acl.Policy) resolver.Result {
+	t.Helper()
+
+	authz, err := acl.NewPolicyAuthorizerWithDefaults(acl.DenyAll(), []*acl.Policy{aclPolicy}, nil)
 	require.NoError(t, err)
 
 	return resolver.Result{

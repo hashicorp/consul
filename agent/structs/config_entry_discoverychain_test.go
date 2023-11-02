@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -1570,6 +1570,15 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 				ConnectTimeout: -1 * time.Second,
 			},
 			validateErr: "Bad ConnectTimeout",
+		},
+		{
+			name: "bad request timeout",
+			entry: &ServiceResolverConfigEntry{
+				Kind:           ServiceResolver,
+				Name:           "test",
+				RequestTimeout: -1 * time.Second,
+			},
+			validateErr: "Bad RequestTimeout",
 		},
 	}
 

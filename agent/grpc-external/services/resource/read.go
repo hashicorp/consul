@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -27,7 +27,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	// pbresource.Tenacy follows rules for V2 resources and the Resource service.
 	// Example:
 	//
-	//    An OSS namespace scoped resource:
+	//    A CE namespace scoped resource:
 	//      V1: EnterpriseMeta{}
 	//      V2: Tenancy {Partition: "default", Namespace: "default"}
 	//
@@ -44,31 +44,47 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
-	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
-	err = reg.ACLs.Read(authz, authzContext, req.Id)
+	// ACL check usually comes before tenancy existence checks to not leak
+	// tenancy "existence", unless the ACL check requires the data payload
+	// to function.
+	authzNeedsData := false
+	err = reg.ACLs.Read(authz, authzContext, req.Id, nil)
 	switch {
+	case errors.Is(err, resource.ErrNeedResource):
+		authzNeedsData = true
+		err = nil
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
-	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy); err != nil {
+	// Check tenancy exists for the V2 resource.
+	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
 	switch {
-	case err == nil:
-		return &pbresource.ReadResponse{Resource: resource}, nil
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, status.Error(codes.NotFound, err.Error())
 	case errors.As(err, &storage.GroupVersionMismatchError{}):
 		return nil, status.Error(codes.InvalidArgument, err.Error())
-	default:
+	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
+
+	if authzNeedsData {
+		err = reg.ACLs.Read(authz, authzContext, req.Id, resource)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
+		}
+	}
+
+	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
 func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
@@ -86,6 +102,10 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
 	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
@@ -95,6 +115,23 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 			req.Id.Tenancy.Namespace,
 		)
 	}
-
+	if reg.Scope == resource.ScopeCluster {
+		if req.Id.Tenancy.Partition != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Partition,
+			)
+		}
+		if req.Id.Tenancy.Namespace != "" {
+			return nil, status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(req.Id.Type),
+				req.Id.Tenancy.Namespace,
+			)
+		}
+	}
 	return reg, nil
 }

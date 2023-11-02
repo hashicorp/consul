@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // protoc-gen-consul-rate-limit
 // This protoc plugin maintains the mapping of gRPC method names to
@@ -93,7 +93,7 @@ func main() {
 			}
 
 			if len(specs) == 0 {
-				return nil
+				continue
 			}
 
 			outputPath := filepath.Join(filepath.Dir(path), outputFileName)

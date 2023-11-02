@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package tokenupdate
 
@@ -120,6 +120,51 @@ func TestTokenUpdateCommand(t *testing.T) {
 		require.ElementsMatch(t, expected, responseToken.NodeIdentities)
 	})
 
+	t.Run("replace-templated-policy", func(t *testing.T) {
+		token := create_token(
+			t,
+			client, &api.ACLToken{Description: "test", TemplatedPolicies: []*api.ACLTemplatedPolicy{
+				{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "api"}},
+			}},
+			&api.WriteOptions{Token: "root"},
+		)
+
+		responseToken := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-replace-templated-policy=builtin/node",
+			"-description=test token",
+			"-var=name:web",
+		})
+
+		require.Len(t, responseToken.TemplatedPolicies, 1)
+		require.Equal(t, api.ACLTemplatedPolicyNodeName, responseToken.TemplatedPolicies[0].TemplateName)
+		require.Equal(t, "web", responseToken.TemplatedPolicies[0].TemplateVariables.Name)
+	})
+	t.Run("append-templated-policy", func(t *testing.T) {
+		templatedPolicy := &api.ACLTemplatedPolicy{TemplateName: api.ACLTemplatedPolicyServiceName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "api"}}
+		token := create_token(
+			t,
+			client, &api.ACLToken{Description: "test", TemplatedPolicies: []*api.ACLTemplatedPolicy{
+				templatedPolicy,
+			}},
+			&api.WriteOptions{Token: "root"},
+		)
+
+		responseToken := run(t, []string{
+			"-http-addr=" + a.HTTPAddr(),
+			"-accessor-id=" + token.AccessorID,
+			"-token=root",
+			"-append-templated-policy=builtin/node",
+			"-description=test token",
+			"-var=name:web",
+		})
+
+		require.Len(t, responseToken.TemplatedPolicies, 2)
+		require.ElementsMatch(t, responseToken.TemplatedPolicies,
+			[]*api.ACLTemplatedPolicy{templatedPolicy, {TemplateName: api.ACLTemplatedPolicyNodeName, TemplateVariables: &api.ACLTemplatedPolicyVariables{Name: "web"}}})
+	})
 	// update with policy by name
 	t.Run("policy-name", func(t *testing.T) {
 		token := create_token(t, client, &api.ACLToken{Description: "test"}, &api.WriteOptions{Token: "root"})
@@ -210,7 +255,7 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	//secondary policy
+	// secondary policy
 	secondPolicy, _, policyErr := client.ACL().PolicyCreate(
 		&api.ACLPolicy{Name: "secondary-policy"},
 		&api.WriteOptions{Token: "root"},
@@ -286,8 +331,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, responseToken.NodeIdentities, 2)
-		require.Equal(t, "third", responseToken.NodeIdentities[1].NodeName)
-		require.Equal(t, "node", responseToken.NodeIdentities[1].Datacenter)
 	})
 
 	// update with append-service-identity
@@ -310,7 +353,6 @@ func TestTokenUpdateCommandWithAppend(t *testing.T) {
 		})
 
 		require.Len(t, responseToken.ServiceIdentities, 2)
-		require.Equal(t, "web", responseToken.ServiceIdentities[1].ServiceName)
 	})
 }
 

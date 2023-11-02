@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package topology
 
 import (
@@ -5,8 +8,12 @@ import (
 )
 
 type Images struct {
-	Consul           string `json:",omitempty"`
-	ConsulOSS        string `json:",omitempty"`
+	// Consul is the image used for creating the container,
+	// Use ChooseConsul() to control which image (ConsulCE or ConsulEnterprise) assign to Consul
+	Consul string `json:",omitempty"`
+	// ConsulCE sets the CE image
+	ConsulCE string `json:",omitempty"`
+	// ConsulEnterprise sets the ent image
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
 	Dataplane        string
@@ -31,13 +38,21 @@ func (i Images) LocalDataplaneImage() string {
 	return "local/" + name + ":" + tag
 }
 
+func (i Images) LocalDataplaneTProxyImage() string {
+	return spliceImageNamesAndTags(i.Dataplane, i.Consul, "tproxy")
+}
+
 func (i Images) EnvoyConsulImage() string {
-	if i.Consul == "" || i.Envoy == "" {
+	return spliceImageNamesAndTags(i.Consul, i.Envoy, "")
+}
+
+func spliceImageNamesAndTags(base1, base2, nameSuffix string) string {
+	if base1 == "" || base2 == "" {
 		return ""
 	}
 
-	img1, tag1, ok1 := strings.Cut(i.Consul, ":")
-	img2, tag2, ok2 := strings.Cut(i.Envoy, ":")
+	img1, tag1, ok1 := strings.Cut(base1, ":")
+	img2, tag2, ok2 := strings.Cut(base2, ":")
 	if !ok1 {
 		tag1 = "latest"
 	}
@@ -59,10 +74,15 @@ func (i Images) EnvoyConsulImage() string {
 		name2 = repo2
 	}
 
+	if nameSuffix != "" {
+		nameSuffix = "-" + nameSuffix
+	}
+
 	// ex: local/hashicorp-consul-and-envoyproxy-envoy:1.15.0-with-v1.26.2
-	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
+	return "local/" + name1 + "-and-" + name2 + nameSuffix + ":" + tag1 + "-with-" + tag2
 }
 
+// TODO: what is this for and why do we need to do this and why is it named this?
 func (i Images) ChooseNode(kind NodeKind) Images {
 	switch kind {
 	case NodeKindServer:
@@ -78,14 +98,15 @@ func (i Images) ChooseNode(kind NodeKind) Images {
 	return i
 }
 
+// ChooseConsul controls which image assigns to Consul
 func (i Images) ChooseConsul(enterprise bool) Images {
 	if enterprise {
 		i.Consul = i.ConsulEnterprise
 	} else {
-		i.Consul = i.ConsulOSS
+		i.Consul = i.ConsulCE
 	}
 	i.ConsulEnterprise = ""
-	i.ConsulOSS = ""
+	i.ConsulCE = ""
 	return i
 }
 
@@ -93,8 +114,8 @@ func (i Images) OverrideWith(i2 Images) Images {
 	if i2.Consul != "" {
 		i.Consul = i2.Consul
 	}
-	if i2.ConsulOSS != "" {
-		i.ConsulOSS = i2.ConsulOSS
+	if i2.ConsulCE != "" {
+		i.ConsulCE = i2.ConsulCE
 	}
 	if i2.ConsulEnterprise != "" {
 		i.ConsulEnterprise = i2.ConsulEnterprise
@@ -115,7 +136,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulOSS:        DefaultConsulImage,
+		ConsulCE:         DefaultConsulImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

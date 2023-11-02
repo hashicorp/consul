@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package jwtauth
 
@@ -130,7 +130,7 @@ func createServices(t *testing.T, cluster *libcluster.Cluster) libservice.Servic
 	libassert.CatalogServiceExists(t, client, libservice.StaticServerServiceName, apiOpts)
 
 	// Create a client proxy instance with the server as an upstream
-	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false)
+	clientConnectProxy, err := libservice.CreateAndRegisterStaticClientSidecar(node, "", false, false, nil)
 	require.NoError(t, err)
 
 	libassert.CatalogServiceExists(t, client, "static-client-sidecar-proxy", apiOpts)

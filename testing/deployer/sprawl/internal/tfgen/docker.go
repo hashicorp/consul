@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfgen
 
 import (
@@ -8,6 +11,9 @@ import (
 var invalidResourceName = regexp.MustCompile(`[^a-z0-9-]+`)
 
 func DockerImageResourceName(image string) string {
+	if image == "" {
+		panic(`image must not be ""`)
+	}
 	return invalidResourceName.ReplaceAllLiteralString(image, "-")
 }
 

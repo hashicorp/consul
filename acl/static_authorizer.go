@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package acl
 
@@ -69,6 +69,34 @@ func (s *staticAuthorizer) EventRead(string, *AuthorizerContext) EnforcementDeci
 }
 
 func (s *staticAuthorizer) EventWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityReadAll(*AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) IdentityWriteAny(*AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
 	}
@@ -229,6 +257,13 @@ func (s *staticAuthorizer) ServiceReadAll(*AuthorizerContext) EnforcementDecisio
 	return Deny
 }
 
+func (s *staticAuthorizer) ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
 func (s *staticAuthorizer) ServiceWrite(string, *AuthorizerContext) EnforcementDecision {
 	if s.defaultAllow {
 		return Allow
@@ -259,6 +294,20 @@ func (s *staticAuthorizer) SessionWrite(string, *AuthorizerContext) EnforcementD
 
 func (s *staticAuthorizer) Snapshot(_ *AuthorizerContext) EnforcementDecision {
 	if s.allowManage {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
+		return Allow
+	}
+	return Deny
+}
+
+func (s *staticAuthorizer) TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision {
+	if s.defaultAllow {
 		return Allow
 	}
 	return Deny

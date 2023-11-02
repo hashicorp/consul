@@ -1,0 +1,5 @@
+{
+    "TemplateName": "builtin/dns",
+    "Schema": "",
+    "Template": "\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nquery_prefix \"\" {\n\tpolicy = \"read\"\n}"
+}

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package acl
 
@@ -187,6 +187,34 @@ func TestACL_Enforce(t *testing.T) {
 			access:   "list",
 			ret:      Deny,
 			err:      "Invalid access level",
+		},
+		{
+			method:   "IdentityRead",
+			resource: ResourceIdentity,
+			segment:  "foo",
+			access:   "read",
+			ret:      Deny,
+		},
+		{
+			method:   "IdentityRead",
+			resource: ResourceIdentity,
+			segment:  "foo",
+			access:   "read",
+			ret:      Allow,
+		},
+		{
+			method:   "IdentityWrite",
+			resource: ResourceIdentity,
+			segment:  "foo",
+			access:   "write",
+			ret:      Deny,
+		},
+		{
+			method:   "IdentityWrite",
+			resource: ResourceIdentity,
+			segment:  "foo",
+			access:   "write",
+			ret:      Allow,
 		},
 		{
 			method:   "IntentionRead",

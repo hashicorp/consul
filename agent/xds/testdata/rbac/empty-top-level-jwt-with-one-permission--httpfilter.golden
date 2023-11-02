@@ -23,8 +23,12 @@
                           "metadata": {
                             "filter": "envoy.filters.http.jwt_authn",
                             "path": [
-                              {"key": "jwt_payload_okta"},
-                              {"key": "iss"}
+                              {
+                                "key": "jwt_payload_okta"
+                              },
+                              {
+                                "key": "iss"
+                              }
                             ],
                             "value": {
                               "stringMatch": {
@@ -37,8 +41,12 @@
                           "metadata": {
                             "filter": "envoy.filters.http.jwt_authn",
                             "path": [
-                              {"key": "jwt_payload_okta"},
-                              {"key": "roles"}
+                              {
+                                "key": "jwt_payload_okta"
+                              },
+                              {
+                                "key": "roles"
+                              }
                             ],
                             "value": {
                               "stringMatch": {

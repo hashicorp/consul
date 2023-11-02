@@ -53,7 +53,7 @@ List of available project commands.  `yarn run <command-name>`
 | Command             | Description                        |
 |---------------------|------------------------------------|
 | doc:toc             | Re-builds the ToC for this README. |
-| compliance:licenses | Checks that all dependencies have OSS-compatible licenses. |
+| compliance:licenses | Checks that all dependencies have CE-compatible licenses. |
 
 ## Contributing
 

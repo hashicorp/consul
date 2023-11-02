@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/sdk/testutil"
+	testretry "github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 )
@@ -30,14 +31,16 @@ func skipIfShortTesting(t *testing.T) {
 	}
 }
 
-func recordPromMetrics(t *testing.T, a *TestAgent, respRec *httptest.ResponseRecorder) {
-	t.Helper()
+func recordPromMetrics(t require.TestingT, a *TestAgent, respRec *httptest.ResponseRecorder) {
+	if tt, ok := t.(*testing.T); ok {
+		tt.Helper()
+	}
+
 	req, err := http.NewRequest("GET", "/v1/agent/metrics?format=prometheus", nil)
 	require.NoError(t, err, "Failed to generate new http request.")
 
-	_, err = a.srv.AgentMetrics(respRec, req)
-	require.NoError(t, err, "Failed to serve agent metrics")
-
+	a.srv.h.ServeHTTP(respRec, req)
+	require.Equalf(t, 200, respRec.Code, "expected 200, got %d, body: %s", respRec.Code, respRec.Body.String())
 }
 
 func assertMetricExists(t *testing.T, respRec *httptest.ResponseRecorder, metric string) {
@@ -486,21 +489,24 @@ func TestHTTPHandlers_AgentMetrics_WAL_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		testretry.Run(t, func(r *testretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		out := respRec.Body.String()
-		require.Contains(t, out, "agent_5_raft_wal_head_truncations")
-		require.Contains(t, out, "agent_5_raft_wal_last_segment_age_seconds")
-		require.Contains(t, out, "agent_5_raft_wal_log_appends")
-		require.Contains(t, out, "agent_5_raft_wal_log_entries_read")
-		require.Contains(t, out, "agent_5_raft_wal_log_entries_written")
-		require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_read")
-		require.Contains(t, out, "agent_5_raft_wal_log_entry_bytes_written")
-		require.Contains(t, out, "agent_5_raft_wal_segment_rotations")
-		require.Contains(t, out, "agent_5_raft_wal_stable_gets")
-		require.Contains(t, out, "agent_5_raft_wal_stable_sets")
-		require.Contains(t, out, "agent_5_raft_wal_tail_truncations")
+			out := respRec.Body.String()
+			require.Contains(r, out, "agent_5_raft_wal_head_truncations")
+			require.Contains(r, out, "agent_5_raft_wal_last_segment_age_seconds")
+			require.Contains(r, out, "agent_5_raft_wal_log_appends")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entries_written")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_read")
+			require.Contains(r, out, "agent_5_raft_wal_log_entry_bytes_written")
+			require.Contains(r, out, "agent_5_raft_wal_segment_rotations")
+			require.Contains(r, out, "agent_5_raft_wal_stable_gets")
+			require.Contains(r, out, "agent_5_raft_wal_stable_sets")
+			require.Contains(r, out, "agent_5_raft_wal_tail_truncations")
+		})
+
 	})
 
 	t.Run("server without WAL enabled emits no WAL metrics", func(t *testing.T) {
@@ -587,15 +593,17 @@ func TestHTTPHandlers_AgentMetrics_LogVerifier_Prometheus(t *testing.T) {
 		defer a.Shutdown()
 		testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-		respRec := httptest.NewRecorder()
-		recordPromMetrics(t, a, respRec)
+		testretry.Run(t, func(r *testretry.R) {
+			respRec := httptest.NewRecorder()
+			recordPromMetrics(r, a, respRec)
 
-		out := respRec.Body.String()
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_checkpoints_written")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_dropped_reports")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_ranges_verified")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
-		require.Contains(t, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
+			out := respRec.Body.String()
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_checkpoints_written")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_dropped_reports")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_ranges_verified")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_read_checksum_failures")
+			require.Contains(r, out, "agent_5_raft_logstore_verifier_write_checksum_failures")
+		})
 	})
 
 	t.Run("server with verifier disabled emits no extra metrics", func(t *testing.T) {

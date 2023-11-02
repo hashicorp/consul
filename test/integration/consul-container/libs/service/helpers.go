@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package service
 
@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 
-	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -47,7 +47,9 @@ type ServiceOpts struct {
 	Checks       Checks
 	Connect      SidecarService
 	Namespace    string
+	Partition    string
 	Locality     *api.Locality
+	Upstreams    []api.Upstream
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
@@ -73,6 +75,7 @@ func createAndRegisterStaticServerAndSidecar(node libcluster.Agent, httpPort int
 		Name:      fmt.Sprintf("%s-sidecar", svc.ID),
 		ServiceID: svc.ID,
 		Namespace: svc.Namespace,
+		Partition: svc.Partition,
 		EnableTProxy: svc.Connect != nil &&
 			svc.Connect.SidecarService != nil &&
 			svc.Connect.SidecarService.Proxy != nil &&
@@ -174,6 +177,8 @@ func CreateAndRegisterCustomServiceAndSidecar(node libcluster.Agent,
 			},
 		},
 		Namespace: serviceOpts.Namespace,
+		Partition: serviceOpts.Partition,
+		Locality:  serviceOpts.Locality,
 		Meta:      serviceOpts.Meta,
 		Check:     &agentCheck,
 	}
@@ -214,9 +219,10 @@ func CreateAndRegisterStaticServerAndSidecarWithCustomContainerConfig(node libcl
 			},
 		},
 		Namespace: serviceOpts.Namespace,
+		Partition: serviceOpts.Partition,
+		Locality:  serviceOpts.Locality,
 		Meta:      serviceOpts.Meta,
 		Check:     &agentCheck,
-		Locality:  serviceOpts.Locality,
 	}
 	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, customContainerCfg, containerArgs...)
 }
@@ -246,7 +252,10 @@ func CreateAndRegisterStaticServerAndSidecarWithChecks(node libcluster.Agent, se
 				TTL:  serviceOpts.Checks.TTL,
 			},
 		},
-		Meta: serviceOpts.Meta,
+		Meta:      serviceOpts.Meta,
+		Namespace: serviceOpts.Namespace,
+		Partition: serviceOpts.Partition,
+		Locality:  serviceOpts.Locality,
 	}
 
 	return createAndRegisterStaticServerAndSidecar(node, serviceOpts.HTTPPort, serviceOpts.GRPCPort, req, nil)
@@ -257,6 +266,7 @@ func CreateAndRegisterStaticClientSidecar(
 	peerName string,
 	localMeshGateway bool,
 	enableTProxy bool,
+	serviceOpts *ServiceOpts,
 ) (*ConnectContainer, error) {
 	// Do some trickery to ensure that partial completion is correctly torn
 	// down, but successful execution is not.
@@ -296,6 +306,30 @@ func CreateAndRegisterStaticClientSidecar(
 				Proxy: proxy,
 			},
 		},
+	}
+
+	// Set relevant fields for static client if opts are provided
+	if serviceOpts != nil {
+		if serviceOpts.Connect.Proxy.Mode != "" {
+			return nil, fmt.Errorf("this helper does not support directly setting connect proxy mode; use enableTProxy and/or localMeshGateway instead")
+		}
+		// These options are defaulted above, so only set them as overrides
+		if serviceOpts.Name != "" {
+			req.Name = serviceOpts.Name
+		}
+		if serviceOpts.HTTPPort != 0 {
+			req.Port = serviceOpts.HTTPPort
+		}
+		if serviceOpts.Connect.Port != 0 {
+			req.Connect.SidecarService.Port = serviceOpts.Connect.Port
+		}
+		if len(serviceOpts.Upstreams) > 0 {
+			req.Connect.SidecarService.Proxy.Upstreams = serviceOpts.Upstreams
+		}
+		req.Meta = serviceOpts.Meta
+		req.Namespace = serviceOpts.Namespace
+		req.Partition = serviceOpts.Partition
+		req.Locality = serviceOpts.Locality
 	}
 
 	if err := node.GetClient().Agent().ServiceRegister(req); err != nil {

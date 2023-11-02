@@ -1,7 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
+
+import "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 
 // V1TenancyBridge is used by the resource service to access V1 implementations of
 // partitions and namespaces. This bridge will be removed when V2 implemenations
@@ -10,6 +12,6 @@ type V1TenancyBridge struct {
 	server *Server
 }
 
-func NewV1TenancyBridge(server *Server) *V1TenancyBridge {
+func NewV1TenancyBridge(server *Server) resource.TenancyBridge {
 	return &V1TenancyBridge{server: server}
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -79,6 +79,12 @@ func sidecarServiceFromNodeService(ns *structs.NodeService, token string) (*stru
 	// Copy the tags from the original service if no other tags were specified
 	if len(sidecar.Tags) == 0 && len(ns.Tags) > 0 {
 		sidecar.Tags = append(sidecar.Tags, ns.Tags...)
+	}
+
+	// Copy the locality from the original service if locality was not provided
+	if sidecar.Locality == nil && ns.Locality != nil {
+		tmp := *ns.Locality
+		sidecar.Locality = &tmp
 	}
 
 	// Flag this as a sidecar - this is not persisted in catalog but only needed

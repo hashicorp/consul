@@ -826,5 +826,27 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 			cp.HostnameServices[k2] = cp_HostnameServices_v2
 		}
 	}
+	if o.WatchedInboundPeerTrustBundles != nil {
+		cp.WatchedInboundPeerTrustBundles = make(map[structs.ServiceName]context.CancelFunc, len(o.WatchedInboundPeerTrustBundles))
+		for k2, v2 := range o.WatchedInboundPeerTrustBundles {
+			cp.WatchedInboundPeerTrustBundles[k2] = v2
+		}
+	}
+	if o.InboundPeerTrustBundles != nil {
+		cp.InboundPeerTrustBundles = make(map[structs.ServiceName][]*pbpeering.PeeringTrustBundle, len(o.InboundPeerTrustBundles))
+		for k2, v2 := range o.InboundPeerTrustBundles {
+			var cp_InboundPeerTrustBundles_v2 []*pbpeering.PeeringTrustBundle
+			if v2 != nil {
+				cp_InboundPeerTrustBundles_v2 = make([]*pbpeering.PeeringTrustBundle, len(v2))
+				copy(cp_InboundPeerTrustBundles_v2, v2)
+				for i3 := range v2 {
+					if v2[i3] != nil {
+						cp_InboundPeerTrustBundles_v2[i3] = v2[i3].DeepCopy()
+					}
+				}
+			}
+			cp.InboundPeerTrustBundles[k2] = cp_InboundPeerTrustBundles_v2
+		}
+	}
 	return &cp
 }

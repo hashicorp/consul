@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
@@ -100,7 +103,7 @@ func (s *ac5_1NoSvcMeshSuite) test(t *testing.T, ct *commonTopo) {
 	s.testProxyDisabledInDC2(t, cl, peerName)
 }
 
-func (s *ac5_1NoSvcMeshSuite) testServiceHealthInCatalog(t *testing.T, ct *commonTopo, cl *api.Client, peer string) {
+func (s *ac5_1NoSvcMeshSuite) testServiceHealthInCatalog(t *testing.T, _ *commonTopo, cl *api.Client, peer string) {
 	t.Run("validate service health in catalog", func(t *testing.T) {
 		libassert.CatalogServiceExists(t, cl, s.clientSID.Name, &api.QueryOptions{
 			Peer: peer,

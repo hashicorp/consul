@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package utils
 
 import "github.com/hashicorp/consul/api"
@@ -23,7 +26,7 @@ func DefaultToEmpty(name string) string {
 }
 
 // CompatQueryOpts cleans a QueryOptions so that Partition and Namespace fields
-// are compatible with OSS or ENT
+// are compatible with CE or ENT
 // TODO: not sure why we can't do this server-side
 func CompatQueryOpts(opts *api.QueryOptions) *api.QueryOptions {
 	opts.Partition = DefaultToEmpty(opts.Partition)

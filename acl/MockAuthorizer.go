@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package acl
 
@@ -56,6 +56,31 @@ func (m *MockAuthorizer) EventRead(segment string, ctx *AuthorizerContext) Enfor
 // EventWrite determines if a specific event may be fired.
 func (m *MockAuthorizer) EventWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// IdentityRead checks for permission to read a given workload identity.
+func (m *MockAuthorizer) IdentityRead(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// IdentityReadAll checks for permission to read all workload identities.
+func (m *MockAuthorizer) IdentityReadAll(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// IdentityWrite checks for permission to create or update a given
+// workload identity.
+func (m *MockAuthorizer) IdentityWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// IdentityWriteAny checks for write permission on any workload identity.
+func (m *MockAuthorizer) IdentityWriteAny(ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
 	return ret.Get(0).(EnforcementDecision)
 }
 
@@ -199,6 +224,11 @@ func (m *MockAuthorizer) ServiceReadAll(ctx *AuthorizerContext) EnforcementDecis
 	return ret.Get(0).(EnforcementDecision)
 }
 
+func (m *MockAuthorizer) ServiceReadPrefix(prefix string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
 // ServiceWrite checks for permission to create or update a given
 // service
 func (m *MockAuthorizer) ServiceWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
@@ -228,6 +258,19 @@ func (m *MockAuthorizer) SessionWrite(segment string, ctx *AuthorizerContext) En
 // Snapshot checks for permission to take and restore snapshots.
 func (m *MockAuthorizer) Snapshot(ctx *AuthorizerContext) EnforcementDecision {
 	ret := m.Called(ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// TrafficPermissionsRead determines if specific traffic permissions can be read.
+func (m *MockAuthorizer) TrafficPermissionsRead(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
+	return ret.Get(0).(EnforcementDecision)
+}
+
+// TrafficPermissionsWrite determines if specific traffic permissions can be
+// created, modified, or deleted.
+func (m *MockAuthorizer) TrafficPermissionsWrite(segment string, ctx *AuthorizerContext) EnforcementDecision {
+	ret := m.Called(segment, ctx)
 	return ret.Get(0).(EnforcementDecision)
 }
 

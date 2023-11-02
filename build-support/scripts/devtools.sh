@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
@@ -124,7 +124,13 @@ function proto_tools_install {
         "${mog_version}" \
         'github.com/hashicorp/mog'
 
-    install_protoc_gen_consul_rate_limit
+    install_local_protoc_generator "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit"
+    
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-resource-types"
+
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-json-shim"
+
+    install_local_protoc_generator "${SOURCE_DIR}/internal/resource/protoc-gen-deepcopy"
 
     return 0
 }
@@ -149,14 +155,30 @@ function lint_install {
 }
 
 function codegen_install {
-    local deep_copy_version
-    deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+  deepcopy_install
+  copywrite_install
+}
+
+function deepcopy_install {
+  local deep_copy_version
+      deep_copy_version="$(make --no-print-directory print-DEEP_COPY_VERSION)"
+
+      install_versioned_tool \
+          'deep-copy' \
+          'github.com/globusdigital/deep-copy' \
+          "${deep_copy_version}" \
+          'github.com/globusdigital/deep-copy'
+}
+
+function copywrite_install {
+    local copywrite_version
+    copywrite_version="$(make --no-print-directory print-COPYWRITE_TOOL_VERSION)"
 
     install_versioned_tool \
-        'deep-copy' \
-        'github.com/globusdigital/deep-copy' \
-        "${deep_copy_version}" \
-        'github.com/globusdigital/deep-copy'
+        'copywrite' \
+        'github.com/hashicorp/copywrite' \
+        "${copywrite_version}" \
+        'github.com/hashicorp/copywrite'
 }
 
 function tools_install {
@@ -164,6 +186,7 @@ function tools_install {
     lint_install
     proto_tools_install
     codegen_install
+    copywrite_install
 
     return 0
 }
@@ -248,9 +271,10 @@ function install_versioned_tool {
     return 0
 }
 
-function install_protoc_gen_consul_rate_limit {
-    echo "installing tool protoc-gen-consul-rate-limit from local source"
-    pushd -- "${SOURCE_DIR}/internal/tools/protoc-gen-consul-rate-limit" > /dev/null
+function install_local_protoc_generator {
+    local src=$1
+    echo "installing tool $(basename $src) from local source"
+    pushd -- "$src" > /dev/null
     go install
     popd > /dev/null
 }

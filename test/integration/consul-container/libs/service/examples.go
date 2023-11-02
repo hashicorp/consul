@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package service
 
@@ -187,7 +187,7 @@ func NewExampleService(ctx context.Context, name string, httpPort int, grpcPort 
 	command = append(command, containerArgs...)
 
 	req := testcontainers.ContainerRequest{
-		Image:      hashicorpDockerProxy + "/fortio/fortio",
+		Image:      HashicorpDockerProxy + "/fortio/fortio",
 		WaitingFor: wait.ForLog("").WithStartupTimeout(60 * time.Second),
 		AutoRemove: false,
 		Name:       containerName,

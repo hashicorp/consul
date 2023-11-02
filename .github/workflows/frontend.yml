@@ -5,10 +5,8 @@ name: frontend
 
 on:
   push:
-    branches:
-      - main
+    paths:
       - ui/**
-      - backport/ui/**
 
 permissions:
   contents: read
@@ -39,10 +37,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     # Install dependencies.
     - name: install yarn packages
@@ -59,10 +57,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     # Install dependencies.
     - name: install yarn packages
@@ -74,12 +72,12 @@ jobs:
 
   ember-build-test:
     needs: setup
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     strategy:
       matrix:
         partition: [1, 2, 3, 4]
     env:
-      EMBER_TEST_REPORT: test-results/report-oss.xml # outputs test report for CI test summary
+      EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
       CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
@@ -88,10 +86,10 @@ jobs:
 
     - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
       with:
-        node-version: '16'
+        node-version: '18'
 
     - name: Install Yarn
-      run: npm install -g yarn
+      run: corepack enable
 
     - name: Install Chrome
       uses: browser-actions/setup-chrome@c485fa3bab6be59dce18dbc18ef6ab7cbc8ff5f1 # v1.2.0
