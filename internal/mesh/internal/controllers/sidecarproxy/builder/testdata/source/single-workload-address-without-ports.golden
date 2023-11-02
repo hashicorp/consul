@@ -108,56 +108,6 @@
                 }
               }
             },
-            "l4": {
-              "cluster": {
-                "name": "local_app:tcp"
-              },
-              "statPrefix": "public_listener",
-              "staticRoute": true,
-              "trafficPermissions": {}
-            },
-            "match": {
-              "alpnProtocols": [
-                "consul~grpc"
-              ]
-            }
-          },
-          {
-            "inboundTls": {
-              "inboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "trustBundlePeerNameKeys": [
-                    "local"
-                  ]
-                }
-              }
-            },
-            "l7": {
-              "route": {
-                "name": "public_listener:http"
-              },
-              "statPrefix": "public_listener",
-              "staticRoute": true,
-              "trafficPermissions": {}
-            },
-            "match": {
-              "alpnProtocols": [
-                "consul~http"
-              ]
-            }
-          },
-          {
-            "inboundTls": {
-              "inboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "trustBundlePeerNameKeys": [
-                    "local"
-                  ]
-                }
-              }
-            },
             "l7": {
               "protocol": "L7_PROTOCOL_HTTP2",
               "route": {
@@ -196,6 +146,55 @@
             "match": {
               "alpnProtocols": [
                 "consul~grpc"
+              ]
+            }
+          },
+          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
+            "l4": {
+              "cluster": {
+                "name": "local_app:tcp"
+              },
+              "statPrefix": "public_listener",
+              "trafficPermissions": {}
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~tcp"
+              ]
+            }
+          },
+          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
+            "l7": {
+              "route": {
+                "name": "public_listener:http"
+              },
+              "statPrefix": "public_listener",
+              "staticRoute": true,
+              "trafficPermissions": {}
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~http"
               ]
             }
           }
