@@ -229,7 +229,7 @@ jobs:
 
   build-darwin:
     needs: set-product-version
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         goos: [ darwin ]
@@ -274,7 +274,7 @@ jobs:
           arch: ${{ matrix.goarch }}
           reproducible: report
           instructions: |-
-            go build -ldflags="$GOLDFLAGS" -tags netcgo -o "$BIN_PATH" -trimpath -buildvcs=false
+            go build -ldflags="$GOLDFLAGS" -o "$BIN_PATH" -trimpath -buildvcs=false
 
   build-docker:
     name: Docker ${{ matrix.arch }} build
