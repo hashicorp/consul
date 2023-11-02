@@ -109,34 +109,9 @@
               }
             },
             "l7": {
-              "protocol": "L7_PROTOCOL_HTTP2",
+              "protocol": "L7_PROTOCOL_GRPC",
               "route": {
-                "name": "public_listener:http2"
-              },
-              "statPrefix": "public_listener",
-              "staticRoute": true,
-              "trafficPermissions": {}
-            },
-            "match": {
-              "alpnProtocols": [
-                "consul~http2"
-              ]
-            }
-          },
-          {
-            "inboundTls": {
-              "inboundMesh": {
-                "identityKey": "test-identity",
-                "validationContext": {
-                  "trustBundlePeerNameKeys": [
-                    "local"
-                  ]
-                }
-              }
-            },
-            "l4": {
-              "cluster": {
-                "name": "local_app:tcp"
+                "name": "public_listener:grpc"
               },
               "statPrefix": "public_listener",
               "trafficPermissions": {}
@@ -217,6 +192,44 @@
             "match": {
               "alpnProtocols": [
                 "consul~http"
+              ]
+            }
+          },
+          {
+            "inboundTls": {
+              "inboundMesh": {
+                "identityKey": "test-identity",
+                "validationContext": {
+                  "trustBundlePeerNameKeys": [
+                    "local"
+                  ]
+                }
+              }
+            },
+            "l7": {
+              "protocol": "L7_PROTOCOL_HTTP2",
+              "route": {
+                "name": "public_listener:http2"
+              },
+              "statPrefix": "public_listener",
+              "staticRoute": true,
+              "trafficPermissions": {
+                "allowPermissions": [
+                  {
+                    "principals": [
+                      {
+                        "spiffe": {
+                          "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "match": {
+              "alpnProtocols": [
+                "consul~http2"
               ]
             }
           }

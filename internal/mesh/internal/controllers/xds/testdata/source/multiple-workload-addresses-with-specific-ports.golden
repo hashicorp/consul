@@ -120,11 +120,85 @@
             },
             "statPrefix": "public_listener",
             "staticRoute": true,
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "match": {
+            "alpnProtocols": [
+              "consul~grpc"
+            ]
+          }
+        },
+        {
+          "inboundTls": {
+            "inboundMesh": {
+              "identityKey": "test-identity",
+              "validationContext": {
+                "trustBundlePeerNameKeys": [
+                  "local"
+                ]
+              }
+            }
+          },
+          "l4": {
+            "cluster": {
+              "name": "local_app:tcp"
+            },
+            "statPrefix": "public_listener",
+            "staticRoute": true,
             "trafficPermissions": {}
           },
           "match": {
             "alpnProtocols": [
               "consul~grpc"
+            ]
+          }
+        },
+        {
+          "inboundTls": {
+            "inboundMesh": {
+              "identityKey": "test-identity",
+              "validationContext": {
+                "trustBundlePeerNameKeys": [
+                  "local"
+                ]
+              }
+            }
+          },
+          "l7": {
+            "route": {
+              "name": "public_listener:http"
+            },
+            "statPrefix": "public_listener",
+            "staticRoute": true,
+            "trafficPermissions": {
+              "allowPermissions": [
+                {
+                  "principals": [
+                    {
+                      "spiffe": {
+                        "regex": "^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "match": {
+            "alpnProtocols": [
+              "consul~http"
             ]
           }
         },
@@ -151,30 +225,6 @@
           "match": {
             "alpnProtocols": [
               "consul~http2"
-            ]
-          }
-        },
-        {
-          "inboundTls": {
-            "inboundMesh": {
-              "identityKey": "test-identity",
-              "validationContext": {
-                "trustBundlePeerNameKeys": [
-                  "local"
-                ]
-              }
-            }
-          },
-          "l4": {
-            "cluster": {
-              "name": "local_app:tcp"
-            },
-            "statPrefix": "public_listener",
-            "trafficPermissions": {}
-          },
-          "match": {
-            "alpnProtocols": [
-              "consul~tcp"
             ]
           }
         }
