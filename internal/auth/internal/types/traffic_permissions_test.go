@@ -65,17 +65,8 @@ func TestValidateTrafficPermissions(t *testing.T) {
 		},
 		"no-destination": {
 			tp: &pbauth.TrafficPermissions{
-				Action: pbauth.Action_ACTION_ALLOW,
-				Permissions: []*pbauth.Permission{
-					{
-						Sources: nil,
-						DestinationRules: []*pbauth.DestinationRule{
-							{
-								PathExact: "wi2",
-							},
-						},
-					},
-				},
+				Action:      pbauth.Action_ACTION_ALLOW,
+				Permissions: nil,
 			},
 			expectErr: `invalid "data.destination" field: cannot be empty`,
 		},
@@ -99,6 +90,76 @@ func TestValidateTrafficPermissions(t *testing.T) {
 				},
 			},
 			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "sources": invalid element at index 0 of list "source": permissions sources may not specify partitions, peers, and sameness_groups together`,
+		},
+		// TODO: remove when L7 traffic permissions are implemented
+		"l7-fields-path": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition: "ap1",
+							},
+						},
+						DestinationRules: []*pbauth.DestinationRule{
+							{
+								PathExact: "wi2",
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
+		},
+		"l7-fields-methods": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition: "ap1",
+							},
+						},
+						DestinationRules: []*pbauth.DestinationRule{
+							{
+								Methods: []string{"PUT"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
+		},
+		"l7-fields-header": {
+			tp: &pbauth.TrafficPermissions{
+				Destination: &pbauth.Destination{
+					IdentityName: "w1",
+				},
+				Action: pbauth.Action_ACTION_ALLOW,
+				Permissions: []*pbauth.Permission{
+					{
+						Sources: []*pbauth.Source{
+							{
+								Partition: "ap1",
+							},
+						},
+						DestinationRules: []*pbauth.DestinationRule{
+							{
+								Header: &pbauth.DestinationRuleHeader{Name: "foo"},
+							},
+						},
+					},
+				},
+			},
+			expectErr: `invalid element at index 0 of list "permissions": invalid element at index 0 of list "destination_rules": invalid element at index 0 of list "destination_rule": traffic permissions with L7 rules are not yet supported`,
 		},
 	}
 
