@@ -144,6 +144,7 @@ jobs:
             ${{ env.GOTESTFLAGS }} \
             $PACKAGE_NAMES 2>&1 | tee /tmp/test.log | grep -v '^testcache:'
       - name: calculate testcache hit rate
+        if: ${{ always() }}
         run: |
           grep '^testcache:' /tmp/test.log > /tmp/testcache.log
           echo "${{steps.cachekey_GOCACHE.outputs.cachekey_GOCACHE}}" >> "$GITHUB_STEP_SUMMARY" 
