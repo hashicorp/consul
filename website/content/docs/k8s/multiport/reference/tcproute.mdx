@@ -274,6 +274,7 @@ Specifies the type of resource that the configuration routes traffic to. To refe
 - Data type: Map containing the following parameters:
 
   | Parameter     | Description                                                          | Data type | Default  |
+  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
   | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
   | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
   | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
