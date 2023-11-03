@@ -1166,6 +1166,13 @@ func (s *HTTPHandlers) AgentRegisterService(resp http.ResponseWriter, req *http.
 
 	// Get the node service.
 	ns := args.NodeService()
+
+	// We currently do not persist locality inherited from the node service
+	// (it is inherited at runtime). See agent/proxycfg-sources/local/sync.go.
+	// To support locality-aware service discovery in the future, persisting
+	// this data may be necessary. This does not impact agent-less deployments
+	// because locality is explicitly set on service registration there.
+
 	if ns.Weights != nil {
 		if err := structs.ValidateWeights(ns.Weights); err != nil {
 			return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Invalid Weights: %v", err)}

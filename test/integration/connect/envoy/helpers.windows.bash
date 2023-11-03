@@ -389,7 +389,7 @@ function snapshot_envoy_admin {
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
 
   mkdir -p "${OUTDIR}"
-  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/config_dump" > "${OUTDIR}/config_dump.json"
+  docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/config_dump?include_eds=on" > "${OUTDIR}/config_dump.json"
   docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/clusters?format=json" > "${OUTDIR}/clusters.json"
   docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/stats" > "${OUTDIR}/stats.txt"
   docker_consul_exec "$DC" bash -c "curl -s http://${HOSTPORT}/stats/prometheus"  > "${OUTDIR}/stats_prometheus.txt"
