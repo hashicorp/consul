@@ -10,12 +10,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
+
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -46,10 +47,11 @@ func TestServerRequestRateLimit(t *testing.T) {
 		expectMetric      bool
 	}
 	type testCase struct {
-		description string
-		cmd         string
-		operations  []operation
-		mode        string
+		description    string
+		cmd            string
+		operations     []operation
+		mode           string
+		enterpriseOnly bool
 	}
 
 	// getKV and putKV are net/RPC calls
@@ -172,6 +174,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 					expectMetric:      false,
 				},
 			},
+			enterpriseOnly: true,
 		},
 		{
 			description: "GRPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
@@ -191,6 +194,7 @@ func TestServerRequestRateLimit(t *testing.T) {
 					expectMetric:      true,
 				},
 			},
+			enterpriseOnly: true,
 		},
 		{
 			description: "GRPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
@@ -210,10 +214,14 @@ func TestServerRequestRateLimit(t *testing.T) {
 					expectMetric:      true,
 				},
 			},
+			enterpriseOnly: true,
 		},
 	}
 
 	for _, tc := range testCases {
+		if tc.enterpriseOnly && !utils.IsEnterprise() {
+			continue
+		}
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
