@@ -33,10 +33,12 @@ import (
 
 // Sprawl is the definition of a complete running Consul deployment topology.
 type Sprawl struct {
-	logger  hclog.Logger
-	runner  *runner.Runner
-	license string
-	secrets secrets.Store
+	logger hclog.Logger
+	// set after initial Launch is complete
+	launchLogger hclog.Logger
+	runner       *runner.Runner
+	license      string
+	secrets      secrets.Store
 
 	workdir string
 
@@ -212,17 +214,30 @@ func Launch(
 		return nil, fmt.Errorf("error gathering diagnostic details: %w", err)
 	}
 
+	s.launchLogger = s.logger
+
 	return s, nil
 }
 
 func (s *Sprawl) Relaunch(
 	cfg *topology.Config,
 ) error {
+	return s.RelaunchWithPhase(cfg, "")
+}
+
+func (s *Sprawl) RelaunchWithPhase(
+	cfg *topology.Config,
+	phase string,
+) error {
 	// Copy this BEFORE compiling so we capture the original definition, without denorms.
 	var err error
 	s.config, err = copyConfig(cfg)
 	if err != nil {
 		return err
+	}
+
+	if phase != "" {
+		s.logger = s.launchLogger.Named(phase)
 	}
 
 	newTopology, err := topology.Recompile(s.logger.Named("recompile"), cfg, s.topology)

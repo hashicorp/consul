@@ -98,23 +98,26 @@ func DockerImages(
 	run *runner.Runner,
 	t *topology.Topology,
 ) error {
-	logw := logger.Named("docker").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
 
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {
 		for _, n := range c.Nodes {
 			joint := n.Images.EnvoyConsulImage()
 			if _, ok := built[joint]; joint != "" && !ok {
-				logger.Info("building image", "image", joint)
-				err := run.DockerExec(context.TODO(), []string{
+				logger.Info("building envoy+consul image", "image", joint)
+				logw := logger.Named("docker_envoy_consul").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
+
+				err := run.DockerExecWithStderr(context.TODO(), []string{
 					"build",
+					// provenance causes non-idempotent builds, which leads to spurious terraform replacements
+					"--provenance=false",
 					"--build-arg",
 					"CONSUL_IMAGE=" + n.Images.Consul,
 					"--build-arg",
 					"ENVOY_IMAGE=" + n.Images.Envoy,
 					"-t", joint,
 					"-",
-				}, logw, strings.NewReader(dockerfileEnvoy))
+				}, logw, logw, strings.NewReader(dockerfileEnvoy))
 				if err != nil {
 					return err
 				}
@@ -124,14 +127,16 @@ func DockerImages(
 
 			cdp := n.Images.LocalDataplaneImage()
 			if _, ok := built[cdp]; cdp != "" && !ok {
-				logger.Info("building image", "image", cdp)
-				err := run.DockerExec(context.TODO(), []string{
+				logger.Info("building dataplane image", "image", cdp)
+				logw := logger.Named("docker_dataplane").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
+				err := run.DockerExecWithStderr(context.TODO(), []string{
 					"build",
+					"--provenance=false",
 					"--build-arg",
 					"DATAPLANE_IMAGE=" + n.Images.Dataplane,
 					"-t", cdp,
 					"-",
-				}, logw, strings.NewReader(dockerfileDataplane))
+				}, logw, logw, strings.NewReader(dockerfileDataplane))
 				if err != nil {
 					return err
 				}
@@ -142,7 +147,8 @@ func DockerImages(
 			cdpTproxy := n.Images.LocalDataplaneTProxyImage()
 			if _, ok := built[cdpTproxy]; cdpTproxy != "" && !ok {
 				logger.Info("building image", "image", cdpTproxy)
-				err := run.DockerExec(context.TODO(), []string{
+				logw := logger.Named("docker_dataplane_tproxy").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
+				err := run.DockerExecWithStderr(context.TODO(), []string{
 					"build",
 					"--build-arg",
 					"DATAPLANE_IMAGE=" + n.Images.Dataplane,
@@ -150,7 +156,7 @@ func DockerImages(
 					"CONSUL_IMAGE=" + n.Images.Consul,
 					"-t", cdpTproxy,
 					"-",
-				}, logw, strings.NewReader(dockerfileDataplaneForTProxy))
+				}, logw, logw, strings.NewReader(dockerfileDataplaneForTProxy))
 				if err != nil {
 					return err
 				}

@@ -30,11 +30,15 @@ type ac5_2PQFailoverSuite struct {
 	serverSID  topology.ServiceID
 	nodeServer topology.NodeID
 }
+type nodeKey struct {
+	dc        string
+	partition string
+}
 
 var ac5_2Context = make(map[nodeKey]ac5_2PQFailoverSuite)
 
 func TestAC5PreparedQueryFailover(t *testing.T) {
-	ct := NewCommonTopo(t)
+	ct := newCommonTopo(t, "dc2", true, true)
 	s := &ac5_2PQFailoverSuite{}
 	s.setup(t, ct)
 	ct.Launch(t)
