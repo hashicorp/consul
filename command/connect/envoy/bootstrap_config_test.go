@@ -625,46 +625,30 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
 			},
 			wantArgs: BootstrapTplArgs{
-				ProxyID:         "web-sidecar-proxy",
-				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "consul_telemetry_collector_loopback"
-						}
-					  },
-					  "emit_tags_as_labels": true
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "consul_telemetry_collector_loopback",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "consul_telemetry_collector_loopback",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
+				StatsFlushInterval: "60s",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 			wantErr: false,
+		},
+		{
+			name: "telemetry-collector-with-flush-interval-configured",
+			baseArgs: BootstrapTplArgs{
+				ProxyID: "web-sidecar-proxy",
+			},
+			input: BootstrapConfig{
+				StatsFlushInterval:              "10s",
+				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsFlushInterval: "10s",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
+			},
 		},
 		{
 			name: "simple-statsd-sink",

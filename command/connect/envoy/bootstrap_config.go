@@ -248,6 +248,10 @@ func (c *BootstrapConfig) ConfigureArgs(args *BootstrapTplArgs, omitDeprecatedTa
 
 	// Setup telemetry collector if needed. This MUST happen after the Static*JSON is set above
 	if c.TelemetryCollectorBindSocketDir != "" {
+		// Unless configured, override StatsFlushInterval as 60 seconds (1 minute) to reduce number of metric flushes.
+		if c.StatsFlushInterval == "" {
+			args.StatsFlushInterval = "60s"
+		}
 		appendTelemetryCollectorConfig(args, c.TelemetryCollectorBindSocketDir)
 	}
 
