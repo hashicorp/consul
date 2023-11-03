@@ -25,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -617,114 +616,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
 			},
 		},
-		{
-			name: "terminating-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
-			},
-		},
-		{
-			name: "terminating-gateway-custom-trace-listener",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{}
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
-				}, nil)
-			},
-		},
-		{
-			name: "terminating-gateway-with-tls-incoming-min-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSv1_3,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-		},
-		{
-			name: "terminating-gateway-with-tls-incoming-max-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										TLSMaxVersion: types.TLSv1_2,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-		},
-		{
-			name: "terminating-gateway-with-tls-incoming-cipher-suites",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										CipherSuites: []types.TLSCipherSuite{
-											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-		},
-		{
-			name: "terminating-gateway-no-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
-			},
-		},
-		{
-			name: "terminating-gateway-custom-and-tagged-addresses",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{
-						"envoy_gateway_no_default_bind":       true,
-						"envoy_gateway_bind_tagged_addresses": true,
-						"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
-							// This bind address should not get a listener due to deduplication and it sorts to the end
-							"z-duplicate-of-tagged-wan-addr": {
-								Address: "198.18.0.1",
-								Port:    443,
-							},
-							"foo": {
-								Address: "198.17.2.3",
-								Port:    8080,
-							},
-						},
-					}
-				}, nil)
-			},
-		},
-		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsets,
-		},
+
 		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
@@ -733,56 +625,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:   "ingress-grpc-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
 		},
-		{
-			name: "terminating-gateway-no-api-cert",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				api := structs.NewServiceName("api", nil)
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
-						Result:        nil,                            // tombstone this
-					},
-				})
-			},
-		},
-		{
-			name: "terminating-gateway-with-peer-trust-bundle",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				roots, _ := proxycfg.TestCerts(t)
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "peer-trust-bundle:web",
-						Result: &pbpeering.TrustBundleListByServiceResponse{
-							Bundles: []*pbpeering.PeeringTrustBundle{
-								{
-									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc2",
-									Partition:   "default",
-									RootPEMs: []string{
-										roots.Roots[0].RootCert,
-									},
-									ExportedPartition: "default",
-									CreateIndex:       0,
-									ModifyIndex:       0,
-								},
-							},
-						},
-					},
-					{
-						CorrelationID: "service-intentions:web",
-						Result: structs.SimplifiedIntentions{
-							{
-								SourceName:           "source",
-								SourcePeer:           "dc2",
-								DestinationName:      "web",
-								DestinationPartition: "default",
-								Action:               structs.IntentionActionAllow,
-							},
-						},
-					},
-				})
-			},
-		},
+
 		{
 			name: "ingress-with-tls-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {

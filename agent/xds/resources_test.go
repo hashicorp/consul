@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
 	"github.com/hashicorp/consul/agent/xdsv2"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"google.golang.org/protobuf/proto"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -280,6 +281,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getExposePathGoldenTestCases()...)
 	tests = append(tests, getCustomConfigurationGoldenTestCases(false)...)
 	tests = append(tests, getConnectProxyJWTProviderGoldenTestCases()...)
+	tests = append(tests, getTerminatingGatewayPeeringGoldenTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -1495,6 +1497,253 @@ func getConnectProxyJWTProviderGoldenTestCases() []goldenTestCase {
 				})
 			},
 			// TODO(proxystate): jwt work will come at a later time
+			alsoRunTestForV2: false,
+		},
+	}
+}
+
+func getTerminatingGatewayPeeringGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "terminating-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-hostname-service-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayHostnameSubsets,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-sni",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySNI,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-http2-upstream",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayHTTP2,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-http2-upstream-subsets",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewaySubsetsHTTP2,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-ignore-extra-resolvers",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayIgnoreExtraResolvers,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-lb-config",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfig,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-lb-config-no-hash-policies",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfigNoHashPolicies,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					if ns.Proxy.Config == nil {
+						ns.Proxy.Config = map[string]interface{}{}
+					}
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 133
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 27
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 5
+				}, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-custom-trace-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{}
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
+				}, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-with-tls-incoming-min-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSv1_3,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-with-tls-incoming-max-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										TLSMaxVersion: types.TLSv1_2,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-with-tls-incoming-cipher-suites",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										CipherSuites: []types.TLSCipherSuite{
+											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-custom-and-tagged-addresses",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_gateway_no_default_bind":       true,
+						"envoy_gateway_bind_tagged_addresses": true,
+						"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
+							// This bind address should not get a listener due to deduplication and it sorts to the end
+							"z-duplicate-of-tagged-wan-addr": {
+								Address: "198.18.0.1",
+								Port:    443,
+							},
+							"foo": {
+								Address: "198.17.2.3",
+								Port:    8080,
+							},
+						},
+					}
+				}, nil)
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-no-api-cert",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				api := structs.NewServiceName("api", nil)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
+						Result:        nil,                            // tombstone this
+					},
+				})
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "terminating-gateway-with-peer-trust-bundle",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				roots, _ := proxycfg.TestCerts(t)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peer-trust-bundle:web",
+						Result: &pbpeering.TrustBundleListByServiceResponse{
+							Bundles: []*pbpeering.PeeringTrustBundle{
+								{
+									TrustDomain: "foo.bar.gov",
+									PeerName:    "dc2",
+									Partition:   "default",
+									RootPEMs: []string{
+										roots.Roots[0].RootCert,
+									},
+									ExportedPartition: "default",
+									CreateIndex:       0,
+									ModifyIndex:       0,
+								},
+							},
+						},
+					},
+					{
+						CorrelationID: "service-intentions:web",
+						Result: structs.SimplifiedIntentions{
+							{
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "terminating-gateway-default-service-subset",
+			create: proxycfg.TestConfigSnapshotTerminatingGatewayDefaultServiceSubset,
+			// TODO(proxystate): terminating gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
 	}

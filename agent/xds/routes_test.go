@@ -175,12 +175,6 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: false,
 		},
 		{
-			name:   "terminating-gateway-lb-config",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfig,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
 			name: "api-gateway-with-multiple-hostnames",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
