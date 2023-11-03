@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
-	reg, err := s.validateWatchListRequest(req)
+	reg, err := s.ensureWatchListRequestValid(req)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 }
 
-func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*resource.Registration, error) {
+func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (*resource.Registration, error) {
 	if req.Type == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "type is required")
 	}
@@ -104,7 +104,7 @@ func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*re
 
 	// if no tenancy is passed defaults to wildcard
 	if req.Tenancy == nil {
-		req.Tenancy = getDefaultTenancy(reg.Scope)
+		req.Tenancy = wildcardTenancyFor(reg.Scope)
 	}
 
 	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
@@ -123,7 +123,7 @@ func (s *Server) validateWatchListRequest(req *pbresource.WatchListRequest) (*re
 	return reg, nil
 }
 
-func getDefaultTenancy(scope resource.Scope) *pbresource.Tenancy {
+func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
 	var defaultTenancy *pbresource.Tenancy
 
 	switch scope {

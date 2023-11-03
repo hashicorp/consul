@@ -407,7 +407,6 @@ func TestWatchList_NoTenancy(t *testing.T) {
 	require.NoError(t, err)
 	rspCh := handleResourceStream(t, stream)
 
-	// Testcase will pick one of recordLabel or artist based on scope of type.
 	recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 	require.NoError(t, err)
 
