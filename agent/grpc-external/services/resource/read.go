@@ -18,7 +18,7 @@ import (
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	// Light first pass validation based on what user passed in and not much more.
-	reg, err := s.validateReadRequest(req)
+	reg, err := s.ensureReadRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
-func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
+func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
