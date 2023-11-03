@@ -8,7 +8,7 @@ import (
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -51,7 +51,6 @@ func (pr *ProxyResources) makeXDSEndpoints() ([]proto.Message, error) {
 	endpoints := make([]proto.Message, 0)
 
 	for clusterName, eps := range pr.proxyState.GetEndpoints() {
-		// TODO(jm):  this does not seem like the best way.
 		if clusterName != xdscommon.LocalAppClusterName {
 			protoEndpoint := makeEnvoyClusterLoadAssignment(clusterName, eps.Endpoints)
 			endpoints = append(endpoints, protoEndpoint)

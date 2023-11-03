@@ -165,6 +165,7 @@ type ServiceConfigEntry struct {
 	LocalConnectTimeoutMs     int                    `json:",omitempty" alias:"local_connect_timeout_ms"`
 	LocalRequestTimeoutMs     int                    `json:",omitempty" alias:"local_request_timeout_ms"`
 	BalanceInboundConnections string                 `json:",omitempty" alias:"balance_inbound_connections"`
+	RateLimits                *RateLimits            `json:",omitempty" alias:"rate_limits"`
 	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
@@ -286,6 +287,10 @@ func (e *ServiceConfigEntry) Validate() error {
 		}
 	}
 
+	if err := validateRatelimit(e.RateLimits); err != nil {
+		validationErr = multierror.Append(validationErr, err)
+	}
+
 	if err := envoyextensions.ValidateExtensions(e.EnvoyExtensions.ToAPI()); err != nil {
 		validationErr = multierror.Append(validationErr, err)
 	}
@@ -382,14 +387,51 @@ type DestinationConfig struct {
 	Port int `json:",omitempty"`
 }
 
-func IsHostname(address string) bool {
-	ip := net.ParseIP(address)
-	return ip == nil
-}
-
 func IsIP(address string) bool {
 	ip := net.ParseIP(address)
 	return ip != nil
+}
+
+// RateLimits is rate limiting configuration that is applied to
+// inbound traffic for a service.
+// Rate limiting is a Consul enterprise feature.
+type RateLimits struct {
+	InstanceLevel InstanceLevelRateLimits `alias:"instance_level"`
+}
+
+// InstanceLevelRateLimits represents rate limit configuration
+// that are applied per service instance.
+type InstanceLevelRateLimits struct {
+	// RequestsPerSecond is the average number of requests per second that can be
+	// made without being throttled. This field is required if RequestsMaxBurst
+	// is set. The allowed number of requests may exceed RequestsPerSecond up to
+	// the value specified in RequestsMaxBurst.
+	//
+	// Internally, this is the refill rate of the token bucket used for rate limiting.
+	RequestsPerSecond int `alias:"requests_per_second"`
+
+	// RequestsMaxBurst is the maximum number of requests that can be sent
+	// in a burst. Should be equal to or greater than RequestsPerSecond.
+	// If unset, defaults to RequestsPerSecond.
+	//
+	// Internally, this is the maximum size of the token bucket used for rate limiting.
+	RequestsMaxBurst int `alias:"requests_max_burst"`
+
+	// Routes is a list of rate limits applied to specific routes.
+	// For a given request, the first matching route will be applied, if any.
+	// Overrides any top-level configuration.
+	Routes []InstanceLevelRouteRateLimits
+}
+
+// InstanceLevelRouteRateLimits represents rate limit configuration
+// applied to a route matching one of PathExact/PathPrefix/PathRegex.
+type InstanceLevelRouteRateLimits struct {
+	PathExact  string `alias:"path_exact"`
+	PathPrefix string `alias:"path_prefix"`
+	PathRegex  string `alias:"path_regex"`
+
+	RequestsPerSecond int `alias:"requests_per_second"`
+	RequestsMaxBurst  int `alias:"requests_max_burst"`
 }
 
 // ProxyConfigEntry is the top-level struct for global proxy configuration defaults.
@@ -826,19 +868,6 @@ func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
 }
 
-// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
-// This is often used for fetching service-defaults config entries.
-func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
-	var upstreams []ServiceID
-	for i := range s.UpstreamServiceNames {
-		u := &s.UpstreamServiceNames[i]
-		if u.Peer == "" {
-			upstreams = append(upstreams, u.ServiceName.ToServiceID())
-		}
-	}
-	return upstreams
-}
-
 func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {
 	info := cache.RequestInfo{
 		Token:          r.Token,
@@ -1218,6 +1247,7 @@ type ServiceConfigResponse struct {
 	Mode             ProxyMode              `json:",omitempty"`
 	Destination      DestinationConfig      `json:",omitempty"`
 	AccessLogs       AccessLogsConfig       `json:",omitempty"`
+	RateLimits       RateLimits             `json:",omitempty"`
 	Meta             map[string]string      `json:",omitempty"`
 	EnvoyExtensions  []EnvoyExtension       `json:",omitempty"`
 	QueryMeta

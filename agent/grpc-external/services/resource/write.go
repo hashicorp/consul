@@ -49,17 +49,8 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 	}
 	v1EntMetaToV2Tenancy(reg, v1EntMeta, req.Resource.Id.Tenancy)
 
-	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
-	err = reg.ACLs.Write(authz, authzContext, req.Resource)
-	switch {
-	case acl.IsErrPermissionDenied(err):
-		return nil, status.Error(codes.PermissionDenied, err.Error())
-	case err != nil:
-		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
-	}
-
 	// Check the user sent the correct type of data.
-	if !req.Resource.Data.MessageIs(reg.Proto) {
+	if req.Resource.Data != nil && !req.Resource.Data.MessageIs(reg.Proto) {
 		got := strings.TrimPrefix(req.Resource.Data.TypeUrl, "type.googleapis.com/")
 
 		return nil, status.Errorf(
@@ -70,22 +61,31 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		)
 	}
 
-	// Check V1 tenancy exists for the V2 resource
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
-		return nil, err
-	}
-
-	// Check V1 tenancy not marked for deletion.
-	if err = v1TenancyMarkedForDeletion(reg, s.V1TenancyBridge, req.Resource.Id.Tenancy); err != nil {
-		return nil, err
-	}
-
 	if err = reg.Mutate(req.Resource); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
 	}
 
 	if err = reg.Validate(req.Resource); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
+	}
+
+	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
+	err = reg.ACLs.Write(authz, authzContext, req.Resource)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
+	}
+
+	// Check tenancy exists for the V2 resource
+	if err = tenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+		return nil, err
+	}
+
+	// Check tenancy not marked for deletion.
+	if err = tenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+		return nil, err
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
@@ -272,8 +272,6 @@ func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.R
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Data == nil:
-		field = "resource.data"
 	}
 
 	if field != "" {
@@ -293,6 +291,10 @@ func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.R
 	// Check type exists.
 	reg, err := s.resolveType(req.Resource.Id.Type)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Resource.Id.Type); err != nil {
 		return nil, err
 	}
 

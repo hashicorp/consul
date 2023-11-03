@@ -17,14 +17,14 @@ import (
 // be used by tests to set the log level of a hclog.Logger. Defaults to
 // hclog.Warn if the environment variable is unset, or if the value of the
 // environment variable can not be matched to a log level.
-var TestLogLevel = testLogLevel()
+var TestLogLevel = TestLogLevelWithDefault(hclog.Warn)
 
-func testLogLevel() hclog.Level {
+func TestLogLevelWithDefault(l hclog.Level) hclog.Level {
 	level := hclog.LevelFromString(os.Getenv("TEST_LOG_LEVEL"))
 	if level != hclog.NoLevel {
 		return level
 	}
-	return hclog.Warn
+	return l
 }
 
 func Logger(t TestingTB) hclog.InterceptLogger {

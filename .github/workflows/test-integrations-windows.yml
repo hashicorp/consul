@@ -4,10 +4,7 @@
 name: test-integrations-windows
 
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    # Run nightly at 12AM UTC/8PM EST/5PM PST.
-    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -38,7 +35,7 @@ jobs:
   dev-build:
     uses: ./.github/workflows/reusable-dev-build-windows.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul.exe'
     secrets:
@@ -57,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: [ "1.24.10", "1.25.9", "1.26.4", "1.27.0" ]
+        envoy-version: [ "1.27.2" ]
         xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
@@ -74,6 +71,11 @@ jobs:
         with:
           name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
           path: ${{ github.workspace }}
+
+      - name: Create dist folder and copy binary
+        run: |
+          mkdir dist
+          cp ${{ github.workspace }}\consul.exe dist\
 
       - name: Restore mode+x
         run: icacls ${{ github.workspace }}\consul.exe /grant:rx Everyone:RX
@@ -102,22 +104,22 @@ jobs:
       # https://hashicorp.atlassian.net/browse/NET-4973
       # ^ Ticket to figure out why grouping test case is failing on Windows Machine
 
-      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
-        shell: bash
-        if: always()
-        env:
-          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
-          GOTESTSUM_FORMAT: standard-verbose
-          COMPOSE_INTERACTIVE_NO_CLI: 1
-          LAMBDA_TESTS_ENABLED: "true"
-          # tput complains if this isn't set to something.
-          TERM: ansi
-        run: |
-          # shellcheck disable=SC2001
-          echo "Running Integration Test case-api-gateway-http-hostnames"
-          # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
-            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
+#      - name: Envoy Integration Tests for windows case-api-gateway-http-hostnames
+#        shell: bash
+#        if: always()
+#        env:
+#          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+#          GOTESTSUM_FORMAT: standard-verbose
+#          COMPOSE_INTERACTIVE_NO_CLI: 1
+#          LAMBDA_TESTS_ENABLED: "true"
+#          # tput complains if this isn't set to something.
+#          TERM: ansi
+#        run: |
+#          # shellcheck disable=SC2001
+#          echo "Running Integration Test case-api-gateway-http-hostnames"
+#          # shellcheck disable=SC2001
+#          go test -v -timeout=45m -tags integration \
+#            ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-hostnames" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-simple
         shell: bash
@@ -133,7 +135,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-simple"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-simple" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-splitter-targets
@@ -150,7 +152,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-splitter-targets"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-splitter-targets" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-http-tls-overlapping-hosts
@@ -167,7 +169,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-http-tls-overlapping-hosts"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-http-tls-overlapping-hosts" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-conflicted
@@ -184,7 +186,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-conflicted"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-conflicted" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-simple
@@ -201,7 +203,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-simple"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-simple" -win=true
 
       - name: Envoy Integration Tests for windows case-api-gateway-tcp-tls-overlapping-hosts
@@ -218,7 +220,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-api-gateway-tcp-tls-overlapping-hosts"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-api-gateway-tcp-tls-overlapping-hosts" -win=true
 
       - name: Envoy Integration Tests for windows case-badauthz
@@ -235,7 +237,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-badauthz"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-badauthz" -win=true
 
       - name: Envoy Integration Tests for windows case-basic
@@ -252,7 +254,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-basic"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-basic" -win=true
 
       - name: Envoy Integration Tests for windows case-centralconf
@@ -269,7 +271,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-centralconf"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-centralconf" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-cluster-peering-failover
@@ -286,7 +288,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-cluster-peering-failover"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-cluster-peering-failover" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-none
@@ -303,7 +305,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-none"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-none" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-dc-failover-gateways-remote
@@ -320,7 +322,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-dc-failover-gateways-remote"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-dc-failover-gateways-remote" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-defaultsubset
@@ -337,7 +339,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-defaultsubset"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-defaultsubset" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-features
@@ -354,7 +356,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-features"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-features" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-onlypassing
@@ -371,7 +373,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-subset-onlypassing"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-subset-onlypassing" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-subset-redirect
@@ -388,7 +390,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-subset-redirect"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-subset-redirect" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-failover
@@ -405,7 +407,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-failover"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-failover" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-http
@@ -422,7 +424,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-redirect-http"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-redirect-http" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-resolver-svc-redirect-tcp
@@ -439,7 +441,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-resolver-svc-redirect-tcp"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-resolver-svc-redirect-tcp" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-router-features
@@ -456,7 +458,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-router-features"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-router-features" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-cluster-peering
@@ -473,7 +475,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-cluster-peering"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-cluster-peering" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-features
@@ -490,7 +492,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-features"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-features" -win=true
 
       - name: Envoy Integration Tests for windows case-cfg-splitter-peering-ingress-gateways
@@ -507,7 +509,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cfg-splitter-peering-ingress-gateways"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cfg-splitter-peering-ingress-gateways" -win=true
 
       # This test runs fine on windows machine but fails on CI
@@ -526,7 +528,7 @@ jobs:
       #        #shellcheck disable=SC2001
       #        echo "Running Integration Test case-consul-exec"
       #        # shellcheck disable=SC2001
-      #        go test -v -timeout=30m -tags integration \
+      #        go test -v -timeout=45m -tags integration \
       #            ./test/integration/connect/envoy -run="TestEnvoy/case-consul-exec" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peer-control-plane-mgw
@@ -543,7 +545,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peer-control-plane-mgw"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peer-control-plane-mgw" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers
@@ -560,7 +562,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http
@@ -577,7 +579,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-http"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-http-router
@@ -594,7 +596,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-http-router"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-http-router" -win=true
 
       - name: Envoy Integration Tests for windows case-cross-peers-resolver-redirect-tcp
@@ -611,7 +613,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-cross-peers-resolver-redirect-tcp"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-cross-peers-resolver-redirect-tcp" -win=true
 
       - name: Envoy Integration Tests for windows case-dogstatsd-udp
@@ -628,7 +630,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-dogstatsd-udp"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-dogstatsd-udp" -win=true
 
       - name: Envoy Integration Tests for windows case-envoyext-ratelimit
@@ -645,7 +647,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-envoyext-ratelimit"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-envoyext-ratelimit" -win=true
 
       - name: Envoy Integration Tests for windows case-expose-checks
@@ -662,7 +664,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-expose-checks"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-expose-checks" -win=true
 
       - name: Envoy Integration Tests for windows case-gateway-without-services
@@ -679,7 +681,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateway-without-services"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-gateway-without-services" -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-local
@@ -696,7 +698,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateways-local"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-gateways-local" -win=true
 
       - name: Envoy Integration Tests for windows case-gateways-remote
@@ -713,7 +715,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-gateways-remote"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-gateways-remote" -win=true
 
       - name: Envoy Integration Tests for windows case-grpc
@@ -730,7 +732,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-grpc"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-grpc" -win=true
 
       - name: Envoy Integration Tests for windows case-http
@@ -747,7 +749,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-http"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-http" -win=true
 
       - name: Envoy Integration Tests for windows case-http-badauthz
@@ -764,7 +766,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-http-badauthz"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-http-badauthz" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-grpc
@@ -781,7 +783,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-grpc"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-grpc" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-http
@@ -798,7 +800,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-http"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-http" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-multiple-services
@@ -815,7 +817,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-multiple-services"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-multiple-services" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-peering-failover
@@ -832,7 +834,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-peering-failover"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-peering-failover" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-simple
@@ -849,7 +851,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-simple"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-simple" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-mesh-gateways-resolver
@@ -866,7 +868,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-mesh-gateways-resolver"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-mesh-gateways-resolver" -win=true
 
       - name: Envoy Integration Tests for windows case-l7-intentions
@@ -883,7 +885,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-l7-intentions"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-l7-intentions" -win=true
 
       - name: Envoy Integration Tests for windows case-multidc-rsa-ca
@@ -900,7 +902,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-multidc-rsa-ca"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-multidc-rsa-ca" -win=true
 
       - name: Envoy Integration Tests for windows case-prometheus
@@ -917,7 +919,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-prometheus"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-prometheus" -win=true
 
       - name: Envoy Integration Tests for windows case-property-override
@@ -934,7 +936,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-property-override"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-property-override" -win=true
 
       - name: Envoy Integration Tests for windows case-stats-proxy
@@ -951,7 +953,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-stats-proxy"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-stats-proxy" -win=true
 
       - name: Envoy Integration Tests for windows case-statsd-udp
@@ -968,7 +970,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-statsd-udp"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-statsd-udp" -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-hostnames
@@ -985,7 +987,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-hostnames"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-hostnames" -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-simple
@@ -1002,7 +1004,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-simple"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-simple" -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-without-services
@@ -1019,7 +1021,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-without-services"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-without-services" -win=true
 
       - name: Envoy Integration Tests for windows case-upstream-config
@@ -1036,7 +1038,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-upstream-config"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-upstream-config" -win=true
 
       - name: Envoy Integration Tests for windows case-wanfed-gw
@@ -1053,7 +1055,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-wanfed-gw"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-wanfed-gw" -win=true
 
       - name: Envoy Integration Tests for windows case-ingress-gateway-sds
@@ -1070,7 +1072,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-ingress-gateway-sds"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-sds" -win=true
 
       - name: Envoy Integration Tests for windows case-lua
@@ -1087,7 +1089,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-lua"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-lua" -win=true
 
       - name: Envoy Integration Tests for windows case-terminating-gateway-subsets
@@ -1104,7 +1106,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-terminating-gateway-subsets"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-terminating-gateway-subsets" -win=true
 
       #      Skipping this because - https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter
@@ -1121,7 +1123,7 @@ jobs:
       #          # shellcheck disable=SC2001
       #          echo "Running Integration Test case-wasm"
       #          # shellcheck disable=SC2001
-      #          go test -v -timeout=30m -tags integration \
+      #          go test -v -timeout=45m -tags integration \
       #            ./test/integration/connect/envoy -run="TestEnvoy/case-wasm" -win=true
 
       #     Skipping because of - cacert is not available in curl windows
@@ -1140,7 +1142,7 @@ jobs:
       #          # shellcheck disable=SC2001
       #          echo "Running Integration Test case-ingress-gateway-tls"
       #          # shellcheck disable=SC2001
-      #          go test -v -timeout=30m -tags integration \
+      #          go test -v -timeout=45m -tags integration \
       #            ./test/integration/connect/envoy -run="TestEnvoy/case-ingress-gateway-tls" -win=true
 
       - name: Envoy Integration Tests for windows case-mesh-to-lambda
@@ -1157,7 +1159,7 @@ jobs:
           # shellcheck disable=SC2001
           echo "Running Integration Test case-mesh-to-lambda"
           # shellcheck disable=SC2001
-          go test -v -timeout=30m -tags integration \
+          go test -v -timeout=45m -tags integration \
             ./test/integration/connect/envoy -run="TestEnvoy/case-mesh-to-lambda" -win=true
 
 

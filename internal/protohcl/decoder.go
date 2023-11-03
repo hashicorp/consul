@@ -173,22 +173,22 @@ func (bd bodyDecoder) schema(desc protoreflect.MessageDescriptor) (*hcl.BodySche
 		f := fields.Get(i)
 
 		kind := f.Kind()
-		// maps are special and whether they use block or attribute syntax depends
-		// on the value type
+		// maps are special and whether they can use block syntax depends on the value type
 		if f.IsMap() {
 			valueDesc := f.MapValue()
 			valueKind := valueDesc.Kind()
 
 			wktHint := wellKnownTypeSchemaHint(valueDesc)
 
-			// Message types should generally be encoded as blocks unless its a special Well Known Type
-			// that should use attribute encoding
+			// Maps with values that are Messages can generally be decoded using the block syntax.
+			// The exception are some of the Well-Known-Types that appear as scalar values with
+			// either string or numeric encoding but get parsed into message types. It is still
+			// fine to also decode these from the attribute syntax.
 			if valueKind == protoreflect.MessageKind && wktHint != wellKnownAttribute {
 				schema.Blocks = append(schema.Blocks, hcl.BlockHeaderSchema{
 					Type:       bd.namer.NameField(f),
 					LabelNames: []string{"key"},
 				})
-				continue
 			}
 
 			// non-message types or Well Known Message types that need attribute encoding

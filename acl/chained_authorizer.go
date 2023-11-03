@@ -80,6 +80,35 @@ func (c *ChainedAuthorizer) EventWrite(name string, entCtx *AuthorizerContext) E
 	})
 }
 
+// IdentityRead checks for permission to read a given workload identity.
+func (c *ChainedAuthorizer) IdentityRead(name string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.IdentityRead(name, entCtx)
+	})
+}
+
+// IdentityReadAll checks for permission to read all workload identities.
+func (c *ChainedAuthorizer) IdentityReadAll(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.IdentityReadAll(entCtx)
+	})
+}
+
+// IdentityWrite checks for permission to create or update a given
+// workload identity.
+func (c *ChainedAuthorizer) IdentityWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.IdentityWrite(name, entCtx)
+	})
+}
+
+// IdentityWriteAny checks for write permission on any workload identity.
+func (c *ChainedAuthorizer) IdentityWriteAny(entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.IdentityWriteAny(entCtx)
+	})
+}
+
 // IntentionDefaultAllow determines the default authorized behavior
 // when no intentions match a Connect request.
 func (c *ChainedAuthorizer) IntentionDefaultAllow(entCtx *AuthorizerContext) EnforcementDecision {
@@ -246,6 +275,12 @@ func (c *ChainedAuthorizer) ServiceReadAll(entCtx *AuthorizerContext) Enforcemen
 	})
 }
 
+func (c *ChainedAuthorizer) ServiceReadPrefix(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.ServiceReadPrefix(prefix, entCtx)
+	})
+}
+
 // ServiceWrite checks for permission to create or update a given
 // service
 func (c *ChainedAuthorizer) ServiceWrite(name string, entCtx *AuthorizerContext) EnforcementDecision {
@@ -280,6 +315,21 @@ func (c *ChainedAuthorizer) SessionWrite(node string, entCtx *AuthorizerContext)
 func (c *ChainedAuthorizer) Snapshot(entCtx *AuthorizerContext) EnforcementDecision {
 	return c.executeChain(func(authz Authorizer) EnforcementDecision {
 		return authz.Snapshot(entCtx)
+	})
+}
+
+// TrafficPermissionsRead determines if specific traffic permissions can be read.
+func (c *ChainedAuthorizer) TrafficPermissionsRead(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.TrafficPermissionsRead(prefix, entCtx)
+	})
+}
+
+// TrafficPermissionsWrite determines if specific traffic permissions can be
+// created, modified, or deleted.
+func (c *ChainedAuthorizer) TrafficPermissionsWrite(prefix string, entCtx *AuthorizerContext) EnforcementDecision {
+	return c.executeChain(func(authz Authorizer) EnforcementDecision {
+		return authz.TrafficPermissionsWrite(prefix, entCtx)
 	})
 }
 

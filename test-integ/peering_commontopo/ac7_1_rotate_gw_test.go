@@ -8,10 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // TestRotateGW ensures that peered services continue to be able to talk to their
@@ -141,8 +142,12 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 
 	// add a second mesh gateway "new"
 	s.newMGWNodeName = fmt.Sprintf("new-%s-default-mgw", clu.Name)
-	clu.Nodes = append(clu.Nodes, newTopologyMeshGatewaySet(
-		topology.NodeKindClient,
+	nodeKind := topology.NodeKindClient
+	if clu.Datacenter == agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
+	clu.Nodes = append(clu.Nodes, topoutil.NewTopologyMeshGatewaySet(
+		nodeKind,
 		"default",
 		s.newMGWNodeName,
 		1,

@@ -109,6 +109,56 @@ func TestNestedAndCollections(t *testing.T) {
 	require.Equal(t, out.IntList[1], int32(2))
 }
 
+func TestNestedAndCollections_AttributeSyntax(t *testing.T) {
+	hcl := `
+		primitives {
+			uint32_val = 42
+		}
+		
+		primitives_map = {
+			"foo" = {
+			   uint32_val = 42
+			}
+		}
+		
+		protocol_map = {
+			"foo" = "PROTOCOL_TCP"
+		}
+		
+		primitives_list = [
+			{
+				uint32_val = 42
+			},
+			{
+				uint32_val = 56
+			}
+		] 
+		
+		int_list = [
+			1,
+			2
+		]
+	
+	`
+
+	var out testproto.NestedAndCollections
+
+	err := Unmarshal([]byte(hcl), &out)
+	require.NoError(t, err)
+
+	require.NotNil(t, out.Primitives)
+	require.Equal(t, out.Primitives.Uint32Val, uint32(42))
+	require.NotNil(t, out.PrimitivesMap)
+	require.Equal(t, out.PrimitivesMap["foo"].Uint32Val, uint32(42))
+	require.NotNil(t, out.ProtocolMap)
+	require.Equal(t, out.ProtocolMap["foo"], testproto.Protocol_PROTOCOL_TCP)
+	require.Len(t, out.PrimitivesList, 2)
+	require.Equal(t, out.PrimitivesList[0].Uint32Val, uint32(42))
+	require.Equal(t, out.PrimitivesList[1].Uint32Val, uint32(56))
+	require.Len(t, out.IntList, 2)
+	require.Equal(t, out.IntList[1], int32(2))
+}
+
 func TestPrimitiveWrappers(t *testing.T) {
 	hcl := `
 		double_val = 1.234

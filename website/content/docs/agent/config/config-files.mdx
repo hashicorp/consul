@@ -264,7 +264,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server_addresses` (Defaults to `[]`) This specifies the addresses of servers in
     the local datacenter to use for the initial RPC. These addresses support
     [Cloud Auto-Joining](/consul/docs/agent/config/cli-flags#cloud-auto-joining) and can optionally include a port to
-    use when making the outbound connection. If not port is provided the `server_port`
+    use when making the outbound connection. If no port is provided, the `server_port`
     will be used.
 
   - `dns_sans` (Defaults to `[]`) This is a list of extra DNS SANs to request in the
@@ -606,6 +606,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     This was added in Consul 1.0. Must be a duration value such as 10s. Defaults
     to 7s.
 
+  - `grpc_keepalive_interval` - A duration that determines the frequency that Consul servers send keep-alive messages to inactive gRPC clients. Configure this setting to modify how quickly Consul detects and removes improperly closed xDS or peering connections. Default is `30s`.
+
+  - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
+
 - `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
@@ -636,16 +640,16 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `server` ((#server_rpc_port)) - Server RPC address. Default 8300. TCP
     only.
   - `sidecar_min_port` ((#sidecar_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/registration/sidecar-service).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
     Default 21000. Set to `0` to disable automatic port assignment.
   - `sidecar_max_port` ((#sidecar_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/registration/sidecar-service).
+    to use for automatically assigned [sidecar service registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
     Default 21255. Set to `0` to disable automatic port assignment.
   - `expose_min_port` ((#expose_min_port)) - Inclusive minimum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
     Default 21500. Set to `0` to disable automatic port assignment.
   - `expose_max_port` ((#expose_max_port)) - Inclusive maximum port number
-    to use for automatically assigned [exposed check listeners](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference).
+    to use for automatically assigned [exposed check listeners](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference).
     Default 21755. Set to `0` to disable automatic port assignment.
 
 - `primary_datacenter` - This designates the datacenter
@@ -1279,6 +1283,10 @@ subsystem that provides Consul's service mesh capabilities.
       - `private_key_type = ec` (default): `224, 256, 384, 521`
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
+
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+  - `region`:  String value that specifies the region where the Consul agent is running. Consul matches this value to regions defined for services in the network. When service agent regions match, Consul is able to prioritize routes between the agent and the service in the same region over healthy service instances in other regions. When multiple healthy service instances are available in the local region, Consul prioritizes services that match the agent's `zone`. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
+  - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul matches this value to zones defined for services in the region. When service agent zones match, Consul is able to prioritize routes between the agent and the service in the same zone over healthy service instances in other zones. When multiple healthy service instances are available in the local zone, Consul distributes traffic equally the services. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.    
 
 ## DNS and Domain Parameters
 

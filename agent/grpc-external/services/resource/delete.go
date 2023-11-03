@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -20,7 +21,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-// Deletes a resource.
+// Delete deletes a resource.
 // - To delete a resource regardless of the stored version, set Version = ""
 // - Supports deleting a resource by name, hence Id.Uid may be empty.
 // - Delete of a previously deleted or non-existent resource is a no-op to support idempotency.
@@ -158,6 +159,10 @@ func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
 	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
@@ -175,5 +180,5 @@ func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource
 // name by embedding the resources's Uid in the name.
 func tombstoneName(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
-	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, deleteId.Uid)
+	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, strings.ToLower(deleteId.Uid))
 }

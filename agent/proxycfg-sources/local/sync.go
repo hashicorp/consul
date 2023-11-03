@@ -7,6 +7,8 @@ import (
 	"context"
 	"time"
 
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/local"
@@ -33,6 +35,9 @@ type SyncConfig struct {
 
 	// NodeName is the name of the local agent node.
 	NodeName string
+
+	// NodeLocality
+	NodeLocality *structs.Locality
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
@@ -109,6 +114,14 @@ func sync(cfg SyncConfig) {
 			Token: "",
 		}
 
+		// We inherit the node's locality at runtime (not persisted).
+		// The service locality takes precedence if it was set directly during
+		// registration.
+		svc = svc.DeepCopy()
+		if svc.Locality == nil {
+			svc.Locality = cfg.NodeLocality
+		}
+
 		// TODO(banks): need to work out when to default some stuff. For example
 		// Proxy.LocalServicePort is practically necessary for any sidecar and can
 		// default to the port of the sidecar service, but only if it's already
@@ -135,7 +148,7 @@ func sync(cfg SyncConfig) {
 
 //go:generate mockery --name ConfigManager --inpackage
 type ConfigManager interface {
-	Watch(id proxycfg.ProxyID) (<-chan *proxycfg.ConfigSnapshot, proxycfg.CancelFunc)
+	Watch(id proxycfg.ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc)
 	Register(proxyID proxycfg.ProxyID, service *structs.NodeService, source proxycfg.ProxySource, token string, overwrite bool) error
 	Deregister(proxyID proxycfg.ProxyID, source proxycfg.ProxySource)
 	RegisteredProxies(source proxycfg.ProxySource) []proxycfg.ProxyID

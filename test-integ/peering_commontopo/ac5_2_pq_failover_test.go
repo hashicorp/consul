@@ -86,7 +86,10 @@ func (s *ac5_2PQFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topology.Cl
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			nil,
+			func(s *topology.Service) {
+				s.EnvoyAdminPort = 0
+				s.DisableServiceMesh = true
+			},
 		),
 		Exports: []api.ServiceConsumer{{Peer: peer}},
 	}
@@ -149,7 +152,10 @@ func (s *ac5_2PQFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 *topol
 		Service: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			nil,
+			func(s *topology.Service) {
+				s.EnvoyAdminPort = 0
+				s.DisableServiceMesh = true
+			},
 		),
 		Exports: func() []api.ServiceConsumer {
 			var consumers []api.ServiceConsumer
@@ -355,7 +361,7 @@ func (s *ac5_2PQFailoverSuite) testPQSingleFailover(t *testing.T, ct *commonTopo
 	})
 }
 
-func (s *ac5_2PQFailoverSuite) testPQZeroFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, peerClu *topology.Cluster, partition string) {
+func (s *ac5_2PQFailoverSuite) testPQZeroFailover(t *testing.T, ct *commonTopo, cl *api.Client, def *api.PreparedQueryDefinition, cluster, _ *topology.Cluster, partition string) {
 	t.Run(fmt.Sprintf("delete failing health check in %s and validate zero failover %s", cluster.Name, cluster.Name), func(t *testing.T) {
 		cfg := ct.Sprawl.Config()
 

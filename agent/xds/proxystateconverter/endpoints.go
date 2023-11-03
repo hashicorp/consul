@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/go-bexpr"
 
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -404,7 +404,7 @@ func (s *Converter) endpointsFromDiscoveryChain(
 
 	clusterEndpoints := make(map[string][]*pbproxystate.Endpoint)
 
-	// TODO(jm): escape hatches will be implemented in the future
+	// TODO(proxystate): escape hatches will be implemented in the future
 	//var escapeHatchCluster *pbproxystate.Cluster
 	//if !forMeshGateway {
 
@@ -465,7 +465,7 @@ func (s *Converter) endpointsFromDiscoveryChain(
 
 		for _, groupedTarget := range targetGroups {
 			clusterName := groupedTarget.ClusterName
-			// TODO(jm): escape hatches will be implemented in the future
+			// TODO(proxystate): escape hatches will be implemented in the future
 			//if escapeHatchCluster != nil {
 			//	clusterName = escapeHatchCluster.Name
 			//}
@@ -532,7 +532,7 @@ func makeEndpointsForLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot,
 	localKey proxycfg.GatewayKey) []*pbproxystate.Endpoint {
 	pbEndpoints := make([]*pbproxystate.Endpoint, 0, len(endpointGroups))
 
-	// TODO(jm): make this work in xdsv2
+	// TODO(proxystate): this will be added with property overrides having golden files with this
 	//if len(endpointGroups) > 1 {
 	//	cla.Policy = &envoy_endpoint_v3.ClusterLoadAssignment_Policy{
 	//		// We choose such a large value here that the failover math should
@@ -567,7 +567,7 @@ func makeEndpointsForLoadAssignment(cfgSnap *proxycfg.ConfigSnapshot,
 				pbEndpoints = append(pbEndpoints, endpoint)
 			}
 
-			// TODO(jm): what do we do about priority downstream?
+			// TODO(proxystate): what do we do about priority downstream?
 			//cla.Endpoints = append(cla.Endpoints, &envoy_endpoint_v3.LocalityLbEndpoints{
 			//	Priority:    priority,
 			//	LbEndpoints: es,

@@ -14,8 +14,6 @@ import (
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-	"k8s.io/utils/pointer"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"
 	"github.com/hashicorp/consul/agent/xds/testcommon"
@@ -193,7 +191,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
-	tests = append(tests, getEnterpriseGoldenTestCases()...)
+	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
@@ -571,10 +569,10 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 									},
 								},
 								RetryFilter: &structs.RetryFilter{
-									NumRetries:            pointer.Uint32(3),
+									NumRetries:            3,
 									RetryOn:               []string{"cancelled"},
 									RetryOnStatusCodes:    []uint32{500},
-									RetryOnConnectFailure: pointer.Bool(true),
+									RetryOnConnectFailure: true,
 								},
 								TimeoutFilter: &structs.TimeoutFilter{
 									IdleTimeout:    time.Second * 30,

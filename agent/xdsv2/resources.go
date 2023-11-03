@@ -5,11 +5,12 @@ package xdsv2
 
 import (
 	"fmt"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 )
 
 // ResourceGenerator is associated with a single gRPC stream and creates xDS
@@ -28,11 +29,11 @@ func NewResourceGenerator(
 }
 
 type ProxyResources struct {
-	proxyState     *pbmesh.ProxyState
+	proxyState     *proxytracker.ProxyState
 	envoyResources map[string][]proto.Message
 }
 
-func (g *ResourceGenerator) AllResourcesFromIR(proxyState *pbmesh.ProxyState) (map[string][]proto.Message, error) {
+func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxyState) (map[string][]proto.Message, error) {
 	pr := &ProxyResources{
 		proxyState:     proxyState,
 		envoyResources: make(map[string][]proto.Message),
@@ -49,7 +50,6 @@ func (pr *ProxyResources) generateXDSResources() error {
 	if err != nil {
 		return err
 	}
-	pr.envoyResources[xdscommon.ListenerType] = listeners
 
 	pr.envoyResources[xdscommon.ListenerType] = listeners
 

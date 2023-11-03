@@ -5,6 +5,7 @@ package resource
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -16,50 +17,104 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(artistId, recordLabelId *pbresource.ID) *pbresource.ID{
-		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
-			return nil
+	type testCase struct {
+		modFn       func(artistId, recordLabelId *pbresource.ID) *pbresource.ID
+		errContains string
+	}
+
+	testCases := map[string]testCase{
+		"no id": {
+			modFn: func(_, _ *pbresource.ID) *pbresource.ID {
+				return nil
+			},
+			errContains: "id is required",
 		},
-		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Type = nil
-			return artistId
+		"no type": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Type = nil
+				return artistId
+			},
+			errContains: "id.type is required",
 		},
-		"no tenancy": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Tenancy = nil
-			return artistId
+		"no name": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = ""
+				return artistId
+			},
+			errContains: "id.name invalid",
 		},
-		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			artistId.Name = ""
-			return artistId
+		"mixed case name": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = "DepecheMode"
+				return artistId
+			},
+			errContains: "id.name invalid",
 		},
-		"partition scoped resource with namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
-			return recordLabelId
+		"name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Name = strings.Repeat("n", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.name invalid",
+		},
+		"partition mixed case": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Partition = "Default"
+				return artistId
+			},
+			errContains: "id.tenancy.partition invalid",
+		},
+		"partition name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.tenancy.partition invalid",
+		},
+		"namespace mixed case": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Namespace = "Default"
+				return artistId
+			},
+			errContains: "id.tenancy.namespace invalid",
+		},
+		"namespace name too long": {
+			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+				artistId.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
+				return artistId
+			},
+			errContains: "id.tenancy.namespace invalid",
+		},
+		"partition scoped resource with namespace": {
+			modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+				recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
+				return recordLabelId
+			},
+			errContains: "cannot have a namespace",
 		},
 	}
-	for desc, modFn := range testCases {
+	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			req := &pbresource.DeleteRequest{Id: modFn(artist.Id, recordLabel.Id), Version: ""}
+			req := &pbresource.DeleteRequest{Id: tc.modFn(artist.Id, recordLabel.Id), Version: ""}
 
 			_, err = client.Delete(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -102,21 +157,23 @@ func TestDelete_ACLs(t *testing.T) {
 		t.Run(desc, func(t *testing.T) {
 			server := testServer(t)
 			client := testClient(t, server)
-
-			mockACLResolver := &MockACLResolver{}
-			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-				Return(tc.authz, nil)
-			server.ACLResolver = mockACLResolver
 			demo.RegisterTypes(server.Registry)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			artist, err = server.Backend.WriteCAS(context.Background(), artist)
+			// Write test resource to delete.
+			rsp, err := client.Write(context.Background(), &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
 
-			// exercise ACL
-			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: artist.Id})
+			// Mock is put in place after the above "write" since the "write" must also pass the ACL check.
+			mockACLResolver := &MockACLResolver{}
+			mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+				Return(tc.authz, nil)
+			server.ACLResolver = mockACLResolver
+
+			// Exercise ACL.
+			_, err = client.Delete(testContext(t), &pbresource.DeleteRequest{Id: rsp.Resource.Id})
 			tc.assertErrFn(err)
 		})
 	}
@@ -132,17 +189,22 @@ func TestDelete_Success(t *testing.T) {
 					server, client, ctx := testDeps(t)
 					demo.RegisterTypes(server.Registry)
 
-					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
+					recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 					require.NoError(t, err)
-					recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+					writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 					require.NoError(t, err)
+					recordLabel = writeRsp.Resource
+					originalRecordLabelId := clone(recordLabel.Id)
 
 					artist, err := demo.GenerateV2Artist()
 					require.NoError(t, err)
-					artist, err = server.Backend.WriteCAS(ctx, artist)
+					writeRsp, err = client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 					require.NoError(t, err)
+					artist = writeRsp.Resource
+					originalArtistId := clone(artist.Id)
 
-					// Pick the resource to be deleted based on type's scope
+					// Pick the resource to be deleted based on type's scope and mod tenancy
+					// based on the tenancy test case.
 					deleteId := modFn(artist.Id, recordLabel.Id)
 					deleteReq := tc.deleteReqFn(recordLabel)
 					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
@@ -154,19 +216,25 @@ func TestDelete_Success(t *testing.T) {
 					require.NoError(t, err)
 
 					// Verify deleted
-					_, err = server.Backend.Read(ctx, storage.StrongConsistency, deleteId)
+					_, err = client.Read(ctx, &pbresource.ReadRequest{Id: deleteId})
 					require.Error(t, err)
-					require.ErrorIs(t, err, storage.ErrNotFound)
+					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+
+					// Derive tombstone name from resource that was deleted.
+					tname := tombstoneName(originalRecordLabelId)
+					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+						tname = tombstoneName(originalArtistId)
+					}
 
 					// Verify tombstone created
 					_, err = client.Read(ctx, &pbresource.ReadRequest{
 						Id: &pbresource.ID{
-							Name:    tombstoneName(deleteReq.Id),
+							Name:    tname,
 							Type:    resource.TypeV1Tombstone,
 							Tenancy: deleteReq.Id.Tenancy,
 						},
 					})
-					require.NoError(t, err, "expected tombstome to be found")
+					require.NoError(t, err, "expected tombstone to be found")
 				})
 			}
 		})

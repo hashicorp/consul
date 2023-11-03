@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -69,6 +70,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain",
@@ -90,6 +92,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-http2-chain",
@@ -104,6 +107,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-grpc-chain",
@@ -118,6 +122,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 					},
 				)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
@@ -131,6 +136,7 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
@@ -307,6 +313,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "grpc"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-address",
@@ -364,6 +371,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http2"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-balance-inbound-connections",
@@ -390,6 +398,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-public-listener-no-xfcc",
@@ -411,6 +420,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					})
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-listener-with-timeouts",
@@ -422,6 +432,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["local_idle_timeout_ms"] = 3456
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-upstream",
@@ -430,6 +441,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "custom-public-listener",
@@ -557,6 +569,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "expose-paths-local-app-paths",
@@ -1070,6 +1083,44 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
+			name: "terminating-gateway-with-peer-trust-bundle",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				roots, _ := proxycfg.TestCerts(t)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peer-trust-bundle:web",
+						Result: &pbpeering.TrustBundleListByServiceResponse{
+							Bundles: []*pbpeering.PeeringTrustBundle{
+								{
+									TrustDomain: "foo.bar.gov",
+									PeerName:    "dc2",
+									Partition:   "default",
+									RootPEMs: []string{
+										roots.Roots[0].RootCert,
+									},
+									ExportedPartition: "default",
+									CreateIndex:       0,
+									ModifyIndex:       0,
+								},
+							},
+						},
+					},
+					{
+						CorrelationID: "service-intentions:web",
+						Result: structs.SimplifiedIntentions{
+							{
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
+							},
+						},
+					},
+				})
+			},
+		},
+		{
 			name: "ingress-with-tls-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
@@ -1184,10 +1235,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "transparent-proxy-with-resolver-redirect-upstream",
-			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+			name:             "transparent-proxy-with-resolver-redirect-upstream",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+			alsoRunTestForV2: true,
 		},
 		{
 			name:             "transparent-proxy-catalog-destinations-only",

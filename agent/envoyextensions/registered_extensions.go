@@ -12,6 +12,7 @@ import (
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
 	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
+	otelaccesslogging "github.com/hashicorp/consul/agent/envoyextensions/builtin/otel-access-logging"
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
 	"github.com/hashicorp/consul/api"
@@ -21,22 +22,25 @@ import (
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)
 
 var extensionConstructors = map[string]extensionConstructor{
-	api.BuiltinLuaExtension:              lua.Constructor,
-	api.BuiltinAWSLambdaExtension:        awslambda.Constructor,
-	api.BuiltinPropertyOverrideExtension: propertyoverride.Constructor,
-	api.BuiltinWasmExtension:             wasm.Constructor,
-	api.BuiltinExtAuthzExtension:         extauthz.Constructor,
+	api.BuiltinOTELAccessLoggingExtension: otelaccesslogging.Constructor,
+	api.BuiltinLuaExtension:               lua.Constructor,
+	api.BuiltinAWSLambdaExtension:         awslambda.Constructor,
+	api.BuiltinPropertyOverrideExtension:  propertyoverride.Constructor,
+	api.BuiltinWasmExtension:              wasm.Constructor,
+	api.BuiltinExtAuthzExtension:          extauthz.Constructor,
 }
 
 // ConstructExtension attempts to lookup and build an extension from the registry with the
 // given config. Returns an error if the extension does not exist, or if the extension fails
 // to be constructed properly.
 func ConstructExtension(ext api.EnvoyExtension) (extensioncommon.EnvoyExtender, error) {
-	constructor, ok := extensionConstructors[ext.Name]
-	if !ok {
-		return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
+	if constructor, ok := extensionConstructors[ext.Name]; ok {
+		return constructor(ext)
 	}
-	return constructor(ext)
+	if constructor, ok := enterpriseExtensionConstructors[ext.Name]; ok {
+		return constructor(ext)
+	}
+	return nil, fmt.Errorf("name %q is not a built-in extension", ext.Name)
 }
 
 // ValidateExtensions will attempt to construct each instance of the given envoy extension configurations

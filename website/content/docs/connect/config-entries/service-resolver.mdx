@@ -9,7 +9,7 @@ description: >-
 
 This page provides reference information for service resolver configuration entries. Configure and apply service resolvers to create named subsets of service instances and define their behavior when satisfying upstream requests.
 
-Refer to [L7 traffic management overview](/consul/docs/connect/l7-traffic) for additional information.
+Refer to [L7 traffic management overview](/consul/docs/connect/manage-traffic) for additional information.
 
 ## Configuration model
 
@@ -36,8 +36,10 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`Namespace`](#redirect-namespace): string <EnterpriseAlert inline />
   - [`Partition`](#redirect-partition): string | `default` <EnterpriseAlert inline />
   - [`SamenessGroup`](#redirect-samenessgroup): string <EnterpriseAlert inline />
-  - [`Datacenter`](#redirect-datacenter): list
+  - [`Datacenter`](#redirect-datacenter): string
   - [`Peer`](#redirect-peer): string
+- [`PrioritizeByLocality`](#prioritizebylocality): map <EnterpriseAlert inline/>
+   - [`Mode`](#prioritizebylocality): string | `failover`
 - [`Failover`](#failover): map
   - [`Service`](#failover-service): string
   - [`ServiceSubset`](#failover-servicesubset): string
@@ -92,6 +94,8 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`samenessGroup`](#spec-redirect-samenessgroup): string <EnterpriseAlert inline />
     - [`datacenter`](#spec-redirect-datacenter): string
     - [`peer`](#spec-redirect-peer): string
+  - [`prioritizeByLocality`](#spec-prioritizebylocality): map | <EnterpriseAlert inline/>
+    - [`mode`](#spec-prioritizebylocality): string | `failover`
   - [`failover`](#spec-failover): map
     - [`service`](#spec-failover-service): string
     - [`serviceSubset`](#spec-failover-servicesubset): string
@@ -166,6 +170,10 @@ Redirect = {
  Peer          = "<destination-peer>"
 }
 
+PrioritizeByLocality = {
+   Mode = "failover"
+}
+
 Failover = {                   ## requires at least one of the following: Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
  <local-subset-name> = {
    Targets = [
@@ -238,7 +246,6 @@ LoadBalancer = {
    }
   },
   "DefaultSubset ":"<subset01-name>",
-
   "Redirect":{
    "Service":"<destination-service>",
    "ServiceSubset":"<destination-subset>",
@@ -248,7 +255,9 @@ LoadBalancer = {
    "Datacenter":"<destination-datacenter>",
    "Peer":"<destination-peer>"
   },
-
+  "PrioritizeByLocality" : {
+   "Mode":  "failover"
+},
   "Failover":{                   // requires at least one of the following": Service, ServiceSubset, Namespace, Targets, Datacenters, SamenessGroup
    "<local=subset-name>":{
      "Targets":[
@@ -322,6 +331,8 @@ spec:
     partition: <partitionName>
     samenessGroup: <samenessGroupName>
     peer: <peerName>
+  prioritizeByLocality: 
+    mode: failover
   failover:                         # requires at least one of the following: service, serviceSubset, namespace, targets, datacenters, samenessGroup
     <localSubsetName>:
       targets:
@@ -538,6 +549,17 @@ Specifies the cluster with an active cluster peering connection at the redirectâ
 
 - Default: None
 - Data type: String
+
+### `PrioritizeByLocality` 
+
+Sets a mode for the service that allows instances to prioritize upstream targets that are in the same geographic area. You can specify the following string values for the `mode` field:
+
+- `Failover`: If the upstream target that a service is connected to becomes unreachable, the service prioritizes a healthy upstream with the same `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map
 
 ### `Failover`
 
@@ -1000,6 +1022,17 @@ Specifies the cluster with an active cluster peering connection at the redirectâ
 
 - Default: None
 - Data type: String
+
+### `spec.prioritizeByLocality` 
+
+Sets a mode for the service that allows instances to prioritize upstream targets that are in the same geographic area. You can specify the following string values for the `mode` field:
+
+- `failover`: If the upstream target that a service is connected to becomes unreachable, the service prioritizes a healthy upstream with the same `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+
+#### Values
+
+- Default: None
+- Data type: Map
 
 ### `spec.failover`
 

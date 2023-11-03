@@ -20,7 +20,7 @@ DEBUG=${DEBUG:-}
 XDS_TARGET=${XDS_TARGET:-server}
 
 # ENVOY_VERSION to run each test against
-ENVOY_VERSION=${ENVOY_VERSION:-"1.23.1"}
+ENVOY_VERSION=${ENVOY_VERSION:-"1.27.0"}
 export ENVOY_VERSION
 
 export DOCKER_BUILDKIT=0
@@ -604,9 +604,14 @@ function suite_teardown {
 }
 
 function run_containers {
- for name in $@ ; do
-   run_container $name
- done
+  echo "Starting containers"
+  echo $@
+  for name in $@ ; do
+    echo "Starting container"
+    echo $name
+    run_container $name
+  done
+  echo "Done running containers"
 }
 
 function run_container {

@@ -16,8 +16,10 @@ import (
 // DecodedResource is a generic holder to contain an original Resource and its
 // decoded contents.
 type DecodedResource[T proto.Message] struct {
-	Resource *pbresource.Resource
-	Data     T
+	// Embedding here allows us to shadow the Resource.Data Any field to fake out
+	// using a single struct with inlined data.
+	*pbresource.Resource
+	Data T
 }
 
 func (d *DecodedResource[T]) GetResource() *pbresource.Resource {
@@ -44,9 +46,11 @@ func (d *DecodedResource[T]) GetData() T {
 func Decode[T proto.Message](res *pbresource.Resource) (*DecodedResource[T], error) {
 	var zero T
 	data := zero.ProtoReflect().New().Interface().(T)
-
-	if err := res.Data.UnmarshalTo(data); err != nil {
-		return nil, NewErrDataParse(data, err)
+	// check that there is data to unmarshall
+	if res.Data != nil {
+		if err := res.Data.UnmarshalTo(data); err != nil {
+			return nil, NewErrDataParse(data, err)
+		}
 	}
 	return &DecodedResource[T]{
 		Resource: res,
@@ -64,6 +68,5 @@ func GetDecodedResource[T proto.Message](ctx context.Context, client pbresource.
 	case err != nil:
 		return nil, err
 	}
-
 	return Decode[T](rsp.Resource)
 }

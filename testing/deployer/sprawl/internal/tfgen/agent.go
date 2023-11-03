@@ -13,14 +13,14 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
-func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
+func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string {
 	if !node.IsAgent() {
-		return "", fmt.Errorf("not an agent")
+		panic("generateAgentHCL only applies to agents")
 	}
 
 	cluster, ok := g.topology.Clusters[node.Cluster]
 	if !ok {
-		return "", fmt.Errorf("no such cluster: %s", node.Cluster)
+		panic(fmt.Sprintf("no such cluster: %s", node.Cluster))
 	}
 
 	var b HCLBuilder
@@ -34,6 +34,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
 	b.add("log_level", "trace")
 	b.add("enable_debug", true)
 	b.add("use_streaming_backend", true)
+
+	if enableV2 {
+		b.addSlice("experiments", []string{"resource-apis"})
+	}
 
 	// speed up leaves
 	b.addBlock("performance", func() {
@@ -167,7 +171,7 @@ func (g *Generator) generateAgentHCL(node *topology.Node) (string, error) {
 		}
 	}
 
-	return b.String(), nil
+	return b.String()
 }
 
 type HCLBuilder struct {

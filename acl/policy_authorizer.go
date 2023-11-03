@@ -14,8 +14,14 @@ type policyAuthorizer struct {
 	// agentRules contain the exact-match agent policies
 	agentRules *radix.Tree
 
+	// identityRules contains the identity exact-match policies
+	identityRules *radix.Tree
+
 	// intentionRules contains the service intention exact-match policies
 	intentionRules *radix.Tree
+
+	// trafficPermissionsRules contains the service intention exact-match policies
+	trafficPermissionsRules *radix.Tree
 
 	// keyRules contains the key exact-match policies
 	keyRules *radix.Tree
@@ -176,6 +182,48 @@ func (p *policyAuthorizer) loadRules(policy *PolicyRules) error {
 	// Load the agent policy (prefix matches)
 	for _, ap := range policy.AgentPrefixes {
 		if err := insertPolicyIntoRadix(ap.Node, ap.Policy, nil, p.agentRules, true); err != nil {
+			return err
+		}
+	}
+
+	// Load the identity policy (exact matches)
+	for _, id := range policy.Identities {
+		if err := insertPolicyIntoRadix(id.Name, id.Policy, &id.EnterpriseRule, p.identityRules, false); err != nil {
+			return err
+		}
+
+		intention := id.Intentions
+		if intention == "" {
+			switch id.Policy {
+			case PolicyRead, PolicyWrite:
+				intention = PolicyRead
+			default:
+				intention = PolicyDeny
+			}
+		}
+
+		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.trafficPermissionsRules, false); err != nil {
+			return err
+		}
+	}
+
+	// Load the identity policy (prefix matches)
+	for _, id := range policy.IdentityPrefixes {
+		if err := insertPolicyIntoRadix(id.Name, id.Policy, &id.EnterpriseRule, p.identityRules, true); err != nil {
+			return err
+		}
+
+		intention := id.Intentions
+		if intention == "" {
+			switch id.Policy {
+			case PolicyRead, PolicyWrite:
+				intention = PolicyRead
+			default:
+				intention = PolicyDeny
+			}
+		}
+
+		if err := insertPolicyIntoRadix(id.Name, intention, &id.EnterpriseRule, p.trafficPermissionsRules, true); err != nil {
 			return err
 		}
 	}
@@ -348,14 +396,16 @@ func newPolicyAuthorizer(policies []*Policy, ent *Config) (*policyAuthorizer, er
 
 func newPolicyAuthorizerFromRules(rules *PolicyRules, ent *Config) (*policyAuthorizer, error) {
 	p := &policyAuthorizer{
-		agentRules:         radix.New(),
-		intentionRules:     radix.New(),
-		keyRules:           radix.New(),
-		nodeRules:          radix.New(),
-		serviceRules:       radix.New(),
-		sessionRules:       radix.New(),
-		eventRules:         radix.New(),
-		preparedQueryRules: radix.New(),
+		agentRules:              radix.New(),
+		identityRules:           radix.New(),
+		intentionRules:          radix.New(),
+		trafficPermissionsRules: radix.New(),
+		keyRules:                radix.New(),
+		nodeRules:               radix.New(),
+		serviceRules:            radix.New(),
+		sessionRules:            radix.New(),
+		eventRules:              radix.New(),
+		preparedQueryRules:      radix.New(),
 	}
 
 	p.enterprisePolicyAuthorizer.init(ent)
@@ -528,6 +578,33 @@ func (p *policyAuthorizer) EventWrite(name string, _ *AuthorizerContext) Enforce
 	return Default
 }
 
+// IdentityRead checks for permission to read a given workload identity.
+func (p *policyAuthorizer) IdentityRead(name string, _ *AuthorizerContext) EnforcementDecision {
+	if rule, ok := getPolicy(name, p.identityRules); ok {
+		return enforce(rule.access, AccessRead)
+	}
+	return Default
+}
+
+// IdentityReadAll checks for permission to read all workload identities.
+func (p *policyAuthorizer) IdentityReadAll(_ *AuthorizerContext) EnforcementDecision {
+	return p.allAllowed(p.identityRules, AccessRead)
+}
+
+// IdentityWrite checks for permission to create or update a given
+// workload identity.
+func (p *policyAuthorizer) IdentityWrite(name string, _ *AuthorizerContext) EnforcementDecision {
+	if rule, ok := getPolicy(name, p.identityRules); ok {
+		return enforce(rule.access, AccessWrite)
+	}
+	return Default
+}
+
+// IdentityWriteAny checks for write permission on any workload identity.
+func (p *policyAuthorizer) IdentityWriteAny(_ *AuthorizerContext) EnforcementDecision {
+	return p.anyAllowed(p.identityRules, AccessWrite)
+}
+
 // IntentionDefaultAllow returns whether the default behavior when there are
 // no matching intentions is to allow or deny.
 func (p *policyAuthorizer) IntentionDefaultAllow(_ *AuthorizerContext) EnforcementDecision {
@@ -535,8 +612,7 @@ func (p *policyAuthorizer) IntentionDefaultAllow(_ *AuthorizerContext) Enforceme
 	return Default
 }
 
-// IntentionRead checks if writing (creating, updating, or deleting) of an
-// intention is allowed.
+// IntentionRead checks if reading an intention is allowed.
 func (p *policyAuthorizer) IntentionRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
 	if prefix == "*" {
 		return p.anyAllowed(p.intentionRules, AccessRead)
@@ -556,6 +632,31 @@ func (p *policyAuthorizer) IntentionWrite(prefix string, _ *AuthorizerContext) E
 	}
 
 	if rule, ok := getPolicy(prefix, p.intentionRules); ok {
+		return enforce(rule.access, AccessWrite)
+	}
+	return Default
+}
+
+// TrafficPermissionsRead checks if reading of traffic permissions is allowed.
+func (p *policyAuthorizer) TrafficPermissionsRead(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.anyAllowed(p.trafficPermissionsRules, AccessRead)
+	}
+
+	if rule, ok := getPolicy(prefix, p.trafficPermissionsRules); ok {
+		return enforce(rule.access, AccessRead)
+	}
+	return Default
+}
+
+// TrafficPermissionsWrite checks if writing (creating, updating, or deleting) of traffic
+// permissions is allowed.
+func (p *policyAuthorizer) TrafficPermissionsWrite(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	if prefix == "*" {
+		return p.allAllowed(p.trafficPermissionsRules, AccessWrite)
+	}
+
+	if rule, ok := getPolicy(prefix, p.trafficPermissionsRules); ok {
 		return enforce(rule.access, AccessWrite)
 	}
 	return Default
@@ -611,7 +712,7 @@ func (p *policyAuthorizer) KeyWritePrefix(prefix string, _ *AuthorizerContext) E
 	//     that do NOT grant AccessWrite.
 	//
 	// Conditions for Default:
-	//   * There is no prefix match rule that would appy to the given prefix.
+	//   * There is no prefix match rule that would apply to the given prefix.
 	//   AND
 	//   * There are no rules (exact or prefix match) within/under the given prefix
 	//     that would NOT grant AccessWrite.
@@ -813,6 +914,62 @@ func (p *policyAuthorizer) ServiceRead(name string, ctx *AuthorizerContext) Enfo
 
 func (p *policyAuthorizer) ServiceReadAll(_ *AuthorizerContext) EnforcementDecision {
 	return p.allAllowed(p.serviceRules, AccessRead)
+}
+
+// ServiceReadPrefix determines whether service read is allowed within the given prefix.
+//
+// Access is allowed iff all the following are true:
+// - There's a read policy for the longest prefix that's shorter or equal to the provided prefix.
+// - There's no deny policy for any prefix that's longer than the given prefix.
+// - There's no deny policy for any exact match that's within the given prefix.
+func (p *policyAuthorizer) ServiceReadPrefix(prefix string, _ *AuthorizerContext) EnforcementDecision {
+	access := Default
+
+	// 1. Walk the prefix tree from root to the given prefix. Find the longest prefix matching ours,
+	//    and use that policy to determine our access as that is the most specific prefix, and it
+	//    should take precedence.
+	p.serviceRules.WalkPath(prefix, func(path string, leaf interface{}) bool {
+		rule := leaf.(*policyAuthorizerRadixLeaf)
+
+		if rule.prefix != nil {
+			switch rule.prefix.access {
+			case AccessRead, AccessWrite:
+				access = Allow
+			default:
+				access = Deny
+			}
+		}
+
+		// Don't stop iteration because we want to visit all nodes down to our leaf to find the more specific match
+		// as it should take precedence.
+		return false
+	})
+
+	// 2. Check rules "below" the given prefix. Access is allowed if there's no deny policy
+	//    for any prefix longer than ours or for any exact match that's within the prefix.
+	p.serviceRules.WalkPrefix(prefix, func(path string, leaf interface{}) bool {
+		rule := leaf.(*policyAuthorizerRadixLeaf)
+
+		if rule.prefix != nil && (rule.prefix.access != AccessRead && rule.prefix.access != AccessWrite) {
+			// If any prefix longer than the provided prefix has "deny" policy, then access is denied.
+			access = Deny
+
+			// We don't need to look at the rest of the tree in this case, so terminate early.
+			return true
+		}
+
+		if rule.exact != nil && (rule.exact.access != AccessRead && rule.exact.access != AccessWrite) {
+			// If any exact match policy has an explicit deny, then access is denied.
+			access = Deny
+
+			// We don't need to look at the rest of the tree in this case, so terminate early.
+			return true
+		}
+
+		return false
+	})
+
+	return access
 }
 
 // ServiceWrite checks if writing (registering) a service is allowed

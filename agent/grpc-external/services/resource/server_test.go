@@ -6,7 +6,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -76,7 +75,7 @@ func testServer(t *testing.T) *Server {
 			}
 		})
 
-	// Mock the V1 tenancy bridge since we can't use the real thing.
+	// Mock the tenancy bridge since we can't use the real thing.
 	mockTenancyBridge := &MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
@@ -86,11 +85,11 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:          testutil.Logger(t),
-		Registry:        resource.NewRegistry(),
-		Backend:         backend,
-		ACLResolver:     mockACLResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Logger:        testutil.Logger(t),
+		Registry:      resource.NewRegistry(),
+		Backend:       backend,
+		ACLResolver:   mockACLResolver,
+		TenancyBridge: mockTenancyBridge,
 	})
 }
 
@@ -158,19 +157,20 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced type with empty peername": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "",
+			},
+		},
 		"namespaced type with empty partition and namespace": {
 			typ: demo.TypeV2Artist,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
-				PeerName:  "local",
-			},
-		},
-		"namespaced type with uppercase partition and namespace": {
-			typ: demo.TypeV2Artist,
-			tenancy: &pbresource.Tenancy{
-				Partition: "DEFAULT",
-				Namespace: "DEFAULT",
 				PeerName:  "local",
 			},
 		},
@@ -198,14 +198,6 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
-		"partitioned type with uppercase partition": {
-			typ: demo.TypeV1RecordLabel,
-			tenancy: &pbresource.Tenancy{
-				Partition: "DEFAULT",
-				Namespace: "",
-				PeerName:  "local",
-			},
-		},
 		"partitioned type with wildcard partition": {
 			typ: demo.TypeV1RecordLabel,
 			tenancy: &pbresource.Tenancy{
@@ -224,12 +216,6 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 		"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
 			return artistId
 		},
-		"namespaced resource provides uppercase partition and namespace": func(artistId, _ *pbresource.ID) *pbresource.ID {
-			id := clone(artistId)
-			id.Tenancy.Partition = strings.ToUpper(artistId.Tenancy.Partition)
-			id.Tenancy.Namespace = strings.ToUpper(artistId.Tenancy.Namespace)
-			return id
-		},
 		"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
 			id := clone(artistId)
 			id.Tenancy.Partition = ""
@@ -246,17 +232,22 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 			id.Tenancy.Namespace = ""
 			return id
 		},
+		"namespaced resource inherits tokens partition and namespace when tenacy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy = nil
+			return id
+		},
 		"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			return recordLabelId
-		},
-		"partitioned resource provides uppercase partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-			id := clone(recordLabelId)
-			id.Tenancy.Partition = strings.ToUpper(recordLabelId.Tenancy.Partition)
-			return id
 		},
 		"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 			id := clone(recordLabelId)
 			id.Tenancy.Partition = ""
+			return id
+		},
+		"partitioned resource inherits tokens partition when tenancy nil": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy = nil
 			return id
 		},
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg/internal/watch"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -469,7 +470,7 @@ func testManager_BasicLifecycle(
 	require.Len(t, m.watchers, 0)
 }
 
-func assertWatchChanBlocks(t *testing.T, ch <-chan *ConfigSnapshot) {
+func assertWatchChanBlocks(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot) {
 	t.Helper()
 
 	select {
@@ -479,7 +480,7 @@ func assertWatchChanBlocks(t *testing.T, ch <-chan *ConfigSnapshot) {
 	}
 }
 
-func assertWatchChanRecvs(t *testing.T, ch <-chan *ConfigSnapshot, expect *ConfigSnapshot) {
+func assertWatchChanRecvs(t *testing.T, ch <-chan proxysnapshot.ProxySnapshot, expect proxysnapshot.ProxySnapshot) {
 	t.Helper()
 
 	select {
@@ -517,7 +518,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	}
 
 	// test 1 buffered chan
-	ch1 := make(chan *ConfigSnapshot, 1)
+	ch1 := make(chan proxysnapshot.ProxySnapshot, 1)
 
 	// Sending to an unblocked chan should work
 	m.deliverLatest(snap1, ch1)
@@ -533,7 +534,7 @@ func TestManager_deliverLatest(t *testing.T) {
 	require.Equal(t, snap2, <-ch1)
 
 	// Same again for 5-buffered chan
-	ch5 := make(chan *ConfigSnapshot, 5)
+	ch5 := make(chan proxysnapshot.ProxySnapshot, 5)
 
 	// Sending to an unblocked chan should work
 	m.deliverLatest(snap1, ch5)

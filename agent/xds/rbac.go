@@ -23,6 +23,11 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 )
 
+const (
+	envoyHTTPRBACFilterKey    = "envoy.filters.http.rbac"
+	envoyNetworkRBACFilterKey = "envoy.filters.network.rbac"
+)
+
 func makeRBACNetworkFilter(
 	intentions structs.SimplifiedIntentions,
 	intentionDefaultAllow bool,
@@ -38,7 +43,7 @@ func makeRBACNetworkFilter(
 		StatPrefix: "connect_authz",
 		Rules:      rules,
 	}
-	return makeFilter("envoy.filters.network.rbac", cfg)
+	return makeFilter(envoyNetworkRBACFilterKey, cfg)
 }
 
 func makeRBACHTTPFilter(
@@ -56,7 +61,7 @@ func makeRBACHTTPFilter(
 	cfg := &envoy_http_rbac_v3.RBAC{
 		Rules: rules,
 	}
-	return makeEnvoyHTTPFilter("envoy.filters.http.rbac", cfg)
+	return makeEnvoyHTTPFilter(envoyHTTPRBACFilterKey, cfg)
 }
 
 func intentionListToIntermediateRBACForm(
@@ -326,6 +331,7 @@ func intentionActionFromBool(v bool) intentionAction {
 		return intentionActionDeny
 	}
 }
+
 func intentionActionFromString(s structs.IntentionAction) intentionAction {
 	if s == structs.IntentionActionAllow {
 		return intentionActionAllow
@@ -809,7 +815,6 @@ func segmentToPermission(segments []*envoy_matcher_v3.MetadataMatcher_PathSegmen
 //		},
 //	},
 func pathToSegments(paths []string, payloadKey string) []*envoy_matcher_v3.MetadataMatcher_PathSegment {
-
 	segments := make([]*envoy_matcher_v3.MetadataMatcher_PathSegment, 0, len(paths))
 	segments = append(segments, makeSegment(payloadKey))
 
@@ -1029,8 +1034,10 @@ func xfccPrincipal(src rbacService) *envoy_rbac_v3.Principal {
 	}
 }
 
-const anyPath = `[^/]+`
-const trustDomain = anyPath + "." + anyPath
+const (
+	anyPath     = `[^/]+`
+	trustDomain = anyPath + "." + anyPath
+)
 
 // downstreamServiceIdentityMatcher needs to match XFCC headers in two cases:
 // 1. Requests to cluster peered services through a mesh gateway. In this case, the XFCC header looks like the following (I added a new line after each ; for readability)
@@ -1241,21 +1248,44 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 
 		switch {
 		case hdr.Exact != "":
-			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_ExactMatch{
-				ExactMatch: hdr.Exact,
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+						Exact: hdr.Exact,
+					},
+					IgnoreCase: false,
+				},
 			}
 		case hdr.Regex != "":
-			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(hdr.Regex),
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(hdr.Regex),
+					},
+					IgnoreCase: false,
+				},
 			}
+
 		case hdr.Prefix != "":
-			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
-				PrefixMatch: hdr.Prefix,
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+						Prefix: hdr.Prefix,
+					},
+					IgnoreCase: false,
+				},
 			}
+
 		case hdr.Suffix != "":
-			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SuffixMatch{
-				SuffixMatch: hdr.Suffix,
+			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
+						Suffix: hdr.Suffix,
+					},
+					IgnoreCase: false,
+				},
 			}
+
 		case hdr.Present:
 			eh.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
 				PresentMatch: true,

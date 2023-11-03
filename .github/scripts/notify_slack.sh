@@ -2,7 +2,6 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-
 set -uo pipefail
 
 # This script is used in GitHub Actions pipelines to notify Slack of a job failure.
@@ -13,8 +12,8 @@ if [[ $GITHUB_REF_NAME == "main" ]]; then
 	COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
 	SHORT_REF=$(git rev-parse --short "${GITHUB_SHA}")
 	curl -X POST -H 'Content-type: application/json' \
-	--data \
-	"{ \
+		--data \
+		"{ \
 	\"attachments\": [ \
 		{ \
 		\"fallback\": \"GitHub Actions workflow failed!\", \

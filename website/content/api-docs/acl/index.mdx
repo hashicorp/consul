@@ -8,8 +8,10 @@ description: The /acl endpoints manage the Consul's ACL system.
 
 The `/acl` endpoints are used to manage ACL tokens and policies in Consul, [bootstrap the ACL system](#bootstrap-acls) and [check ACL replication status](#check-acl-replication). There are additional pages for managing [tokens](/consul/api-docs/acl/tokens) and [policies](/consul/api-docs/acl/policies) with the `/acl` endpoints.
 
-For more information on how to setup ACLs, please check
-the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
+For more information on how to setup ACLs, refer to the following resources: 
+
+- [Access control list (ACL) overview](/consul/docs/security/acl)
+- [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
 
 ## Bootstrap ACLs
 
@@ -506,7 +508,7 @@ $ curl \
 }
 ```
 
-## Methods to Specify Namespace <EnterpriseAlert inline />
+## Methods to specify namespace <EnterpriseAlert inline />
 
 Some ACL endpoints support several methods for specifying the namespace of the resource
 with the following order of precedence:

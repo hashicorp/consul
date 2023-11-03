@@ -26,7 +26,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"testing"
@@ -86,6 +85,11 @@ type Locality struct {
 	Zone   string `json:"zone"`
 }
 
+// TestAutopilotConfig contains the configuration for autopilot.
+type TestAutopilotConfig struct {
+	ServerStabilizationTime string `json:"server_stabilization_time,omitempty"`
+}
+
 // TestServerConfig is the main server configuration struct.
 type TestServerConfig struct {
 	NodeName            string                 `json:"node_name"`
@@ -123,6 +127,7 @@ type TestServerConfig struct {
 	EnableDebug         bool                   `json:"enable_debug,omitempty"`
 	SkipLeaveOnInt      bool                   `json:"skip_leave_on_interrupt"`
 	Peering             *TestPeeringConfig     `json:"peering,omitempty"`
+	Autopilot           *TestAutopilotConfig   `json:"autopilot,omitempty"`
 	ReadyTimeout        time.Duration          `json:"-"`
 	StopTimeout         time.Duration          `json:"-"`
 	Stdout              io.Writer              `json:"-"`
@@ -171,9 +176,16 @@ type ServerConfigCallback func(c *TestServerConfig)
 // defaultServerConfig returns a new TestServerConfig struct
 // with all of the listen ports incremented by one.
 func defaultServerConfig(t TestingTB, consulVersion *version.Version) *TestServerConfig {
-	nodeID, err := uuid.GenerateUUID()
-	if err != nil {
-		panic(err)
+	var nodeID string
+	var err error
+
+	if id, ok := os.LookupEnv("TEST_NODE_ID"); ok {
+		nodeID = id
+	} else {
+		nodeID, err = uuid.GenerateUUID()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	ports := freeport.GetN(t, 7)
@@ -260,6 +272,7 @@ type TestServer struct {
 	HTTPSAddr   string
 	LANAddr     string
 	WANAddr     string
+	ServerAddr  string
 	GRPCAddr    string
 	GRPCTLSAddr string
 
@@ -280,14 +293,29 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 			"consul or skip this test")
 	}
 
-	prefix := "consul"
-	if t != nil {
-		// Use test name for tmpdir if available
-		prefix = strings.Replace(t.Name(), "/", "_", -1)
-	}
-	tmpdir, err := os.MkdirTemp("", prefix)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create tempdir")
+	var tmpdir string
+
+	if dir, ok := os.LookupEnv("TEST_TMP_DIR"); ok {
+		// NOTE(CTIA): using TEST_TMP_DIR may cause conflict when NewTestServerConfigT
+		// is called > 1 since two agent will uses the same directory
+		tmpdir = dir
+		if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
+			if err = os.Mkdir(tmpdir, 0750); err != nil {
+				return nil, errors.Wrap(err, "failed to create tempdir from env TEST_TMP_DIR")
+			}
+		} else {
+			t.Logf("WARNING: using tempdir that already exists %s", tmpdir)
+		}
+	} else {
+		prefix := "consul"
+		if t != nil {
+			// Use test name for tmpdir if available
+			prefix = strings.Replace(t.Name(), "/", "_", -1)
+		}
+		tmpdir, err = os.MkdirTemp("", prefix)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to create tempdir")
+		}
 	}
 
 	consulVersion, err := findConsulVersion()
@@ -295,8 +323,12 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		return nil, err
 	}
 
+	datadir := filepath.Join(tmpdir, "data")
+	if _, err := os.Stat(datadir); !os.IsNotExist(err) {
+		t.Logf("WARNING: using a data that already exists %s", datadir)
+	}
 	cfg := defaultServerConfig(t, consulVersion)
-	cfg.DataDir = filepath.Join(tmpdir, "data")
+	cfg.DataDir = datadir
 	if cb != nil {
 		cb(cfg)
 	}
@@ -317,6 +349,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 	// Start the server
 	args := []string{"agent", "-config-file", configFile}
 	args = append(args, cfg.Args...)
+	t.Logf("test cmd args: consul args: %s", args)
 	cmd := exec.Command("consul", args...)
 	cmd.Stdout = cfg.Stdout
 	cmd.Stderr = cfg.Stderr
@@ -344,6 +377,7 @@ func NewTestServerConfigT(t TestingTB, cb ServerConfigCallback) (*TestServer, er
 		HTTPSAddr:   fmt.Sprintf("127.0.0.1:%d", cfg.Ports.HTTPS),
 		LANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfLan),
 		WANAddr:     fmt.Sprintf("127.0.0.1:%d", cfg.Ports.SerfWan),
+		ServerAddr:  fmt.Sprintf("127.0.0.1:%d", cfg.Ports.Server),
 		GRPCAddr:    fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPC),
 		GRPCTLSAddr: fmt.Sprintf("127.0.0.1:%d", cfg.Ports.GRPCTLS),
 
@@ -380,6 +414,21 @@ func (s *TestServer) Stop() error {
 	}
 
 	if s.cmd.Process != nil {
+
+		if saveSnapshot {
+			fmt.Println("Saving snapshot")
+			// create a snapshot prior to upgrade test
+			args := []string{"snapshot", "save", "-http-addr",
+				fmt.Sprintf("http://%s", s.HTTPAddr), filepath.Join(s.tmpdir, "backup.snap")}
+			fmt.Printf("Saving snapshot: consul args: %s\n", args)
+			cmd := exec.Command("consul", args...)
+			cmd.Stdout = s.Config.Stdout
+			cmd.Stderr = s.Config.Stderr
+			if err := cmd.Run(); err != nil {
+				return errors.Wrap(err, "failed to save a snapshot")
+			}
+		}
+
 		if runtime.GOOS == "windows" {
 			if err := s.cmd.Process.Kill(); err != nil {
 				return errors.Wrap(err, "failed to kill consul server")
@@ -442,13 +491,13 @@ func (s *TestServer) waitForAPI() error {
 	return nil
 }
 
-// waitForLeader waits for the Consul server's HTTP API to become
-// available, and then waits for a known leader and an index of
-// 2 or more to be observed to confirm leader election is done.
+// WaitForLeader waits for the Consul server's HTTP API to become available,
+// and then waits for a known leader to be observed to confirm leader election
+// is done.
 func (s *TestServer) WaitForLeader(t testing.TB) {
 	retry.Run(t, func(r *retry.R) {
 		// Query the API and check the status code.
-		url := s.url("/v1/catalog/nodes")
+		url := s.url("/v1/status/leader")
 		resp, err := s.privilegedGet(url)
 		if err != nil {
 			r.Fatalf("failed http get '%s': %v", url, err)
@@ -458,17 +507,59 @@ func (s *TestServer) WaitForLeader(t testing.TB) {
 			r.Fatalf("failed OK response: %v", err)
 		}
 
-		// Ensure we have a leader and a node registration.
-		if leader := resp.Header.Get("X-Consul-KnownLeader"); leader != "true" {
-			r.Fatalf("Consul leader status: %#v", leader)
+		var leader string
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&leader); err != nil {
+			r.Fatal(err)
 		}
-		index, err := strconv.ParseInt(resp.Header.Get("X-Consul-Index"), 10, 64)
+
+		// Ensure we have a leader.
+		if leader == "" {
+			r.Fatal("no leader address")
+		}
+	})
+}
+
+// WaitForVoting waits for the Consul server to become a voter in the current raft
+// configuration. You probably want to adjust the ServerStablizationTime autopilot
+// configuration otherwise this could take 10 seconds.
+func (s *TestServer) WaitForVoting(t testing.TB) {
+	// don't need to fully decode the response
+	type raftServer struct {
+		ID    string
+		Voter bool
+	}
+	type raftCfgResponse struct {
+		Servers []raftServer
+	}
+
+	retry.Run(t, func(r *retry.R) {
+		// Query the API and get the current raft configuration.
+		url := s.url("/v1/operator/raft/configuration")
+		resp, err := s.privilegedGet(url)
 		if err != nil {
-			r.Fatalf("bad consul index: %v", err)
+			r.Fatalf("failed http get '%s': %v", url, err)
 		}
-		if index < 2 {
-			r.Fatal("consul index should be at least 2")
+		defer resp.Body.Close()
+		if err := s.requireOK(resp); err != nil {
+			r.Fatalf("failed OK response: %v", err)
 		}
+
+		var cfg raftCfgResponse
+		dec := json.NewDecoder(resp.Body)
+		if err := dec.Decode(&cfg); err != nil {
+			r.Fatal(err)
+		}
+
+		for _, srv := range cfg.Servers {
+			if srv.ID == s.Config.NodeID {
+				if srv.Voter {
+					return
+				}
+				break
+			}
+		}
+		r.Fatalf("Server is not voting: %#v", cfg.Servers)
 	})
 }
 

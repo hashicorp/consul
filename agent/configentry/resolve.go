@@ -117,6 +117,9 @@ func ComputeResolvedServiceConfig(
 		if serviceConf.Destination != nil {
 			thisReply.Destination = *serviceConf.Destination
 		}
+		if serviceConf.RateLimits != nil {
+			thisReply.RateLimits = *serviceConf.RateLimits
+		}
 
 		// Populate values for the proxy config map
 		proxyConf := thisReply.ProxyConfig

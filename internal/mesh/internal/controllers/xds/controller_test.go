@@ -5,22 +5,30 @@ package xds
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -34,21 +42,28 @@ type xdsControllerTestSuite struct {
 	client  *resourcetest.Client
 	runtime controller.Runtime
 
-	ctl     *xdsReconciler
-	mapper  *bimapper.Mapper
-	updater *mockUpdater
-	fetcher TrustBundleFetcher
+	ctl             *xdsReconciler
+	mapper          *bimapper.Mapper
+	updater         *mockUpdater
+	fetcher         TrustBundleFetcher
+	leafMapper      *LeafMapper
+	leafCertManager *leafcert.Manager
+	leafCancels     *LeafCancels
+	leafCertEvents  chan controller.Event
+	signer          *leafcert.TestSigner
 
 	fooProxyStateTemplate          *pbresource.Resource
 	barProxyStateTemplate          *pbresource.Resource
 	barEndpointRefs                map[string]*pbproxystate.EndpointRef
 	fooEndpointRefs                map[string]*pbproxystate.EndpointRef
+	fooLeafRefs                    map[string]*pbproxystate.LeafCertificateRef
 	fooEndpoints                   *pbresource.Resource
 	fooService                     *pbresource.Resource
 	fooBarEndpoints                *pbresource.Resource
 	fooBarService                  *pbresource.Resource
 	expectedFooProxyStateEndpoints map[string]*pbproxystate.Endpoints
 	expectedBarProxyStateEndpoints map[string]*pbproxystate.Endpoints
+	expectedFooProxyStateSpiffes   map[string]string
 	expectedTrustBundle            map[string]*pbproxystate.TrustBundle
 }
 
@@ -59,13 +74,30 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.fetcher = mockFetcher
 
-	suite.mapper = bimapper.New(types.ProxyStateTemplateType, catalog.ServiceEndpointsType)
-	suite.updater = NewMockUpdater()
+	suite.mapper = bimapper.New(pbmesh.ProxyStateTemplateType, pbcatalog.ServiceEndpointsType)
+	suite.updater = newMockUpdater()
+
+	suite.leafMapper = &LeafMapper{
+		bimapper.New(pbmesh.ProxyStateTemplateType, InternalLeafType),
+	}
+	lcm, signer := leafcert.NewTestManager(suite.T(), nil)
+	signer.UpdateCA(suite.T(), nil)
+	suite.signer = signer
+	suite.leafCertManager = lcm
+	suite.leafCancels = &LeafCancels{
+		Cancels: make(map[string]context.CancelFunc),
+	}
+	suite.leafCertEvents = make(chan controller.Event, 1000)
 
 	suite.ctl = &xdsReconciler{
-		bimapper:         suite.mapper,
+		endpointsMapper:  suite.mapper,
 		updater:          suite.updater,
 		fetchTrustBundle: suite.fetcher,
+		leafMapper:       suite.leafMapper,
+		leafCertManager:  suite.leafCertManager,
+		leafCancels:      suite.leafCancels,
+		leafCertEvents:   suite.leafCertEvents,
+		datacenter:       "dc1",
 	}
 }
 
@@ -78,11 +110,14 @@ func mockFetcher() (*pbproxystate.TrustBundle, error) {
 	return &bundle, nil
 }
 
-// This test ensures when a ProxyState is deleted, it is no longer tracked in the mapper.
+// This test ensures when a ProxyState is deleted, it is no longer tracked in the mappers.
 func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 	// Track the id of a non-existent ProxyStateTemplate.
-	proxyStateTemplateId := resourcetest.Resource(types.ProxyStateTemplateType, "not-found").ID()
+	proxyStateTemplateId := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "not-found").ID()
 	suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
+	suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
+	require.False(suite.T(), suite.mapper.IsEmpty())
+	require.False(suite.T(), suite.leafMapper.IsEmpty())
 
 	// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -90,15 +125,16 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 	})
 	require.NoError(suite.T(), err)
 
-	// Assert that nothing is tracked in the mapper.
+	// Assert that nothing is tracked in the endpoints mapper.
 	require.True(suite.T(), suite.mapper.IsEmpty())
+	require.True(suite.T(), suite.leafMapper.IsEmpty())
 }
 
 // This test ensures if the controller was previously tracking a ProxyStateTemplate, and now that proxy has
 // disconnected from this server, it's ignored and removed from the mapper.
 func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConnectedToServer() {
 	// Store the initial ProxyStateTemplate and track it in the mapper.
-	proxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "test").
+	proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{}).
 		Write(suite.T(), suite.client)
 
@@ -125,7 +161,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_PushChangeError() {
 	suite.updater.pushChangeError = true
 
 	// Setup a happy path scenario.
-	suite.setupFooProxyStateTemplateAndEndpoints()
+	suite.setupFooProxyStateTemplateWithReferences()
 
 	// Run the reconcile.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -142,14 +178,14 @@ func (suite *xdsControllerTestSuite) TestReconcile_PushChangeError() {
 func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 	// Set fooProxyStateTemplate with a reference to fooEndpoints, without storing fooEndpoints so the controller should
 	// notice it's missing.
-	fooEndpointsId := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").ID()
+	fooEndpointsId := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
 		Id:   fooEndpointsId,
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints: fooRequiredEndpoints,
 			ProxyState:        &pbmesh.ProxyState{},
@@ -187,7 +223,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			RequiredEndpoints: fooRequiredEndpoints,
 			ProxyState:        &pbmesh.ProxyState{},
@@ -205,7 +241,10 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 	require.Error(suite.T(), err)
 
 	// Assert on the status reflecting endpoint couldn't be read.
-	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(status.KeyFromID(badID), "rpc error: code = InvalidArgument desc = id.name is required"))
+	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(
+		status.KeyFromID(badID),
+		"rpc error: code = InvalidArgument desc = id.name invalid: a resource name must consist of lower case alphanumeric characters or '-', must start and end with an alphanumeric character and be less than 64 characters, got: \"\"",
+	))
 }
 
 // This test is a happy path creation test to make sure pbproxystate.Endpoints are created in the computed
@@ -214,7 +253,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesEndpoints() {
 	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints and store them in the state store.
 	// This setup saves expected values in the suite so it can be asserted against later.
-	suite.setupFooProxyStateTemplateAndEndpoints()
+	suite.setupFooProxyStateTemplateWithReferences()
 
 	// Run the reconcile.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -230,10 +269,35 @@ func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesEnd
 	prototest.AssertDeepEqual(suite.T(), suite.expectedFooProxyStateEndpoints, actualEndpoints)
 }
 
+func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateComputesLeafCerts() {
+	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints and store them in the state store.
+	// This setup saves expected values in the suite so it can be asserted against later.
+	suite.setupFooProxyStateTemplateWithReferences()
+
+	// Run the reconcile.
+	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+		ID: suite.fooProxyStateTemplate.Id,
+	})
+	require.NoError(suite.T(), err)
+
+	// Assert on the status.
+	suite.client.RequireStatusCondition(suite.T(), suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+
+	// Assert that the actual leaf certs computed are match the expected leaf cert spiffes.
+	actualLeafs := suite.updater.GetLeafs(suite.fooProxyStateTemplate.Id.Name)
+
+	for k, l := range actualLeafs {
+		pem, _ := pem.Decode([]byte(l.Cert))
+		cert, err := x509.ParseCertificate(pem.Bytes)
+		require.NoError(suite.T(), err)
+		require.Equal(suite.T(), cert.URIs[0].String(), suite.expectedFooProxyStateSpiffes[k])
+	}
+}
+
+// This test is a happy path creation test to make sure pbproxystate.Template.TrustBundles are created in the computed
+// pbmesh.ProxyState from the TrustBundleFetcher.
 func (suite *xdsControllerTestSuite) TestReconcile_ProxyStateTemplateSetsTrustBundles() {
-	// This test is a happy path creation test to make sure pbproxystate.Template.TrustBundles are created in the computed
-	// pbmesh.ProxyState from the TrustBundleFetcher.
-	suite.setupFooProxyStateTemplateAndEndpoints()
+	suite.setupFooProxyStateTemplateWithReferences()
 
 	// Run the reconcile.
 	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -286,16 +350,14 @@ func (suite *xdsControllerTestSuite) TestReconcile_MultipleProxyStateTemplatesCo
 }
 
 // Sets up a full controller, and tests that reconciles are getting triggered for the events it should.
-func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() {
+func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointReferences() {
 	// Run the controller manager.
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
-	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher))
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher, suite.leafCertManager, suite.leafMapper, suite.leafCancels, "dc1"))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints. These need to be stored
-	// because the controller reconcile looks them up.
-	suite.setupFooProxyStateTemplateAndEndpoints()
+	suite.setupFooProxyStateTemplateWithReferences()
 
 	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
 	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
@@ -309,7 +371,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 
 	// Now, update the endpoint to be unhealthy. This will ensure the controller is getting triggered on changes to this
 	// endpoint that it should be tracking, even when the ProxyStateTemplate does not change.
-	resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -353,11 +415,11 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 
 	// Now add a new endpoint reference and endpoint to the fooProxyStateTemplate. This will ensure that the controller
 	// now tracks the newly added endpoint.
-	secondService := resourcetest.Resource(catalog.ServiceType, "second-service").
+	secondService := resourcetest.Resource(pbcatalog.ServiceType, "second-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	secondEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "second-service").
+	secondEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "second-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -386,11 +448,13 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 		Id:   secondEndpoints.Id,
 		Port: "mesh",
 	}
+
 	oldVersion := suite.fooProxyStateTemplate.Version
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
-			RequiredEndpoints: suite.fooEndpointRefs,
-			ProxyState:        &pbmesh.ProxyState{},
+			RequiredEndpoints:        suite.fooEndpointRefs,
+			ProxyState:               &pbmesh.ProxyState{},
+			RequiredLeafCertificates: suite.fooLeafRefs,
 		}).
 		Write(suite.T(), suite.client)
 
@@ -432,14 +496,177 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpoints() 
 
 }
 
-// Setup: fooProxyStateTemplate with an EndpointsRef to fooEndpoints
-// Saves all related resources to the suite so they can be modified if needed.
-func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
-	fooService := resourcetest.Resource(catalog.ServiceType, "foo-service").
+// Sets up a full controller, and tests that reconciles are getting triggered for the leaf cert events it should.
+// This test ensures when a CA is updated, the controller is triggered to update the leaf cert when it changes.
+func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateDeleteLeafReferences() {
+	// Run the controller manager.
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher, suite.leafCertManager, suite.leafMapper, suite.leafCancels, "dc1"))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	suite.setupFooProxyStateTemplateWithReferences()
+	leafCertRef := suite.fooLeafRefs["foo-workload-identity"]
+	fooLeafResRef := leafResourceRef(leafCertRef.Name, leafCertRef.Namespace, leafCertRef.Partition)
+
+	// oldLeaf will store the original leaf from before we trigger a CA update.
+	var oldLeaf *x509.Certificate
+
+	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
+	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualEndpoints := suite.updater.GetEndpoints(suite.fooProxyStateTemplate.Id.Name)
+		actualLeafs := suite.updater.GetLeafs(suite.fooProxyStateTemplate.Id.Name)
+		// Assert on the status.
+		suite.client.RequireStatusCondition(r, suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+		// Assert that the endpoints computed in the controller matches the expected endpoints.
+		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
+		// Assert that the leafs computed in the controller matches the expected leafs.
+		require.Len(r, actualLeafs, 1)
+		for k, l := range actualLeafs {
+			pem, _ := pem.Decode([]byte(l.Cert))
+			cert, err := x509.ParseCertificate(pem.Bytes)
+			oldLeaf = cert
+			require.NoError(r, err)
+			require.Equal(r, cert.URIs[0].String(), suite.expectedFooProxyStateSpiffes[k])
+			// Check the state of the cancel functions map.
+			_, ok := suite.leafCancels.Get(keyFromReference(fooLeafResRef))
+			require.True(r, ok)
+		}
+	})
+
+	// Update the CA, and ensure the leaf cert is different from the leaf certificate from the step above.
+	suite.signer.UpdateCA(suite.T(), nil)
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualLeafs := suite.updater.GetLeafs(suite.fooProxyStateTemplate.Id.Name)
+		require.Len(r, actualLeafs, 1)
+		for k, l := range actualLeafs {
+			pem, _ := pem.Decode([]byte(l.Cert))
+			cert, err := x509.ParseCertificate(pem.Bytes)
+			// Ensure the leaf was actually updated by checking that the leaf we just got is different from the old leaf.
+			require.NotEqual(r, oldLeaf.Raw, cert.Raw)
+			require.NoError(r, err)
+			require.Equal(r, suite.expectedFooProxyStateSpiffes[k], cert.URIs[0].String())
+			// Check the state of the cancel functions map. Even though we've updated the leaf cert, we should still
+			// have a watch going for it.
+			_, ok := suite.leafCancels.Get(keyFromReference(fooLeafResRef))
+			require.True(r, ok)
+		}
+	})
+
+	// Delete the leaf references on the fooProxyStateTemplate
+	delete(suite.fooLeafRefs, "foo-workload-identity")
+	oldVersion := suite.fooProxyStateTemplate.Version
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
+		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
+			RequiredEndpoints:        suite.fooEndpointRefs,
+			ProxyState:               &pbmesh.ProxyState{},
+			RequiredLeafCertificates: suite.fooLeafRefs,
+		}).
+		Write(suite.T(), suite.client)
+
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
+	})
+
+	// Ensure the leaf certificate watches were cancelled since we deleted the leaf reference.
+	retry.Run(suite.T(), func(r *retry.R) {
+		_, ok := suite.leafCancels.Get(keyFromReference(fooLeafResRef))
+		require.False(r, ok)
+	})
+}
+
+// Sets up a full controller, and tests that reconciles are getting triggered for the leaf cert events it should.
+// This test ensures that when a ProxyStateTemplate is deleted, the leaf watches are cancelled.
+func (suite *xdsControllerTestSuite) TestController_ComputeLeafReferencesDeletePST() {
+	// Run the controller manager.
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher, suite.leafCertManager, suite.leafMapper, suite.leafCancels, "dc1"))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	suite.setupFooProxyStateTemplateWithReferences()
+	leafCertRef := suite.fooLeafRefs["foo-workload-identity"]
+	fooLeafResRef := leafResourceRef(leafCertRef.Name, leafCertRef.Namespace, leafCertRef.Partition)
+
+	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
+	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualEndpoints := suite.updater.GetEndpoints(suite.fooProxyStateTemplate.Id.Name)
+		actualLeafs := suite.updater.GetLeafs(suite.fooProxyStateTemplate.Id.Name)
+		// Assert on the status.
+		suite.client.RequireStatusCondition(r, suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+		// Assert that the endpoints computed in the controller matches the expected endpoints.
+		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
+		// Assert that the leafs computed in the controller matches the expected leafs.
+		require.Len(r, actualLeafs, 1)
+		for k, l := range actualLeafs {
+			pem, _ := pem.Decode([]byte(l.Cert))
+			cert, err := x509.ParseCertificate(pem.Bytes)
+			require.NoError(r, err)
+			require.Equal(r, cert.URIs[0].String(), suite.expectedFooProxyStateSpiffes[k])
+			// Check the state of the cancel functions map.
+			_, ok := suite.leafCancels.Get(keyFromReference(fooLeafResRef))
+			require.True(r, ok)
+		}
+	})
+
+	// Delete the fooProxyStateTemplate
+
+	req := &pbresource.DeleteRequest{
+		Id: suite.fooProxyStateTemplate.Id,
+	}
+	suite.client.Delete(suite.ctx, req)
+
+	// Ensure the leaf certificate watches were cancelled since we deleted the leaf reference.
+	retry.Run(suite.T(), func(r *retry.R) {
+		_, ok := suite.leafCancels.Get(keyFromReference(fooLeafResRef))
+		require.False(r, ok)
+	})
+}
+
+// Sets up a full controller, and tests that reconciles are getting triggered for the events it should.
+func (suite *xdsControllerTestSuite) TestController_ComputeEndpointForProxyConnections() {
+	// Run the controller manager.
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+
+	mgr.Register(Controller(suite.mapper, suite.updater, suite.fetcher, suite.leafCertManager, suite.leafMapper, suite.leafCancels, "dc1"))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	// Set up fooEndpoints and fooProxyStateTemplate with a reference to fooEndpoints. These need to be stored
+	// because the controller reconcile looks them up.
+	suite.setupFooProxyStateTemplateWithReferences()
+
+	// Assert that the expected ProxyState matches the actual ProxyState that PushChange was called with. This needs to
+	// be in a retry block unlike the Reconcile tests because the controller triggers asynchronously.
+	retry.Run(suite.T(), func(r *retry.R) {
+		actualEndpoints := suite.updater.GetEndpoints(suite.fooProxyStateTemplate.Id.Name)
+		// Assert on the status.
+		suite.client.RequireStatusCondition(r, suite.fooProxyStateTemplate.Id, ControllerName, status.ConditionAccepted())
+		// Assert that the endpoints computed in the controller matches the expected endpoints.
+		prototest.AssertDeepEqual(r, suite.expectedFooProxyStateEndpoints, actualEndpoints)
+	})
+
+	eventChannel := suite.updater.EventChannel()
+	eventChannel <- controller.Event{Obj: &proxytracker.ProxyConnection{ProxyID: suite.fooProxyStateTemplate.Id}}
+
+	// Wait for the proxy state template to be re-evaluated.
+	proxyStateTemp := suite.client.WaitForNewVersion(suite.T(), suite.fooProxyStateTemplate.Id, suite.fooProxyStateTemplate.Version)
+	require.NotNil(suite.T(), proxyStateTemp)
+}
+
+// Setup: fooProxyStateTemplate with:
+//   - an EndpointsRef to fooEndpoints
+//   - a LeafCertificateRef to "foo-workload-identity"
+//
+// Saves all related resources to the suite so they can be looked up by the controller or modified if needed.
+func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences() {
+	fooService := resourcetest.Resource(pbcatalog.ServiceType, "foo-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -469,10 +696,16 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooRequiredLeafs := make(map[string]*pbproxystate.LeafCertificateRef)
+	fooRequiredLeafs["foo-workload-identity"] = &pbproxystate.LeafCertificateRef{
+		Name: "foo-workload-identity",
+	}
+
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
-			RequiredEndpoints: fooRequiredEndpoints,
-			ProxyState:        &pbmesh.ProxyState{},
+			RequiredEndpoints:        fooRequiredEndpoints,
+			RequiredLeafCertificates: fooRequiredLeafs,
+			ProxyState:               &pbmesh.ProxyState{},
 		}).
 		Write(suite.T(), suite.client)
 
@@ -480,6 +713,9 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
 	})
 
+	expectedFooLeafSpiffes := map[string]string{
+		"foo-workload-identity": "spiffe://11111111-2222-3333-4444-555555555555.consul/ap/default/ns/default/identity/foo-workload-identity",
+	}
 	expectedFooProxyStateEndpoints := map[string]*pbproxystate.Endpoints{
 		"test-cluster-1": {Endpoints: []*pbproxystate.Endpoint{
 			{
@@ -513,9 +749,11 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
 	suite.fooService = fooService
 	suite.fooEndpoints = fooEndpoints
 	suite.fooEndpointRefs = fooRequiredEndpoints
+	suite.fooLeafRefs = fooRequiredLeafs
 	suite.fooProxyStateTemplate = fooProxyStateTemplate
 	suite.expectedFooProxyStateEndpoints = expectedFooProxyStateEndpoints
 	suite.expectedTrustBundle = expectedTrustBundle
+	suite.expectedFooProxyStateSpiffes = expectedFooLeafSpiffes
 }
 
 // Setup:
@@ -524,11 +762,11 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateAndEndpoints() {
 //
 // Saves all related resources to the suite so they can be modified if needed.
 func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints() {
-	fooService := resourcetest.Resource(catalog.ServiceType, "foo-service").
+	fooService := resourcetest.Resource(pbcatalog.ServiceType, "foo-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-service").
+	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -552,11 +790,11 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		WithOwner(fooService.Id).
 		Write(suite.T(), suite.client)
 
-	fooBarService := resourcetest.Resource(catalog.ServiceType, "foo-bar-service").
+	fooBarService := resourcetest.Resource(pbcatalog.ServiceType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		Write(suite.T(), suite.client)
 
-	fooBarEndpoints := resourcetest.Resource(catalog.ServiceEndpointsType, "foo-bar-service").
+	fooBarEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
 				Ports: map[string]*pbcatalog.WorkloadPort{
@@ -597,7 +835,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		Port: "mesh",
 	}
 
-	fooProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "foo-pst").
+	fooProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "foo-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			// Contains the foo and foobar endpoints.
 			RequiredEndpoints: fooRequiredEndpoints,
@@ -609,7 +847,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
 	})
 
-	barProxyStateTemplate := resourcetest.Resource(types.ProxyStateTemplateType, "bar-pst").
+	barProxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "bar-pst").
 		WithData(suite.T(), &pbmesh.ProxyStateTemplate{
 			// Contains the foobar endpoint.
 			RequiredEndpoints: barRequiredEndpoints,
@@ -699,6 +937,233 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints()
 	suite.expectedBarProxyStateEndpoints = expectedBarProxyStateEndpoints
 }
 
+func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
+	makeRef := func(names ...string) []*pbresource.Reference {
+		out := make([]*pbresource.Reference, len(names))
+		for i, name := range names {
+			out[i] = &pbresource.Reference{
+				Name: name,
+				Type: &pbresource.Type{
+					Group:        "g",
+					GroupVersion: "v",
+					Kind:         "k",
+				},
+				Tenancy: &pbresource.Tenancy{},
+			}
+		}
+		return out
+	}
+	convert := func(input []*pbresource.Reference) []resource.ReferenceOrID {
+		asInterface := make([]resource.ReferenceOrID, len(input))
+		for i := range input {
+			asInterface[i] = input[i]
+		}
+		return asInterface
+	}
+
+	cases := []struct {
+		old    []*pbresource.Reference
+		new    []*pbresource.Reference
+		expect []*pbresource.Reference
+	}{
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "c"),
+			expect: makeRef("b"),
+		},
+		{
+			old:    makeRef("a", "b", "c"),
+			new:    makeRef("a", "b", "c"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef("a", "b"),
+			expect: makeRef(),
+		},
+		{
+			old:    makeRef("a", "b"),
+			new:    makeRef(),
+			expect: makeRef("a", "b"),
+		},
+		{
+			old:    makeRef(),
+			new:    makeRef(),
+			expect: makeRef(),
+		},
+	}
+
+	for _, tc := range cases {
+		toCancel := prevWatchesToCancel(tc.old, convert(tc.new))
+		require.ElementsMatch(suite.T(), toCancel, tc.expect)
+	}
+}
+
 func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
+}
+
+// TestReconcile_SidecarProxyGoldenFileInputs tests the Reconcile() by using
+// the golden test output/expected files from the sidecar proxy tests as inputs
+// to the XDS controller reconciliation.
+// XDS controller reconciles the full ProxyStateTemplate object.  The fields
+// that things that it focuses on are leaf certs, endpoints, and trust bundles,
+// which is just a subset of the ProxyStateTemplate struct.  Prior to XDS controller
+// reconciliation, the sidecar proxy controller will have reconciled the other parts
+// of the ProxyStateTemplate.
+// Since the XDS controller does act on the ProxyStateTemplate, the tests
+// utilize that entire object rather than just the parts that XDS controller
+// internals reconciles.  Namely, by using checking the full ProxyStateTemplate
+// rather than just endpoints, leaf certs, and trust bundles, the test also ensures
+// side effects or change in scope to XDS controller are not introduce mistakenly.
+func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
+	path := "../sidecarproxy/builder/testdata"
+	cases := []string{
+		// destinations - please add in alphabetical order
+		"destination/l4-single-destination-ip-port-bind-address",
+		"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-single-implicit-destination-tproxy",
+		"destination/l4-multi-destination",
+		"destination/l4-multiple-implicit-destinations-tproxy",
+		"destination/l4-implicit-and-explicit-destinations-tproxy",
+		"destination/mixed-multi-destination",
+		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
+
+		//sources - please add in alphabetical order
+		"source/l7-expose-paths",
+		"source/local-and-inbound-connections",
+		"source/multiple-workload-addresses-with-specific-ports",
+		"source/multiple-workload-addresses-without-ports",
+		"source/multiport-l4-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l4-multiple-workload-addresses-without-ports",
+		"source/multiport-l4-workload-with-only-mesh-port",
+		"source/multiport-l7-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
+		"source/single-workload-address-without-ports",
+	}
+
+	for _, name := range cases {
+		suite.Run(name, func() {
+			// Create ProxyStateTemplate from the golden file.
+			pst := JSONToProxyTemplate(suite.T(),
+				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
+
+			// Destinations will need endpoint refs set up.
+			if strings.Split(name, "/")[0] == "destination" && len(pst.ProxyState.Endpoints) == 0 {
+				suite.addRequiredEndpointsAndRefs(pst)
+			}
+
+			// Store the initial ProxyStateTemplate.
+			proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
+				WithData(suite.T(), pst).
+				Write(suite.T(), suite.client)
+
+			// Check with resource service that it exists.
+			retry.Run(suite.T(), func(r *retry.R) {
+				suite.client.RequireResourceExists(r, proxyStateTemplate.Id)
+			})
+
+			// Track it in the mapper.
+			suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
+
+			// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
+			err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+				ID: proxyStateTemplate.Id,
+			})
+			require.NoError(suite.T(), err)
+			require.NotNil(suite.T(), proxyStateTemplate)
+
+			// Get the reconciled proxyStateTemplate to check the reconcile results.
+			reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
+
+			// Verify leaf cert contents then hard code them for comparison
+			// and downstream tests since they change from test run to test run.
+			require.NotEmpty(suite.T(), reconciledPS.LeafCertificates)
+			reconciledPS.LeafCertificates = map[string]*pbproxystate.LeafCertificate{
+				"test-identity": {
+					Cert: "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
+					Key:  "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFIFkTIL1iUV4O/RpveVHzHs7ZzhSkvYIzbdXDttz9EooAoGCCqGSM49\nAwEHoUQDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9ta/bGT+5\norZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJQ==\n-----END EC PRIVATE KEY-----\n",
+				},
+			}
+
+			// Compare actual vs expected.
+			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
+			expected := golden.Get(suite.T(), actual, name+".golden")
+			require.JSONEq(suite.T(), expected, actual)
+		})
+	}
+}
+
+func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.ProxyStateTemplate) {
+	//get service data
+	serviceData := &pbcatalog.Service{}
+	var vp uint32 = 7000
+	requiredEps := make(map[string]*pbproxystate.EndpointRef)
+
+	// iterate through clusters and set up endpoints for cluster/mesh port.
+	for clusterName := range pst.ProxyState.Clusters {
+		if clusterName == "null_route_cluster" || clusterName == "original-destination" {
+			continue
+		}
+
+		//increment the random port number.
+		vp++
+		clusterNameSplit := strings.Split(clusterName, ".")
+		port := clusterNameSplit[0]
+		svcName := clusterNameSplit[1]
+
+		// set up service data with port info.
+		serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
+			TargetPort:  port,
+			VirtualPort: vp,
+			Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+		})
+
+		// create service.
+		svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
+			WithData(suite.T(), &pbcatalog.Service{}).
+			Write(suite.T(), suite.client)
+
+		// create endpoints with svc as owner.
+		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
+			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
+				{
+					Ports: map[string]*pbcatalog.WorkloadPort{
+						"mesh": {
+							Port:     20000,
+							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+						},
+					},
+					Addresses: []*pbcatalog.WorkloadAddress{
+						{
+							Host:  "10.1.1.1",
+							Ports: []string{"mesh"},
+						},
+					},
+				},
+			}}).
+			WithOwner(svc.Id).
+			Write(suite.T(), suite.client)
+
+		// add to working list of required endpoints.
+		requiredEps[clusterName] = &pbproxystate.EndpointRef{
+			Id:   eps.Id,
+			Port: "mesh",
+		}
+	}
+
+	// set working list of required endpoints as proxy state's RequiredEndpoints.
+	pst.RequiredEndpoints = requiredEps
+}
+
+func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
+	t.Helper()
+	proxyTemplate := &pbmesh.ProxyStateTemplate{}
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal(json, proxyTemplate)
+	require.NoError(t, err)
+	return proxyTemplate
 }
