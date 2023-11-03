@@ -71,6 +71,14 @@
               }
             },
             {
+              "name": "envoy.filters.network.connection_limit",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.connection_limit.v3.ConnectionLimit",
+                "maxConnections": "3456",
+                "statPrefix": "inbound_connection_limit"
+              }
+            },
+            {
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
