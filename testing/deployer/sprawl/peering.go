@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -62,6 +63,8 @@ func (s *Sprawl) initPeerings() error {
 			req1.Partition = peering.Accepting.Partition
 		}
 
+		s.awaitMeshGateways()
+
 	GENTOKEN:
 		resp, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), req1, nil)
 		if err != nil {
@@ -108,6 +111,7 @@ func (s *Sprawl) initPeerings() error {
 }
 
 func (s *Sprawl) waitForPeeringEstablishment() error {
+	s.awaitMeshGateways()
 	var (
 		logger = s.logger.Named("peering")
 	)
@@ -180,4 +184,65 @@ func (s *Sprawl) checkPeeringDirection(logger hclog.Logger, client *api.Client, 
 		time.Sleep(500 * time.Millisecond)
 	}
 	logger.Debug("peering is active", "dur", time.Since(startTime).Round(time.Second))
+}
+
+func (s *Sprawl) awaitMeshGateways() {
+	startTime := time.Now()
+	s.logger.Info("awaiting mesh gateways")
+	// TODO: maybe a better way to do this
+	mgws := []*topology.Service{}
+	for _, clu := range s.topology.Clusters {
+		for _, node := range clu.Nodes {
+			for _, svc := range node.Services {
+				if svc.IsMeshGateway {
+					mgws = append(mgws, svc)
+				}
+			}
+		}
+	}
+
+	// TODO: parallel
+	for _, mgw := range mgws {
+		cl := s.clients[mgw.Node.Cluster]
+		logger := s.logger.With("cluster", mgw.Node.Cluster, "sid", mgw.ID, "nid", mgw.Node.ID())
+		logger.Info("awaiting MGW readiness")
+	RETRY:
+		// TODO: not sure if there's a better way to check if the MGW is ready
+		svcs, _, err := cl.Catalog().Service(mgw.ID.Name, "", &api.QueryOptions{
+			Namespace: mgw.ID.Namespace,
+			Partition: mgw.ID.Partition,
+		})
+		if err != nil {
+			logger.Debug("fetching MGW service", "err", err)
+			time.Sleep(time.Second)
+			goto RETRY
+		}
+		if len(svcs) < 1 {
+			logger.Debug("no MGW service in catalog yet")
+			time.Sleep(time.Second)
+			goto RETRY
+		}
+		if len(svcs) > 1 {
+			// not sure when this would happen
+			log.Fatalf("expected 1 MGW service, actually: %#v", svcs)
+		}
+
+		entries, _, err := cl.Health().Service(mgw.ID.Name, "", true, &api.QueryOptions{
+			Namespace: mgw.ID.Namespace,
+			Partition: mgw.ID.Partition,
+		})
+		if err != nil {
+			logger.Debug("fetching MGW checks", "err", err)
+			time.Sleep(time.Second)
+			goto RETRY
+		}
+		if len(entries) != 1 {
+			logger.Debug("expected 1 MGW entry", "entries", entries)
+			time.Sleep(time.Second)
+			goto RETRY
+		}
+
+		logger.Debug("MGW ready", "entry", *(entries[0]), "dur", time.Since(startTime).Round(time.Second))
+	}
+	s.logger.Info("mesh gateways ready", "dur", time.Since(startTime).Round(time.Second))
 }

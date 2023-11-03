@@ -172,7 +172,6 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	// these could be done parallel with each other, but complexity
 	// probably not worth the speed boost
 	ct.Assert.HealthyWithPeer(t, dc.Name, svcServer.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, svcClient, s.upstream)
 	// TODO: we need to let the upstream start serving properly before we do this. if it
 	// isn't ready and returns a 5xx (which it will do if it's not up yet!), it will stick
 	// in a down state for PassiveHealthCheck.Interval

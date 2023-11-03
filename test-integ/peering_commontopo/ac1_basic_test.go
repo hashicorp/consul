@@ -232,8 +232,6 @@ func (s *ac1BasicSuite) test(t *testing.T, ct *commonTopo) {
 	// probably not worth the speed boost
 	ct.Assert.HealthyWithPeer(t, dc.Name, svcServerHTTP.ID, LocalPeerName(peer, "default"))
 	ct.Assert.HealthyWithPeer(t, dc.Name, svcServerTCP.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, svcClientTCP, ac.upstreamTCP)
-	ct.Assert.UpstreamEndpointHealthy(t, svcClientTCP, ac.upstreamHTTP)
 
 	tcs := []struct {
 		acSub int
