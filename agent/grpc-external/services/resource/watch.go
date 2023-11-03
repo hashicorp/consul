@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
@@ -10,36 +10,34 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.ResourceService_WatchListServer) error {
-	reg, err := s.ensureWatchListRequestValid(req)
+	if err := validateWatchListRequest(req); err != nil {
+		return err
+	}
+
+	// check type exists
+	reg, err := s.resolveType(req.Type)
 	if err != nil {
 		return err
 	}
 
-	// v1 ACL subsystem is "wildcard" aware so just pass on through.
-	entMeta := v2TenancyToV1EntMeta(req.Tenancy)
-	token := tokenFromContext(stream.Context())
-	authz, authzContext, err := s.getAuthorizer(token, entMeta)
+	authz, err := s.getAuthorizer(tokenFromContext(stream.Context()))
 	if err != nil {
 		return err
 	}
 
-	// Check list ACL.
-	err = reg.ACLs.List(authz, authzContext)
+	// check acls
+	err = reg.ACLs.List(authz, req.Tenancy)
 	switch {
 	case acl.IsErrPermissionDenied(err):
 		return status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
 		return status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
-
-	// Ensure we're defaulting correctly when request tenancy units are empty.
-	v1EntMetaToV2Tenancy(reg, entMeta, req.Tenancy)
 
 	unversionedType := storage.UnversionedTypeFrom(req.Type)
 	watch, err := s.Backend.WatchList(
@@ -67,17 +65,8 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 			continue
 		}
 
-		// Need to rebuild authorizer per resource since wildcard inputs may
-		// result in different tenancies. Consider caching per tenancy if this
-		// is deemed expensive.
-		entMeta = v2TenancyToV1EntMeta(event.Resource.Id.Tenancy)
-		authz, authzContext, err = s.getAuthorizer(token, entMeta)
-		if err != nil {
-			return err
-		}
-
 		// filter out items that don't pass read ACLs
-		err = reg.ACLs.Read(authz, authzContext, event.Resource.Id, event.Resource)
+		err = reg.ACLs.Read(authz, event.Resource.Id)
 		switch {
 		case acl.IsErrPermissionDenied(err):
 			continue
@@ -91,57 +80,15 @@ func (s *Server) WatchList(req *pbresource.WatchListRequest, stream pbresource.R
 	}
 }
 
-func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (*resource.Registration, error) {
-	if req.Type == nil {
-		return nil, status.Errorf(codes.InvalidArgument, "type is required")
-	}
-
-	// Check type exists.
-	reg, err := s.resolveType(req.Type)
-	if err != nil {
-		return nil, err
-	}
-
-	// if no tenancy is passed defaults to wildcard
-	if req.Tenancy == nil {
-		req.Tenancy = wildcardTenancyFor(reg.Scope)
-	}
-
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
-		return nil, err
-	}
-
-	if err := validateWildcardTenancy(req.Tenancy, req.NamePrefix); err != nil {
-		return nil, err
-	}
-
-	// Check scope
-	if err = validateScopedTenancy(reg.Scope, req.Type, req.Tenancy); err != nil {
-		return nil, err
-	}
-
-	return reg, nil
-}
-
-func wildcardTenancyFor(scope resource.Scope) *pbresource.Tenancy {
-	var defaultTenancy *pbresource.Tenancy
-
-	switch scope {
-	case resource.ScopeCluster:
-		defaultTenancy = &pbresource.Tenancy{
-			PeerName: storage.Wildcard,
-		}
-	case resource.ScopePartition:
-		defaultTenancy = &pbresource.Tenancy{
-			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
-		}
+func validateWatchListRequest(req *pbresource.WatchListRequest) error {
+	var field string
+	switch {
+	case req.Type == nil:
+		field = "type"
+	case req.Tenancy == nil:
+		field = "tenancy"
 	default:
-		defaultTenancy = &pbresource.Tenancy{
-			Partition: storage.Wildcard,
-			PeerName:  storage.Wildcard,
-			Namespace: storage.Wildcard,
-		}
+		return nil
 	}
-	return defaultTenancy
+	return status.Errorf(codes.InvalidArgument, "%s is required", field)
 }

@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 peer:
   search-bar:
@@ -70,8 +70,6 @@ acl:
         management: Management
         client: Client
 token:
-  selector:
-    logged-in:  "Logged in with ACL Token'<br><'b class=consul-side-nav__acl-logged-in'>'{token}'<'/b'>'"
   search-bar:
     kind:
       name: Type

@@ -1,14 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package utils
 
 import (
 	"flag"
-	"os"
 	"strings"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -55,44 +53,6 @@ func GetLatestImageName() string {
 		return LatestImageName + "-dbg"
 	}
 	return LatestImageName
-}
-
-func LatestImages() topology.Images {
-	img := DockerImage(LatestImageName, LatestVersion)
-
-	var set topology.Images
-	if IsEnterprise() {
-		set.ConsulEnterprise = img
-	} else {
-		set.ConsulCE = img
-	}
-
-	// TODO: have a "latest" dataplane image for testing a service mesh
-	// complete upgrade of data plane
-	if cdp := os.Getenv("DEPLOYER_CONSUL_DATAPLANE_IMAGE"); cdp != "" {
-		set.Dataplane = cdp
-	}
-
-	return set
-}
-
-func TargetImages() topology.Images {
-	img := DockerImage(targetImageName, TargetVersion)
-
-	var set topology.Images
-	if IsEnterprise() {
-		set.ConsulEnterprise = img
-	} else {
-		set.ConsulCE = img
-	}
-
-	// TODO: have a "target" dataplane image for testing a service mesh
-	// complete upgrade of data plane
-	if cdp := os.Getenv("DEPLOYER_CONSUL_DATAPLANE_IMAGE"); cdp != "" {
-		set.Dataplane = cdp
-	}
-
-	return set
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

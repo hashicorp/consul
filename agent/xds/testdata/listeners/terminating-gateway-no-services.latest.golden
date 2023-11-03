@@ -1,8 +1,9 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "default:1.2.3.4:8443",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -22,8 +23,8 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "",
-                "statPrefix": "terminating_gateway.default"
+                "statPrefix": "terminating_gateway.default",
+                "cluster": ""
               }
             }
           ]
@@ -37,10 +38,9 @@
           }
         }
       ],
-      "name": "default:1.2.3.4:8443",
       "trafficDirection": "INBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

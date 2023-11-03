@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 # SOURCE: GRUNTWORKS
 # This script is meant to be run in the User Data of each EC2 Instance while it's booting. The script uses the

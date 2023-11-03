@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package token
 
@@ -106,21 +106,6 @@ func TestFormatToken(t *testing.T) {
 						Datacenter: "middleearth-northwest",
 					},
 				},
-				TemplatedPolicies: []*api.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyServiceName,
-						TemplateVariables: &api.ACLTemplatedPolicyVariables{
-							Name: "web",
-						},
-						Datacenters: []string{"middleearth-northwest", "somewhere-east"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &api.ACLTemplatedPolicyVariables{
-							Name: "api",
-						},
-					},
-				},
 			},
 		},
 	}
@@ -222,21 +207,6 @@ func TestFormatTokenList(t *testing.T) {
 						{
 							NodeName:   "bagend",
 							Datacenter: "middleearth-northwest",
-						},
-					},
-					TemplatedPolicies: []*api.ACLTemplatedPolicy{
-						{
-							TemplateName: api.ACLTemplatedPolicyServiceName,
-							TemplateVariables: &api.ACLTemplatedPolicyVariables{
-								Name: "web",
-							},
-							Datacenters: []string{"middleearth-northwest"},
-						},
-						{
-							TemplateName: api.ACLTemplatedPolicyNodeName,
-							TemplateVariables: &api.ACLTemplatedPolicyVariables{
-								Name: "api",
-							},
 						},
 					},
 				},
@@ -472,21 +442,6 @@ var expandedTokenTestCases = map[string]testCase{
 					{
 						NodeName:   "bagend",
 						Datacenter: "middleearth-northwest",
-					},
-				},
-				TemplatedPolicies: []*api.ACLTemplatedPolicy{
-					{
-						TemplateName: api.ACLTemplatedPolicyServiceName,
-						TemplateVariables: &api.ACLTemplatedPolicyVariables{
-							Name: "web",
-						},
-						Datacenters: []string{"middleearth-northwest"},
-					},
-					{
-						TemplateName: api.ACLTemplatedPolicyNodeName,
-						TemplateVariables: &api.ACLTemplatedPolicyVariables{
-							Name: "api",
-						},
 					},
 				},
 			},

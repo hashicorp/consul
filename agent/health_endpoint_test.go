@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -27,25 +27,6 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
 )
-
-func TestHealthEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, "{}")
-		})
-	}
-
-	checkRequest("GET", "/v1/health/node/web")
-	checkRequest("GET", "/v1/health/checks/web")
-	checkRequest("GET", "/v1/health/state/web")
-	checkRequest("GET", "/v1/health/service/web")
-	checkRequest("GET", "/v1/health/connect/web")
-	checkRequest("GET", "/v1/health/ingress/web")
-}
 
 func TestHealthChecksInState(t *testing.T) {
 	if testing.Short() {
@@ -461,21 +442,19 @@ func TestHealthServiceChecks_NodeMetaFilter(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	retry.Run(t, func(r *retry.R) {
-		req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
-		resp = httptest.NewRecorder()
-		obj, err = a.srv.HealthServiceChecks(resp, req)
-		if err != nil {
-			r.Fatalf("err: %v", err)
-		}
-		assertIndex(r, resp)
+	req, _ = http.NewRequest("GET", "/v1/health/checks/consul?dc=dc1&node-meta=somekey:somevalue", nil)
+	resp = httptest.NewRecorder()
+	obj, err = a.srv.HealthServiceChecks(resp, req)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	assertIndex(t, resp)
 
-		// Should be 1 health check for consul
-		nodes = obj.(structs.HealthChecks)
-		if len(nodes) != 1 {
-			r.Fatalf("bad: %v", obj)
-		}
-	})
+	// Should be 1 health check for consul
+	nodes = obj.(structs.HealthChecks)
+	if len(nodes) != 1 {
+		t.Fatalf("bad: %v", obj)
+	}
 }
 
 func TestHealthServiceChecks_Filtering(t *testing.T) {

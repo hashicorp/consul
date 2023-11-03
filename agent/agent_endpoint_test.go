@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -21,6 +21,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/version"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -40,14 +44,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
@@ -77,46 +79,6 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	err := dec.Decode(svcToken)
 	require.NoError(t, err)
 	return svcToken.SecretID
-}
-
-func TestAgentEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
-		})
-	}
-
-	t.Run("agent-self-with-params", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
-		require.NoError(t, err)
-
-		resp := httptest.NewRecorder()
-		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusOK, resp.Code)
-
-		_, err = io.ReadAll(resp.Body)
-		require.NoError(t, err)
-	})
-
-	checkRequest("PUT", "/v1/agent/maintenance")
-	checkRequest("GET", "/v1/agent/services")
-	checkRequest("GET", "/v1/agent/service/web")
-	checkRequest("GET", "/v1/agent/checks")
-	checkRequest("GET", "/v1/agent/health/service/id/web")
-	checkRequest("GET", "/v1/agent/health/service/name/web")
-	checkRequest("PUT", "/v1/agent/check/register")
-	checkRequest("PUT", "/v1/agent/check/deregister/web")
-	checkRequest("PUT", "/v1/agent/check/pass/web")
-	checkRequest("PUT", "/v1/agent/check/warn/web")
-	checkRequest("PUT", "/v1/agent/check/fail/web")
-	checkRequest("PUT", "/v1/agent/check/update/web")
-	checkRequest("PUT", "/v1/agent/service/register")
-	checkRequest("PUT", "/v1/agent/service/deregister/web")
-	checkRequest("PUT", "/v1/agent/service/maintenance/web")
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -1638,37 +1600,14 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 }
 
-func newDefaultBaseDeps(t *testing.T) BaseDeps {
-	dataDir := testutil.TempDir(t, "acl-agent")
-	logBuffer := testutil.NewLogBuffer(t)
-	logger := hclog.NewInterceptLogger(nil)
-	loader := func(source config.Source) (config.LoadResult, error) {
-		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
-		opts := config.LoadOpts{
-			HCL:           []string{TestConfigHCL(NodeID()), "", dataDir},
-			DefaultConfig: source,
-		}
-		result, err := config.Load(opts)
-		if result.RuntimeConfig != nil {
-			result.RuntimeConfig.Telemetry.Disable = true
-		}
-		return result, err
-	}
-	bd, err := NewBaseDeps(loader, logBuffer, logger)
-	require.NoError(t, err)
-	return bd
-}
-
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
-	bd := newDefaultBaseDeps(t)
+	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.DenyAll()}
+	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1691,15 +1630,13 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
-	bd := newDefaultBaseDeps(t)
+	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.ManageAll()}
+	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,

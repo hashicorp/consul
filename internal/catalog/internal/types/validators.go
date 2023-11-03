@@ -1,21 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"errors"
-	"fmt"
 	"net"
 	"regexp"
 	"strings"
 
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
-
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -56,7 +53,7 @@ func isValidDNSLabel(label string) bool {
 	return dnsLabelMatcher.Match([]byte(label))
 }
 
-func IsValidUnixSocketPath(host string) bool {
+func isValidUnixSocketPath(host string) bool {
 	if len(host) > maxUnixSocketPathLen || !strings.HasPrefix(host, "unix://") || strings.Contains(host, "\000") {
 		return false
 	}
@@ -71,14 +68,14 @@ func validateWorkloadHost(host string) error {
 	}
 
 	// Check if the host represents an IP address, unix socket path or a DNS name
-	if !isValidIPAddress(host) && !IsValidUnixSocketPath(host) && !isValidDNSName(host) {
+	if !isValidIPAddress(host) && !isValidUnixSocketPath(host) && !isValidDNSName(host) {
 		return errInvalidWorkloadHostFormat{Host: host}
 	}
 
 	return nil
 }
 
-func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
+func validateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	if sel == nil {
 		if allowEmpty {
 			return nil
@@ -88,20 +85,14 @@ func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	}
 
 	if len(sel.Names) == 0 && len(sel.Prefixes) == 0 {
-		if !allowEmpty {
-			return resource.ErrEmpty
+		if allowEmpty {
+			return nil
 		}
 
-		if sel.Filter != "" {
-			return resource.ErrInvalidField{
-				Name:    "filter",
-				Wrapped: errors.New("filter cannot be set unless there is a name or prefix selector"),
-			}
-		}
-		return nil
+		return resource.ErrEmpty
 	}
 
-	var merr error
+	var err error
 
 	// Validate that all the exact match names are non-empty. This is
 	// mostly for the sake of not admitting values that should always
@@ -109,7 +100,7 @@ func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 	// This is because workloads must have non-empty names.
 	for idx, name := range sel.Names {
 		if name == "" {
-			merr = multierror.Append(merr, resource.ErrInvalidListElement{
+			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "names",
 				Index:   idx,
 				Wrapped: resource.ErrEmpty,
@@ -117,14 +108,7 @@ func ValidateSelector(sel *pbcatalog.WorkloadSelector, allowEmpty bool) error {
 		}
 	}
 
-	if err := resource.ValidateMetadataFilter(sel.GetFilter()); err != nil {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "filter",
-			Wrapped: err,
-		})
-	}
-
-	return merr
+	return err
 }
 
 func validateIPAddress(ip string) error {
@@ -139,7 +123,7 @@ func validateIPAddress(ip string) error {
 	return nil
 }
 
-func ValidatePortName(name string) error {
+func validatePortName(name string) error {
 	if name == "" {
 		return resource.ErrEmpty
 	}
@@ -149,22 +133,6 @@ func ValidatePortName(name string) error {
 	}
 
 	return nil
-}
-
-func ValidateProtocol(protocol pbcatalog.Protocol) error {
-	// enumcover:pbcatalog.Protocol
-	switch protocol {
-	case pbcatalog.Protocol_PROTOCOL_UNSPECIFIED,
-		// means pbcatalog.FailoverMode_FAILOVER_MODE_TCP
-		pbcatalog.Protocol_PROTOCOL_TCP,
-		pbcatalog.Protocol_PROTOCOL_HTTP,
-		pbcatalog.Protocol_PROTOCOL_HTTP2,
-		pbcatalog.Protocol_PROTOCOL_GRPC,
-		pbcatalog.Protocol_PROTOCOL_MESH:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", protocol))
-	}
 }
 
 // validateWorkloadAddress will validate the WorkloadAddress type. This involves validating
@@ -185,7 +153,7 @@ func validateWorkloadAddress(addr *pbcatalog.WorkloadAddress, ports map[string]*
 
 	// Ensure that unix sockets reference exactly 1 port. They may also indirectly reference 1 port
 	// by the workload having only a single port and omitting any explicit port assignment.
-	if IsValidUnixSocketPath(addr.Host) &&
+	if isValidUnixSocketPath(addr.Host) &&
 		(len(addr.Ports) > 1 || (len(addr.Ports) == 0 && len(ports) > 1)) {
 		err = multierror.Append(err, errUnixSocketMultiport)
 	}
@@ -238,96 +206,4 @@ func validateReference(allowedType *pbresource.Type, allowedTenancy *pbresource.
 	}
 
 	return err
-}
-
-func validateHealth(health pbcatalog.Health) error {
-	// enumcover:pbcatalog.Health
-	switch health {
-	case pbcatalog.Health_HEALTH_ANY,
-		pbcatalog.Health_HEALTH_PASSING,
-		pbcatalog.Health_HEALTH_WARNING,
-		pbcatalog.Health_HEALTH_CRITICAL,
-		pbcatalog.Health_HEALTH_MAINTENANCE:
-		return nil
-	default:
-		return resource.NewConstError(fmt.Sprintf("not a supported enum value: %v", health))
-	}
-}
-
-// ValidateLocalServiceRefNoSection ensures the following:
-//
-// - ref is non-nil
-// - type is ServiceType
-// - section is empty
-// - tenancy is set and partition/namespace are both non-empty
-// - peer_name must be "local"
-//
-// Each possible validation error is wrapped in the wrapErr function before
-// being collected in a multierror.Error.
-func ValidateLocalServiceRefNoSection(ref *pbresource.Reference, wrapErr func(error) error) error {
-	if ref == nil {
-		return wrapErr(resource.ErrMissing)
-	}
-
-	if !resource.EqualType(ref.Type, pbcatalog.ServiceType) {
-		return wrapErr(resource.ErrInvalidField{
-			Name: "type",
-			Wrapped: resource.ErrInvalidReferenceType{
-				AllowedType: pbcatalog.ServiceType,
-			},
-		})
-	}
-
-	var merr error
-	if ref.Section != "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "section",
-			Wrapped: errors.New("section cannot be set here"),
-		}))
-	}
-
-	if ref.Tenancy == nil {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "tenancy",
-			Wrapped: resource.ErrMissing,
-		}))
-	} else {
-		// NOTE: these are Service specific, since that's a Namespace-scoped type.
-		if ref.Tenancy.Partition == "" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "partition",
-					Wrapped: resource.ErrEmpty,
-				},
-			}))
-		}
-		if ref.Tenancy.Namespace == "" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "namespace",
-					Wrapped: resource.ErrEmpty,
-				},
-			}))
-		}
-		if ref.Tenancy.PeerName != "local" {
-			merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-				Name: "tenancy",
-				Wrapped: resource.ErrInvalidField{
-					Name:    "peer_name",
-					Wrapped: errors.New(`must be set to "local"`),
-				},
-			}))
-		}
-	}
-
-	if ref.Name == "" {
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "name",
-			Wrapped: resource.ErrMissing,
-		}))
-	}
-
-	return merr
 }

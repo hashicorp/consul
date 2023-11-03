@@ -14,22 +14,6 @@ provided for their upgrades as a result of new features or changed behavior.
 This page is used to document those details separately from the standard
 upgrade flow.
 
-## Consul 1.17.x
-#### Audit Log naming changes (Enterprise)
-Prior to Consul 1.17.0, audit logs contained timestamps on both the original log file names as well as rotated log file names.
-After Consul 1.17.0, only timestamps will be included in rotated log file names.
-
-#### Service-defaults upstream config (Enterprise)
-Prior to Consul v1.17.0, [Kubernetes annotations for upstream services](/consul/docs/k8s/annotations-and-labels#consul-hashicorp-com-connect-service-upstreams)
-that did not explicitly specify a namespace or partition incorrectly used service-defaults configurations, such as [default protocol](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-defaults#set-the-default-protocol), from the default partition and namespace instead of the local partition and namespace.
-
-This bug is fixed starting in Consul v1.17.0. Now service-defaults configurations from the local partition and namespace are fetched when not specified in annotations.
-If you are using non-default partitions and namespaces with Consul-k8s, we recommend explicitly defining these fields for all upstreams in addition to ensuring that accurate
-service-defaults are configured in each partition and namespace before upgrading. Doing so ensures that no unexpected protocol changes occur during the upgrade.
-
-#### ACL tokens with templated policies
-[ACL templated policies](/consul/docs/security/acl#templated-policies) were added to 1.17.0 to simplify obtaining the right permissions for ACL tokens. When performing a [rolling upgrade](/consul/tutorials/datacenter-operations/upgrade-federated-environment#server-rolling-upgrade) and a version of Consul prior to 1.17.x is presented with a token created Consul v1.17.x or newer that contains templated policies, the templated policies field is not recognized. As a result, the token might not have the expected permissions on the older version of Consul.
-
 ## Consul 1.16.x
 
 ### Known issues
@@ -825,7 +809,7 @@ Starting with Consul 1.7.1 this is the new default.
 
 #### Removal of Deprecated Features
 
-Managed proxies, which are deprecated since Consul v1.3.0, have now been
+Managed proxies, which are deprecated since Consul v1.3.0, have now been 
 [removed](/consul/docs/connect/proxies). Before upgrading, you must
 migrate any managed proxy usage to [sidecar service
 registrations](/consul/docs/connect/proxies/deploy-sidecar-services).
@@ -912,7 +896,7 @@ API so existing integrations that create tokens (e.g. Vault) will continue to
 work. The "legacy" tokens generated though will not be able to take advantage of
 new policy features. It's recommended that you complete migration of all tokens
 as soon as possible after upgrade, as well as updating any integrations to work
-with the new ACL [Token](/consul/api-docs/acl/tokens) and
+with the the new ACL [Token](/consul/api-docs/acl/tokens) and
 [Policy](/consul/api-docs/acl/policies) APIs.
 
 ### Multi-datacenter service mesh

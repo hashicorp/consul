@@ -13,10 +13,8 @@ The `/acl/binding-rule` endpoints [create](#create-a-binding-rule),
 [list](#list-binding-rules) and [delete](#delete-a-binding-rule) ACL binding
 rules in Consul.
 
-For more information on how to setup ACLs, refer to the following resources: 
-
-- [Access control list (ACL) overview](/consul/docs/security/acl)
-- [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
+For more information on how to setup ACLs, please check
+the [ACL tutorial](/consul/tutorials/security/access-control-setup-production).
 
 ## Create a Binding Rule
 
@@ -59,9 +57,9 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
   ```
 
 - `BindType` `(string: <required>)` - Specifies the way the binding rule
-  affects a token created at login. You can specify one of the following:
+  affects a token created at login.
 
-  - `service` - The computed bind name value is used as an
+  - `BindType=service` - The computed bind name value is used as an
     `ACLServiceIdentity.ServiceName` field in the token that is created.
 
     <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
@@ -80,7 +78,7 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
 
     </CodeBlockConfig>
 
-  - `node` - The computed bind name value is used as an
+  - `BindType=node` - The computed bind name value is used as an
     `ACLNodeIdentity.NodeName` field in the token that is created.
 
     <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
@@ -100,7 +98,7 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
 
     </CodeBlockConfig>
 
-  - `role` - The computed bind name value is used as a `RoleLink.Name`
+  - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
     role with the given name exists at login-time. If it does not then this
     rule is ignored.
@@ -120,29 +118,6 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
     ```
 
     </CodeBlockConfig>
-  
-  - `templated-policy` - The bind name value is used as an
-    `ACLTemplatedPolicy.TemplateName` field in the token that is created. The computed 
-    `BindVars` values are used in the `ACLTemplatedPolicy.TemplateVariables` field.
-
-    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
-
-    ```json
-    {
-      "AccessorID": "<token accessor ID>",
-      "SecretID": "<token secret ID>",
-      "TemplatedPolicies": [
-        {
-          "TemplateName": "<template name>",
-          "TemplateVariables": {
-            "Name": "<name>"
-          }
-        }
-      ]
-    }
-    ```
-
-    </CodeBlockConfig>
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time. What it binds to can be adjusted with different values of the
@@ -152,20 +127,6 @@ The corresponding CLI command is [`consul acl binding-rule create`](/consul/comm
 
   ```text
   prefixed-${serviceaccount.name}
-  ```
-
-- `BindVars` `(<ACLTemplatedPolicyVariables>)` - Specifies the templated policy
-  variables when `BindType` field is set to `templated-policy`. Consul populates
-  the `TemplatedPolicies.TemplateVariables` field with the computed `BindVars` values
-  in the token it creates. You can specify either a plain text string or templated 
-  string using [HIL syntax](https://github.com/hashicorp/hil).
-  Consul interpolates templated strings with values that are usable by the `Selector` syntax. 
-  For example:
-
-  ```
-    "BindVars": {
-      "Name": "prefixed-${serviceaccount.name}"
-    }
   ```
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the binding rule you create.
@@ -309,9 +270,9 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
   ```
 
 - `BindType` `(string: <required>)` - Specifies the way the binding rule
-  affects a token created at login. You can specify one of the following:
+  affects a token created at login.
 
-  - `service` - The computed bind name value is used as an
+  - `BindType=service` - The computed bind name value is used as an
     `ACLServiceIdentity.ServiceName` field in the token that is created.
 
     <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
@@ -330,7 +291,7 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
 
     </CodeBlockConfig>
 
-  - `node` - The computed bind name value is used as an
+  - `BindType=node` - The computed bind name value is used as an
     `ACLNodeIdentity.NodeName` field in the token that is created.
 
     <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
@@ -350,7 +311,7 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
 
     </CodeBlockConfig>
 
-  - `role` - The computed bind name value is used as a `RoleLink.Name`
+  - `BindType=role` - The computed bind name value is used as a `RoleLink.Name`
     field in the token that is created. This binding rule will only apply if a
     role with the given name exists at login-time. If it does not then this
     rule is ignored.
@@ -370,30 +331,6 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
     ```
 
     </CodeBlockConfig>
-  
-  - `templated-policy` - Consul populates the `TemplatedPolicies.TemplateName` with
-    the value specified in the `BindName` field in the token that is created. Consul 
-    also populates the `TemplatedPolicies.TemplateVariables` field with the computed 
-    `BindVars` values.
-
-    <CodeBlockConfig heading="Equivalent payload for Consul token API endpoint">
-
-    ```json
-    {
-      "AccessorID": "<token accessor ID>",
-      "SecretID": "<token secret ID>",
-      "TemplatedPolicies": [
-        {
-          "TemplateName": "<template name>",
-          "TemplateVariables": {
-            "Name": "<name>"
-          }
-        }
-      ]
-    }
-    ```
-
-    </CodeBlockConfig>
 
 - `BindName` `(string: <required>)` - The name to bind to a token at
   login-time. What it binds to can be adjusted with different values of the
@@ -403,20 +340,6 @@ The corresponding CLI command is [`consul acl binding-rule update`](/consul/comm
 
   ```text
   prefixed-${serviceaccount.name}
-  ```
-
-- `BindVars` `(<ACLTemplatedPolicyVariables>)` - Specifies the templated policy
-  variables when the `BindType` field is set to `templated-policy`. Consul 
-  populates the  `TemplatedPolicies.TemplateVariables` field with the computed 
-  `BindVars` values  in the token it creates. You can specify either a plain text
-  string or templated string using [HIL syntax](https://github.com/hashicorp/hil). 
-  Consul interpolates templated strings with values that are usable by the `Selector` 
-  syntax. For example:
-
-  ```
-    "BindVars": {
-      "Name": "prefixed-${serviceaccount.name}"
-    }
   ```
 
 - `Namespace` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace of the binding rule you update.
@@ -563,7 +486,7 @@ $ curl --request GET http://127.0.0.1:8500/v1/acl/binding-rules
 ]
 ```
 
-## Methods to specify namespace <EnterpriseAlert inline />
+## Methods to Specify Namespace <EnterpriseAlert inline />
 
 Binding rule create, read, update, and delete endpoints
 support several methods for specifying the namespace of the auth method resource

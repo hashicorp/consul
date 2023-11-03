@@ -1,7 +1,8 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 //go:build linux || darwin
+// +build linux darwin
 
 package envoy
 
@@ -355,9 +356,6 @@ func patchExecArgs(t *testing.T) {
 }
 
 func TestMakeBootstrapPipe_DoesNotBlockOnAFullPipe(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	// A named pipe can buffer up to 64k, use a value larger than that
 	bootstrap := bytes.Repeat([]byte("a"), 66000)
 

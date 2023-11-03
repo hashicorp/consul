@@ -1,0 +1,24 @@
+# AuthProfile
+
+A straightforward partial-like component for rendering a user profile.
+
+Only the last 8 characters are shown.
+
+```hbs preview-template
+<AuthProfile
+  @item={{hash AccessorID='123456-1234567-123456'}}
+/>
+```
+
+## Arguments
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `item` | `Token` |  | A token object (currently only requires an AccessorID property to be set |
+
+## See
+
+- [Component Source Code](./index.js)
+- [Template Source Code](./index.hbs)
+
+---

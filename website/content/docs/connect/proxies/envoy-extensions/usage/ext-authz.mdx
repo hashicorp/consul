@@ -57,26 +57,24 @@ EnvoyExtensions = [
 <CodeBlockConfig filename="api-auth-service-defaults.json">
 
 ```json
-{
-  "Kind": "service-defaults",
-  "Name": "api",
-  "EnvoyExtensions": [{
-    "Name": "builtin/ext-authz",
-    "Arguments": {
-      "ProxyType": "connect-proxy",
-      "Config": {
-        "GrpcService": {
-          "Target": {
-            "Service": {
-              "Name": "authz"
-              }
+"Kind": "service-defaults",
+"Name": "api",
+"EnvoyExtensions": [{
+  "Name": "builtin/ext-authz",
+  "Arguments": {
+    "ProxyType": "connect-proxy",
+    "Config": {
+      "GrpcService": {
+        "Target": {
+          "Service": {
+            "Name": "authz"
             }
           }
         }
       }
     }
-  ]
-}
+  }
+]
 ```
 
 </CodeBlockConfig>
@@ -140,6 +138,7 @@ $ consul config write api-auth-service-defaults.hcl
 
 ```shell-session
 $ consul config write api-auth-service-defaults.json
+
 ```
 
 </Tab>

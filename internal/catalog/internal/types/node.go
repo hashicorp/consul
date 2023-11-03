@@ -1,44 +1,47 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
-type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
+const (
+	NodeKind = "Node"
+)
+
+var (
+	NodeV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         NodeKind,
+	}
+
+	NodeType = NodeV1Alpha1Type
+)
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbcatalog.NodeType,
-		Proto: &pbcatalog.Node{},
-		// TODO: A node should be partition scoped. However its HealthStatus which is
-		// namespace scoped has Node as an owner. We do not support ownership between resources
-		// of differing scope at this time. HealthStatus will probably be split out into two different
-		// types, one for namespace scoped owners and the other for partition scoped owners.
-		// Until that time, Node will remain namespace scoped.
-		Scope:    resource.ScopeNamespace,
+		Type:     NodeV1Alpha1Type,
+		Proto:    &pbcatalog.Node{},
 		Validate: ValidateNode,
-		ACLs: &resource.ACLHooks{
-			Read:  aclReadHookNode,
-			Write: aclWriteHookNode,
-			List:  resource.NoOpACLListHook,
-		},
 	})
 }
 
-var ValidateNode = resource.DecodeAndValidate(validateNode)
+func ValidateNode(res *pbresource.Resource) error {
+	var node pbcatalog.Node
 
-func validateNode(res *DecodedNode) error {
+	if err := res.Data.UnmarshalTo(&node); err != nil {
+		return resource.NewErrDataParse(&node, err)
+	}
+
 	var err error
 	// Validate that the node has at least 1 address
-	if len(res.Data.Addresses) < 1 {
+	if len(node.Addresses) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "addresses",
 			Wrapped: resource.ErrEmpty,
@@ -46,7 +49,7 @@ func validateNode(res *DecodedNode) error {
 	}
 
 	// Validate each node address
-	for idx, addr := range res.Data.Addresses {
+	for idx, addr := range node.Addresses {
 		if addrErr := validateNodeAddress(addr); addrErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "addresses",
@@ -83,12 +86,4 @@ func validateNodeAddress(addr *pbcatalog.NodeAddress) error {
 	}
 
 	return nil
-}
-
-func aclReadHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().NodeReadAllowed(id.GetName(), authzContext)
-}
-
-func aclWriteHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().NodeWriteAllowed(res.GetId().GetName(), authzContext)
 }

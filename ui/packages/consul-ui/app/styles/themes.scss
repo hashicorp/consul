@@ -1,0 +1,16 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+@import './base/color/ui/index';
+
+%main-nav-horizontal .dangerous button:hover,
+%main-nav-horizontal .dangerous button:focus {
+  color: var(--token-color-surface-primary) !important;
+}
+
+%main-nav-vertical .menu-panel a:hover,
+%main-nav-vertical .menu-panel a:focus {
+  background-color: var(--token-color-foreground-action);
+}

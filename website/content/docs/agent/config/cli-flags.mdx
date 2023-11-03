@@ -273,7 +273,7 @@ information.
 
 - `-config-dir` ((#\_config_dir)) - A directory of configuration files to
   load. Consul will load all files in this directory with the suffix ".json" or ".hcl".
-  The load order is alphabetical, and the same merge routine is used as with
+  The load order is alphabetical, and the the same merge routine is used as with
   the [`config-file`](#_config_file) option above. This option can be specified multiple
   times to load multiple directories. Sub-directories of the config directory are
   not loaded. For more information on the format of the configuration files, see
@@ -424,13 +424,13 @@ information.
 
 - `-log-file` ((#\_log_file)) - writes all the Consul agent log messages
   to a file at the path indicated by this flag. The filename defaults to `consul.log`.
-  When the log file rotates, this value is used as a prefix for the path to the log and the current timestamp is 
+  When the log file rotates, this value is used as a prefix for the path to the log and the current timestamp is
   appended to the file name. If the value ends in a path separator, `consul-`
   will be appended to the value. If the file name is missing an extension, `.log`
   is appended. For example, setting `log-file` to `/var/log/` would result in a log
   file path of `/var/log/consul.log`. `log-file` can be combined with
   [`-log-rotate-bytes`](#_log_rotate_bytes) and [`-log-rotate-duration`](#_log_rotate_duration)
-  for a fine-grained log rotation experience. After rotation, the path and filename take the following form: 
+  for a fine-grained log rotation experience. After rotation, the path and filename take the following form:
   `/var/log/consul-{timestamp}.log`
 
 - `-log-rotate-bytes` ((#\_log_rotate_bytes)) - to specify the number of

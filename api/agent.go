@@ -307,10 +307,6 @@ type ServiceRegisterOpts struct {
 	// having to manually deregister checks.
 	ReplaceExistingChecks bool
 
-	// Token is used to provide a per-request ACL token
-	// which overrides the agent's default token.
-	Token string
-
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use WithContext() to set the context.
 	ctx context.Context
@@ -839,9 +835,6 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
 	}
-	if opts.Token != "" {
-		r.header.Set("X-Consul-Token", opts.Token)
-	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return err
@@ -998,14 +991,7 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 // CheckRegister is used to register a new check with
 // the local agent
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
-	return a.CheckRegisterOpts(check, nil)
-}
-
-// CheckRegisterOpts is used to register a new check with
-// the local agent using query options
-func (a *Agent) CheckRegisterOpts(check *AgentCheckRegistration, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
-	r.setQueryOptions(q)
 	r.obj = check
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1391,10 +1377,6 @@ func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*Write
 // for more details
 func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("config_file_service_registration", token, q)
-}
-
-func (a *Agent) UpdateDNSToken(token string, q *WriteOptions) (*WriteMeta, error) {
-	return a.updateToken("dns", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

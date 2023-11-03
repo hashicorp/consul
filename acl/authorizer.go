@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package acl
 
@@ -43,7 +43,6 @@ const (
 	ResourceACL       Resource = "acl"
 	ResourceAgent     Resource = "agent"
 	ResourceEvent     Resource = "event"
-	ResourceIdentity  Resource = "identity"
 	ResourceIntention Resource = "intention"
 	ResourceKey       Resource = "key"
 	ResourceKeyring   Resource = "keyring"
@@ -77,19 +76,6 @@ type Authorizer interface {
 
 	// EventWrite determines if a specific event may be fired.
 	EventWrite(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityRead checks for permission to read a given workload identity.
-	IdentityRead(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityReadAll checks for permission to read all workload identities.
-	IdentityReadAll(*AuthorizerContext) EnforcementDecision
-
-	// IdentityWrite checks for permission to create or update a given
-	// workload identity.
-	IdentityWrite(string, *AuthorizerContext) EnforcementDecision
-
-	// IdentityWriteAny checks for write permission on any workload identity.
-	IdentityWriteAny(*AuthorizerContext) EnforcementDecision
 
 	// IntentionDefaultAllow determines the default authorized behavior
 	// when no intentions match a Connect request.
@@ -171,9 +157,6 @@ type Authorizer interface {
 	// ServiceReadAll checks for permission to read all services
 	ServiceReadAll(*AuthorizerContext) EnforcementDecision
 
-	// ServiceReadPrefix checks for permission to read services within the given prefix.
-	ServiceReadPrefix(string, *AuthorizerContext) EnforcementDecision
-
 	// ServiceWrite checks for permission to create or update a given
 	// service
 	ServiceWrite(string, *AuthorizerContext) EnforcementDecision
@@ -190,13 +173,6 @@ type Authorizer interface {
 
 	// Snapshot checks for permission to take and restore snapshots.
 	Snapshot(*AuthorizerContext) EnforcementDecision
-
-	// TrafficPermissionsRead determines if specific traffic permissions can be read.
-	TrafficPermissionsRead(string, *AuthorizerContext) EnforcementDecision
-
-	// TrafficPermissionsWrite determines if specific traffic permissions can be
-	// created, modified, or deleted.
-	TrafficPermissionsWrite(string, *AuthorizerContext) EnforcementDecision
 
 	// Embedded Interface for Consul Enterprise specific ACL enforcement
 	enterpriseAuthorizer
@@ -263,40 +239,6 @@ func (a AllowAuthorizer) EventWriteAllowed(name string, ctx *AuthorizerContext) 
 	return nil
 }
 
-// IdentityReadAllowed checks for permission to read a given workload identity,
-func (a AllowAuthorizer) IdentityReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityRead(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessRead, name)
-	}
-	return nil
-}
-
-// IdentityReadAllAllowed checks for permission to read all workload identities.
-func (a AllowAuthorizer) IdentityReadAllAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityReadAll(ctx) != Allow {
-		// This is only used to gate certain UI functions right now (e.g metrics)
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessRead, "all identities") // read
-	}
-	return nil
-}
-
-// IdentityWriteAllowed checks for permission to create or update a given
-// workload identity.
-func (a AllowAuthorizer) IdentityWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityWrite(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessWrite, name)
-	}
-	return nil
-}
-
-// IdentityWriteAnyAllowed checks for write permission on any workload identity
-func (a AllowAuthorizer) IdentityWriteAnyAllowed(ctx *AuthorizerContext) error {
-	if a.Authorizer.IdentityWriteAny(ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIdentity, AccessWrite, "any identity")
-	}
-	return nil
-}
-
 // IntentionDefaultAllowAllowed determines the default authorized behavior
 // when no intentions match a Connect request.
 func (a AllowAuthorizer) IntentionDefaultAllowAllowed(ctx *AuthorizerContext) error {
@@ -320,23 +262,6 @@ func (a AllowAuthorizer) IntentionReadAllowed(name string, ctx *AuthorizerContex
 // created, modified, or deleted.
 func (a AllowAuthorizer) IntentionWriteAllowed(name string, ctx *AuthorizerContext) error {
 	if a.Authorizer.IntentionWrite(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
-	}
-	return nil
-}
-
-// TrafficPermissionsReadAllowed determines if specific traffic permissions can be read.
-func (a AllowAuthorizer) TrafficPermissionsReadAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.TrafficPermissionsRead(name, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessRead, name)
-	}
-	return nil
-}
-
-// TrafficPermissionsWriteAllowed determines if specific traffic permissions can be
-// created, modified, or deleted.
-func (a AllowAuthorizer) TrafficPermissionsWriteAllowed(name string, ctx *AuthorizerContext) error {
-	if a.Authorizer.TrafficPermissionsWrite(name, ctx) != Allow {
 		return PermissionDeniedByACL(a, ctx, ResourceIntention, AccessWrite, name)
 	}
 	return nil
@@ -510,14 +435,6 @@ func (a AllowAuthorizer) ServiceReadAllAllowed(ctx *AuthorizerContext) error {
 	return nil
 }
 
-// ServiceReadPrefixAllowed checks for permission to read services within the given prefix
-func (a AllowAuthorizer) ServiceReadPrefixAllowed(prefix string, ctx *AuthorizerContext) error {
-	if a.Authorizer.ServiceReadPrefix(prefix, ctx) != Allow {
-		return PermissionDeniedByACL(a, ctx, ResourceService, AccessRead, prefix) // read
-	}
-	return nil
-}
-
 // ServiceWriteAllowed checks for permission to create or update a given
 // service
 func (a AllowAuthorizer) ServiceWriteAllowed(name string, ctx *AuthorizerContext) error {
@@ -585,13 +502,6 @@ func Enforce(authz Authorizer, rsc Resource, segment string, access string, ctx 
 			return authz.EventRead(segment, ctx), nil
 		case "write":
 			return authz.EventWrite(segment, ctx), nil
-		}
-	case ResourceIdentity:
-		switch lowerAccess {
-		case "read":
-			return authz.IdentityRead(segment, ctx), nil
-		case "write":
-			return authz.IdentityWrite(segment, ctx), nil
 		}
 	case ResourceIntention:
 		switch lowerAccess {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package fsm
 
@@ -195,10 +195,6 @@ func (c *FSM) Apply(log *raft.Log) interface{} {
 		c.logger.Warn("ignoring unknown message type, upgrade to newer version", "type", msgType)
 		return nil
 	}
-	if structs.CEDowngrade && msgType >= 64 {
-		c.logger.Warn("ignoring enterprise message, for downgrading to oss", "type", msgType)
-		return nil
-	}
 	panic(fmt.Errorf("failed to apply request: %#v", buf))
 }
 
@@ -267,10 +263,7 @@ func (c *FSM) Restore(old io.ReadCloser) error {
 				return err
 			}
 		default:
-			if structs.CEDowngrade && msg >= 64 {
-				c.logger.Warn("ignoring enterprise message , for downgrading to oss", "type", msg)
-				return nil
-			} else if msg >= 64 {
+			if msg >= 64 {
 				return fmt.Errorf("msg type <%d> is a Consul Enterprise log entry. Consul CE cannot restore it", msg)
 			} else {
 				return fmt.Errorf("Unrecognized msg type %d", msg)

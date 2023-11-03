@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 
 # retry based on
@@ -210,7 +210,7 @@ function assert_envoy_expose_checks_listener_count {
   RANGES=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filter_chain_match.source_prefix_ranges | length')
   echo "RANGES = $RANGES (expect 3)"
   # note: if IPv6 is not supported in the kernel per
-  # agent/xds/platform:SupportsIPv6() then this will only be 2
+  # agent/xds:kernelSupportsIPv6() then this will only be 2
   [ "${RANGES:-0}" -eq 3 ]
 
   HCM=$(echo "$BODY" | jq '.active_state.listener.filter_chains[0].filters[0]')
@@ -328,19 +328,6 @@ function get_envoy_cluster_config {
   "
 }
 
-function get_envoy_endpoints_configs {
-  local HOSTPORT=$1
-  local CLUSTER_NAME=$2
-  run retry_default curl -s -f $HOSTPORT/config_dump?include_eds=on
-  [ "$status" -eq 0 ]
-  echo "$output" | jq --raw-output "
-    .configs[]
-    | select(.\"@type\" == \"type.googleapis.com/envoy.admin.v3.EndpointsConfigDump\")
-    | .dynamic_endpoint_configs[]
-    | .endpoint_config
-  "
-}
-
 function get_envoy_stats_flush_interval {
   local HOSTPORT=$1
   run retry_default curl -s -f $HOSTPORT/config_dump
@@ -357,7 +344,7 @@ function snapshot_envoy_admin {
   local OUTDIR="${LOG_DIR}/envoy-snapshots/${DC}/${ENVOY_NAME}"
 
   mkdir -p "${OUTDIR}"
-  docker_wget "$DC" "http://${HOSTPORT}/config_dump?include_eds=on" -q -O - >"${OUTDIR}/config_dump.json"
+  docker_wget "$DC" "http://${HOSTPORT}/config_dump" -q -O - >"${OUTDIR}/config_dump.json"
   docker_wget "$DC" "http://${HOSTPORT}/clusters?format=json" -q -O - >"${OUTDIR}/clusters.json"
   docker_wget "$DC" "http://${HOSTPORT}/stats" -q -O - >"${OUTDIR}/stats.txt"
   docker_wget "$DC" "http://${HOSTPORT}/stats/prometheus" -q -O - >"${OUTDIR}/stats_prometheus.txt"

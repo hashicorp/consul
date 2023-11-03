@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package controller
 
 import (
@@ -11,6 +8,7 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -67,7 +65,7 @@ func (m *Manager) Run(ctx context.Context) {
 	for _, desc := range m.controllers {
 		logger := desc.logger
 		if logger == nil {
-			logger = m.logger.With("managed_type", desc.managedType.Kind)
+			logger = m.logger.With("managed_type", resource.ToGVK(desc.managedType))
 		}
 
 		runner := &controllerRunner{

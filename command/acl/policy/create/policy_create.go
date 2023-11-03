@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package policycreate
 
@@ -71,7 +71,7 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	if c.name == "" {
-		c.UI.Error(fmt.Sprintf("Missing required '-name' flag"))
+		c.UI.Error(fmt.Sprintf("Missing require '-name' flag"))
 		c.UI.Error(c.Help())
 		return 1
 	}

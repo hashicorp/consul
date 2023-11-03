@@ -1,0 +1,36 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+@import './skin';
+@import './layout';
+
+/* things that should look like nav buttons */
+%main-nav-horizontal > ul > li > a,
+%main-nav-horizontal > ul > li > span,
+%main-nav-horizontal > ul > li > button,
+%main-nav-horizontal-popover-menu-trigger,
+%main-nav-horizontal > ul > li > .popover-menu > label > button {
+  @extend %main-nav-horizontal-action;
+}
+%main-nav-horizontal .popover-menu [type='checkbox']:checked + label > *,
+%main-nav-horizontal > ul > li.is-active > a,
+%main-nav-horizontal > ul > li.is-active > button {
+  @extend %main-nav-horizontal-action-active;
+}
+/* Whilst we want spans to look the same as actions */
+/* we don't want them to act the same */
+%main-nav-horizontal-action:not(span):hover,
+%main-nav-horizontal-action:not(span):focus {
+  @extend %main-nav-horizontal-action-intent;
+}
+%main-nav-horizontal > ul > li > span {
+  cursor: default;
+}
+/**/
+
+/* menu-panels in the main navigation are treated slightly differently */
+%main-nav-horizontal .disclosure-menu button + * {
+  @extend %main-nav-horizontal-menu-panel;
+}

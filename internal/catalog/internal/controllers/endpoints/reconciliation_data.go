@@ -1,20 +1,16 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package endpoints
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type serviceData struct {
@@ -34,7 +30,7 @@ type workloadData struct {
 
 // getServiceData will read the service with the given ID and unmarshal the
 // Data field. The return value is a struct that contains the retrieved
-// resource as well as the unmarshalled form. If the resource doesn't
+// resource as well as the unmsashalled form. If the resource doesn't
 // exist, nil will be returned. Any other error either with retrieving
 // the resource or unmarshalling it will cause the error to be returned
 // to the caller
@@ -124,7 +120,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 	// workloads selected by name if they are also matched by a prefix.
 	for _, prefix := range sel.GetPrefixes() {
 		rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
-			Type:       pbcatalog.WorkloadType,
+			Type:       types.WorkloadType,
 			Tenancy:    svc.resource.Id.Tenancy,
 			NamePrefix: prefix,
 		})
@@ -150,7 +146,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 		}
 
 		workloadID := &pbresource.ID{
-			Type:    pbcatalog.WorkloadType,
+			Type:    types.WorkloadType,
 			Tenancy: svc.resource.Id.Tenancy,
 			Name:    name,
 		}
@@ -168,14 +164,6 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 
 		workloads = append(workloads, rsp.Resource)
 		workloadNames[rsp.Resource.Id.Name] = struct{}{}
-	}
-
-	if sel.GetFilter() != "" && len(workloads) > 0 {
-		var err error
-		workloads, err = resource.FilterResourcesByMetadata(workloads, sel.GetFilter())
-		if err != nil {
-			return nil, fmt.Errorf("error filtering results by metadata: %w", err)
-		}
 	}
 
 	// Sorting ensures deterministic output. This will help for testing but

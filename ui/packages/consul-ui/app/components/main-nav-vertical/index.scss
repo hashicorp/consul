@@ -1,0 +1,45 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+@import './skin';
+@import './layout';
+/* things that should look like nav buttons */
+
+/* items are single things that look like button */
+/* but aren't clickable */
+%main-nav-vertical > ul > li[aria-label] {
+  @extend %main-nav-vertical-item;
+}
+/**/
+/* actual clickable button-y things plus states */
+%main-nav-vertical a {
+  @extend %main-nav-vertical-action;
+}
+%main-nav-vertical > ul > li.is-active > a {
+  @extend %main-nav-vertical-action-active;
+}
+
+%main-nav-vertical-action-active:hover:not(:active),
+%main-nav-vertical-action-active:focus:not(:active) {
+  @extend %main-nav-vertical-action-active-intent;
+}
+
+%main-nav-vertical-action:hover,
+%main-nav-vertical-action:focus {
+  @extend %main-nav-vertical-action-intent;
+}
+
+%main-nav-vertical > ul > li > label {
+  @extend %main-nav-vertical-action;
+}
+/* menu-panels in the main navigation are treated slightly differently */
+%main-nav-vertical-popover-menu .disclosure-menu button + * {
+  @extend %main-nav-vertical-menu-panel;
+}
+/**/
+%main-nav-vertical-popover-menu .disclosure-menu > button {
+  @extend %main-nav-vertical-popover-menu-trigger;
+  @extend %internal-button;
+}

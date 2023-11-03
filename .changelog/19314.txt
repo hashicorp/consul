@@ -1,3 +1,0 @@
-```release-note:enhancement
-raft: upgrade raft-wal library version to 0.4.1.
-```

@@ -291,7 +291,7 @@ Use these links to navigate to a particular top-level stanza.
     - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret or Vault secret key that holds the gossip
       encryption key.
 
-    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for gossip-encryption-autogenerate-job pods. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for `gossip-encryption-autogenerate-job` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
@@ -369,7 +369,7 @@ Use these links to navigate to a particular top-level stanza.
       - `secretKey` ((#v-global-tls-cakey-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the CA key.
 
     - `annotations` ((#v-global-tls-annotations)) (`string: null`) - This value defines additional annotations for
-      tls init jobs. This should be formatted as a multi-line string.
+      tls init jobs. Format this value as a multi-line string.
 
       ```yaml
       annotations: |
@@ -466,7 +466,7 @@ Use these links to navigate to a particular top-level stanza.
       ```
 
     - `annotations` ((#v-global-acls-annotations)) (`string: null`) - This value defines additional annotations for
-      acl init jobs. This should be formatted as a multi-line string.
+      acl init jobs. Format this value as a multi-line string.
 
       ```yaml
       annotations: |
@@ -535,7 +535,7 @@ Use these links to navigate to a particular top-level stanza.
         -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
       ```
 
-    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the create-federation-secret-job pods. One of "trace", "debug", "info", "warn", or "error".
+    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the `create-federation-secret-job` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -641,21 +641,6 @@ Use these links to navigate to a particular top-level stanza.
     ]
     ```
 
-  - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
-    Supported feature flags:
-    * `resource-apis`:
-      _**Danger**_! This feature is under active development. It is not
-      recommended for production use. Setting this flag during an
-      upgrade could risk breaking your Consul cluster.
-      If this flag is set, Consul components will use the
-      V2 resources APIs for all operations.
-
-    Example:
-
-    ```yaml
-    experiments: [ "resource-apis" ]
-    ```
-
 ### server ((#h-server))
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
@@ -758,19 +743,6 @@ Use these links to navigate to a particular top-level stanza.
     ~> **Note:** The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers)
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
-
-  - `persistentVolumeClaimRetentionPolicy` ((#v-server-persistentvolumeclaimretentionpolicy)) (`map`) - The [Persistent Volume Claim (PVC) retention policy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
-    controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
-    WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted, 
-    and WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down.
-
-    Example:
-
-    ```yaml
-    persistentVolumeClaimRetentionPolicy:
-      whenDeleted: Retain
-      whenScaled: Retain
-    ```
 
   - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
@@ -1053,56 +1025,6 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
-    and configure a sink and filters for their audit logs. Please refer to
-    [audit logs](/consul/docs/enterprise/audit-logging) documentation
-    for further information.
-
-    - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
-      global.acls.manageSystemACLs must be enabled to use this feature.
-
-    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul 
-      will log auditing events.
-
-      Example:
-
-      ```yaml
-      sinks:
-        - name: My Sink
-          type: file
-          format: json
-          path: /tmp/audit.json
-          delivery_guarantee: best-effort
-          rotate_duration: 24h
-          rotate_max_files: 15
-          rotate_bytes: 25165824
-          
-      ```
-
-      The sink object supports the following keys:
-
-      - `name` - Name of the sink.
-
-      - `type` - Type specifies what kind of sink this is. Currently only file sinks are available
-
-      - `format` - Format specifies what format the events will be emitted with. Currently only `json`
-        events are emitted.
-
-      - `path` - The directory and filename to write audit events to.
-
-      - `delivery_guarantee` - Specifies the rules governing how audit events are written. Consul
-        only supports `best-effort` event delivery.
-
-      - `mode` - The permissions to set on the audit log files.
-
-      - `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
-         At least one of `rotate_duration` or `rotate_bytes` must be configured to enable audit logging.
-
-      - `rotate_bytes` -  Specifies how large an individual log file can grow before Consul rotates to a new file.
-         At least one of rotate_bytes or rotate_duration must be configured to enable audit logging.
-
-      - `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
-
   - `limits` ((#v-server-limits)) - Settings for potentially limiting timeouts, rate limiting on clients as well
     as servers, and other settings to limit exposure too many requests, requests
     waiting for too long, and other runtime considerations.
@@ -1133,6 +1055,56 @@ Use these links to navigate to a particular top-level stanza.
 
         See https://en.wikipedia.org/wiki/Token_bucket for more about token
         buckets.
+
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
+    and configure a sink and filters for their audit logs. Please refer to
+    [audit logs](/consul/docs/enterprise/audit-logging) documentation
+    for further information.
+
+    - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
+      global.acls.manageSystemACLs must be enabled to use this feature.
+
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
+      will log auditing events.
+
+      Example:
+
+      ```yaml
+      sinks:
+        - name: My Sink
+          type: file
+          format: json
+          path: /tmp/audit.json
+          delivery_guarantee: best-effort
+          rotate_duration: 24h
+          rotate_max_files: 15
+          rotate_bytes: 25165824
+
+      ```
+
+      The sink object supports the following keys:
+
+      - `name` - Name of the sink.
+
+      - `type` - Type specifies what kind of sink this is. Currently only file sinks are available
+
+      - `format` - Format specifies what format the events will be emitted with. Currently only `json`
+        events are emitted.
+
+      - `path` - The directory and filename to write audit events to.
+
+      - `delivery_guarantee` - Specifies the rules governing how audit events are written. Consul
+        only supports `best-effort` event delivery.
+
+      - `mode` - The permissions to set on the audit log files.
+
+      - `rotate_duration` - Specifies the interval by which the system rotates to a new log file.
+         At least one of `rotate_duration` or `rotate_bytes` must be configured to enable audit logging.
+
+      - `rotate_bytes` -  Specifies how large an individual log file can grow before Consul rotates to a new file.
+         At least one of rotate_bytes or rotate_duration must be configured to enable audit logging.
+
+      - `rotate_max_files` - Defines the limit that Consul should follow before it deletes old log files.
 
 ### externalServers ((#h-externalservers))
 
@@ -1840,7 +1812,7 @@ Use these links to navigate to a particular top-level stanza.
       - `openshiftSCCName` ((#v-connectinject-apigateway-managedgatewayclass-openshiftsccname)) (`string: restricted-v2`) - The name of the OpenShift SecurityContextConstraints resource to use for Gateways.
         Only applicable if `global.openshift.enabled` is true.
 
-      - `mapPrivilegedContainerPorts` ((#v-connectinject-apigateway-managedgatewayclass-mapprivilegedcontainerports)) (`integer: 0`) - This value defines the amount we will add to privileged container ports on gateways that use this class.
+      - `mapPrivilegedContainerPorts` ((#v-connectinject-apigateway-managedgatewayclass-mapprivilegedcontainerports)) (`integer: 0`) - This value defines the amount Consul will add to privileged container ports on gateways that use this class.
         This is useful if you don't want to give your containers extra permissions to run privileged ports.
         Example: The gateway listener is defined on port 80, but the underlying value of the port on the container
         will be the 80 + the number defined below.
@@ -2174,15 +2146,15 @@ Use these links to navigate to a particular top-level stanza.
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path`
 
-        - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
+      - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
 
-        - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
+      - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
 
-        - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
+      - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
 
-        - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
+      - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
 
-        - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
+      - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
@@ -2211,7 +2183,7 @@ Use these links to navigate to a particular top-level stanza.
     This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
-  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for mesh-gateway-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for `mesh-gateway-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
 
@@ -2376,7 +2348,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`.
 
-  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for ingress-gateways-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for `ingress-gateways-deployment` pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
@@ -2615,7 +2587,7 @@ Use these links to navigate to a particular top-level stanza.
 
 ### apiGateway ((#h-apigateway))
 
-- `apiGateway` ((#v-apigateway)) - [DEPRECATED] Use connectInject.apiGateway instead.
+- `apiGateway` ((#v-apigateway)) - [DEPRECATED] Use connectInject.apiGateway instead. This stanza will be removed with the release of Consul 1.17
   Configuration settings for the Consul API Gateway integration
 
   - `enabled` ((#v-apigateway-enabled)) (`boolean: false`) - When true the helm chart will install the Consul API Gateway controller

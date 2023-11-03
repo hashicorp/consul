@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package register
 
@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
@@ -76,7 +75,7 @@ func TestCommand_File(t *testing.T) {
 	ui := cli.NewMockUi()
 	c := New(ui)
 
-	contents := `{ "Service": { "Name": "web", "Locality": { "Region": "us-east-1", "Zone": "us-east-1a" } } }`
+	contents := `{ "Service": { "Name": "web" } }`
 	f := testFile(t, "json")
 	defer os.Remove(f.Name())
 	if _, err := f.WriteString(contents); err != nil {
@@ -94,11 +93,8 @@ func TestCommand_File(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, svcs, 1)
 
-	require.NotNil(t, svcs["web"])
-
-	svc, _, err := client.Agent().Service("web", nil)
-	require.NoError(t, err)
-	require.Equal(t, &api.Locality{Region: "us-east-1", Zone: "us-east-1a"}, svc.Locality)
+	svc := svcs["web"]
+	require.NotNil(t, svc)
 }
 
 func TestCommand_Flags(t *testing.T) {

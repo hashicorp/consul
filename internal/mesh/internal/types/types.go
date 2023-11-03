@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
@@ -7,18 +7,13 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 )
 
+const (
+	GroupName       = "mesh"
+	VersionV1Alpha1 = "v1alpha1"
+	CurrentVersion  = VersionV1Alpha1
+)
+
 func Register(r resource.Registry) {
 	RegisterProxyConfiguration(r)
-	RegisterComputedProxyConfiguration(r)
-	RegisterDestinations(r)
-	RegisterComputedExplicitDestinations(r)
-	RegisterProxyStateTemplate(r)
-	RegisterHTTPRoute(r)
-	RegisterTCPRoute(r)
-	RegisterGRPCRoute(r)
-	RegisterDestinationPolicy(r)
-	RegisterComputedRoutes(r)
-	RegisterMeshGateway(r)
-	// todo (v2): uncomment once we implement it.
-	//RegisterDestinationsConfiguration(r)
+	RegisterUpstreams(r)
 }

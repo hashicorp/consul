@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import { env } from 'consul-ui/env';
@@ -149,10 +149,7 @@ export default class FSMWithOptionalLocation {
     url = this.getURLFrom(url)
       .split('/')
       .filter((item, i) => {
-        // the max optional parameters we have is 3 (partition, namespace, peer). When we split the path
-        // by '/' it has a prefixed empty '' in the array. So we know we only have to check up to the 4th
-        // index for optional parameters.
-        if (i < 4) {
+        if (i < 3) {
           let found = false;
           Object.entries(OPTIONAL).reduce((prev, [key, re]) => {
             const res = re.exec(item);
@@ -257,10 +254,6 @@ export default class FSMWithOptionalLocation {
    * performs an ember transition/refresh and browser location update using that
    */
   transitionTo(url) {
-    if (typeof this.router === 'undefined') {
-      this.router = this.container.lookup('router:main');
-    }
-
     if (this.router.currentRouteName.startsWith('docs') && url.startsWith('console://')) {
       console.info(`location.transitionTo: ${url.substr(10)}`);
       return true;

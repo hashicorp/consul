@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package demo includes fake resource types for working on Consul's generic
 // state storage without having to refer to specific features.
@@ -22,20 +22,11 @@ import (
 )
 
 var (
-	// TypeV1Executive represents a a C-suite executive of the company.
-	// Used as a resource to test cluster scope.
-	TypeV1Executive = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Executive",
-	}
-
-	// TypeV1RecordLabel represents a record label which artists are signed to.
-	// Used as a resource to test partiion scope.
-	TypeV1RecordLabel = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "RecordLabel",
+	// TenancyDefault contains the default values for all tenancy units.
+	TenancyDefault = &pbresource.Tenancy{
+		Partition: "default",
+		PeerName:  "local",
+		Namespace: "default",
 	}
 
 	// TypeV1Artist represents a musician or group of musicians.
@@ -50,13 +41,6 @@ var (
 		Group:        "demo",
 		GroupVersion: "v1",
 		Kind:         "Album",
-	}
-
-	// TypeV1Concept represents an abstract concept that can be associated with any other resource.
-	TypeV1Concept = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Concept",
 	}
 
 	// TypeV2Artist represents a musician or group of musicians.
@@ -80,12 +64,6 @@ const (
 	ArtistV2ReadPolicy  = `key_prefix "resource/demo.v2.Artist/" { policy = "read" }`
 	ArtistV2WritePolicy = `key_prefix "resource/demo.v2.Artist/" { policy = "write" }`
 	ArtistV2ListPolicy  = `key_prefix "resource/" { policy = "list" }`
-
-	ExecutiveV1ReadPolicy  = `key_prefix "resource/demo.v1.Executive/" { policy = "read" }`
-	ExecutiveV1WritePolicy = `key_prefix "resource/demo.v1.Executive/" { policy = "write" }`
-
-	LabelV1ReadPolicy  = `key_prefix "resource/demo.v1.Label/" { policy = "read" }`
-	LabelV1WritePolicy = `key_prefix "resource/demo.v1.Label/" { policy = "write" }`
 )
 
 // RegisterTypes registers the demo types. Should only be called in tests and
@@ -94,25 +72,20 @@ const (
 // TODO(spatel): We're standing-in key ACLs for demo resources until our ACL
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
-	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
-		if resource.EqualType(TypeV1RecordLabel, id.Type) {
-			if res == nil {
-				return resource.ErrNeedResource
-			}
-		}
+	readACL := func(authz acl.Authorizer, id *pbresource.ID) error {
 		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
-		return authz.ToAllowAuthorizer().KeyReadAllowed(key, authzContext)
+		return authz.ToAllowAuthorizer().KeyReadAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	writeACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(res.Id.Type), res.Id.Name)
-		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, authzContext)
+	writeACL := func(authz acl.Authorizer, id *pbresource.ID) error {
+		key := fmt.Sprintf("resource/%s/%s", resource.ToGVK(id.Type), id.Name)
+		return authz.ToAllowAuthorizer().KeyWriteAllowed(key, &acl.AuthorizerContext{})
 	}
 
-	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *acl.AuthorizerContext) error {
-		return func(authz acl.Authorizer, authzContext *acl.AuthorizerContext) error {
+	makeListACL := func(typ *pbresource.Type) func(acl.Authorizer, *pbresource.Tenancy) error {
+		return func(authz acl.Authorizer, tenancy *pbresource.Tenancy) error {
 			key := fmt.Sprintf("resource/%s", resource.ToGVK(typ))
-			return authz.ToAllowAuthorizer().KeyListAllowed(key, authzContext)
+			return authz.ToAllowAuthorizer().KeyListAllowed(key, &acl.AuthorizerContext{})
 		}
 	}
 
@@ -152,31 +125,8 @@ func RegisterTypes(r resource.Registry) {
 	}
 
 	r.Register(resource.Registration{
-		Type:  TypeV1Executive,
-		Proto: &pbdemov1.Executive{},
-		Scope: resource.ScopeCluster,
-		ACLs: &resource.ACLHooks{
-			Read:  readACL,
-			Write: writeACL,
-			List:  makeListACL(TypeV1Executive),
-		},
-	})
-
-	r.Register(resource.Registration{
-		Type:  TypeV1RecordLabel,
-		Proto: &pbdemov1.RecordLabel{},
-		Scope: resource.ScopePartition,
-		ACLs: &resource.ACLHooks{
-			Read:  readACL,
-			Write: writeACL,
-			List:  makeListACL(TypeV1RecordLabel),
-		},
-	})
-
-	r.Register(resource.Registration{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -188,7 +138,6 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -197,20 +146,8 @@ func RegisterTypes(r resource.Registry) {
 	})
 
 	r.Register(resource.Registration{
-		Type:  TypeV1Concept,
-		Proto: &pbdemov1.Concept{},
-		Scope: resource.ScopeNamespace,
-		ACLs: &resource.ACLHooks{
-			Read:  readACL,
-			Write: writeACL,
-			List:  makeListACL(TypeV1Concept),
-		},
-	})
-
-	r.Register(resource.Registration{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
@@ -223,68 +160,12 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
-		Scope: resource.ScopeNamespace,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
 			List:  makeListACL(TypeV2Album),
 		},
 	})
-}
-
-// GenerateV1Executive generates a named Executive resource.
-func GenerateV1Executive(name, position string) (*pbresource.Resource, error) {
-	data, err := anypb.New(&pbdemov1.Executive{Position: position})
-	if err != nil {
-		return nil, err
-	}
-
-	return &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    TypeV1Executive,
-			Tenancy: resource.DefaultClusteredTenancy(),
-			Name:    name,
-		},
-		Data: data,
-		Metadata: map[string]string{
-			"generated_at": time.Now().Format(time.RFC3339),
-		},
-	}, nil
-}
-
-// GenerateV1RecordLabel generates a named RecordLabel resource.
-func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
-	data, err := anypb.New(&pbdemov1.RecordLabel{Name: name})
-	if err != nil {
-		return nil, err
-	}
-
-	return &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    TypeV1RecordLabel,
-			Tenancy: resource.DefaultPartitionedTenancy(),
-			Name:    name,
-		},
-		Data: data,
-		Metadata: map[string]string{
-			"generated_at": time.Now().Format(time.RFC3339),
-		},
-	}, nil
-}
-
-// GenerateV1Concept generates a named concept resource.
-func GenerateV1Concept(name string) (*pbresource.Resource, error) {
-	return &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    TypeV1Concept,
-			Tenancy: resource.DefaultPartitionedTenancy(),
-			Name:    name,
-		},
-		Data: nil,
-		Metadata: map[string]string{
-			"generated_at": time.Now().Format(time.RFC3339),
-		},
-	}, nil
 }
 
 // GenerateV2Artist generates a random Artist resource.
@@ -310,7 +191,7 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Artist,
-			Tenancy: resource.DefaultNamespacedTenancy(),
+			Tenancy: TenancyDefault,
 			Name:    fmt.Sprintf("%s-%s", strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Data: data,
@@ -353,8 +234,8 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    TypeV2Album,
-			Tenancy: clone(artistID.Tenancy),
-			Name:    fmt.Sprintf("%s-%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
+			Tenancy: artistID.Tenancy,
+			Name:    fmt.Sprintf("%s/%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},
 		Owner: artistID,
 		Data:  data,

@@ -1,0 +1,48 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+%main-nav-horizontal > ul,
+%main-nav-horizontal-panel {
+  display: flex;
+}
+%main-nav-horizontal-toggle-button {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 1rem;
+  padding-left: 5px;
+}
+%main-nav-horizontal-panel {
+  justify-content: space-between;
+  flex-grow: 1;
+}
+%main-nav-horizontal-menu-panel {
+  z-index: 400;
+  /* TODO: We should probably make menu-panel default to left hand side*/
+  top: 28px !important;
+}
+%main-nav-horizontal-action {
+  display: block;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+%main-nav-horizontal .popover-menu > label {
+  /* Usually there is no space between buttons which is */
+  /* fine as the button only highlights when its selected */
+  /* therefore no two siblings are highlighted at the same time */
+  /* which means you don't notice there is no space between the */
+  /* buttons. popover-menu triggers on the other hand can be */
+  /* at the same time as a sibling, therefore they need a little */
+  /* space between it and its sibling - this is a property of */
+  /* the main nav not the popover-menu */
+  padding-right: 5px;
+}
+%main-nav-horizontal .popover-menu > label > * {
+  /* less space as the chevron adds space */
+  padding-right: 4px !important;
+}
+%main-nav-horizontal .popover-menu > label > button::after {
+  top: 2px;
+}

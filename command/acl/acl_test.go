@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package acl
 
@@ -46,6 +46,36 @@ func Test_GetPolicyIDByName_Builtins(t *testing.T) {
 			require.Equal(t, policy.ID, id)
 		})
 	}
+}
+
+func Test_GetPolicyIDByName_NotFound(t *testing.T) {
+	t.Parallel()
+
+	a := agent.StartTestAgent(t,
+		agent.TestAgent{
+			LogOutput: io.Discard,
+			HCL: `
+				primary_datacenter = "dc1"
+				acl {
+					enabled = true
+					tokens {
+						initial_management = "root"
+					}
+				}
+			`,
+		},
+	)
+
+	defer a.Shutdown()
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1", testrpc.WithToken("root"))
+
+	client := a.Client()
+	client.AddHeader("X-Consul-Token", "root")
+
+	id, err := GetPolicyIDByName(client, "not_found")
+	require.Error(t, err)
+	require.Equal(t, "", id)
+
 }
 
 func Test_GetPolicyIDFromPartial_Builtins(t *testing.T) {
