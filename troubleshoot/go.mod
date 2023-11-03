@@ -6,8 +6,6 @@ replace github.com/hashicorp/consul/api => ../api
 
 replace github.com/hashicorp/consul/envoyextensions => ../envoyextensions
 
-replace github.com/hashicorp/consul/proto-public => ../proto-public
-
 exclude (
 	github.com/hashicorp/go-msgpack v1.1.5 // has breaking changes and must be avoided
 	github.com/hashicorp/go-msgpack v1.1.6 // contains retractions but same as v1.1.5
@@ -16,8 +14,8 @@ exclude (
 require (
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
-	github.com/hashicorp/consul/api v1.24.0
-	github.com/hashicorp/consul/envoyextensions v0.4.1
+	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/envoyextensions v0.5.1
 	github.com/stretchr/testify v1.8.3
 	google.golang.org/protobuf v1.30.0
 )
