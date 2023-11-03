@@ -198,24 +198,6 @@ func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.Se
 	})
 }
 
-func (a *Asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, upstream *topology.Upstream) {
-	t.Helper()
-	node := svc.Node
-	ip := node.LocalAddress()
-	port := svc.EnvoyAdminPort
-	addr := fmt.Sprintf("%s:%d", ip, port)
-
-	client := a.mustGetHTTPClient(t, node.Cluster)
-	libassert.AssertUpstreamEndpointStatusWithClient(t,
-		client,
-		addr,
-		// TODO: what is default? namespace? partition?
-		fmt.Sprintf("%s.default.%s.external", upstream.ID.Name, upstream.Peer),
-		"HEALTHY",
-		1,
-	)
-}
-
 type testingT interface {
 	require.TestingT
 	Helper()
@@ -234,10 +216,21 @@ func (a *Asserter) fortioFetch2Upstream(
 ) (body []byte, res *http.Response) {
 	t.Helper()
 
-	// TODO: fortioSvc.ID.Normalize()? or should that be up to the caller?
+	var actualURL string
+	if upstream.Implied {
+		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
+			upstream.ID.Name,
+			upstream.ID.Namespace,
+			upstream.ID.Partition,
+			upstream.VirtualPort,
+			path,
+		)
+	} else {
+		actualURL = fmt.Sprintf("http://localhost:%d/%s", upstream.LocalPort, path)
+	}
 
 	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", addr,
-		url.QueryEscape(fmt.Sprintf("http://localhost:%d/%s", upstream.LocalPort, path)),
+		url.QueryEscape(actualURL),
 	)
 
 	req, err := http.NewRequest(http.MethodPost, url, nil)
@@ -246,6 +239,7 @@ func (a *Asserter) fortioFetch2Upstream(
 	res, err = client.Do(req)
 	require.NoError(t, err)
 	defer res.Body.Close()
+
 	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
 	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
 	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
@@ -281,7 +275,13 @@ func (a *Asserter) FortioFetch2HeaderEcho(t *testing.T, fortioSvc *topology.Serv
 // similar to libassert.AssertFortioName,
 // uses the /fortio/fetch2 endpoint to hit the debug endpoint on the upstream,
 // and assert that the FORTIO_NAME == name
-func (a *Asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Service, upstream *topology.Upstream, clusterName string, sid topology.ServiceID) {
+func (a *Asserter) FortioFetch2FortioName(
+	t *testing.T,
+	fortioSvc *topology.Service,
+	upstream *topology.Upstream,
+	clusterName string,
+	sid topology.ServiceID,
+) {
 	t.Helper()
 
 	var (
@@ -295,6 +295,7 @@ func (a *Asserter) FortioFetch2FortioName(t *testing.T, fortioSvc *topology.Serv
 
 	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		body, res := a.fortioFetch2Upstream(r, client, addr, upstream, path)
+
 		require.Equal(r, http.StatusOK, res.StatusCode)
 
 		// TODO: not sure we should retry these?
