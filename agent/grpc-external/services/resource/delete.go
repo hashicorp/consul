@@ -28,7 +28,7 @@ import (
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	reg, err := s.validateDeleteRequest(req)
+	reg, err := s.ensureDeleteRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +171,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	}
 }
 
-func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource.Registration, error) {
+func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
