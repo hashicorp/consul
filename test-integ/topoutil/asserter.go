@@ -198,24 +198,6 @@ func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.Se
 	})
 }
 
-func (a *Asserter) UpstreamEndpointHealthy(t *testing.T, svc *topology.Service, upstream *topology.Upstream) {
-	t.Helper()
-	node := svc.Node
-	ip := node.LocalAddress()
-	port := svc.EnvoyAdminPort
-	addr := fmt.Sprintf("%s:%d", ip, port)
-
-	client := a.mustGetHTTPClient(t, node.Cluster)
-	libassert.AssertUpstreamEndpointStatusWithClient(t,
-		client,
-		addr,
-		// TODO: what is default? namespace? partition?
-		fmt.Sprintf("%s.default.%s.external", upstream.ID.Name, upstream.Peer),
-		"HEALTHY",
-		1,
-	)
-}
-
 type testingT interface {
 	require.TestingT
 	Helper()

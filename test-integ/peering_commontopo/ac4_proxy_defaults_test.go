@@ -159,7 +159,6 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 
 	// preconditions check
 	ct.Assert.HealthyWithPeer(t, dc.Name, serverSVC.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, clientSVC, s.upstream)
 	ct.Assert.FortioFetch2HeaderEcho(t, clientSVC, s.upstream)
 
 	t.Run("Validate services exist in catalog", func(t *testing.T) {

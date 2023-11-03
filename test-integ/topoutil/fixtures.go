@@ -96,6 +96,10 @@ func NewTopologyMeshGatewaySet(
 	mutateFn func(i int, node *topology.Node),
 ) []*topology.Node {
 	var out []*topology.Node
+	sid := topology.ServiceID{
+		Name:      "mesh-gateway",
+		Partition: ConfigEntryPartition(partition),
+	}
 	for i := 1; i <= num; i++ {
 		name := namePrefix + strconv.Itoa(i)
 
@@ -104,7 +108,7 @@ func NewTopologyMeshGatewaySet(
 			Partition: partition,
 			Name:      name,
 			Services: []*topology.Service{{
-				ID:             topology.ServiceID{Name: "mesh-gateway"},
+				ID:             sid,
 				Port:           8443,
 				EnvoyAdminPort: 19000,
 				IsMeshGateway:  true,
@@ -121,4 +125,13 @@ func NewTopologyMeshGatewaySet(
 		out = append(out, node)
 	}
 	return out
+}
+
+// Since CE config entries do not contain the partition field,
+// this func converts default partition to empty string.
+func ConfigEntryPartition(p string) string {
+	if p == "default" {
+		return "" // make this CE friendly
+	}
+	return p
 }
