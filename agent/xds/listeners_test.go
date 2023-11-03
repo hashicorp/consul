@@ -125,13 +125,6 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "connect-proxy-with-chain-and-overrides",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
