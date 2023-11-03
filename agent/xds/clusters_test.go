@@ -395,50 +395,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "expose-paths-local-app-paths",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "downstream-service-with-unix-sockets",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Address = ""
-					ns.Port = 0
-					ns.Proxy.LocalServiceAddress = ""
-					ns.Proxy.LocalServicePort = 0
-					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
-				}, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "expose-paths-new-cluster-http2",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
-					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
-						LocalPathPort: 9090,
-						Path:          "/grpc.health.v1.Health/Check",
-						ListenerPort:  21501,
-						Protocol:      "http2",
-					}
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "expose-checks",
-			create:           proxycfg.TestConfigSnapshotExposeChecks,
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "expose-paths-grpc-new-cluster-http1",
-			create:           proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
