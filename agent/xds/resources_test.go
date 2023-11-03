@@ -274,6 +274,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	}
 	tests = append(tests, getConnectProxyDiscoChainTests(false)...)
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
+	tests = append(tests, getMeshGatewayGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
@@ -570,6 +571,162 @@ func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 				)
 			},
 			alsoRunTestForV2: true,
+		},
+	}
+}
+
+func getMeshGatewayGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "mesh-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-using-federation-states",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-using-federation-control-plane",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-newer-information-in-federation-states",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "newer-info-in-federation-states", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-older-information-in-federation-states",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "older-info-in-federation-states", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-no-services",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "no-services", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-service-subsets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-subsets", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-service-subsets2", // TODO: make this merge with 'service-subsets'
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-subsets2", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-default-service-subset",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default-service-subsets2", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-ignore-extra-resolvers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "ignore-extra-resolvers", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-service-timeouts",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "service-timeouts", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-non-hash-lb-injected",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "non-hash-lb-injected", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-hash-lb-ignored",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "hash-lb-ignored", nil, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-tcp-keepalives",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_gateway_remote_tcp_enable_keepalive"] = true
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_time"] = 120
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_interval"] = 60
+					ns.Proxy.Config["envoy_gateway_remote_tcp_keepalive_probes"] = 7
+				}, nil)
+			},
+			// TODO(proxystate): mesh gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "mesh-gateway-tagged-addresses",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_mesh_gateway_no_default_bind":       true,
+						"envoy_mesh_gateway_bind_tagged_addresses": true,
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "mesh-gateway-custom-addresses",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{
+						"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
+							"foo": {
+								Address: "198.17.2.3",
+								Port:    8080,
+							},
+							"bar": {
+								Address: "2001:db8::ff",
+								Port:    9999,
+							},
+							"baz": {
+								Address: "127.0.0.1",
+								Port:    8765,
+							},
+						},
+					}
+				}, nil)
+			},
 		},
 	}
 }
