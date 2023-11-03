@@ -82,7 +82,9 @@ $ consul resource delete -f=trafficpermissions.hcl
 
 `consul resource list` outputs information about resources according to the type of resource and the location where the resource is applied. 
 
-This command must be issued with a resource type. All resource definitions include a `type` configuration block that contains a `group`, `groupVersion`, and `kind`. By formatting the `type` on the command line as `group.groupVersion.kind`, you can return all resources with a matching `type` in the configuration.
+This command must be issued with a resource type. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can list information about services with `catalog.v2beta1.Service` and TCP routes with `mesh.v2beta1.TCPRoute`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information.
+
+Do not include a resource name when listing resources.
 
 The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `list` command:
 
@@ -304,6 +306,8 @@ $ consul resource list catalog.v2beta1.Service
 
 `consul resource read` outputs information about resources according to the type and name of the resource.
 
+This command must be issued with a resource type and a resource name. By formatting the type on the command line as `group.groupVersion.kind`, you can return all matching resources. For example, you can read information about services with `catalog.v2beta1.Service`, TCP routes with `mesh.v2beta1.TCPRoute`, and traffic permissions with `auth.v2beta1.TrafficPermissions`. Refer to [v2 catalog](/consul/docs/architecture/catalog/v2#catalog-structure) for more information. 
+
 The following table shows the required [ACL permissions](/consul/api-docs/api-structure#authentication) to run the `read` command:
 
 | ACL Required |
@@ -316,10 +320,11 @@ The following table shows the required [ACL permissions](/consul/api-docs/api-st
 - `-namespace=<string>` - The namespace where the resource applies.
 - `-peer=<string>` - The clusters with established cluster peering connections where the resource applies.
 - `-stale` - Permits any Consul server to respond to the request. This flag enables for lower latency and higher throughput, but may result in stale data. This option has no effect on non-read operations.
+- `-token` - A Consul ACL token to include with the request.
 
 #### Example usage
 
-In the following example, the output for reading the resource for the `web` service includes information such as ports, virtual IPs, and workload identity.
+The following example demonstrates a command to read the `web` service and includes an example output that includes information such as ports, virtual IPs, and status.
 
 ```shell-session hideClipboard
 $ consul resource read catalog.v2beta1.Service web

@@ -36,7 +36,7 @@ Consul v1.17 introduces a new version of the catalog API designed to bridge diff
 
 Traffic permissions are part of the `auth` group, and the [`TrafficPermissions` CRD](/consul/docs/k8s/multiport/reference/trafficpermissions) configures permissions according to an `identityName` that corresponds to the other resource in the `auth` group, workload identity.
 
-The [`HTTPRoute`](/consul/docs/k8s/multiport/reference/httproute), [`GRPCRoute`](/consul/docs/k8s/multiport/reference/grpcroute), and [`TCPRoute`](/consul/docs/k8s/multiport/reference/tcproute) CRDS include `type` blocks that use a `group.groupVersion.kind` syntax to reference Consul services. Because a service is part of the `catalog` group, their reference types are formatted as `catalog.v2beta1.Service`.
+The [`HTTPRoute`](/consul/docs/k8s/multiport/reference/httproute), [`GRPCRoute`](/consul/docs/k8s/multiport/reference/grpcroute), and [`TCPRoute`](/consul/docs/k8s/multiport/reference/tcproute) CRDS are part of the `mesh` group, but they include `type` blocks that use a `group.groupVersion.kind` syntax to reference Consul services. Because a service is part of the `catalog` group, these CRDs refer to services using `catalog.v2beta1.Service`.
 
 The following table describes resources in the v2 catalog, including their `group`, how they compare to the v1 catalog and Kubernetes resources, and whether they are created by Kubernetes or computed by Consul when it registers a service.
 
