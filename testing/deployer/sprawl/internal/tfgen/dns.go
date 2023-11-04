@@ -8,7 +8,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
+
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
@@ -63,17 +66,36 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 			}
 		}
 
+		// Until Consul DNS understands v2, simulate it.
+		//
+		// NOTE: this DNS is not quite what consul normally does. It's simpler
+		// to simulate this format here.
+		virtualNames := make(map[string][]string)
+		for id, svcData := range cluster.Services {
+			if len(svcData.VirtualIps) == 0 {
+				continue
+			}
+			vips := svcData.VirtualIps
+
+			// <service>--<namespace>--<partition>.virtual.<domain>
+			name := fmt.Sprintf("%s--%s--%s", id.Name, id.Namespace, id.Partition)
+			virtualNames[name] = vips
+		}
+
 		var (
 			clusterDNSName = cluster.Name + "-consulcluster.lan"
-		)
+			virtualDNSName = "virtual.consul"
 
-		corefilePath := filepath.Join(rootdir, "Corefile")
-		zonefilePath := filepath.Join(rootdir, "servers")
+			corefilePath        = filepath.Join(rootdir, "Corefile")
+			zonefilePath        = filepath.Join(rootdir, "servers")
+			virtualZonefilePath = filepath.Join(rootdir, "virtual")
+		)
 
 		_, err := UpdateFileIfDifferent(
 			g.logger,
 			generateCoreDNSConfigFile(
 				clusterDNSName,
+				virtualDNSName,
 				addrs,
 			),
 			corefilePath,
@@ -105,7 +127,25 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 			return false, nil, fmt.Errorf("error hashing %q: %w", zonefilePath, err)
 		}
 
-		return true, []string{corefileHash, zonefileHash}, nil
+		_, err = UpdateFileIfDifferent(
+			g.logger,
+			generateCoreDNSVirtualZoneFile(
+				dnsIPAddress,
+				virtualDNSName,
+				virtualNames,
+			),
+			virtualZonefilePath,
+			0644,
+		)
+		if err != nil {
+			return false, nil, fmt.Errorf("error writing %q: %w", virtualZonefilePath, err)
+		}
+		virtualZonefileHash, err := util.HashFile(virtualZonefilePath)
+		if err != nil {
+			return false, nil, fmt.Errorf("error hashing %q: %w", virtualZonefilePath, err)
+		}
+
+		return true, []string{corefileHash, zonefileHash, virtualZonefileHash}, nil
 	}
 
 	return false, nil, nil
@@ -113,6 +153,7 @@ func (g *Generator) writeCoreDNSFiles(net *topology.Network, dnsIPAddress string
 
 func generateCoreDNSConfigFile(
 	clusterDNSName string,
+	virtualDNSName string,
 	addrs []string,
 ) []byte {
 	serverPart := ""
@@ -139,7 +180,14 @@ consul:53 {
   whoami
 }
 
-%[2]s
+%[2]s:53 {
+  file /config/virtual %[2]s
+  log
+  errors
+  whoami
+}
+
+%[3]s
 
 .:53 {
   forward . 8.8.8.8:53
@@ -147,7 +195,7 @@ consul:53 {
   errors
   whoami
 }
-`, clusterDNSName, serverPart))
+`, clusterDNSName, virtualDNSName, serverPart))
 }
 
 func generateCoreDNSZoneFile(
@@ -174,6 +222,41 @@ ns IN A  %[2]s     ; self
 		buf.WriteString(fmt.Sprintf(`
 server IN A %s ; Consul server
 `, addr))
+	}
+
+	return buf.Bytes()
+}
+
+func generateCoreDNSVirtualZoneFile(
+	dnsIPAddress string,
+	virtualDNSName string,
+	nameToAddr map[string][]string,
+) []byte {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf(`
+$TTL 60
+$ORIGIN %[1]s.
+@                   IN	SOA ns.%[1]s. webmaster.%[1]s. (
+          2017042745 ; serial
+          7200       ; refresh (2 hours)				
+          3600       ; retry (1 hour)			
+          1209600    ; expire (2 weeks)				
+          3600       ; minimum (1 hour)				
+          )
+@  IN NS ns.%[1]s. ; Name server
+ns IN A  %[2]s     ; self
+`, virtualDNSName, dnsIPAddress))
+
+	names := maps.Keys(nameToAddr)
+	sort.Strings(names)
+
+	for _, name := range names {
+		vips := nameToAddr[name]
+		for _, vip := range vips {
+			buf.WriteString(fmt.Sprintf(`
+%s IN A %s ; Consul server
+`, name, vip))
+		}
 	}
 
 	return buf.Bytes()

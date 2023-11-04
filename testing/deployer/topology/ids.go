@@ -69,6 +69,7 @@ func (id NodeID) String() string {
 func (id NodeID) ACLString() string {
 	return fmt.Sprintf("%s--%s", id.Partition, id.Name)
 }
+
 func (id NodeID) TFString() string {
 	return id.ACLString()
 }
@@ -111,8 +112,17 @@ func (id ServiceID) String() string {
 func (id ServiceID) ACLString() string {
 	return fmt.Sprintf("%s--%s--%s", id.Partition, id.Namespace, id.Name)
 }
+
 func (id ServiceID) TFString() string {
 	return id.ACLString()
+}
+
+func (id ServiceID) PartitionOrDefault() string {
+	return PartitionOrDefault(id.Partition)
+}
+
+func (id ServiceID) NamespaceOrDefault() string {
+	return NamespaceOrDefault(id.Namespace)
 }
 
 func PartitionOrDefault(name string) string {
@@ -121,6 +131,7 @@ func PartitionOrDefault(name string) string {
 	}
 	return name
 }
+
 func NamespaceOrDefault(name string) string {
 	if name == "" {
 		return "default"

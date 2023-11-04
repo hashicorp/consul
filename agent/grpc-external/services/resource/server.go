@@ -242,6 +242,36 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 	return nil
 }
 
+func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy) error {
+	if scope == resource.ScopePartition && tenancy.Namespace != "" {
+		return status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(resourceType),
+			tenancy.Namespace,
+		)
+	}
+	if scope == resource.ScopeCluster {
+		if tenancy.Partition != "" {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Partition,
+			)
+		}
+		if tenancy.Namespace != "" {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Namespace,
+			)
+		}
+	}
+	return nil
+}
+
 // tenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
 func tenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) error {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {

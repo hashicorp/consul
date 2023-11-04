@@ -32,9 +32,11 @@ const (
 func (s *Sprawl) launch() error {
 	return s.launchType(true)
 }
+
 func (s *Sprawl) relaunch() error {
 	return s.launchType(false)
 }
+
 func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 	if err := build.DockerImages(s.logger, s.runner, s.topology); err != nil {
 		return fmt.Errorf("build.DockerImages: %w", err)
@@ -180,6 +182,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress)
 			}
 		}
 	}
@@ -234,6 +237,14 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("error creating final client for cluster=%s: %v", cluster.Name, err)
 		}
 
+		// Connect to gRPC as well.
+		if cluster.EnableV2 {
+			s.grpcConns[cluster.Name], s.grpcConnCancel[cluster.Name], err = s.dialServerGRPC(cluster, node, mgmtToken)
+			if err != nil {
+				return fmt.Errorf("error creating gRPC client conn for cluster=%s: %w", cluster.Name, err)
+			}
+		}
+
 		// For some reason the grpc resolver stuff for partitions takes some
 		// time to get ready.
 		s.waitForLocalWrites(cluster, mgmtToken)
@@ -247,6 +258,10 @@ func (s *Sprawl) initConsulServers() error {
 
 		if err := s.populateInitialConfigEntries(cluster); err != nil {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
+		}
+
+		if err := s.populateInitialResources(cluster); err != nil {
+			return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
 		}
 
 		if err := s.createAnonymousToken(cluster); err != nil {
@@ -456,6 +471,9 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 }
 
 func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
+	if cluster.EnableV2 {
+		return nil // v1 catalog is disabled when v2 catalog is enabled
+	}
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
@@ -504,7 +522,7 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 			logger.Debug("all nodes have posted node updates, so first anti-entropy has happened", "elapsed", dur)
 			return nil
 		}
-		logger.Debug("not all client nodes have posted node updates yet", "nodes", stragglers)
+		logger.Debug("not all nodes have posted node updates yet", "nodes", stragglers)
 
 		time.Sleep(1 * time.Second)
 	}
@@ -514,10 +532,10 @@ func newGossipKey() (string, error) {
 	key := make([]byte, 16)
 	n, err := rand.Reader.Read(key)
 	if err != nil {
-		return "", fmt.Errorf("Error reading random data: %s", err)
+		return "", fmt.Errorf("error reading random data: %s", err)
 	}
 	if n != 16 {
-		return "", fmt.Errorf("Couldn't read enough entropy. Generate more entropy!")
+		return "", fmt.Errorf("couldn't read enough entropy. Generate more entropy")
 	}
 	return base64.StdEncoding.EncodeToString(key), nil
 }
