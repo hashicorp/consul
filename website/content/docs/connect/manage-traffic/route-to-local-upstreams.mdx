@@ -103,17 +103,3 @@ You can configure the default routing behavior for all proxies in the mesh as we
    ```shell-session
    $ consul config write web-resolver.hcl
    ```
-
-## Start the proxies in your datacenter
-
-Envoy requires a bootstrap configuration file before it can start. Use the [`consul connect envoy` command](/consul/commands/connect/envoy) to create the Envoy bootstrap configuration and start the sidecar proxy service. Specify the ID of the sidecar proxy you want to start with the `-sidecar-for` option.  
-
-The following example command starts an Envoy proxy for the `web` proxy service:
-
-```shell-session
-$ consul connect envoy -sidecar-for=web
-```
-
-For details about operating an Envoy proxy in Consul, refer to the [Envoy proxy reference](/consul/docs/connect/proxies/envoy). 
-
-Use the `/agent/service/register` API endpoint to register sidecars independently from their application services. You must include the `locality` configuration in the payload. Refer to [Register Service](/consul/api-docs/agent/service#register-service) in the API documentation for additional information.
