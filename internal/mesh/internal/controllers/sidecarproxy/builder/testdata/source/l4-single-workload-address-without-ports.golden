@@ -5,7 +5,8 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "local_app:port1"
+        "name": "local_app:port1",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "endpoints": {
@@ -26,6 +27,11 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [

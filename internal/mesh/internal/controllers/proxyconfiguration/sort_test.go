@@ -99,7 +99,8 @@ func TestSortProxyConfigurations(t *testing.T) {
 			var decProxyCfgs []*types.DecodedProxyConfiguration
 			for i, ws := range c.selectors {
 				proxyCfg := &pbmesh.ProxyConfiguration{
-					Workloads: ws,
+					Workloads:     ws,
+					DynamicConfig: &pbmesh.DynamicConfig{},
 				}
 				resName := fmt.Sprintf("cfg-%d", i)
 				proxyCfgRes := resourcetest.Resource(pbmesh.ProxyConfigurationType, resName).

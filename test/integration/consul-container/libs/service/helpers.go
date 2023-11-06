@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 
-	"github.com/hashicorp/consul/api"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -49,6 +49,7 @@ type ServiceOpts struct {
 	Namespace    string
 	Partition    string
 	Locality     *api.Locality
+	Upstreams    []api.Upstream
 }
 
 // createAndRegisterStaticServerAndSidecar register the services and launch static-server containers
@@ -321,6 +322,9 @@ func CreateAndRegisterStaticClientSidecar(
 		}
 		if serviceOpts.Connect.Port != 0 {
 			req.Connect.SidecarService.Port = serviceOpts.Connect.Port
+		}
+		if len(serviceOpts.Upstreams) > 0 {
+			req.Connect.SidecarService.Proxy.Upstreams = serviceOpts.Upstreams
 		}
 		req.Meta = serviceOpts.Meta
 		req.Namespace = serviceOpts.Namespace

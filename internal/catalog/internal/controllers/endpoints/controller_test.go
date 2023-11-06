@@ -388,6 +388,50 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 	}
 }
 
+func TestWorkloadIdentityStatusFromEndpoints(t *testing.T) {
+	cases := map[string]struct {
+		endpoints *pbcatalog.ServiceEndpoints
+		expStatus *pbresource.Condition
+	}{
+		"endpoints are nil": {
+			expStatus: ConditionIdentitiesNotFound,
+		},
+		"endpoints without identities": {
+			endpoints: &pbcatalog.ServiceEndpoints{},
+			expStatus: ConditionIdentitiesNotFound,
+		},
+		"endpoints with identities": {
+			endpoints: &pbcatalog.ServiceEndpoints{
+				Endpoints: []*pbcatalog.Endpoint{
+					{
+						Identity: "foo",
+					},
+				},
+			},
+			expStatus: ConditionIdentitiesFound([]string{"foo"}),
+		},
+		"endpoints with multiple identities": {
+			endpoints: &pbcatalog.ServiceEndpoints{
+				Endpoints: []*pbcatalog.Endpoint{
+					{
+						Identity: "foo",
+					},
+					{
+						Identity: "bar",
+					},
+				},
+			},
+			expStatus: ConditionIdentitiesFound([]string{"bar", "foo"}),
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			prototest.AssertDeepEqual(t, c.expStatus, workloadIdentityStatusFromEndpoints(c.endpoints))
+		})
+	}
+}
+
 type controllerSuite struct {
 	suite.Suite
 
@@ -646,6 +690,7 @@ func (suite *controllerSuite) TestController() {
 	res := suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
 	// Check that the services status was updated accordingly
 	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionManaged)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionIdentitiesNotFound)
 
 	// Check that the endpoints resource exists and contains 0 endpoints
 	endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "api").ID()
@@ -664,6 +709,9 @@ func (suite *controllerSuite) TestController() {
 			Identity: "api",
 		}).
 		Write(suite.T(), suite.client)
+
+	suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey,
+		ConditionIdentitiesFound([]string{"api"}))
 
 	// Wait for the endpoints to be regenerated
 	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
@@ -711,6 +759,34 @@ func (suite *controllerSuite) TestController() {
 		},
 		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
 		Identity:     "api",
+	})
+
+	// Update workload identity and check that the status on the service is updated
+	workload = rtest.Resource(pbcatalog.WorkloadType, "api-1").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+			},
+			Identity: "endpoints-api-identity",
+		}).
+		Write(suite.T(), suite.client)
+
+	suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey, ConditionIdentitiesFound([]string{"endpoints-api-identity"}))
+
+	// Verify that the generated endpoints now contain the workload
+	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
+	suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
+		TargetRef: workload.Id,
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{Host: "127.0.0.1", Ports: []string{"http"}},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+		},
+		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+		Identity:     "endpoints-api-identity",
 	})
 
 	// rewrite the service to add more selection criteria. This should trigger

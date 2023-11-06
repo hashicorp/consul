@@ -6,6 +6,9 @@ package builder
 import (
 	"fmt"
 
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
@@ -27,16 +30,22 @@ func (b *Builder) BuildLocalApp(workload *pbcatalog.Workload, ctp *pbauth.Comput
 	foundInboundNonMeshPorts := false
 	for portName, port := range workload.Ports {
 		clusterName := fmt.Sprintf("%s:%s", xdscommon.LocalAppClusterName, portName)
+		routeName := fmt.Sprintf("%s:%s", lb.listener.Name, portName)
 
 		if port.Protocol != pbcatalog.Protocol_PROTOCOL_MESH {
 			foundInboundNonMeshPorts = true
-			lb.addInboundRouter(clusterName, port, portName, trafficPermissions[portName]).
+			lb.addInboundRouter(clusterName, routeName, port, portName, trafficPermissions[portName], b.proxyCfg.GetDynamicConfig().GetInboundConnections()).
 				addInboundTLS()
 
-			b.addLocalAppCluster(clusterName).
-				addLocalAppStaticEndpoints(clusterName, port)
+			if isL7(port.Protocol) {
+				b.addLocalAppRoute(routeName, clusterName, portName)
+			}
+			b.addLocalAppCluster(clusterName, &portName, pbproxystate.Protocol(port.Protocol)).
+				addLocalAppStaticEndpoints(clusterName, port.GetPort())
 		}
 	}
+
+	b.buildExposePaths(workload)
 
 	// If there are no inbound ports other than the mesh port, we black-hole all inbound traffic.
 	if !foundInboundNonMeshPorts {
@@ -258,15 +267,21 @@ func (b *Builder) addInboundListener(name string, workload *pbcatalog.Workload) 
 	// Add TLS inspection capability to be able to parse ALPN and/or SNI information from inbound connections.
 	listener.Capabilities = append(listener.Capabilities, pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION)
 
+	if b.proxyCfg.GetDynamicConfig() != nil && b.proxyCfg.GetDynamicConfig().InboundConnections != nil {
+		listener.BalanceConnections = pbproxystate.BalanceConnections(b.proxyCfg.DynamicConfig.InboundConnections.BalanceInboundConnections)
+	}
 	return b.NewListenerBuilder(listener)
 }
 
-func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.WorkloadPort, portName string, tp *pbproxystate.TrafficPermissions) *ListenerBuilder {
+func (l *ListenerBuilder) addInboundRouter(clusterName string, routeName string,
+	port *pbcatalog.WorkloadPort, portName string, tp *pbproxystate.TrafficPermissions,
+	ic *pbmesh.InboundConnectionsConfig) *ListenerBuilder {
+
 	if l.listener == nil {
 		return l
 	}
 
-	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP || port.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+	if port.Protocol == pbcatalog.Protocol_PROTOCOL_TCP {
 		r := &pbproxystate.Router{
 			Destination: &pbproxystate.Router_L4{
 				L4: &pbproxystate.L4Destination{
@@ -283,6 +298,41 @@ func (l *ListenerBuilder) addInboundRouter(clusterName string, port *pbcatalog.W
 				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
 			},
 		}
+
+		if ic != nil {
+			// MaxInboundConnections is uint32 that is used on:
+			// - router destinations MaxInboundConnection (uint64).
+			// - cluster circuit breakers UpstreamLimits.MaxConnections (uint32).
+			// It is cast to a uint64 here similarly as it is to the proxystateconverter code.
+			r.GetL4().MaxInboundConnections = uint64(ic.MaxInboundConnections)
+		}
+
+		l.listener.Routers = append(l.listener.Routers, r)
+	} else if isL7(port.Protocol) {
+		r := &pbproxystate.Router{
+			Destination: &pbproxystate.Router_L7{
+				L7: &pbproxystate.L7Destination{
+					StatPrefix:         l.listener.Name,
+					Protocol:           protocolMapCatalogToL7[port.Protocol],
+					TrafficPermissions: tp,
+					StaticRoute:        true,
+					// Route name for l7 local app destinations differentiates between routes for each port.
+					Route: &pbproxystate.L7DestinationRoute{
+						Name: routeName,
+					},
+				},
+			},
+			Match: &pbproxystate.Match{
+				AlpnProtocols: []string{getAlpnProtocolFromPortName(portName)},
+			},
+		}
+
+		if ic != nil {
+			// MaxInboundConnections is cast to a uint64 here similarly as it is to the
+			// as the L4 case statement above and in proxystateconverter code.
+			r.GetL7().MaxInboundConnections = uint64(ic.MaxInboundConnections)
+		}
+
 		l.listener.Routers = append(l.listener.Routers, r)
 	}
 	return l
@@ -314,9 +364,55 @@ func getAlpnProtocolFromPortName(portName string) string {
 	return fmt.Sprintf("consul~%s", portName)
 }
 
-func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
+func (b *Builder) addLocalAppRoute(routeName, clusterName, portName string) {
+	proxyRouteRule := &pbproxystate.RouteRule{
+		Match: &pbproxystate.RouteMatch{
+			PathMatch: &pbproxystate.PathMatch{
+				PathMatch: &pbproxystate.PathMatch_Prefix{
+					Prefix: "/",
+				},
+			},
+		},
+		Destination: &pbproxystate.RouteDestination{
+			Destination: &pbproxystate.RouteDestination_Cluster{
+				Cluster: &pbproxystate.DestinationCluster{
+					Name: clusterName,
+				},
+			},
+		},
+	}
+	if b.proxyCfg.GetDynamicConfig() != nil && b.proxyCfg.GetDynamicConfig().LocalConnection != nil {
+		lc, lcOK := b.proxyCfg.GetDynamicConfig().LocalConnection[portName]
+		if lcOK {
+			proxyRouteRule.Destination.DestinationConfiguration =
+				&pbproxystate.DestinationConfiguration{
+					TimeoutConfig: &pbproxystate.TimeoutConfig{
+						Timeout: lc.RequestTimeout,
+					},
+				}
+		}
+	}
+
+	// Each route name for the local app is listenerName:port since there is a route per port on the local app listener.
+	b.addRoute(routeName, &pbproxystate.Route{
+		VirtualHosts: []*pbproxystate.VirtualHost{{
+			Name:       routeName,
+			Domains:    []string{"*"},
+			RouteRules: []*pbproxystate.RouteRule{proxyRouteRule},
+		}},
+	})
+}
+
+func isL7(protocol pbcatalog.Protocol) bool {
+	if protocol == pbcatalog.Protocol_PROTOCOL_HTTP || protocol == pbcatalog.Protocol_PROTOCOL_HTTP2 || protocol == pbcatalog.Protocol_PROTOCOL_GRPC {
+		return true
+	}
+	return false
+}
+
+func (b *Builder) addLocalAppCluster(clusterName string, portName *string, protocol pbproxystate.Protocol) *Builder {
 	// Make cluster for this router destination.
-	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = &pbproxystate.Cluster{
+	cluster := &pbproxystate.Cluster{
 		Group: &pbproxystate.Cluster_EndpointGroup{
 			EndpointGroup: &pbproxystate.EndpointGroup{
 				Group: &pbproxystate.EndpointGroup_Static{
@@ -324,39 +420,52 @@ func (b *Builder) addLocalAppCluster(clusterName string) *Builder {
 				},
 			},
 		},
+		Protocol: protocol,
 	}
+
+	// configure inbound connections or connection timeout if either is defined
+	if b.proxyCfg.GetDynamicConfig() != nil && portName != nil {
+		lc, lcOK := b.proxyCfg.DynamicConfig.LocalConnection[*portName]
+
+		if lcOK || b.proxyCfg.DynamicConfig.InboundConnections != nil {
+			cluster.GetEndpointGroup().GetStatic().Config = &pbproxystate.StaticEndpointGroupConfig{}
+
+			if lcOK {
+				cluster.GetEndpointGroup().GetStatic().GetConfig().ConnectTimeout = lc.ConnectTimeout
+			}
+
+			if b.proxyCfg.DynamicConfig.InboundConnections != nil {
+				cluster.GetEndpointGroup().GetStatic().GetConfig().CircuitBreakers = &pbproxystate.CircuitBreakers{
+					UpstreamLimits: &pbproxystate.UpstreamLimits{
+						MaxConnections: &wrapperspb.UInt32Value{Value: b.proxyCfg.DynamicConfig.InboundConnections.MaxInboundConnections},
+					},
+				}
+			}
+		}
+	}
+
+	b.proxyStateTemplate.ProxyState.Clusters[clusterName] = cluster
 	return b
 }
 
 func (b *Builder) addBlackHoleCluster() *Builder {
-	b.proxyStateTemplate.ProxyState.Clusters[xdscommon.BlackHoleClusterName] = &pbproxystate.Cluster{
-		Group: &pbproxystate.Cluster_EndpointGroup{
-			EndpointGroup: &pbproxystate.EndpointGroup{
-				Group: &pbproxystate.EndpointGroup_Static{
-					Static: &pbproxystate.StaticEndpointGroup{},
-				},
-			},
-		},
-	}
-	return b
+	return b.addLocalAppCluster(xdscommon.BlackHoleClusterName, nil, pbproxystate.Protocol_PROTOCOL_TCP)
 }
 
-func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port *pbcatalog.WorkloadPort) *Builder {
+func (b *Builder) addLocalAppStaticEndpoints(clusterName string, port uint32) {
 	// We're adding endpoints statically as opposed to creating an endpoint ref
 	// because this endpoint is less likely to change as we're not tracking the health.
 	endpoint := &pbproxystate.Endpoint{
 		Address: &pbproxystate.Endpoint_HostPort{
 			HostPort: &pbproxystate.HostPortAddress{
 				Host: "127.0.0.1",
-				Port: port.Port,
+				Port: port,
 			},
 		},
 	}
 	b.proxyStateTemplate.ProxyState.Endpoints[clusterName] = &pbproxystate.Endpoints{
 		Endpoints: []*pbproxystate.Endpoint{endpoint},
 	}
-
-	return b
 }
 
 func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
@@ -382,4 +491,10 @@ func (l *ListenerBuilder) addInboundTLS() *ListenerBuilder {
 		l.listener.Routers[i].InboundTls = inboundTLS
 	}
 	return l
+}
+
+var protocolMapCatalogToL7 = map[pbcatalog.Protocol]pbproxystate.L7Protocol{
+	pbcatalog.Protocol_PROTOCOL_HTTP:  pbproxystate.L7Protocol_L7_PROTOCOL_HTTP,
+	pbcatalog.Protocol_PROTOCOL_HTTP2: pbproxystate.L7Protocol_L7_PROTOCOL_HTTP2,
+	pbcatalog.Protocol_PROTOCOL_GRPC:  pbproxystate.L7Protocol_L7_PROTOCOL_GRPC,
 }

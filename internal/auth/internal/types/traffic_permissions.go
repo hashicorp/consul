@@ -19,7 +19,7 @@ func RegisterTrafficPermissions(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookTrafficPermissions,
 			Write: aclWriteHookTrafficPermissions,
-			List:  aclListHookTrafficPermissions,
+			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateTrafficPermissions,
 		Mutate:   MutateTrafficPermissions,
@@ -227,6 +227,13 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 				Wrapped: err,
 			})
 		}
+		// TODO: remove this when L7 traffic permissions are implemented
+		if len(dest.PathExact) > 0 || len(dest.PathPrefix) > 0 || len(dest.PathRegex) > 0 || len(dest.Methods) > 0 || dest.Header != nil {
+			merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+				Name:    "destination_rule",
+				Wrapped: ErrL7NotSupported,
+			}))
+		}
 		if (len(dest.PathExact) > 0 && len(dest.PathPrefix) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathExact) > 0) ||
 			(len(dest.PathRegex) > 0 && len(dest.PathPrefix) > 0) {
@@ -243,6 +250,13 @@ func validatePermission(p *pbauth.Permission, wrapErr func(error) error) error {
 						Index:   e,
 						Wrapped: err,
 					})
+				}
+				// TODO: remove this when L7 traffic permissions are implemented
+				if len(excl.PathExact) > 0 || len(excl.PathPrefix) > 0 || len(excl.PathRegex) > 0 || len(excl.Methods) > 0 || excl.Header != nil {
+					merr = multierror.Append(merr, wrapDestRuleErr(resource.ErrInvalidListElement{
+						Name:    "exclude_permission_rules",
+						Wrapped: ErrL7NotSupported,
+					}))
 				}
 				if (len(excl.PathExact) > 0 && len(excl.PathPrefix) > 0) ||
 					(len(excl.PathRegex) > 0 && len(excl.PathExact) > 0) ||
@@ -273,7 +287,7 @@ func isLocalPeer(p string) bool {
 
 func aclReadHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
 	if res == nil {
-		return resource.ErrNeedData
+		return resource.ErrNeedResource
 	}
 	return authorizeDestination(res, func(dest string) error {
 		return authorizer.ToAllowAuthorizer().TrafficPermissionsReadAllowed(dest, authzContext)
@@ -284,12 +298,6 @@ func aclWriteHookTrafficPermissions(authorizer acl.Authorizer, authzContext *acl
 	return authorizeDestination(res, func(dest string) error {
 		return authorizer.ToAllowAuthorizer().TrafficPermissionsWriteAllowed(dest, authzContext)
 	})
-}
-
-func aclListHookTrafficPermissions(_ acl.Authorizer, _ *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement
-	return nil
 }
 
 func authorizeDestination(res *pbresource.Resource, intentionAllowed func(string) error) error {

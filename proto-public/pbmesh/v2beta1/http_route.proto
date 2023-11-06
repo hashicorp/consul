@@ -107,6 +107,9 @@ message HTTPPathMatch {
 //
 // Unknown values here must result in the implementation setting the Accepted
 // Condition for the Route to status: False, with a Reason of UnsupportedValue.
+//
+// +kubebuilder:validation:Enum=PATH_MATCH_TYPE_UNSPECIFIED;PATH_MATCH_TYPE_EXACT;PATH_MATCH_TYPE_PREFIX;PATH_MATCH_TYPE_REGEX
+// +kubebuilder:validation:Type=string
 enum PathMatchType {
   PATH_MATCH_TYPE_UNSPECIFIED = 0;
   PATH_MATCH_TYPE_EXACT = 1;
@@ -150,6 +153,9 @@ message HTTPHeaderMatch {
 //
 // Unknown values here must result in the implementation setting the Accepted
 // Condition for the Route to status: False, with a Reason of UnsupportedValue.
+//
+// +kubebuilder:validation:Enum=HEADER_MATCH_TYPE_UNSPECIFIED;HEADER_MATCH_TYPE_EXACT;HEADER_MATCH_TYPE_REGEX;HEADER_MATCH_TYPE_PRESENT;HEADER_MATCH_TYPE_PREFIX;HEADER_MATCH_TYPE_SUFFIX
+// +kubebuilder:validation:Type=string
 enum HeaderMatchType {
   HEADER_MATCH_TYPE_UNSPECIFIED = 0;
   HEADER_MATCH_TYPE_EXACT = 1;
@@ -186,6 +192,8 @@ message HTTPQueryParamMatch {
   string value = 3;
 }
 
+// +kubebuilder:validation:Enum=QUERY_PARAM_MATCH_TYPE_UNSPECIFIED;QUERY_PARAM_MATCH_TYPE_EXACT;QUERY_PARAM_MATCH_TYPE_REGEX;QUERY_PARAM_MATCH_TYPE_PRESENT
+// +kubebuilder:validation:Type=string
 enum QueryParamMatchType {
   QUERY_PARAM_MATCH_TYPE_UNSPECIFIED = 0;
   QUERY_PARAM_MATCH_TYPE_EXACT = 1;
@@ -243,10 +251,10 @@ message HTTPBackendRef {
   // supports. Weight is not a percentage and the sum of weights does not need
   // to equal 100.
   //
-  //If only one backend is specified and it has a weight greater than 0, 100%
-  //of the traffic is forwarded to that backend. If weight is set to 0, no
-  //traffic should be forwarded for this entry. If unspecified, weight defaults
-  //to 1.
+  // If only one backend is specified and it has a weight greater than 0, 100%
+  // of the traffic is forwarded to that backend. If weight is set to 0, no
+  // traffic should be forwarded for this entry. If unspecified, weight defaults
+  // to 1.
   uint32 weight = 2;
 
   // Filters defined at this level should be executed if and only if the

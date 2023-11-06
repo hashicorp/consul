@@ -35,6 +35,9 @@ const (
 //
 // Unknown values here must result in the implementation setting the Accepted
 // Condition for the Route to status: False, with a Reason of UnsupportedValue.
+//
+// +kubebuilder:validation:Enum=PATH_MATCH_TYPE_UNSPECIFIED;PATH_MATCH_TYPE_EXACT;PATH_MATCH_TYPE_PREFIX;PATH_MATCH_TYPE_REGEX
+// +kubebuilder:validation:Type=string
 type PathMatchType int32
 
 const (
@@ -96,6 +99,9 @@ func (PathMatchType) EnumDescriptor() ([]byte, []int) {
 //
 // Unknown values here must result in the implementation setting the Accepted
 // Condition for the Route to status: False, with a Reason of UnsupportedValue.
+//
+// +kubebuilder:validation:Enum=HEADER_MATCH_TYPE_UNSPECIFIED;HEADER_MATCH_TYPE_EXACT;HEADER_MATCH_TYPE_REGEX;HEADER_MATCH_TYPE_PRESENT;HEADER_MATCH_TYPE_PREFIX;HEADER_MATCH_TYPE_SUFFIX
+// +kubebuilder:validation:Type=string
 type HeaderMatchType int32
 
 const (
@@ -155,6 +161,8 @@ func (HeaderMatchType) EnumDescriptor() ([]byte, []int) {
 	return file_pbmesh_v2beta1_http_route_proto_rawDescGZIP(), []int{1}
 }
 
+// +kubebuilder:validation:Enum=QUERY_PARAM_MATCH_TYPE_UNSPECIFIED;QUERY_PARAM_MATCH_TYPE_EXACT;QUERY_PARAM_MATCH_TYPE_REGEX;QUERY_PARAM_MATCH_TYPE_PRESENT
+// +kubebuilder:validation:Type=string
 type QueryParamMatchType int32
 
 const (

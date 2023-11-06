@@ -23,6 +23,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=PROTOCOL_UNSPECIFIED;PROTOCOL_TCP;PROTOCOL_HTTP;PROTOCOL_HTTP2;PROTOCOL_GRPC
+// +kubebuilder:validation:Type=string
 type Protocol int32
 
 const (

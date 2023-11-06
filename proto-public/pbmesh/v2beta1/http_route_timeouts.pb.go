@@ -33,8 +33,10 @@ type HTTPRouteTimeouts struct {
 
 	// RequestTimeout is the total amount of time permitted for the entire
 	// downstream request (and retries) to be processed.
+	// +kubebuilder:validation:Format=duration
 	Request *durationpb.Duration `protobuf:"bytes,1,opt,name=request,proto3" json:"request,omitempty"`
 	// Idle specifies the total amount of time permitted for the request stream to be idle.
+	// +kubebuilder:validation:Format=duration
 	Idle *durationpb.Duration `protobuf:"bytes,2,opt,name=idle,proto3" json:"idle,omitempty"`
 }
 

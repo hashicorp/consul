@@ -44,13 +44,13 @@ Apply a [service router configuration entry](/consul/docs/connect/config-entries
 
 ### Splitting
 
-The second stage of the discovery chain is the service splitter. Service splitters split incoming requests and route them to different services or service subsets. Splitters enable staged canary rollouts, versioned releases, and similar use cases.  
+The second stage of the discovery chain is the service splitter. Service splitters split incoming requests and route them to different services or service subsets. Splitters enable staged canary rollouts, versioned releases, and similar use cases.
 
 Apply a [service splitter configuration entry](/consul/docs/connect/config-entries/service-splitter) to implement a splitter. Service splitters configuration entries can only reference other service splitters or service resolver configuration entries.
 
 ![screenshot of service splitter in the UI](/img/l7-routing/Splitter.png)
 
-If multiple service splitters are chained, Consul flattens the splits so that they behave as a single service spitter. In the following equation, `splitter[A]` references `splitter[B]`:
+If multiple service splitters are chained, Consul flattens the splits so that they behave as a single service spitter. In the following equation, `splitter[B]` references `splitter[A]`:
 
 ```text
 splitter[A]:           A_v1=50%, A_v2=50%
@@ -81,4 +81,4 @@ Service resolver configuration entries can also process network layer, also call
 
 ## Locality-aware routing
 
-By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different availability zones. You can configure Consul to route requests to upstreams in the same network zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/connect/traffic-management/route-to-local-upstreams) for additional information.
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network regions and zones. You can configure Consul to route requests to upstreams in the same region and zone, which reduces latency and transfer costs. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.

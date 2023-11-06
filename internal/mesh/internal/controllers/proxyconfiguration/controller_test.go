@@ -16,7 +16,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/mappers/workloadselectionmapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -24,6 +24,7 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
@@ -54,7 +55,7 @@ func (suite *controllerTestSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 
 	suite.ctl = &reconciler{
-		proxyConfigMapper: mapper.New(),
+		proxyConfigMapper: workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType),
 	}
 
 	suite.workload = &pbcatalog.Workload{
@@ -102,7 +103,8 @@ func (suite *controllerTestSuite) SetupTest() {
 
 	suite.expComputedProxyCfg = &pbmesh.ComputedProxyConfiguration{
 		DynamicConfig: &pbmesh.DynamicConfig{
-			Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			Mode:             pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+			TransparentProxy: &pbmesh.TransparentProxy{OutboundListenerPort: iptables.DefaultTProxyOutboundPort},
 			LocalConnection: map[string]*pbmesh.ConnectionConfig{
 				"tcp": {ConnectTimeout: durationpb.New(2 * time.Second)},
 			},
@@ -151,19 +153,19 @@ func (suite *controllerTestSuite) TestReconcile_HappyPath() {
 	pCfg1 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg1").
 		WithData(suite.T(), suite.proxyCfg1).
 		Write(suite.T(), suite.client)
-	_, err := suite.ctl.proxyConfigMapper.MapProxyConfiguration(suite.ctx, suite.runtime, pCfg1)
+	_, err := suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg1)
 	require.NoError(suite.T(), err)
 
 	pCfg2 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg2").
 		WithData(suite.T(), suite.proxyCfg2).
 		Write(suite.T(), suite.client)
-	_, err = suite.ctl.proxyConfigMapper.MapProxyConfiguration(suite.ctx, suite.runtime, pCfg2)
+	_, err = suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg2)
 	require.NoError(suite.T(), err)
 
 	pCfg3 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg3").
 		WithData(suite.T(), suite.proxyCfg3).
 		Write(suite.T(), suite.client)
-	_, err = suite.ctl.proxyConfigMapper.MapProxyConfiguration(suite.ctx, suite.runtime, pCfg3)
+	_, err = suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg3)
 	require.NoError(suite.T(), err)
 
 	cpcID := resource.ReplaceType(pbmesh.ComputedProxyConfigurationType, suite.workloadRes.Id)
@@ -181,7 +183,7 @@ func (suite *controllerTestSuite) TestReconcile_NoProxyConfigs() {
 	pCfg1 := resourcetest.Resource(pbmesh.ProxyConfigurationType, "cfg1").
 		WithData(suite.T(), suite.proxyCfg1).
 		Build()
-	_, err := suite.ctl.proxyConfigMapper.MapProxyConfiguration(suite.ctx, suite.runtime, pCfg1)
+	_, err := suite.ctl.proxyConfigMapper.MapToComputedType(suite.ctx, suite.runtime, pCfg1)
 	require.NoError(suite.T(), err)
 
 	cpcID := resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, suite.workloadRes.Id.Name).
@@ -199,7 +201,7 @@ func (suite *controllerTestSuite) TestController() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
 
-	m := mapper.New()
+	m := workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)
 	mgr.Register(Controller(m))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
@@ -244,7 +246,6 @@ func (suite *controllerTestSuite) TestController() {
 	})
 
 	testutil.RunStep(suite.T(), "update proxy config selector", func(t *testing.T) {
-		t.Log("running update proxy config selector")
 		// Update proxy config selector to no longer select "test-workload"
 		updatedProxyCfg := proto.Clone(suite.proxyCfg2).(*pbmesh.ProxyConfiguration)
 		updatedProxyCfg.Workloads = &pbcatalog.WorkloadSelector{
@@ -262,10 +263,11 @@ func (suite *controllerTestSuite) TestController() {
 		retry.Run(t, func(r *retry.R) {
 			res := suite.client.RequireResourceExists(r, cpcID)
 
-			// The "test-workload" computed traffic permissions should now be updated to use only proxy cfg 1 and 3.
+			// The "test-workload" computed proxy configurations should now be updated to use only proxy cfg 1 and 3.
 			expProxyCfg := &pbmesh.ComputedProxyConfiguration{
 				DynamicConfig: &pbmesh.DynamicConfig{
-					Mode: pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+					Mode:             pbmesh.ProxyMode_PROXY_MODE_TRANSPARENT,
+					TransparentProxy: &pbmesh.TransparentProxy{OutboundListenerPort: iptables.DefaultTProxyOutboundPort},
 				},
 				BootstrapConfig: &pbmesh.BootstrapConfig{
 					PrometheusBindAddr: "0.0.0.0:9000",

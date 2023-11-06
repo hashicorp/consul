@@ -15,7 +15,7 @@ MOCKERY_VERSION='v2.20.0'
 BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
-MOG_VERSION='v0.4.0'
+MOG_VERSION='v0.4.1'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
@@ -438,6 +438,9 @@ codegen: codegen-tools ## Deep copy
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/config/deep-copy.sh
 	copywrite headers
+	# Special case for MPL headers in /api and /sdk
+	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
 
 print-%  : ; @echo $($*) ## utility to echo a makefile variable (i.e. 'make print-GOPATH')
 

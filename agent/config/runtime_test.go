@@ -6560,6 +6560,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
 		GRPCTLSPort:           5201,
 		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
+		GRPCKeepaliveInterval: 33 * time.Second,
+		GRPCKeepaliveTimeout:  22 * time.Second,
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6574,6 +6576,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		KVMaxValueSize:        1234567800,
 		LeaveDrainTime:        8265 * time.Second,
 		LeaveOnTerm:           true,
+		Locality: &Locality{
+			Region: strPtr("us-east-2"),
+			Zone:   strPtr("us-east-2b"),
+		},
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6675,6 +6681,10 @@ func TestLoad_FullConfig(t *testing.T) {
 							Warning: 1,
 						},
 					},
+				},
+				Locality: &structs.Locality{
+					Region: "us-east-1",
+					Zone:   "us-east-1a",
 				},
 			},
 			{
@@ -6833,6 +6843,10 @@ func TestLoad_FullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Connect: &structs.ServiceConnect{
 					Native: true,
+				},
+				Locality: &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 				Checks: structs.CheckTypes{
 					&structs.CheckType{

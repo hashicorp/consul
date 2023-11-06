@@ -5,6 +5,8 @@ syntax = "proto3";
 
 package hashicorp.consul.catalog.v2beta1;
 
+// +kubebuilder:validation:Enum=PROTOCOL_UNSPECIFIED;PROTOCOL_TCP;PROTOCOL_HTTP;PROTOCOL_HTTP2;PROTOCOL_GRPC
+// +kubebuilder:validation:Type=string
 enum Protocol {
   PROTOCOL_UNSPECIFIED = 0;
   PROTOCOL_TCP = 1;

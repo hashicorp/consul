@@ -48,8 +48,11 @@ message HealthCheck {
     GRPCCheck grpc = 5;
     OSServiceCheck os_service = 6;
   }
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration interval = 7;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration timeout = 8;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration deregister_critical_after = 9;
 }
 

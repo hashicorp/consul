@@ -5,7 +5,8 @@
         "endpointGroup": {
           "static": {}
         },
-        "name": "black-hole-cluster"
+        "name": "black-hole-cluster",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -14,6 +15,11 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [

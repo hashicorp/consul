@@ -473,6 +473,12 @@ func makeGRPCRouteMatch(match *pbmesh.GRPCRouteMatch) *pbproxystate.RouteMatch {
 		default:
 			panic(fmt.Sprintf("unknown method match type: %v", match.Method.Type))
 		}
+	} else {
+		em.PathMatch = &pbproxystate.PathMatch{
+			PathMatch: &pbproxystate.PathMatch_Prefix{
+				Prefix: "/",
+			},
+		}
 	}
 
 	em.HeaderMatches = translateHeaderMatches(match.Headers, nil)

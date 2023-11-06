@@ -93,6 +93,13 @@ func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enter
 	}
 	if overridePolicy != nil {
 		token.Policies = []*api.ACLTokenPolicyLink{{ID: overridePolicy.ID}}
+	} else if svc.IsV2() {
+		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			TemplateVariables: &api.ACLTemplatedPolicyVariables{
+				Name: svc.ID.Name,
+			},
+		}}
 	} else {
 		token.ServiceIdentities = []*api.ACLServiceIdentity{{
 			ServiceName: svc.ID.Name,

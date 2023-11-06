@@ -1,0 +1,47 @@
+{
+  "versionInfo":  "00000001",
+  "resources":  [
+    {
+      "@type":  "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName":  "local_app:admin-port",
+      "endpoints":  [
+        {
+          "lbEndpoints":  [
+            {
+              "endpoint":  {
+                "address":  {
+                  "socketAddress":  {
+                    "address":  "127.0.0.1",
+                    "portValue":  8080
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "@type":  "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+      "clusterName":  "local_app:api-port",
+      "endpoints":  [
+        {
+          "lbEndpoints":  [
+            {
+              "endpoint":  {
+                "address":  {
+                  "socketAddress":  {
+                    "address":  "127.0.0.1",
+                    "portValue":  9090
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl":  "type.googleapis.com/envoy.config.endpoint.v3.ClusterLoadAssignment",
+  "nonce":  "00000001"
+}

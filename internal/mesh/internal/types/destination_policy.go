@@ -24,7 +24,7 @@ func RegisterDestinationPolicy(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookDestinationPolicy,
 			Write: aclWriteHookDestinationPolicy,
-			List:  aclListHookDestinationPolicy,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
@@ -232,10 +232,4 @@ func aclWriteHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.
 
 	// Check service:write permissions on the service this is controlling.
 	return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext)
-}
-
-func aclListHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return nil
 }

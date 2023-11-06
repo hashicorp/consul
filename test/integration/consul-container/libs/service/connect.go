@@ -13,10 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-
-	"github.com/hashicorp/consul/api"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -206,6 +205,7 @@ func NewConnectService(
 			"-sidecar-for", sidecarCfg.ServiceID,
 			"-admin-bind", fmt.Sprintf("0.0.0.0:%d", internalAdminPort),
 			"-namespace", sidecarCfg.Namespace,
+			"-partition", sidecarCfg.Partition,
 			"--",
 			"--log-level", envoyLogLevel,
 		},

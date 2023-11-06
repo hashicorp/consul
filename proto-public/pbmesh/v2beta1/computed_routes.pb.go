@@ -25,6 +25,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=BACKEND_TARGET_DETAILS_TYPE_UNSPECIFIED;BACKEND_TARGET_DETAILS_TYPE_DIRECT;BACKEND_TARGET_DETAILS_TYPE_INDIRECT
+// +kubebuilder:validation:Type=string
 type BackendTargetDetailsType int32
 
 const (
@@ -754,8 +756,7 @@ func (x *ComputedTCPRouteRule) GetBackendRefs() []*ComputedTCPBackendRef {
 	return nil
 }
 
-// TODO: look into smuggling the target through a different typeURL, or just
-// skip in favor of letting the caller do their own lookups?
+// TODO: look into smuggling the target through a different typeURL, or just skip in favor of letting the caller do their own lookups?
 type ComputedTCPBackendRef struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1004,7 +1005,7 @@ type ComputedFailoverDestination struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// This must be a Service.
+	// BackendTarget must be a Service.
 	BackendTarget string `protobuf:"bytes,1,opt,name=backend_target,json=backendTarget,proto3" json:"backend_target,omitempty"`
 }
 

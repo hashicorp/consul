@@ -24,6 +24,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=GRPC_METHOD_MATCH_TYPE_UNSPECIFIED;GRPC_METHOD_MATCH_TYPE_EXACT;GRPC_METHOD_MATCH_TYPE_REGEX
+// +kubebuilder:validation:Type=string
 type GRPCMethodMatchType int32
 
 const (
@@ -159,7 +161,6 @@ type GRPCRouteRule struct {
 	Matches []*GRPCRouteMatch  `protobuf:"bytes,1,rep,name=matches,proto3" json:"matches,omitempty"`
 	Filters []*GRPCRouteFilter `protobuf:"bytes,2,rep,name=filters,proto3" json:"filters,omitempty"`
 	// BackendRefs defines the backend(s) where matching requests should be sent.
-	//
 	// Failure behavior here depends on how many BackendRefs are specified and
 	// how many are invalid.
 	//
