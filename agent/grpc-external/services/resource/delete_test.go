@@ -17,7 +17,9 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
@@ -311,6 +313,68 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Aborted.String(), status.Code(err).String())
 	require.ErrorContains(t, err, "CAS operation failed")
+}
+
+func TestDelete_MarkedForDeletionWhenFinalizersPresent(t *testing.T) {
+	server, client, ctx := testDeps(t)
+	demo.RegisterTypes(server.Registry)
+
+	// Create a resource with a finalizer
+	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+		WithTenancy(resource.DefaultClusteredTenancy()).
+		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+		WithMeta(resource.FinalizerKey, "finalizer1").
+		Write(t, client)
+
+	// Delete it
+	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
+
+	// Verify resource has been marked for deletion
+	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
+
+	// Delete again - should be no-op
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
+
+	// Verify no-op by checking version still the same
+	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	rtest.RequireVersionUnchanged(t, rsp2.Resource, rsp.Resource.Version)
+}
+
+func TestDelete_ImmediatelyDeletedAfterFinalizersRemoved(t *testing.T) {
+	server, client, ctx := testDeps(t)
+	demo.RegisterTypes(server.Registry)
+
+	// Create a resource with a finalizer
+	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+		WithTenancy(resource.DefaultClusteredTenancy()).
+		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+		WithMeta(resource.FinalizerKey, "finalizer1").
+		Write(t, client)
+
+	// Delete should mark it for deletion
+	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+	require.NoError(t, err)
+
+	// Remove the finalizer
+	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+	require.NoError(t, err)
+	resource.RemoveFinalizer(rsp.Resource, "finalizer1")
+	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: rsp.Resource})
+	require.NoError(t, err)
+
+	// Delete should be immediate
+	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id})
+	require.NoError(t, err)
+
+	// Verify deleted
+	_, err = client.Read(ctx, &pbresource.ReadRequest{Id: rsp.Resource.Id})
+	require.Error(t, err)
+	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 }
 
 func testDeps(t *testing.T) (*Server, pbresource.ResourceServiceClient, context.Context) {
