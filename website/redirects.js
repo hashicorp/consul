@@ -144,13 +144,13 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/agi-gateway',
+    source: '/consul/docs/api-gateway',
     destination: '/consul/docs/connect/gateways/agi-gateway',
     permanent: true,
   },
   {
     source: '/consul/docs/api-gateway/install',
-    destination: '/consul/docs/connect/gateways/api-gateway/deploy/install-k8s',
+    destination: '/consul/docs/connect/gateways/api-gateway/install-k8s',
     permanent: true,
   },
   {
