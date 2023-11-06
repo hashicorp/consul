@@ -22,6 +22,7 @@ permissions:
 env:
   TEST_RESULTS: /tmp/test-results
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 # concurrency
 concurrency:
@@ -33,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest 
     name: Get files changed and conditionally skip CI
     outputs:
-      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
@@ -45,7 +46,7 @@ jobs:
   setup:
     needs: [conditional-skip]
     name: Setup
-    if: needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     runs-on: ubuntu-latest
     outputs:
       compute-small: ${{ steps.setup-outputs.outputs.compute-small }}
@@ -506,7 +507,7 @@ jobs:
     - go-test-32bit
     # - go-test-s390x
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
