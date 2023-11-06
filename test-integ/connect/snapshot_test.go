@@ -204,7 +204,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	// Add a new static-server
 	cfg = sp.Config()
 	cluster = cfg.Cluster("dc1")
-	cluster.Nodes[3].Disabled = false //  client 3 -- static-server
+	cluster.Nodes[3].Disabled = false //  client 3 -- new static-server
 	require.NoError(t, sp.Relaunch(cfg))
 
 	// Ensure the static-client connected to static-server
