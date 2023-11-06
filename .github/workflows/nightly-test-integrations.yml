@@ -193,7 +193,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.16", "1.17"]
+        consul-version: [ "1.15", "1.16", "1.17"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
       ENVOY_VERSION: "1.25.4"
