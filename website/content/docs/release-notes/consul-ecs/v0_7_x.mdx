@@ -1,0 +1,69 @@
+---
+layout: docs
+page_title: 0.7.x
+description: >-
+  Consul ECS release notes for version 0.7.x
+---
+
+# Consul ECS 0.7.x
+
+## Release highlights
+
+- **Consul Dataplane:** Consul on ECS 0.7.x adopts the [Dataplane architecture](/consul/docs/connect/dataplane) to simplify connecting your ECS workloads to Consul. Refer to the documentation to learn more about the updated [ECS components](/consul/docs/ecs/architecture) and how to [deploy Consul to ECS using the Terraform module](/consul/docs/ecs/deploy/terraform).
+
+- **New `control-plane` command:** The new, unified `control-plane` command combines the capabilities for the deprecated `mesh-init` and `health-sync` commands. The `control-plane` command starts a long running process with the following responsibilities:
+  - Automatically (re)discover and (re)connect to Consul servers using connection manager.
+  - Make an ACL Login request to obtain an ACL token when using the Consul AWS IAM auth method.
+  - Register the service and sidecar proxy with the central catalog on the Consul servers.
+  - Write the configuration for Consul Dataplane to a file on a shared volume.
+  - Sync ECS health check statuses for the ECS task into the central catalog on the Consul servers on a periodic basis.
+  - Gracefully shutdown when an ECS task is stopped. Upon receiving a SIGTERM, mark synced health checks critical and wait for Consul Dataplane to stop. Then remove health checks, services, and perform an ACL Logout if necessary.
+
+- **New `controller` command:** The new `controller` command replaces the `acl-controller` command with the following changes:
+  - Remove all CLI flags. Configuration is read from the `ECS_CONFIG_JSON` environment variable.
+  - Automatically (re)discover and (re)connect to Consul servers, similar to the `control-plane` command.
+  - Because Consul client agents are no longer used, the controller no longer configures the "client" auth method, policy, role, and binding rule which previously enabled Consul client agents to login.
+  - Register the ECS cluster as a synthetic node in the central catalog on the Consul servers. The synthetic node is used to register services running in the ECS cluster.
+  - Ensure leftover tokens and services are removed for ECS tasks that have stopped.
+
+- **Locality aware routing (Enterprise):** Consul on ECS 0.7.x supports [locality-aware routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams). In your ECS task meta JSON, set the `AWS_REGION` container environment variable and `AvailabilityZone` attributes to set the locality parameters in Consul service and proxy registrations. Consul uses these parameters to perform locality aware routing in Consul Enterprise installations.
+
+## Breaking changes
+
+- The new Dataplane architecture comes with the following breaking changes to configuring Consul on ECS. Refer to the [Upgrade to Consul dataplane architecture](https://developer.hashicorp.com/consul/docs/ecs/upgrade-to-dataplanes) documentation for a step-by-step upgrade guide.
+  - Consul client agents are no longer used.
+  - Consul Dataplane must be run in place of Envoy in each ECS task. Consul Dataplane manages the Envoy process and proxies xDS requests from Envoy to Consul servers.
+  - The `consul-ecs` binary now communicates with Consul servers using HTTP(S) and GRPC.
+  - Services are registered directly with the central catalog on the Consul servers. Services in the same ECS cluster are registered to the same Consul node name.
+- Replaced the `mesh-init` and `health-sync` commands with a unified `control-plane`.
+- Replaced the `acl-controller` command with `controller`.
+- Add the `go-discover` binary to the Consul ECS image to better support [cloud auto-join](/consul/docs/install/cloud-auto-join).
+- Changes to `ECS_CONFIG_JSON` schema.
+  - Remove the `consulHTTPAddr` and `consulCACertFile` fields.
+  - Add the `consulLogin.datacenter` field.
+  - Add the `controller` field to support configuring the new `controller` command.
+  - Add the `consulServers` field to specify the Consul server location and protocol-specific settings.
+  - The `consulServers.hosts` field is required. This specifies the Consul server location as an IP address, DNS name, or `exec=` string specifying a command that returns a list of IP addresses. To use cloud auto-join, use an `exec=` string to run the `discover` CLI. For example, the following string invokes the discover CLI with a cloud auto-join string: 
+    
+    ```log
+    exec=discover -q addrs provider=aws region=us-west-2 tag_key=consul-server tag_value=true
+    ```
+    
+    By default, Consul ECS and Consul Dataplane images include the `discover` CLI.
+  - Add the `proxy.healthCheckPort` field which can be hit to determine Envoy's readiness.
+  - Add the `proxy.upstreams.destinationPeer` field to enable the proxy to hit upstreams present in peer Consul clusters.
+  - Add the `meshGateway.healthCheckPort` field which can be hit to determine Envoy's readiness.
+  - Add the `proxy.localServiceAddress` field to configure Envoy to use a different address for the local service.
+  - Remove the `service.checks` field. Consul agent health checks are no longer supported because Consul client agents are not used. Instead, set the healthSyncContainers field to have consul-ecs sync ECS health checks into Consul.
+
+## Supported software versions
+
+- Consul: 1.17.x
+
+## Changelogs
+
+The changelogs for this major release version and any maintenance versions are listed below.
+
+-> **Note**: These links will take you to the changelogs on the GitHub website.
+
+- [0.7.0](https://github.com/hashicorp/consul-ecs/releases/tag/v0.7.0)
