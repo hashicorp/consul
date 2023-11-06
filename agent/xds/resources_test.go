@@ -1480,7 +1480,8 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
 			},
-			alsoRunTestForV2: true,
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "downstream-service-with-unix-sockets",
@@ -1507,7 +1508,8 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 					}
 				})
 			},
-			alsoRunTestForV2: true,
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "expose-checks",
@@ -1517,12 +1519,14 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 					return "192.0.2.1"
 				})
 			},
-			alsoRunTestForV2: true,
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
 		},
 		{
-			name:             "expose-paths-grpc-new-cluster-http1",
-			create:           proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
-			alsoRunTestForV2: true,
+			name:   "expose-paths-grpc-new-cluster-http1",
+			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
 		},
 		{
 			// NOTE: if IPv6 is not supported in the kernel per
