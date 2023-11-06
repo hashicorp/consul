@@ -59,12 +59,8 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`listenerTracingJson`](#spec-dynamicconfig-listenertracingjson): string
     - [`localClusterJson`](#spec-dynamicconfig-localclusterjson): string
     - [`localConnection`](#spec-dynamicconfig-localconnection): map
-      - [`connectTimeout`](#spec-dynamicconfig-localconnection-connecttimeout): map
-        - [`nanos`](#spec-dynamicconfig-localconnection-connecttimeout): integer
-        - [`seconds`](#spec-dynamicconfig-localconnection-connecttimeout): integer
-      - [`requestTimeout`](#spec-dynamicconfig-localconnection-requesttimeout): map
-        - [`nanos`](#spec-dynamicconfig-localconnection-requesttimeout): integer
-        - [`seconds`](#spec-dynamicconfig-localconnection-requesttimeout): integer
+      - [`connectTimeout`](#spec-dynamicconfig-localconnection-connecttimeout): string
+      - [`requestTimeout`](#spec-dynamicconfig-localconnection-requesttimeout): string
     - [`meshGatewayMode`](#spec-dynamicconfig-meshgatewaymode): string
     - [`mode`](#spec-dynamicconfig-mode): string
     - [`publicListenerJson`](#spec-dynamicconfig-publiclistenerjson): string
@@ -586,29 +582,23 @@ Specify this field as a map containing a key/value. The map keys correspond to p
 
 Specifies the length of time the proxy is allowed to attempt connections to the local application instance before timing out.
 
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+- Data type: String
 
 ### `spec.dynamicConfig.localConnection.requestTimeout`
 
 Specifies the length of time the proxy is allowed to attempt HTTP requests to the local application instance. Applies to HTTP-based protocols only.
 
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+- Data type: String
 
 ### `spec.dynamicConfig.meshGatewayMode`
 

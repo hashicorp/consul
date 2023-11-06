@@ -221,7 +221,7 @@ spec:
 
 ```
 
-### Deny traffic between services
+### Deny traffic between a service and a specific port
 
 The following example configures traffic permissions to deny traffic when the `web` service makes a request to the `api` service on the `admin` port.
 
@@ -229,7 +229,7 @@ The following example configures traffic permissions to deny traffic when the `w
 apiVersion: auth.consul.hashicorp.com/v2beta1
 kind: TrafficPermissions
 metadata:
-  name: web-to-api-port-deny
+  name: web-to-admin-port-deny
 spec:
   destination:
     identityName: api

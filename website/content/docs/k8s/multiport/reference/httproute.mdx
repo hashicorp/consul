@@ -82,12 +82,8 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
       - [`onStatusCodes`](#spec-rules-retries-onconditions): map of integers
     - [`timeouts`](#spec-rules-timeouts): map
-      - [`idle`](#spec-rules-timeouts-idle): map
-        - [`nanos`](#spec-rules-timeouts-idle): number
-        - [`seconds`](#spec-rules-timeouts-idle): number
-      - [`request`](#spec-rules-timeouts-request): map
-        - [`nanos`](#spec-rules-timeouts-request): number
-        - [`seconds`](#spec-rules-timeouts-request): number
+      - [`idle`](#spec-rules-timeouts-idle): string
+      - [`request`](#spec-rules-timeouts-request): string
 
 ## Complete configuration
 
@@ -162,12 +158,8 @@ spec:
       onConnectFailure: false
       onStatusCodes: [400, 404]
     timeouts:
-      idle:
-        nanos: 15
-        seconds: 1
-      request:
-        nanos: 10
-        seconds: 1
+      idle: <1s>
+      request: <1s>
 ```
 
 ## Specification
@@ -722,29 +714,23 @@ Specifies timeout logic when routing HTTP traffic
 
 Specifies the total amount of time permitted for the request stream to be idle before a timeout occurs.
 
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+- Data type: String
 
 ### `spec.rules.timeouts.request`
 
 Specifies the total amount of time spent processing the entire downstream request, including retries, before triggering a timeout.
 
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
 #### Values
 
 - Default: None
-- Data type: Map that can contain the following parameters:
-
-  | Parameter | Description                                                      | Data type | Default |
-  | :-------- | :--------------------------------------------------------------- | --------- | ------- |
-  | `nanos`   | Specifies the number of nanoseconds before triggering a timeout. | Integer   | None    |
-  | `seconds` | Specifies the number of seconds before triggering a timeout.     | Integer   | None    |
+- Data type: String
 
 ## Examples
 
