@@ -145,7 +145,7 @@ module.exports = [
   },
   {
     source: '/consul/docs/api-gateway',
-    destination: '/consul/docs/connect/gateways/agi-gateway',
+    destination: '/consul/docs/connect/gateways/api-gateway',
     permanent: true,
   },
   {
