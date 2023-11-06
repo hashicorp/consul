@@ -38,6 +38,18 @@ func Tenancy(s string) *pbresource.Tenancy {
 	}
 }
 
+func ToTenancyString(tenancy *pbresource.Tenancy) string {
+	tenancyString := ""
+	if tenancy.Partition != "" {
+		tenancyString += tenancy.Partition
+	}
+	if tenancy.Namespace != "" {
+		tenancyString += "."
+		tenancyString += tenancy.Namespace
+	}
+	return tenancyString
+}
+
 func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.Tenancy {
 	switch reg.Scope {
 	case resource.ScopeNamespace:
