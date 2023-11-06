@@ -6,6 +6,7 @@ export default class ACLAbility extends BaseAbility {
 
   resource = 'acl';
   segmented = false;
+
   // Access is very similar to read, but when ACLs are disabled you still need
   // access to ACLs in order to see the ACLs disabled page, which is accessing
   // the ACLs area, but without read
