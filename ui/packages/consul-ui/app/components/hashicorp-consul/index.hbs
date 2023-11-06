@@ -15,20 +15,21 @@
             <Hds::Toast
               @color={{if (eq status 'error') 'critical' status}}
               data-notification
-              as |T|>
+              as |T|
+            >
               <T.Title>{{capitalize status}}!</T.Title>
               <T.Description>
                 {{#if (eq type 'logout')}}
                   {{#if (eq status 'success')}}
-                    You are now logged out.
+                    {{t "components.hashicorp-consul.notifications.logged-out"}}
                   {{else}}
-                    There was an error logging out.
+                    {{t "components.hashicorp-consul.notifications.logged-out-error"}}
                   {{/if}}
                 {{else if (eq type 'authorize')}}
                   {{#if (eq status 'success')}}
-                    You are now logged in.
+                    {{t "components.hashicorp-consul.notifications.logged-in"}}
                   {{else}}
-                    There was an error, please check your SecretID/Token
+                    {{t "components.hashicorp-consul.notifications.logged-in-error"}}
                   {{/if}}
                 {{else}}
                   {{#if (or (eq type 'use') (eq flash.model 'token'))}}
@@ -71,137 +72,162 @@
 
   </:notifications>
 
-  <:home-nav>
-    <a class='w-8 h-8' href={{href-to 'index' params=(hash peer=undefined)}}>
-      <FlightIcon @size='24' @name='consul-color' @stretched={{true}} />
-    </a>
-  </:home-nav>
+  <:side-nav>
+    <Hds::SideNav @isResponsive={{false}} class='consul-side-nav' data-test-navigation>
+      <:header>
+        <Hds::SideNav::Header>
+          <:logo>
+            <Hds::SideNav::Header::HomeLink
+              @icon='consul-color'
+              @ariaLabel='Consul'
+              @route='index'
+              @query={{hash peer=undefined}}
+            />
+          </:logo>
+          <:actions>
+            <Hds::Dropdown class='hds-side-nav__dropdown' @listPosition='bottom-left' as |dd|>
+              <dd.ToggleIcon @icon='help' @text='Help & Support menu' />
+              <Debug::Navigation @dropdown={{dd}} />
+              <dd.Interactive
+                @href={{env 'CONSUL_DOCS_URL'}}
+                @isHrefExternal={{true}}
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.docs"}}
+              />
+              <dd.Interactive
+                @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
+                @isHrefExternal={{true}}
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.tutorials"}}
+              />
+              <dd.Interactive
+                @href={{env 'CONSUL_REPO_ISSUES_URL'}}
+                @isHrefExternal={{true}}
+                @text={{t "components.hashicorp-consul.side-nav.support-menu.feedback"}}
+              />
+            </Hds::Dropdown>
 
-  <:main-nav>
-    <Consul::Hcp::Home />
-    <ul>
-      <Consul::Datacenter::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @dcs={{@dcs}}
-      />
-      <Consul::Partition::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @partitions={{this.partitions}}
-        @onchange={{action (mut this.partitions) value='data'}}
-      />
-      <Consul::Nspace::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @nspaces={{this.nspaces}}
-        @onchange={{action (mut this.nspaces) value='data'}}
-      />
-      {{#if (can 'access overview')}}
-        <li
-          data-test-main-nav-overview
-          class={{class-map (array 'is-active' (is-href 'dc.show' @dc.Name))}}
+            <Consul::Token::Selector
+              @dc={{@dc}}
+              @partition={{@partition}}
+              @nspace={{@nspace}}
+              @onchange={{@onchange}}
+              as |selector|
+            >
+              <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
+            </Consul::Token::Selector>
+          </:actions>
+        </Hds::SideNav::Header>
+      </:header>
+      <:body>
+        <Hds::SideNav::List
+          class='hds-side-nav-hide-when-minimized consul-side-nav__selector-group'
+          as |SNL|
         >
-          <Action @href={{href-to 'dc.show' @dc.Name params=(hash peer=undefined)}}>
-            Overview
-          </Action>
-        </li>
-      {{/if}}
-      {{#if (can 'read services')}}
-        <li data-test-main-nav-services class={{if (is-href 'dc.services' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}>Services</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read nodes')}}
-        <li data-test-main-nav-nodes class={{if (is-href 'dc.nodes' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}>Nodes</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read kv')}}
-        <li data-test-main-nav-kvs class={{if (is-href 'dc.kv' @dc.Name) 'is-active'}}>
-          <a href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}>Key/Value</a>
-        </li>
-      {{/if}}
-      {{#if (can 'read intentions')}}
-        <li
-          data-test-main-nav-intentions
-          class={{if (is-href 'dc.intentions' @dc.Name) 'is-active'}}
-        >
-          <a href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}>Intentions</a>
-        </li>
-      {{/if}}
-      <Consul::Acl::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
-      <Consul::Peer::Selector @dc={{@dc}} @partition={{@partition}} @nspace={{@nspace}} />
-    </ul>
-  </:main-nav>
+          <Consul::Hcp::Home @list={{SNL}} />
+          <Consul::Datacenter::Selector
+            @list={{SNL}}
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @dcs={{@dcs}}
+          />
 
-  <:complementary-nav>
-    <ul>
-      <Debug::Navigation />
-      <li data-test-main-nav-help>
-        <DisclosureMenu as |disclosure|>
-          <disclosure.Action {{on 'click' disclosure.toggle}}>
-            Help
-          </disclosure.Action>
-          <disclosure.Menu as |panel|>
-            <panel.Menu as |menu|>
-              <menu.Separator>
-                Consul v{{env 'CONSUL_VERSION'}}
-              </menu.Separator>
-              <menu.Item class='docs-link'>
-                <menu.Action @href={{env 'CONSUL_DOCS_URL'}} @external={{true}}>
-                  Documentation
-                </menu.Action>
-              </menu.Item>
-              <menu.Item class='learn-link'>
-                <menu.Action
-                  @href={{concat (env 'CONSUL_DOCS_LEARN_URL') '/consul'}}
-                  @external={{true}}
-                >
-                  HashiCorp Learn
-                </menu.Action>
-              </menu.Item>
-              <menu.Separator />
-              <menu.Item class='feedback-link'>
-                <menu.Action @href={{env 'CONSUL_REPO_ISSUES_URL'}} @external={{true}}>
-                  Provide Feedback
-                </menu.Action>
-              </menu.Item>
-            </panel.Menu>
-          </disclosure.Menu>
-        </DisclosureMenu>
-      </li>
-      <li data-test-main-nav-settings class={{if (is-href 'settings') 'is-active'}}>
-        <a href={{href-to 'settings' params=(hash nspace=undefined partition=undefined)}}>
-          Settings
-        </a>
-      </li>
-      <Consul::Token::Selector
-        @dc={{@dc}}
-        @partition={{@partition}}
-        @nspace={{@nspace}}
-        @onchange={{@onchange}}
-        as |selector|
-      >
-        <Ref @target={{this}} @name='tokenSelector' @value={{selector}} />
-      </Consul::Token::Selector>
-    </ul>
-  </:complementary-nav>
+          <Consul::Partition::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @partitions={{this.partitions}}
+            @list={{SNL}}
+            @onchange={{action (mut this.partitions) value='data'}}
+          />
+          <Consul::Nspace::Selector
+            @list={{SNL}}
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @nspaces={{this.nspaces}}
+            @onchange={{action (mut this.nspaces) value='data'}}
+          />
+        </Hds::SideNav::List>
+        <Hds::SideNav::List class='hds-side-nav-hide-when-minimized' as |SNL|>
+          {{#if (can 'access overview')}}
+            <SNL.Link
+              @text={{t "components.hashicorp-consul.side-nav.overview"}}
+              @route='dc.show'
+              @models={{array @dc.Name}}
+              @query={{hash peer=undefined}}
+              @isActive={{is-href 'dc.show' @dc.Name}}
+              data-test-main-nav-overview
+            />
+          {{/if}}
+          {{#if (can 'read services')}}
+            <SNL.Link
+              @text={{t "components.hashicorp-consul.side-nav.services"}}
+              @href={{href-to 'dc.services' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
+              @isActive={{is-href 'dc.services' @dc.Name}}
+              data-test-main-nav-services
+            />
+          {{/if}}
+          {{#if (can 'read nodes')}}
+            <SNL.Link
+              @text={{t "components.hashicorp-consul.side-nav.nodes"}}
+              @href={{href-to 'dc.nodes' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
+              @isActive={{is-href 'dc.nodes' @dc.Name}}
+              data-test-main-nav-nodes
+            />
+          {{/if}}
+          {{#if (can 'read kv')}}
+            <SNL.Link
+              @text={{t "components.hashicorp-consul.side-nav.kv"}}
+              @href={{href-to 'dc.kv' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
+              @isActive={{is-href 'dc.kv' @dc.Name}}
+              data-test-main-nav-kv
+            />
+          {{/if}}
+          {{#if (can 'read intentions')}}
+            <SNL.Link
+              @text={{t "components.hashicorp-consul.side-nav.intentions"}}
+              @href={{href-to 'dc.intentions' @dc.Name params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
+              @isActive={{is-href 'dc.intentions' @dc.Name}}
+              data-test-main-nav-intentions
+            />
+          {{/if}}
+
+          <Consul::Acl::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @list={{SNL}}
+          />
+          <Consul::Peer::Selector
+            @dc={{@dc}}
+            @partition={{@partition}}
+            @nspace={{@nspace}}
+            @list={{SNL}}
+          />
+        </Hds::SideNav::List>
+      </:body>
+      <:footer>
+        <footer role='contentinfo' data-test-footer>
+          <Hds::Text::Display
+            class='hds-side-nav-hide-when-minimized'
+            @size='100'
+            @color='disabled'
+          >
+            {{t "components.hashicorp-consul.side-nav.footer" version=(env 'CONSUL_VERSION')}}
+          </Hds::Text::Display>
+          {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
+        </footer>
+      </:footer>
+    </Hds::SideNav>
+  </:side-nav>
 
   <:main>
     {{yield
       (hash login=(if this.tokenSelector this.tokenSelector (hash open=undefined close=undefined)))
     }}
   </:main>
-
-  <:content-info>
-    <p>
-      Consul v{{env 'CONSUL_VERSION'}}
-    </p>
-    {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
-  </:content-info>
-
 </App>

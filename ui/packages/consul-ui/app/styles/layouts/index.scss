@@ -6,7 +6,7 @@
 // workaround bulma's sweeping box-sizing
 
 %viewport-container {
-  box-sizing: content-box;
+  box-sizing: border-box;
 }
 %modal-dialog > *,
 %content-container > * {
@@ -14,10 +14,6 @@
 }
 %content-container-restricted {
   max-width: 1260px;
-}
-%viewport-container {
-  padding-left: 48px;
-  padding-right: 48px;
 }
 
 fieldset [role='group'] {
