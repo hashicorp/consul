@@ -134,6 +134,10 @@ Use these links to navigate to a particular top-level stanza.
 
     - `vault` ((#v-global-secretsbackend-vault))
 
+      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
+        agent annotation and [Vault Connect CA namespace](https://developer.hashicorp.com/consul/docs/connect/ca/vault#namespace).
+        To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
+
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
@@ -235,7 +239,6 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "namespace": "my-vault-ns",
                      "leaf_cert_ttl": "36h"
                   }]
               }]
@@ -2359,8 +2362,9 @@ Use these links to navigate to a particular top-level stanza.
 
   - `gateways` ((#v-ingressgateways-gateways)) (`array<map>`) - Gateways is a list of gateway objects. The only required field for
     each is `name`, though they can also contain any of the fields in
-    `defaults`. Values defined here override the defaults except in the
-    case of annotations where both will be applied.
+    `defaults`. You must provide a unique name for each ingress gateway. These names 
+    must be unique across different namespaces. 
+    Values defined here override the defaults, except in the case of annotations where both will be applied.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
@@ -2636,7 +2640,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `logLevel` ((#v-telemetrycollector-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
-  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.1`) - The name of the Docker image (including any tag) for the containers running
+  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.2`) - The name of the Docker image (including any tag) for the containers running
     the consul-telemetry-collector
 
   - `resources` ((#v-telemetrycollector-resources)) (`map`) - The resource settings for consul-telemetry-collector pods.

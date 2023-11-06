@@ -5,10 +5,8 @@ name: frontend
 
 on:
   push:
-    branches:
-      - main
+    paths:
       - ui/**
-      - backport/ui/**
 
 permissions:
   contents: read
@@ -39,7 +37,7 @@ jobs:
 
     - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
       with:
-        node-version: '16'
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn
@@ -59,7 +57,7 @@ jobs:
 
     - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
       with:
-        node-version: '16'
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn
@@ -88,7 +86,7 @@ jobs:
 
     - uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # pin@v3.6.0
       with:
-        node-version: '16'
+        node-version: '14'
 
     - name: Install Yarn
       run: npm install -g yarn

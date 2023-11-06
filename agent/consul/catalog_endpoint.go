@@ -593,11 +593,12 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			if len(args.NodeMetaFilters) > 0 {
 				reply.Index, serviceNodes, err = state.ServicesByNodeMeta(ws, args.NodeMetaFilters, &args.EnterpriseMeta, args.PeerName)
 			} else {
-				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName)
+				reply.Index, serviceNodes, err = state.Services(ws, &args.EnterpriseMeta, args.PeerName, args.Filter != "")
 			}
 			if err != nil {
 				return err
 			}
+
 			if isUnmodified(args.QueryOptions, reply.Index) {
 				reply.Services = nil
 				reply.QueryMeta.NotModified = true

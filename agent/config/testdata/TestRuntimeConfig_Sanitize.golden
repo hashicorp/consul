@@ -207,6 +207,8 @@
     "GRPCPort": 0,
     "GRPCTLSAddrs": [],
     "GRPCTLSPort": 0,
+    "GRPCKeepaliveInterval": "0s",
+    "GRPCKeepaliveTimeout": "0s",
     "GossipLANGossipInterval": "0s",
     "GossipLANGossipNodes": 0,
     "GossipLANProbeInterval": "0s",

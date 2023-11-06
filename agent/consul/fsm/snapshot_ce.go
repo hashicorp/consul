@@ -14,8 +14,7 @@ import (
 )
 
 func init() {
-	registerPersister(persistCE)
-
+	cePersister = persistCE
 	registerRestorer(structs.RegisterRequestType, restoreRegistration)
 	registerRestorer(structs.KVSRequestType, restoreKV)
 	registerRestorer(structs.TombstoneRequestType, restoreTombstone)

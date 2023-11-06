@@ -7,8 +7,9 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/hashicorp/consul/agent/xds/testcommon"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/consul/agent/xds/testcommon"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	testinf "github.com/mitchellh/go-testing-interface"
@@ -17,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 )
@@ -917,6 +919,44 @@ func TestListenersFromSnapshot(t *testing.T) {
 					{
 						CorrelationID: "service-leaf:" + api.String(), // serviceLeafIDPrefix
 						Result:        nil,                            // tombstone this
+					},
+				})
+			},
+		},
+		{
+			name: "terminating-gateway-with-peer-trust-bundle",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				roots, _ := proxycfg.TestCerts(t)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peer-trust-bundle:web",
+						Result: &pbpeering.TrustBundleListByServiceResponse{
+							Bundles: []*pbpeering.PeeringTrustBundle{
+								{
+									TrustDomain: "foo.bar.gov",
+									PeerName:    "dc2",
+									Partition:   "default",
+									RootPEMs: []string{
+										roots.Roots[0].RootCert,
+									},
+									ExportedPartition: "default",
+									CreateIndex:       0,
+									ModifyIndex:       0,
+								},
+							},
+						},
+					},
+					{
+						CorrelationID: "service-intentions:web",
+						Result: structs.Intentions{
+							{
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
+							},
+						},
 					},
 				})
 			},
