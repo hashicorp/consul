@@ -5,15 +5,15 @@
 
 {{#let @list as |SNL|}}
   {{#if (gt @dcs.length 1)}}
-    <SNL.Title class='consul-side-nav__selector-title'>Datacenter</SNL.Title>
+    <SNL.Title class='consul-side-nav__selector-title'>{{t "components.hashicorp-consul.side-nav.datacenters.title"}}</SNL.Title>
     <NavSelector
       @list={{SNL}}
       @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
       @item={{@dc}}
       @key='Name'
       @icon='server-cluster'
-      @placeholder='Search datacenters'
-      @description="WAN federated datacenters"
+      @placeholder={{t "components.hashicorp-consul.side-nav.datacenters.placeholder"}}
+      @description={{t "components.hashicorp-consul.side-nav.datacenters.description"}}
       class='consul-datacenter-selector'
       data-test-datacenter-menu
       as |Dropdown item|
