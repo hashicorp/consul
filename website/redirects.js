@@ -162,7 +162,7 @@ module.exports = [
   {
     source: '/consul/docs/api-gateway/usage/route-to-peered-services',
     destination:
-      '/consul/docs/connect/gateways/api-gateway/route-to-peered-services',
+      '/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services',
     permanent: true,
   },
   {
@@ -182,8 +182,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/api-gateway/configuration/',
-    destination: '/consul/docs/connect/gateways/api-gateway/configuration/',
+    source: '/consul/docs/api-gateway/configuration',
+    destination: '/consul/docs/connect/gateways/api-gateway/configuration',
     permanent: true,
   },
   {
