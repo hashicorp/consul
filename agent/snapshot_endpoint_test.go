@@ -71,6 +71,7 @@ func TestSnapshot_Options(t *testing.T) {
 		t.Run(method, func(t *testing.T) {
 			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			body := bytes.NewBuffer(nil)
 			req, _ := http.NewRequest(method, "/v1/snapshot", body)
@@ -85,6 +86,7 @@ func TestSnapshot_Options(t *testing.T) {
 		t.Run(method, func(t *testing.T) {
 			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			body := bytes.NewBuffer(nil)
 			req, _ := http.NewRequest(method, "/v1/snapshot?dc=nope", body)
@@ -98,6 +100,7 @@ func TestSnapshot_Options(t *testing.T) {
 		t.Run(method, func(t *testing.T) {
 			a := NewTestAgent(t, TestACLConfig())
 			defer a.Shutdown()
+			testrpc.WaitForLeader(t, a.RPC, "dc1")
 
 			body := bytes.NewBuffer(nil)
 			req, _ := http.NewRequest(method, "/v1/snapshot?stale", body)
