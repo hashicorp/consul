@@ -1,53 +1,5 @@
 {
   "nonce": "00000001",
-  "resources": [
-    {
-      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "exposed_path_filter_health1_21500",
-      "validateClusters": true,
-      "virtualHosts": [
-        {
-          "domains": [
-            "*"
-          ],
-          "name": "exposed_path_filter_health1_21500",
-          "routes": [
-            {
-              "match": {
-                "path": "/health1"
-              },
-              "route": {
-                "cluster": "local_app"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "exposed_path_filter_health2_21501",
-      "validateClusters": true,
-      "virtualHosts": [
-        {
-          "domains": [
-            "*"
-          ],
-          "name": "exposed_path_filter_health2_21501",
-          "routes": [
-            {
-              "match": {
-                "path": "/health2"
-              },
-              "route": {
-                "cluster": "local_app"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "versionInfo": "00000001"
 }
