@@ -10,9 +10,8 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
-
-type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]
 
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
@@ -24,13 +23,17 @@ func RegisterDNSPolicy(r resource.Registry) {
 	})
 }
 
-var ValidateDNSPolicy = resource.DecodeAndValidate(validateDNSPolicy)
+func ValidateDNSPolicy(res *pbresource.Resource) error {
+	var policy pbcatalog.DNSPolicy
 
-func validateDNSPolicy(res *DecodedDNSPolicy) error {
+	if err := res.Data.UnmarshalTo(&policy); err != nil {
+		return resource.NewErrDataParse(&policy, err)
+	}
+
 	var err error
 	// Ensure that this resource isn't useless and is attempting to
 	// select at least one workload.
-	if selErr := ValidateSelector(res.Data.Workloads, false); selErr != nil {
+	if selErr := ValidateSelector(policy.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -38,7 +41,7 @@ func validateDNSPolicy(res *DecodedDNSPolicy) error {
 	}
 
 	// Validate the weights
-	if weightErr := validateDNSPolicyWeights(res.Data.Weights); weightErr != nil {
+	if weightErr := validateDNSPolicyWeights(policy.Weights); weightErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "weights",
 			Wrapped: weightErr,

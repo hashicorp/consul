@@ -4,71 +4,71 @@
  */
 
 %hashicorp-consul {
-  .consul-side-nav {
-    li.consul-disabled-nav {
-      width: 100%;
-      min-height: var(--token-side-nav-body-list-item-height);
-      padding: var(--token-side-nav-body-list-item-padding-vertical)
-        var(--token-side-nav-body-list-item-padding-horizontal);
-      color: var(--token-color-foreground-disabled);
-    }
+  nav .dcs {
+    @extend %main-nav-vertical-hoisted;
+    left: 100px;
 
-    li.consul-side-nav__selector {
-      .consul-side-nav__selector-toggle {
-        min-width: 15.5rem;
-
-        &:disabled {
-          color: var(--token-color-foreground-disabled);
-          border-color: var(--token-color-border-primary);
-
-          &:hover {
-            background-color: transparent;
-          }
-        }
-      }
-
-      .hds-dropdown__content {
-        min-width: 15.5rem;
-        max-height: 500px;
-      }
-    }
-
-    .hds-side-nav__wrapper-body {
-      overflow-y: unset;
-      overflow-x: unset;
-    }
-
-    li.consul-side-nav__datacenter {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-      padding-left: 0.5rem;
-    }
-
-    .consul-side-nav__selector-group {
-      margin-bottom: 1.5rem;
-    }
-
-    .consul-datacenter-selector__dc-name {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      .consul-datacenter-selector__badges {
-        display: flex;
-        gap: 0.25rem;
-      }
-    }
-
-    .consul-side-nav__selector-title {
-      margin-top: 0.5rem;
-    }
-
-    .consul-side-nav__selector-description {
-      padding-top: 0.5rem;
+    .dcs-message {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--token-color-foreground-disabled);
+      max-width: fit-content;
+      background-color: var(--token-color-hashicorp-brand);
+      color: var(--token-color-palette-neutral-300);
     }
   }
-}
+  nav .dcs li.is-primary span,
+  nav .dcs li.is-local span {
+    @extend %menu-panel-badge;
+  }
+  nav .dcs .dc-name {
+    color: var(--token-color-foreground-faint);
+    padding: 3.25px 0px;
+    font-weight: var(--token-typography-font-weight-semibold);
+  }
+  nav .dcs .dc-name span {
+    @extend %pill-200;
+    margin-left: 1rem;
+    background-color: var(--token-color-palette-neutral-300);
+    color: var(--token-color-hashicorp-brand);
+  }
+  nav li.partitions,
+  nav li.nspaces {
+    @extend %main-nav-vertical-popover-menu;
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    min-width: 250px;
+  }
+  nav li.dcs [aria-expanded] ~ * {
+    max-height: 560px;
+    --paged-row-height: 43px;
+  }
+  nav li.partitions [aria-expanded] ~ *,
+  nav li.nspaces [aria-expanded] ~ * {
+    max-height: 360px;
+    --paged-row-height: 43px;
+  }
 
+  [role='banner'] a svg {
+    fill: var(--token-color-consul-brand);
+  }
+  .docs-link a::after {
+    @extend %with-docs-mask, %as-pseudo;
+  }
+  .learn-link a::after {
+    @extend %with-learn-mask, %as-pseudo;
+  }
+  .feedback-link a::after {
+    @extend %with-logo-github-monochrome-mask, %as-pseudo;
+  }
+  .acls-separator span {
+    @extend %led-icon;
+    color: var(--token-color-foreground-critical);
+    display: inline-block;
+    position: relative;
+    top: 2px;
+    margin-left: 2px;
+  }
+}
 .hashicorp-consul {
   @extend %hashicorp-consul;
 }

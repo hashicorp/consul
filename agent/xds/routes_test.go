@@ -34,6 +34,20 @@ type routeTestCase struct {
 func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
 	return []routeTestCase{
 		{
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
 			name: "connect-proxy-splitter-overweight",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-overweight", enterprise, nil, nil)

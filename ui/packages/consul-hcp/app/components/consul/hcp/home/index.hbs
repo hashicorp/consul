@@ -3,14 +3,11 @@
   SPDX-License-Identifier: BUSL-1.1
 }}
 
-{{#let @list (env "CONSUL_HCP_URL") as |SNL hcpUrl|}}
-  {{log hcpUrl}}
-  {{#if (and SNL hcpUrl)}}
-    <SNL.BackLink
-      @text={{t "components.hashicorp-consul.side-nav.hcp"}}
-      @href={{hcpUrl}}
-      @isHrefExternal={{true}}
-      data-test-back-to-hcp
-    />
-  {{/if}}
-{{/let}}
+<div
+  class="consul-hcp-home"
+  ...attributes
+>
+  <a href={{env 'CONSUL_HCP_URL'}} data-native-href="true">
+    Back to HCP
+  </a>
+</div>

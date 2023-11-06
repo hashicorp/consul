@@ -8,6 +8,7 @@
 @import 'consul-ui/components/anchors';
 @import 'consul-ui/components/auth-form';
 @import 'consul-ui/components/auth-modal';
+@import 'consul-ui/components/auth-profile';
 @import 'consul-ui/components/breadcrumbs';
 @import 'consul-ui/components/buttons';
 @import 'consul-ui/components/card';
@@ -52,8 +53,12 @@
 @import 'consul-ui/components/route/title';
 @import 'consul-ui/components/app-view';
 @import 'consul-ui/components/brand-loader';
+@import 'consul-ui/components/skip-links';
 @import 'consul-ui/components/app';
 /* app chrome */
+@import 'consul-ui/components/main-header-horizontal';
+@import 'consul-ui/components/main-nav-horizontal';
+@import 'consul-ui/components/main-nav-vertical';
 @import 'consul-ui/components/hashicorp-consul';
 /**/
 @import 'consul-ui/components/menu-panel';
@@ -108,4 +113,5 @@
 @import 'consul-ui/components/consul/node/peer-info';
 @import 'consul-ui/components/consul/peer/info';
 @import 'consul-ui/components/consul/peer/form';
+@import 'consul-ui/components/consul/hcp/home';
 @import 'consul-ui/components/consul/node/agentless-notice';
