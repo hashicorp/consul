@@ -60,7 +60,7 @@ func TestCatalogUpgrade(t *testing.T) {
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers:                1,
 		BuildOpts:                 buildOpts,
-		ApplyDefaultProxySettings: true,
+		ApplyDefaultProxySettings: false,
 		Cmd:                       `-hcl=experiments=["resource-apis"]`,
 	})
 
