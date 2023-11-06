@@ -103,9 +103,10 @@ html:not(.has-partitions) [class*='partition-'] {
   @extend %viewport-container;
   display: flex;
   min-height: 100vh;
-  flex-direction: column;
 }
+
 main {
+  padding: 0 48px;
   position: relative;
   flex: 1;
 }
