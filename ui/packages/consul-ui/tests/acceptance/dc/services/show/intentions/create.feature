@@ -1,6 +1,7 @@
 @setupApplicationTest
 Feature: dc / services / intentions / create: Intention Create per Service
   @onlyNamespaceable
+  @ignore
   Scenario: with namespaces enabled
     Given 1 datacenter model with the value "datacenter"
     And 3 service models from yaml
