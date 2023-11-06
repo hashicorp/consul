@@ -37,7 +37,7 @@ import (
 var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	reg, err := s.validateWriteRequest(req)
+	reg, err := s.ensureWriteRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +265,7 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.Registration, error) {
+func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Resource == nil:

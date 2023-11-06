@@ -61,6 +61,11 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
+		if !structs.IsProtocolHTTPLike(chain.Protocol) {
+			// Routes can only be defined for HTTP services
+			continue
+		}
+
 		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false, perRouteFilterBuilder{})
 		if err != nil {
 			return nil, err

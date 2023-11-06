@@ -13,11 +13,11 @@ For every release of Consul on Kubernetes, a Helm chart, `consul-k8s-control-pla
 
 Consul Kubernetes versions all of its components (`consul-k8s` CLI, `consul-k8s-control-plane`, and Helm chart) with a single semantic version. When installing or upgrading to a specific versions, ensure that you are using the correct Consul version with the compatible Helm chart or `consul-k8s` CLI.
 
-| Consul version | Compatible `consul-k8s` versions | Compatible Kubernetes versions | Compatible OpenShift versions |
-| -------------- | -------------------------------- | -------------------------------| ----------------------------- |
-| 1.16.x         | 1.2.x                            | 1.24.x - 1.27.x                | 4.11.x - 4.14.x               |
-| 1.15.x         | 1.1.x                            | 1.23.x - 1.26.x                | 4.10.x - 4.13.x               |
-| 1.14.x         | 1.0.x                            | 1.22.x - 1.25.x                | 4.9.x - 4.12.x                |
+| Consul version | Compatible `consul-k8s` versions | Compatible Kubernetes versions | Compatible OpenShift versions          |
+| -------------- | -------------------------------- | -------------------------------| -------------------------------------- |
+| 1.17.x         | 1.3.x                            | 1.25.x - 1.28.x                | 4.12.x - 4.14.x (4.15.x not available) |
+| 1.16.x         | 1.2.x                            | 1.24.x - 1.27.x                | 4.11.x - 4.14.x                        |
+| 1.15.x         | 1.1.x                            | 1.23.x - 1.26.x                | 4.10.x - 4.13.x                        |
 
 ### Version-specific upgrade requirements
 
@@ -48,6 +48,5 @@ You can enable support for Red Hat OpenShift by setting `enabled: true` in the `
 Consul Kubernetes is [certified](https://marketplace.cloud.vmware.com/services/details/hashicorp-consul-1?slug=true) for both VMware Tanzu Kubernetes Grid, and VMware Tanzu Kubernetes Integrated Edition.
 
 - Tanzu Kubernetes Grid is certified for version 1.3.0 and above. Only Calico is supported as the CNI Plugin.
-- Tanzu Kubernetes Grid Integrated Edition is supported for version 1.11.1 and above. **NOTE:** When deploying Consul K8s 0.49.x and below, [NSX-T CNI Plugin v3.1.2](https://docs.vmware.com/en/VMware-NSX-T-Data-Center/3.1/rn/NSX-Container-Plugin-312-Release-Notes.html) and greater should be used and configured with the `enable_hostport_snat` setting set to `true`.
 
 

@@ -3,4 +3,4 @@
 
 package topology
 
-const DefaultEnvoyImage = "envoyproxy/envoy:v1.25.1"
+//go:generate ../update-latest-versions.sh

@@ -248,20 +248,6 @@ type endpointTestCase struct {
 func makeEndpointDiscoChainTests(enterprise bool) []endpointTestCase {
 	return []endpointTestCase{
 		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
 			name: "connect-proxy-with-chain-and-overrides",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
