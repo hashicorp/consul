@@ -113,7 +113,7 @@ jobs:
       - name: Ember Test CE
         id: cache
         working-directory: ./ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
+        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r dot
 
   frontend-build-ent:
     runs-on: ubuntu-latest
@@ -185,7 +185,7 @@ jobs:
       - name: Ember Test ENT
         id: cache
         working-directory: ./ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
+        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r dot
 
   frontend-test-coverage-ent:
     runs-on: ubuntu-latest

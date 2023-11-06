@@ -154,6 +154,11 @@ OSS only tests can also be run using:
 * `make test-oss` or `yarn run test:oss`
 * `make test-oss-view` or `yarn run test:oss:view` to view the tests running in Chrome
 
+All none `--server` flagged tests are marked to run in `--silent` mode with `--reporter` set to `dot`.
+This limits the noise printed to the console and makes it easier to identify the test failures.
+Should you want to run the tests with this deprecation output enabled, remove the `--silent` flag 
+and replace `--reporter dot` with `--reporter xunit`.
+
 ### Linting
 
 `make lint` currently runs linting on the majority of js files and hbs files (using `ember-template-lint`).
