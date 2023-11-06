@@ -48,7 +48,7 @@ Create a `GatewayPolicy` values file and configure the following fields to defin
 
 Create an `RouteAuthFilter` values file and configure the following fields. Refer to [`RouteAuthFilter` configuration reference](/consul/docs/connect/gateways/api-gateway/configuration/routeauthfilter) for details.  
 
-- `kind`: Must be set to `HTTRouteAuthFilter`
+- `kind`: Must be set to `HTTPRouteAuthFilter`
 - `metadata.name`: Specifies a name for the filter.
 - `metadata.namespace`: Specifies the Consul namespace the filter applies to.
 - `spec.jwt.providers`: Specifies a list of providers and claims used to verify requests to the gateway. The override settings take precedence over the default and route-specific JWT verification settings. 

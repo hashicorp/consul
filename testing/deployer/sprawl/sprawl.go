@@ -235,6 +235,32 @@ func (s *Sprawl) Relaunch(
 	return nil
 }
 
+// SnapshotSave saves a snapshot of a cluster and restore with the snapshot
+func (s *Sprawl) SnapshotSave(clusterName string) error {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return fmt.Errorf("no such cluster: %s", clusterName)
+	}
+	var (
+		client = s.clients[cluster.Name]
+	)
+	snapshot := client.Snapshot()
+	snap, _, err := snapshot.Save(nil)
+	if err != nil {
+		return fmt.Errorf("error saving snapshot: %w", err)
+	}
+	s.logger.Info("snapshot saved")
+	time.Sleep(3 * time.Second)
+	defer snap.Close()
+
+	// Restore the snapshot.
+	if err := snapshot.Restore(nil, snap); err != nil {
+		return fmt.Errorf("error restoring snapshot: %w", err)
+	}
+	s.logger.Info("snapshot restored")
+	return nil
+}
+
 // Leader returns the cluster leader agent, or an error if no leader is
 // available.
 func (s *Sprawl) Leader(clusterName string) (*topology.Node, error) {
