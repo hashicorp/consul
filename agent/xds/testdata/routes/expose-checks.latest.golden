@@ -1,30 +1,5 @@
 {
   "nonce": "00000001",
-  "resources": [
-    {
-      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "exposed_path_filter_debug_21500",
-      "validateClusters": true,
-      "virtualHosts": [
-        {
-          "domains": [
-            "*"
-          ],
-          "name": "exposed_path_filter_debug_21500",
-          "routes": [
-            {
-              "match": {
-                "path": "/debug"
-              },
-              "route": {
-                "cluster": "exposed_cluster_8181"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "versionInfo": "00000001"
 }
