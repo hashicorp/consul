@@ -12,7 +12,7 @@ func RegisterMeshGateway(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.MeshGatewayType,
 		Proto:    &pbmesh.MeshGateway{},
-		Scope:    resource.ScopeCluster,
+		Scope:    resource.ScopePartition,
 		ACLs:     nil, // TODO NET-6423
 		Mutate:   nil, // TODO NET-6425
 		Validate: nil, // TODO NET-6424

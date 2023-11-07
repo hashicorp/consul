@@ -8,5 +8,5 @@ package hashicorp.consul.mesh.v2beta1;
 import "pbresource/annotations.proto";
 
 message MeshGateway {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
 }
