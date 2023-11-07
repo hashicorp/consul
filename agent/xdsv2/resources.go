@@ -58,6 +58,21 @@ func (g *ResourceGenerator) AllResourcesFromIR(proxyState *proxytracker.ProxySta
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate xDS resources for ProxyState: %v", err)
 	}
+
+	// Now account for Clusters that did not have a destination.
+	for name, cluster := range proxyState.Clusters {
+		if _, ok := pr.envoyResources[xdscommon.ClusterType][name]; !ok {
+			envoyClusters, err := pr.makeClusters(name)
+			if err != nil {
+				return nil, fmt.Errorf("failed to generate xDS resources for cluster: %s.  error: %v", cluster, err)
+			}
+
+			for name, envoyCluster := range envoyClusters {
+				pr.envoyResources[xdscommon.ClusterType][name] = envoyCluster
+			}
+		}
+	}
+
 	envoyResources := convertResourceMapsToResourceArrays(pr.envoyResources)
 	return envoyResources, nil
 }
