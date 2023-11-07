@@ -11,11 +11,7 @@ import (
 
 func clusterPrefixForUpstream(u *topology.Upstream) string {
 	if u.Peer == "" {
-		if u.ID.PartitionOrDefault() == "default" {
-			return strings.Join([]string{u.PortName, u.ID.Name, u.ID.Namespace, u.Cluster, "internal"}, ".")
-		} else {
-			return strings.Join([]string{u.PortName, u.ID.Name, u.ID.Namespace, u.ID.Partition, u.Cluster, "internal-v1"}, ".")
-		}
+		return clusterPrefix(u.PortName, u.ID, u.Cluster)
 	} else {
 		return strings.Join([]string{u.ID.Name, u.ID.Namespace, u.Peer, "external"}, ".")
 	}
