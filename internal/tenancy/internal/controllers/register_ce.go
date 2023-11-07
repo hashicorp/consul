@@ -9,6 +9,6 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 )
 
-func Register(mgr *controller.Manager) {
+func Register(mgr *controller.Manager, deps Dependencies) {
 	//mgr.Register(namespace.NamespaceController())
 }
