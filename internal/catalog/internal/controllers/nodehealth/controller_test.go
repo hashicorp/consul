@@ -63,11 +63,11 @@ type nodeHealthControllerTestSuite struct {
 
 	ctl nodeHealthReconciler
 
-	nodeNoHealth    map[string]*pbresource.ID
-	nodePassing     map[string]*pbresource.ID
-	nodeWarning     map[string]*pbresource.ID
-	nodeCritical    map[string]*pbresource.ID
-	nodeMaintenance map[string]*pbresource.ID
+	nodeNoHealth    *pbresource.ID
+	nodePassing     *pbresource.ID
+	nodeWarning     *pbresource.ID
+	nodeCritical    *pbresource.ID
+	nodeMaintenance *pbresource.ID
 	isEnterprise    bool
 	tenancies       []*pbresource.Tenancy
 }
@@ -132,8 +132,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeNoHealth[tenancyString])
+
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeNoHealth)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
 	})
@@ -141,8 +141,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoStatus() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthPassingStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodePassing[tenancyString])
+
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodePassing)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_PASSING, health)
 	})
@@ -150,8 +150,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthPassingStatus() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthCriticalStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeCritical[tenancyString])
+
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeCritical)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
@@ -159,8 +159,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthCriticalStatus() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthWarningStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeWarning[tenancyString])
+
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeWarning)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_WARNING, health)
 	})
@@ -168,8 +168,8 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthWarningStatus() {
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthMaintenanceStatus() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeMaintenance[tenancyString])
+
+		health, err := getNodeHealth(context.Background(), suite.runtime, suite.nodeMaintenance)
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_MAINTENANCE, health)
 	})
@@ -233,8 +233,8 @@ func (suite *nodeHealthControllerTestSuite) testReconcileStatus(id *pbresource.I
 
 func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusPassing() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		suite.testReconcileStatus(suite.nodePassing[tenancyString], &pbresource.Condition{
+
+		suite.testReconcileStatus(suite.nodePassing, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_TRUE,
 			Reason:  "HEALTH_PASSING",
@@ -245,8 +245,8 @@ func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusPassing() {
 
 func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusWarning() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		suite.testReconcileStatus(suite.nodeWarning[tenancyString], &pbresource.Condition{
+
+		suite.testReconcileStatus(suite.nodeWarning, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_FALSE,
 			Reason:  "HEALTH_WARNING",
@@ -257,8 +257,8 @@ func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusWarning() {
 
 func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusCritical() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		suite.testReconcileStatus(suite.nodeCritical[tenancyString], &pbresource.Condition{
+
+		suite.testReconcileStatus(suite.nodeCritical, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_FALSE,
 			Reason:  "HEALTH_CRITICAL",
@@ -269,8 +269,8 @@ func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusCritical() {
 
 func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusMaintenance() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		suite.testReconcileStatus(suite.nodeMaintenance[tenancyString], &pbresource.Condition{
+
+		suite.testReconcileStatus(suite.nodeMaintenance, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_FALSE,
 			Reason:  "HEALTH_MAINTENANCE",
@@ -281,15 +281,15 @@ func (suite *nodeHealthControllerTestSuite) TestReconcile_StatusMaintenance() {
 
 func (suite *nodeHealthControllerTestSuite) TestReconcile_AvoidRereconciliationWrite() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
-		res1 := suite.testReconcileStatus(suite.nodeWarning[tenancyString], &pbresource.Condition{
+
+		res1 := suite.testReconcileStatus(suite.nodeWarning, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_FALSE,
 			Reason:  "HEALTH_WARNING",
 			Message: NodeUnhealthyMessage,
 		})
 
-		res2 := suite.testReconcileStatus(suite.nodeWarning[tenancyString], &pbresource.Condition{
+		res2 := suite.testReconcileStatus(suite.nodeWarning, &pbresource.Condition{
 			Type:    StatusConditionHealthy,
 			State:   pbresource.Condition_STATE_FALSE,
 			Reason:  "HEALTH_WARNING",
@@ -321,7 +321,7 @@ func (suite *nodeHealthControllerTestSuite) waitForReconciliation(id *pbresource
 }
 func (suite *nodeHealthControllerTestSuite) TestController() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
+
 		// create the controller manager
 		mgr := controller.NewManager(suite.resourceClient, testutil.Logger(suite.T()))
 
@@ -335,11 +335,11 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 		go mgr.Run(ctx)
 
 		// ensure that the node health eventually gets set.
-		suite.waitForReconciliation(suite.nodePassing[tenancyString], "HEALTH_PASSING")
+		suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
 		// rewrite the resource - this will cause the nodes health
 		// to be rereconciled but wont result in any health change
-		resourcetest.Resource(pbcatalog.NodeType, suite.nodePassing[tenancyString].Name).
+		resourcetest.Resource(pbcatalog.NodeType, suite.nodePassing.Name).
 			WithData(suite.T(), &pbcatalog.Node{
 				Addresses: []*pbcatalog.NodeAddress{
 					{
@@ -351,15 +351,15 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 			Write(suite.T(), suite.resourceClient)
 
 		// wait for rereconciliation to happen
-		suite.waitForReconciliation(suite.nodePassing[tenancyString], "HEALTH_PASSING")
+		suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
 		resourcetest.Resource(pbcatalog.HealthStatusType, "failure").
 			WithData(suite.T(), &pbcatalog.HealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
-			WithOwner(suite.nodePassing[tenancyString]).
+			WithOwner(suite.nodePassing).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.resourceClient)
 
-		suite.waitForReconciliation(suite.nodePassing[tenancyString], "HEALTH_CRITICAL")
+		suite.waitForReconciliation(suite.nodePassing, "HEALTH_CRITICAL")
 	})
 }
 
@@ -371,74 +371,96 @@ func (suite *nodeHealthControllerTestSuite) appendTenancyInfo(tenancy *pbresourc
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
-func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancies []*pbresource.Tenancy) {
+func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbresource.Tenancy) {
 
 	// The rest of the setup will be to prime the resource service with some data
-	suite.nodeNoHealth = make(map[string]*pbresource.ID)
-	suite.nodePassing = make(map[string]*pbresource.ID)
-	suite.nodeWarning = make(map[string]*pbresource.ID)
-	suite.nodeCritical = make(map[string]*pbresource.ID)
-	suite.nodeMaintenance = make(map[string]*pbresource.ID)
+	suite.nodeNoHealth = suite.writeNode("test-node-no-health", tenancy)
+	suite.nodePassing = suite.writeNode("test-node-passing", tenancy)
+	suite.nodeWarning = suite.writeNode("test-node-warning", tenancy)
+	suite.nodeCritical = suite.writeNode("test-node-critical", tenancy)
+	suite.nodeMaintenance = suite.writeNode("test-node-maintenance", tenancy)
 
-	for _, tenancy := range tenancies {
+	nodeHealthDesiredStatus := map[string]pbcatalog.Health{
+		suite.nodePassing.Name:     pbcatalog.Health_HEALTH_PASSING,
+		suite.nodeWarning.Name:     pbcatalog.Health_HEALTH_WARNING,
+		suite.nodeCritical.Name:    pbcatalog.Health_HEALTH_CRITICAL,
+		suite.nodeMaintenance.Name: pbcatalog.Health_HEALTH_MAINTENANCE,
+	}
 
-		tenancyString := resourcetest.ToTenancyString(tenancy)
+	// In order to exercise the behavior to ensure that its not a last-status-wins sort of thing
+	// we are strategically naming health statuses so that they will be returned in an order with
+	// the most precedent status being in the middle of the list. This will ensure that statuses
+	// seen later can overide a previous status and that statuses seen later do not override if
+	// they would lower the overall status such as going from critical -> warning.
+	precedenceHealth := []pbcatalog.Health{
+		pbcatalog.Health_HEALTH_PASSING,
+		pbcatalog.Health_HEALTH_WARNING,
+		pbcatalog.Health_HEALTH_CRITICAL,
+		pbcatalog.Health_HEALTH_MAINTENANCE,
+		pbcatalog.Health_HEALTH_CRITICAL,
+		pbcatalog.Health_HEALTH_WARNING,
+		pbcatalog.Health_HEALTH_PASSING,
+	}
 
-		suite.nodeNoHealth[tenancyString] = suite.writeNode("test-node-no-health", tenancy)
-		suite.nodePassing[tenancyString] = suite.writeNode("test-node-passing", tenancy)
-		suite.nodeWarning[tenancyString] = suite.writeNode("test-node-warning", tenancy)
-		suite.nodeCritical[tenancyString] = suite.writeNode("test-node-critical", tenancy)
-		suite.nodeMaintenance[tenancyString] = suite.writeNode("test-node-maintenance", tenancy)
-
-		nodeHealthDesiredStatus := map[string]pbcatalog.Health{
-			suite.nodePassing[tenancyString].Name:     pbcatalog.Health_HEALTH_PASSING,
-			suite.nodeWarning[tenancyString].Name:     pbcatalog.Health_HEALTH_WARNING,
-			suite.nodeCritical[tenancyString].Name:    pbcatalog.Health_HEALTH_CRITICAL,
-			suite.nodeMaintenance[tenancyString].Name: pbcatalog.Health_HEALTH_MAINTENANCE,
-		}
-
-		// In order to exercise the behavior to ensure that its not a last-status-wins sort of thing
-		// we are strategically naming health statuses so that they will be returned in an order with
-		// the most precedent status being in the middle of the list. This will ensure that statuses
-		// seen later can overide a previous status and that statuses seen later do not override if
-		// they would lower the overall status such as going from critical -> warning.
-		precedenceHealth := []pbcatalog.Health{
-			pbcatalog.Health_HEALTH_PASSING,
-			pbcatalog.Health_HEALTH_WARNING,
-			pbcatalog.Health_HEALTH_CRITICAL,
-			pbcatalog.Health_HEALTH_MAINTENANCE,
-			pbcatalog.Health_HEALTH_CRITICAL,
-			pbcatalog.Health_HEALTH_WARNING,
-			pbcatalog.Health_HEALTH_PASSING,
-		}
-
-		for _, node := range []*pbresource.ID{suite.nodePassing[tenancyString], suite.nodeWarning[tenancyString], suite.nodeCritical[tenancyString], suite.nodeMaintenance[tenancyString]} {
-			for idx, health := range precedenceHealth {
-				if nodeHealthDesiredStatus[node.Name] >= health {
-					resourcetest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("test-check-%s-%d-%s-%s", node.Name, idx, tenancy.Partition, tenancy.Namespace)).
-						WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
-						WithOwner(node).
-						Write(suite.T(), suite.resourceClient)
-				}
+	for _, node := range []*pbresource.ID{suite.nodePassing, suite.nodeWarning, suite.nodeCritical, suite.nodeMaintenance} {
+		for idx, health := range precedenceHealth {
+			if nodeHealthDesiredStatus[node.Name] >= health {
+				resourcetest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("test-check-%s-%d-%s-%s", node.Name, idx, tenancy.Partition, tenancy.Namespace)).
+					WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
+					WithOwner(node).
+					Write(suite.T(), suite.resourceClient)
 			}
 		}
-
-		// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
-		// to be something that doesn't care about its owner. All we want to prove is that we are
-		// filtering out non-HealthStatus types appropriately.
-		resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
-			WithData(suite.T(), dnsPolicyData).
-			WithOwner(suite.nodeNoHealth[tenancyString]).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.resourceClient)
 	}
+
+	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
+	// to be something that doesn't care about its owner. All we want to prove is that we are
+	// filtering out non-HealthStatus types appropriately.
+	resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
+		WithData(suite.T(), dnsPolicyData).
+		WithOwner(suite.nodeNoHealth).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.resourceClient)
+}
+
+func (suite *nodeHealthControllerTestSuite) cleanUpNodes() {
+	req := &pbresource.DeleteRequest{
+		Id: suite.nodeNoHealth,
+	}
+	_, err := suite.resourceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.nodeCritical,
+	}
+	_, err = suite.resourceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.nodeWarning,
+	}
+	_, err = suite.resourceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.nodePassing,
+	}
+	_, err = suite.resourceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.nodeMaintenance,
+	}
+	_, err = suite.resourceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
 }
 
 func (suite *nodeHealthControllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Tenancy)) {
-	suite.setupNodesWithTenancy(suite.tenancies)
 	for _, tenancy := range suite.tenancies {
+		suite.setupNodesWithTenancy(tenancy)
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
 			t(tenancy)
 		})
+		suite.cleanUpNodes()
 	}
 }
