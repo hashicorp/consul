@@ -12,6 +12,8 @@ import (
 	"golang.org/x/net/http2"
 )
 
+// EnableHTTP2 returns a new shallow copy of client that has been tweaked to do
+// h2c (cleartext http2).
 func EnableHTTP2(client *http.Client) *http.Client {
 	// Shallow copy, and swap the transport
 	client2 := *client
