@@ -6,7 +6,6 @@ SHELL = bash
 
 GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-gen-rpc-glue/e2e" | sort)
 
-
 ###
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
