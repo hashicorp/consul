@@ -5,7 +5,6 @@ package testing
 
 import (
 	"context"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
@@ -21,6 +20,7 @@ import (
 	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
