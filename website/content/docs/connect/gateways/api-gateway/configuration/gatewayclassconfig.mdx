@@ -38,7 +38,7 @@ The following outline shows how to format the configurations in the `GatewayClas
   * [`consulAPIGateway`](#image-consulapigateway): string | optional
   * [`envoy`](#image-envoy): string | optional
 * [`logLevel`](#loglevel): string | optional
-* [`matchPrivilegedContainerPorts`](#matchPrivilegedContainerPorts): integer | optional
+* [`mapPrivilegedContainerPorts`](#mapPrivilegedContainerPorts): integer | optional
 * [`nodeSelector`](#nodeselector): string | optional
 * [`openshiftSCCName`](#openshiftSCCName): string | optional
 * [`serviceType`](#servicetype): string | optional
@@ -154,8 +154,8 @@ You can specify the following strings:
 * `debug`
 * `trace`
 
-### matchPrivilegedContainerPorts
-Specifies a value that Consul adds to privileged ports defined in the gateway. Privileged ports are port numbers less than 1024 and some platforms, such as Red Hat OpenShift, explicitly configure Kubernetes to avoid running containers on privileged ports. The total value of the configured port number and the `matchPriviledgedContainerPorts` value must not exceed 65535, which is the highest possible TCP port number allowed.
+### mapPrivilegedContainerPorts
+Specifies a value that Consul adds to privileged ports defined in the gateway. Privileged ports are port numbers less than 1024 and some platforms, such as Red Hat OpenShift, explicitly configure Kubernetes to avoid running containers on privileged ports. The total value of the configured port number and the `mapPriviledgedContainerPorts` value must not exceed 65535, which is the highest possible TCP port number allowed.
 for gateway containers
 * Type: Integer
 * Required: optional
