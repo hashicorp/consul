@@ -70,6 +70,8 @@ acl:
         management: Management
         client: Client
 token:
+  selector:
+    logged-in:  "Logged in with ACL Token'<br><'b class=consul-side-nav__acl-logged-in'>'{token}'<'/b'>'"
   search-bar:
     kind:
       name: Type
