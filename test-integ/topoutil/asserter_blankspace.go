@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CheckBlankspaceNameViaHTTP calls a copy of blankspace and asserts it arrived
+// on the correct instance using HTTP1 or HTTP2.
 func (a *Asserter) CheckBlankspaceNameViaHTTP(
 	t *testing.T,
 	service *topology.Service,
@@ -30,6 +32,8 @@ func (a *Asserter) CheckBlankspaceNameViaHTTP(
 	}, func(r *retry.R) {})
 }
 
+// CheckBlankspaceNameTrafficSplitViaHTTP is like CheckBlankspaceNameViaHTTP
+// but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaHTTP(
 	t *testing.T,
 	service *topology.Service,
@@ -91,6 +95,8 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	})
 }
 
+// CheckBlankspaceNameViaTCP calls a copy of blankspace and asserts it arrived
+// on the correct instance using plain tcp sockets.
 func (a *Asserter) CheckBlankspaceNameViaTCP(
 	t *testing.T,
 	service *topology.Service,
@@ -105,6 +111,8 @@ func (a *Asserter) CheckBlankspaceNameViaTCP(
 	}, func(r *retry.R) {})
 }
 
+// CheckBlankspaceNameTrafficSplitViaTCP is like CheckBlankspaceNameViaTCP
+// but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaTCP(
 	t *testing.T,
 	service *topology.Service,
@@ -151,6 +159,8 @@ func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 	})
 }
 
+// CheckBlankspaceNameViaGRPC calls a copy of blankspace and asserts it arrived
+// on the correct instance using gRPC.
 func (a *Asserter) CheckBlankspaceNameViaGRPC(
 	t *testing.T,
 	service *topology.Service,
@@ -165,6 +175,8 @@ func (a *Asserter) CheckBlankspaceNameViaGRPC(
 	}, func(r *retry.R) {})
 }
 
+// CheckBlankspaceNameTrafficSplitViaGRPC is like CheckBlankspaceNameViaGRPC
+// but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaGRPC(
 	t *testing.T,
 	service *topology.Service,
@@ -211,6 +223,12 @@ func (a *Asserter) checkBlankspaceNameViaGRPCWithCallback(
 	})
 }
 
+// assertTrafficSplit compares the counts of requests that did reach an
+// observed set of destinations (nameCounts) against the expected counts of
+// those same services is the same within the provided epsilon value.
+//
+// When doing random traffic splits it'll never be perfect so we need the
+// wiggle room to avoid having a flaky test.
 func assertTrafficSplit(t require.TestingT, nameCounts map[string]int, expect map[string]int, epsilon int) {
 	require.Len(t, nameCounts, len(expect))
 	for name, expectCount := range expect {
@@ -227,6 +245,12 @@ func assertTrafficSplit(t require.TestingT, nameCounts map[string]int, expect ma
 	}
 }
 
+// multiassert will retry in bulk calling attemptFn count times and following
+// that with one last call to checkFn.
+//
+// It's primary use at the time it was written was to execute a set of requests
+// repeatedly to witness where the requests went, and then at the end doing a
+// verification of traffic splits (a bit like MAP/REDUCE).
 func multiassert(t *testing.T, count int, attemptFn, checkFn func(r *retry.R)) {
 	retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: 500 * time.Millisecond}, t, func(r *retry.R) {
 		for i := 0; i < count; i++ {
