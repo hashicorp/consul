@@ -195,12 +195,14 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", false, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", false, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-and-failover",
