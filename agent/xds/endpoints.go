@@ -784,6 +784,11 @@ func (s *ResourceGenerator) endpointsFromDiscoveryChain(
 				continue // skip the cluster if we're still populating the snapshot
 			}
 
+			if len(endpointGroup.Endpoints) == 0 {
+				s.Logger.Trace("skipping endpoint generation because no endpoints found for target group", "cluster", clusterName)
+				continue // skip the cluster if we're still populating the snapshot
+			}
+
 			la := makeLoadAssignment(
 				s.Logger,
 				cfgSnap,
