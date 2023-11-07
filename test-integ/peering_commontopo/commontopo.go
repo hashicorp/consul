@@ -327,8 +327,8 @@ func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svc
 	if !found {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ExportedServicesConfigEntry{
-				Name:      partition, // this NEEDs to be "default" in CE
-				Partition: ConfigEntryPartition(partition),
+				Name:      topology.PartitionOrDefault(partition), // this NEEDs to be "default" in CE
+				Partition: topology.DefaultToEmpty(partition),
 				Services:  svcs,
 			},
 		)

@@ -105,7 +105,7 @@ func NewTopologyMeshGatewaySet(
 
 		node := &topology.Node{
 			Kind:      nodeKind,
-			Partition: partition,
+			Partition: sid.Partition,
 			Name:      name,
 			Services: []*topology.Service{{
 				ID:             sid,

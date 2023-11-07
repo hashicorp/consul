@@ -90,7 +90,7 @@ func makeClusterDiscoChainTests(enterprise bool) []clusterTestCase {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
 			},
 			// TODO(proxystate): requires routes work
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
