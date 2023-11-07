@@ -15,7 +15,7 @@ import (
 // TestTenancies returns a list of tenancies which represent
 // the namespace and partition combinations that can be used in unit tests
 func TestTenancies() []*pbresource.Tenancy {
-	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
 
 	tenancies := []*pbresource.Tenancy{Tenancy("default.default")}
 	if isEnterprise {
