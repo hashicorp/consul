@@ -864,6 +864,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			failoverGroup = &pbproxystate.FailoverGroup{
 				Config: &pbproxystate.FailoverGroupConfig{
 					ConnectTimeout: durationpb.New(node.Resolver.ConnectTimeout),
+					UseAltStatName: true,
 				},
 			}
 		}
@@ -927,6 +928,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 					Group: &pbproxystate.EndpointGroup_Dynamic{
 						Dynamic: dynamic,
 					},
+					Name: groupedTarget.ClusterName,
 				}
 				endpointGroups = append(endpointGroups, eg)
 			} else {
@@ -940,6 +942,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 							},
 						},
 					},
+					Name: mappedTargets.baseClusterName,
 				}
 
 				out[mappedTargets.baseClusterName] = cluster
