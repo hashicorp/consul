@@ -52,10 +52,6 @@ func NewAsserter(sp SprawlLite) *Asserter {
 	}
 }
 
-func (a *Asserter) MustGetHTTPClient(t *testing.T, cluster string) *http.Client {
-	return a.mustGetHTTPClient(t, cluster)
-}
-
 func (a *Asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client {
 	client, err := a.httpClientFor(cluster)
 	require.NoError(t, err)

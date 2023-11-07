@@ -62,7 +62,7 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	var (
 		node   = service.Node
 		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), service.PortOrDefault(upstream.PortName))
-		client = a.MustGetHTTPClient(t, node.Cluster)
+		client = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
 	if useHTTP2 {
