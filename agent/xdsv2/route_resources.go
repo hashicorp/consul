@@ -235,16 +235,13 @@ func makeEnvoyQueryParamFromProxystateQueryMatch(psMatch *pbproxystate.QueryPara
 }
 
 func (pr *ProxyResources) addEnvoyClustersAndEndpointsToEnvoyResources(clusterName string) {
-	clusters, _ := pr.makeClusters(clusterName)
+	clusters, endpoints, _ := pr.makeClustersAndEndpoints(clusterName)
 	for name, cluster := range clusters {
 		pr.envoyResources[xdscommon.ClusterType][name] = cluster
+	}
 
-		if name != xdscommon.LocalAppClusterName {
-			if endpointList, ok := pr.proxyState.Endpoints[name]; ok {
-				protoEndpoint := makeEnvoyClusterLoadAssignment(name, endpointList.Endpoints)
-				pr.envoyResources[xdscommon.EndpointType][name] = protoEndpoint
-			}
-		}
+	for name, ep := range endpoints {
+		pr.envoyResources[xdscommon.EndpointType][name] = ep
 	}
 }
 
