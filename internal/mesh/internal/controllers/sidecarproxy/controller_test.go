@@ -44,23 +44,23 @@ type controllerTestSuite struct {
 	ctl *reconciler
 	ctx context.Context
 
-	apiWorkloadID                     map[string]*pbresource.ID
+	apiWorkloadID                     *pbresource.ID
 	apiWorkload                       *pbcatalog.Workload
-	apiComputedTrafficPermissions     map[string]*pbresource.Resource
+	apiComputedTrafficPermissions     *pbresource.Resource
 	apiComputedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
-	apiService                        map[string]*pbresource.Resource
+	apiService                        *pbresource.Resource
 	apiServiceData                    *pbcatalog.Service
-	apiEndpoints                      map[string]*pbresource.Resource
-	apiEndpointsData                  map[string]*pbcatalog.ServiceEndpoints
-	webWorkload                       map[string]*pbresource.Resource
+	apiEndpoints                      *pbresource.Resource
+	apiEndpointsData                  *pbcatalog.ServiceEndpoints
+	webWorkload                       *pbresource.Resource
 
-	dbWorkloadID    map[string]*pbresource.ID
+	dbWorkloadID    *pbresource.ID
 	dbWorkload      *pbcatalog.Workload
-	dbService       map[string]*pbresource.Resource
-	dbEndpoints     map[string]*pbresource.Resource
-	dbEndpointsData map[string]*pbcatalog.ServiceEndpoints
+	dbService       *pbresource.Resource
+	dbEndpoints     *pbresource.Resource
+	dbEndpointsData *pbcatalog.ServiceEndpoints
 
-	proxyStateTemplate map[string]*pbmesh.ProxyStateTemplate
+	proxyStateTemplate *pbmesh.ProxyStateTemplate
 	tenancies          []*pbresource.Tenancy
 }
 
@@ -80,17 +80,6 @@ func (suite *controllerTestSuite) SetupTest() {
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
-	suite.apiWorkloadID = make(map[string]*pbresource.ID)
-	suite.apiComputedTrafficPermissions = make(map[string]*pbresource.Resource)
-	suite.apiService = make(map[string]*pbresource.Resource)
-	suite.apiEndpoints = make(map[string]*pbresource.Resource)
-	suite.apiEndpointsData = make(map[string]*pbcatalog.ServiceEndpoints)
-	suite.webWorkload = make(map[string]*pbresource.Resource)
-	suite.dbWorkloadID = make(map[string]*pbresource.ID)
-	suite.dbService = make(map[string]*pbresource.Resource)
-	suite.dbEndpoints = make(map[string]*pbresource.Resource)
-	suite.dbEndpointsData = make(map[string]*pbcatalog.ServiceEndpoints)
-	suite.proxyStateTemplate = make(map[string]*pbmesh.ProxyStateTemplate)
 
 	suite.ctl = &reconciler{
 		cache: cache.New(),
@@ -147,6 +136,9 @@ func (suite *controllerTestSuite) SetupTest() {
 			},
 		},
 	}
+}
+
+func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tenancy) {
 
 	webWorkloadData := &pbcatalog.Workload{
 		Identity: "web-identity",
@@ -477,28 +469,27 @@ func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 
 func (suite *controllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		tenancyString := resourcetest.ToTenancyString(tenancy)
+
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-			ID: resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID[tenancyString].Name, tenancy),
+			ID: resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy),
 		})
 		require.NoError(suite.T(), err)
 
-		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID[tenancyString].Name, tenancy))
+		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy))
 		require.NoError(suite.T(), err)
 		require.NotNil(suite.T(), res.Data)
-		prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID[tenancyString], res.Owner)
+		prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID, res.Owner)
 	})
 }
 
 func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that we write a new proxy state template when there are changes.
-		tenancyString := resourcetest.ToTenancyString(tenancy)
 
 		// Write the original.
 		resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").
-			WithData(suite.T(), suite.proxyStateTemplate[tenancyString]).
-			WithOwner(suite.apiWorkloadID[tenancyString]).
+			WithData(suite.T(), suite.proxyStateTemplate).
+			WithOwner(suite.apiWorkloadID).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
@@ -537,12 +528,11 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithU
 func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that we skip writing of the proxy state template when there are no changes to it.
-		tenancyString := resourcetest.ToTenancyString(tenancy)
 
 		// Write the original.
 		originalProxyState := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").
-			WithData(suite.T(), suite.proxyStateTemplate[tenancyString]).
-			WithOwner(suite.apiWorkloadID[tenancyString]).
+			WithData(suite.T(), suite.proxyStateTemplate).
+			WithOwner(suite.apiWorkloadID).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
@@ -557,7 +547,7 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpd
 		})
 		require.NoError(suite.T(), err)
 
-		updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID[tenancyString].Name, tenancy))
+		updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy))
 		resourcetest.RequireVersionUnchanged(suite.T(), updatedProxyState, originalProxyState.Version)
 	})
 }
@@ -567,8 +557,6 @@ func (suite *controllerTestSuite) TestController() {
 		// This is a comprehensive test that checks the overall controller behavior as various resources change state.
 		// This should test interactions between the reconciler, the mappers, and the destinationsCache to ensure they work
 		// together and produce expected result.
-
-		tenancyString := resourcetest.ToTenancyString(tenancy)
 
 		// Run the controller manager
 		mgr := controller.NewManager(suite.client, suite.runtime.Logger)
@@ -586,8 +574,8 @@ func (suite *controllerTestSuite) TestController() {
 			apiProxyStateTemplateID = resourcetest.ResourceWithTenancy(pbmesh.ProxyStateTemplateType, "api-abc", tenancy).ID()
 			webProxyStateTemplateID = resourcetest.ResourceWithTenancy(pbmesh.ProxyStateTemplateType, "web-def", tenancy).ID()
 
-			apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.apiService[tenancyString].Id)
-			dbComputedRoutesID  = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService[tenancyString].Id)
+			apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.apiService.Id)
+			dbComputedRoutesID  = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService.Id)
 
 			apiProxyStateTemplate   *pbresource.Resource
 			webProxyStateTemplate   *pbresource.Resource
@@ -605,16 +593,16 @@ func (suite *controllerTestSuite) TestController() {
 
 		// Write a default ComputedRoutes for api.
 		routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.apiService[tenancyString]),
+			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.apiService),
 		)
 
 		// Add a source service and check that a new proxy state is generated.
-		webComputedDestinations = resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.webWorkload[tenancyString].Id.Name).
+		webComputedDestinations = resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.webWorkload.Id.Name).
 			WithTenancy(tenancy).
 			WithData(suite.T(), &pbmesh.ComputedExplicitDestinations{
 				Destinations: []*pbmesh.Destination{
 					{
-						DestinationRef:  resource.Reference(suite.apiService[tenancyString].Id, ""),
+						DestinationRef:  resource.Reference(suite.apiService.Id, ""),
 						DestinationPort: "tcp",
 						ListenAddr: &pbmesh.Destination_IpPort{
 							IpPort: &pbmesh.IPPortAddress{
@@ -653,7 +641,7 @@ func (suite *controllerTestSuite) TestController() {
 					Ports:     nonMeshPorts}).
 				Write(suite.T(), suite.client)
 
-			suite.apiService[tenancyString] = resourcetest.ResourceID(suite.apiService[tenancyString].Id).
+			suite.apiService = resourcetest.ResourceID(suite.apiService.Id).
 				WithTenancy(tenancy).
 				WithData(t, &pbcatalog.Service{
 					Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"api-abc"}},
@@ -670,7 +658,7 @@ func (suite *controllerTestSuite) TestController() {
 				WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 					Endpoints: []*pbcatalog.Endpoint{
 						{
-							TargetRef: suite.apiWorkloadID[tenancyString],
+							TargetRef: suite.apiWorkloadID,
 							Addresses: suite.apiWorkload.Addresses,
 							Ports:     nonMeshPorts,
 							Identity:  "api-identity",
@@ -681,7 +669,7 @@ func (suite *controllerTestSuite) TestController() {
 
 			// Refresh the computed routes in light of api losing a mesh port.
 			routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService[tenancyString]),
+				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
 			)
 
 			// Check that api proxy template is gone.
@@ -705,19 +693,19 @@ func (suite *controllerTestSuite) TestController() {
 				WithData(suite.T(), suite.apiWorkload).
 				Write(suite.T(), suite.client)
 
-			suite.apiService[tenancyString] = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
+			suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
 				WithData(suite.T(), suite.apiServiceData).
 				WithTenancy(tenancy).
 				Write(suite.T(), suite.client.ResourceServiceClient)
 
 			resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
 				WithTenancy(tenancy).
-				WithData(suite.T(), suite.apiEndpointsData[tenancyString]).
+				WithData(suite.T(), suite.apiEndpointsData).
 				Write(suite.T(), suite.client.ResourceServiceClient)
 
 			// Refresh the computed routes in light of api losing a mesh port.
 			routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService[tenancyString]),
+				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
 			)
 
 			// We should also get a new web proxy template resource as this destination should be added again.
@@ -746,12 +734,12 @@ func (suite *controllerTestSuite) TestController() {
 
 			// Write a default ComputedRoutes for db, so it's eligible.
 			dbCR := routestest.ReconcileComputedRoutes(suite.T(), suite.client, dbComputedRoutesID,
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.dbService[tenancyString]),
+				resourcetest.MustDecode[*pbcatalog.Service](t, suite.dbService),
 			)
 			require.NotNil(t, dbCR)
 
 			// Enable transparent proxy for the web proxy.
-			resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, suite.webWorkload[tenancyString].Id.Name).
+			resourcetest.Resource(pbmesh.ComputedProxyConfigurationType, suite.webWorkload.Id.Name).
 				WithTenancy(tenancy).
 				WithData(t, &pbmesh.ComputedProxyConfiguration{
 					DynamicConfig: &pbmesh.DynamicConfig{
@@ -775,9 +763,9 @@ func (suite *controllerTestSuite) TestController() {
 			assertTrafficPermissionDefaultPolicy(t, false, webProxyStateTemplate)
 
 			suite.runtime.Logger.Trace("deleting computed traffic permissions")
-			_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.apiComputedTrafficPermissions[tenancyString].Id})
+			_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.apiComputedTrafficPermissions.Id})
 			require.NoError(t, err)
-			suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions[tenancyString].Id)
+			suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions.Id)
 
 			apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
@@ -798,21 +786,21 @@ func (suite *controllerTestSuite) TestController() {
 			// into the generator.
 			routeData := &pbmesh.HTTPRoute{
 				ParentRefs: []*pbmesh.ParentReference{{
-					Ref:  resource.Reference(suite.dbService[tenancyString].Id, ""),
+					Ref:  resource.Reference(suite.dbService.Id, ""),
 					Port: "", // implicitly applies to 'http'
 				}},
 				Rules: []*pbmesh.HTTPRouteRule{{
 					BackendRefs: []*pbmesh.HTTPBackendRef{
 						{
 							BackendRef: &pbmesh.BackendReference{
-								Ref:  resource.Reference(suite.apiService[tenancyString].Id, ""),
+								Ref:  resource.Reference(suite.apiService.Id, ""),
 								Port: "tcp",
 							},
 							Weight: 60,
 						},
 						{
 							BackendRef: &pbmesh.BackendReference{
-								Ref:  resource.Reference(suite.dbService[tenancyString].Id, ""),
+								Ref:  resource.Reference(suite.dbService.Id, ""),
 								Port: "", // assumed to be 'http'
 							},
 							Weight: 40,
@@ -827,12 +815,12 @@ func (suite *controllerTestSuite) TestController() {
 			require.NoError(t, types.MutateHTTPRoute(route))
 			require.NoError(t, types.ValidateHTTPRoute(route))
 
-			dbCRID := resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService[tenancyString].Id)
+			dbCRID := resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService.Id)
 
 			dbCR := routestest.ReconcileComputedRoutes(suite.T(), suite.client, dbCRID,
 				resourcetest.MustDecode[*pbmesh.HTTPRoute](t, route),
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.dbService[tenancyString]),
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService[tenancyString]),
+				resourcetest.MustDecode[*pbcatalog.Service](t, suite.dbService),
+				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
 			)
 			require.NotNil(t, dbCR, "computed routes for db was deleted instead of created")
 
@@ -1005,10 +993,63 @@ func (suite *controllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy)
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
+func (suite *controllerTestSuite) cleanupResources() {
+
+	req := &pbresource.DeleteRequest{
+		Id: suite.apiWorkloadID,
+	}
+	_, err := suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.apiComputedTrafficPermissions.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.apiService.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.apiEndpoints.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.webWorkload.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.dbWorkloadID,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.dbService.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+
+	req = &pbresource.DeleteRequest{
+		Id: suite.dbEndpoints.Id,
+	}
+	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
+	require.NoError(suite.T(), err)
+}
+
 func (suite *controllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Tenancy)) {
 	for _, tenancy := range suite.tenancies {
+		suite.setupSuiteWithTenancy(tenancy)
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
 			t(tenancy)
 		})
+		suite.cleanupResources()
 	}
 }
