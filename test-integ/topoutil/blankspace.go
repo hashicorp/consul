@@ -21,6 +21,8 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// GetBlankspaceNameViaHTTP calls a copy of blankspace once via HTTP and
+// retrieves the self-identified name of the instance.
 func GetBlankspaceNameViaHTTP(
 	ctx context.Context,
 	client *http.Client,
@@ -67,6 +69,8 @@ func GetBlankspaceNameViaHTTP(
 	return v.Name, nil
 }
 
+// GetBlankspaceNameViaGRPC calls a copy of blankspace once via gRPC and
+// retrieves the self-identified name of the instance.
 func GetBlankspaceNameViaGRPC(ctx context.Context, serverAddr string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
@@ -87,6 +91,8 @@ func GetBlankspaceNameViaGRPC(ctx context.Context, serverAddr string) (string, e
 	return resp.GetName(), nil
 }
 
+// GetBlankspaceNameViaTCP calls a copy of blankspace once via tcp and
+// retrieves the self-identified name of the instance.
 func GetBlankspaceNameViaTCP(ctx context.Context, serverAddr string) (string, error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
