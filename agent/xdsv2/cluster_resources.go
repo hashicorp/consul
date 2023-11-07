@@ -19,7 +19,7 @@ import (
 )
 
 func (pr *ProxyResources) makeClusters(name string) (map[string]proto.Message, error) {
-	clusters := make(map[string]proto.Message)
+	envoyClusters := make(map[string]proto.Message)
 	proxyStateCluster, ok := pr.proxyState.Clusters[name]
 	if !ok {
 		return nil, fmt.Errorf("cluster %q not found", name)
@@ -33,7 +33,7 @@ func (pr *ProxyResources) makeClusters(name string) (map[string]proto.Message, e
 			return nil, err
 		}
 		for _, c := range clusters {
-			clusters[c.Name] = c
+			envoyClusters[c.Name] = c
 		}
 
 	case *pbproxystate.Cluster_EndpointGroup:
@@ -42,12 +42,12 @@ func (pr *ProxyResources) makeClusters(name string) (map[string]proto.Message, e
 		if err != nil {
 			return nil, err
 		}
-		clusters[cluster.Name] = cluster
+		envoyClusters[cluster.Name] = cluster
 
 	default:
 		return nil, errors.New("cluster group type should be Endpoint Group or Failover Group")
 	}
-	return clusters, nil
+	return envoyClusters, nil
 }
 
 func (pr *ProxyResources) makeEnvoyCluster(name string, protocol pbproxystate.Protocol, eg *pbproxystate.EndpointGroup) (*envoy_cluster_v3.Cluster, error) {
