@@ -112,7 +112,7 @@ type testSplitterFeaturesL7ExplicitDestinationsCreator struct{}
 func (c testSplitterFeaturesL7ExplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
 	const clusterName = "dc1"
 
-	servers := topoutil.NewTopologyServerSet(clusterName+"-server", 1 /*3*/, []string{clusterName, "wan"}, nil)
+	servers := topoutil.NewTopologyServerSet(clusterName+"-server", 3, []string{clusterName, "wan"}, nil)
 
 	cluster := &topology.Cluster{
 		Enterprise: utils.IsEnterprise(),
