@@ -182,7 +182,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
-				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress, "enabled", !node.Disabled)
 			}
 		}
 	}
@@ -260,8 +260,11 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
-		if err := s.populateInitialResources(cluster); err != nil {
-			return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
+		if cluster.EnableV2 {
+			// Resources are available only in V2
+			if err := s.populateInitialResources(cluster); err != nil {
+				return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
+			}
 		}
 
 		if err := s.createAnonymousToken(cluster); err != nil {
@@ -300,8 +303,8 @@ func (s *Sprawl) createFirstTime() error {
 		return fmt.Errorf("createAllServiceTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	// We can do this ahead, because we've incrementally run terraform as
@@ -368,8 +371,8 @@ func (s *Sprawl) preRegenTasks() error {
 		return fmt.Errorf("createAllServiceTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	return nil
