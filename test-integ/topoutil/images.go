@@ -24,7 +24,7 @@ func TargetImages() topology.Images {
 	}
 
 	// We want the image overridden by the local build produced by
-	// 'make test-compat-integ-setup' or 'make dev-docker'.
+	// 'make test-deployer-setup' or 'make dev-docker'.
 	testImages := utils.TargetImages()
 	images = images.OverrideWith(testImages)
 
