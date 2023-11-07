@@ -99,19 +99,6 @@ func (suite *controllerTestSuite) SetupTest() {
 		},
 	}
 
-	suite.apiWorkload = &pbcatalog.Workload{
-		Identity: "api-identity",
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{
-				Host: "10.0.0.1",
-			},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-		},
-	}
-
 	suite.apiServiceData = &pbcatalog.Service{
 		Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"api-abc"}},
 		VirtualIps: []string{"1.1.1.1"},
@@ -139,6 +126,19 @@ func (suite *controllerTestSuite) SetupTest() {
 }
 
 func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tenancy) {
+
+	suite.apiWorkload = &pbcatalog.Workload{
+		Identity: "api-identity",
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{
+				Host: "10.0.0.1",
+			},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+		},
+	}
 
 	webWorkloadData := &pbcatalog.Workload{
 		Identity: "web-identity",
