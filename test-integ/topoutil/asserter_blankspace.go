@@ -43,6 +43,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaHTTP(
 	expect map[string]int,
 	epsilon int,
 ) {
+	t.Helper()
+
 	got := make(map[string]int)
 	a.checkBlankspaceNameViaHTTPWithCallback(t, service, upstream, useHTTP2, path, 100, func(_ *retry.R, name string) {
 		got[name]++
@@ -128,6 +130,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaTCP(
 	expect map[string]int,
 	epsilon int,
 ) {
+	t.Helper()
+
 	got := make(map[string]int)
 	a.checkBlankspaceNameViaTCPWithCallback(t, service, upstream, 100, func(_ *retry.R, name string) {
 		got[name]++
@@ -192,6 +196,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaGRPC(
 	expect map[string]int,
 	epsilon int,
 ) {
+	t.Helper()
+
 	got := make(map[string]int)
 	a.checkBlankspaceNameViaGRPCWithCallback(t, service, upstream, 100, func(_ *retry.R, name string) {
 		got[name]++
