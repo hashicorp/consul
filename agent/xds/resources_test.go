@@ -4,6 +4,10 @@
 package xds
 
 import (
+	"fmt"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"google.golang.org/protobuf/proto"
 	"path/filepath"
 	"sort"
 	"testing"
@@ -46,6 +50,7 @@ type goldenTestCase struct {
 	setup              func(snap *proxycfg.ConfigSnapshot)
 	overrideGoldenName string
 	generatorSetup     func(*ResourceGenerator)
+	alsoRunTestForV2   bool
 }
 
 func TestAllResourcesFromSnapshot(t *testing.T) {
@@ -77,6 +82,33 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			tt.setup(snap)
 		}
 
+		typeUrls := []string{
+			xdscommon.ListenerType,
+			xdscommon.RouteType,
+			xdscommon.ClusterType,
+			xdscommon.EndpointType,
+			xdscommon.SecretType,
+		}
+
+		resourceSortingFunc := func(items []proto.Message, typeURL string) func(i, j int) bool {
+			return func(i, j int) bool {
+				switch typeURL {
+				case xdscommon.ListenerType:
+					return items[i].(*envoy_listener_v3.Listener).Name < items[j].(*envoy_listener_v3.Listener).Name
+				case xdscommon.RouteType:
+					return items[i].(*envoy_route_v3.RouteConfiguration).Name < items[j].(*envoy_route_v3.RouteConfiguration).Name
+				case xdscommon.ClusterType:
+					return items[i].(*envoy_cluster_v3.Cluster).Name < items[j].(*envoy_cluster_v3.Cluster).Name
+				case xdscommon.EndpointType:
+					return items[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < items[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
+				case xdscommon.SecretType:
+					return items[i].(*envoy_tls_v3.Secret).Name < items[j].(*envoy_tls_v3.Secret).Name
+				default:
+					panic("not possible")
+				}
+			}
+		}
+
 		// Need server just for logger dependency
 		g := NewResourceGenerator(testutil.Logger(t), nil, false)
 		g.ProxyFeatures = sf
@@ -87,37 +119,15 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		resources, err := g.AllResourcesFromSnapshot(snap)
 		require.NoError(t, err)
 
-		typeUrls := []string{
-			xdscommon.ListenerType,
-			xdscommon.RouteType,
-			xdscommon.ClusterType,
-			xdscommon.EndpointType,
-			xdscommon.SecretType,
-		}
 		require.Len(t, resources, len(typeUrls))
 
 		for _, typeUrl := range typeUrls {
 			prettyName := testTypeUrlToPrettyName[typeUrl]
-			t.Run(prettyName, func(t *testing.T) {
+			t.Run(fmt.Sprintf("xdsv1-%s", prettyName), func(t *testing.T) {
 				items, ok := resources[typeUrl]
 				require.True(t, ok)
 
-				sort.Slice(items, func(i, j int) bool {
-					switch typeUrl {
-					case xdscommon.ListenerType:
-						return items[i].(*envoy_listener_v3.Listener).Name < items[j].(*envoy_listener_v3.Listener).Name
-					case xdscommon.RouteType:
-						return items[i].(*envoy_route_v3.RouteConfiguration).Name < items[j].(*envoy_route_v3.RouteConfiguration).Name
-					case xdscommon.ClusterType:
-						return items[i].(*envoy_cluster_v3.Cluster).Name < items[j].(*envoy_cluster_v3.Cluster).Name
-					case xdscommon.EndpointType:
-						return items[i].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName < items[j].(*envoy_endpoint_v3.ClusterLoadAssignment).ClusterName
-					case xdscommon.SecretType:
-						return items[i].(*envoy_tls_v3.Secret).Name < items[j].(*envoy_tls_v3.Secret).Name
-					default:
-						panic("not possible")
-					}
-				})
+				sort.Slice(items, resourceSortingFunc(items, typeUrl))
 
 				r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
 				require.NoError(t, err)
@@ -133,6 +143,43 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 				require.JSONEq(t, expectedJSON, gotJSON)
 			})
 		}
+
+		if tt.alsoRunTestForV2 {
+			generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
+
+			converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
+			proxyState, err := converter.ProxyStateFromSnapshot(snap)
+			require.NoError(t, err)
+
+			v2Resources, err := generator.AllResourcesFromIR(proxyState)
+			require.NoError(t, err)
+			require.Len(t, v2Resources, len(typeUrls)-1) // secrets are not currently implemented in V2.
+			for _, typeUrl := range typeUrls {
+				prettyName := testTypeUrlToPrettyName[typeUrl]
+				t.Run(fmt.Sprintf("xdsv2-%s", prettyName), func(t *testing.T) {
+					if typeUrl == xdscommon.SecretType {
+						t.Skip("skipping. secrets are not yet implemented in xdsv2")
+					}
+					items, ok := v2Resources[typeUrl]
+					require.True(t, ok)
+
+					sort.Slice(items, resourceSortingFunc(items, typeUrl))
+
+					r, err := response.CreateResponse(typeUrl, "00000001", "00000001", items)
+					require.NoError(t, err)
+
+					gotJSON := protoToJSON(t, r)
+
+					gName := tt.name
+					if tt.overrideGoldenName != "" {
+						gName = tt.overrideGoldenName
+					}
+
+					expectedJSON := goldenEnvoy(t, filepath.Join(prettyName, gName), envoyVersion, latestEnvoyVersion, gotJSON)
+					require.JSONEq(t, expectedJSON, gotJSON)
+				})
+			}
+		}
 	}
 
 	tests := []testcase{
@@ -141,18 +188,28 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshot(t, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", false, nil, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-with-chain-external-sni",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", false, nil, nil)
 			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
+			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-exported-to-peers",
@@ -168,38 +225,52 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 					},
 				})
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "transparent-proxy",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxy(t)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name:   "connect-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeering,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
 			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "connect-proxy-with-peered-upstreams-http2",
 			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "transparent-proxy-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringTProxy,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "local-mesh-gateway-with-peered-upstreams",
 			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+			// TODO(proxystate): mesh gateways and peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
-			name:   "telemetry-collector",
-			create: proxycfg.TestConfigSnapshotTelemetryCollector,
+			name:             "telemetry-collector",
+			create:           proxycfg.TestConfigSnapshotTelemetryCollector,
+			alsoRunTestForV2: false,
 		},
 	}
+	tests = append(tests, getConnectProxyDiscoChainTests(false)...)
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
 	tests = append(tests, getMeshGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
@@ -225,22 +296,276 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 		{
 			name:   "transparent-proxy-destination",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
+			// TODO(proxystate): currently failing. should work.  possible issue in converter.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "transparent-proxy-destination-http",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyDestinationHTTP(t, nil)
 			},
+			// TODO(proxystate): currently failing. should work.  possible issue in converter.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "transparent-proxy-terminating-gateway-destinations-only",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTerminatingGatewayDestinations(t, true, nil)
 			},
+			// TODO(proxystate): terminating gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 	}
 }
 
+func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "custom-upstream-default-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-chain-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["protocol"] = "http2"
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-overrides",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway-triggered", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-remote-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-remote-gateway-triggered", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway-triggered", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-tcp-chain-double-failover-through-local-gateway-triggered",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-double-local-gateway-triggered", enterprise, nil, nil)
+			},
+			// TODO(proxystate): requires routes work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "splitter-with-resolver-redirect",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-lb-in-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-default-chain-and-custom-cluster",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-splitter-overweight",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-overweight", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-splitter",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-grpc-router",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "grpc-router", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-router",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-route-to-lb-resolver",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-lb-node", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-resolver-with-lb",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "resolver-with-lb", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-upstream-ignored-with-disco-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						if ns.Proxy.Upstreams[i].DestinationName != "db" {
+							continue // only tweak the db upstream
+						}
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
+
+						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
+
+						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
+							customListenerJSON(t, customListenerJSONOptions{
+								Name: uid.EnvoyID() + ":custom-upstream",
+							})
+					}
+				}, nil)
+			},
+		},
+		{
+			name: "connect-proxy-with-tcp-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-http-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http",
+						},
+					},
+				)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-http2-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "http2",
+						},
+					},
+				)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-grpc-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
+					&structs.ProxyConfigEntry{
+						Kind: structs.ProxyDefaults,
+						Name: structs.ProxyConfigGlobal,
+						Config: map[string]interface{}{
+							"protocol": "grpc",
+						},
+					},
+				)
+			},
+			alsoRunTestForV2: true,
+		},
+	}
+}
 func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 	return []goldenTestCase{
 		{
@@ -248,24 +573,32 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-tcp", nil, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-with-exported-peered-services-http",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "default-services-http", nil, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-with-exported-peered-services-http-with-router",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "chain-and-l7-stuff", nil, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-peering-control-plane",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "control-plane", nil, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-with-imported-peered-services",
@@ -276,12 +609,16 @@ func getMeshGatewayPeeringGoldenTestCases() []goldenTestCase {
 					}
 				}, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "mesh-gateway-with-peer-through-mesh-gateway-enabled",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotPeeredMeshGateway(t, "peer-through-mesh-gateway", nil, nil)
 			},
+			// TODO(proxystate): mesh gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 	}
 }
@@ -293,12 +630,16 @@ func getTrafficControlPeeringGoldenTestCases(enterprise bool) []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-to-cluster-peer", enterprise, nil, nil)
 			},
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "connect-proxy-with-chain-and-redirect-to-cluster-peer",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-cluster-peer", enterprise, nil, nil)
 			},
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
 		},
 	}
 
@@ -465,6 +806,8 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						Certificate: gatewayTestCertificate,
 					}}, nil)
 			},
+			// TODO(proxystate): api gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "api-gateway-with-multiple-inline-certificates",
@@ -538,6 +881,8 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 						},
 					}, nil)
 			},
+			// TODO(proxystate): api gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "api-gateway-with-http-route",
@@ -619,6 +964,8 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 					},
 				}})
 			},
+			// TODO(proxystate): api gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "api-gateway-with-http-route-timeoutfilter-one-set",
@@ -693,6 +1040,8 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 					},
 				}})
 			},
+			// TODO(proxystate): api gateways will come at a later date.
+			alsoRunTestForV2: false,
 		},
 	}
 }

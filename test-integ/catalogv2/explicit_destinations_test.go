@@ -108,7 +108,7 @@ func (c testBasicL4ExplicitDestinationsCreator) NewConfig(t *testing.T) *topolog
 	}
 
 	return &topology.Config{
-		Images: topoutil.TargetImages(),
+		Images: utils.TargetImages(),
 		Networks: []*topology.Network{
 			{Name: clusterName},
 			{Name: "wan", Type: "wan"},
