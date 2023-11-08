@@ -148,7 +148,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 		if tt.alsoRunTestForV2 {
 			generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
 
-			converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
+			converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "192.0.2.1"})
 			proxyState, err := converter.ProxyStateFromSnapshot(snap)
 			require.NoError(t, err)
 
@@ -1057,8 +1057,7 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
 			},
-			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "downstream-service-with-unix-sockets",
@@ -1085,8 +1084,7 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 					}
 				})
 			},
-			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
 			name:   "expose-checks",
@@ -1096,14 +1094,12 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 					return "192.0.2.1"
 				})
 			},
-			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
-			alsoRunTestForV2: false,
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "expose-paths-grpc-new-cluster-http1",
-			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
-			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
-			alsoRunTestForV2: false,
+			name:             "expose-paths-grpc-new-cluster-http1",
+			create:           proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
+			alsoRunTestForV2: true,
 		},
 		{
 			// NOTE: if IPv6 is not supported in the kernel per
