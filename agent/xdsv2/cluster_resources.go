@@ -138,6 +138,7 @@ func (pr *ProxyResources) makeEnvoyDynamicClusterAndEndpoint(name string, protoc
 		protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
 		endpointResources[cluster.Name] = protoEndpoint
 	}
+	//}
 
 	return cluster, endpointResources, nil
 
