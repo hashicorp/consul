@@ -14,4 +14,5 @@ type Dependencies struct {
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(exportedservices.Controller(deps.ExportedServicesSamenessGroupsExpander))
+
 }

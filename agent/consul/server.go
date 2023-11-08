@@ -1043,6 +1043,10 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 		auth.RegisterControllers(s.controllerManager, auth.DefaultControllerDependencies())
 	}
 
+	multicluster.RegisterControllers(s.controllerManager, multicluster.ControllerDependencies{
+		ConfigEntryExports: &V1ServiceExportsShim{s: s},
+	})
+
 	reaper.RegisterControllers(s.controllerManager)
 
 	if s.config.DevMode {
