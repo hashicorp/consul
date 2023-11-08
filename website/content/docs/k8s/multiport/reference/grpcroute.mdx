@@ -1,0 +1,804 @@
+---
+layout: docs
+page_title: GRPCRoute resource configuration reference
+description: The GRPCRoute resource CRD configures L7 gRPC traffic behavior within the service mesh. GRPCRoute requires the v2 catalog API. Learn how to configure the GRPCRoute CRD with specifications and example configurations.
+---
+
+# GRPCRoute resource configuration reference
+
+This page provides reference information for the `GRPCRoute` resource, which defines L7 gRPC traffic within the service mesh.
+
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in a gRPC route CRD. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `GRPCRoute`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): map | required
+  - [`parentRefs`](#spec-parentrefs): map | required
+    - [`port`](#spec-parentrefs-port): string
+    - [`ref`](#spec-parentrefs-ref):  string | required
+      - [`name`](#spec-parentrefs-ref-name): string
+      - [`type`](#spec-parentrefs-ref-type): map
+         - [`group`](#spec-parentrefs-ref-type): string
+         - [`groupVersion`](#spec-parentrefs-ref-type): string
+         - [`kind`](#spec-parentrefs-ref-type): string
+  - [`rules`](#spec-rules): map | required
+    - [`backendRefs`](#spec-rules-backendrefs): map
+      - [`backendRef`](#spec-rules-backendrefs-backendref): map
+        - [`datacenter`](#spec-rules-backendrefs-backendref-datacenter): string
+        - [`port`](#spec-rules-backendrefs-backendref-port): string
+        - [`ref`](#spec-rules-backendrefs-backendref-ref): map
+          - [`name`](#spec-rules-backendrefs-backendref-ref-name): string
+          - [`type`](#spec-rules-backendrefs-backendref-ref-type): map
+            - [`group`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
+      - [`filters`](#spec-rules-backendrefs-filters): map
+        - [`requestHeaderModifier`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`add`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`set`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+          - [`remove`](#spec-rules-backendrefs-filters-requestheadermodifier): map
+        - [`responseHeaderModifier`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`add`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`set`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+          - [`remove`](#spec-rules-backendrefs-filters-responseheadermodifier): map
+        - [`urlRewrite`](#spec-rules-backendrefs-filters-urlrewrite): map
+          - [`pathPrefix`](#spec-rules-backendrefs-filters-urlrewrite): string
+      - [`weight`](#spec-rules-backendrefs-weight): number | `1`
+    - [`filters`](#spec-rules-filters): map
+      - [`requestHeaderModifier`](#spec-rules-filters-requestheadermodifier): map
+        - [`add`](#spec-rules-filters-requestheadermodifier): map
+        - [`set`](#spec-rules-filters-requestheadermodifier): map
+        - [`remove`](#spec-rules-filters-requestheadermodifier): map
+      - [`responseHeaderModifier`](#spec-rules-filters-responseheadermodifier): map
+        - [`add`](#spec-rules-filters-responseheadermodifier): map
+        - [`set`](#spec-rules-filters-responseheadermodifier): map
+        - [`remove`](#spec-rules-filters-responseheadermodifier): map
+      - [`urlRewrite`](#spec-rules-filters-urlrewrite): map
+        - [`pathPrefix`](#spec-rules-filters-urlrewrite): string
+    - [`matches`](#spec-rules-matches): map
+      - [`headers`](#spec-rules-matches-headers): map
+        - [`name`](#spec-rules-matches-headers-name): string
+        - [`type`](#spec-rules-matches-headers-type): string
+        - [`value`](#spec-rules-matches-headers-value): string
+      - [`method`](#spec-rules-matches-method): map
+        - [`method`](#spec-rules-matches-method-method): string
+        - [`service`](#spec-rules-matches-method-service): string
+        - [`type`](#spec-rules-matches-method-type): string
+    - [`retries`](#spec-rules-retries): map
+      - [`number`](#spec-rules-retries-number): map
+        - [`value`](#spec-rules-retries-number): number
+      - [`onConditions`](#spec-rules-retries-onconditions): map of strings
+      - [`onConnectFailure`](#spec-rules-retries-onconnectfailure): boolean | `false`
+      - [`onStatusCodes`](#spec-rules-retries-onconditions): map of numbers
+    - [`timeouts`](#spec-rules-timeouts): map
+      - [`idle`](#spec-rules-timeouts-idle): string
+      - [`request`](#spec-rules-timeouts-request): string
+
+## Complete configuration
+
+When every field is defined, a gRPC route resource CRD has the following form:
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
+kind: GRPCRoute                                      # required
+metadata:
+  name: <CRDName>
+  namespace: <namespace>
+spec:
+  parentRefs:
+    port: <portNameRoutedFrom>
+    - ref:
+      name: <nameRoutedFrom>
+      type: 
+        group: <catalog>
+        groupVersion: <v2beta1>
+        kind: <Service>
+  rules:
+    - backendRefs:
+      - backendRef:
+        datacenter: <datacenterRoutedTo>
+        port: "<portNameRoutedTo>"
+        ref:
+          name: <nameRoutedTo>
+          type:
+            group: <catalog>
+            groupVersion: <v2beta1>
+            kind: <Service>
+      filters:
+        - requestHeaderModifier:
+          add:
+            name: <headerName>
+            value: <headerValue>
+        - responseHeaderModifier:
+          set:
+            name: <headerName>
+            value: <headerValue>
+        urlRewrite:
+          pathPrefix: <path/prefix>
+      weight: 1
+    filters:
+      requestHeaderModifier:
+          remove:
+            name: <headerName>
+            value: <headerValue>
+      responseHeaderModifier:      
+          add:
+            name: <headerName>
+            value: <headerValue>
+      urlRewrite:
+        pathPrefix: <path/prefix>
+    matches:
+      headers:
+        name: <nameToMatch>
+        type: <typeToMatch>
+        value: <valueToMatch>
+      method:
+        method: <methodToMatch>
+        service: <serviceToMatch>
+        type: <typeToMatch>
+    retries:
+      number:
+        value: 1
+      onConditions: ["cancelled", "unavailable"]
+      onConnectFailure: false
+      onStatusCodes: [400, 404]
+    timeouts:
+      idle: <1s>
+      request: <1s>
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the `GRPCRoute` custom resource definition (CRD).
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `mesh.consul.hashicorp.com/v2beta1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `mesh.consul.hashicorp.com/v2beta1`.
+
+### `kind`
+
+Specifies the type of CRD to implement. Must be set to `GRPCRoute`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `GRPCRoute`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the CRD and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the CRD. The name is metadata that you can use to reference the resource when performing Consul operations, such as using the `consul resource` command. Refer to [`consul resource`](/consul/docs/k8s/connect/multiport/reference/resource-command) for more information.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `GRPCRoute` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+When using this CRD, the `spec` field closely resembles the `GRPCRoute` GAMMA resource. Refer to [GRPCRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.GRPCRoute).
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.parentRefs`
+
+Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify the name of one port for the route. Any resources that send traffic through the route use the same port.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.parentRefs.port`
+
+Specifies the name of the port that the configuration applies to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.parentRefs.ref`
+
+Specifies the resource that the route attaches to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.parentRefs.ref.name`
+
+Specifies the user-defined name of the resource that the configuration applies to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.parentRefs.ref.type`
+
+Specifies the type of resource that the configuration applies to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+
+  | Parameter     | Description                                                          | Data type | Default  |
+  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None |
+  | `kind`    | Specifies the kind of the Kubernetes object the resource applies to. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
+
+### `spec.rules`
+
+Specifies rules for sidecar proxies to direct a service's gRPC traffic within the service mesh, including filtering, retry, and timeout behavior.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs`
+
+Specifies the Kubernetes Service backend to direct GRPC traffic to when a request matches the service described in [`spec.parentRefs`](#spec-parentrefs). The Service backend is the collection of endpoint IPs for the service. Refer to [the Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/concepts/gamma/#an-overview-of-the-gateway-api-for-service-mesh) for more information about Service backends.
+
+When a valid Service backend cannot be reached and no additional filters apply, traffic that matches the rule returns a 500 status code.
+
+When different Service backends are specified in [`spec.rules.backendRefs.weight`](#spec-rules-backendrefs-weight) and one of the backends is invalid, Consul continues to apply the specified weights instead of adjusting the relative weights to exclude traffic to the invalid backend. For example, when traffic is configured in a 50-50 split between `api` and `admin` and no valid endpoints for `admin` can be reached, the 50% of traffic intended for `admin` returns with a 500 status code.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef`
+
+Specifies an individual Service backend where matching requests should be sent.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef.datacenter`
+
+Specifies the name of the Consul datacenter that registered the Service backend that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.port`
+
+Specifies the name of the port for the Consul service that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.ref`
+
+The Consul service that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef.ref.name`
+
+Specifies the user-defined name of the resource that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.ref.type`
+
+Specifies the type of resource that the configuration routes traffic to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+
+  | Parameter     | Description                                                          | Data type | Default  |
+  | --- | --- | --- | --- |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
+  | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
+
+### `spec.rules.backendRefs.filters`
+
+Specifies filtering behavior for services configured in the same [`spec.rules.backendRefs`](#spec-rules-backendrefs) block.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.filters.requestHeaderModifier`
+
+Specifies a set of header modification rules applied to requests routed with the gRPC route resource.
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules:
+  - `add`: Map of one or more key-value pairs.
+  - `set`: Map of one or more key-value pairs.
+  - `remove`: Map of one or more key-value pairs.
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |
+| --- 	    | ---	       | ---         |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | List of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
+### `spec.rules.backendRefs.filters.responseHeaderModifier`
+
+Specifies a set of header modification rules applied to responses routed with the gRPC route resource.
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules:
+  - `add`: Map of one or more key-value pairs.
+  - `set`: Map of one or more key-value pairs.
+  - `remove`: Map of one or more key-value pairs.
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |
+| --- 	    | ---	       | ---         |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | List of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
+### `spec.rules.backendRefs.filters.urlRewrite`
+
+Specifies a path to modify the URL with when a request is forwarded.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameter:
+
+  | Parameter     | Description                                                                                        | Data type | Default |
+  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
+  | `pathPrefix` | Specifies the path that is prepended to the URL.  | String    | None    |
+
+### `spec.rules.backendRefs.weight`
+
+Specifies the proportion of requests routed to the specified service. 
+
+This proportion is relative to the sum of all weights in the [`spec.rules.backendRefs`](#spec-rules-backendrefs) block. As a result, weights do not need to add up to 100. When only one backend is specified and the weight is greater then 0, Consul forwards 100% of traffic to the backend. 
+
+When this parameter is not specified, Consul defaults to `1`.
+
+#### Values
+
+- Default: `1`
+- Data type: Integer
+
+### `spec.rules.filters`
+
+Specifies filtering behavior for all requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.filters.requestHeaderModifier`
+
+Specifies a set of header modification rules applied to requests that match the service defined in [`spec.parentRefs`](#spec-parent-refs).
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules:
+  - `add`: Map of one or more key-value pairs.
+  - `set`: Map of one or more key-value pairs.
+  - `remove`: Map of one or more key-value pairs.
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |
+| --- 	    | ---	       | ---         |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | List of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
+### `spec.rules.filters.responseHeaderModifier`
+
+Specifies a set of header modification rules applied to responses from services matching [`spec.parentRefs`](#spec-parent-refs).
+
+#### Values
+
+- Default: None
+- Values: Object containing one or more fields that define header modification rules:
+  - `add`: Map of one or more key-value pairs.
+  - `set`: Map of one or more key-value pairs.
+  - `remove`: Map of one or more key-value pairs.
+
+The following table describes how to configure values for request headers:
+
+| Rule | Description | Type |
+| --- 	    | ---	       | ---         |
+| `add` | Defines a set of key-value pairs to add to the header. Use header names as the keys. Header names are not case-sensitive. If header values with the same name already exist, the value is appended and Consul applies both headers. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `set` | Defines a set of key-value pairs to add to the request header or to replace existing header values with. Use header names as the keys. Header names are not case-sensitive. If header values with the same names already exist, Consul replaces the header values. You can [use variable placeholders](#use-variable-placeholders). | Map of strings |
+| `remove` | Defines a list of headers to remove. Consul removes only headers containing exact matches. Header names are not case-sensitive. | List of strings |
+
+##### Use variable placeholders
+
+For `add` and `set`, if the service is configured to use Envoy as the proxy, the value may contain variables to interpolate dynamic metadata into the value. For example, using the variable `%DOWNSTREAM_REMOTE_ADDRESS%` allows you to pass a value that is generated when the split occurs.
+
+### `spec.rules.filters.urlRewrite`
+
+Specifies a path to modify the URL with when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameter:
+
+  | Parameter     | Description                                                                                        | Data type | Default |
+  | :------------ | :------------------------------------------------------------------------------------------------- | --------- | ------- |
+  | `pathPrefix` | Specifies a path to prepend to the URL when a request matching [`spec.parentRefs`](#spec-parent-refs) is forwarded.  | String    | None    |
+
+### `spec.rules.matches`
+
+Specifies rules for matching traffic to services described in [`spec.parentRefs`](#spec-parent-refs) according to the request header or method.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.matches.headers`
+
+Specifies criteria for matching gRPC request headers.
+
+When [`spec.rules.matches.headers.value`] is specified multiple times, a request must match all of the specified values for the route to be selected.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.matches.headers.name`
+
+Specifies the name of a gRPC request header to match on.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.matches.headers.type`
+
+Specifies a type of match to perform on the gRPC request header. Supported match types include: unspecified, exact, regex, present, prefix, and suffix.
+
+#### Values
+
+- Default: None
+- Data type: String that should match one of the following values:
+
+  - `HEADER_MATCH_TYPE_UNSPECIFIED`
+  - `HEADER_MATCH_TYPE_EXACT`
+  - `HEADER_MATCH_TYPE_REGEX`
+  - `HEADER_MATCH_TYPE_PRESENT`
+  - `HEADER_MATCH_TYPE_PREFIX`
+  - `HEADER_MATCH_TYPE_SUFFIX`
+
+### `spec.rules.matches.headers.value`
+
+Specifies the value of the gRPC request header to match. When this field is specified multiple times, a request must match all of the specified values for the route to be selected.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.matches.method`
+
+Specifies criteria for matching a service and a gRPC request method. When configuring this field, either [`spec.rules.matches.method.method`](#spec-rules-matches-method-method) or [`spec.rules.matches.method.service`](#spec-rules-matches-method-service) must be a non-empty string.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.matches.method.method`
+
+Specifies the value of the method to match. When empty or omitted, all methods match.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.matches.method.service`
+
+Specifies the value of the service to match. When empty or omitted, all services match.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.matches.method.type`
+
+Specifies a type of match to perform on the gRPC request method. Supported match types include: unspecified, exact, and regex.
+
+#### Values
+
+- Default: None
+- Data type:  String that should match one of the following values:
+
+  - `GRPC_METHOD_MATCH_TYPE_UNSPECIFIED`
+  - `GRPC_METHOD_MATCH_TYPE_EXACT`
+  - `GRPC_METHOD_MATCH_TYPE_REGEX`
+
+### `spec.rules.retries`
+
+Specifies retry logic for routing gRPC traffic.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.retries.number`
+
+Specifies the number of retries to attempt when a request fails.
+
+#### Values
+
+- Default: None
+- Data type: Map that contains the following parameter:
+
+  | Parameter | Description                                  | Data type | Default |
+  | :-------- | :------------------------------------------- | --------- | ------- |
+  | `value`   | Specifies the number of retries to attempt.  | Integer   | None    |
+
+### `spec.rules.retries.onConditions`
+
+Specifies Envoy conditions that cause an automatic retry attempt.
+
+#### Values
+
+- Default: None
+- Data type: Map of strings
+
+### `spec.rules.retries.onConnnectFailure`
+
+Enables an automatic retry attempt when a connection failure error occurs.
+
+#### Values
+
+- Default: `false`
+- Data type: Boolean
+
+### `spec.rules.retries.onStatusCodes`
+
+Specifies the response status codes that are eligible for retry attempts.
+
+#### Values
+
+- Default: None
+- Data type: Map of integers
+
+### `spec.rules.timeouts`
+
+Specifies timeout logic when routing gRPC traffic
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.timeouts.idle`
+
+Specifies the total amount of time permitted for the request stream to be idle before a timeout occurs.
+
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.timeouts.request`
+
+Specifies the total amount of time spent processing the entire downstream request, including retries, before triggering a timeout.
+
+This field accepts a string indicating the number of seconds. For example, indicate five seconds with `5s` and five milliseconds with `0.005s`.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+## Examples
+
+The following examples demonstrate common GRPCRoute CRD configuration patterns for specific use cases.
+
+### Split gRPC traffic between two ports
+
+The following example splits traffic for the `api` service. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port is split so that 50% of the traffic routes to the service at the `api-workload` port and 50% routes to the service at the `admin-workload` port.
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: GRPCRoute
+metadata:
+  name: api-split
+  namespace: default
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      # The configuration targets the workload port, not the service port.
+      port: "api-workload"
+  rules:
+    - backendRefs:
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "api-workload"
+        weight: 50
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "admin-workload"
+        weight: 50
+```
+
+### Route traffic by matching header
+
+The following example routes gRPC traffic for the `api` service according to its header. GRPC traffic for services registered to the Consul catalog that are available at the `api-workload` port are routed according to the following criteria:
+
+- For traffic with a header that contains a `x-debug` value of exactly `1`, Consul modifies the response and request headers and routes to the `api` service at the `api-workload` port.
+- For traffic with a header that contains a `x-debug` value of exactly `2`, Consul modifies the response and request headers and routes to the `api-admin` service at the `admin-workload` port.
+
+This example also includes how to include filters that modify request or response headers.
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: GRPCRoute
+metadata:
+  name: api-match-split
+  namespace: default
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      # The configuration targets the workload port, not the service port.
+      port: "api-workload"
+  rules:
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "1"
+      filters:
+       - requestHeaderModifier:
+           add:
+           - name: "request-foo"
+             value: "request-bar"
+       - responseHeaderModifier:
+           add:
+           - name: "response-foo"
+             value: "response-bar"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "api-workload"
+    - matches:
+      - headers:
+          - type: "HEADER_MATCH_TYPE_EXACT"
+            name: "x-debug"
+            value: "2"
+      filters:
+       - requestHeaderModifier:
+           add:
+           - name: "request-foo"
+             value: "request-bar"
+       - responseHeaderModifier:
+           add:
+           - name: "response-foo"
+             value: "response-bar"
+      backendRefs:
+      - backendRef:
+          ref:
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api-admin
+          # The configuration targets the workload port, not the service port.
+          port: "admin-workload"
+```

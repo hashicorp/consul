@@ -6,6 +6,7 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/lib/channels"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -207,32 +208,8 @@ func (pt *ProxyTracker) PushChange(proxyID *pbresource.ID, proxyState proxysnaps
 
 func (pt *ProxyTracker) deliverLatest(proxyID *pbresource.ID, proxyState proxysnapshot.ProxySnapshot, ch chan proxysnapshot.ProxySnapshot) {
 	pt.config.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", proxyID)
-	// Send if chan is empty
-	select {
-	case ch <- proxyState:
-		return
-	default:
-	}
-
-	// Not empty, drain the chan of older snapshots and redeliver. For now we only
-	// use 1-buffered chans but this will still work if we change that later.
-OUTER:
-	for {
-		select {
-		case <-ch:
-			continue
-		default:
-			break OUTER
-		}
-	}
-
-	// Now send again
-	select {
-	case ch <- proxyState:
-		return
-	default:
-		// This should not be possible since we should be the only sender, enforced
-		// by m.mu but error and drop the update rather than panic.
+	err := channels.DeliverLatest(proxyState, ch)
+	if err != nil {
 		pt.config.Logger.Error("failed to deliver proxyState to proxy",
 			"proxy", proxyID.String(),
 		)

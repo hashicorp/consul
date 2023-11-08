@@ -937,7 +937,10 @@ func isV1CatalogRequest(rpcName string) bool {
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
-		tenancy.RegisterControllers(s.controllerManager)
+		tenancy.RegisterControllers(
+			s.controllerManager,
+			tenancy.Dependencies{Registry: deps.Registry},
+		)
 	}
 
 	if s.useV2Resources {

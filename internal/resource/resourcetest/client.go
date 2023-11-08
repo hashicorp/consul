@@ -231,6 +231,17 @@ func (client *Client) WaitForStatusCondition(t T, id *pbresource.ID, statusKey s
 	return res
 }
 
+func (client *Client) WaitForStatusConditionAnyGen(t T, id *pbresource.ID, statusKey string, condition *pbresource.Condition) *pbresource.Resource {
+	t.Helper()
+
+	var res *pbresource.Resource
+	client.retry(t, func(r *retry.R) {
+		res = client.RequireStatusCondition(r, id, statusKey, condition)
+	})
+
+	return res
+}
+
 func (client *Client) WaitForStatusConditions(t T, id *pbresource.ID, statusKey string, conditions ...*pbresource.Condition) *pbresource.Resource {
 	t.Helper()
 

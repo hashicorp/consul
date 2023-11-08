@@ -125,6 +125,13 @@ func (id ServiceID) NamespaceOrDefault() string {
 	return NamespaceOrDefault(id.Namespace)
 }
 
+func (id ServiceID) QueryOptions() *api.QueryOptions {
+	return &api.QueryOptions{
+		Partition: DefaultToEmpty(id.Partition),
+		Namespace: DefaultToEmpty(id.Namespace),
+	}
+}
+
 func PartitionOrDefault(name string) string {
 	if name == "" {
 		return "default"
