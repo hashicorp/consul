@@ -51,11 +51,11 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 				u   = ship.Upstream
 			)
 
-			v1ID := ship.Upstream.ID
+			v1ID := u.ID
 			v1ID.Name = "static-server-v1"
 			v1ClusterPrefix := clusterPrefix(u.PortName, v1ID, u.Cluster)
 
-			v2ID := ship.Upstream.ID
+			v2ID := u.ID
 			v2ID.Name = "static-server-v2"
 			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
 
