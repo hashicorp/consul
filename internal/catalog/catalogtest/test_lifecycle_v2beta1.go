@@ -16,19 +16,19 @@ import (
 // RunCatalogV2Beta1LifecycleIntegrationTest intends to excercise functionality of
 // managing catalog resources over their normal lifecycle where they will be modified
 // several times, change state etc.
-func RunCatalogV2Beta1LifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV2Beta1LifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
 	t.Helper()
 
 	testutil.RunStep(t, "node-lifecycle", func(t *testing.T) {
-		RunCatalogV2Beta1NodeLifecycleIntegrationTest(t, client)
+		RunCatalogV2Beta1NodeLifecycleIntegrationTest(t, client, opts...)
 	})
 
 	testutil.RunStep(t, "workload-lifecycle", func(t *testing.T) {
-		RunCatalogV2Beta1WorkloadLifecycleIntegrationTest(t, client)
+		RunCatalogV2Beta1WorkloadLifecycleIntegrationTest(t, client, opts...)
 	})
 
 	testutil.RunStep(t, "endpoints-lifecycle", func(t *testing.T) {
-		RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t, client)
+		RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t, client, opts...)
 	})
 }
 
@@ -41,8 +41,8 @@ func RunCatalogV2Beta1LifecycleIntegrationTest(t *testing.T, client pbresource.R
 // * Changing HealthStatus to a better health will cause recomputation of the Health
 // * Deletion of associated HealthStatuses will recompute the Health (back to passing)
 // * Deletion of the node will cause deletion of associated health statuses
-func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
-	c := rtest.NewClient(client)
+func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
+	c := rtest.NewClient(client, opts...)
 
 	nodeName := "test-lifecycle"
 	nodeHealthName := "test-lifecycle-node-status"
@@ -131,8 +131,8 @@ func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresour
 //   - Overall health is computed as the worst health amongst the nodes health and all
 //     of the workloads associated HealthStatuses
 //   - Deletion of the workload will cause deletion of all associated health statuses.
-func RunCatalogV2Beta1WorkloadLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
-	c := rtest.NewClient(client)
+func RunCatalogV2Beta1WorkloadLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
+	c := rtest.NewClient(client, opts...)
 	testutil.RunStep(t, "nodeless-workload", func(t *testing.T) {
 		runV2Beta1NodelessWorkloadLifecycleIntegrationTest(t, c)
 	})
@@ -379,8 +379,8 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 // * Adding ports to a service will recalculate the endpoints
 // * Removing ports from a service will recalculate the endpoints
 // * Changing the workload will recalculate the endpoints (ports, addresses, or health)
-func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
-	c := rtest.NewClient(client)
+func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
+	c := rtest.NewClient(client, opts...)
 	serviceName := "test-lifecycle"
 
 	// Create the service without a selector. We should not see endpoints generated but we should see the
