@@ -70,16 +70,16 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 			switch u.PortName {
 			case "tcp":
 				asserter.CheckBlankspaceNameTrafficSplitViaTCP(t, svc, u,
-					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "grpc":
 				asserter.CheckBlankspaceNameTrafficSplitViaGRPC(t, svc, u,
-					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "http":
 				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, false, "/",
-					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "http2":
 				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, true, "/",
-					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
+					map[string]int{v1Expect: 10, v2Expect: 90})
 			default:
 				t.Fatalf("unexpected port name: %s", u.PortName)
 			}
