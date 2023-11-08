@@ -59,47 +59,27 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 			v2ID.Name = "static-server-v2"
 			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
 
+			// we expect 2 clusters, one for each leg of the split
+			asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
+			asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+
+			// Both should be possible.
+			v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
+			v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
+
 			switch u.PortName {
 			case "tcp":
-				// we expect 2 clusters, one for each leg of the split
-				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
-				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
-
-				// Both should be possible.
-				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
-				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
-
 				asserter.CheckBlankspaceNameTrafficSplitViaTCP(t, svc, u,
 					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
-
 			case "grpc":
-				// we expect 2 clusters, one for each leg of the split
-				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
-				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
-
-				// Both should be possible.
-				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
-				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
-
 				asserter.CheckBlankspaceNameTrafficSplitViaGRPC(t, svc, u,
 					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
-
 			case "http":
-				// we expect 2 clusters, one for each leg of the split
-				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
-				asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
-
-				// Both should be possible.
-				v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
-				v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
-
 				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, false, "/",
 					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
 			case "http2":
-				asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
-
-				// Only v1 is possible.
-				asserter.CheckBlankspaceNameViaHTTP(t, svc, u, true, "/", cluster.Name, v1ID)
+				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, true, "/",
+					map[string]int{v1Expect: 10, v2Expect: 90}, 2)
 			default:
 				t.Fatalf("unexpected port name: %s", u.PortName)
 			}
@@ -327,14 +307,24 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			Tenancy: tenancy,
 		},
 	}, &pbmesh.HTTPRoute{
-		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: &pbresource.Reference{
-				Type:    pbcatalog.ServiceType,
-				Name:    "static-server",
-				Tenancy: tenancy,
+		ParentRefs: []*pbmesh.ParentReference{
+			{
+				Ref: &pbresource.Reference{
+					Type:    pbcatalog.ServiceType,
+					Name:    "static-server",
+					Tenancy: tenancy,
+				},
+				Port: "http",
 			},
-			Port: "http",
-		}},
+			{
+				Ref: &pbresource.Reference{
+					Type:    pbcatalog.ServiceType,
+					Name:    "static-server",
+					Tenancy: tenancy,
+				},
+				Port: "http2",
+			},
+		},
 		Rules: []*pbmesh.HTTPRouteRule{{
 			BackendRefs: []*pbmesh.HTTPBackendRef{
 				{
@@ -358,33 +348,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 					Weight: 90,
 				},
 			},
-		}},
-	})
-	http2ServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    pbmesh.HTTPRouteType,
-			Name:    "static-server-http2-route",
-			Tenancy: tenancy,
-		},
-	}, &pbmesh.HTTPRoute{
-		ParentRefs: []*pbmesh.ParentReference{{
-			Ref: &pbresource.Reference{
-				Type:    pbcatalog.ServiceType,
-				Name:    "static-server",
-				Tenancy: tenancy,
-			},
-			Port: "http2",
-		}},
-		Rules: []*pbmesh.HTTPRouteRule{{
-			BackendRefs: []*pbmesh.HTTPBackendRef{{
-				BackendRef: &pbmesh.BackendReference{
-					Ref: &pbresource.Reference{
-						Type:    pbcatalog.ServiceType,
-						Name:    "static-server-v1",
-						Tenancy: tenancy,
-					},
-				},
-			}},
 		}},
 	})
 	grpcServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
@@ -479,7 +442,6 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		v1TrafficPerms,
 		v2TrafficPerms,
 		httpServerRoute,
-		http2ServerRoute,
 		tcpServerRoute,
 		grpcServerRoute,
 	)
