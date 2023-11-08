@@ -10,6 +10,27 @@ be able to run many related sorts of test against it, rather than waiting for
 many similar clusters to be provisioned and torn down. This will help ensure
 that the integration tests do not consume CPU cycles needlessly.
 
+## Prerequisites
+
+Before you can run these tests, a fresh dev build should be created and tagged
+for automatic use by tests using `utils.TargetImages()`. This can be done by
+the toplevel consul make target:
+
+    make test-deployer-setup
+
+You can run the entire set of deployer integration tests using:
+
+    make test-deployer         # everything except peering_commontopo
+    make test-deployer-peering # just peering_commontopo
+
+You can also run them one by one if you like:
+
+    go test ./catalogv2 -run TestBasicL4ExplicitDestinations -v
+
+You can have the logs stream unbuffered directly to your terminal which can
+help diagnose stuck tests that would otherwise need to fully timeout before the
+logs would print by also setting the `NOLOGBUFFER=1` environment variable.
+
 ## Getting started
 
 Deployer tests have three main parts:
