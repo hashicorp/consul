@@ -177,7 +177,7 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 						},
 						{
 							ID:       newServiceID("static-server"),
-							PortName: "http-alt",
+							PortName: "http2",
 						},
 					}
 				},
