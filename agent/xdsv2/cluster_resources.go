@@ -204,17 +204,17 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol pbprox
 	if fg != nil {
 		var egNames []string
 		for _, eg := range fg.EndpointGroups {
-			cluster, _, err := pr.makeEnvoyCluster(eg.Name, protocol, eg)
+			cluster, eps, err := pr.makeEnvoyCluster(eg.Name, protocol, eg)
 			if err != nil {
-				return nil, nil, err
+				return nil, eps, err
 			}
 			egNames = append(egNames, cluster.Name)
 			clusters[cluster.Name] = cluster
 
-			if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
-				protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
-				endpointResources[cluster.Name] = protoEndpoint
-			}
+			//if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
+			//	protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
+			endpointResources[cluster.Name] = eps[cluster.Name]
+			//}
 		}
 		aggregateClusterConfig, err := anypb.New(&envoy_aggregate_cluster_v3.ClusterConfig{
 			Clusters: egNames,
