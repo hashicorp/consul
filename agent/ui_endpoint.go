@@ -85,6 +85,11 @@ type ServiceTopology struct {
 	FilteredByACLs   bool
 }
 
+type CertificateDetails struct {
+	Certificate   string
+	ExpiresInDays int
+}
+
 // UINodes is used to list the nodes in a given datacenter. We return a
 // NodeDump which provides overview information for all the nodes
 func (s *HTTPHandlers) UINodes(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -941,4 +946,88 @@ RPC:
 		result = append(result, &sum)
 	}
 	return result, nil
+}
+
+// UICertificatesExpiryDates handles the /v1/internal/ui/certificates-expiry-days/ endpoint,
+// provides expiration date for each certificate .
+func (s *HTTPHandlers) UICertificatesExpiryDays(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	// Check the UI was enabled at agent startup (note this is not reloadable
+	// currently).
+	if !s.IsUIEnabled() {
+		return nil, HTTPError{StatusCode: http.StatusNotFound, Reason: "UI is not enabled"}
+	}
+
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
+
+	result, err := GetCertificatesDetails(s)
+	// If any of the certificate nearing expiration (28Days)
+	// then only call AutoReloadConfig() once, to ensure new certificate is parsed if replaced
+	for _, certDetail := range result {
+		if certDetail.ExpiresInDays < 29 {
+			s.agent.AutoReloadConfig()
+			result, err = GetCertificatesDetails(s)
+			break
+		}
+	}
+
+	if len(result) > 0 {
+		return result, nil
+	}
+	return result, err
+}
+
+// GetCertificatesDetails parses the certificates (TLS, Root CA, Signing (intermediate) certificate)
+// on the current server (where this function is running) and gets the expiration date
+func GetCertificatesDetails(s *HTTPHandlers) ([]CertificateDetails, error) {
+	// Ensure at least a zero length slice
+	certDetails := make([]CertificateDetails, 0)
+
+	// Parse TLS certificate
+	var c *tlsutil.Configurator = s.agent.tlsConfigurator
+	raw := c.Cert()
+	if raw == nil {
+		return certDetails, fmt.Errorf("tls not enabled")
+	}
+	cert, err := x509.ParseCertificate(raw.Certificate[0])
+	if err != nil {
+		return certDetails, fmt.Errorf("failed to parse agent tls cert: %w", err)
+	}
+	tlsCertExpiresInDays := int(time.Until(cert.NotAfter).Hours() / 24)
+	certDetail := CertificateDetails{"TLS Certificate", tlsCertExpiresInDays}
+	certDetails = append(certDetails, certDetail)
+
+	// Parse Root CA and Signing (intermediate) certificate
+	if s.agent.config.ServerMode {
+		if server, ok := s.agent.delegate.(*consul.Server); ok {
+			state := server.FSM().State()
+			_, root, err := state.CARootActive(nil)
+			switch {
+			case err != nil:
+				return certDetails, fmt.Errorf("failed to retrieve root CA: %w", err)
+			case root == nil:
+				return certDetails, fmt.Errorf("no active root CA")
+			}
+			actRootCAExpiresInDays := int(time.Until(root.NotAfter).Hours() / 24)
+			certDetail = CertificateDetails{"Active Root CA Certificate", actRootCAExpiresInDays}
+			certDetails = append(certDetails, certDetail)
+
+			// the CA used in a secondary DC is the active intermediate,
+			// which is the last in the IntermediateCerts stack
+			if len(root.IntermediateCerts) == 0 {
+				return certDetails, fmt.Errorf("no intermediate available")
+			}
+			interCert, err := connect.ParseCert(root.IntermediateCerts[len(root.IntermediateCerts)-1])
+			if err != nil {
+				return certDetails, err
+			}
+			actSigningCAExpiresInDays := int(time.Until(interCert.NotAfter).Hours() / 24)
+			certDetail = CertificateDetails{"Signing CA Certificate", actSigningCAExpiresInDays}
+			certDetails = append(certDetails, certDetail)
+		}
+	}
+
+	return certDetails, err
 }
