@@ -1,18 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func TestIsValidDNSLabel(t *testing.T) {
@@ -176,7 +178,7 @@ func TestIsValidUnixSocketPath(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, tcase.valid, isValidUnixSocketPath(tcase.name))
+			require.Equal(t, tcase.valid, IsValidUnixSocketPath(tcase.name))
 		})
 	}
 }
@@ -280,11 +282,49 @@ func TestValidateSelector(t *testing.T) {
 				},
 			},
 		},
+		"filter-with-empty-query": {
+			selector: &pbcatalog.WorkloadSelector{
+				Filter: "garbage.value == zzz",
+			},
+			allowEmpty: true,
+			err: resource.ErrInvalidField{
+				Name: "filter",
+				Wrapped: errors.New(
+					`filter cannot be set unless there is a name or prefix selector`,
+				),
+			},
+		},
+		"bad-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "garbage.value == zzz",
+			},
+			allowEmpty: false,
+			err: &multierror.Error{
+				Errors: []error{
+					resource.ErrInvalidField{
+						Name: "filter",
+						Wrapped: fmt.Errorf(
+							`filter "garbage.value == zzz" is invalid: %w`,
+							errors.New(`Selector "garbage" is not valid`),
+						),
+					},
+				},
+			},
+		},
+		"good-filter": {
+			selector: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"foo", "bar"},
+				Filter:   "metadata.zone == west1",
+			},
+			allowEmpty: false,
+			err:        nil,
+		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			err := validateSelector(tcase.selector, tcase.allowEmpty)
+			err := ValidateSelector(tcase.selector, tcase.allowEmpty)
 			if tcase.err == nil {
 				require.NoError(t, err)
 			} else {
@@ -321,15 +361,15 @@ func TestValidatePortName(t *testing.T) {
 	// test for the isValidDNSLabel function.
 
 	t.Run("empty", func(t *testing.T) {
-		require.Equal(t, resource.ErrEmpty, validatePortName(""))
+		require.Equal(t, resource.ErrEmpty, ValidatePortName(""))
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		require.Equal(t, errNotDNSLabel, validatePortName("foo.com"))
+		require.Equal(t, errNotDNSLabel, ValidatePortName("foo.com"))
 	})
 
 	t.Run("ok", func(t *testing.T) {
-		require.NoError(t, validatePortName("http"))
+		require.NoError(t, ValidatePortName("http"))
 	})
 }
 
@@ -545,7 +585,7 @@ func TestValidateReference(t *testing.T) {
 		PeerName:  "local",
 	}
 
-	allowedType := WorkloadType
+	allowedType := pbcatalog.WorkloadType
 
 	type testCase struct {
 		check *pbresource.ID
@@ -562,7 +602,7 @@ func TestValidateReference(t *testing.T) {
 		},
 		"type-err": {
 			check: &pbresource.ID{
-				Type:    NodeType,
+				Type:    pbcatalog.NodeType,
 				Tenancy: allowedTenancy,
 				Name:    "foo",
 			},

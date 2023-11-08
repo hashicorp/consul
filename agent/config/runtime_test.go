@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package config
 
@@ -324,8 +324,8 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 			rt.DevMode = true
 			rt.DisableAnonymousSignature = true
 			rt.DisableKeyringFile = true
+			rt.Experiments = nil
 			rt.EnableDebug = true
-			rt.Experiments = []string{"resource-apis"}
 			rt.UIConfig.Enabled = true
 			rt.LeaveOnTerm = false
 			rt.Logging.LogLevel = "DEBUG"
@@ -2357,12 +2357,12 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 		json: []string{`{
 			  "cloud": {
-              	"resource_id": "file-id" 
+              	"resource_id": "file-id"
               }
 			}`},
 		hcl: []string{`
 			  cloud = {
-	            resource_id = "file-id" 
+	            resource_id = "file-id"
 			  }
 			`},
 		expected: func(rt *RuntimeConfig) {
@@ -2525,6 +2525,60 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		expected: func(rt *RuntimeConfig) {
 			rt.Checks = []*structs.CheckDefinition{
 				{Name: "a", GRPC: "localhost:12345/foo", GRPCUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "tcp_use_tls": true, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" tcp_use_tls = true interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: true, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls set to false",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "tcp_use_tls": false, "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" tcp_use_tls = false interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
+			}
+			rt.DataDir = dataDir
+		},
+	})
+	run(t, testCase{
+		desc: "tcp check with tcp_use_tls not set",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{
+			`{ "check": { "name": "a", "tcp": "localhost:55555", "interval": "5s" } }`,
+		},
+		hcl: []string{
+			`check = { name = "a" tcp = "localhost:55555" interval = "5s" }`,
+		},
+		expected: func(rt *RuntimeConfig) {
+			rt.Checks = []*structs.CheckDefinition{
+				{Name: "a", TCP: "localhost:55555", TCPUseTLS: false, OutputMaxSize: checks.DefaultBufSize, Interval: 5 * time.Second},
 			}
 			rt.DataDir = dataDir
 		},
@@ -2736,7 +2790,44 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
+		desc: "verify_server_hostname in the defaults stanza and internal_rpc",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = false
+				},
+				internal_rpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": false
+					},
+					"internal_rpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the grpc stanza",
@@ -2759,7 +2850,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "verify_server_hostname in the https stanza",
@@ -2782,7 +2873,7 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 				}
 			}
 		`},
-		expectedErr: "verify_server_hostname is only valid in the tls.internal_rpc stanza",
+		expectedErr: "verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanza",
 	})
 	run(t, testCase{
 		desc: "translated keys",
@@ -5724,6 +5815,74 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		},
 	})
 	run(t, testCase{
+		desc: "tls.defaults.verify_server_hostname implies tls.internal_rpc.verify_outgoing",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
+		desc: "tls.internal_rpc.verify_server_hostname overwrites tls.defaults.verify_server_hostname",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"tls": {
+					"defaults": {
+						"verify_server_hostname": false
+					},
+					"internal_rpc": {
+						"verify_server_hostname": true
+					}
+				}
+			}
+		`},
+		hcl: []string{`
+			tls {
+				defaults {
+					verify_server_hostname = false
+				},
+				internal_rpc {
+					verify_server_hostname = true
+				}
+			}
+		`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+
+			rt.TLS.Domain = "consul."
+			rt.TLS.NodeName = "thehostname"
+
+			rt.TLS.InternalRPC.VerifyServerHostname = true
+			rt.TLS.InternalRPC.VerifyOutgoing = true
+		},
+	})
+	run(t, testCase{
 		desc: "tls.grpc.use_auto_cert defaults to false",
 		args: []string{
 			`-data-dir=` + dataDir,
@@ -5851,8 +6010,26 @@ func TestLoad_IntegrationWithFlags(t *testing.T) {
 		hcl:  []string{``},
 		expected: func(rt *RuntimeConfig) {
 			rt.DataDir = dataDir
-			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendBoltDB
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
 			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+		},
+	})
+	run(t, testCase{
+		desc: "logstore defaults",
+		args: []string{
+			`-data-dir=` + dataDir,
+		},
+		json: []string{`
+			{
+				"experiments": ["resource-apis"]
+			}	
+		`},
+		hcl: []string{`experiments=["resource-apis"]`},
+		expected: func(rt *RuntimeConfig) {
+			rt.DataDir = dataDir
+			rt.RaftLogStoreConfig.Backend = consul.LogStoreBackendDefault
+			rt.RaftLogStoreConfig.WAL.SegmentSize = 64 * 1024 * 1024
+			rt.Experiments = []string{"resource-apis"}
 		},
 	})
 	run(t, testCase{
@@ -6182,6 +6359,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				Body:                           "wSjTy7dg",
 				DisableRedirects:               true,
 				TCP:                            "RJQND605",
+				TCPUseTLS:                      false,
 				H2PING:                         "9N1cSb5B",
 				H2PingUseTLS:                   false,
 				OSService:                      "aAjE6m9Z",
@@ -6212,6 +6390,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				DisableRedirects:               false,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "4jG5casb",
+				TCPUseTLS:                      false,
 				H2PING:                         "HCHU7gEb",
 				H2PingUseTLS:                   false,
 				OSService:                      "aqq95BhP",
@@ -6241,6 +6420,7 @@ func TestLoad_FullConfig(t *testing.T) {
 				DisableRedirects:               true,
 				OutputMaxSize:                  checks.DefaultBufSize,
 				TCP:                            "JY6fTTcw",
+				TCPUseTLS:                      false,
 				H2PING:                         "rQ8eyCSF",
 				H2PingUseTLS:                   false,
 				OSService:                      "aZaCAXww",
@@ -6380,6 +6560,8 @@ func TestLoad_FullConfig(t *testing.T) {
 		GRPCAddrs:             []net.Addr{tcpAddr("32.31.61.91:4881")},
 		GRPCTLSPort:           5201,
 		GRPCTLSAddrs:          []net.Addr{tcpAddr("23.14.88.19:5201")},
+		GRPCKeepaliveInterval: 33 * time.Second,
+		GRPCKeepaliveTimeout:  22 * time.Second,
 		HTTPAddrs:             []net.Addr{tcpAddr("83.39.91.39:7999")},
 		HTTPBlockEndpoints:    []string{"RBvAFcGD", "fWOWFznh"},
 		AllowWriteHTTPFrom:    []*net.IPNet{cidr("127.0.0.0/8"), cidr("22.33.44.55/32"), cidr("0.0.0.0/0")},
@@ -6394,6 +6576,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		KVMaxValueSize:        1234567800,
 		LeaveDrainTime:        8265 * time.Second,
 		LeaveOnTerm:           true,
+		Locality: &Locality{
+			Region: strPtr("us-east-2"),
+			Zone:   strPtr("us-east-2b"),
+		},
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6495,6 +6681,10 @@ func TestLoad_FullConfig(t *testing.T) {
 							Warning: 1,
 						},
 					},
+				},
+				Locality: &structs.Locality{
+					Region: "us-east-1",
+					Zone:   "us-east-1a",
 				},
 			},
 			{
@@ -6653,6 +6843,10 @@ func TestLoad_FullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Connect: &structs.ServiceConnect{
 					Native: true,
+				},
+				Locality: &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 				Checks: structs.CheckTypes{
 					&structs.CheckType{

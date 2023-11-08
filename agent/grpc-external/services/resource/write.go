@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -37,31 +37,20 @@ import (
 var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	if err := validateWriteRequest(req); err != nil {
-		return nil, err
-	}
-
-	reg, err := s.resolveType(req.Resource.Id.Type)
+	reg, err := s.ensureWriteRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
 
-	authz, err := s.getAuthorizer(tokenFromContext(ctx))
+	v1EntMeta := v2TenancyToV1EntMeta(req.Resource.Id.Tenancy)
+	authz, authzContext, err := s.getAuthorizer(tokenFromContext(ctx), v1EntMeta)
 	if err != nil {
 		return nil, err
 	}
-
-	// check acls
-	err = reg.ACLs.Write(authz, req.Resource.Id)
-	switch {
-	case acl.IsErrPermissionDenied(err):
-		return nil, status.Error(codes.PermissionDenied, err.Error())
-	case err != nil:
-		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
-	}
+	v1EntMetaToV2Tenancy(reg, v1EntMeta, req.Resource.Id.Tenancy)
 
 	// Check the user sent the correct type of data.
-	if !req.Resource.Data.MessageIs(reg.Proto) {
+	if req.Resource.Data != nil && !req.Resource.Data.MessageIs(reg.Proto) {
 		got := strings.TrimPrefix(req.Resource.Data.TypeUrl, "type.googleapis.com/")
 
 		return nil, status.Errorf(
@@ -72,12 +61,31 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		)
 	}
 
+	if err = reg.Mutate(req.Resource); err != nil {
+		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
+	}
+
 	if err = reg.Validate(req.Resource); err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
-	if err = reg.Mutate(req.Resource); err != nil {
-		return nil, status.Errorf(codes.Internal, "failed mutate hook: %v", err.Error())
+	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
+	err = reg.ACLs.Write(authz, authzContext, req.Resource)
+	switch {
+	case acl.IsErrPermissionDenied(err):
+		return nil, status.Error(codes.PermissionDenied, err.Error())
+	case err != nil:
+		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
+	}
+
+	// Check tenancy exists for the V2 resource
+	if err = tenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+		return nil, err
+	}
+
+	// Check tenancy not marked for deletion.
+	if err = tenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+		return nil, err
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
@@ -257,29 +265,48 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func validateWriteRequest(req *pbresource.WriteRequest) error {
+func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Resource == nil:
 		field = "resource"
 	case req.Resource.Id == nil:
 		field = "resource.id"
-	case req.Resource.Data == nil:
-		field = "resource.data"
 	}
 
 	if field != "" {
-		return status.Errorf(codes.InvalidArgument, "%s is required", field)
+		return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
 	}
 
 	if err := validateId(req.Resource.Id, "resource.id"); err != nil {
-		return err
+		return nil, err
 	}
 
 	if req.Resource.Owner != nil {
 		if err := validateId(req.Resource.Owner, "resource.owner"); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+
+	// Check type exists.
+	reg, err := s.resolveType(req.Resource.Id.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Resource.Id.Type); err != nil {
+		return nil, err
+	}
+
+	// Check scope
+	if reg.Scope == resource.ScopePartition && req.Resource.Id.Tenancy.Namespace != "" {
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(req.Resource.Id.Type),
+			req.Resource.Id.Tenancy.Namespace,
+		)
+	}
+
+	return reg, nil
 }

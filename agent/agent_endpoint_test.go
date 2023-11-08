@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package agent
 
@@ -77,6 +77,46 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	err := dec.Decode(svcToken)
 	require.NoError(t, err)
 	return svcToken.SecretID
+}
+
+func TestAgentEndpointsFailInV2(t *testing.T) {
+	t.Parallel()
+
+	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
+
+	checkRequest := func(method, url string) {
+		t.Run(method+" "+url, func(t *testing.T) {
+			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
+		})
+	}
+
+	t.Run("agent-self-with-params", func(t *testing.T) {
+		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
+		require.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+		a.srv.h.ServeHTTP(resp, req)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		_, err = io.ReadAll(resp.Body)
+		require.NoError(t, err)
+	})
+
+	checkRequest("PUT", "/v1/agent/maintenance")
+	checkRequest("GET", "/v1/agent/services")
+	checkRequest("GET", "/v1/agent/service/web")
+	checkRequest("GET", "/v1/agent/checks")
+	checkRequest("GET", "/v1/agent/health/service/id/web")
+	checkRequest("GET", "/v1/agent/health/service/name/web")
+	checkRequest("PUT", "/v1/agent/check/register")
+	checkRequest("PUT", "/v1/agent/check/deregister/web")
+	checkRequest("PUT", "/v1/agent/check/pass/web")
+	checkRequest("PUT", "/v1/agent/check/warn/web")
+	checkRequest("PUT", "/v1/agent/check/fail/web")
+	checkRequest("PUT", "/v1/agent/check/update/web")
+	checkRequest("PUT", "/v1/agent/service/register")
+	checkRequest("PUT", "/v1/agent/service/deregister/web")
+	checkRequest("PUT", "/v1/agent/service/maintenance/web")
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -737,9 +777,6 @@ func TestAgent_Service(t *testing.T) {
 			if tt.wantWait != 0 {
 				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
-			} else {
-				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
-					"took %s", elapsed)
 			}
 
 			if tt.wantResp != nil {
@@ -1506,7 +1543,8 @@ func TestAgent_Self(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, cs[a.config.SegmentName], val.Coord)
 
-			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
+			delete(val.Meta, structs.MetaSegmentKey)    // Added later, not in config.
+			delete(val.Meta, structs.MetaConsulVersion) // Added later, not in config.
 			require.Equal(t, a.config.NodeMeta, val.Meta)
 
 			if tc.expectXDS {
@@ -1600,14 +1638,37 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 }
 
+func newDefaultBaseDeps(t *testing.T) BaseDeps {
+	dataDir := testutil.TempDir(t, "acl-agent")
+	logBuffer := testutil.NewLogBuffer(t)
+	logger := hclog.NewInterceptLogger(nil)
+	loader := func(source config.Source) (config.LoadResult, error) {
+		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
+		opts := config.LoadOpts{
+			HCL:           []string{TestConfigHCL(NodeID()), "", dataDir},
+			DefaultConfig: source,
+		}
+		result, err := config.Load(opts)
+		if result.RuntimeConfig != nil {
+			result.RuntimeConfig.Telemetry.Disable = true
+		}
+		return result, err
+	}
+	bd, err := NewBaseDeps(loader, logBuffer, logger)
+	require.NoError(t, err)
+	return bd
+}
+
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1623,20 +1684,22 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusForbidden, resp.Code)
 	require.Contains(t, resp.Body.String(), "Permission denied")
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
-	bd := BaseDeps{}
+	bd := newDefaultBaseDeps(t)
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
+	mockDelegate := delegateMock{}
+	mockDelegate.On("LicenseCheck").Return()
+	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1660,7 +1723,7 @@ func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "/v1/agent/metrics/stream", nil)
 	require.NoError(t, err)
-	handle := h.handler(false)
+	handle := h.handler()
 	handle.ServeHTTP(resp, req)
 	require.Equal(t, http.StatusOK, resp.Code)
 
@@ -4422,7 +4485,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No policy means no valid token
+			policies:  ``, // No policies means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},
@@ -6008,8 +6071,10 @@ func TestAgent_Monitor(t *testing.T) {
 			cancelCtx, cancelFunc := context.WithCancel(context.Background())
 			req = req.WithContext(cancelCtx)
 
+			a.enableDebug.Store(true)
+
 			resp := httptest.NewRecorder()
-			handler := a.srv.handler(true)
+			handler := a.srv.handler()
 			go handler.ServeHTTP(resp, req)
 
 			args := &structs.ServiceDefinition{
@@ -8170,4 +8235,60 @@ func TestAgent_Services_ExposeConfig(t *testing.T) {
 		actual.Proxy.Upstreams = make([]api.Upstream, 0)
 	}
 	require.Equal(t, srv1.Proxy.ToAPI(), actual.Proxy)
+}
+
+func TestAgent_Self_Reload(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// create new test agent
+	a := NewTestAgent(t, `
+		log_level = "info"
+		raft_snapshot_threshold = 100
+	`)
+	defer a.Shutdown()
+
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	req, _ := http.NewRequest("GET", "/v1/agent/self", nil)
+	resp := httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec := json.NewDecoder(resp.Body)
+	val := &Self{}
+	require.NoError(t, dec.Decode(val))
+
+	require.Equal(t, "info", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(100), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
+	// reload with new config
+	shim := &delegateConfigReloadShim{delegate: a.delegate}
+	a.delegate = shim
+	newCfg := TestConfig(testutil.Logger(t), config.FileSource{
+		Name:   "Reload",
+		Format: "hcl",
+		Data: `
+			data_dir = "` + a.Config.DataDir + `"
+			log_level = "debug"
+			raft_snapshot_threshold = 200	
+		`,
+	})
+	if err := a.reloadConfigInternal(newCfg); err != nil {
+		t.Fatalf("got error %v want nil", err)
+	}
+	require.Equal(t, 200, shim.newCfg.RaftSnapshotThreshold)
+
+	// validate new config is reflected in API response
+	req, _ = http.NewRequest("GET", "/v1/agent/self", nil)
+	resp = httptest.NewRecorder()
+	a.srv.h.ServeHTTP(resp, req)
+
+	dec = json.NewDecoder(resp.Body)
+	val = &Self{}
+	require.NoError(t, dec.Decode(val))
+	require.Equal(t, "debug", val.DebugConfig["Logging"].(map[string]interface{})["LogLevel"])
+	require.Equal(t, float64(200), val.DebugConfig["RaftSnapshotThreshold"].(float64))
+
 }

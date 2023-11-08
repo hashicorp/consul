@@ -1,7 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 //go:build !fips
-// +build !fips
 
 package tlsutil
 
@@ -1376,7 +1375,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 		},
 		{
-			name: "agent tls, default server name",
+			name: "agent tls, default consul server name, no override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1389,11 +1388,11 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			},
 			expected: &tls.Config{
 				MinVersion: tls.VersionTLS12,
-				ServerName: "servername",
+				ServerName: "",
 			},
 		},
 		{
-			name: "agent tls, skip verify, node name for server name",
+			name: "agent tls, skip verify, consul node name for server name, no override",
 			conf: func() (*Configurator, error) {
 				return NewConfigurator(Config{
 					InternalRPC: ProtocolConfig{
@@ -1407,7 +1406,7 @@ func TestConfigurator_OutgoingTLSConfigForCheck(t *testing.T) {
 			expected: &tls.Config{
 				InsecureSkipVerify: true,
 				MinVersion:         tls.VersionTLS12,
-				ServerName:         "nodename",
+				ServerName:         "",
 			},
 		},
 		{
@@ -1485,7 +1484,7 @@ func TestConfigurator_AutoEncryptCert(t *testing.T) {
 	cert, err = loadKeyPair("../test/key/ourdomain.cer", "../test/key/ourdomain.key")
 	require.NoError(t, err)
 	c.autoTLS.cert = cert
-	require.Equal(t, int64(4820915609), c.AutoEncryptCert().NotAfter.Unix())
+	require.Equal(t, int64(4852545616), c.AutoEncryptCert().NotAfter.Unix())
 }
 
 func TestConfigurator_AuthorizeInternalRPCServerConn(t *testing.T) {

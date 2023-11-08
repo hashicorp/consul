@@ -2,7 +2,7 @@
 layout: commands
 page_title: 'Commands: Debug'
 description: >-
-  The `consul debug` command monitors an agent to capture a record its actions according to defined durations and intervals. 
+  The `consul debug` command monitors an agent to capture a record its actions according to defined durations and intervals.
 ---
 
 # Consul Debug
@@ -64,6 +64,9 @@ all targets for 5 minutes.
 - `-archive` - Optional, if the tool show archive the directory of data into a
   compressed tar file. Defaults to true.
 
+- `-since` - Optional, can be used to capture information since a particular time
+   in the past
+
 #### API Options
 
 @include 'http_api_options_client.mdx'
@@ -86,7 +89,7 @@ information when `debug` is running. By default, it captures all information.
 
 This command can be run from any host with the Consul binary, but requires
 network access to the target agent in order to retrieve data. Once retrieved,
-the data is written to the the specified path (defaulting to the current
+the data is written to the specified path (defaulting to the current
 directory) on the host where the command runs.
 
 By default the command will capture all available data from the default
@@ -119,5 +122,13 @@ and `-duration` flags.
 
 ```shell-session
 $ consul debug -interval=15s -duration=1m
+...
+```
+
+To capture information since a particular time in past `-since` flag
+can be used.
+
+```shell-session
+$ consul debug -since 1h
 ...
 ```

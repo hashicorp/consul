@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package state
 
@@ -2178,7 +2178,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Listing with no results returns an empty list.
 	ws := memdb.NewWatchSet()
-	idx, services, err := s.Services(ws, nil, "")
+	idx, services, err := s.Services(ws, nil, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2223,7 +2223,7 @@ func TestStateStore_Services(t *testing.T) {
 
 	// Pull all the services.
 	ws = memdb.NewWatchSet()
-	idx, services, err = s.Services(ws, nil, "")
+	idx, services, err = s.Services(ws, nil, "", false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -2232,7 +2232,7 @@ func TestStateStore_Services(t *testing.T) {
 	}
 
 	// Verify the result.
-	expected := []*structs.ServiceNode{
+	expected := structs.ServiceNodes{
 		ns1Dogs.ToServiceNode("node1"),
 		ns1.ToServiceNode("node1"),
 		ns2.ToServiceNode("node2"),
@@ -4837,6 +4837,9 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	}
 
 	// Register some nodes
+	// node1 is registered withOut any nodemeta, and a consul service with id
+	// 'consul' is added later with meta 'version'. The expected node must have
+	// meta 'consul-version' with same value
 	testRegisterNode(t, s, 0, "node1")
 	testRegisterNode(t, s, 1, "node2")
 
@@ -4845,6 +4848,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	testRegisterService(t, s, 3, "node1", "service2")
 	testRegisterService(t, s, 4, "node2", "service1")
 	testRegisterService(t, s, 5, "node2", "service2")
+	// Register consul service with meta 'version' for node1
+	testRegisterServiceWithMeta(t, s, 10, "node1", "consul", map[string]string{"version": "1.17.0"})
 
 	// Register service-level checks
 	testRegisterCheck(t, s, 6, "node1", "service1", "check1", api.HealthPassing)
@@ -4895,6 +4900,19 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 			},
 			Services: []*structs.NodeService{
 				{
+					ID:      "consul",
+					Service: "consul",
+					Address: "1.1.1.1",
+					Meta:    map[string]string{"version": "1.17.0"},
+					Port:    1111,
+					Weights: &structs.Weights{Passing: 1, Warning: 1},
+					RaftIndex: structs.RaftIndex{
+						CreateIndex: 10,
+						ModifyIndex: 10,
+					},
+					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+				},
+				{
 					ID:      "service1",
 					Service: "service1",
 					Address: "1.1.1.1",
@@ -4921,6 +4939,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 					EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
 				},
 			},
+			Meta: map[string]string{"consul-version": "1.17.0"},
 		},
 		&structs.NodeInfo{
 			Node:      "node2",
@@ -4988,7 +5007,7 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
+	if idx != 10 {
 		t.Fatalf("bad index: %d", idx)
 	}
 	require.Len(t, dump, 1)
@@ -4999,8 +5018,8 @@ func TestStateStore_NodeInfo_NodeDump(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if idx != 9 {
-		t.Fatalf("bad index: %d", 9)
+	if idx != 10 {
+		t.Fatalf("bad index: %d", idx)
 	}
 	if !reflect.DeepEqual(dump, expect) {
 		t.Fatalf("bad: %#v", dump[0].Services[0])
@@ -8290,6 +8309,85 @@ func TestCatalog_cleanupGatewayWildcards_panic(t *testing.T) {
 
 	// Now delete the node "foo", and this would panic because of the deletion within an iterator
 	require.NoError(t, s.DeleteNode(6, "foo", nil, ""))
+}
+
+func TestCatalog_cleanupGatewayWildcards_proxy(t *testing.T) {
+	s := testStateStore(t)
+
+	require.NoError(t, s.EnsureNode(0, &structs.Node{
+		ID:   "c73b8fdf-4ef8-4e43-9aa2-59e85cc6a70c",
+		Node: "foo",
+	}))
+	require.NoError(t, s.EnsureConfigEntry(1, &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: structs.ProxyConfigGlobal,
+		Config: map[string]interface{}{
+			"protocol": "http",
+		},
+	}))
+
+	defaultMeta := structs.DefaultEnterpriseMetaInDefaultPartition()
+
+	require.NoError(t, s.EnsureConfigEntry(3, &structs.IngressGatewayConfigEntry{
+		Kind: "ingress-gateway",
+		Name: "my-gateway-2-ingress",
+		Listeners: []structs.IngressListener{
+			{
+				Port:     1111,
+				Protocol: "http",
+				Services: []structs.IngressService{
+					{
+						Name:           "*",
+						EnterpriseMeta: *defaultMeta,
+					},
+				},
+			},
+		},
+	}))
+
+	// Register two services, a regular service, and a sidecar proxy for it
+	api := structs.NodeService{
+		ID:             "api",
+		Service:        "api",
+		Address:        "127.0.0.2",
+		Port:           443,
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(4, "foo", &api))
+	proxy := structs.NodeService{
+		Kind:    structs.ServiceKindConnectProxy,
+		ID:      "api-proxy",
+		Service: "api-proxy",
+		Address: "127.0.0.3",
+		Port:    443,
+		Proxy: structs.ConnectProxyConfig{
+			DestinationServiceName: "api",
+			DestinationServiceID:   "api",
+		},
+		EnterpriseMeta: *defaultMeta,
+	}
+	require.NoError(t, s.EnsureService(5, "foo", &proxy))
+
+	// make sure we have only one gateway service
+	_, services, err := s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the target service
+	require.NoError(t, s.DeleteService(6, "foo", "api", nil, ""))
+
+	// at this point we still have the gateway services because we have a connect proxy still
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 1)
+
+	// now delete the connect proxy
+	require.NoError(t, s.DeleteService(7, "foo", "api-proxy", nil, ""))
+
+	// make sure we no longer have any services
+	_, services, err = s.GatewayServices(nil, "my-gateway-2-ingress", defaultMeta)
+	require.NoError(t, err)
+	require.Len(t, services, 0)
 }
 
 func TestCatalog_DownstreamsForService(t *testing.T) {

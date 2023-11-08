@@ -58,6 +58,26 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 								*cp_JWTProviders_v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff = *v2.JSONWebKeySet.Remote.RetryPolicy.RetryPolicyBackOff
 							}
 						}
+						if v2.JSONWebKeySet.Remote.JWKSCluster != nil {
+							cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = new(structs.JWKSCluster)
+							*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster = *v2.JSONWebKeySet.Remote.JWKSCluster
+							if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates != nil {
+								cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = new(structs.JWKSTLSCertificate)
+								*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = new(structs.JWKSTLSCertProviderInstance)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.CaCertificateProviderInstance
+								}
+								if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA != nil {
+									cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = new(structs.JWKSTLSCertTrustedCA)
+									*cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA = *v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA
+									if v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes != nil {
+										cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes = make([]byte, len(v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes))
+										copy(cp_JWTProviders_v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes, v2.JSONWebKeySet.Remote.JWKSCluster.TLSCertificates.TrustedCA.InlineBytes)
+									}
+								}
+							}
+						}
 					}
 				}
 				if v2.Audiences != nil {
@@ -804,6 +824,28 @@ func (o *configSnapshotTerminatingGateway) DeepCopy() *configSnapshotTerminating
 			var cp_HostnameServices_v2 structs.CheckServiceNodes
 			cp_HostnameServices_v2 = v2.DeepCopy()
 			cp.HostnameServices[k2] = cp_HostnameServices_v2
+		}
+	}
+	if o.WatchedInboundPeerTrustBundles != nil {
+		cp.WatchedInboundPeerTrustBundles = make(map[structs.ServiceName]context.CancelFunc, len(o.WatchedInboundPeerTrustBundles))
+		for k2, v2 := range o.WatchedInboundPeerTrustBundles {
+			cp.WatchedInboundPeerTrustBundles[k2] = v2
+		}
+	}
+	if o.InboundPeerTrustBundles != nil {
+		cp.InboundPeerTrustBundles = make(map[structs.ServiceName][]*pbpeering.PeeringTrustBundle, len(o.InboundPeerTrustBundles))
+		for k2, v2 := range o.InboundPeerTrustBundles {
+			var cp_InboundPeerTrustBundles_v2 []*pbpeering.PeeringTrustBundle
+			if v2 != nil {
+				cp_InboundPeerTrustBundles_v2 = make([]*pbpeering.PeeringTrustBundle, len(v2))
+				copy(cp_InboundPeerTrustBundles_v2, v2)
+				for i3 := range v2 {
+					if v2[i3] != nil {
+						cp_InboundPeerTrustBundles_v2[i3] = v2[i3].DeepCopy()
+					}
+				}
+			}
+			cp.InboundPeerTrustBundles[k2] = cp_InboundPeerTrustBundles_v2
 		}
 	}
 	return &cp

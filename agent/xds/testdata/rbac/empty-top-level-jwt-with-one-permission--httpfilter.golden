@@ -7,36 +7,46 @@
         "consul-intentions-layer7-0": {
           "permissions": [
             {
-              "urlPath": {
-                "path": {
-                  "prefix": "some-path"
-                }
-              }
-            }
-          ],
-          "principals": [
-            {
-              "andIds": {
-                "ids": [
+              "andRules": {
+                "rules": [
                   {
-                    "authenticated": {
-                      "principalName": {
-                        "safeRegex": {
-                          "googleRe2": {},
-                          "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
-                        }
+                    "urlPath": {
+                      "path": {
+                        "prefix": "some-path"
                       }
                     }
                   },
                   {
-                    "orIds": {
-                      "ids": [
-                        { 
+                    "andRules": {
+                      "rules": [
+                        {
                           "metadata": {
-                            "filter":"envoy.filters.http.jwt_authn",
+                            "filter": "envoy.filters.http.jwt_authn",
                             "path": [
-                              {"key": "jwt_payload_okta_0"},
-                              {"key": "roles"}
+                              {
+                                "key": "jwt_payload_okta"
+                              },
+                              {
+                                "key": "iss"
+                              }
+                            ],
+                            "value": {
+                              "stringMatch": {
+                                "exact": "mytest.okta-issuer"
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "metadata": {
+                            "filter": "envoy.filters.http.jwt_authn",
+                            "path": [
+                              {
+                                "key": "jwt_payload_okta"
+                              },
+                              {
+                                "key": "roles"
+                              }
                             ],
                             "value": {
                               "stringMatch": {
@@ -49,6 +59,18 @@
                     }
                   }
                 ]
+              }
+            }
+          ],
+          "principals": [
+            {
+              "authenticated": {
+                "principalName": {
+                  "safeRegex": {
+                    "googleRe2": {},
+                    "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                  }
+                }
               }
             }
           ]

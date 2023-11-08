@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package gateways
 
@@ -12,11 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-cleanhttp"
-
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
@@ -47,7 +46,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 			InjectGossipEncryption: true,
 			AllowHTTPAnyway:        true,
 		},
-		Ports: []int{
+		ExposedPorts: []int{
 			listenerPortOne,
 			serviceHTTPPort,
 			serviceGRPCPort,
@@ -58,6 +57,21 @@ func TestAPIGatewayCreate(t *testing.T) {
 	client := cluster.APIClient(0)
 
 	namespace := getOrCreateNamespace(t, client)
+
+	// Create a gateway
+	// We intentionally do this before creating the config entries
+	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
+		Kind:      "api",
+		Namespace: namespace,
+		Name:      gatewayName,
+	}, cluster.Agents[0], listenerPortOne)
+	require.NoError(t, err)
+
+	// We check this is healthy here because in the case of bringing up a new kube cluster,
+	// it is not possible to create the config entry in advance.
+	// The health checks must pass so the pod can start up.
+	// For API gateways, this should always pass, because there is no default listener for health in Envoy
+	libassert.CatalogServiceIsHealthy(t, client, gatewayName, &api.QueryOptions{Namespace: namespace})
 
 	// add api gateway config
 	apiGateway := &api.APIGatewayConfigEntry{
@@ -75,7 +89,7 @@ func TestAPIGatewayCreate(t *testing.T) {
 
 	require.NoError(t, cluster.ConfigEntryWrite(apiGateway))
 
-	_, _, err := libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
+	_, _, err = libservice.CreateAndRegisterStaticServerAndSidecar(cluster.Agents[0], &libservice.ServiceOpts{
 		ID:        serviceName,
 		Name:      serviceName,
 		Namespace: namespace,
@@ -104,14 +118,6 @@ func TestAPIGatewayCreate(t *testing.T) {
 	}
 
 	require.NoError(t, cluster.ConfigEntryWrite(tcpRoute))
-
-	// Create a gateway
-	gatewayService, err := libservice.NewGatewayService(context.Background(), libservice.GatewayConfig{
-		Kind:      "api",
-		Namespace: namespace,
-		Name:      gatewayName,
-	}, cluster.Agents[0], listenerPortOne)
-	require.NoError(t, err)
 
 	// make sure the gateway/route come online
 	// make sure config entries have been properly created
@@ -217,9 +223,11 @@ func checkTCPRouteConfigEntry(t *testing.T, client *api.Client, routeName string
 }
 
 type checkOptions struct {
-	debug      bool
-	statusCode int
-	testName   string
+	debug           bool
+	responseHeaders map[string]string
+	statusCode      int
+	testName        string
+	expectedBody    string
 }
 
 // checkRoute, customized version of libassert.RouteEchos to allow for headers/distinguishing between the server instances
@@ -268,14 +276,27 @@ func checkRoute(t *testing.T, port int, path string, headers map[string]string, 
 			t.Logf("bad status code - expected: %d, actual: %d", expected.statusCode, res.StatusCode)
 			return false
 		}
+
+		for name, value := range expected.responseHeaders {
+			if res.Header.Get(name) != value {
+				t.Logf("response missing header - expected: %s=%s, actual: %s=%s", name, value, name, res.Header.Get(name))
+				return false
+			}
+		}
+
 		if expected.debug {
 			if !strings.Contains(string(body), "debug") {
 				t.Log("body does not contain 'debug'")
 				return false
 			}
 		}
-		if !strings.Contains(string(body), "hello") {
-			t.Log("body does not contain 'hello'")
+		expectedBody := expected.expectedBody
+		if expectedBody == "" {
+			expectedBody = "hello"
+		}
+		if !strings.Contains(string(body), expectedBody) {
+			t.Log(string(body))
+			t.Log("body does not contain " + expectedBody)
 			return false
 		}
 

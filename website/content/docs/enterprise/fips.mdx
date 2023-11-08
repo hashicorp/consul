@@ -87,13 +87,13 @@ Consul's FIPS 140-2 products on Windows use the CNGCrypto integration in Microso
 
 To ensure your build of Consul Enterprise includes FIPS support, confirm that a line with `FIPS: Enabled` appears when you run a `version` command. For example, the following message appears for Linux users:
 
-```shell-session hideClipboard
+```log hideClipboard
 FIPS: FIPS 140-2 Enabled, crypto module boringcrypto
 ```
 
 The following message appears for Windows users:
 
-```shell-session hideClipboard
+```log hideClipboard
 FIPS: FIPS 140-2 Enabled, crypto module cngcrypto
 ```
 
@@ -121,7 +121,7 @@ Similarly, on a FIPS Windows binary, run `go tool nm` on the binary to get a sym
 
 On both Linux and Windows non-FIPS builds, the search output yields no results.
 
-### Compliance Validation
+### Compliance validation
 
 A Lab, authorized by the U.S. Government to certify FIPS 140-2 compliance, is in the process of verifying that Consul Enterprise and its related packages are compliant with the requirements of FIPS 140-2 Level 1.
 

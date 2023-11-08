@@ -10,7 +10,7 @@ This topic describes how to define virtual services so that Consul on Kubernetes
 
 ## Overview
 
-You can define virtual services in service resolver configuration entries so that downstream applications can send requests to a virtual service using a Consul DNS name in peered clusters. Your applications can send requests to virtual services in the same cluster using KubeDNS. Service resolvers are part of the service mesh proxy upstream discovery chain. Refer to [Service mesh traffic management](/consul/docs/connect/l7-traffic) for additional information.
+You can define virtual services in service resolver configuration entries so that downstream applications can send requests to a virtual service using a Consul DNS name in peered clusters. Your applications can send requests to virtual services in the same cluster using KubeDNS. Service resolvers are part of the service mesh proxy upstream discovery chain. Refer to [Service mesh traffic management](/consul/docs/connect/manage-traffic) for additional information.
 
 Complete the following steps to configure failover service instances in Consul on Kubernetes when proxies are in transparent proxy mode:
 
@@ -20,7 +20,7 @@ Complete the following steps to configure failover service instances in Consul o
 
 ## Requirements
  
-- `consul-k8s` v1.2.0-beta1 or newer.
+- `consul-k8s` v1.2.0 or newer.
 - Consul service mesh must be enabled. Refer to [How does Consul service mesh work on Kubernetes](/consul/docs/k8s/connect).
 - Proxies must be configured to run in transparent proxy mode. 
 - To query virtual DNS names, you must use Consul DNS.
@@ -34,7 +34,7 @@ The default ACLs that the Consul Helm chart configures are suitable for most cas
 
 Specify the target failover in the [`spec.redirect.service`](/consul/docs/connect/config-entries/service-resolver#spec-redirect-service) field in the service resolver configuration entry. In the following example, the `virtual-api` service is configured to redirect to the `real-api`:
 
-<CodeBlockConfig heading="virtual-api-redirect.yaml">
+<CodeBlockConfig filename="virtual-api-redirect.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1
@@ -61,7 +61,7 @@ $ kubectl apply -f virtual-api-redirect.yaml
 If intentions are not already defined, create and apply intentions that allow the appropriate downstream to access the real service and the target redirect service. In the following examples, the `frontend` service is allowed to send messages to the `virtual-api` and `real-api` services:
 
 
-<CodeBlockConfig heading="frontend-api-api-beta-allow.yaml">
+<CodeBlockConfig filename="frontend-api-api-beta-allow.yaml">
 
 ```yaml
 apiversion: consul.hashicorp.com/v1alpha1

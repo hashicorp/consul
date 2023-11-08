@@ -1,10 +1,11 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
 import (
 	"errors"
+	"github.com/hashicorp/consul/lib/channels"
 	"runtime/debug"
 	"sync"
 
@@ -12,6 +13,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/structs"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/tlsutil"
 )
 
@@ -36,10 +38,6 @@ type ProxyID struct {
 // from overwriting each other's registrations.
 type ProxySource string
 
-// CancelFunc is a type for a returned function that can be called to cancel a
-// watch.
-type CancelFunc func()
-
 // Manager provides an API with which proxy services can be registered, and
 // coordinates the fetching (and refreshing) of intentions, upstreams, discovery
 // chain, certificates etc.
@@ -55,7 +53,7 @@ type Manager struct {
 
 	mu         sync.Mutex
 	proxies    map[ProxyID]*state
-	watchers   map[ProxyID]map[uint64]chan *ConfigSnapshot
+	watchers   map[ProxyID]map[uint64]chan proxysnapshot.ProxySnapshot
 	maxWatchID uint64
 }
 
@@ -106,7 +104,7 @@ func NewManager(cfg ManagerConfig) (*Manager, error) {
 	m := &Manager{
 		ManagerConfig: cfg,
 		proxies:       make(map[ProxyID]*state),
-		watchers:      make(map[ProxyID]map[uint64]chan *ConfigSnapshot),
+		watchers:      make(map[ProxyID]map[uint64]chan proxysnapshot.ProxySnapshot),
 		rateLimiter:   rate.NewLimiter(cfg.UpdateRateLimit, 1),
 	}
 	return m, nil
@@ -262,53 +260,31 @@ func (m *Manager) notify(snap *ConfigSnapshot) {
 // it will drain the chan and then re-attempt delivery so that a slow consumer
 // gets the latest config earlier. This MUST be called from a method where m.mu
 // is held to be safe since it assumes we are the only goroutine sending on ch.
-func (m *Manager) deliverLatest(snap *ConfigSnapshot, ch chan *ConfigSnapshot) {
-	// Send if chan is empty
-	select {
-	case ch <- snap:
-		return
-	default:
-	}
-
-	// Not empty, drain the chan of older snapshots and redeliver. For now we only
-	// use 1-buffered chans but this will still work if we change that later.
-OUTER:
-	for {
-		select {
-		case <-ch:
-			continue
-		default:
-			break OUTER
-		}
-	}
-
-	// Now send again
-	select {
-	case ch <- snap:
-		return
-	default:
-		// This should not be possible since we should be the only sender, enforced
-		// by m.mu but error and drop the update rather than panic.
-		m.Logger.Error("failed to deliver ConfigSnapshot to proxy",
-			"proxy", snap.ProxyID.String(),
+func (m *Manager) deliverLatest(snap proxysnapshot.ProxySnapshot, ch chan proxysnapshot.ProxySnapshot) {
+	m.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", snap.(*ConfigSnapshot).ProxyID)
+	err := channels.DeliverLatest(snap, ch)
+	if err != nil {
+		m.Logger.Error("failed to deliver proxyState to proxy",
+			"proxy", snap.(*ConfigSnapshot).ProxyID,
 		)
 	}
+
 }
 
 // Watch registers a watch on a proxy. It might not exist yet in which case this
 // will not fail, but no updates will be delivered until the proxy is
 // registered. If there is already a valid snapshot in memory, it will be
 // delivered immediately.
-func (m *Manager) Watch(id ProxyID) (<-chan *ConfigSnapshot, CancelFunc) {
+func (m *Manager) Watch(id ProxyID) (<-chan proxysnapshot.ProxySnapshot, proxysnapshot.CancelFunc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// This buffering is crucial otherwise we'd block immediately trying to
 	// deliver the current snapshot below if we already have one.
-	ch := make(chan *ConfigSnapshot, 1)
+	ch := make(chan proxysnapshot.ProxySnapshot, 1)
 	watchers, ok := m.watchers[id]
 	if !ok {
-		watchers = make(map[uint64]chan *ConfigSnapshot)
+		watchers = make(map[uint64]chan proxysnapshot.ProxySnapshot)
 	}
 	watchID := m.maxWatchID
 	m.maxWatchID++

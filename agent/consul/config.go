@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
@@ -40,8 +40,9 @@ const (
 
 	// LogStoreBackend* are well-known string values used to configure different
 	// log store backends.
-	LogStoreBackendBoltDB = "boltdb"
-	LogStoreBackendWAL    = "wal"
+	LogStoreBackendDefault = "default"
+	LogStoreBackendBoltDB  = "boltdb"
+	LogStoreBackendWAL     = "wal"
 )
 
 var (

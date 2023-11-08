@@ -1,0 +1,4 @@
+```release-note:bug
+connect: Removes the default health check from the `consul connect envoy` command when starting an API Gateway.
+This health check would always fail.
+```

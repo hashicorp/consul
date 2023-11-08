@@ -37,7 +37,7 @@ We are pleased to announce the following Consul updates.
 
     - **External Authorization:** The external authorization Envoy extension lets you delegate data plane authorization requests to external systems. Refer to the [Delegate authorization to an external service](/consul/docs/connect/proxies/envoy-extensions/usage/ext-authz) for more information on how to use this extension. 
 
-- **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/api-gateway/install) for more information on the simplified native installation method. 
+- **Simplified API Gateway installation for Consul on Kubernetes:** API Gateway is now built into Consul. This enables a simplified installation and configuration process for Consul on Kubernetes. Refer to the [API Gateway installation](/consul/docs/connect/gateways/api-gateway/install-k8s) for more information on the simplified native installation method. 
 
 - **FIPS compliance (Enterprise):** HashiCorp now offers FIPS 140-2 compliant builds of Consul Enterprise that meet the security needs of federal agencies protecting sensitive, unclassified information with approved cryptographic measures. These builds use certified cryptographic modules and restrict configuration settings to comply with FIPS 140-2 Level 1 requirements, enabling compliant Consul deployments. Refer to the [Consul Enterprise FIPS](/consul/docs/enterprise/fips) for more information on FIPS compliance.
 
@@ -51,9 +51,28 @@ We are pleased to announce the following Consul updates.
 
   Consul's API gateway is the recommended alternative to ingress gateway. For ingress gateway features not currently supported by API gateway, equivalent functionality will be added to API gateway over the next several releases of Consul.
 
+- **Connect Native Golang SDK:** The Connect Native [Golang SDK](https://github.com/hashicorp/consul/tree/main/connect) is deprecated and will be removed in a future release. No further enhancements or maintenance is expected in the future releases. We will remove the SDK when the long term replacement to native application integration (such as a proxyless gRPC service mesh integration) is delivered. Refer to [GH-10339](https://github.com/hashicorp/consul/issues/10339) for additional information and to track progress toward one potential solution that is tracked as replacement functionality.
+
+- **Connect Native APIs:** The following APIs for Connect Native are deprecated: 
+  - `v1/agent/connect/authorize` - used by the SDK to perform intention based authorization checks
+  - `v1/agent/connect/ca/leaf` - used by the SDK to get a leaf cert for a locally registered service
+  - `v1/agent/connect/ca/roots` - use to retrieved cached CA roots form the local client agent
+  
+  The `v1/agent/connect/authorize` and `v1/agent/connect/ca/leaf` endpoints have corresponding gRPC APIs. We will remove these APIs when the gRPC API for `v1/agent/connect/ca/roots` and HTTP endpoints for all three APIs are available. 
+
 ## Upgrading
 
 For more detailed information, please refer to the [upgrade details page](/consul/docs/upgrading/upgrade-specific) and the changelogs.
+
+## Known Issues
+
+The following issues are known to exist in the v1.16.x releases:
+
+- v1.16.0 - v1.16.1 may have issues when a snapshot restore is performed
+    and the servers are hosting xDS streams. When this bug triggers, it
+    will cause Envoy to incorrectly populate upstream endpoints. It is
+    currently recommended for service mesh users running agent-less
+    workloads to upgrade Consul to v1.16.2 and later.
 
 ## Changelogs
 
@@ -62,3 +81,5 @@ The changelogs for this major release version and any maintenance versions are l
 <Note> These links take you to the changelogs on the GitHub website. </Note>
 
 - [1.16.0](https://github.com/hashicorp/consul/releases/tag/v1.16.0)
+- [1.16.1](https://github.com/hashicorp/consul/releases/tag/v1.16.1)
+- [1.16.2](https://github.com/hashicorp/consul/releases/tag/v1.16.2)

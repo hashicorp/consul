@@ -1,0 +1,52 @@
+ARG VERSION=1.13.3
+
+FROM windows/test-sds-server as test-sds-server
+FROM docker.mirror.hashicorp.services/windows/openzipkin as openzipkin
+FROM windows/consul:${VERSION}
+
+# Fortio binary downloaded
+RUN mkdir fortio
+ENV FORTIO_URL=https://github.com/fortio/fortio/releases/download/v1.33.0/fortio_win_1.33.0.zip
+RUN curl %FORTIO_URL% -L -o fortio.zip
+RUN tar -xf fortio.zip -C fortio
+
+RUN choco install openssl -yf
+RUN choco install jq -yf
+RUN choco install netcat -yf
+RUN choco install openjdk -yf
+
+# Install Bats
+ENV BATS_URL=https://github.com/bats-core/bats-core/archive/refs/tags/v1.7.0.zip
+RUN curl %BATS_URL% -L -o bats.zip
+RUN mkdir bats-core
+RUN tar -xf bats.zip -C bats-core --strip-components=1
+RUN cd "C:\\Program Files\\Git\\bin" && bash.exe -c "/c/bats-core/install.sh /c/bats"
+
+# Install Jaeger
+ENV JAEGER_URL=https://github.com/jaegertracing/jaeger/releases/download/v1.11.0/jaeger-1.11.0-windows-amd64.tar.gz
+RUN curl %JAEGER_URL% -L -o jaeger.tar.gz
+RUN mkdir jaeger
+RUN tar -xf jaeger.tar.gz -C jaeger --strip-components=1
+
+# Install Socat
+ENV SOCAT_URL=https://github.com/tech128/socat-1.7.3.0-windows/archive/refs/heads/master.zip
+RUN curl %SOCAT_URL% -L -o socat.zip
+RUN mkdir socat
+RUN tar -xf socat.zip -C socat --strip-components=1
+
+# Copy test-sds-server binary and certs
+COPY --from=test-sds-server ["C:/go/src/", "C:/test-sds-server/"]
+
+# Copy openzipkin .jar file
+COPY --from=openzipkin ["C:/zipkin", "C:/zipkin"]
+
+EXPOSE 8300
+EXPOSE 8301 8301/udp 8302 8302/udp
+EXPOSE 8500 8600 8600/udp
+EXPOSE 8502 
+
+EXPOSE 19000 19001 19002 19003 19004
+EXPOSE 21000 21001 21002 21003 21004
+EXPOSE 5000 1234 2345
+
+RUN SETX /M path "%PATH%;C:\consul;C:\fortio;C:\jaeger;C:\Program Files\Git\bin;C:\Program Files\Git\usr\bin;C:\Program Files\OpenSSL-Win64\bin;C:\bats\bin\;C:\ProgramData\chocolatey\lib\jq\tools;C:\socat"

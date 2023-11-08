@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xds
 
@@ -10,14 +10,16 @@ import (
 	"time"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"github.com/hashicorp/consul/agent/xds/testcommon"
-
 	testinf "github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
+	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/agent/xds/testcommon"
+	"github.com/hashicorp/consul/agent/xdsv2"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -26,59 +28,7 @@ type routeTestCase struct {
 	name               string
 	create             func(t testinf.T) *proxycfg.ConfigSnapshot
 	overrideGoldenName string
-}
-
-func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
-	return []routeTestCase{
-		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-and-splitter",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-grpc-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "grpc-router", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-and-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-lb-in-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
-			},
-		},
-	}
+	alsoRunTestForV2   bool
 }
 
 func TestRoutesFromSnapshot(t *testing.T) {
@@ -97,6 +47,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-defaults-no-chain",
@@ -104,6 +56,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
 					"default", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain",
@@ -111,6 +65,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"simple", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-external-sni",
@@ -118,6 +74,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
 					"external-sni", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-splitter-with-resolver-redirect",
@@ -125,6 +83,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-and-splitter",
@@ -132,6 +92,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"chain-and-splitter", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-grpc-router",
@@ -139,6 +101,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"grpc-router", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-and-router",
@@ -146,6 +110,8 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"chain-and-router", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-lb-in-resolver",
@@ -153,52 +119,127 @@ func TestRoutesFromSnapshot(t *testing.T) {
 				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
 					"lb-resolver", nil, nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "ingress-http-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "ingress-grpc-multiple-services",
 			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-chain-and-router-header-manip",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "router-header-manip", nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-sds-listener-level",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "sds-listener-level", nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-sds-listener-level-wildcard",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "sds-listener-level-wildcard", nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-sds-service-level",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "sds-service-level", nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name: "ingress-with-sds-service-level-mixed-tls",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotIngressGatewayWithChain(t, "sds-service-level-mixed-tls", nil, nil)
 			},
+			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
 		},
 		{
 			name:   "terminating-gateway-lb-config",
 			create: proxycfg.TestConfigSnapshotTerminatingGatewayLBConfig,
+			// TODO(proxystate): terminating gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "api-gateway-with-multiple-hostnames",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+							Hostname: "*.example.com",
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http",
+							Routes: []structs.ResourceReference{
+								{Kind: structs.HTTPRoute, Name: "backend-route"},
+								{Kind: structs.HTTPRoute, Name: "frontend-route"},
+								{Kind: structs.HTTPRoute, Name: "generic-route"},
+							}},
+					}
+				},
+					[]structs.BoundRoute{
+						&structs.HTTPRouteConfigEntry{
+							Kind:      structs.HTTPRoute,
+							Name:      "backend-route",
+							Hostnames: []string{"backend.example.com"},
+							Parents:   []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{Services: []structs.HTTPService{{Name: "backend"}}},
+							},
+						},
+						&structs.HTTPRouteConfigEntry{
+							Kind:      structs.HTTPRoute,
+							Name:      "frontend-route",
+							Hostnames: []string{"frontend.example.com"},
+							Parents:   []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{Services: []structs.HTTPService{{Name: "frontend"}}},
+							},
+						},
+						&structs.HTTPRouteConfigEntry{
+							Kind:    structs.HTTPRoute,
+							Name:    "generic-route",
+							Parents: []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/frontend"}}},
+									Services: []structs.HTTPService{{Name: "frontend"}},
+								},
+								{
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/backend"}}},
+									Services: []structs.HTTPService{{Name: "backend"}},
+								},
+							},
+						},
+					}, nil, nil)
+			},
 		},
 	}
-
-	tests = append(tests, makeRouteDiscoChainTests(false)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -224,10 +265,10 @@ func TestRoutesFromSnapshot(t *testing.T) {
 					sort.Slice(routes, func(i, j int) bool {
 						return routes[i].(*envoy_route_v3.RouteConfiguration).Name < routes[j].(*envoy_route_v3.RouteConfiguration).Name
 					})
-					r, err := createResponse(xdscommon.RouteType, "00000001", "00000001", routes)
+					r, err := response.CreateResponse(xdscommon.RouteType, "00000001", "00000001", routes)
 					require.NoError(t, err)
 
-					t.Run("current", func(t *testing.T) {
+					t.Run("current-xdsv1", func(t *testing.T) {
 						gotJSON := protoToJSON(t, r)
 
 						gName := tt.name
@@ -237,6 +278,39 @@ func TestRoutesFromSnapshot(t *testing.T) {
 
 						require.JSONEq(t, goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON), gotJSON)
 					})
+
+					if tt.alsoRunTestForV2 {
+						generator := xdsv2.NewResourceGenerator(testutil.Logger(t))
+
+						converter := proxystateconverter.NewConverter(testutil.Logger(t), &mockCfgFetcher{addressLan: "10.10.10.10"})
+						proxyState, err := converter.ProxyStateFromSnapshot(snap)
+						require.NoError(t, err)
+
+						res, err := generator.AllResourcesFromIR(proxyState)
+						require.NoError(t, err)
+
+						routes = res[xdscommon.RouteType]
+						// The order of routes returned via RDS isn't relevant, so it's safe
+						// to sort these for the purposes of test comparisons.
+						sort.Slice(routes, func(i, j int) bool {
+							return routes[i].(*envoy_route_v3.Route).Name < routes[j].(*envoy_route_v3.Route).Name
+						})
+
+						r, err := response.CreateResponse(xdscommon.RouteType, "00000001", "00000001", routes)
+						require.NoError(t, err)
+
+						t.Run("current-xdsv2", func(t *testing.T) {
+							gotJSON := protoToJSON(t, r)
+
+							gName := tt.name
+							if tt.overrideGoldenName != "" {
+								gName = tt.overrideGoldenName
+							}
+
+							expectedJSON := goldenEnvoy(t, filepath.Join("routes", gName), envoyVersion, latestEnvoyVersion, gotJSON)
+							require.JSONEq(t, expectedJSON, gotJSON)
+						})
+					}
 				})
 			}
 		})
@@ -443,6 +517,11 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						FieldValue: "special-header",
 						Terminal:   true,
 					},
+					{
+						Field:      structs.HashPolicyQueryParam,
+						FieldValue: "my-pretty-param",
+						Terminal:   true,
+					},
 				},
 			},
 			expected: &envoy_route_v3.RouteAction{
@@ -477,6 +556,14 @@ func TestEnvoyLBConfig_InjectToRouteAction(t *testing.T) {
 						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_Header_{
 							Header: &envoy_route_v3.RouteAction_HashPolicy_Header{
 								HeaderName: "special-header",
+							},
+						},
+						Terminal: true,
+					},
+					{
+						PolicySpecifier: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter_{
+							QueryParameter: &envoy_route_v3.RouteAction_HashPolicy_QueryParameter{
+								Name: "my-pretty-param",
 							},
 						},
 						Terminal: true,

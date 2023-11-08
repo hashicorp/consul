@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -67,7 +67,7 @@ type ConfigSnapshotUpstreams struct {
 	// gateway endpoints.
 	//
 	// Note that the string form of GatewayKey is used as the key so empty
-	// fields can be normalized in OSS.
+	// fields can be normalized in CE.
 	//   GatewayKey.String() -> structs.CheckServiceNodes
 	WatchedLocalGWEndpoints watch.Map[string, structs.CheckServiceNodes]
 
@@ -282,6 +282,15 @@ type configSnapshotTerminatingGateway struct {
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameServices map[structs.ServiceName]structs.CheckServiceNodes
+
+	// WatchedInboundPeerTrustBundles is a map of service name to a cancel function. This cancel
+	// function is tied to the watch of the inbound peer trust bundles for the gateway.
+	WatchedInboundPeerTrustBundles map[structs.ServiceName]context.CancelFunc
+
+	// InboundPeerTrustBundles is a map of service name to a list of peering trust bundles.
+	// These bundles are used to configure RBAC policies for inbound filter chains on the gateway
+	// from services that are in a cluster-peered datacenter.
+	InboundPeerTrustBundles map[structs.ServiceName][]*pbpeering.PeeringTrustBundle
 }
 
 // ValidServices returns the list of service keys that have enough data to be emitted.
@@ -824,6 +833,18 @@ DOMAIN_LOOP:
 	return services, upstreams, compiled, err
 }
 
+// valid tests for two valid api gateway snapshot states:
+//  1. waiting: the watch on api and bound gateway entries is set, but none were received
+//  2. loaded: both the valid config entries AND the leaf certs are set
+func (c *configSnapshotAPIGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.BoundGatewayConfigLoaded && c.Leaf == nil
+
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.BoundGatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
+}
+
 type configSnapshotIngressGateway struct {
 	ConfigSnapshotUpstreams
 
@@ -870,6 +891,18 @@ func (c *configSnapshotIngressGateway) isEmpty() bool {
 		len(c.WatchedUpstreams) == 0 &&
 		len(c.WatchedUpstreamEndpoints) == 0 &&
 		!c.MeshConfigSet
+}
+
+// valid tests for two valid ingress snapshot states:
+//  1. waiting: the watch on ingress config entries is set, but none were received
+//  2. loaded: both the ingress config entry AND the leaf cert are set
+func (c *configSnapshotIngressGateway) valid() bool {
+	waiting := c.GatewayConfigLoaded && len(c.Upstreams) == 0 && c.Leaf == nil
+
+	// If we have a leaf, it implies we successfully watched parent resources
+	loaded := c.GatewayConfigLoaded && c.Leaf != nil
+
+	return waiting || loaded
 }
 
 type APIGatewayListenerKey = IngressListenerKey
@@ -965,17 +998,14 @@ func (s *ConfigSnapshot) Valid() bool {
 
 	case structs.ServiceKindIngressGateway:
 		return s.Roots != nil &&
-			s.IngressGateway.Leaf != nil &&
-			s.IngressGateway.GatewayConfigLoaded &&
+			s.IngressGateway.valid() &&
 			s.IngressGateway.HostsSet &&
 			s.IngressGateway.MeshConfigSet
 
 	case structs.ServiceKindAPIGateway:
 		// TODO Is this the proper set of things to validate?
 		return s.Roots != nil &&
-			s.APIGateway.Leaf != nil &&
-			s.APIGateway.GatewayConfigLoaded &&
-			s.APIGateway.BoundGatewayConfigLoaded &&
+			s.APIGateway.valid() &&
 			s.APIGateway.MeshConfigSet
 	default:
 		return false

@@ -53,39 +53,45 @@ EnvoyExtensions = [
 ```
 </CodeBlockConfig>
 </Tab>
-<Tab heading="HCL" group="hcl">
+<Tab heading="JSON" group="json">
 <CodeBlockConfig filename="api-auth-service-defaults.json">
 
 ```json
-"Kind": "service-defaults",
-"Name": "api",
-"EnvoyExtensions": [{
-  "Name": "builtin/ext-authz",
-  "Arguments": {
-    "ProxyType": "connect-proxy",
-    "Config": {
-      "GrpcService": {
-        "Target": {
-          "Service": {
-            "Name": "authz"
+{
+  "Kind": "service-defaults",
+  "Name": "api",
+  "EnvoyExtensions": [{
+    "Name": "builtin/ext-authz",
+    "Arguments": {
+      "ProxyType": "connect-proxy",
+      "Config": {
+        "GrpcService": {
+          "Target": {
+            "Service": {
+              "Name": "authz"
+              }
             }
           }
         }
       }
     }
-  }
-]
+  ]
+}
 ```
 
 </CodeBlockConfig>
 </Tab>
 <Tab heading="Kubernetes" group="yaml">
-<CodeBlockConfig filename="api-auth-service-defaults">
+<CodeBlockConfig filename="api-auth-service-defaults.yaml">
 
 ```yaml
+apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
-name: api
-envoyExtensions:
+metadata:
+  name: api
+  namespace: default
+spec:
+  envoyExtensions:
   - name: builtin/ext-authz
     arguments:
       proxyType: connect-proxy
@@ -94,6 +100,7 @@ envoyExtensions:
           target:
             service:
               name: authz
+              namespace: authz
 ```
 </CodeBlockConfig>
 </Tab>
@@ -133,14 +140,13 @@ $ consul config write api-auth-service-defaults.hcl
 
 ```shell-session
 $ consul config write api-auth-service-defaults.json
-
 ```
 
 </Tab>
 <Tab heading="Kubernetes" group="kubernetes">
 
 ```shell-session
-$ kubectl apply api-auth-service-defaults.yaml
+$ kubectl apply -f api-auth-service-defaults.yaml
 ```
 
 </Tab>

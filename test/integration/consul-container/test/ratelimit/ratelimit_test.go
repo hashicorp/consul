@@ -1,20 +1,22 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
+
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -32,6 +34,7 @@ const (
 //     - logs for exceeding
 
 func TestServerRequestRateLimit(t *testing.T) {
+
 	type action struct {
 		function           func(client *api.Client) error
 		rateLimitOperation string
@@ -44,10 +47,11 @@ func TestServerRequestRateLimit(t *testing.T) {
 		expectMetric      bool
 	}
 	type testCase struct {
-		description string
-		cmd         string
-		operations  []operation
-		mode        string
+		description    string
+		cmd            string
+		operations     []operation
+		mode           string
+		enterpriseOnly bool
 	}
 
 	// getKV and putKV are net/RPC calls
@@ -65,6 +69,30 @@ func TestServerRequestRateLimit(t *testing.T) {
 			return err
 		},
 		rateLimitOperation: "KVS.Apply",
+		rateLimitType:      "global/write",
+	}
+
+	// listPartition and putPartition are gRPC calls
+	listPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			_, _, err := client.Partitions().List(ctx, nil)
+			return err
+		},
+		rateLimitOperation: "/partition.PartitionService/List",
+		rateLimitType:      "global/read",
+	}
+
+	putPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			p := api.Partition{
+				Name: "ptest",
+			}
+			_, _, err := client.Partitions().Create(ctx, &p, nil)
+			return err
+		},
+		rateLimitOperation: "/partition.PartitionService/Write",
 		rateLimitType:      "global/write",
 	}
 
@@ -127,9 +155,73 @@ func TestServerRequestRateLimit(t *testing.T) {
 				},
 			},
 		},
+		// gRPC
+		{
+			description: "GRPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
+			mode:        "disabled",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+			},
+			enterpriseOnly: true,
+		},
+		{
+			description: "GRPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
+			mode:        "permissive",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+			},
+			enterpriseOnly: true,
+		},
+		{
+			description: "GRPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
+			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
+			mode:        "enforcing",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  nonRetryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  retryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+			},
+			enterpriseOnly: true,
+		},
 	}
 
 	for _, tc := range testCases {
+		if tc.enterpriseOnly && !utils.IsEnterprise() {
+			continue
+		}
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
@@ -166,12 +258,12 @@ func TestServerRequestRateLimit(t *testing.T) {
 			for _, op := range tc.operations {
 				timer := &retry.Timer{Timeout: 15 * time.Second, Wait: 500 * time.Millisecond}
 				retry.RunWith(timer, t, func(r *retry.R) {
-					checkForMetric(t, cluster, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode, op.expectMetric)
+					checkForMetric(r, cluster, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode, op.expectMetric)
 
 					// validate logs
 					// putting this last as there are cases where logs
 					// were not present in consumer when assertion was made.
-					checkLogsForMessage(t, clusterConfig.LogConsumer.Msgs,
+					checkLogsForMessage(r, clusterConfig.LogConsumer.Msgs,
 						fmt.Sprintf("[DEBUG] agent.server.rpc-rate-limit: RPC exceeded allowed rate limit: rpc=%s", op.action.rateLimitOperation),
 						op.action.rateLimitOperation, "exceeded", op.expectExceededLog)
 
@@ -190,7 +282,7 @@ func setupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isSe
 	return cluster, client
 }
 
-func checkForMetric(t *testing.T, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
+func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
 	// validate metrics
 	server, err := cluster.GetClient(nil, true)
 	require.NoError(t, err)
@@ -228,7 +320,7 @@ func checkForMetric(t *testing.T, cluster *libcluster.Cluster, operationName str
 	}
 }
 
-func checkLogsForMessage(t *testing.T, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+func checkLogsForMessage(t require.TestingT, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	if logShouldExist {
 		found := false
 		for _, log := range logs {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package configentry
 
@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
-	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-memdb"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
@@ -26,32 +26,22 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	ns *structs.NodeService,
+	unmergedNS *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
+	ns := unmergedNS.WithNormalizedUpstreams()
 	serviceName := ns.Service
-	var upstreams []structs.PeeredServiceName
 	if ns.IsSidecarProxy() {
 		// This is a sidecar proxy, ignore the proxy service's config since we are
 		// managed by the target service config.
 		serviceName = ns.Proxy.DestinationServiceName
-
-		// Also if we have any upstreams defined, add them to the defaults lookup request
-		// so we can learn about their configs.
-		for _, us := range ns.Proxy.Upstreams {
-			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-				psn := us.DestinationID()
-				if psn.Peer == "" {
-					psn.ServiceName.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
-				} else {
-					// Peer services should not have their namespace overwritten.
-					psn.ServiceName.EnterpriseMeta.OverridePartition(ns.EnterpriseMeta.PartitionOrDefault())
-				}
-				upstreams = append(upstreams, psn)
-			}
+	}
+	var upstreams []structs.PeeredServiceName
+	for _, us := range ns.Proxy.Upstreams {
+		if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+			upstreams = append(upstreams, us.DestinationID())
 		}
 	}
-
 	configReq := &structs.ServiceConfigRequest{
 		Name:                 serviceName,
 		MeshGateway:          ns.Proxy.MeshGateway,
@@ -139,6 +129,10 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 			}
 		}
 		ns.Proxy.EnvoyExtensions = nsExtensions
+	}
+
+	if ratelimit := defaults.RateLimits.ToEnvoyExtension(); ratelimit != nil {
+		ns.Proxy.EnvoyExtensions = append(ns.Proxy.EnvoyExtensions, *ratelimit)
 	}
 
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {

@@ -1,12 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package utils
 
 import (
 	"flag"
+	"os"
 	"strings"
 
+	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-version"
 )
 
@@ -24,7 +26,7 @@ var (
 )
 
 const (
-	DefaultImageNameOSS   = "consul"
+	DefaultImageNameCE    = "hashicorp/consul"
 	DefaultImageNameENT   = "hashicorp/consul-enterprise"
 	ImageVersionSuffixENT = "-ent"
 )
@@ -53,6 +55,23 @@ func GetLatestImageName() string {
 		return LatestImageName + "-dbg"
 	}
 	return LatestImageName
+}
+
+func TargetImages() topology.Images {
+	img := DockerImage(targetImageName, TargetVersion)
+
+	var set topology.Images
+	if IsEnterprise() {
+		set.ConsulEnterprise = img
+	} else {
+		set.ConsulCE = img
+	}
+
+	if cdp := os.Getenv("DEPLOYER_CONSUL_DATAPLANE_IMAGE"); cdp != "" {
+		set.Dataplane = cdp
+	}
+
+	return set
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

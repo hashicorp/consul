@@ -3,17 +3,17 @@
   "typedConfig": {
     "@type": "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
     "providers": {
-      "okta_0": {
+      "okta": {
         "issuer": "test-issuer",
-        "payloadInMetadata": "jwt_payload_okta_0",
+        "payloadInMetadata": "jwt_payload_okta",
         "remoteJwks": {
-          "httpUri": {
-            "uri": "https://example-okta.com/.well-known/jwks.json",
-            "cluster": "jwks_cluster",
-            "timeout": "1s"
-          },
           "asyncFetch": {
             "fastListener": true
+          },
+          "httpUri": {
+            "cluster": "jwks_cluster_okta",
+            "timeout": "1s",
+            "uri": "https://example-okta.com/.well-known/jwks.json"
           }
         }
       }
@@ -21,10 +21,19 @@
     "rules": [
       {
         "match": {
-          "prefix": "some-special-path"
+          "prefix": "/"
         },
         "requires": {
-          "providerName": "okta_0"
+          "requiresAny": {
+            "requirements": [
+              {
+                "providerName": "okta"
+              },
+              {
+                "allowMissingOrFailed": {}
+              }
+            ]
+          }
         }
       }
     ]

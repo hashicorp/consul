@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package xdscommon
 
@@ -54,6 +54,10 @@ const (
 	SecretType = apiTypePrefix + "envoy.extensions.transport_sockets.tls.v3.Secret"
 
 	FailoverClusterNamePrefix = "failover-target~"
+
+	// BlackHoleClusterName is the cluster we use for black-holing traffic for cases when a workload
+	// has no inbound ports to route to.
+	BlackHoleClusterName = "black-hole-cluster"
 )
 
 type IndexedResources struct {
@@ -64,6 +68,29 @@ type IndexedResources struct {
 	// childResourceNames. This only applies if the child and parent do not
 	// share a name.
 	ChildIndex map[string]map[string][]string
+}
+
+// Clone makes a deep copy of the IndexedResources value at the given pointer and
+// returns a pointer to the copy.
+func Clone(i *IndexedResources) *IndexedResources {
+	if i == nil {
+		return nil
+	}
+
+	iCopy := EmptyIndexedResources()
+	for typeURL, typeMap := range i.Index {
+		for name, msg := range typeMap {
+			clone := proto.Clone(msg)
+			iCopy.Index[typeURL][name] = clone
+		}
+	}
+	for typeURL, parentMap := range i.ChildIndex {
+		for name, childName := range parentMap {
+			iCopy.ChildIndex[typeURL][name] = childName
+		}
+	}
+
+	return iCopy
 }
 
 func IndexResources(logger hclog.Logger, resources map[string][]proto.Message) *IndexedResources {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package state
 
@@ -83,7 +83,7 @@ type SamenessGroupMemberIndex struct {
 }
 
 // Compile-time assert that these interfaces hold to ensure that the
-// methods correctly exist across the oss/ent split.
+// methods correctly exist across the ce/ent split.
 var _ memdb.Indexer = (*SamenessGroupMemberIndex)(nil)
 var _ memdb.MultiIndexer = (*SamenessGroupMemberIndex)(nil)
 
@@ -135,7 +135,7 @@ type ServiceIntentionSourceSamenessGroupIndex struct {
 }
 
 // Compile-time assert that these interfaces hold to ensure that the
-// methods correctly exist across the oss/ent split.
+// methods correctly exist across the ce/ent split.
 var _ memdb.Indexer = (*ServiceIntentionSourceSamenessGroupIndex)(nil)
 var _ memdb.MultiIndexer = (*ServiceIntentionSourceSamenessGroupIndex)(nil)
 
@@ -199,7 +199,7 @@ type ServiceIntentionSourceIndex struct {
 }
 
 // Compile-time assert that these interfaces hold to ensure that the
-// methods correctly exist across the oss/ent split.
+// methods correctly exist across the ce/ent split.
 var _ memdb.Indexer = (*ServiceIntentionSourceIndex)(nil)
 var _ memdb.MultiIndexer = (*ServiceIntentionSourceIndex)(nil)
 

@@ -36,7 +36,8 @@ Consul is A, and version B is released.
 
 2. On each Consul server agent, install version B of Consul.
 
-3. One Consul server agent at a time, shut down version A via `consul leave` and restart with version B. Wait until
+3. One Consul server agent at a time,  use a service management system
+   (e.g., systemd, upstart, etc.) to restart the Consul service with version B. Wait until
    the server agent is healthy and has rejoined the cluster before moving on to the
    next server agent.
 

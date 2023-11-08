@@ -274,6 +274,8 @@ type MembersOpts struct {
 	// Segment is the LAN segment to show members for. Setting this to the
 	// AllSegments value above will show members in all segments.
 	Segment string
+
+	Filter string
 }
 
 // AgentServiceRegistration is used to register a new service
@@ -304,6 +306,10 @@ type ServiceRegisterOpts struct {
 	// Using this parameter allows to idempotently register a service and its checks without
 	// having to manually deregister checks.
 	ReplaceExistingChecks bool
+
+	// Token is used to provide a per-request ACL token
+	// which overrides the agent's default token.
+	Token string
 
 	// ctx is an optional context pass through to the underlying HTTP
 	// request layer. Use WithContext() to set the context.
@@ -343,6 +349,7 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
+	TCPUseTLS              bool                `json:",omitempty"`
 	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`
@@ -790,6 +797,10 @@ func (a *Agent) MembersOpts(opts MembersOpts) ([]*AgentMember, error) {
 		r.params.Set("wan", "1")
 	}
 
+	if opts.Filter != "" {
+		r.params.Set("filter", opts.Filter)
+	}
+
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
 		return nil, err
@@ -827,6 +838,9 @@ func (a *Agent) serviceRegister(service *AgentServiceRegistration, opts ServiceR
 	r.ctx = opts.ctx
 	if opts.ReplaceExistingChecks {
 		r.params.Set("replace-existing-checks", "true")
+	}
+	if opts.Token != "" {
+		r.header.Set("X-Consul-Token", opts.Token)
 	}
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -984,7 +998,14 @@ func (a *Agent) UpdateTTLOpts(checkID, output, status string, q *QueryOptions) e
 // CheckRegister is used to register a new check with
 // the local agent
 func (a *Agent) CheckRegister(check *AgentCheckRegistration) error {
+	return a.CheckRegisterOpts(check, nil)
+}
+
+// CheckRegisterOpts is used to register a new check with
+// the local agent using query options
+func (a *Agent) CheckRegisterOpts(check *AgentCheckRegistration, q *QueryOptions) error {
 	r := a.c.newRequest("PUT", "/v1/agent/check/register")
+	r.setQueryOptions(q)
 	r.obj = check
 	_, resp, err := a.c.doRequest(r)
 	if err != nil {
@@ -1370,6 +1391,10 @@ func (a *Agent) UpdateReplicationACLToken(token string, q *WriteOptions) (*Write
 // for more details
 func (a *Agent) UpdateConfigFileRegistrationToken(token string, q *WriteOptions) (*WriteMeta, error) {
 	return a.updateToken("config_file_service_registration", token, q)
+}
+
+func (a *Agent) UpdateDNSToken(token string, q *WriteOptions) (*WriteMeta, error) {
+	return a.updateToken("dns", token, q)
 }
 
 // updateToken can be used to update one of an agent's ACL tokens after the agent has

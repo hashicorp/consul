@@ -11,37 +11,38 @@ description: >-
 
 - **Simplified Service Mesh Deployments with Consul Dataplane:** Consul client agents are no longer deployed by default, and Consul service mesh no longer uses Consul clients to operate. A new component `consul-dataplane` is now injected as a sidecar-proxy instead of plain Envoy. `consul-dataplane` manages the Envoy proxy process and proxies xDS requests from Envoy to Consul servers. All service mesh consul-k8s components are configured to talk directly to Consul servers.
 
-- **Cluster Peering GA with Peering over Mesh Gateways:** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. Cluster Peering on Consul K8s now enables [Cluster Peering with Control Plane traffic routed via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) by default instead of provisioning load balancers using the `servers.exposeServers` stanza. In addtion, failover for service to service traffic over Cluster Peering can be configured through the `failover.targets` field in the [ServiceResolver](/consul/docs/connect/config-entries/service-resolver#targets) CRD.  
-  
-- **Consul API Gateway 0.5.0 Support:** Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul servers. 
+- **Cluster Peering GA with Peering over Mesh Gateways:** This version promotes Cluster Peering, a new model to federate Consul clusters for both service mesh and traditional service discovery, to General Availability. Cluster peering allows for service interconnectivity with looser coupling than the existing WAN federation. Cluster Peering on Consul K8s now enables [Cluster Peering with Control Plane traffic routed via Mesh Gateways](/consul/docs/connect/gateways/mesh-gateway/peering-via-mesh-gateways) by default instead of provisioning load balancers using the `servers.exposeServers` stanza. In addition, failover for service to service traffic over Cluster Peering can be configured through the `failover.targets` field in the [ServiceResolver](/consul/docs/connect/config-entries/service-resolver#targets) CRD.
+
+- **Consul API Gateway 0.5.0 Support:** Support to run Consul API Gateway without clients and allow Consul API Gateway to directly connect to Consul servers.
 
 ## What's Changed
 
 - `client.enabled` now defaults to `false`. Setting it to true will deploy client agents, however, none of the consul-k8s components will use clients for their operation. For Vault on Kubernetes using Consul deployed on Kubernetes as a storage backend, `client.enabled` should be set to `true` prior to upgrading.
 - `externalServers.grpcPort` default is now 8502 instead of 8503.
-- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes). 
+- `externalServers.hosts` no longer supports [cloud auto-join](/consul/docs/install/cloud-auto-join) strings directly. Instead, include an [`exec=`](https://github.com/hashicorp/go-netaddrs#command-line-tool-usage) string in the `externalServers.hosts` list to invoke the `discover` CLI. For example, the following string invokes the `discover` CLI with a cloud auto-join string: `exec=discover -q addrs provider=aws region=us-west-2 tag_key=consul-server tag_value=true`. The `discover` CLI is included in the official `hashicorp/consul-dataplane` images by default.
+- `sync-catalog` now communicates directly to Consul servers. When communicating to servers outside of Kubernetes, use the `externalServers.hosts` stanza as described in [Join External Servers to Consul on Kubernetes](/consul/docs/k8s/deployment-configurations/servers-outside-kubernetes).
 - Consul snapshot agent runs as a sidecar to Consul servers. <EnterpriseAlert inline />
-  - `client.snapshotAgent` values are moved to `server.snapshotAgent`, with the exception of the following values: `client.snaphostAgent.replicas`, `client.snaphostAgent.serviceAccount`
-  - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets. 
+  - `client.snapshotAgent` values are moved to `server.snapshotAgent`, with the exception of the following values: `client.snapshotAgent.replicas`, `client.snapshotAgent.serviceAccount`
+  - `global.secretsBackend.vault.consulSnapshotAgentRole` value is now removed. You should now use the `global.secretsBackend.vault.consulServerRole` for access to any Vault secrets.
 -  Support simplified default deployment values to allow for easier quick starts and testing:
-    * Set `server.replicas` to `1`. Formerly, this defaulted to `3`. 
-    * `connectInject.enabled` now defaults to true. 
-    * `dns.enabled` and `dns.enableRedirection` will now default to the value of `connectInject.transparentProxy.defaultEnabled`. Previously, `dns.enabled` defaulted to the value of `global.enabled` and `dns.enableRedirection` defaulted to the value to `false`. 
-    * Set `connectInject.replicas` to 1 
+    * Set `server.replicas` to `1`. Formerly, this defaulted to `3`.
+    * `connectInject.enabled` now defaults to true.
+    * `dns.enabled` and `dns.enableRedirection` will now default to the value of `connectInject.transparentProxy.defaultEnabled`. Previously, `dns.enabled` defaulted to the value of `global.enabled` and `dns.enableRedirection` defaulted to the value to `false`.
+    * Set `connectInject.replicas` to 1
     * Set `meshGateway.affinity` to null and `meshGateway.replicas` to 1
-    * Set `ingressGateways.defaults.affinity` to null and `ingressGateways.defaults.replicas` to 1 
+    * Set `ingressGateways.defaults.affinity` to null and `ingressGateways.defaults.replicas` to 1
     * Set `terminatingGateways.defaults.affinity` to null and `terminatingGateways.defaults.replicas` to 1
     * `syncCatalog.consulNamespaces.mirroringK8S` now defaults to `true`. <EnterpriseAlert inline />
     * `connectInject.consulNamespaces.mirroringK8S` now defaults to `true`. <EnterpriseAlert inline />
-- `global.imageEnvoy` is now replaced with `global.imageConsulDataplane` for running the sidecar proxy. apiGateway.imageEnvoy` is now available  for configuring the version of Envoy that the API Gateway uses. 
-  
+- `global.imageEnvoy` is now replaced with `global.imageConsulDataplane` for running the sidecar proxy. apiGateway.imageEnvoy` is now available  for configuring the version of Envoy that the API Gateway uses.
+
 ## Supported Software
 
-~> **Note:** Consul 1.13.x and 1.12.x is not supported. Please use Consul K8s 0.49.x if you want to use Consul 1.13.x or 1.12.x. 
-- Consul 1.14.x. 
-- Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/consul/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version. 
+~> **Note:** Consul 1.13.x and 1.12.x is not supported. Please use Consul K8s 0.49.x if you want to use Consul 1.13.x or 1.12.x.
+- Consul 1.14.x.
+- Consul Dataplane v1.0.x. Refer to [Envoy and Consul Dataplane](/consul/docs/connect/proxies/envoy#envoy-and-consul-dataplane) for details about Consul Dataplane versions and the available packaged Envoy version.
 - Kubernetes 1.22.x - 1.25.x
-- `kubectl` 1.22.x - 1.25.x 
+- `kubectl` 1.22.x - 1.25.x
 - Helm 3.6+
 
 ## Upgrading
@@ -50,9 +51,9 @@ For detailed information on upgrading, please refer to the [Upgrades page](/cons
 
 ## Known Issues
 
-The following issues are known to exist in the v1.0.0 release: 
+The following issues are known to exist in the v1.0.0 release:
 
-- Pod Security Standards that are configured for the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) are currently not supported by Consul K8s. OpenShift 4.11.x enables Pod Security Standards on Kubernetes 1.25 [by default](https://connect.redhat.com/en/blog/important-openshift-changes-pod-security-standards) and is also not supported. Support will be added in a future Consul K8s 1.0.x patch release. 
+- Pod Security Standards that are configured for the [Pod Security Admission controller](https://kubernetes.io/blog/2022/08/25/pod-security-admission-stable/) are currently not supported by Consul K8s. OpenShift 4.11.x enables Pod Security Standards on Kubernetes 1.25 [by default](https://connect.redhat.com/en/blog/important-openshift-changes-pod-security-standards) and is also not supported. Support will be added in a future Consul K8s 1.0.x patch release.
 
 ## Changelogs
 

@@ -1,201 +1,126 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package client
 
 import (
 	"context"
+	"fmt"
+	"net/url"
+	"regexp"
 	"testing"
+	"time"
 
-	"github.com/hashicorp/consul/agent/hcp/config"
-	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
+	"github.com/go-openapi/runtime"
+	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
 
-func TestFetchTelemetryConfig(t *testing.T) {
-	t.Parallel()
-	for name, test := range map[string]struct {
-		metricsEndpoint string
-		expect          func(*MockClient)
-		disabled        bool
-	}{
-		"success": {
-			expect: func(mockClient *MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&TelemetryConfig{
-					Endpoint: "https://test.com",
-					MetricsConfig: &MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-			metricsEndpoint: "https://test.com/v1/metrics",
-		},
-		"overrideMetricsEndpoint": {
-			expect: func(mockClient *MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&TelemetryConfig{
-					Endpoint: "https://test.com",
-					MetricsConfig: &MetricsConfig{
-						Endpoint: "https://test.com",
-					},
-				}, nil)
-			},
-			metricsEndpoint: "https://test.com/v1/metrics",
-		},
-		"disabledWithEmptyEndpoint": {
-			expect: func(mockClient *MockClient) {
-				mockClient.EXPECT().FetchTelemetryConfig(mock.Anything).Return(&TelemetryConfig{
-					Endpoint: "",
-					MetricsConfig: &MetricsConfig{
-						Endpoint: "",
-					},
-				}, nil)
-			},
-			disabled: true,
-		},
-	} {
-		test := test
-		t.Run(name, func(t *testing.T) {
-			t.Parallel()
-
-			mock := NewMockClient(t)
-			test.expect(mock)
-
-			telemetryCfg, err := mock.FetchTelemetryConfig(context.Background())
-			require.NoError(t, err)
-
-			if test.disabled {
-				endpoint, ok := telemetryCfg.Enabled()
-				require.False(t, ok)
-				require.Empty(t, endpoint)
-				return
-			}
-
-			endpoint, ok := telemetryCfg.Enabled()
-
-			require.True(t, ok)
-			require.Equal(t, test.metricsEndpoint, endpoint)
-		})
-	}
+type mockTGW struct {
+	mockResponse *hcptelemetry.AgentTelemetryConfigOK
+	mockError    error
 }
 
-func TestConvertTelemetryConfig(t *testing.T) {
+func (m *mockTGW) AgentTelemetryConfig(params *hcptelemetry.AgentTelemetryConfigParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.AgentTelemetryConfigOK, error) {
+	return m.mockResponse, m.mockError
+}
+func (m *mockTGW) GetLabelValues(params *hcptelemetry.GetLabelValuesParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.GetLabelValuesOK, error) {
+	return hcptelemetry.NewGetLabelValuesOK(), nil
+}
+func (m *mockTGW) QueryRangeBatch(params *hcptelemetry.QueryRangeBatchParams, authInfo runtime.ClientAuthInfoWriter, opts ...hcptelemetry.ClientOption) (*hcptelemetry.QueryRangeBatchOK, error) {
+	return hcptelemetry.NewQueryRangeBatchOK(), nil
+}
+func (m *mockTGW) SetTransport(transport runtime.ClientTransport) {}
+
+type expectedTelemetryCfg struct {
+	endpoint        string
+	labels          map[string]string
+	filters         string
+	refreshInterval time.Duration
+}
+
+func TestFetchTelemetryConfig(t *testing.T) {
 	t.Parallel()
-	for name, test := range map[string]struct {
-		resp                 *consul_telemetry_service.AgentTelemetryConfigOK
-		expectedTelemetryCfg *TelemetryConfig
-		wantErr              string
+	for name, tc := range map[string]struct {
+		mockResponse *hcptelemetry.AgentTelemetryConfigOK
+		mockError    error
+		wantErr      string
+		expected     *expectedTelemetryCfg
 	}{
-		"success": {
-			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
-				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
-					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
-						Endpoint: "https://test.com",
-						Labels:   map[string]string{"test": "test"},
-					},
-				},
-			},
-			expectedTelemetryCfg: &TelemetryConfig{
-				Endpoint:      "https://test.com",
-				Labels:        map[string]string{"test": "test"},
-				MetricsConfig: &MetricsConfig{},
-			},
+		"errorsWithFetchFailure": {
+			mockError:    fmt.Errorf("failed to fetch from HCP"),
+			mockResponse: nil,
+			wantErr:      "failed to fetch from HCP",
 		},
-		"successWithMetricsConfig": {
-			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
+		"errorsWithInvalidPayload": {
+			mockResponse: &hcptelemetry.AgentTelemetryConfigOK{
+				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{},
+			},
+			mockError: nil,
+			wantErr:   "invalid response payload",
+		},
+		"success:": {
+			mockResponse: &hcptelemetry.AgentTelemetryConfigOK{
 				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{
+					RefreshConfig: &models.HashicorpCloudConsulTelemetry20230414RefreshConfig{
+						RefreshInterval: "1s",
+					},
 					TelemetryConfig: &models.HashicorpCloudConsulTelemetry20230414TelemetryConfig{
 						Endpoint: "https://test.com",
-						Labels:   map[string]string{"test": "test"},
+						Labels:   map[string]string{"test": "123"},
 						Metrics: &models.HashicorpCloudConsulTelemetry20230414TelemetryMetricsConfig{
-							Endpoint:    "https://metrics-test.com",
-							IncludeList: []string{"consul.raft.apply"},
+							IncludeList: []string{"consul", "test"},
 						},
 					},
 				},
 			},
-			expectedTelemetryCfg: &TelemetryConfig{
-				Endpoint: "https://test.com",
-				Labels:   map[string]string{"test": "test"},
-				MetricsConfig: &MetricsConfig{
-					Endpoint: "https://metrics-test.com",
-					Filters:  []string{"consul.raft.apply"},
-				},
+			expected: &expectedTelemetryCfg{
+				endpoint:        "https://test.com/v1/metrics",
+				labels:          map[string]string{"test": "123"},
+				filters:         "consul|test",
+				refreshInterval: 1 * time.Second,
 			},
-		},
-		"errorsWithNilPayload": {
-			resp:    &consul_telemetry_service.AgentTelemetryConfigOK{},
-			wantErr: "missing payload",
-		},
-		"errorsWithNilTelemetryConfig": {
-			resp: &consul_telemetry_service.AgentTelemetryConfigOK{
-				Payload: &models.HashicorpCloudConsulTelemetry20230414AgentTelemetryConfigResponse{},
-			},
-			wantErr: "missing telemetry config",
 		},
 	} {
-		test := test
+		tc := tc
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			telemetryCfg, err := convertTelemetryConfig(test.resp)
-			if test.wantErr != "" {
+			c := &hcpClient{
+				tgw: &mockTGW{
+					mockError:    tc.mockError,
+					mockResponse: tc.mockResponse,
+				},
+			}
+
+			telemetryCfg, err := c.FetchTelemetryConfig(context.Background())
+
+			if tc.wantErr != "" {
 				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.wantErr)
 				require.Nil(t, telemetryCfg)
-				require.Contains(t, err.Error(), test.wantErr)
 				return
 			}
 
+			urlEndpoint, err := url.Parse(tc.expected.endpoint)
 			require.NoError(t, err)
-			require.Equal(t, test.expectedTelemetryCfg, telemetryCfg)
-		})
-	}
-}
 
-func Test_DefaultLabels(t *testing.T) {
-	for name, tc := range map[string]struct {
-		cfg            config.CloudConfig
-		expectedLabels map[string]string
-	}{
-		"Success": {
-			cfg: config.CloudConfig{
-				NodeID:   types.NodeID("nodeyid"),
-				NodeName: "nodey",
-			},
-			expectedLabels: map[string]string{
-				"node_id":   "nodeyid",
-				"node_name": "nodey",
-			},
-		},
+			regexFilters, err := regexp.Compile(tc.expected.filters)
+			require.NoError(t, err)
 
-		"NoNodeID": {
-			cfg: config.CloudConfig{
-				NodeID:   types.NodeID(""),
-				NodeName: "nodey",
-			},
-			expectedLabels: map[string]string{
-				"node_name": "nodey",
-			},
-		},
-		"NoNodeName": {
-			cfg: config.CloudConfig{
-				NodeID:   types.NodeID("nodeyid"),
-				NodeName: "",
-			},
-			expectedLabels: map[string]string{
-				"node_id": "nodeyid",
-			},
-		},
-		"Empty": {
-			cfg: config.CloudConfig{
-				NodeID:   "",
-				NodeName: "",
-			},
-			expectedLabels: map[string]string{},
-		},
-	} {
-		t.Run(name, func(t *testing.T) {
-			tCfg := &TelemetryConfig{}
-			labels := tCfg.DefaultLabels(tc.cfg)
-			require.Equal(t, labels, tc.expectedLabels)
+			expectedCfg := &TelemetryConfig{
+				MetricsConfig: &MetricsConfig{
+					Endpoint: urlEndpoint,
+					Filters:  regexFilters,
+					Labels:   tc.expected.labels,
+				},
+				RefreshConfig: &RefreshConfig{
+					RefreshInterval: tc.expected.refreshInterval,
+				},
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, expectedCfg, telemetryCfg)
 		})
 	}
 }

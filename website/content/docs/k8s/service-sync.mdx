@@ -12,7 +12,7 @@ services are available to Consul agents and services in Consul can be available
 as first-class Kubernetes services. This functionality is provided by the
 [consul-k8s project](https://github.com/hashicorp/consul-k8s) and can be
 automatically installed and configured using the
-[Consul Helm chart](/consul/docs/k8s/installation/install).
+[Consul K8s Helm chart](/consul/docs/k8s/installation/install).
 
 ![screenshot of a Kubernetes service in the UI](/img/k8s-service.png)
 
@@ -31,11 +31,7 @@ service discovery, including hosted services like databases.
 
 ~> Enabling both Service Mesh and Service Sync on the same Kubernetes services is not supported, as Service Mesh also registers Kubernetes service instances to Consul. Ensure that Service Sync is only enabled for namespaces and services that are not injected with the Consul sidecar for Service Mesh as described in [Sync Enable/Disable](/consul/docs/k8s/service-sync#sync-enable-disable).
 
-The service sync uses an external long-running process in the
-[consul-k8s project](https://github.com/hashicorp/consul-k8s). This process
-can run either inside or outside of a Kubernetes cluster. However, running this process within
-the Kubernetes cluster is generally easier since it is automated using the
-[Helm chart](/consul/docs/k8s/helm).
+The service sync feature deploys a long-running process which can run either inside or outside of a Kubernetes cluster. However, running this process within the Kubernetes cluster is generally easier since it is automated using the [Helm chart](/consul/docs/k8s/helm).
 
 The Consul server cluster can run either in or out of a Kubernetes cluster.
 The Consul server cluster does not need to be running on the same machine
@@ -291,7 +287,7 @@ metadata:
 ### Service meta
 
 A service registered in Consul from Kubernetes sets the `external-source` key to
-`kubernetes`. This can be used from the APLI, CLI and UI to filter
+`kubernetes`. This can be used from the API, CLI and UI to filter
 service instances that are set in k8s. The Consul UI displays a Kubernetes icon next to all externally
 registered services from Kubernetes.
 
@@ -426,7 +422,7 @@ configuration.
 
 **If a conflicting service is found**: the service is not synced. This
 does not match the Kubernetes to Consul behavior, but given the current
-implementation we must do this because Kubernetes cannott mix both CNAME and
+implementation we must do this because Kubernetes cannot mix both CNAME and
 Endpoint-based services.
 
 ### Kubernetes service labels and annotations

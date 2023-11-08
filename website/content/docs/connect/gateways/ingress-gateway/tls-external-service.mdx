@@ -49,7 +49,7 @@ You must manually register the ingress gateway with Consul proxy to define extra
 In the following example, the `public-ingress` gateway includes a static cluster named `sds-cluster` that specifies paths to the SDS certificate and SDS certification validation files:
 
 
-<CodeBlockConfig heading="public-ingress-service.hcl">
+<CodeBlockConfig filename="public-ingress-service.hcl">
 
 ```hcl
 Services {
@@ -133,7 +133,7 @@ Store TLS client authentication files, certificate files, and keys on disk where
 The following example specifies certificate chain:
 
 
-<CodeBlockConfig heading="certs/sds-auth-cert.json">
+<CodeBlockConfig filename="certs/sds-auth-cert.json">
 
 ```json
 {
@@ -158,7 +158,7 @@ The following example specifies certificate chain:
 
 The following example specifies the validation context:
 
-<CodeBlockConfig heading="/certs/sds-validation.json">
+<CodeBlockConfig filename="/certs/sds-validation.json">
 
 ```json
 {
@@ -209,7 +209,7 @@ Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/co
 
 The following example directs Consul to retrieve `example.com-public-cert` certificates from an SDS cluster named `sds-cluster` and serve them to all listeners:
 
-<CodeBlockConfig heading="public-ingress-cfg.hcl">
+<CodeBlockConfig filename="public-ingress-cfg.hcl">
 
 ```hcl
 Kind = "ingress-gateway"

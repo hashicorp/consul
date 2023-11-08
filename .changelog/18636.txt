@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Fix issue where Envoy endpoints would not populate correctly after a snapshot restore.
+```

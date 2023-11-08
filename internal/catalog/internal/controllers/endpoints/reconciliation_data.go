@@ -1,16 +1,20 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package endpoints
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type serviceData struct {
@@ -120,7 +124,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 	// workloads selected by name if they are also matched by a prefix.
 	for _, prefix := range sel.GetPrefixes() {
 		rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
-			Type:       types.WorkloadType,
+			Type:       pbcatalog.WorkloadType,
 			Tenancy:    svc.resource.Id.Tenancy,
 			NamePrefix: prefix,
 		})
@@ -146,7 +150,7 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 		}
 
 		workloadID := &pbresource.ID{
-			Type:    types.WorkloadType,
+			Type:    pbcatalog.WorkloadType,
 			Tenancy: svc.resource.Id.Tenancy,
 			Name:    name,
 		}
@@ -164,6 +168,14 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 
 		workloads = append(workloads, rsp.Resource)
 		workloadNames[rsp.Resource.Id.Name] = struct{}{}
+	}
+
+	if sel.GetFilter() != "" && len(workloads) > 0 {
+		var err error
+		workloads, err = resource.FilterResourcesByMetadata(workloads, sel.GetFilter())
+		if err != nil {
+			return nil, fmt.Errorf("error filtering results by metadata: %w", err)
+		}
 	}
 
 	// Sorting ensures deterministic output. This will help for testing but

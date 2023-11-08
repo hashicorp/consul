@@ -1,0 +1,7 @@
+```release-note:bug
+ca: Fix bug with Vault CA provider where token renewal goroutines could leak if CA failed to initialize.
+```
+
+```release-note:bug
+ca: Fix bug with Vault CA provider where renewing a retracted token would cause retries in a tight loop, degrading performance.
+```

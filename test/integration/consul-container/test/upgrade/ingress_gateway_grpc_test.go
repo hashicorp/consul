@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package upgrade
 
@@ -92,7 +92,7 @@ func TestIngressGateway_GRPC_UpgradeToTarget_fromLatest(t *testing.T) {
 	serverNodes := cluster.Servers()
 	require.NoError(t, err)
 	require.True(t, len(serverNodes) > 0)
-	staticClientSvcSidecar, err := libservice.CreateAndRegisterStaticClientSidecar(serverNodes[0], "", true, false)
+	staticClientSvcSidecar, err := libservice.CreateAndRegisterStaticClientSidecar(serverNodes[0], "", true, false, nil)
 	require.NoError(t, err)
 
 	tests := func(t *testing.T) {

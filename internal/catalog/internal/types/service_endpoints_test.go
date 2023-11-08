@@ -1,17 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
@@ -20,29 +20,20 @@ var (
 		Namespace: "default",
 		PeerName:  "local",
 	}
-)
 
-func createServiceEndpointsResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
-	res := &pbresource.Resource{
-		Id: &pbresource.ID{
-			Type:    ServiceEndpointsType,
-			Tenancy: defaultEndpointTenancy,
-			Name:    "test-service",
-		},
+	badEndpointTenancy = &pbresource.Tenancy{
+		Partition: "default",
+		Namespace: "bad",
+		PeerName:  "local",
 	}
-
-	var err error
-	res.Data, err = anypb.New(data)
-	require.NoError(t, err)
-	return res
-}
+)
 
 func TestValidateServiceEndpoints_Ok(t *testing.T) {
 	data := &pbcatalog.ServiceEndpoints{
 		Endpoints: []*pbcatalog.Endpoint{
 			{
 				TargetRef: &pbresource.ID{
-					Type:    WorkloadType,
+					Type:    pbcatalog.WorkloadType,
 					Tenancy: defaultEndpointTenancy,
 					Name:    "foo",
 				},
@@ -62,8 +53,15 @@ func TestValidateServiceEndpoints_Ok(t *testing.T) {
 		},
 	}
 
-	res := createServiceEndpointsResource(t, data)
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
+		WithTenancy(defaultEndpointTenancy).
+		WithData(t, data).
+		Build()
 
+	// fill in owner automatically
+	require.NoError(t, MutateServiceEndpoints(res))
+
+	// Now validate that everything is good.
 	err := ValidateServiceEndpoints(res)
 	require.NoError(t, err)
 }
@@ -73,7 +71,7 @@ func TestValidateServiceEndpoints_ParseError(t *testing.T) {
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := createServiceEndpointsResource(t, data)
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").WithData(t, data).Build()
 
 	err := ValidateServiceEndpoints(res)
 	require.Error(t, err)
@@ -84,7 +82,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	genData := func() *pbcatalog.Endpoint {
 		return &pbcatalog.Endpoint{
 			TargetRef: &pbresource.ID{
-				Type:    WorkloadType,
+				Type:    pbcatalog.WorkloadType,
 				Tenancy: defaultEndpointTenancy,
 				Name:    "foo",
 			},
@@ -104,6 +102,7 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	}
 
 	type testCase struct {
+		owner       *pbresource.ID
 		modify      func(*pbcatalog.Endpoint)
 		validateErr func(t *testing.T, err error)
 	}
@@ -111,10 +110,10 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 	cases := map[string]testCase{
 		"invalid-target": {
 			modify: func(endpoint *pbcatalog.Endpoint) {
-				endpoint.TargetRef.Type = NodeType
+				endpoint.TargetRef.Type = pbcatalog.NodeType
 			},
 			validateErr: func(t *testing.T, err error) {
-				require.ErrorIs(t, err, resource.ErrInvalidReferenceType{AllowedType: WorkloadType})
+				require.ErrorIs(t, err, resource.ErrInvalidReferenceType{AllowedType: pbcatalog.WorkloadType})
 			},
 		},
 		"invalid-address": {
@@ -133,6 +132,20 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				require.ErrorIs(t, err, resource.ErrEmpty)
 			},
 		},
+		"invalid-health-status": {
+			modify: func(endpoint *pbcatalog.Endpoint) {
+				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
+					Port: 42,
+				}
+				endpoint.HealthStatus = 99
+			},
+			validateErr: func(t *testing.T, err error) {
+				rtest.RequireError(t, err, resource.ErrInvalidField{
+					Name:    "health_status",
+					Wrapped: resource.NewConstError("not a supported enum value: 99"),
+				})
+			},
+		},
 		"invalid-port-name": {
 			modify: func(endpoint *pbcatalog.Endpoint) {
 				endpoint.Ports[""] = &pbcatalog.WorkloadPort{
@@ -140,11 +153,29 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				}
 			},
 			validateErr: func(t *testing.T, err error) {
-				var mapErr resource.ErrInvalidMapKey
-				require.ErrorAs(t, err, &mapErr)
-				require.Equal(t, "ports", mapErr.Map)
-				require.Equal(t, "", mapErr.Key)
-				require.Equal(t, resource.ErrEmpty, mapErr.Wrapped)
+				rtest.RequireError(t, err, resource.ErrInvalidMapKey{
+					Map:     "ports",
+					Key:     "",
+					Wrapped: resource.ErrEmpty,
+				})
+			},
+		},
+		"invalid-port-protocol": {
+			modify: func(endpoint *pbcatalog.Endpoint) {
+				endpoint.Ports["foo"] = &pbcatalog.WorkloadPort{
+					Port:     42,
+					Protocol: 99,
+				}
+			},
+			validateErr: func(t *testing.T, err error) {
+				rtest.RequireError(t, err, resource.ErrInvalidMapValue{
+					Map: "ports",
+					Key: "foo",
+					Wrapped: resource.ErrInvalidField{
+						Name:    "protocol",
+						Wrapped: resource.NewConstError("not a supported enum value: 99"),
+					},
+				})
 			},
 		},
 		"port-0": {
@@ -163,22 +194,111 @@ func TestValidateServiceEndpoints_EndpointInvalid(t *testing.T) {
 				require.ErrorIs(t, err, errInvalidPhysicalPort)
 			},
 		},
+		"invalid-owner": {
+			owner: &pbresource.ID{
+				Type:    pbcatalog.DNSPolicyType,
+				Tenancy: badEndpointTenancy,
+				Name:    "wrong",
+			},
+			validateErr: func(t *testing.T, err error) {
+				rtest.RequireError(t, err, resource.ErrOwnerTypeInvalid{
+					ResourceType: pbcatalog.ServiceEndpointsType,
+					OwnerType:    pbcatalog.DNSPolicyType})
+				rtest.RequireError(t, err, resource.ErrOwnerTenantInvalid{
+					ResourceType:    pbcatalog.ServiceEndpointsType,
+					ResourceTenancy: defaultEndpointTenancy,
+					OwnerTenancy:    badEndpointTenancy,
+				})
+				rtest.RequireError(t, err, resource.ErrInvalidField{
+					Name: "name",
+					Wrapped: errInvalidEndpointsOwnerName{
+						Name:      "test-service",
+						OwnerName: "wrong"},
+				})
+			},
+		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			data := genData()
-			tcase.modify(data)
+			endpoint := genData()
+			if tcase.modify != nil {
+				tcase.modify(endpoint)
+			}
 
-			res := createServiceEndpointsResource(t, &pbcatalog.ServiceEndpoints{
+			data := &pbcatalog.ServiceEndpoints{
 				Endpoints: []*pbcatalog.Endpoint{
-					data,
+					endpoint,
 				},
-			})
+			}
+			res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
+				WithTenancy(defaultEndpointTenancy).
+				WithOwner(tcase.owner).
+				WithData(t, data).
+				Build()
+
+			// Run the mututation to setup defaults
+			require.NoError(t, MutateServiceEndpoints(res))
 
 			err := ValidateServiceEndpoints(res)
 			require.Error(t, err)
 			tcase.validateErr(t, err)
+		})
+	}
+}
+
+func TestMutateServiceEndpoints_PopulateOwner(t *testing.T) {
+	res := rtest.Resource(pbcatalog.ServiceEndpointsType, "test-service").
+		WithTenancy(defaultEndpointTenancy).
+		Build()
+
+	require.NoError(t, MutateServiceEndpoints(res))
+	require.NotNil(t, res.Owner)
+	require.True(t, resource.EqualType(res.Owner.Type, pbcatalog.ServiceType))
+	require.True(t, resource.EqualTenancy(res.Owner.Tenancy, defaultEndpointTenancy))
+	require.Equal(t, res.Owner.Name, res.Id.Name)
+}
+
+func TestServiceEndpointsACLs(t *testing.T) {
+	registry := resource.NewRegistry()
+	Register(registry)
+
+	service := rtest.Resource(pbcatalog.ServiceType, "test").
+		WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+	serviceEndpointsData := &pbcatalog.ServiceEndpoints{}
+	cases := map[string]rtest.ACLTestCase{
+		"no rules": {
+			Rules:   ``,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.DENY,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.DEFAULT,
+		},
+		"service test read": {
+			Rules:   `service "test" { policy = "read" }`,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.DEFAULT,
+		},
+		"service test write": {
+			Rules:   `service "test" { policy = "write" }`,
+			Data:    serviceEndpointsData,
+			Owner:   service,
+			Typ:     pbcatalog.ServiceEndpointsType,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.ALLOW,
+			ListOK:  rtest.DEFAULT,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			rtest.RunACLTestCase(t, tc, registry)
 		})
 	}
 }
