@@ -11,10 +11,10 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/itchyny/gojq v0.12.13
 	github.com/mitchellh/copystructure v1.2.0
-	github.com/rboyer/blankspace v0.1.0
+	github.com/rboyer/blankspace v0.2.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.17.0
-	google.golang.org/grpc v1.58.3
+	google.golang.org/grpc v1.57.2
 )
 
 require (
