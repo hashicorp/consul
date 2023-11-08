@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/failovermapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -33,8 +32,7 @@ type controllerSuite struct {
 
 	ctl failoverPolicyReconciler
 
-	isEnterprise bool
-	tenancies    []*pbresource.Tenancy
+	tenancies []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -48,7 +46,6 @@ func (suite *controllerSuite) SetupTest() {
 
 	suite.failoverMapper = failovermapper.New()
 
-	suite.isEnterprise = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
 	suite.tenancies = rtest.TestTenancies()
 }
 
@@ -80,6 +77,8 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		defer suite.client.MustDelete(suite.T(), failover.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingService)
 
 		// Provide the service.
@@ -90,10 +89,13 @@ func (suite *controllerSuite) TestController() {
 				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 			}},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
+		svc := rtest.Resource(pbcatalog.ServiceType, "api").
 			WithData(suite.T(), apiServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
 		// Update the failover to reference an unknown port
@@ -113,10 +115,13 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+		svc = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
 			WithData(suite.T(), failoverData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownPort("admin"))
 
 		// update the service to fix the stray reference, but point to a mesh port
@@ -133,10 +138,13 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
+		svc = rtest.Resource(pbcatalog.ServiceType, "api").
 			WithData(suite.T(), apiServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUsingMeshDestinationPort(apiServiceRef, "admin"))
 
 		// update the service to fix the stray reference to not be a mesh port
@@ -153,10 +161,13 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
+		svc = rtest.Resource(pbcatalog.ServiceType, "api").
 			WithData(suite.T(), apiServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
 		// change failover leg to point to missing service
@@ -176,10 +187,13 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
+		svc = rtest.Resource(pbcatalog.FailoverPolicyType, "api").
 			WithData(suite.T(), failoverData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingDestinationService(otherServiceRef))
 
 		// Create the missing service, but forget the port.
@@ -190,10 +204,13 @@ func (suite *controllerSuite) TestController() {
 				Protocol:   pbcatalog.Protocol_PROTOCOL_HTTP,
 			}},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "other").
+		svc = rtest.Resource(pbcatalog.ServiceType, "other").
 			WithData(suite.T(), otherServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "admin"))
 
 		// fix the destination leg's port
@@ -210,10 +227,13 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "other").
+		svc = rtest.Resource(pbcatalog.ServiceType, "other").
 			WithData(suite.T(), otherServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
 		// Update the two services to use differnet port names so the easy path doesn't work
@@ -230,10 +250,12 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
+		svc = rtest.Resource(pbcatalog.ServiceType, "api").
 			WithData(suite.T(), apiServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
 
 		otherServiceData = &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
@@ -248,10 +270,12 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "other").
+		svc = rtest.Resource(pbcatalog.ServiceType, "other").
 			WithData(suite.T(), otherServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
 
 		failoverData = &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
@@ -265,6 +289,8 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		defer suite.client.MustDelete(suite.T(), failover.Id)
+
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "bar"))
 
 		// and fix it the silly way by removing it from api+failover
@@ -277,10 +303,12 @@ func (suite *controllerSuite) TestController() {
 				},
 			},
 		}
-		_ = rtest.Resource(pbcatalog.ServiceType, "api").
+		svc = rtest.Resource(pbcatalog.ServiceType, "api").
 			WithData(suite.T(), apiServiceData).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), svc.Id)
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 	})
