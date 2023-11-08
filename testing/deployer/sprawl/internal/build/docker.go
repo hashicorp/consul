@@ -102,6 +102,8 @@ func DockerImages(
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {
 		for _, n := range c.Nodes {
+			needsTproxy := n.NeedsTransparentProxy()
+
 			joint := n.Images.EnvoyConsulImage()
 			if _, ok := built[joint]; joint != "" && !ok {
 				logger.Info("building envoy+consul image", "image", joint)
@@ -145,7 +147,7 @@ func DockerImages(
 			}
 
 			cdpTproxy := n.Images.LocalDataplaneTProxyImage()
-			if _, ok := built[cdpTproxy]; cdpTproxy != "" && !ok {
+			if _, ok := built[cdpTproxy]; cdpTproxy != "" && !ok && needsTproxy {
 				logger.Info("building image", "image", cdpTproxy)
 				logw := logger.Named("docker_dataplane_tproxy").StandardWriter(&hclog.StandardLoggerOptions{ForceLevel: hclog.Debug})
 				err := run.DockerExecWithStderr(context.TODO(), []string{

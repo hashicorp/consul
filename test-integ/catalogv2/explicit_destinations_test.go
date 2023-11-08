@@ -167,8 +167,8 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 				newServiceID("single-client"),
 				topology.NodeVersionV2,
 				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc")     // v2 mode turns this on, so turn it off
-					delete(svc.Ports, "http-alt") // v2 mode turns this on, so turn it off
+					delete(svc.Ports, "grpc")  // v2 mode turns this on, so turn it off
+					delete(svc.Ports, "http2") // v2 mode turns this on, so turn it off
 					svc.Upstreams = []*topology.Upstream{{
 						ID:           newServiceID("single-server"),
 						PortName:     "http",
@@ -232,7 +232,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 						},
 						{
 							ID:           newServiceID("multi-server"),
-							PortName:     "http-alt",
+							PortName:     "http2",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5001,
 						},
