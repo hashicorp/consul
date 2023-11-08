@@ -399,61 +399,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "expose-paths-local-app-paths",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
-			},
-		},
-		{
-			name: "expose-paths-new-cluster-http2",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
-					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
-						LocalPathPort: 9090,
-						Path:          "/grpc.health.v1.Health/Check",
-						ListenerPort:  21501,
-						Protocol:      "http2",
-					}
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http",
-			create: proxycfg.TestConfigSnapshotExposeChecks,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http-with-bind-override",
-			create: proxycfg.TestConfigSnapshotExposeChecksWithBindOverride,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-grpc",
-			create: proxycfg.TestConfigSnapshotExposeChecksGRPC,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)

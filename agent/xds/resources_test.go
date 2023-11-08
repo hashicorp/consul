@@ -276,6 +276,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getTrafficControlPeeringGoldenTestCases(false)...)
 	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
+	tests = append(tests, getExposePathGoldenTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -1042,6 +1043,100 @@ func getAPIGatewayGoldenTestCases(t *testing.T) []goldenTestCase {
 			},
 			// TODO(proxystate): api gateways will come at a later date.
 			alsoRunTestForV2: false,
+		},
+	}
+}
+
+func getExposePathGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "expose-paths-local-app-paths",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
+			},
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "downstream-service-with-unix-sockets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Address = ""
+					ns.Port = 0
+					ns.Proxy.LocalServiceAddress = ""
+					ns.Proxy.LocalServicePort = 0
+					ns.Proxy.LocalServiceSocketPath = "/tmp/downstream_proxy.sock"
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "expose-paths-new-cluster-http2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
+					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
+						LocalPathPort: 9090,
+						Path:          "/grpc.health.v1.Health/Check",
+						ListenerPort:  21501,
+						Protocol:      "http2",
+					}
+				})
+			},
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "expose-checks",
+			create: proxycfg.TestConfigSnapshotExposeChecks,
+			generatorSetup: func(s *ResourceGenerator) {
+				s.CfgFetcher = configFetcherFunc(func() string {
+					return "192.0.2.1"
+				})
+			},
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "expose-paths-grpc-new-cluster-http1",
+			create: proxycfg.TestConfigSnapshotGRPCExposeHTTP1,
+			// TODO(jm): enable with https://github.com/hashicorp/consul/pull/19459
+			alsoRunTestForV2: false,
+		},
+		{
+			// NOTE: if IPv6 is not supported in the kernel per
+			// platform.SupportsIPv6() then this test will fail because the golden
+			// files were generated assuming ipv6 support was present
+			name:   "expose-checks-http",
+			create: proxycfg.TestConfigSnapshotExposeChecks,
+			generatorSetup: func(s *ResourceGenerator) {
+				s.CfgFetcher = configFetcherFunc(func() string {
+					return "192.0.2.1"
+				})
+			},
+		},
+		{
+			// NOTE: if IPv6 is not supported in the kernel per
+			// platform.SupportsIPv6() then this test will fail because the golden
+			// files were generated assuming ipv6 support was present
+			name:   "expose-checks-http-with-bind-override",
+			create: proxycfg.TestConfigSnapshotExposeChecksWithBindOverride,
+			generatorSetup: func(s *ResourceGenerator) {
+				s.CfgFetcher = configFetcherFunc(func() string {
+					return "192.0.2.1"
+				})
+			},
+		},
+		{
+			// NOTE: if IPv6 is not supported in the kernel per
+			// platform.SupportsIPv6() then this test will fail because the golden
+			// files were generated assuming ipv6 support was present
+			name:   "expose-checks-grpc",
+			create: proxycfg.TestConfigSnapshotExposeChecksGRPC,
+			generatorSetup: func(s *ResourceGenerator) {
+				s.CfgFetcher = configFetcherFunc(func() string {
+					return "192.0.2.1"
+				})
+			},
 		},
 	}
 }
