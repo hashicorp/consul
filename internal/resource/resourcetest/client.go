@@ -344,7 +344,7 @@ func (client *Client) MustDelete(t T, id *pbresource.ID) {
 // to the delete.
 func (client *Client) CleanupDelete(t T, id *pbresource.ID) {
 	t.Helper()
-	client.retryDelete(t, id, true)
+	client.retryDelete(t, id, false)
 }
 
 func (client *Client) retryDelete(t T, id *pbresource.ID, shouldDelay bool) {
