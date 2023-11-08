@@ -208,10 +208,7 @@ func (s *Sprawl) awaitMeshGateways() {
 		logger.Info("awaiting MGW readiness")
 	RETRY:
 		// TODO: not sure if there's a better way to check if the MGW is ready
-		svcs, _, err := cl.Catalog().Service(mgw.ID.Name, "", &api.QueryOptions{
-			Namespace: mgw.ID.Namespace,
-			Partition: mgw.ID.Partition,
-		})
+		svcs, _, err := cl.Catalog().Service(mgw.ID.Name, "", mgw.ID.QueryOptions())
 		if err != nil {
 			logger.Debug("fetching MGW service", "err", err)
 			time.Sleep(time.Second)
@@ -227,10 +224,7 @@ func (s *Sprawl) awaitMeshGateways() {
 			log.Fatalf("expected 1 MGW service, actually: %#v", svcs)
 		}
 
-		entries, _, err := cl.Health().Service(mgw.ID.Name, "", true, &api.QueryOptions{
-			Namespace: mgw.ID.Namespace,
-			Partition: mgw.ID.Partition,
-		})
+		entries, _, err := cl.Health().Service(mgw.ID.Name, "", true, mgw.ID.QueryOptions())
 		if err != nil {
 			logger.Debug("fetching MGW checks", "err", err)
 			time.Sleep(time.Second)

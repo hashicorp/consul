@@ -4,10 +4,10 @@
 package resourcetest
 
 import (
+	"github.com/hashicorp/consul/agent/structs"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
