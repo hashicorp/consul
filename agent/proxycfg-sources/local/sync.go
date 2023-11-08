@@ -5,8 +5,9 @@ package local
 
 import (
 	"context"
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"time"
+
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 
 	"github.com/hashicorp/go-hclog"
 
@@ -34,6 +35,9 @@ type SyncConfig struct {
 
 	// NodeName is the name of the local agent node.
 	NodeName string
+
+	// NodeLocality
+	NodeLocality *structs.Locality
 
 	// Logger will be used to write log messages.
 	Logger hclog.Logger
@@ -108,6 +112,14 @@ func sync(cfg SyncConfig) {
 			// presented in the xDS stream (the token presented to the xDS server
 			// is checked before the watch is created).
 			Token: "",
+		}
+
+		// We inherit the node's locality at runtime (not persisted).
+		// The service locality takes precedence if it was set directly during
+		// registration.
+		svc = svc.DeepCopy()
+		if svc.Locality == nil {
+			svc.Locality = cfg.NodeLocality
 		}
 
 		// TODO(banks): need to work out when to default some stuff. For example

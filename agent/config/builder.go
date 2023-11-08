@@ -1732,7 +1732,18 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		Locality:          b.serviceLocalityVal(v.Locality),
 		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
+	}
+}
+
+func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: stringVal(l.Region),
+		Zone:   stringVal(l.Zone),
 	}
 }
 

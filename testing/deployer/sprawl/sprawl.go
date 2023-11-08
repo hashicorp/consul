@@ -16,9 +16,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
@@ -31,10 +33,12 @@ import (
 
 // Sprawl is the definition of a complete running Consul deployment topology.
 type Sprawl struct {
-	logger  hclog.Logger
-	runner  *runner.Runner
-	license string
-	secrets secrets.Store
+	logger hclog.Logger
+	// set after initial Launch is complete
+	launchLogger hclog.Logger
+	runner       *runner.Runner
+	license      string
+	secrets      secrets.Store
 
 	workdir string
 
@@ -43,7 +47,9 @@ type Sprawl struct {
 	topology  *topology.Topology
 	generator *tfgen.Generator
 
-	clients map[string]*api.Client // one per cluster
+	clients        map[string]*api.Client      // one per cluster
+	grpcConns      map[string]*grpc.ClientConn // one per cluster (when v2 enabled)
+	grpcConnCancel map[string]func()           // one per cluster (when v2 enabled)
 }
 
 // Topology allows access to the topology that defines the resources. Do not
@@ -58,6 +64,12 @@ func (s *Sprawl) Config() *topology.Config {
 		panic(err)
 	}
 	return c2
+}
+
+// ResourceServiceClientForCluster returns a shared common client that defaults
+// to using the management token for this cluster.
+func (s *Sprawl) ResourceServiceClientForCluster(clusterName string) pbresource.ResourceServiceClient {
+	return pbresource.NewResourceServiceClient(s.grpcConns[clusterName])
 }
 
 func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) {
@@ -167,10 +179,12 @@ func Launch(
 	}
 
 	s := &Sprawl{
-		logger:  logger,
-		runner:  runner,
-		workdir: workdir,
-		clients: make(map[string]*api.Client),
+		logger:         logger,
+		runner:         runner,
+		workdir:        workdir,
+		clients:        make(map[string]*api.Client),
+		grpcConns:      make(map[string]*grpc.ClientConn),
+		grpcConnCancel: make(map[string]func()),
 	}
 
 	if err := s.ensureLicense(); err != nil {
@@ -200,17 +214,30 @@ func Launch(
 		return nil, fmt.Errorf("error gathering diagnostic details: %w", err)
 	}
 
+	s.launchLogger = s.logger
+
 	return s, nil
 }
 
 func (s *Sprawl) Relaunch(
 	cfg *topology.Config,
 ) error {
+	return s.RelaunchWithPhase(cfg, "")
+}
+
+func (s *Sprawl) RelaunchWithPhase(
+	cfg *topology.Config,
+	phase string,
+) error {
 	// Copy this BEFORE compiling so we capture the original definition, without denorms.
 	var err error
 	s.config, err = copyConfig(cfg)
 	if err != nil {
 		return err
+	}
+
+	if phase != "" {
+		s.logger = s.launchLogger.Named(phase)
 	}
 
 	newTopology, err := topology.Recompile(s.logger.Named("recompile"), cfg, s.topology)

@@ -12,7 +12,12 @@ import (
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+)
+
+var (
+	cli = rtest.ConfigureTestCLIFlags()
 )
 
 func TestCatalog(t *testing.T) {
@@ -29,10 +34,10 @@ func TestCatalog(t *testing.T) {
 	client := pbresource.NewResourceServiceClient(followers[0].GetGRPCConn())
 
 	t.Run("one-shot", func(t *testing.T) {
-		catalogtest.RunCatalogV1Alpha1IntegrationTest(t, client)
+		catalogtest.RunCatalogV2Beta1IntegrationTest(t, client, cli.ClientOptions(t)...)
 	})
 
 	t.Run("lifecycle", func(t *testing.T) {
-		catalogtest.RunCatalogV2Beta1LifecycleIntegrationTest(t, client)
+		catalogtest.RunCatalogV2Beta1LifecycleIntegrationTest(t, client, cli.ClientOptions(t)...)
 	})
 }
