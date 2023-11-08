@@ -17,7 +17,6 @@ import (
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/leafcert"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/xds/status"
@@ -52,6 +51,7 @@ type xdsControllerTestSuite struct {
 	leafCancels     *LeafCancels
 	leafCertEvents  chan controller.Event
 	signer          *leafcert.TestSigner
+	tenancies       []*pbresource.Tenancy
 
 	fooProxyStateTemplate          *pbresource.Resource
 	barProxyStateTemplate          *pbresource.Resource
@@ -66,9 +66,6 @@ type xdsControllerTestSuite struct {
 	expectedBarProxyStateEndpoints map[string]*pbproxystate.Endpoints
 	expectedFooProxyStateSpiffes   map[string]string
 	expectedTrustBundle            map[string]*pbproxystate.TrustBundle
-
-	isEnterprise bool
-	tenancies    []*pbresource.Tenancy
 }
 
 func (suite *xdsControllerTestSuite) SetupTest() {
@@ -104,7 +101,6 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 		datacenter:       "dc1",
 	}
 
-	suite.isEnterprise = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
 	suite.tenancies = resourcetest.TestTenancies()
 }
 
@@ -1229,6 +1225,7 @@ func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
 func (suite *xdsControllerTestSuite) runTestCaseWithTenancies(testCase func(tenancy *pbresource.Tenancy)) {
 	for _, tenancy := range suite.tenancies {
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
+			defer suite.cleanup()
 			testCase(tenancy)
 		})
 	}
@@ -1236,4 +1233,35 @@ func (suite *xdsControllerTestSuite) runTestCaseWithTenancies(testCase func(tena
 
 func (suite *xdsControllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
+}
+
+func (suite *xdsControllerTestSuite) cleanup() {
+	if suite.fooProxyStateTemplate != nil {
+		suite.client.MustDelete(suite.T(), suite.fooProxyStateTemplate.Id)
+	}
+	if suite.barProxyStateTemplate != nil {
+		suite.client.MustDelete(suite.T(), suite.barProxyStateTemplate.Id)
+	}
+	if suite.fooEndpoints != nil {
+		suite.client.MustDelete(suite.T(), suite.fooEndpoints.Id)
+	}
+	if suite.fooBarEndpoints != nil {
+		suite.client.MustDelete(suite.T(), suite.fooBarEndpoints.Id)
+	}
+	if suite.fooService != nil {
+		suite.client.MustDelete(suite.T(), suite.fooService.Id)
+	}
+	if suite.fooBarService != nil {
+		suite.client.MustDelete(suite.T(), suite.fooBarService.Id)
+	}
+
+	// resetting maps so that stale data does not get referenced in other tests
+	// avoid setting them to nil
+	suite.expectedFooProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
+	suite.expectedBarProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
+	suite.expectedFooProxyStateSpiffes = make(map[string]string)
+	suite.expectedTrustBundle = make(map[string]*pbproxystate.TrustBundle)
+	suite.barEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
+	suite.fooEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
+	suite.fooLeafRefs = make(map[string]*pbproxystate.LeafCertificateRef)
 }
