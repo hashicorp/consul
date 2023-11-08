@@ -279,6 +279,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 	tests = append(tests, getExposePathGoldenTestCases()...)
 	tests = append(tests, getCustomConfigurationGoldenTestCases(false)...)
+	tests = append(tests, getConnectProxyJWTProviderGoldenTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -1429,6 +1430,72 @@ func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
 					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
 				}, nil)
 			},
+		},
+	}
+}
+
+func getConnectProxyJWTProviderGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-local",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Local: &structs.LocalJWKS{
+											JWKS: "xxx",
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): jwt work will come at a later time
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "connect-proxy-with-jwt-config-entry-with-remote-jwks",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "jwt-provider",
+						Result: &structs.IndexedConfigEntries{
+							Kind: "jwt-provider",
+							Entries: []structs.ConfigEntry{
+								&structs.JWTProviderConfigEntry{
+									Name: "okta",
+									JSONWebKeySet: &structs.JSONWebKeySet{
+										Remote: &structs.RemoteJWKS{
+											RequestTimeoutMs:    1000,
+											FetchAsynchronously: true,
+											URI:                 "https://test.test.com",
+											JWKSCluster: &structs.JWKSCluster{
+												DiscoveryType:  structs.DiscoveryTypeStatic,
+												ConnectTimeout: time.Duration(5) * time.Second,
+												TLSCertificates: &structs.JWKSTLSCertificate{
+													TrustedCA: &structs.JWKSTLSCertTrustedCA{
+														Filename: "mycert.crt",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			// TODO(proxystate): jwt work will come at a later time
+			alsoRunTestForV2: false,
 		},
 	}
 }
