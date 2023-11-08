@@ -38,19 +38,19 @@ var (
 // is another RunCatalogIntegrationTestLifeCycle function that can be used for those
 // purposes. The two are distinct so that the data being published and the assertions
 // made against the system can be reused in upgrade tests.
-func RunCatalogV2Beta1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV2Beta1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
 	t.Helper()
 
-	PublishCatalogV2Beta1IntegrationTestData(t, client)
+	PublishCatalogV2Beta1IntegrationTestData(t, client, opts...)
 	VerifyCatalogV2Beta1IntegrationTestResults(t, client)
 }
 
 // PublishCatalogV2Beta1IntegrationTestData will perform a whole bunch of resource writes
 // for Service, ServiceEndpoints, Workload, Node and HealthStatus objects
-func PublishCatalogV2Beta1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient) {
+func PublishCatalogV2Beta1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
 	t.Helper()
 
-	c := rtest.NewClient(client)
+	c := rtest.NewClient(client, opts...)
 
 	resources := rtest.ParseResourcesFromFilesystem(t, testData, "integration_test_data/v2beta1")
 	c.PublishResources(t, resources)
