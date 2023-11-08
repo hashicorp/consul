@@ -5,85 +5,58 @@
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "address": {
         "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 21500
+          "address": "127.0.0.1",
+          "portValue": 9191
         }
       },
       "filterChains": [
         {
-          "filterChainMatch": {
-            "sourcePrefixRanges": [
-              {
-                "addressPrefix": "127.0.0.1",
-                "prefixLen": 8
-              },
-              {
-                "addressPrefix": "192.0.2.1",
-                "prefixLen": 32
-              },
-              {
-                "addressPrefix": "::1",
-                "prefixLen": 128
-              }
-            ]
-          },
           "filters": [
             {
-              "name": "envoy.filters.network.http_connection_manager",
+              "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "routeConfig": {
-                  "name": "exposed_path_filter_debug_21500",
-                  "virtualHosts": [
-                    {
-                      "domains": [
-                        "*"
-                      ],
-                      "name": "exposed_path_filter_debug_21500",
-                      "routes": [
-                        {
-                          "match": {
-                            "path": "/debug"
-                          },
-                          "route": {
-                            "cluster": "exposed_cluster_8181"
-                          }
-                        }
-                      ]
-                    }
-                  ]
-                },
-                "statPrefix": "exposed_path_filter_debug_21500",
-                "tracing": {
-                  "randomSampling": {}
-                },
-                "upgradeConfigs": [
-                  {
-                    "upgradeType": "websocket"
-                  }
-                ]
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.db.default.default.dc1"
               }
             }
           ]
         }
       ],
-      "name": "exposed_path_debug:1.2.3.4:21500",
-      "trafficDirection": "INBOUND"
+      "name": "db:127.0.0.1:9191",
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "address": {
         "socketAddress": {
-          "address": "1.2.3.4",
-          "portValue": 8080
+          "address": "127.10.10.10",
+          "portValue": 8181
+        }
+      },
+      "filterChains": [
+        {
+          "filters": [
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.prepared_query_geo-cache"
+              }
+            }
+          ]
+        }
+      ],
+      "name": "prepared_query:geo-cache:127.10.10.10:8181",
+      "trafficDirection": "OUTBOUND"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "address": {
+        "socketAddress": {
+          "address": "0.0.0.0",
+          "portValue": 9999
         }
       },
       "filterChains": [
@@ -133,7 +106,7 @@
           }
         }
       ],
-      "name": "public_listener:1.2.3.4:8080",
+      "name": "public_listener:0.0.0.0:9999",
       "trafficDirection": "INBOUND"
     }
   ],

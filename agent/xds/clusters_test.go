@@ -11,8 +11,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/hashicorp/consul/types"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
@@ -62,89 +60,6 @@ func TestClustersFromSnapshot(t *testing.T) {
 	}
 
 	tests := []clusterTestCase{
-		{
-			name: "connect-proxy-with-tls-outgoing-min-version-auto",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSVersionAuto,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-min-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSv1_3,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-max-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMaxVersion: types.TLSv1_2,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-cipher-suites",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										CipherSuites: []types.TLSCipherSuite{
-											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
 		{
 			name: "mesh-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
