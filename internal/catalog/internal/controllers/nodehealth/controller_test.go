@@ -58,7 +58,7 @@ func resourceID(rtype *pbresource.Type, name string, tenancy *pbresource.Tenancy
 type nodeHealthControllerTestSuite struct {
 	suite.Suite
 
-	resourceClient pbresource.ResourceServiceClient
+	resourceClient *resourcetest.Client
 	runtime        controller.Runtime
 
 	ctl nodeHealthReconciler
@@ -91,7 +91,8 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	cfg := mockres.Config{
 		TenancyBridge: mockTenancyBridge,
 	}
-	suite.resourceClient = svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, types.RegisterDNSPolicy)
+	client := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, types.RegisterDNSPolicy)
+	suite.resourceClient = resourcetest.NewClient(client)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.isEnterprise = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
 }
@@ -424,43 +425,21 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 }
 
 func (suite *nodeHealthControllerTestSuite) cleanUpNodes() {
-	req := &pbresource.DeleteRequest{
-		Id: suite.nodeNoHealth,
-	}
-	_, err := suite.resourceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.nodeCritical,
-	}
-	_, err = suite.resourceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.nodeWarning,
-	}
-	_, err = suite.resourceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.nodePassing,
-	}
-	_, err = suite.resourceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.nodeMaintenance,
-	}
-	_, err = suite.resourceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
+	suite.resourceClient.MustDelete(suite.T(), suite.nodeNoHealth)
+	suite.resourceClient.MustDelete(suite.T(), suite.nodeCritical)
+	suite.resourceClient.MustDelete(suite.T(), suite.nodeWarning)
+	suite.resourceClient.MustDelete(suite.T(), suite.nodePassing)
+	suite.resourceClient.MustDelete(suite.T(), suite.nodeMaintenance)
 }
 
 func (suite *nodeHealthControllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Tenancy)) {
 	for _, tenancy := range suite.tenancies {
-		suite.setupNodesWithTenancy(tenancy)
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
+			suite.setupNodesWithTenancy(tenancy)
+			suite.T().Cleanup(func() {
+				suite.cleanUpNodes()
+			})
 			t(tenancy)
 		})
-		suite.cleanUpNodes()
 	}
 }
