@@ -14,8 +14,13 @@ function cleanup(instance) {
 }
 export default class NotificationModifier extends Modifier {
   @service('flashMessages') notify;
+  retainPrevMsgs = false;
 
   modify(element, _, named) {
+    if (named.retainPrevMsgs) {
+      this.retainPrevMsgs = !!named.retainPrevMsgs;
+      delete named.retainPrevMsgs;
+    }
     this.named = named;
     element.setAttribute('role', 'alert');
     element.dataset['notification'] = null;
@@ -27,7 +32,9 @@ export default class NotificationModifier extends Modifier {
     };
     options.dom = element.outerHTML;
     element.remove();
-    this.notify.clearMessages();
+    if (!this.retainPrevMsgs) {
+      this.notify.clearMessages();
+    }
     if (typeof options.after === 'function') {
       Promise.resolve()
         .then((_) => options.after())

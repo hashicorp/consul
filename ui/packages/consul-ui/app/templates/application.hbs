@@ -98,6 +98,23 @@
                 as |dc|
               >
                 {{#if dc.data}}
+                  <DataSource @src={{uri '/*/*/*/certificates'}} as |certs|>
+                    {{#if certs.data}}
+                      {{#let certs.data as |certs|}}
+                        {{#each certs as |cert index|}}
+                            <Hds::Toast
+                              @color='warning'
+                              {{notification sticky=true retainPrevMsgs=index}}
+                              as |T|>
+                              <T.Title>Warning!</T.Title>
+                              <T.Description>
+                                {{cert.Certificate}} expires in {{cert.ExpiresInDays}} Days.
+                              </T.Description>
+                            </Hds::Toast>
+                        {{/each}}
+                      {{/let}}
+                    {{/if}}
+                  </DataSource>
                   <HashicorpConsul
                     id='wrapper'
                     @dcs={{dcs}}
