@@ -129,12 +129,12 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol pbproxys
 	}
 
 	endpointResources := make(map[string]*envoy_endpoint_v3.ClusterLoadAssignment)
-	if cluster.Name != xdscommon.LocalAppClusterName {
-		if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
-			protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
-			endpointResources[cluster.Name] = protoEndpoint
-		}
+	//if cluster.Name != xdscommon.LocalAppClusterName {
+	if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
+		protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
+		endpointResources[cluster.Name] = protoEndpoint
 	}
+	//}
 
 	return cluster, endpointResources, nil
 
@@ -213,7 +213,9 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol pbprox
 
 			//if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
 			//	protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
-			endpointResources[cluster.Name] = eps[cluster.Name]
+			if ep, ok := eps[cluster.Name]; ok {
+				endpointResources[cluster.Name] = ep
+			}
 			//}
 		}
 		aggregateClusterConfig, err := anypb.New(&envoy_aggregate_cluster_v3.ClusterConfig{
@@ -243,6 +245,10 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol pbprox
 			return nil, nil, err
 		}
 		clusters[c.Name] = c
+		if endpointList, ok := pr.proxyState.Endpoints[c.Name]; ok {
+			protoEndpoint := makeEnvoyClusterLoadAssignment(c.Name, endpointList.Endpoints)
+			endpointResources[c.Name] = protoEndpoint
+		}
 	}
 	return clusters, endpointResources, nil
 }
