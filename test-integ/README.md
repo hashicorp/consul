@@ -5,17 +5,18 @@ Go integration tests for consul. `/test/integration` also holds integration test
 These should use the [testing/deployer framework](../testing/deployer) to bring
 up some local testing infrastructure and fixtures to run test assertions against.
 
-Where reasonably possible, try to share fixtures using a suite.Suite to ensure
-these tests aren't needlessly slowed down just due to repeated provisioning and
-teardown of identical sets of containers.
+Where reasonably possible, try to bring up infrastructure interesting enough to
+be able to run many related sorts of test against it, rather than waiting for
+many similar clusters to be provisioned and torn down. This will help ensure
+that the integration tests do not consume CPU cycles needlessly.
 
 ## Getting started
 
 Deployer tests have three main parts:
 
 1. Declarative topology description.
-2. Launching the infrastructure defined by (1).
-3. Making test assertions about (2).
+2. Launching the infrastructure defined by that description.
+3. Making test assertions about the infrastructure.
 
 Some tests may also have an optional _mutation_ phase followed by additional
 assertions. These are only needed if the test needs to observe a reaction in
