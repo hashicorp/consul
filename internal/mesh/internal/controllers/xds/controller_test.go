@@ -118,6 +118,9 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// Track the id of a non-existent ProxyStateTemplate.
 		proxyStateTemplateId := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "not-found").WithTenancy(tenancy).ID()
+
+		defer suite.client.MustDelete(suite.T(), proxyStateTemplateId)
+
 		suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 		suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 		require.False(suite.T(), suite.mapper.IsEmpty())
@@ -144,6 +147,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConne
 			WithData(suite.T(), &pbmesh.ProxyStateTemplate{}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), proxyStateTemplate.Id)
 
 		suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
 
@@ -204,6 +209,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
+
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
 		})
@@ -244,6 +251,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 			}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -396,7 +405,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 
 		// Now, update the endpoint to be unhealthy. This will ensure the controller is getting triggered on changes to this
 		// endpoint that it should be tracking, even when the ProxyStateTemplate does not change.
-		resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
+		svc := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 				{
 					Ports: map[string]*pbcatalog.WorkloadPort{
@@ -422,6 +431,8 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		defer suite.client.MustDelete(suite.T(), svc.Id)
+
 		// Wait for the endpoint to be written.
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(suite.T(), suite.fooEndpoints.Id, suite.fooEndpoints.Version)
@@ -445,6 +456,8 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithData(suite.T(), &pbcatalog.Service{}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), secondService.Id)
 
 		secondEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "second-service").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -471,6 +484,8 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		defer suite.client.MustDelete(suite.T(), secondEndpoints.Id)
+
 		// Update the endpoint references on the fooProxyStateTemplate.
 		suite.fooEndpointRefs["test-cluster-2"] = &pbproxystate.EndpointRef{
 			Id:   secondEndpoints.Id,
@@ -486,6 +501,8 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -596,6 +613,8 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateDeleteLeafRe
 			}).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -1111,6 +1130,8 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 					WithData(suite.T(), pst).
 					WithTenancy(tenancy).
 					Write(suite.T(), suite.client)
+
+				defer suite.client.MustDelete(suite.T(), proxyStateTemplate.Id)
 
 				// Check with resource service that it exists.
 				retry.Run(suite.T(), func(r *retry.R) {
