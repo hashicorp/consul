@@ -5,13 +5,14 @@ package xds
 
 import (
 	"fmt"
-	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
-	"github.com/hashicorp/consul/agent/xdsv2"
-	"google.golang.org/protobuf/proto"
 	"path/filepath"
 	"sort"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/consul/agent/xds/proxystateconverter"
+	"github.com/hashicorp/consul/agent/xdsv2"
+	"google.golang.org/protobuf/proto"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
@@ -277,6 +278,7 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getEnterpriseGoldenTestCases(t)...)
 	tests = append(tests, getAPIGatewayGoldenTestCases(t)...)
 	tests = append(tests, getExposePathGoldenTestCases()...)
+	tests = append(tests, getCustomConfigurationGoldenTestCases(false)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -1136,6 +1138,296 @@ func getExposePathGoldenTestCases() []goldenTestCase {
 				s.CfgFetcher = configFetcherFunc(func() string {
 					return "192.0.2.1"
 				})
+			},
+		},
+	}
+}
+
+func getCustomConfigurationGoldenTestCases(enterprise bool) []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "custom-upstream-default-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "custom-local-app",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_local_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "mylocal",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "custom-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name:               "custom-upstream-ignores-tls",
+			overrideGoldenName: "custom-upstream", // should be the same
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+							// Attempt to override the TLS context should be ignored
+							TLSContext: `"allowRenegotiation": false`,
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "custom-upstream-with-prepared-query",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+
+						switch ns.Proxy.Upstreams[i].DestinationName {
+						case "db":
+							if ns.Proxy.Upstreams[i].Config == nil {
+								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+							}
+
+							uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
+
+							// Triggers an override with the presence of the escape hatch listener
+							ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
+
+							ns.Proxy.Upstreams[i].Config["envoy_cluster_json"] =
+								customClusterJSON(t, customClusterJSONOptions{
+									Name: uid.EnvoyID() + ":custom-upstream",
+								})
+
+						// Also test that http2 options are triggered.
+						// A separate upstream without an override is required to test
+						case "geo-cache":
+							if ns.Proxy.Upstreams[i].Config == nil {
+								ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+							}
+							ns.Proxy.Upstreams[i].Config["protocol"] = "http2"
+						default:
+							continue
+						}
+					}
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "custom-timeouts",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["local_connect_timeout_ms"] = 1234
+					ns.Proxy.Upstreams[0].Config["connect_timeout_ms"] = 2345
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-passive-healthcheck",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
+						"enforcing_consecutive_5xx": float64(80),
+						"max_failures":              float64(5),
+						"interval":                  float64(10 * time.Second),
+						"max_ejection_percent":      float64(100),
+						"base_ejection_time":        float64(10 * time.Second),
+					}
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-passive-healthcheck-zero-consecutive_5xx",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["passive_health_check"] = map[string]interface{}{
+						"enforcing_consecutive_5xx": float64(0),
+						"max_failures":              float64(5),
+						"interval":                  float64(10 * time.Second),
+						"max_ejection_percent":      float64(100),
+						"base_ejection_time":        float64(10 * time.Second),
+					}
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-max-inbound-connections",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["max_inbound_connections"] = 3456
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-limits-max-connections-only",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						// We check if Config is nil because the prepared_query upstream is
+						// initialized without a Config map. Use Upstreams[i] syntax to
+						// modify the actual ConfigSnapshot instead of copying the Upstream
+						// in the range.
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
+
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections": 500,
+						}
+					}
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-limits-set-to-zero",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
+
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections":         0,
+							"max_pending_requests":    0,
+							"max_concurrent_requests": 0,
+						}
+					}
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "custom-limits",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					for i := range ns.Proxy.Upstreams {
+						if ns.Proxy.Upstreams[i].Config == nil {
+							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
+						}
+
+						ns.Proxy.Upstreams[i].Config["limits"] = map[string]interface{}{
+							"max_connections":         500,
+							"max_pending_requests":    600,
+							"max_concurrent_requests": 700,
+						}
+					}
+				}, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-default-chain-and-custom-cluster",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "default", enterprise, func(ns *structs.NodeService) {
+					ns.Proxy.Upstreams[0].Config["envoy_cluster_json"] =
+						customAppClusterJSON(t, customClusterJSONOptions{
+							Name: "myservice",
+						})
+				}, nil)
+			},
+			// TODO(proxystate): requires custom cluster work
+			alsoRunTestForV2: false,
+		},
+		{
+			name: "custom-public-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_public_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: "custom-public-listen",
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "custom-public-listener-http",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_public_listener_json"] =
+						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+							Name: "custom-public-listen",
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "custom-public-listener-http-2",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_public_listener_json"] =
+						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
+							Name:                      "custom-public-listen",
+							HTTPConnectionManagerName: httpConnectionManagerNewName,
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "custom-public-listener-http-missing",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_public_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: "custom-public-listen",
+						})
+				}, nil)
+			},
+		},
+		{
+			name:               "custom-public-listener-ignores-tls",
+			overrideGoldenName: "custom-public-listener", // should be the same
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["envoy_public_listener_json"] =
+						customListenerJSON(t, customListenerJSONOptions{
+							Name: "custom-public-listen",
+							// Attempt to override the TLS context should be ignored
+							TLSContext: `"allowRenegotiation": false`,
+						})
+				}, nil)
+			},
+		},
+		{
+			name: "custom-trace-listener",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
+				}, nil)
 			},
 		},
 	}
