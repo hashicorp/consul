@@ -102,13 +102,7 @@ func DockerImages(
 	built := make(map[string]struct{})
 	for _, c := range t.Clusters {
 		for _, n := range c.Nodes {
-			needsTproxy := false
-			for _, svc := range n.Services {
-				if svc.EnableTransparentProxy {
-					needsTproxy = true
-					break
-				}
-			}
+			needsTproxy := n.NeedsTransparentProxy()
 
 			joint := n.Images.EnvoyConsulImage()
 			if _, ok := built[joint]; joint != "" && !ok {

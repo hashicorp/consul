@@ -679,6 +679,15 @@ func (n *Node) SortedServices() []*Service {
 	return out
 }
 
+func (n *Node) NeedsTransparentProxy() bool {
+	for _, svc := range n.Services {
+		if svc.EnableTransparentProxy {
+			return true
+		}
+	}
+	return false
+}
+
 // DigestExposedPorts returns true if it was changed.
 func (n *Node) DigestExposedPorts(ports map[int]int) bool {
 	if reflect.DeepEqual(n.usedPorts, ports) {
