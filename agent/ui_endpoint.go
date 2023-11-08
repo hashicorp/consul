@@ -4,6 +4,7 @@
 package agent
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -11,17 +12,20 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 // ServiceSummary is used to summarize a service
