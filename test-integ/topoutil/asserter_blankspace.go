@@ -64,12 +64,20 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	t.Helper()
 
 	var (
-		node   = service.Node
-		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), service.PortOrDefault(upstream.PortName))
-		client = a.mustGetHTTPClient(t, node.Cluster)
+		node         = service.Node
+		internalPort = service.PortOrDefault(upstream.PortName)
+		addr         = fmt.Sprintf("%s:%d", node.LocalAddress(), internalPort)
+		client       = a.mustGetHTTPClient(t, node.Cluster)
 	)
 
 	if useHTTP2 {
+		// We can't use the forward proxy for http2, so use the exposed port on localhost instead.
+		exposedPort := node.ExposedPort(internalPort)
+		require.True(t, exposedPort > 0)
+
+		addr = fmt.Sprintf("%s:%d", "127.0.0.1", exposedPort)
+
+		// This will clear the proxy field on the transport.
 		client = EnableHTTP2(client)
 	}
 

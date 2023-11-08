@@ -14,6 +14,9 @@ import (
 
 // EnableHTTP2 returns a new shallow copy of client that has been tweaked to do
 // h2c (cleartext http2).
+//
+// Note that this clears the Client.Transport.Proxy trick because http2 and
+// http proxies are incompatible currently in Go.
 func EnableHTTP2(client *http.Client) *http.Client {
 	// Shallow copy, and swap the transport
 	client2 := *client
