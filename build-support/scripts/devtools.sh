@@ -210,8 +210,15 @@ function pre_commit_install {
         return 0
     fi
 
+    # Try python regardless of platform (mac, linux, etc)
     if command -v "pip3" &>/dev/null; then
         pip3 install pre-commit && pre-commit install
+        return 0
+    fi
+
+    # Can't disappoint the linux/debian folks
+    if command -v "apt" &>/dev/null; then
+        apt-get install -yq pre-commit && pre-commit install
         return 0
     fi
 
