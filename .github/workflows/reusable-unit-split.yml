@@ -124,9 +124,6 @@ jobs:
           --format=short-verbose \
           --jsonfile /tmp/jsonfile/go-test.log \
           --debug \
-          --rerun-fails=3 \
-          --rerun-fails-max-failures=40 \
-          --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" \
           -cover -coverprofile=coverage.txt \
@@ -176,13 +173,6 @@ jobs:
           path: ${{env.TEST_RESULTS}}/gotestsum-report.xml
           retention-days: 1
 
-      - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: jsonfile
-          path: /tmp/jsonfile
-      - name: "Re-run fails report"
-        run: |
-          .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
       - name: Notify Slack
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
