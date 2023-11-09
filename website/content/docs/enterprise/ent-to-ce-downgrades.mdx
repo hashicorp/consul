@@ -101,8 +101,8 @@ During the downgrade as the raft replication logs start flowing into the ce serv
 - Filter out tenanted data from the request
 
   For example :-
-  - Acl Token Batch Set requests -  acl  tokens with non default namespace or partiton are filtered out.
-  - Acl Policy Batch Set requests -  acl  policies with non default namespace or partiton are filtered out.
+  - Intention Sources - Intention sources targeting non default namespaces or partitions are filtered out of the config entry.
+  - Exported Services - Exports of services within non default namespaces or partitions are filtered out of the config entry.
 
 - Panic and stop the downgrade
 
