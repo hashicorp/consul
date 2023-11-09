@@ -119,7 +119,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 		// Track the id of a non-existent ProxyStateTemplate.
 		proxyStateTemplateId := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "not-found").WithTenancy(tenancy).ID()
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplateId) })
+		suite.T().Cleanup(suite.deleteResourceFunc(proxyStateTemplateId))
 
 		suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 		suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
@@ -148,7 +148,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConne
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplate.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(proxyStateTemplate.Id))
 
 		suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
 
@@ -209,7 +209,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -252,7 +252,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -431,7 +431,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(svc.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		// Wait for the endpoint to be written.
 		retry.Run(suite.T(), func(r *retry.R) {
@@ -457,7 +457,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(secondService.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(secondService.Id))
 
 		secondEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "second-service").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -484,7 +484,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(secondEndpoints.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(secondEndpoints.Id))
 
 		// Update the endpoint references on the fooProxyStateTemplate.
 		suite.fooEndpointRefs["test-cluster-2"] = &pbproxystate.EndpointRef{
@@ -502,7 +502,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -614,7 +614,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateDeleteLeafRe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -724,7 +724,7 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooService.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooService.Id))
 
 	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -751,7 +751,7 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		WithOwner(fooService.Id).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooEndpoints.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooEndpoints.Id))
 
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
@@ -773,7 +773,7 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -841,7 +841,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooService.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooService.Id))
 
 	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -868,14 +868,14 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooEndpoints.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooEndpoints.Id))
 
 	fooBarService := resourcetest.Resource(pbcatalog.ServiceType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooBarService.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooBarService.Id))
 
 	fooBarEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -902,7 +902,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooBarEndpoints.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooBarEndpoints.Id))
 
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
@@ -930,7 +930,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(fooProxyStateTemplate.Id))
 
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -945,7 +945,7 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(func() { suite.deleteResourceFunc(barProxyStateTemplate.Id) })
+	suite.T().Cleanup(suite.deleteResourceFunc(barProxyStateTemplate.Id))
 
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, barProxyStateTemplate.Id)
@@ -1164,7 +1164,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 					WithTenancy(tenancy).
 					Write(suite.T(), suite.client)
 
-				suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplate.Id) })
+				suite.T().Cleanup(suite.deleteResourceFunc(proxyStateTemplate.Id))
 
 				// Check with resource service that it exists.
 				retry.Run(suite.T(), func(r *retry.R) {
@@ -1234,7 +1234,7 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(svc.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		// create endpoints with svc as owner.
 		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
@@ -1258,7 +1258,7 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		suite.T().Cleanup(func() { suite.deleteResourceFunc(eps.Id) })
+		suite.T().Cleanup(suite.deleteResourceFunc(eps.Id))
 
 		// add to working list of required endpoints.
 		requiredEps[clusterName] = &pbproxystate.EndpointRef{
