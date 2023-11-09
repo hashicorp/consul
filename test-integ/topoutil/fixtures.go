@@ -12,12 +12,12 @@ import (
 
 const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
 
-func NewFortioServiceWithDefaults(
+func NewFortioWorkloadWithDefaults(
 	cluster string,
-	sid topology.ServiceID,
+	sid topology.ID,
 	nodeVersion topology.NodeVersion,
-	mut func(s *topology.Service),
-) *topology.Service {
+	mut func(*topology.Workload),
+) *topology.Workload {
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
@@ -26,7 +26,7 @@ func NewFortioServiceWithDefaults(
 	)
 	sid.Normalize()
 
-	svc := &topology.Service{
+	wrk := &topology.Workload{
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/fortio/fortio",
 		EnvoyAdminPort: adminPort,
@@ -44,28 +44,28 @@ func NewFortioServiceWithDefaults(
 	}
 
 	if nodeVersion == topology.NodeVersionV2 {
-		svc.Ports = map[string]*topology.Port{
+		wrk.Ports = map[string]*topology.Port{
 			"http":  {Number: httpPort, Protocol: "http"},
 			"http2": {Number: httpPort, Protocol: "http2"},
 			"grpc":  {Number: grpcPort, Protocol: "grpc"},
 			"tcp":   {Number: tcpPort, Protocol: "tcp"},
 		}
 	} else {
-		svc.Port = httpPort
+		wrk.Port = httpPort
 	}
 
 	if mut != nil {
-		mut(svc)
+		mut(wrk)
 	}
-	return svc
+	return wrk
 }
 
-func NewBlankspaceServiceWithDefaults(
+func NewBlankspaceWorkloadWithDefaults(
 	cluster string,
-	sid topology.ServiceID,
+	sid topology.ID,
 	nodeVersion topology.NodeVersion,
-	mut func(s *topology.Service),
-) *topology.Service {
+	mut func(*topology.Workload),
+) *topology.Workload {
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
@@ -74,7 +74,7 @@ func NewBlankspaceServiceWithDefaults(
 	)
 	sid.Normalize()
 
-	svc := &topology.Service{
+	wrk := &topology.Workload{
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/rboyer/blankspace",
 		EnvoyAdminPort: adminPort,
@@ -88,20 +88,20 @@ func NewBlankspaceServiceWithDefaults(
 	}
 
 	if nodeVersion == topology.NodeVersionV2 {
-		svc.Ports = map[string]*topology.Port{
+		wrk.Ports = map[string]*topology.Port{
 			"http":  {Number: httpPort, Protocol: "http"},
 			"http2": {Number: httpPort, Protocol: "http2"},
 			"grpc":  {Number: grpcPort, Protocol: "grpc"},
 			"tcp":   {Number: tcpPort, Protocol: "tcp"},
 		}
 	} else {
-		svc.Port = httpPort
+		wrk.Port = httpPort
 	}
 
 	if mut != nil {
-		mut(svc)
+		mut(wrk)
 	}
-	return svc
+	return wrk
 }
 
 func NewTopologyServerSet(
@@ -140,9 +140,9 @@ func NewTopologyMeshGatewaySet(
 	mutateFn func(i int, node *topology.Node),
 ) []*topology.Node {
 	var out []*topology.Node
-	sid := topology.ServiceID{
+	sid := topology.ID{
 		Name:      "mesh-gateway",
-		Partition: ConfigEntryPartition(partition),
+		Partition: topology.DefaultToEmpty(partition),
 	}
 	for i := 1; i <= num; i++ {
 		name := namePrefix + strconv.Itoa(i)
@@ -151,7 +151,7 @@ func NewTopologyMeshGatewaySet(
 			Kind:      nodeKind,
 			Partition: sid.Partition,
 			Name:      name,
-			Workloads: []*topology.Service{{
+			Workloads: []*topology.Workload{{
 				ID:             sid,
 				Port:           8443,
 				EnvoyAdminPort: 19000,

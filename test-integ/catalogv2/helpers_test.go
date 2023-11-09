@@ -9,11 +9,16 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
-func clusterPrefixForUpstream(u *topology.Upstream) string {
-	if u.Peer == "" {
-		return clusterPrefix(u.PortName, u.ID, u.Cluster)
+// Deprecated: clusterPrefixForDestination
+func clusterPrefixForUpstream(dest *topology.Destination) string {
+	return clusterPrefixForDestination(dest)
+}
+
+func clusterPrefixForDestination(dest *topology.Destination) string {
+	if dest.Peer == "" {
+		return clusterPrefix(dest.PortName, dest.ID, dest.Cluster)
 	} else {
-		return strings.Join([]string{u.ID.Name, u.ID.Namespace, u.Peer, "external"}, ".")
+		return strings.Join([]string{dest.ID.Name, dest.ID.Namespace, dest.Peer, "external"}, ".")
 	}
 }
 

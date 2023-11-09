@@ -40,9 +40,9 @@ func TestSprawl_CatalogV2(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc1-client1",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "ping"},
+								ID:             topology.ID{Name: "ping"},
 								Image:          "rboyer/pingpong:latest",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
@@ -53,8 +53,8 @@ func TestSprawl_CatalogV2(t *testing.T) {
 									"-dialfreq", "250ms",
 									"-name", "ping",
 								},
-								Upstreams: []*topology.Upstream{{
-									ID:        topology.ServiceID{Name: "pong"},
+								Destinations: []*topology.Destination{{
+									ID:        topology.ID{Name: "pong"},
 									LocalPort: 9090,
 								}},
 							},
@@ -64,9 +64,9 @@ func TestSprawl_CatalogV2(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc1-client2",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "pong"},
+								ID:             topology.ID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
@@ -77,8 +77,8 @@ func TestSprawl_CatalogV2(t *testing.T) {
 									"-dialfreq", "250ms",
 									"-name", "pong",
 								},
-								Upstreams: []*topology.Upstream{{
-									ID:        topology.ServiceID{Name: "ping"},
+								Destinations: []*topology.Destination{{
+									ID:        topology.ID{Name: "ping"},
 									LocalPort: 9090,
 								}},
 							},
@@ -174,9 +174,9 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc1-client1",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "mesh-gateway"},
+								ID:             topology.ID{Name: "mesh-gateway"},
 								Port:           8443,
 								EnvoyAdminPort: 19000,
 								IsMeshGateway:  true,
@@ -186,9 +186,9 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc1-client2",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "ping"},
+								ID:             topology.ID{Name: "ping"},
 								Image:          "rboyer/pingpong:latest",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
@@ -199,8 +199,8 @@ func TestSprawl(t *testing.T) {
 									"-dialfreq", "250ms",
 									"-name", "ping",
 								},
-								Upstreams: []*topology.Upstream{{
-									ID:        topology.ServiceID{Name: "pong"},
+								Destinations: []*topology.Destination{{
+									ID:        topology.ID{Name: "pong"},
 									LocalPort: 9090,
 									Peer:      "peer-dc2-default",
 								}},
@@ -226,9 +226,9 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc2-client1",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "mesh-gateway"},
+								ID:             topology.ID{Name: "mesh-gateway"},
 								Port:           8443,
 								EnvoyAdminPort: 19000,
 								IsMeshGateway:  true,
@@ -238,9 +238,9 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc2-client2",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "pong"},
+								ID:             topology.ID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
@@ -251,8 +251,8 @@ func TestSprawl(t *testing.T) {
 									"-dialfreq", "250ms",
 									"-name", "pong",
 								},
-								Upstreams: []*topology.Upstream{{
-									ID:        topology.ServiceID{Name: "ping"},
+								Destinations: []*topology.Destination{{
+									ID:        topology.ID{Name: "ping"},
 									LocalPort: 9090,
 									Peer:      "peer-dc1-default",
 								}},
@@ -263,9 +263,9 @@ func TestSprawl(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc2-client3",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
-								ID:             topology.ServiceID{Name: "pong"},
+								ID:             topology.ID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",
 								Port:           8080,
 								EnvoyAdminPort: 19000,
@@ -276,8 +276,8 @@ func TestSprawl(t *testing.T) {
 									"-dialfreq", "250ms",
 									"-name", "pong",
 								},
-								Upstreams: []*topology.Upstream{{
-									ID:        topology.ServiceID{Name: "ping"},
+								Destinations: []*topology.Destination{{
+									ID:        topology.ID{Name: "ping"},
 									LocalPort: 9090,
 									Peer:      "peer-dc1-default",
 								}},

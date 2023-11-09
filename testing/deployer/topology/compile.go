@@ -130,7 +130,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if len(c.Services) == 0 { // always initialize this regardless of v2-ness, because we might late-enable it below
-			c.Services = make(map[ServiceID]*pbcatalog.Service)
+			c.Services = make(map[ID]*pbcatalog.Service)
 		}
 
 		var implicitV2Services bool
@@ -330,7 +330,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q node %q uses dataplane, but has more than one service", c.Name, n.Name)
 			}
 
-			seenServices := make(map[ServiceID]struct{})
+			seenServices := make(map[ID]struct{})
 			for _, wrk := range n.Workloads {
 				svc := wrk // TODO
 				if n.IsAgent() {
@@ -401,7 +401,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				// 	return nil, fmt.Errorf("service has invalid protocol: %s", svc.Protocol)
 				// }
 
-				defaultUpstream := func(u *Upstream) error {
+				defaultDestination := func(dest *Destination) error {
+					u := dest //TODO
 					// Default to that of the enclosing service.
 					if u.Peer == "" {
 						if u.ID.Partition == "" {
@@ -422,7 +423,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 
 					if u.Implied {
 						if u.PortName == "" {
-							return fmt.Errorf("implicit upstreams must use port names in v2")
+							return fmt.Errorf("implicit destinations must use port names in v2")
 						}
 					} else {
 						if u.LocalAddress == "" {
@@ -430,7 +431,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 							u.LocalAddress = "127.0.0.1"
 						}
 						if u.PortName != "" && n.IsV1() {
-							return fmt.Errorf("explicit upstreams cannot use port names in v1")
+							return fmt.Errorf("explicit destinations cannot use port names in v1")
 						}
 						if u.PortName == "" && n.IsV2() {
 							// Assume this is a v1->v2 conversion and name it.
@@ -441,22 +442,22 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					return nil
 				}
 
-				for _, u := range svc.Upstreams {
-					if err := defaultUpstream(u); err != nil {
+				for _, dest := range svc.Destinations {
+					if err := defaultDestination(dest); err != nil {
 						return nil, err
 					}
 				}
 
 				if n.IsV2() {
-					for _, u := range svc.ImpliedUpstreams {
-						u.Implied = true
-						if err := defaultUpstream(u); err != nil {
+					for _, dest := range svc.ImpliedDestinations {
+						dest.Implied = true
+						if err := defaultDestination(dest); err != nil {
 							return nil, err
 						}
 					}
 				} else {
-					if len(svc.ImpliedUpstreams) > 0 {
-						return nil, fmt.Errorf("v1 does not support implied upstreams yet")
+					if len(svc.ImpliedDestinations) > 0 {
+						return nil, fmt.Errorf("v1 does not support implied destinations yet")
 					}
 				}
 
@@ -530,18 +531,18 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if c.EnableV2 {
-			// Populate the VirtualPort field on all implied upstreams.
+			// Populate the VirtualPort field on all implied destinations.
 			for _, n := range c.Nodes {
 				for _, wrk := range n.Workloads {
-					for _, u := range wrk.ImpliedUpstreams {
-						res, ok := c.Services[u.ID]
+					for _, dest := range wrk.ImpliedDestinations {
+						res, ok := c.Services[dest.ID]
 						if ok {
 							for _, sp := range res.Ports {
 								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 									continue
 								}
-								if sp.TargetPort == u.PortName {
-									u.VirtualPort = sp.VirtualPort
+								if sp.TargetPort == dest.PortName {
+									dest.VirtualPort = sp.VirtualPort
 								}
 							}
 						}
@@ -655,12 +656,13 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 	}
 
-	// after we decoded the peering stuff, we can fill in some computed data in the upstreams
+	// after we decoded the peering stuff, we can fill in some computed data in the destinations
 	for _, c := range clusters {
 		c.Peerings = clusteredPeerings[c.Name]
 		for _, n := range c.Nodes {
 			for _, wrk := range n.Workloads {
-				for _, u := range wrk.Upstreams {
+				for _, dest := range wrk.Destinations {
+					u := dest //TODO
 					if u.Peer == "" {
 						u.Cluster = c.Name
 						u.Peering = nil
@@ -675,7 +677,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					// this helps in generating fortio assertions; otherwise field is ignored
 					u.ID.Partition = remotePeer.Link.Partition
 				}
-				for _, u := range wrk.ImpliedUpstreams {
+				for _, dest := range wrk.ImpliedDestinations {
+					u := dest //TODO
 					if u.Peer == "" {
 						u.Cluster = c.Name
 						u.Peering = nil
@@ -942,8 +945,8 @@ type nodeWithPosition struct {
 	Node *Node
 }
 
-func mapifyWorkloads(workloads []*Service) map[ServiceID]*Service {
-	m := make(map[ServiceID]*Service)
+func mapifyWorkloads(workloads []*Service) map[ID]*Service {
+	m := make(map[ID]*Service)
 	for _, wrk := range workloads {
 		m[wrk.ID] = wrk
 	}

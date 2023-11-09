@@ -107,19 +107,19 @@ func (s *Sprawl) registerAgentService(
 
 	if !svc.DisableServiceMesh {
 		var upstreams []api.Upstream
-		for _, u := range svc.Upstreams {
+		for _, dest := range svc.Destinations {
 			uAPI := api.Upstream{
-				DestinationPeer:  u.Peer,
-				DestinationName:  u.ID.Name,
-				LocalBindAddress: u.LocalAddress,
-				LocalBindPort:    u.LocalPort,
+				DestinationPeer:  dest.Peer,
+				DestinationName:  dest.ID.Name,
+				LocalBindAddress: dest.LocalAddress,
+				LocalBindPort:    dest.LocalPort,
 				// Config               map[string]interface{} `json:",omitempty" bexpr:"-"`
 				// MeshGateway          MeshGatewayConfig      `json:",omitempty"`
 			}
 			if cluster.Enterprise {
-				uAPI.DestinationNamespace = u.ID.Namespace
-				if u.Peer == "" {
-					uAPI.DestinationPartition = u.ID.Partition
+				uAPI.DestinationNamespace = dest.ID.Namespace
+				if dest.Peer == "" {
+					uAPI.DestinationPartition = dest.ID.Partition
 				}
 			}
 			upstreams = append(upstreams, uAPI)
@@ -785,25 +785,25 @@ func serviceInstanceToResources(
 			},
 		}
 
-		for _, u := range svc.Upstreams {
-			dest := &pbmesh.Destination{
+		for _, dest := range svc.Destinations {
+			meshDest := &pbmesh.Destination{
 				DestinationRef: &pbresource.Reference{
 					Type: pbcatalog.ServiceType,
-					Name: u.ID.Name,
+					Name: dest.ID.Name,
 					Tenancy: &pbresource.Tenancy{
-						Partition: u.ID.Partition,
-						Namespace: u.ID.Namespace,
+						Partition: dest.ID.Partition,
+						Namespace: dest.ID.Namespace,
 					},
 				},
-				DestinationPort: u.PortName,
+				DestinationPort: dest.PortName,
 				ListenAddr: &pbmesh.Destination_IpPort{
 					IpPort: &pbmesh.IPPortAddress{
-						Ip:   u.LocalAddress,
-						Port: uint32(u.LocalPort),
+						Ip:   dest.LocalAddress,
+						Port: uint32(dest.LocalPort),
 					},
 				},
 			}
-			destinationsRes.Data.Destinations = append(destinationsRes.Data.Destinations, dest)
+			destinationsRes.Data.Destinations = append(destinationsRes.Data.Destinations, meshDest)
 		}
 
 		if svc.EnableTransparentProxy {
@@ -979,17 +979,17 @@ func serviceToSidecarCatalogRegistration(
 		reg.Checks[0].Partition = pid.Partition
 	}
 
-	for _, u := range svc.Upstreams {
+	for _, dest := range svc.Destinations {
 		pu := api.Upstream{
-			DestinationName:  u.ID.Name,
-			DestinationPeer:  u.Peer,
-			LocalBindAddress: u.LocalAddress,
-			LocalBindPort:    u.LocalPort,
+			DestinationName:  dest.ID.Name,
+			DestinationPeer:  dest.Peer,
+			LocalBindAddress: dest.LocalAddress,
+			LocalBindPort:    dest.LocalPort,
 		}
 		if cluster.Enterprise {
-			pu.DestinationNamespace = u.ID.Namespace
-			if u.Peer == "" {
-				pu.DestinationPartition = u.ID.Partition
+			pu.DestinationNamespace = dest.ID.Namespace
+			if dest.Peer == "" {
+				pu.DestinationPartition = dest.ID.Partition
 			}
 		}
 		reg.Service.Proxy.Upstreams = append(reg.Service.Proxy.Upstreams, pu)

@@ -246,7 +246,7 @@ type Cluster struct {
 	// Use of this is optional. If you elect not to use it, then v2 Services
 	// definitions are inferred from the list of service instances defined on
 	// the nodes in this cluster.
-	Services map[ServiceID]*pbcatalog.Service `json:"omitempty"`
+	Services map[ID]*pbcatalog.Service `json:"omitempty"`
 
 	// Nodes is the definition of the nodes (agent-less and agent-ful).
 	Nodes []*Node
@@ -410,18 +410,18 @@ func (c *Cluster) SortedNodes() []*Node {
 	return out
 }
 
-func (c *Cluster) WorkloadByID(nid NodeID, sid ServiceID) *Workload {
+func (c *Cluster) WorkloadByID(nid NodeID, sid ID) *Workload {
 	return c.NodeByID(nid).WorkloadByID(sid)
 }
 
-func (c *Cluster) WorkloadsByID(sid ServiceID) []*Workload {
-	sid.Normalize()
+func (c *Cluster) WorkloadsByID(id ID) []*Workload {
+	id.Normalize()
 
-	var out []*Service
+	var out []*Workload
 	for _, n := range c.Nodes {
-		for _, svc := range n.Workloads {
-			if svc.ID == sid {
-				out = append(out, svc)
+		for _, wrk := range n.Workloads {
+			if wrk.ID == id {
+				out = append(out, wrk)
 			}
 		}
 	}
@@ -496,9 +496,9 @@ type Node struct {
 	Disabled bool `json:",omitempty"`
 
 	Addresses []*Address
-	Workloads []*Service
+	Workloads []*Workload
 	// Deprecated: use Workloads
-	Services []*Service
+	Services []*Workload
 
 	// denormalized at topology compile
 	Cluster    string
@@ -657,8 +657,8 @@ func (n *Node) IsDataplane() bool {
 	return n.Kind == NodeKindDataplane
 }
 
-func (n *Node) SortedWorkloads() []*Service {
-	var out []*Service
+func (n *Node) SortedWorkloads() []*Workload {
+	var out []*Workload
 	out = append(out, n.Workloads...)
 	sort.Slice(out, func(i, j int) bool {
 		mi := out[i].IsMeshGateway
@@ -706,19 +706,14 @@ func (n *Node) DigestExposedPorts(ports map[int]int) bool {
 	return true
 }
 
-func (n *Node) WorkloadByID(sid ServiceID) *Service {
-	sid.Normalize()
-	for _, svc := range n.Workloads {
-		if svc.ID == sid {
-			return svc
+func (n *Node) WorkloadByID(id ID) *Workload {
+	id.Normalize()
+	for _, wrk := range n.Workloads {
+		if wrk.ID == id {
+			return wrk
 		}
 	}
-	panic("service not found: " + sid.String())
-}
-
-type ServiceAndNode struct {
-	Service *Service
-	Node    *Node
+	panic("workload not found: " + id.String())
 }
 
 // Protocol is a convenience function to use when authoring topology configs.
@@ -747,9 +742,8 @@ type Port struct {
 	ActualProtocol pbcatalog.Protocol `json:",omitempty"`
 }
 
-// TODO(rb): really this should now be called "workload" or "instance"
 type Workload struct {
-	ID    ServiceID
+	ID    ID
 	Image string
 
 	// Port is the v1 single-port of this service.
@@ -796,11 +790,16 @@ type Workload struct {
 	Command []string `json:",omitempty"` // optional
 	Env     []string `json:",omitempty"` // optional
 
-	EnableTransparentProxy bool        `json:",omitempty"`
-	DisableServiceMesh     bool        `json:",omitempty"`
-	IsMeshGateway          bool        `json:",omitempty"`
-	Upstreams              []*Upstream `json:",omitempty"`
-	ImpliedUpstreams       []*Upstream `json:",omitempty"`
+	EnableTransparentProxy bool           `json:",omitempty"`
+	DisableServiceMesh     bool           `json:",omitempty"`
+	IsMeshGateway          bool           `json:",omitempty"`
+	Destinations           []*Destination `json:",omitempty"`
+	ImpliedDestinations    []*Destination `json:",omitempty"`
+
+	// Deprecated: Destinations
+	Upstreams []*Destination `json:",omitempty"`
+	// Deprecated: ImpliedDestinations
+	ImpliedUpstreams []*Destination `json:",omitempty"`
 
 	// denormalized at topology compile
 	Node        *Node       `json:"-"`
@@ -843,7 +842,7 @@ func (w *Workload) IsV1() bool {
 	return !w.IsV2()
 }
 
-func (w *Workload) inheritFromExisting(existing *Service) {
+func (w *Workload) inheritFromExisting(existing *Workload) {
 	w.ExposedEnvoyAdminPort = existing.ExposedEnvoyAdminPort
 }
 
@@ -868,9 +867,9 @@ func (w *Workload) ports() []int {
 	if s.EnvoyPublicListenerPort > 0 {
 		out = append(out, s.EnvoyPublicListenerPort)
 	}
-	for _, u := range s.Upstreams {
-		if u.LocalPort > 0 {
-			out = append(out, u.LocalPort)
+	for _, dest := range s.Destinations {
+		if dest.LocalPort > 0 {
+			out = append(out, dest.LocalPort)
 		}
 	}
 	return out
@@ -896,6 +895,16 @@ func (w *Workload) Validate() error {
 	if s.Image == "" && !s.IsMeshGateway {
 		return fmt.Errorf("service image is required")
 	}
+
+	if len(w.Upstreams) > 0 {
+		w.Destinations = append(w.Destinations, w.Upstreams...)
+		w.Upstreams = nil
+	}
+	if len(w.ImpliedUpstreams) > 0 {
+		w.ImpliedDestinations = append(w.ImpliedDestinations, w.ImpliedUpstreams...)
+		w.ImpliedUpstreams = nil
+	}
+
 	if s.IsV2() {
 		if len(s.Ports) > 0 && s.Port > 0 {
 			return fmt.Errorf("cannot specify both singleport and multiport on service in v2")
@@ -948,11 +957,11 @@ func (w *Workload) Validate() error {
 	if s.DisableServiceMesh && s.IsMeshGateway {
 		return fmt.Errorf("cannot disable service mesh and still run a mesh gateway")
 	}
-	if s.DisableServiceMesh && len(s.Upstreams) > 0 {
-		return fmt.Errorf("cannot disable service mesh and configure upstreams")
+	if s.DisableServiceMesh && len(s.Destinations) > 0 {
+		return fmt.Errorf("cannot disable service mesh and configure destinations")
 	}
-	if s.DisableServiceMesh && len(s.ImpliedUpstreams) > 0 {
-		return fmt.Errorf("cannot disable service mesh and configure implied upstreams")
+	if s.DisableServiceMesh && len(s.ImpliedDestinations) > 0 {
+		return fmt.Errorf("cannot disable service mesh and configure implied destinations")
 	}
 	if s.DisableServiceMesh && s.EnableTransparentProxy {
 		return fmt.Errorf("cannot disable service mesh and activate tproxy")
@@ -968,46 +977,46 @@ func (w *Workload) Validate() error {
 		}
 	}
 
-	for _, u := range s.Upstreams {
-		if u.ID.Name == "" {
-			return fmt.Errorf("upstream service name is required")
+	for _, dest := range s.Destinations {
+		if dest.ID.Name == "" {
+			return fmt.Errorf("destination service name is required")
 		}
-		if u.LocalPort <= 0 {
-			return fmt.Errorf("upstream local port is required")
+		if dest.LocalPort <= 0 {
+			return fmt.Errorf("destination local port is required")
 		}
 
-		if u.LocalAddress != "" {
-			ip := net.ParseIP(u.LocalAddress)
+		if dest.LocalAddress != "" {
+			ip := net.ParseIP(dest.LocalAddress)
 			if ip == nil {
-				return fmt.Errorf("upstream local address is invalid: %s", u.LocalAddress)
+				return fmt.Errorf("destination local address is invalid: %s", dest.LocalAddress)
 			}
 		}
-		if u.Implied {
+		if dest.Implied {
 			return fmt.Errorf("implied field cannot be set")
 		}
 	}
-	for _, u := range s.ImpliedUpstreams {
-		if u.ID.Name == "" {
-			return fmt.Errorf("implied upstream service name is required")
+	for _, dest := range s.ImpliedDestinations {
+		if dest.ID.Name == "" {
+			return fmt.Errorf("implied destination service name is required")
 		}
-		if u.LocalPort > 0 {
-			return fmt.Errorf("implied upstream local port cannot be set")
+		if dest.LocalPort > 0 {
+			return fmt.Errorf("implied destination local port cannot be set")
 		}
-		if u.LocalAddress != "" {
-			return fmt.Errorf("implied upstream local address cannot be set")
+		if dest.LocalAddress != "" {
+			return fmt.Errorf("implied destination local address cannot be set")
 		}
 	}
 
 	return nil
 }
 
-type Upstream struct {
-	ID           ServiceID
+type Destination struct {
+	ID           ID
 	LocalAddress string `json:",omitempty"` // defaults to 127.0.0.1
 	LocalPort    int
 	Peer         string `json:",omitempty"`
 
-	// PortName is the named port of this Upstream to route traffic to.
+	// PortName is the named port of this Destination to route traffic to.
 	//
 	// This only applies for multi-port (v2).
 	PortName string `json:",omitempty"`

@@ -47,41 +47,41 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 	for _, ship := range ships {
 		t.Run("relationship: "+ship.String(), func(t *testing.T) {
 			var (
-				svc = ship.Caller
-				u   = ship.Upstream
+				wrk  = ship.Caller
+				dest = ship.Destination
 			)
 
-			v1ID := u.ID
+			v1ID := dest.ID
 			v1ID.Name = "static-server-v1"
-			v1ClusterPrefix := clusterPrefix(u.PortName, v1ID, u.Cluster)
+			v1ClusterPrefix := clusterPrefix(dest.PortName, v1ID, dest.Cluster)
 
-			v2ID := u.ID
+			v2ID := dest.ID
 			v2ID.Name = "static-server-v2"
-			v2ClusterPrefix := clusterPrefix(u.PortName, v2ID, u.Cluster)
+			v2ClusterPrefix := clusterPrefix(dest.PortName, v2ID, dest.Cluster)
 
 			// we expect 2 clusters, one for each leg of the split
-			asserter.UpstreamEndpointStatus(t, svc, v1ClusterPrefix+".", "HEALTHY", 1)
-			asserter.UpstreamEndpointStatus(t, svc, v2ClusterPrefix+".", "HEALTHY", 1)
+			asserter.DestinationEndpointStatus(t, wrk, v1ClusterPrefix+".", "HEALTHY", 1)
+			asserter.DestinationEndpointStatus(t, wrk, v2ClusterPrefix+".", "HEALTHY", 1)
 
 			// Both should be possible.
 			v1Expect := fmt.Sprintf("%s::%s", cluster.Name, v1ID.String())
 			v2Expect := fmt.Sprintf("%s::%s", cluster.Name, v2ID.String())
 
-			switch u.PortName {
+			switch dest.PortName {
 			case "tcp":
-				asserter.CheckBlankspaceNameTrafficSplitViaTCP(t, svc, u,
+				asserter.CheckBlankspaceNameTrafficSplitViaTCP(t, wrk, dest,
 					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "grpc":
-				asserter.CheckBlankspaceNameTrafficSplitViaGRPC(t, svc, u,
+				asserter.CheckBlankspaceNameTrafficSplitViaGRPC(t, wrk, dest,
 					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "http":
-				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, false, "/",
+				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, wrk, dest, false, "/",
 					map[string]int{v1Expect: 10, v2Expect: 90})
 			case "http2":
-				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, svc, u, true, "/",
+				asserter.CheckBlankspaceNameTrafficSplitViaHTTP(t, wrk, dest, true, "/",
 					map[string]int{v1Expect: 10, v2Expect: 90})
 			default:
-				t.Fatalf("unexpected port name: %s", u.PortName)
+				t.Fatalf("unexpected port name: %s", dest.PortName)
 			}
 		})
 	}
@@ -134,8 +134,8 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 ) {
 	clusterName := cluster.Name
 
-	newServiceID := func(name string) topology.ServiceID {
-		return topology.ServiceID{
+	newID := func(name string) topology.ID {
+		return topology.ID{
 			Partition: partition,
 			Namespace: namespace,
 			Name:      name,
@@ -153,16 +153,16 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Workloads: []*topology.Service{
-			topoutil.NewBlankspaceServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newServiceID("static-server-v1"),
+				newID("static-server-v1"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.Meta = map[string]string{
+				func(wrk *topology.Workload) {
+					wrk.Meta = map[string]string{
 						"version": "v1",
 					}
-					svc.WorkloadIdentity = "static-server-v1"
+					wrk.WorkloadIdentity = "static-server-v1"
 				},
 			),
 		},
@@ -172,16 +172,16 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Workloads: []*topology.Service{
-			topoutil.NewBlankspaceServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newServiceID("static-server-v2"),
+				newID("static-server-v2"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.Meta = map[string]string{
+				func(wrk *topology.Workload) {
+					wrk.Meta = map[string]string{
 						"version": "v2",
 					}
-					svc.WorkloadIdentity = "static-server-v2"
+					wrk.WorkloadIdentity = "static-server-v2"
 				},
 			),
 		},
@@ -191,33 +191,33 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Workloads: []*topology.Service{
-			topoutil.NewBlankspaceServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newServiceID("static-client"),
+				newID("static-client"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.Upstreams = []*topology.Upstream{
+				func(wrk *topology.Workload) {
+					wrk.Destinations = []*topology.Destination{
 						{
-							ID:           newServiceID("static-server"),
+							ID:           newID("static-server"),
 							PortName:     "http",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5000,
 						},
 						{
-							ID:           newServiceID("static-server"),
+							ID:           newID("static-server"),
 							PortName:     "http2",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5001,
 						},
 						{
-							ID:           newServiceID("static-server"),
+							ID:           newID("static-server"),
 							PortName:     "grpc",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5002,
 						},
 						{
-							ID:           newServiceID("static-server"),
+							ID:           newID("static-server"),
 							PortName:     "tcp",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5003,
