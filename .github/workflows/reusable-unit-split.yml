@@ -111,7 +111,7 @@ jobs:
         with:
           index: ${{ matrix.index }}
           total: ${{ matrix.parallel }}
-#          junit-summary: ./junit-test-summary.xml
+          junit-summary: ./junit-test-summary.xml
       - name: Run tests 
         working-directory: ${{inputs.directory}}
         run: |
