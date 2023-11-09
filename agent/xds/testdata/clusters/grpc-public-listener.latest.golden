@@ -22,10 +22,6 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "alpnProtocols": [
-              "h2",
-              "http/1.1"
-            ],
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -70,10 +66,6 @@
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "alpnProtocols": [
-              "h2",
-              "http/1.1"
-            ],
             "tlsCertificates": [
               {
                 "certificateChain": {
