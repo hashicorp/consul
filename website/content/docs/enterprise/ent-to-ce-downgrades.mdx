@@ -79,13 +79,76 @@ This change will give you more information to work with in the event something g
 
 ## Perform the Downgrade
 
-1. Restart or redeploy all clients with a CE version of the binary
+**1.** Issue the following command to discover which server is currently the leader:
 
-2. Update server binaries to use the CE version
+```
+consul operator raft list-peers
+```
 
-3. Restart or redeploy the servers one at a time with an env var named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` set to `true` on the servers.
+You should receive output similar to this (exact formatting and content may differ based on version):
 
-3. Validate that all servers are on CE and healthy using `consul members` command
+```
+Node       ID                                    Address         State     Voter  RaftProtocol
+dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+```
+Take note of which agent is the leader.
+
+**2.** Restart or redeploy all clients with a CE version of the binary. You can use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If you are not using a service management system, you must restart the  agent manually.
+
+**3.** Update server binaries to use the CE version
+
+**4.** The following steps must be done in order on the server agents, leaving the leader
+agent for last. First, an env var named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` should be set to `true` on the servers. Then use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If you are not using a service management system, you must restart the agent manually.
+
+To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
+following command:
+
+```
+consul info
+```
+
+Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
+this should avoid an unexpected leadership election due to loss of quorum.
+
+**5.** Double-check that all servers are showing up in the cluster as expected and are on
+the correct version by issuing:
+
+```
+consul members
+```
+
+You should receive output similar to this:
+
+```
+Node       Address         Status  Type    Build  Protocol  DC
+dc1-node1  10.11.0.2:8301  alive   server  1.8.3  2         dc1
+dc1-node2  10.11.0.3:8301  alive   server  1.8.3  2         dc1
+dc1-node3  10.11.0.4:8301  alive   server  1.8.3  2         dc1
+```
+
+Also double-check the raft state to make sure there is a leader and sufficient voters:
+
+```
+consul operator raft list-peers
+```
+
+You should receive output similar to this:
+
+```
+Node       ID                                    Address         State     Voter  RaftProtocol
+dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
+dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
+dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
+```
+
+**6.** Set your `log_level` back to its original value and issue the following command
+on your servers to reload the configuration:
+
+```
+consul reload
+```
 
 ## What happens during the downgrade
 
