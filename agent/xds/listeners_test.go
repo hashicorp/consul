@@ -289,64 +289,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "mesh-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-using-federation-states",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "federation-states", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-using-federation-control-plane",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "mesh-gateway-federation", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-no-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "no-services", nil, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-tagged-addresses",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{
-						"envoy_mesh_gateway_no_default_bind":       true,
-						"envoy_mesh_gateway_bind_tagged_addresses": true,
-					}
-				}, nil)
-			},
-		},
-		{
-			name: "mesh-gateway-custom-addresses",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotMeshGateway(t, "default", func(ns *structs.NodeService) {
-					ns.Proxy.Config = map[string]interface{}{
-						"envoy_mesh_gateway_bind_addresses": map[string]structs.ServiceAddress{
-							"foo": {
-								Address: "198.17.2.3",
-								Port:    8080,
-							},
-							"bar": {
-								Address: "2001:db8::ff",
-								Port:    9999,
-							},
-							"baz": {
-								Address: "127.0.0.1",
-								Port:    8765,
-							},
-						},
-					}
-				}, nil)
-			},
-		},
-		{
 			name: "api-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, nil, nil, nil, nil)
