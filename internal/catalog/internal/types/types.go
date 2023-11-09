@@ -13,8 +13,10 @@ func Register(r resource.Registry) {
 	RegisterServiceEndpoints(r)
 	RegisterNode(r)
 	RegisterHealthStatus(r)
-	RegisterHealthChecks(r)
-	RegisterDNSPolicy(r)
-	RegisterVirtualIPs(r)
 	RegisterFailoverPolicy(r)
+
+	// todo (v2): re-register once these resources are implemented.
+	//RegisterHealthChecks(r)
+	//RegisterDNSPolicy(r)
+	//RegisterVirtualIPs(r)
 }

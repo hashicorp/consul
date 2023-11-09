@@ -6,9 +6,9 @@ package xdsv2
 import (
 	"errors"
 	"fmt"
-
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	envoy_aggregate_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/clusters/aggregate/v3"
 	envoy_upstreams_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/upstreams/http/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
@@ -19,77 +19,58 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
-func (pr *ProxyResources) doesEnvoyClusterAlreadyExist(name string) bool {
-	// TODO(proxystate): consider using a map instead of [] for this kind of lookup
-	for _, envoyCluster := range pr.envoyResources[xdscommon.ClusterType] {
-		if envoyCluster.(*envoy_cluster_v3.Cluster).Name == name {
-			return true
-		}
-	}
-	return false
-}
-
-func (pr *ProxyResources) makeXDSClusters() ([]proto.Message, error) {
-	clusters := make([]proto.Message, 0)
-
-	for clusterName := range pr.proxyState.Clusters {
-		protoCluster, err := pr.makeClusters(clusterName)
-		// TODO: aggregate errors for clusters and still return any properly formed clusters.
-		if err != nil {
-			return nil, err
-		}
-		clusters = append(clusters, protoCluster...)
-	}
-
-	return clusters, nil
-}
-
-func (pr *ProxyResources) makeClusters(name string) ([]proto.Message, error) {
-	clusters := make([]proto.Message, 0)
+func (pr *ProxyResources) makeClustersAndEndpoints(name string) (map[string]proto.Message, map[string]proto.Message, error) {
+	envoyClusters := make(map[string]proto.Message)
+	envoyEndpoints := make(map[string]proto.Message)
 	proxyStateCluster, ok := pr.proxyState.Clusters[name]
 	if !ok {
-		return nil, fmt.Errorf("cluster %q not found", name)
-	}
-
-	if pr.doesEnvoyClusterAlreadyExist(name) {
-		// don't error
-		return []proto.Message{}, nil
+		return nil, nil, fmt.Errorf("cluster %q not found", name)
 	}
 
 	switch proxyStateCluster.Group.(type) {
 	case *pbproxystate.Cluster_FailoverGroup:
 		fg := proxyStateCluster.GetFailoverGroup()
-		clusters, err := pr.makeEnvoyAggregateCluster(name, proxyStateCluster.Protocol, fg)
+		clusters, eps, err := pr.makeEnvoyAggregateClusterAndEndpoint(name, proxyStateCluster.Protocol, fg)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		// for each cluster, add it to clusters map and add endpoint to endpoint map
 		for _, c := range clusters {
-			clusters = append(clusters, c)
+			envoyClusters[c.Name] = c
+			if ep, ok := eps[c.Name]; ok {
+				envoyEndpoints[c.Name] = ep
+			}
 		}
 
 	case *pbproxystate.Cluster_EndpointGroup:
 		eg := proxyStateCluster.GetEndpointGroup()
-		cluster, err := pr.makeEnvoyCluster(name, proxyStateCluster.Protocol, eg)
+		cluster, eps, err := pr.makeEnvoyClusterAndEndpoint(name, proxyStateCluster.Protocol, eg)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		clusters = append(clusters, cluster)
+
+		// for each cluster, add it to clusters map and add endpoint to endpoint map
+		envoyClusters[cluster.Name] = cluster
+		if ep, ok := eps[cluster.Name]; ok {
+			envoyEndpoints[cluster.Name] = ep
+		}
 
 	default:
-		return nil, errors.New("cluster group type should be Endpoint Group or Failover Group")
+		return nil, nil, errors.New("cluster group type should be Endpoint Group or Failover Group")
 	}
-	return clusters, nil
+	return envoyClusters, envoyEndpoints, nil
 }
 
-func (pr *ProxyResources) makeEnvoyCluster(name string, protocol string, eg *pbproxystate.EndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyClusterAndEndpoint(name string, protocol pbproxystate.Protocol,
+	eg *pbproxystate.EndpointGroup) (*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	if eg != nil {
 		switch t := eg.Group.(type) {
 		case *pbproxystate.EndpointGroup_Dynamic:
 			dynamic := eg.GetDynamic()
-			return pr.makeEnvoyDynamicCluster(name, protocol, dynamic)
+			return pr.makeEnvoyDynamicClusterAndEndpoint(name, protocol, dynamic)
 		case *pbproxystate.EndpointGroup_Static:
 			static := eg.GetStatic()
-			return pr.makeEnvoyStaticCluster(name, protocol, static)
+			return pr.makeEnvoyStaticClusterAndEndpoint(name, protocol, static)
 		case *pbproxystate.EndpointGroup_Dns:
 			dns := eg.GetDns()
 			return pr.makeEnvoyDnsCluster(name, protocol, dns)
@@ -97,13 +78,14 @@ func (pr *ProxyResources) makeEnvoyCluster(name string, protocol string, eg *pbp
 			passthrough := eg.GetPassthrough()
 			return pr.makeEnvoyPassthroughCluster(name, protocol, passthrough)
 		default:
-			return nil, fmt.Errorf("unsupported endpoint group type: %s", t)
+			return nil, nil, fmt.Errorf("unsupported endpoint group type: %s", t)
 		}
 	}
-	return nil, fmt.Errorf("no endpoint group")
+	return nil, nil, fmt.Errorf("no endpoint group")
 }
 
-func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, dynamic *pbproxystate.DynamicEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyDynamicClusterAndEndpoint(name string, protocol pbproxystate.Protocol,
+	dynamic *pbproxystate.DynamicEndpointGroup) (*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_EDS},
@@ -118,7 +100,7 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 	}
 	err := addHttpProtocolOptions(protocol, cluster)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if dynamic.Config != nil {
 		if dynamic.Config.UseAltStatName {
@@ -137,23 +119,31 @@ func (pr *ProxyResources) makeEnvoyDynamicCluster(name string, protocol string, 
 
 		err := addEnvoyLBToCluster(dynamic.Config, cluster)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	if dynamic.OutboundTls != nil {
 		envoyTransportSocket, err := pr.makeEnvoyTransportSocket(dynamic.OutboundTls)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		cluster.TransportSocket = envoyTransportSocket
 	}
 
-	return cluster, nil
+	// Generate Envoy endpoint
+	endpointResources := make(map[string]*envoy_endpoint_v3.ClusterLoadAssignment)
+	if endpointList, ok := pr.proxyState.Endpoints[cluster.Name]; ok {
+		protoEndpoint := makeEnvoyClusterLoadAssignment(cluster.Name, endpointList.Endpoints)
+		endpointResources[cluster.Name] = protoEndpoint
+	}
+
+	return cluster, endpointResources, nil
 
 }
 
-func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyStaticClusterAndEndpoint(name string, protocol pbproxystate.Protocol,
+	static *pbproxystate.StaticEndpointGroup) (*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ClusterDiscoveryType: &envoy_cluster_v3.Cluster_Type{Type: envoy_cluster_v3.Cluster_STATIC},
@@ -172,21 +162,23 @@ func (pr *ProxyResources) makeEnvoyStaticCluster(name string, protocol string, s
 		err = addHttpProtocolOptions(protocol, cluster)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if static.Config != nil {
 		cluster.ConnectTimeout = static.Config.ConnectTimeout
 		addEnvoyCircuitBreakers(static.GetConfig().CircuitBreakers, cluster)
 	}
-	return cluster, nil
+	return cluster, nil, nil
 }
 
-func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol string, dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
-	return nil, nil
+func (pr *ProxyResources) makeEnvoyDnsCluster(name string, protocol pbproxystate.Protocol,
+	dns *pbproxystate.DNSEndpointGroup) (*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
+	return nil, nil, nil
 }
 
-func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol string, passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, error) {
+func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol pbproxystate.Protocol,
+	passthrough *pbproxystate.PassthroughEndpointGroup) (*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
 	cluster := &envoy_cluster_v3.Cluster{
 		Name:                 name,
 		ConnectTimeout:       passthrough.Config.ConnectTimeout,
@@ -196,37 +188,47 @@ func (pr *ProxyResources) makeEnvoyPassthroughCluster(name string, protocol stri
 	if passthrough.OutboundTls != nil {
 		envoyTransportSocket, err := pr.makeEnvoyTransportSocket(passthrough.OutboundTls)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		cluster.TransportSocket = envoyTransportSocket
 	}
 	err := addHttpProtocolOptions(protocol, cluster)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return cluster, nil
+	return cluster, nil, nil
 }
 
-func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string, fg *pbproxystate.FailoverGroup) ([]*envoy_cluster_v3.Cluster, error) {
-	var clusters []*envoy_cluster_v3.Cluster
+func (pr *ProxyResources) makeEnvoyAggregateClusterAndEndpoint(name string, protocol pbproxystate.Protocol,
+	fg *pbproxystate.FailoverGroup) (map[string]*envoy_cluster_v3.Cluster, map[string]*envoy_endpoint_v3.ClusterLoadAssignment, error) {
+	clusters := make(map[string]*envoy_cluster_v3.Cluster)
+	endpointResources := make(map[string]*envoy_endpoint_v3.ClusterLoadAssignment)
 	if fg != nil {
 		var egNames []string
 		for _, eg := range fg.EndpointGroups {
-			cluster, err := pr.makeEnvoyCluster(eg.Name, protocol, eg)
+			cluster, eps, err := pr.makeEnvoyClusterAndEndpoint(eg.Name, protocol, eg)
 			if err != nil {
-				return nil, err
+				return nil, eps, err
 			}
 			egNames = append(egNames, cluster.Name)
-			clusters = append(clusters, cluster)
+
+			// add failover cluster
+			clusters[cluster.Name] = cluster
+
+			// add endpoint for failover cluster
+			if ep, ok := eps[cluster.Name]; ok {
+				endpointResources[cluster.Name] = ep
+			}
 		}
 		aggregateClusterConfig, err := anypb.New(&envoy_aggregate_cluster_v3.ClusterConfig{
 			Clusters: egNames,
 		})
 
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
+		// create aggregate cluster
 		c := &envoy_cluster_v3.Cluster{
 			Name:           name,
 			ConnectTimeout: fg.Config.ConnectTimeout,
@@ -243,15 +245,23 @@ func (pr *ProxyResources) makeEnvoyAggregateCluster(name string, protocol string
 		}
 		err = addHttpProtocolOptions(protocol, c)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		clusters = append(clusters, c)
+
+		// add aggregate cluster
+		clusters[c.Name] = c
+
+		// add endpoint for aggregate cluster
+		if endpointList, ok := pr.proxyState.Endpoints[c.Name]; ok {
+			protoEndpoint := makeEnvoyClusterLoadAssignment(c.Name, endpointList.Endpoints)
+			endpointResources[c.Name] = protoEndpoint
+		}
 	}
-	return clusters, nil
+	return clusters, endpointResources, nil
 }
 
-func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
-	if !(protocol == "http2" || protocol == "grpc") {
+func addLocalAppHttpProtocolOptions(protocol pbproxystate.Protocol, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == pbproxystate.Protocol_PROTOCOL_HTTP2 || protocol == pbproxystate.Protocol_PROTOCOL_GRPC) {
 		// do not error.  returning nil means it won't get set.
 		return nil
 	}
@@ -274,8 +284,8 @@ func addLocalAppHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster
 	return nil
 }
 
-func addHttpProtocolOptions(protocol string, c *envoy_cluster_v3.Cluster) error {
-	if !(protocol == "http2" || protocol == "grpc") {
+func addHttpProtocolOptions(protocol pbproxystate.Protocol, c *envoy_cluster_v3.Cluster) error {
+	if !(protocol == pbproxystate.Protocol_PROTOCOL_HTTP2 || protocol == pbproxystate.Protocol_PROTOCOL_GRPC) {
 		// do not error.  returning nil means it won't get set.
 		return nil
 	}
@@ -376,9 +386,19 @@ func addEnvoyLBToCluster(dynamicConfig *pbproxystate.DynamicEndpointGroupConfig,
 	return nil
 }
 
-// TODO(proxystate): In a future PR this will create clusters and add it to ProxyResources.proxyState
-// Currently, we do not traverse the listener -> endpoint paths and instead just generate each resource by iterating
-// through its top level map. In the future we want to traverse these paths to ensure each listener has a cluster, etc.
-func (pr *ProxyResources) makeEnvoyClusterFromL4Destination(l4 *pbproxystate.L4Destination) error {
+func (pr *ProxyResources) makeEnvoyClustersAndEndpointsFromL4Destination(l4 *pbproxystate.L4Destination) error {
+	switch l4.Destination.(type) {
+	case *pbproxystate.L4Destination_Cluster:
+		pr.addEnvoyClustersAndEndpointsToEnvoyResources(l4.GetCluster().GetName())
+
+	case *pbproxystate.L4Destination_WeightedClusters:
+		psWeightedClusters := l4.GetWeightedClusters()
+		for _, psCluster := range psWeightedClusters.GetClusters() {
+			pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
+		}
+	default:
+		return errors.New("cluster group type should be Endpoint Group or Failover Group")
+	}
+
 	return nil
 }

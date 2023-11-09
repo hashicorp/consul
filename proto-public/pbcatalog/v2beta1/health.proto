@@ -23,6 +23,8 @@ message HealthStatus {
   string output = 4;
 }
 
+// +kubebuilder:validation:Enum=HEALTH_ANY;HEALTH_PASSING;HEALTH_WARNING;HEALTH_CRITICAL;HEALTH_MAINTENANCE
+// +kubebuilder:validation:Type=string
 enum Health {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   HEALTH_ANY = 0;
@@ -48,8 +50,11 @@ message HealthCheck {
     GRPCCheck grpc = 5;
     OSServiceCheck os_service = 6;
   }
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration interval = 7;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration timeout = 8;
+  // +kubebuilder:validation:Format=duration
   google.protobuf.Duration deregister_critical_after = 9;
 }
 

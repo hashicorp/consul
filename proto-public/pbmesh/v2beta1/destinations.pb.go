@@ -33,9 +33,9 @@ type Destinations struct {
 	// Selection of workloads these destinations should apply to.
 	// These can be prefixes or specific workload names.
 	Workloads *v2beta1.WorkloadSelector `protobuf:"bytes,1,opt,name=workloads,proto3" json:"workloads,omitempty"`
-	// destinations is the list of explicit destinations to define for the selected workloads.
+	// Destinations is the list of explicit destinations to define for the selected workloads.
 	Destinations []*Destination `protobuf:"bytes,2,rep,name=destinations,proto3" json:"destinations,omitempty"`
-	// pq_destinations is the list of prepared query destinations. This field is not supported directly in v2
+	// PQDestinations is the list of prepared query destinations. This field is not supported directly in v2
 	// and should only be used for migration reasons.
 	PqDestinations []*PreparedQueryDestination `protobuf:"bytes,3,rep,name=pq_destinations,json=pqDestinations,proto3" json:"pq_destinations,omitempty"`
 }
@@ -98,14 +98,14 @@ type Destination struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// destination_ref is the reference to an destination service. This has to be pbcatalog.Service type.
+	// DestinationRef is the reference to an destination service. This has to be pbcatalog.Service type.
 	DestinationRef *pbresource.Reference `protobuf:"bytes,1,opt,name=destination_ref,json=destinationRef,proto3" json:"destination_ref,omitempty"`
-	// destination_port is the port name of the destination service. This should be the name
+	// DestinationPort is the port name of the destination service. This should be the name
 	// of the service's target port.
 	DestinationPort string `protobuf:"bytes,2,opt,name=destination_port,json=destinationPort,proto3" json:"destination_port,omitempty"`
-	// datacenter is the datacenter for where this destination service lives.
+	// Datacenter is the datacenter for where this destination service lives.
 	Datacenter string `protobuf:"bytes,3,opt,name=datacenter,proto3" json:"datacenter,omitempty"`
-	// listen_addr is the address where Envoy will listen for requests to this destination.
+	// ListenAddr is the address where Envoy will listen for requests to this destination.
 	// It can provided either as an ip:port or as a Unix domain socket.
 	//
 	// Types that are assignable to ListenAddr:
@@ -267,9 +267,9 @@ type UnixSocketAddress struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// path is the file system path at which to bind a Unix domain socket listener.
+	// Path is the file system path at which to bind a Unix domain socket listener.
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// mode is the Unix file mode for the socket file. It should be provided
+	// Mode is the Unix file mode for the socket file. It should be provided
 	// in the numeric notation, for example, "0600".
 	Mode string `protobuf:"bytes,2,opt,name=mode,proto3" json:"mode,omitempty"`
 }
@@ -325,11 +325,11 @@ type PreparedQueryDestination struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// name is the name of the prepared query to use as an destination.
+	// Name is the name of the prepared query to use as an destination.
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// datacenter is the datacenter for where this destination service lives.
+	// Datacenter is the datacenter for where this destination service lives.
 	Datacenter string `protobuf:"bytes,2,opt,name=datacenter,proto3" json:"datacenter,omitempty"`
-	// listen_addr is the address where Envoy will listen for requests to this destination.
+	// ListenAddr is the address where Envoy will listen for requests to this destination.
 	// It can provided either as an ip:port or as a Unix domain socket.
 	//
 	// Types that are assignable to ListenAddr:

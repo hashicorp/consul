@@ -26,7 +26,8 @@
             }
           }
         },
-        "name": "tcp.api-2.default.dc1.internal.foo.consul"
+        "name": "tcp.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -35,12 +36,17 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp:/path/to/socket",
+        "name": "default/local/default/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {

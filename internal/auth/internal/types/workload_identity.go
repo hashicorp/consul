@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedWorkloadIdentity = resource.DecodedResource[*pbauth.WorkloadIdentity]
+
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.WorkloadIdentityType,
@@ -18,10 +20,17 @@ func RegisterWorkloadIdentity(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkloadIdentity,
 			Write: aclWriteHookWorkloadIdentity,
-			List:  aclListHookWorkloadIdentity,
+			List:  resource.NoOpACLListHook,
 		},
-		Validate: nil,
+		Validate: ValidateWorkloadIdentity,
 	})
+}
+
+var ValidateWorkloadIdentity = resource.DecodeAndValidate(validateWorkloadIdentity)
+
+func validateWorkloadIdentity(res *DecodedWorkloadIdentity) error {
+	// currently the WorkloadIdentity type has no fields.
+	return nil
 }
 
 func aclReadHookWorkloadIdentity(
@@ -36,7 +45,7 @@ func aclReadHookWorkloadIdentity(
 	if res != nil {
 		return authorizer.ToAllowAuthorizer().IdentityReadAllowed(res.Id.Name, authzCtx)
 	}
-	return resource.ErrNeedData
+	return resource.ErrNeedResource
 }
 
 func aclWriteHookWorkloadIdentity(
@@ -44,13 +53,7 @@ func aclWriteHookWorkloadIdentity(
 	authzCtx *acl.AuthorizerContext,
 	res *pbresource.Resource) error {
 	if res == nil {
-		return resource.ErrNeedData
+		return resource.ErrNeedResource
 	}
 	return authorizer.ToAllowAuthorizer().IdentityWriteAllowed(res.Id.Name, authzCtx)
-}
-
-func aclListHookWorkloadIdentity(authorizer acl.Authorizer, context *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement
-	return nil
 }

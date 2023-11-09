@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/mitchellh/cli"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -32,6 +33,8 @@ type cmd struct {
 	help  string
 
 	filePath string
+
+	testStdin io.Reader
 }
 
 func (c *cmd) init() {
@@ -74,17 +77,23 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
+	input := c.filePath
+
+	if input == "" && len(c.flags.Args()) > 0 {
+		input = c.flags.Arg(0)
+	}
+
 	var parsedResource *pbresource.Resource
 
-	if c.filePath != "" {
-		data, err := resource.ParseResourceFromFile(c.filePath)
+	if input != "" {
+		data, err := resource.ParseResourceInput(input, c.testStdin)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 			return 1
 		}
 		parsedResource = data
 	} else {
-		c.UI.Error("Incorrect argument format: Flag -f with file path argument is required")
+		c.UI.Error("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write")
 		return 1
 	}
 
@@ -151,31 +160,42 @@ func (c *cmd) Help() string {
 const synopsis = "Writes/updates resource information"
 
 const help = `
-Usage: consul resource apply -f=<file-path>
+Usage: consul resource apply [options] <resource>
 
-Write and/or update a resource by providing the definition in an hcl file as an argument
+	Write and/or update a resource by providing the definition. The configuration
+	argument is either a file path or '-' to indicate that the resource
+    should be read from stdin. The data should be either in HCL or
+	JSON form.
 
-Example:
+	Example (with flag):
 
-$ consul resource apply -f=demo.hcl
+	$ consul resource apply -f=demo.hcl
 
-Sample demo.hcl:
+	Example (from file):
 
-ID {
-	Type = gvk("group.version.kind")
-	Name = "resource-name"
-	Tenancy {
-	  Namespace = "default"
-	  Partition = "default"
-	  PeerName = "local"
+	$ consul resource apply demo.hcl
+
+	Example (from stdin):
+
+	$ consul resource apply -
+
+	Sample demo.hcl:
+
+	ID {
+		Type = gvk("group.version.kind")
+		Name = "resource-name"
+		Tenancy {
+		Namespace = "default"
+		Partition = "default"
+		PeerName = "local"
+		}
 	}
-  }
 
-  Data {
-	Name = "demo"
-  }
+	Data {
+		Name = "demo"
+	}
 
-  Metadata = {
-	"foo" = "bar"
-  }
+	Metadata = {
+		"foo" = "bar"
+	}
 `

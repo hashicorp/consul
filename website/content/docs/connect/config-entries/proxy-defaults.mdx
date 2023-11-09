@@ -49,8 +49,8 @@ The following list outlines field hierarchy, language-specific data types, and r
       - [`LocalPathPort`](#expose-paths): number | `0` 
       - [`ListenerPort`](#expose-paths): number | `0` 
       - [`Protocol`](#expose-paths): string | `http` 
-- [`FailoverPolicy`](#failoverpolicy): map
-   - [`Mode`](#failoverpolicy-mode): string
+- [`PrioritizeByLocality`](#prioritizebylocality): map | <EnterpriseAlert inline/>
+   - [`Mode`](#prioritizebylocality): string | `failover`
 - [`AccessLogs`](#accesslogs): map
    - [`Enabled`](#accesslogs): boolean | `false`
    - [`DisableListenerLogs`](#accesslogs): boolean | `false`
@@ -82,22 +82,22 @@ The following list outlines field hierarchy, language-specific data types, and r
    - [`mutualTLSMode`](#spec-mutualtlsmode): string 
    - [`meshGateway`](#spec-meshgateway): map
       - [`mode`](#spec-meshgateway): string
-   - [`expose`](#spec-expose): map
-      - [`checks`](#spec-expose-checks): boolean | `false`
-      - [`paths`](#spec-expose-paths): list
+  - [`expose`](#spec-expose): map
+     - [`checks`](#spec-expose-checks): boolean | `false`
+     - [`paths`](#spec-expose-paths): list
          - [`path`](#spec-expose-paths): string | must begin with `/` 
          - [`localPathPort`](#spec-expose-paths): number | `0` 
          - [`listenerPort`](#spec-expose-paths): number | `0` 
          - [`protocol`](#spec-expose-paths): string | `http` 
-   - [`failoverPolicy`](#spec-failoverpolicy): map
-      - [`mode`](#spec-failoverpolicy-mode): string
-   - [`accessLogs`](#spec-accesslogs): map
-      - [`enabled`](#spec-accesslogs): boolean | `false`
-      - [`disableListenerLogs`](#spec-accesslogs): boolean | `false`
-      - [`type`](#spec-accesslogs): string | `stdout`
-      - [`path`](#spec-accesslogs): string
-      - [`jsonFormat`](#spec-accesslogs): string 
-      - [`textFormat`](#spec-accesslogs): string 
+  - [`prioritizeByLocality`](#prioritizebylocality): map | <EnterpriseAlert inline/>
+     - [`mode`](#prioritizebylocality): string | `failover`
+  - [`accessLogs`](#spec-accesslogs): map
+     - [`enabled`](#spec-accesslogs): boolean | `false`
+     - [`disableListenerLogs`](#spec-accesslogs): boolean | `false`
+     - [`type`](#spec-accesslogs): string | `stdout`
+     - [`path`](#spec-accesslogs): string
+     - [`jsonFormat`](#spec-accesslogs): string 
+     - [`textFormat`](#spec-accesslogs): string 
 
 </Tab>
 
@@ -150,6 +150,9 @@ Expose {
       Protocol      = "<protocol of the listener>"
     }
   ]
+}
+PrioritizeByLocality = {
+   Mode = "failover"
 }
 AccessLogs {
   Enabled              = < true | false >
@@ -458,19 +461,16 @@ The following table describes the parameters for each map you can define in the 
 | `ListenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
 | `Protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | String | `http` |
 
-### `FailoverPolicy`
+### `PrioritizeByLocality` 
 
-Sets the failover policy `mode` field for all proxies. The failover policy mode defines how Consul directs traffic to failover service instances if the primary instance becomes unreachable. For example, you can direct Consul to send failover traffic to local service instances. Refer to [Failover overview](/consul/docs/connect/failover) for additional information.
+Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-You can specify the following string values for the `mode` field:
-
-- `default`: Envoy sends failover traffic to the first failover target with healthy instances.  
-- `order-by-locality`: Envoy prioritizes failover targets that are closer to the downstream service. Envoy deterministically orders failover targets that are the same distance from the local proxy. 
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `Locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
 
 #### Values
 
 - Default: None
-- Data type: Map containing the `mode` field
+- Data type: Map
 
 ### `AccessLogs`
 
@@ -690,19 +690,16 @@ The following table describes the parameters for each map you can define in the 
 | `listenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
 | `protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | String | `http` |
 
-### `spec.failoverPolicy`
+### `spec.prioritizeByLocality`
 
-Sets the failover policy `mode` field for all proxies. The failover policy mode defines how Consul directs traffic to failover service instances if the primary instance becomes unreachable. For example, you can direct Consul to send failover traffic to local service instances. Refer to [Failover overview](/consul/docs/connect/failover) for additional information.
+Sets a mode for the service that allows instances to prioritize upstream targets that are in the same network region and zone. You can specify the following string values for the `mode` field:
 
-You can specify the following string values for the `mode` field:
-
-- `default`: Envoy sends failover traffic to the first failover target with healthy instances.  
-- `order-by-locality`: Envoy prioritizes failover targets that are closer to the downstream service. Envoy deterministically orders failover targets that are the same distance from the local proxy. 
+- `failover`: If the upstream targets that a service is connected to become unreachable, the service prioritizes healthy upstream instances with matching `locality` configuration. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
 
 #### Values
 
 - Default: None
-- Data type: Map containing the `mode` field
+- Data type: Map
 
 ### `spec.accessLogs`
 

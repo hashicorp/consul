@@ -10,8 +10,8 @@ replace (
 require (
 	github.com/envoyproxy/go-control-plane v0.11.0
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/api v1.24.0
-	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul/api v1.26.1
+	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-version v1.2.1
@@ -41,7 +41,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
-	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

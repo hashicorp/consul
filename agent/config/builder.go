@@ -1019,6 +1019,8 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		GRPCPort:                   grpcPort,
 		GRPCTLSAddrs:               grpcTlsAddrs,
 		GRPCTLSPort:                grpcTlsPort,
+		GRPCKeepaliveInterval:      b.durationValWithDefaultMin("performance.grpc_keepalive_interval", c.Performance.GRPCKeepaliveInterval, 30*time.Second, time.Second),
+		GRPCKeepaliveTimeout:       b.durationValWithDefaultMin("performance.grpc_keepalive_timeout", c.Performance.GRPCKeepaliveTimeout, 20*time.Second, time.Second),
 		HTTPMaxConnsPerClient:      intVal(c.Limits.HTTPMaxConnsPerClient),
 		HTTPSHandshakeTimeout:      b.durationVal("limits.https_handshake_timeout", c.Limits.HTTPSHandshakeTimeout),
 		KVMaxValueSize:             uint64Val(c.Limits.KVMaxValueSize),
@@ -1414,7 +1416,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 		// Raft LogStore validation
 		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
-			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL && rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendDefault {
 			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
 				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
 		}
@@ -1730,7 +1732,18 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
+		Locality:          b.serviceLocalityVal(v.Locality),
 		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
+	}
+}
+
+func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
+	if l == nil {
+		return nil
+	}
+	return &structs.Locality{
+		Region: stringVal(l.Region),
+		Zone:   stringVal(l.Zone),
 	}
 }
 
@@ -2782,7 +2795,7 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
 	var cfg consul.RaftLogStoreConfig
 	if raw != nil {
-		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
 		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
 
 		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)

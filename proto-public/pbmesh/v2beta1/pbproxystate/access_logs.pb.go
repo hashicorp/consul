@@ -23,6 +23,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=LOG_SINK_TYPE_DEFAULT;LOG_SINK_TYPE_FILE;LOG_SINK_TYPE_STDERR;LOG_SINK_TYPE_STDOUT
+// +kubebuilder:validation:Type=string
 type LogSinkType int32
 
 const (

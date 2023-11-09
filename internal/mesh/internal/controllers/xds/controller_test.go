@@ -7,10 +7,14 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -237,7 +241,10 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 	require.Error(suite.T(), err)
 
 	// Assert on the status reflecting endpoint couldn't be read.
-	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(status.KeyFromID(badID), "rpc error: code = InvalidArgument desc = id.name is required"))
+	suite.client.RequireStatusCondition(suite.T(), fooProxyStateTemplate.Id, ControllerName, status.ConditionRejectedErrorReadingEndpoints(
+		status.KeyFromID(badID),
+		"rpc error: code = InvalidArgument desc = id.name invalid: a resource name must consist of lower case alphanumeric characters or '-', must start and end with an alphanumeric character and be less than 64 characters, got: \"\"",
+	))
 }
 
 // This test is a happy path creation test to make sure pbproxystate.Endpoints are created in the computed
@@ -994,4 +1001,169 @@ func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
 
 func TestXdsController(t *testing.T) {
 	suite.Run(t, new(xdsControllerTestSuite))
+}
+
+// TestReconcile_SidecarProxyGoldenFileInputs tests the Reconcile() by using
+// the golden test output/expected files from the sidecar proxy tests as inputs
+// to the XDS controller reconciliation.
+// XDS controller reconciles the full ProxyStateTemplate object.  The fields
+// that things that it focuses on are leaf certs, endpoints, and trust bundles,
+// which is just a subset of the ProxyStateTemplate struct.  Prior to XDS controller
+// reconciliation, the sidecar proxy controller will have reconciled the other parts
+// of the ProxyStateTemplate.
+// Since the XDS controller does act on the ProxyStateTemplate, the tests
+// utilize that entire object rather than just the parts that XDS controller
+// internals reconciles.  Namely, by using checking the full ProxyStateTemplate
+// rather than just endpoints, leaf certs, and trust bundles, the test also ensures
+// side effects or change in scope to XDS controller are not introduce mistakenly.
+func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs() {
+	path := "../sidecarproxy/builder/testdata"
+	cases := []string{
+		// destinations - please add in alphabetical order
+		"destination/l4-single-destination-ip-port-bind-address",
+		"destination/l4-single-destination-unix-socket-bind-address",
+		"destination/l4-single-implicit-destination-tproxy",
+		"destination/l4-multi-destination",
+		"destination/l4-multiple-implicit-destinations-tproxy",
+		"destination/l4-implicit-and-explicit-destinations-tproxy",
+		"destination/mixed-multi-destination",
+		"destination/multiport-l4-and-l7-multiple-implicit-destinations-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-tproxy",
+		"destination/multiport-l4-and-l7-single-implicit-destination-with-multiple-workloads-tproxy",
+
+		//sources - please add in alphabetical order
+		"source/l7-expose-paths",
+		"source/local-and-inbound-connections",
+		"source/multiple-workload-addresses-with-specific-ports",
+		"source/multiple-workload-addresses-without-ports",
+		"source/multiport-l4-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l4-multiple-workload-addresses-without-ports",
+		"source/multiport-l4-workload-with-only-mesh-port",
+		"source/multiport-l7-multiple-workload-addresses-with-specific-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
+		"source/multiport-l7-multiple-workload-addresses-without-ports",
+		"source/single-workload-address-without-ports",
+	}
+
+	for _, name := range cases {
+		suite.Run(name, func() {
+			// Create ProxyStateTemplate from the golden file.
+			pst := JSONToProxyTemplate(suite.T(),
+				golden.GetBytesAtFilePath(suite.T(), fmt.Sprintf("%s/%s.golden", path, name)))
+
+			// Destinations will need endpoint refs set up.
+			if strings.Split(name, "/")[0] == "destination" && len(pst.ProxyState.Endpoints) == 0 {
+				suite.addRequiredEndpointsAndRefs(pst)
+			}
+
+			// Store the initial ProxyStateTemplate.
+			proxyStateTemplate := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
+				WithData(suite.T(), pst).
+				Write(suite.T(), suite.client)
+
+			// Check with resource service that it exists.
+			retry.Run(suite.T(), func(r *retry.R) {
+				suite.client.RequireResourceExists(r, proxyStateTemplate.Id)
+			})
+
+			// Track it in the mapper.
+			suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
+
+			// Run the reconcile, and since no ProxyStateTemplate is stored, this simulates a deletion.
+			err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+				ID: proxyStateTemplate.Id,
+			})
+			require.NoError(suite.T(), err)
+			require.NotNil(suite.T(), proxyStateTemplate)
+
+			// Get the reconciled proxyStateTemplate to check the reconcile results.
+			reconciledPS := suite.updater.Get(proxyStateTemplate.Id.Name)
+
+			// Verify leaf cert contents then hard code them for comparison
+			// and downstream tests since they change from test run to test run.
+			require.NotEmpty(suite.T(), reconciledPS.LeafCertificates)
+			reconciledPS.LeafCertificates = map[string]*pbproxystate.LeafCertificate{
+				"test-identity": {
+					Cert: "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBAjAKBggqhkjOPQQDAjAUMRIwEAYDVQQDEwlUZXN0IENB\nIDEwHhcNMjMxMDE2MTYxMzI5WhcNMjMxMDE2MTYyMzI5WjAAMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9\nta/bGT+5orZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJaOCAQowggEGMA4GA1UdDwEB\n/wQEAwIDuDAdBgNVHSUEFjAUBggrBgEFBQcDAgYIKwYBBQUHAwEwDAYDVR0TAQH/\nBAIwADApBgNVHQ4EIgQg3ogXVz9cqaK2B6xdiJYMa5NtT0KkYv7BA2dR7h9EcwUw\nKwYDVR0jBCQwIoAgq+C1mPlPoGa4lt7sSft1goN5qPGyBIB/3mUHJZKSFY8wbwYD\nVR0RAQH/BGUwY4Zhc3BpZmZlOi8vMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1\nNTU1NTU1NTU1LmNvbnN1bC9hcC9kZWZhdWx0L25zL2RlZmF1bHQvaWRlbnRpdHkv\ndGVzdC1pZGVudGl0eTAKBggqhkjOPQQDAgNHADBEAiB6L+t5bzRrBPhiQYNeA7fF\nUCuLWrdjW4Xbv3SLg0IKMgIgfRC5hEx+DqzQxTCP4sexX3hVWMjKoWmHdwiUcg+K\n/IE=\n-----END CERTIFICATE-----\n",
+					Key:  "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEIFIFkTIL1iUV4O/RpveVHzHs7ZzhSkvYIzbdXDttz9EooAoGCCqGSM49\nAwEHoUQDQgAErErAIosDPheZQGbxFQ4hYC/e9Fi4MG9z/zjfCnCq/oK9ta/bGT+5\norZqTmdN/ICsKQDhykxZ2u/Xr6845zhcJQ==\n-----END EC PRIVATE KEY-----\n",
+				},
+			}
+
+			// Compare actual vs expected.
+			actual := prototest.ProtoToJSON(suite.T(), reconciledPS)
+			expected := golden.Get(suite.T(), actual, name+".golden")
+			require.JSONEq(suite.T(), expected, actual)
+		})
+	}
+}
+
+func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.ProxyStateTemplate) {
+	//get service data
+	serviceData := &pbcatalog.Service{}
+	var vp uint32 = 7000
+	requiredEps := make(map[string]*pbproxystate.EndpointRef)
+
+	// iterate through clusters and set up endpoints for cluster/mesh port.
+	for clusterName := range pst.ProxyState.Clusters {
+		if clusterName == "null_route_cluster" || clusterName == "original-destination" {
+			continue
+		}
+
+		//increment the random port number.
+		vp++
+		clusterNameSplit := strings.Split(clusterName, ".")
+		port := clusterNameSplit[0]
+		svcName := clusterNameSplit[1]
+
+		// set up service data with port info.
+		serviceData.Ports = append(serviceData.Ports, &pbcatalog.ServicePort{
+			TargetPort:  port,
+			VirtualPort: vp,
+			Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+		})
+
+		// create service.
+		svc := resourcetest.Resource(pbcatalog.ServiceType, svcName).
+			WithData(suite.T(), &pbcatalog.Service{}).
+			Write(suite.T(), suite.client)
+
+		// create endpoints with svc as owner.
+		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
+			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
+				{
+					Ports: map[string]*pbcatalog.WorkloadPort{
+						"mesh": {
+							Port:     20000,
+							Protocol: pbcatalog.Protocol_PROTOCOL_MESH,
+						},
+					},
+					Addresses: []*pbcatalog.WorkloadAddress{
+						{
+							Host:  "10.1.1.1",
+							Ports: []string{"mesh"},
+						},
+					},
+				},
+			}}).
+			WithOwner(svc.Id).
+			Write(suite.T(), suite.client)
+
+		// add to working list of required endpoints.
+		requiredEps[clusterName] = &pbproxystate.EndpointRef{
+			Id:   eps.Id,
+			Port: "mesh",
+		}
+	}
+
+	// set working list of required endpoints as proxy state's RequiredEndpoints.
+	pst.RequiredEndpoints = requiredEps
+}
+
+func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
+	t.Helper()
+	proxyTemplate := &pbmesh.ProxyStateTemplate{}
+	m := protojson.UnmarshalOptions{}
+	err := m.Unmarshal(json, proxyTemplate)
+	require.NoError(t, err)
+	return proxyTemplate
 }

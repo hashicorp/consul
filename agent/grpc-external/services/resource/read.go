@@ -18,7 +18,7 @@ import (
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	// Light first pass validation based on what user passed in and not much more.
-	reg, err := s.validateReadRequest(req)
+	reg, err := s.ensureReadRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	authzNeedsData := false
 	err = reg.ACLs.Read(authz, authzContext, req.Id, nil)
 	switch {
-	case errors.Is(err, resource.ErrNeedData):
+	case errors.Is(err, resource.ErrNeedResource):
 		authzNeedsData = true
 		err = nil
 	case acl.IsErrPermissionDenied(err):
@@ -59,8 +59,8 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
-	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
+	// Check tenancy exists for the V2 resource.
+	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
@@ -87,7 +87,7 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
-func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
+func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
@@ -102,14 +102,13 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped resource %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Id.Type),
-			req.Id.Tenancy.Namespace,
-		)
+	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy); err != nil {
+		return nil, err
 	}
 
 	return reg, nil

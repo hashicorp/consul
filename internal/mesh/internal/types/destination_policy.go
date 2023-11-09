@@ -24,28 +24,24 @@ func RegisterDestinationPolicy(r resource.Registry) {
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookDestinationPolicy,
 			Write: aclWriteHookDestinationPolicy,
-			List:  aclListHookDestinationPolicy,
+			List:  resource.NoOpACLListHook,
 		},
 	})
 }
 
-func ValidateDestinationPolicy(res *pbresource.Resource) error {
-	var policy pbmesh.DestinationPolicy
+var ValidateDestinationPolicy = resource.DecodeAndValidate(validateDestinationPolicy)
 
-	if err := res.Data.UnmarshalTo(&policy); err != nil {
-		return resource.NewErrDataParse(&policy, err)
-	}
-
+func validateDestinationPolicy(res *DecodedDestinationPolicy) error {
 	var merr error
 
-	if len(policy.PortConfigs) == 0 {
+	if len(res.Data.PortConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "port_configs",
 			Wrapped: resource.ErrEmpty,
 		})
 	}
 
-	for port, pc := range policy.PortConfigs {
+	for port, pc := range res.Data.PortConfigs {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
@@ -232,10 +228,4 @@ func aclWriteHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.
 
 	// Check service:write permissions on the service this is controlling.
 	return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext)
-}
-
-func aclListHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext) error {
-	// No-op List permission as we want to default to filtering resources
-	// from the list using the Read enforcement.
-	return nil
 }

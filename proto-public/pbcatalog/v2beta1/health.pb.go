@@ -25,6 +25,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=HEALTH_ANY;HEALTH_PASSING;HEALTH_WARNING;HEALTH_CRITICAL;HEALTH_MAINTENANCE
+// +kubebuilder:validation:Type=string
 type Health int32
 
 const (
@@ -225,10 +227,13 @@ type HealthCheck struct {
 	//	*HealthCheck_Udp
 	//	*HealthCheck_Grpc
 	//	*HealthCheck_OsService
-	Definition              isHealthCheck_Definition `protobuf_oneof:"definition"`
-	Interval                *durationpb.Duration     `protobuf:"bytes,7,opt,name=interval,proto3" json:"interval,omitempty"`
-	Timeout                 *durationpb.Duration     `protobuf:"bytes,8,opt,name=timeout,proto3" json:"timeout,omitempty"`
-	DeregisterCriticalAfter *durationpb.Duration     `protobuf:"bytes,9,opt,name=deregister_critical_after,json=deregisterCriticalAfter,proto3" json:"deregister_critical_after,omitempty"`
+	Definition isHealthCheck_Definition `protobuf_oneof:"definition"`
+	// +kubebuilder:validation:Format=duration
+	Interval *durationpb.Duration `protobuf:"bytes,7,opt,name=interval,proto3" json:"interval,omitempty"`
+	// +kubebuilder:validation:Format=duration
+	Timeout *durationpb.Duration `protobuf:"bytes,8,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// +kubebuilder:validation:Format=duration
+	DeregisterCriticalAfter *durationpb.Duration `protobuf:"bytes,9,opt,name=deregister_critical_after,json=deregisterCriticalAfter,proto3" json:"deregister_critical_after,omitempty"`
 }
 
 func (x *HealthCheck) Reset() {

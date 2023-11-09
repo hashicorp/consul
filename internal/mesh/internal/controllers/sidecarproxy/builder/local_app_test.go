@@ -4,7 +4,10 @@
 package builder
 
 import (
+	"google.golang.org/protobuf/types/known/durationpb"
+	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -25,7 +28,7 @@ func TestBuildLocalApp(t *testing.T) {
 		ctp          *pbauth.ComputedTrafficPermissions
 		defaultAllow bool
 	}{
-		"source/l4-single-workload-address-without-ports": {
+		"source/single-workload-address-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -33,12 +36,15 @@ func TestBuildLocalApp(t *testing.T) {
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
-		"source/l4-multiple-workload-addresses-without-ports": {
+		"source/multiple-workload-addresses-without-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
@@ -49,26 +55,32 @@ func TestBuildLocalApp(t *testing.T) {
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 		},
-		"source/l4-multiple-workload-addresses-with-specific-ports": {
+		"source/multiple-workload-addresses-with-specific-ports": {
 			workload: &pbcatalog.Workload{
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{
 						Host:  "127.0.0.1",
-						Ports: []string{"port1"},
+						Ports: []string{"tcp", "grpc", "mesh"},
 					},
 					{
 						Host:  "10.0.0.2",
-						Ports: []string{"port2"},
+						Ports: []string{"http", "http2", "mesh"},
 					},
 				},
 				Ports: map[string]*pbcatalog.WorkloadPort{
-					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"tcp":   {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"http":  {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+					"http2": {Port: 8082, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
+					"grpc":  {Port: 8083, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
+					"mesh":  {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 				},
 			},
 			ctp: &pbauth.ComputedTrafficPermissions{
@@ -90,31 +102,144 @@ func TestBuildLocalApp(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", c.defaultAllow, nil).
-				BuildLocalApp(c.workload, c.ctp).
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, nil).
+				BuildLocalApp(c.workload, nil).
 				Build()
-			actual := protoToJSON(t, proxyTmpl)
-			expected := golden.Get(t, actual, name+".golden")
 
-			require.JSONEq(t, expected, actual)
+			// sort routers because of test flakes where order was flip flopping.
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
+
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+".golden"))
+
+			// sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+
+			// convert back to json after sorting so that test output does not contain extraneous fields.
+			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
 		})
 	}
 }
 
-func testProxyStateTemplateID() *pbresource.ID {
-	return resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		ID()
-}
-
-func testIdentityRef() *pbresource.Reference {
-	return &pbresource.Reference{
-		Name: "test-identity",
-		Tenancy: &pbresource.Tenancy{
-			Namespace: "default",
-			Partition: "default",
-			PeerName:  "local",
+func TestBuildLocalApp_WithProxyConfiguration(t *testing.T) {
+	cases := map[string]struct {
+		workload *pbcatalog.Workload
+		proxyCfg *pbmesh.ComputedProxyConfiguration
+	}{
+		"source/l7-expose-paths": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				},
+			},
+			proxyCfg: &pbmesh.ComputedProxyConfiguration{
+				DynamicConfig: &pbmesh.DynamicConfig{
+					ExposeConfig: &pbmesh.ExposeConfig{
+						ExposePaths: []*pbmesh.ExposePath{
+							{
+								ListenerPort:  1234,
+								Path:          "/health",
+								LocalPathPort: 9090,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP,
+							},
+							{
+								ListenerPort:  1235,
+								Path:          "GetHealth",
+								LocalPathPort: 9091,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP2,
+							},
+						},
+					},
+				},
+			},
 		},
+		// source/local-and-inbound-connections shows that configuring LocalCOnnection
+		// and InboundConnections in DynamicConfig will set fields on standard clusters and routes,
+		// but will not set fields on exposed path clusters and routes.
+		"source/local-and-inbound-connections": {
+			workload: &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{
+					{
+						Host: "10.0.0.1",
+					},
+				},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"port1": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+					"port2": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+					"port3": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				},
+			},
+			proxyCfg: &pbmesh.ComputedProxyConfiguration{
+				DynamicConfig: &pbmesh.DynamicConfig{
+					LocalConnection: map[string]*pbmesh.ConnectionConfig{
+						"port1": {
+							ConnectTimeout: durationpb.New(6 * time.Second),
+							RequestTimeout: durationpb.New(7 * time.Second)},
+						"port3": {
+							ConnectTimeout: durationpb.New(8 * time.Second),
+							RequestTimeout: durationpb.New(9 * time.Second)},
+					},
+					InboundConnections: &pbmesh.InboundConnectionsConfig{
+						MaxInboundConnections:     123,
+						BalanceInboundConnections: pbmesh.BalanceConnections(pbproxystate.BalanceConnections_BALANCE_CONNECTIONS_EXACT),
+					},
+					ExposeConfig: &pbmesh.ExposeConfig{
+						ExposePaths: []*pbmesh.ExposePath{
+							{
+								ListenerPort:  1234,
+								Path:          "/health",
+								LocalPathPort: 9090,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP,
+							},
+							{
+								ListenerPort:  1235,
+								Path:          "GetHealth",
+								LocalPathPort: 9091,
+								Protocol:      pbmesh.ExposePathProtocol_EXPOSE_PATH_PROTOCOL_HTTP2,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			proxyTmpl := New(testProxyStateTemplateID(), testIdentityRef(), "foo.consul", "dc1", true, c.proxyCfg).
+				BuildLocalApp(c.workload, nil).
+				Build()
+
+			// sort routers because of test flakes where order was flip flopping.
+			actualRouters := proxyTmpl.ProxyState.Listeners[0].Routers
+			sort.Slice(actualRouters, func(i, j int) bool {
+				return actualRouters[i].String() < actualRouters[j].String()
+			})
+
+			actual := protoToJSON(t, proxyTmpl)
+			expected := JSONToProxyTemplate(t, golden.GetBytes(t, actual, name+".golden"))
+
+			// sort routers on listener from golden file
+			expectedRouters := expected.ProxyState.Listeners[0].Routers
+			sort.Slice(expectedRouters, func(i, j int) bool {
+				return expectedRouters[i].String() < expectedRouters[j].String()
+			})
+
+			// convert back to json after sorting so that test output does not contain extraneous fields.
+			require.Equal(t, protoToJSON(t, expected), protoToJSON(t, proxyTmpl))
+		})
 	}
 }
 
@@ -435,5 +560,23 @@ func TestBuildL4TrafficPermissions(t *testing.T) {
 				prototest.AssertDeepEqual(t, v, permissions[k])
 			}
 		})
+	}
+}
+
+func testProxyStateTemplateID() *pbresource.ID {
+	return resourcetest.Resource(pbmesh.ProxyStateTemplateType, "test").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		ID()
+}
+
+func testIdentityRef() *pbresource.Reference {
+	return &pbresource.Reference{
+		Name: "test-identity",
+		Tenancy: &pbresource.Tenancy{
+			Namespace: "default",
+			Partition: "default",
+			PeerName:  "local",
+		},
+		Type: pbauth.WorkloadIdentityType,
 	}
 }

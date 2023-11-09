@@ -1,31 +1,5 @@
 {
   "nonce": "00000001",
-  "resources": [
-    {
-      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "db",
-      "validateClusters": true,
-      "virtualHosts": [
-        {
-          "domains": [
-            "*"
-          ],
-          "name": "db",
-          "routes": [
-            {
-              "match": {
-                "prefix": "/"
-              },
-              "route": {
-                "cluster": "db.default.cluster-01.external.peer1.domain",
-                "timeout": "33s"
-              }
-            }
-          ]
-        }
-      ]
-    }
-  ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
   "versionInfo": "00000001"
 }

@@ -6,36 +6,30 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestIsTransprentProxy(t *testing.T) {
+func TestIsTransparentProxy(t *testing.T) {
 	cases := map[string]struct {
-		proxyCfg *ProxyConfiguration
-		exp      bool
+		dynamicConfig *DynamicConfig
+		exp           bool
 	}{
 		"nil dynamic config": {
-			proxyCfg: &ProxyConfiguration{},
-			exp:      false,
+			dynamicConfig: nil,
+			exp:           false,
 		},
 		"default mode": {
-			proxyCfg: &ProxyConfiguration{
-				DynamicConfig: &DynamicConfig{
-					Mode: ProxyMode_PROXY_MODE_DEFAULT,
-				},
+			dynamicConfig: &DynamicConfig{
+				Mode: ProxyMode_PROXY_MODE_DEFAULT,
 			},
 			exp: false,
 		},
 		"direct mode": {
-			proxyCfg: &ProxyConfiguration{
-				DynamicConfig: &DynamicConfig{
-					Mode: ProxyMode_PROXY_MODE_DEFAULT,
-				},
+			dynamicConfig: &DynamicConfig{
+				Mode: ProxyMode_PROXY_MODE_DEFAULT,
 			},
 			exp: false,
 		},
 		"transparent mode": {
-			proxyCfg: &ProxyConfiguration{
-				DynamicConfig: &DynamicConfig{
-					Mode: ProxyMode_PROXY_MODE_TRANSPARENT,
-				},
+			dynamicConfig: &DynamicConfig{
+				Mode: ProxyMode_PROXY_MODE_TRANSPARENT,
 			},
 			exp: true,
 		},
@@ -43,7 +37,14 @@ func TestIsTransprentProxy(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			require.Equal(t, c.exp, c.proxyCfg.IsTransparentProxy())
+			proxyCfg := &ProxyConfiguration{
+				DynamicConfig: c.dynamicConfig,
+			}
+			compProxyCfg := &ComputedProxyConfiguration{
+				DynamicConfig: c.dynamicConfig,
+			}
+			require.Equal(t, c.exp, proxyCfg.IsTransparentProxy())
+			require.Equal(t, c.exp, compProxyCfg.IsTransparentProxy())
 		})
 	}
 }

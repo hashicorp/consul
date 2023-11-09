@@ -41,174 +41,6 @@ type listenerTestCase struct {
 	alsoRunTestForV2   bool
 }
 
-func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
-	return []listenerTestCase{
-		{
-			name: "custom-upstream-ignored-with-disco-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", enterprise, func(ns *structs.NodeService) {
-					for i := range ns.Proxy.Upstreams {
-						if ns.Proxy.Upstreams[i].DestinationName != "db" {
-							continue // only tweak the db upstream
-						}
-						if ns.Proxy.Upstreams[i].Config == nil {
-							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-						}
-
-						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
-
-						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
-							customListenerJSON(t, customListenerJSONOptions{
-								Name: uid.EnvoyID() + ":custom-upstream",
-							})
-					}
-				}, nil)
-			},
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-http-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http",
-						},
-					},
-				)
-			},
-		},
-		{
-			name: "connect-proxy-with-http2-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "http2",
-						},
-					},
-				)
-			},
-		},
-		{
-			name: "connect-proxy-with-grpc-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
-					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
-						Config: map[string]interface{}{
-							"protocol": "grpc",
-						},
-					},
-				)
-			},
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-remote-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tcp-chain-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover-through-local-gateway", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-jwt-config-entry-with-local",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-				},
-					[]proxycfg.UpdateEvent{
-						{
-							CorrelationID: "jwt-provider",
-							Result: &structs.IndexedConfigEntries{
-								Kind: "jwt-provider",
-								Entries: []structs.ConfigEntry{
-									&structs.JWTProviderConfigEntry{
-										Name: "okta",
-										JSONWebKeySet: &structs.JSONWebKeySet{
-											Local: &structs.LocalJWKS{
-												JWKS: "aGVsbG8gd29ybGQK",
-											},
-										},
-										Locations: []*structs.JWTLocation{
-											{
-												QueryParam: &structs.JWTLocationQueryParam{
-													Name: "token",
-												},
-											},
-											{
-												Cookie: &structs.JWTLocationCookie{
-													Name: "token",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-						{
-							CorrelationID: "intentions",
-							Result: structs.SimplifiedIntentions{
-								{
-									SourceName:      "*",
-									DestinationName: "db",
-									Permissions: []*structs.IntentionPermission{
-										{
-											JWT: &structs.IntentionJWTRequirement{
-												Providers: []*structs.IntentionJWTProvider{
-													{
-														Name: "okta",
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				)
-			},
-		},
-	}
-}
-
 func TestListenersFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
 	// eventually to test all of the xDS types at once with the same input,
@@ -308,6 +140,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "grpc"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-bind-address",
@@ -365,6 +198,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http2"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "listener-balance-inbound-connections",
@@ -391,6 +225,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["protocol"] = "http"
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-public-listener-no-xfcc",
@@ -412,6 +247,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 						},
 					})
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-listener-with-timeouts",
@@ -423,6 +259,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Config["local_idle_timeout_ms"] = 3456
 				}, nil)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "http-upstream",
@@ -431,115 +268,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					ns.Proxy.Upstreams[0].Config["protocol"] = "http"
 				}, nil)
 			},
-		},
-		{
-			name: "custom-public-listener",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
-				}, nil)
-			},
-		},
-		{
-			name: "custom-public-listener-http",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
-				}, nil)
-			},
-		},
-		{
-			name: "custom-public-listener-http-2",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customHTTPListenerJSON(t, customHTTPListenerJSONOptions{
-							Name:                      "custom-public-listen",
-							HTTPConnectionManagerName: httpConnectionManagerNewName,
-						})
-				}, nil)
-			},
-		},
-		{
-			name: "custom-public-listener-http-missing",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-						})
-				}, nil)
-			},
-		},
-		{
-			name:               "custom-public-listener-ignores-tls",
-			overrideGoldenName: "custom-public-listener", // should be the same
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["envoy_public_listener_json"] =
-						customListenerJSON(t, customListenerJSONOptions{
-							Name: "custom-public-listen",
-							// Attempt to override the TLS context should be ignored
-							TLSContext: `"allowRenegotiation": false`,
-						})
-				}, nil)
-			},
-		},
-		{
-			name: "custom-upstream",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					for i := range ns.Proxy.Upstreams {
-						if ns.Proxy.Upstreams[i].DestinationName != "db" {
-							continue // only tweak the db upstream
-						}
-						if ns.Proxy.Upstreams[i].Config == nil {
-							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-						}
-
-						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
-
-						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
-							customListenerJSON(t, customListenerJSONOptions{
-								Name: uid.EnvoyID() + ":custom-upstream",
-							})
-					}
-				}, nil)
-			},
-		},
-		{
-			name: "custom-upstream-with-prepared-query",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					for i := range ns.Proxy.Upstreams {
-						if ns.Proxy.Upstreams[i].DestinationName != "db" {
-							continue // only tweak the db upstream
-						}
-						if ns.Proxy.Upstreams[i].Config == nil {
-							ns.Proxy.Upstreams[i].Config = map[string]interface{}{}
-						}
-
-						uid := proxycfg.NewUpstreamID(&ns.Proxy.Upstreams[i])
-
-						// Triggers an override with the presence of the escape hatch listener
-						ns.Proxy.Upstreams[i].DestinationType = structs.UpstreamDestTypePreparedQuery
-
-						ns.Proxy.Upstreams[i].Config["envoy_listener_json"] =
-							customListenerJSON(t, customListenerJSONOptions{
-								Name: uid.EnvoyID() + ":custom-upstream",
-							})
-					}
-				}, nil)
-			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "connect-proxy-upstream-defaults",
@@ -558,61 +287,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 					}
 				}, nil)
 			},
-		},
-		{
-			name: "expose-paths-local-app-paths",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, nil)
-			},
-		},
-		{
-			name: "expose-paths-new-cluster-http2",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotExposeConfig(t, func(ns *structs.NodeService) {
-					ns.Proxy.Expose.Paths[1] = structs.ExposePath{
-						LocalPathPort: 9090,
-						Path:          "/grpc.health.v1.Health/Check",
-						ListenerPort:  21501,
-						Protocol:      "http2",
-					}
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http",
-			create: proxycfg.TestConfigSnapshotExposeChecks,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-http-with-bind-override",
-			create: proxycfg.TestConfigSnapshotExposeChecksWithBindOverride,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
-		},
-		{
-			// NOTE: if IPv6 is not supported in the kernel per
-			// platform.SupportsIPv6() then this test will fail because the golden
-			// files were generated assuming ipv6 support was present
-			name:   "expose-checks-grpc",
-			create: proxycfg.TestConfigSnapshotExposeChecksGRPC,
-			generatorSetup: func(s *ResourceGenerator) {
-				s.CfgFetcher = configFetcherFunc(func() string {
-					return "192.0.2.1"
-				})
-			},
+			alsoRunTestForV2: true,
 		},
 		{
 			name: "mesh-gateway",
@@ -1081,12 +756,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 							Bundles: []*pbpeering.PeeringTrustBundle{
 								{
 									TrustDomain: "foo.bar.gov",
-									PeerName:    "dc1",
+									PeerName:    "dc2",
 									Partition:   "default",
 									RootPEMs: []string{
 										roots.Roots[0].RootCert,
 									},
-									ExportedPartition: "dc1",
+									ExportedPartition: "default",
 									CreateIndex:       0,
 									ModifyIndex:       0,
 								},
@@ -1097,8 +772,11 @@ func TestListenersFromSnapshot(t *testing.T) {
 						CorrelationID: "service-intentions:web",
 						Result: structs.SimplifiedIntentions{
 							{
-								SourceName:      "*",
-								DestinationName: "web",
+								SourceName:           "source",
+								SourcePeer:           "dc2",
+								DestinationName:      "web",
+								DestinationPartition: "default",
+								Action:               structs.IntentionActionAllow,
 							},
 						},
 					},
@@ -1220,10 +898,12 @@ func TestListenersFromSnapshot(t *testing.T) {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
 			},
+			alsoRunTestForV2: true,
 		},
 		{
-			name:   "transparent-proxy-with-resolver-redirect-upstream",
-			create: proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+			name:             "transparent-proxy-with-resolver-redirect-upstream",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+			alsoRunTestForV2: true,
 		},
 		{
 			name:             "transparent-proxy-catalog-destinations-only",
@@ -1239,15 +919,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			name:             "transparent-proxy-terminating-gateway",
 			create:           proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
 			alsoRunTestForV2: true,
-		},
-		{
-			name: "custom-trace-listener",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.Config["protocol"] = "http"
-					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
-				}, nil)
-			},
 		},
 		{
 			name: "access-logs-defaults",
@@ -1314,8 +985,6 @@ func TestListenersFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 	}
-
-	tests = append(tests, makeListenerDiscoChainTests(false)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {

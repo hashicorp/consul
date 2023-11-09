@@ -418,6 +418,7 @@ type InstanceLevelRateLimits struct {
 	RequestsMaxBurst int `alias:"requests_max_burst"`
 
 	// Routes is a list of rate limits applied to specific routes.
+	// For a given request, the first matching route will be applied, if any.
 	// Overrides any top-level configuration.
 	Routes []InstanceLevelRouteRateLimits
 }
@@ -865,19 +866,6 @@ type ServiceConfigRequest struct {
 
 func (s *ServiceConfigRequest) RequestDatacenter() string {
 	return s.Datacenter
-}
-
-// GetLocalUpstreamIDs returns the list of non-peer service ids for upstreams defined on this request.
-// This is often used for fetching service-defaults config entries.
-func (s *ServiceConfigRequest) GetLocalUpstreamIDs() []ServiceID {
-	var upstreams []ServiceID
-	for i := range s.UpstreamServiceNames {
-		u := &s.UpstreamServiceNames[i]
-		if u.Peer == "" {
-			upstreams = append(upstreams, u.ServiceName.ToServiceID())
-		}
-	}
-	return upstreams
 }
 
 func (r *ServiceConfigRequest) CacheInfo() cache.RequestInfo {

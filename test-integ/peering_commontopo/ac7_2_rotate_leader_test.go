@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -165,7 +166,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 	found := 0
 	foundI := 0
 	for i, svc := range ceAsES.Services {
-		if svc.Name == s.sidServer.Name && svc.Namespace == utils.DefaultToEmpty(s.sidServer.Namespace) {
+		if svc.Name == s.sidServer.Name && utils.DefaultToEmpty(svc.Namespace) == utils.DefaultToEmpty(s.sidServer.Namespace) {
 			found += 1
 			foundI = i
 		}
@@ -176,7 +177,7 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 	_, _, err = clPeer.ConfigEntries().Set(ceAsES, nil)
 	require.NoError(t, err)
 	t.Cleanup(func() {
-		//restore for next pairing
+		// restore for next pairing
 		_, _, err = clPeer.ConfigEntries().Set(origCE.(*api.ExportedServicesConfigEntry), nil)
 		require.NoError(t, err)
 	})

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -27,24 +28,71 @@ import (
 func TestWatchList_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
-
 	demo.RegisterTypes(server.Registry)
 
-	testCases := map[string]func(*pbresource.WatchListRequest){
-		"no type":    func(req *pbresource.WatchListRequest) { req.Type = nil },
-		"no tenancy": func(req *pbresource.WatchListRequest) { req.Tenancy = nil },
-		"partitioned type provides non-empty namespace": func(req *pbresource.WatchListRequest) {
-			req.Type = demo.TypeV1RecordLabel
-			req.Tenancy.Namespace = "bad"
+	type testCase struct {
+		modFn       func(*pbresource.WatchListRequest)
+		errContains string
+	}
+
+	testCases := map[string]testCase{
+		"no type": {
+			modFn:       func(req *pbresource.WatchListRequest) { req.Type = nil },
+			errContains: "type is required",
+		},
+		"partition mixed case": {
+			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy.Partition = "Default" },
+			errContains: "tenancy.partition invalid",
+		},
+		"partition too long": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
+			},
+			errContains: "tenancy.partition invalid",
+		},
+		"namespace mixed case": {
+			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy.Namespace = "Default" },
+			errContains: "tenancy.namespace invalid",
+		},
+		"namespace too long": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
+			},
+			errContains: "tenancy.namespace invalid",
+		},
+		"name_prefix mixed case": {
+			modFn:       func(req *pbresource.WatchListRequest) { req.NamePrefix = "Smashing" },
+			errContains: "name_prefix invalid",
+		},
+		"partitioned type provides non-empty namespace": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Type = demo.TypeV1RecordLabel
+				req.Tenancy.Namespace = "bad"
+			},
+			errContains: "cannot have a namespace",
+		},
+		"cluster scope with non-empty partition": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Type = demo.TypeV1Executive
+				req.Tenancy = &pbresource.Tenancy{Partition: "bad"}
+			},
+			errContains: "cannot have a partition",
+		},
+		"cluster scope with non-empty namespace": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Type = demo.TypeV1Executive
+				req.Tenancy = &pbresource.Tenancy{Namespace: "bad"}
+			},
+			errContains: "cannot have a namespace",
 		},
 	}
-	for desc, modFn := range testCases {
+	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.WatchListRequest{
 				Type:    demo.TypeV2Album,
 				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
-			modFn(req)
+			tc.modFn(req)
 
 			stream, err := client.WatchList(testContext(t), req)
 			require.NoError(t, err)
@@ -52,6 +100,7 @@ func TestWatchList_InputValidation(t *testing.T) {
 			_, err = stream.Recv()
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -136,7 +185,7 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			rspCh := handleResourceStream(t, stream)
 
 			// Testcase will pick one of recordLabel or artist based on scope of type.
-			recordLabel, err := demo.GenerateV1RecordLabel("LooneyTunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
@@ -342,4 +391,31 @@ func handleResourceStream(t *testing.T, stream pbresource.ResourceService_WatchL
 type resourceOrError struct {
 	rsp *pbresource.WatchEvent
 	err error
+}
+
+func TestWatchList_NoTenancy(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.RegisterTypes(server.Registry)
+
+	// Create a watch.
+	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type: demo.TypeV1RecordLabel,
+	})
+	require.NoError(t, err)
+	rspCh := handleResourceStream(t, stream)
+
+	recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+	require.NoError(t, err)
+
+	// Create and verify upsert event received.
+	recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+	require.NoError(t, err)
+
+	rsp := mustGetResource(t, rspCh)
+
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
+	prototest.AssertDeepEqual(t, recordLabel, rsp.Resource)
 }

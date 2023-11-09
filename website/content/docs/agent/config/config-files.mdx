@@ -606,6 +606,10 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
     This was added in Consul 1.0. Must be a duration value such as 10s. Defaults
     to 7s.
 
+  - `grpc_keepalive_interval` - A duration that determines the frequency that Consul servers send keep-alive messages to inactive gRPC clients. Configure this setting to modify how quickly Consul detects and removes improperly closed xDS or peering connections. Default is `30s`.
+
+  - `grpc_keepalive_timeout` - A duration that determines how long a Consul server waits for a reply to a keep-alive message. If the server does not receive a reply before the end of the duration, Consul flags the gRPC connection as unhealthy and forcibly removes it. Defaults to `20s`.
+
 - `pid_file` Equivalent to the [`-pid-file` command line flag](/consul/docs/agent/config/cli-flags#_pid_file).
 
 - `ports` This is a nested object that allows setting the bind ports for the following keys:
@@ -1279,6 +1283,10 @@ subsystem that provides Consul's service mesh capabilities.
       - `private_key_type = ec` (default): `224, 256, 384, 521`
         corresponding to the NIST P-\* curves of the same name.
       - `private_key_type = rsa`: `2048, 4096`
+
+- `locality` <EnterpriseAlert inline/>: Specifies a map of configurations that set the region and zone of the Consul agent. When specified on server agents, `locality` applies to all partitions on the server. When specified on clients, `locality` applies to all services registered to the client. Configure this field to enable Consul to route traffic to the nearest physical service instance. This field is intended for use primarily with VM and Nomad workloads. Refer to [Route traffic to local upstreams](/consul/docs/connect/manage-traffic/route-to-local-upstreams) for additional information.
+  - `region`:  String value that specifies the region where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region over instances in other regions. You must specify values that are consistent with how regions are defined in your network, for example `us-west-1` for networks in AWS.
+  - `zone`: String value that specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS.
 
 ## DNS and Domain Parameters
 

@@ -9,7 +9,8 @@
             }
           }
         },
-        "name": "null_route_cluster"
+        "name": "null_route_cluster",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-1.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-1.default.dc1.internal.foo.consul",
@@ -36,7 +37,8 @@
             }
           }
         },
-        "name": "tcp.api-1.default.dc1.internal.foo.consul"
+        "name": "tcp.api-1.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-2.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-2.default.dc1.internal.foo.consul",
@@ -63,7 +65,8 @@
             }
           }
         },
-        "name": "tcp.api-2.default.dc1.internal.foo.consul"
+        "name": "tcp.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp2.api-1.default.dc1.internal.foo.consul": {
         "altStatName": "tcp2.api-1.default.dc1.internal.foo.consul",
@@ -90,7 +93,8 @@
             }
           }
         },
-        "name": "tcp2.api-1.default.dc1.internal.foo.consul"
+        "name": "tcp2.api-1.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp2.api-2.default.dc1.internal.foo.consul": {
         "altStatName": "tcp2.api-2.default.dc1.internal.foo.consul",
@@ -117,7 +121,8 @@
             }
           }
         },
-        "name": "tcp2.api-2.default.dc1.internal.foo.consul"
+        "name": "tcp2.api-2.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -126,6 +131,11 @@
         "namespace": "default",
         "partition": "default",
         "peerName": "local"
+      },
+      "type": {
+        "group": "auth",
+        "groupVersion": "v2beta1",
+        "kind": "WorkloadIdentity"
       }
     },
     "listeners": [
@@ -135,7 +145,7 @@
           "host": "1.1.1.1",
           "port": 1234
         },
-        "name": "api-1:tcp:1.1.1.1:1234",
+        "name": "default/local/default/api-1:tcp:1.1.1.1:1234",
         "routers": [
           {
             "l4": {
@@ -162,7 +172,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp:/path/to/socket",
+        "name": "default/local/default/api-2:tcp:/path/to/socket",
         "routers": [
           {
             "l4": {
@@ -184,7 +194,7 @@
           "host": "1.1.1.1",
           "port": 2345
         },
-        "name": "api-1:tcp2:1.1.1.1:2345",
+        "name": "default/local/default/api-1:tcp2:1.1.1.1:2345",
         "routers": [
           {
             "l4": {
@@ -211,7 +221,7 @@
       },
       {
         "direction": "DIRECTION_OUTBOUND",
-        "name": "api-2:tcp2:/path/to/socket",
+        "name": "default/local/default/api-2:tcp2:/path/to/socket",
         "routers": [
           {
             "l4": {

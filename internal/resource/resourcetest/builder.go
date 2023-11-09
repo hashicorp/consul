@@ -4,6 +4,7 @@
 package resourcetest
 
 import (
+	"context"
 	"strings"
 
 	"github.com/oklog/ulid/v2"
@@ -37,6 +38,22 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 					Kind:         rtype.Kind,
 				},
 				Name: name,
+			},
+		},
+	}
+}
+
+func ResourceWithTenancy(rtype *pbresource.Type, name string, tenancy *pbresource.Tenancy) *resourceBuilder {
+	return &resourceBuilder{
+		resource: &pbresource.Resource{
+			Id: &pbresource.ID{
+				Type: &pbresource.Type{
+					Group:        rtype.Group,
+					GroupVersion: rtype.GroupVersion,
+					Kind:         rtype.Kind,
+				},
+				Name:    name,
+				Tenancy: tenancy,
 			},
 		},
 	}
@@ -134,7 +151,14 @@ func (b *resourceBuilder) ReferenceNoSection() *pbresource.Reference {
 func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *pbresource.Resource {
 	t.Helper()
 
-	ctx := testutil.TestContext(t)
+	var ctx context.Context
+	rtestClient, ok := client.(*Client)
+	if ok {
+		ctx = rtestClient.Context(t)
+	} else {
+		ctx = testutil.TestContext(t)
+		rtestClient = NewClient(client)
+	}
 
 	res := b.resource
 
@@ -170,7 +194,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""
 		t.Cleanup(func() {
-			NewClient(client).MustDelete(t, id)
+			rtestClient.CleanupDelete(t, id)
 		})
 	}
 

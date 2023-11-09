@@ -21,6 +21,8 @@ message Endpoint {
   google.protobuf.UInt32Value load_balancing_weight = 4;
 }
 
+// +kubebuilder:validation:Enum=HEALTH_STATUS_UNKNOWN;HEALTH_STATUS_HEALTHY;HEALTH_STATUS_UNHEALTHY
+// +kubebuilder:validation:Type=string
 enum HealthStatus {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   HEALTH_STATUS_UNKNOWN = 0;

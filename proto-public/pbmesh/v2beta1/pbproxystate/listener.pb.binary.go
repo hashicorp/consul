@@ -58,6 +58,16 @@ func (msg *L4Destination) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
+func (msg *L7DestinationRoute) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *L7DestinationRoute) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
+
+// MarshalBinary implements encoding.BinaryMarshaler
 func (msg *L7Destination) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }

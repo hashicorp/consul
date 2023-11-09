@@ -8,10 +8,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+type DecodedServiceEndpoints = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
@@ -20,6 +23,15 @@ func RegisterServiceEndpoints(r resource.Registry) {
 		Scope:    resource.ScopeNamespace,
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
+		ACLs: &resource.ACLHooks{
+			Read: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+				return authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.GetName(), context)
+			},
+			Write: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, p *pbresource.Resource) error {
+				return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(p.GetId().GetName(), context)
+			},
+			List: resource.NoOpACLListHook,
+		},
 	})
 }
 
@@ -35,13 +47,9 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 	return nil
 }
 
-func ValidateServiceEndpoints(res *pbresource.Resource) error {
-	var svcEndpoints pbcatalog.ServiceEndpoints
+var ValidateServiceEndpoints = resource.DecodeAndValidate[*pbcatalog.ServiceEndpoints](validateServiceEndpoints)
 
-	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
-		return resource.NewErrDataParse(&svcEndpoints, err)
-	}
-
+func validateServiceEndpoints(res *DecodedServiceEndpoints) error {
 	var err error
 	if !resource.EqualType(res.Owner.Type, pbcatalog.ServiceType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
@@ -68,8 +76,8 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 		})
 	}
 
-	for idx, endpoint := range svcEndpoints.Endpoints {
-		if endpointErr := validateEndpoint(endpoint, res); endpointErr != nil {
+	for idx, endpoint := range res.Data.Endpoints {
+		if endpointErr := validateEndpoint(endpoint, res.Resource); endpointErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "endpoints",
 				Index:   idx,
@@ -126,7 +134,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
 		// Port names must be DNS labels
-		if portNameErr := validatePortName(portName); portNameErr != nil {
+		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
 				Key:     portName,
@@ -134,7 +142,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 			})
 		}
 
-		if protoErr := validateProtocol(port.Protocol); protoErr != nil {
+		if protoErr := ValidateProtocol(port.Protocol); protoErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapValue{
 				Map: "ports",
 				Key: portName,

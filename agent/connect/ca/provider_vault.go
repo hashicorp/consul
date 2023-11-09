@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/consul/lib/retry"
 )
 
 const (
@@ -177,11 +178,17 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 			v.stopWatcher()
 		}
 		v.stopWatcher = cancel
+		// NOTE: Any codepaths after v.renewToken(...) which return an error
+		// _must_ call v.stopWatcher() to prevent the renewal goroutine from
+		// leaking when the CA initialization fails and gets retried later.
 		go v.renewToken(ctx, lifetimeWatcher)
 	}
 
 	// Update the intermediate (managed) PKI mount and role
 	if err := v.setupIntermediatePKIPath(); err != nil {
+		if v.stopWatcher != nil {
+			v.stopWatcher()
+		}
 		return err
 	}
 
@@ -223,6 +230,16 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 	go watcher.Start()
 	defer watcher.Stop()
 
+	// These values are chosen to start the exponential backoff
+	// immediately. Since the Vault client implements its own
+	// retries, this retry is mostly to avoid resource contention
+	// and log spam.
+	retrier := retry.Waiter{
+		MinFailures: 1,
+		MinWait:     1 * time.Second,
+		Jitter:      retry.NewJitter(20),
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -231,7 +248,16 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 		case err := <-watcher.DoneCh():
 			// Watcher has stopped
 			if err != nil {
-				v.logger.Error("Error renewing token for Vault provider", "error", err)
+				v.logger.Error("Error renewing token for Vault provider", "error", err, "retries", retrier.Failures())
+			}
+
+			// Although the vault watcher has its own retry logic, we have encountered
+			// issues when passing an invalid Vault token which would send an error to
+			// watcher.DoneCh() immediately, causing us to start the watcher over and
+			// over again in a very tight loop.
+			if err := retrier.Wait(ctx); err != nil {
+				// only possible error is when context is cancelled
+				return
 			}
 
 			// If the watcher has exited and auth method is enabled,
@@ -265,6 +291,7 @@ func (v *VaultProvider) renewToken(ctx context.Context, watcher *vaultapi.Lifeti
 			go watcher.Start()
 
 		case <-watcher.RenewCh():
+			retrier.Reset()
 			v.logger.Info("Successfully renewed token for Vault provider")
 		}
 	}
@@ -518,7 +545,7 @@ func (v *VaultProvider) ActiveLeafSigningCert() (string, error) {
 // because the endpoint only returns the raw PEM contents of the CA cert
 // and not the typical format of the secrets endpoints.
 func (v *VaultProvider) getCA(namespace, path string) (string, error) {
-	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca/pem")
+	resp, err := v.client.WithNamespace(v.getNamespace(namespace)).Logical().ReadRaw(path + "/ca/pem")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -544,7 +571,7 @@ func (v *VaultProvider) getCA(namespace, path string) (string, error) {
 
 // TODO: refactor to remove duplication with getCA
 func (v *VaultProvider) getCAChain(namespace, path string) (string, error) {
-	resp, err := v.client.WithNamespace(namespace).Logical().ReadRaw(path + "/ca_chain")
+	resp, err := v.client.WithNamespace(v.getNamespace(namespace)).Logical().ReadRaw(path + "/ca_chain")
 	if resp != nil {
 		defer resp.Body.Close()
 	}
@@ -851,27 +878,34 @@ func (v *VaultProvider) Stop() {
 
 // We use raw path here
 func (v *VaultProvider) mountNamespaced(namespace, path string, mountInfo *vaultapi.MountInput) error {
-	return v.client.WithNamespace(namespace).Sys().Mount(path, mountInfo)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().Mount(path, mountInfo)
 }
 
 func (v *VaultProvider) tuneMountNamespaced(namespace, path string, mountConfig *vaultapi.MountConfigInput) error {
-	return v.client.WithNamespace(namespace).Sys().TuneMount(path, *mountConfig)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().TuneMount(path, *mountConfig)
 }
 
 func (v *VaultProvider) unmountNamespaced(namespace, path string) error {
-	return v.client.WithNamespace(namespace).Sys().Unmount(path)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Sys().Unmount(path)
 }
 
 func (v *VaultProvider) readNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Read(resource)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Read(resource)
 }
 
 func (v *VaultProvider) writeNamespaced(namespace string, resource string, data map[string]interface{}) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Write(resource, data)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Write(resource, data)
 }
 
 func (v *VaultProvider) deleteNamespaced(namespace string, resource string) (*vaultapi.Secret, error) {
-	return v.client.WithNamespace(namespace).Logical().Delete(resource)
+	return v.client.WithNamespace(v.getNamespace(namespace)).Logical().Delete(resource)
+}
+
+func (v *VaultProvider) getNamespace(namespace string) string {
+	if namespace != "" {
+		return namespace
+	}
+	return v.baseNamespace
 }
 
 // autotidyIssuers sets Vault's auto-tidy to remove expired issuers

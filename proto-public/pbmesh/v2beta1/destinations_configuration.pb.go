@@ -35,9 +35,9 @@ type DestinationsConfiguration struct {
 	// Selection of workloads these destinations should apply to.
 	// These can be prefixes or specific workload names.
 	Workloads *v2beta1.WorkloadSelector `protobuf:"bytes,1,opt,name=workloads,proto3" json:"workloads,omitempty"`
-	// default_config applies to all destinations for the workloads selected by this resource.
+	// DefaultConfig applies to all destinations for the workloads selected by this resource.
 	DefaultConfig *DestinationConfiguration `protobuf:"bytes,2,opt,name=default_config,json=defaultConfig,proto3" json:"default_config,omitempty"`
-	// config_overrides provides per-destination or per-destination-port config overrides.
+	// ConfigOverrides provides per-destination or per-destination-port config overrides.
 	ConfigOverrides []*DestinationConfigOverrides `protobuf:"bytes,3,rep,name=config_overrides,json=configOverrides,proto3" json:"config_overrides,omitempty"`
 }
 
@@ -102,15 +102,15 @@ type DestinationConfigOverrides struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// destination_ref is the reference to an destination service that this configuration applies to.
+	// DestinationRef is the reference to an destination service that this configuration applies to.
 	// This has to be pbcatalog.Service type.
 	DestinationRef *pbresource.Reference `protobuf:"bytes,1,opt,name=destination_ref,json=destinationRef,proto3" json:"destination_ref,omitempty"`
-	// destination_port is the port name of the destination service. This should be the name
+	// DestinationPort is the port name of the destination service. This should be the name
 	// of the service's target port. If not provided, this configuration will apply to all ports of an destination.
 	DestinationPort string `protobuf:"bytes,2,opt,name=destination_port,json=destinationPort,proto3" json:"destination_port,omitempty"`
-	// datacenter is the datacenter for where this destination service lives.
+	// Datacenter is the datacenter for where this destination service lives.
 	Datacenter string `protobuf:"bytes,3,opt,name=datacenter,proto3" json:"datacenter,omitempty"`
-	// config is the configuration that should apply to this destination.
+	// Config is the configuration that should apply to this destination.
 	Config *DestinationConfiguration `protobuf:"bytes,4,opt,name=config,proto3" json:"config,omitempty"`
 }
 
@@ -179,19 +179,20 @@ type DestinationConfiguration struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// protocol overrides destination's port protocol. If no port for an destination is specified
+	// Protocol overrides destination's port protocol. If no port for an destination is specified
 	// or if used in the default configuration, this protocol will be used for all ports
 	// or for all ports of all destinations respectively.
 	Protocol v2beta1.Protocol `protobuf:"varint,1,opt,name=protocol,proto3,enum=hashicorp.consul.catalog.v2beta1.Protocol" json:"protocol,omitempty"`
-	// connect_timeout is the timeout used when making a new
+	// ConnectTimeout is the timeout used when making a new
 	// connection to this destination. Defaults to 5 seconds if not set.
+	// +kubebuilder:validation:Format=duration
 	ConnectTimeout *durationpb.Duration `protobuf:"bytes,2,opt,name=connect_timeout,json=connectTimeout,proto3" json:"connect_timeout,omitempty"`
-	// limits are the set of limits that are applied to the proxy for a specific destination.
+	// Limits are the set of limits that are applied to the proxy for a specific destination.
 	Limits *DestinationLimits `protobuf:"bytes,3,opt,name=limits,proto3" json:"limits,omitempty"`
-	// passive_health_check configuration determines how destination proxy instances will
+	// PassiveHealthCheck configuration determines how destination proxy instances will
 	// be monitored for removal from the load balancing pool.
 	PassiveHealthCheck *PassiveHealthCheck `protobuf:"bytes,4,opt,name=passive_health_check,json=passiveHealthCheck,proto3" json:"passive_health_check,omitempty"`
-	// balance_outbound_connections indicates how the proxy should attempt to distribute
+	// BalanceOutboundConnections indicates how the proxy should attempt to distribute
 	// connections across worker threads.
 	BalanceOutboundConnections BalanceConnections `protobuf:"varint,5,opt,name=balance_outbound_connections,json=balanceOutboundConnections,proto3,enum=hashicorp.consul.mesh.v2beta1.BalanceConnections" json:"balance_outbound_connections,omitempty"`
 	// MeshGatewayMode is the Mesh Gateway routing mode.
@@ -279,15 +280,15 @@ type DestinationLimits struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// max_connections is the maximum number of connections the local proxy can
+	// MaxConnections is the maximum number of connections the local proxy can
 	// make to the destination service.
 	MaxConnections *wrapperspb.UInt32Value `protobuf:"bytes,1,opt,name=max_connections,json=maxConnections,proto3" json:"max_connections,omitempty"`
-	// max_pending_requests is the maximum number of requests that will be queued
+	// MaxPendingRequests is the maximum number of requests that will be queued
 	// waiting for an available connection. This is mostly applicable to HTTP/1.1
 	// clusters since all HTTP/2 requests are streamed over a single
 	// connection.
 	MaxPendingRequests *wrapperspb.UInt32Value `protobuf:"bytes,2,opt,name=max_pending_requests,json=maxPendingRequests,proto3" json:"max_pending_requests,omitempty"`
-	// max_concurrent_requests is the maximum number of in-flight requests that will be allowed
+	// MaxConcurrentRequests is the maximum number of in-flight requests that will be allowed
 	// to the destination cluster at a point in time. This is mostly applicable to HTTP/2
 	// clusters since all HTTP/1.1 requests are limited by MaxConnections.
 	MaxConcurrentRequests *wrapperspb.UInt32Value `protobuf:"bytes,3,opt,name=max_concurrent_requests,json=maxConcurrentRequests,proto3" json:"max_concurrent_requests,omitempty"`
@@ -351,13 +352,14 @@ type PassiveHealthCheck struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// interval between health check analysis sweeps. Each sweep may remove
+	// Interval between health check analysis sweeps. Each sweep may remove
 	// hosts or return hosts to the pool.
+	// +kubebuilder:validation:Format=duration
 	Interval *durationpb.Duration `protobuf:"bytes,1,opt,name=interval,proto3" json:"interval,omitempty"`
-	// max_failures is the count of consecutive failures that results in a host
+	// MaxFailures is the count of consecutive failures that results in a host
 	// being removed from the pool.
 	MaxFailures uint32 `protobuf:"varint,2,opt,name=max_failures,json=maxFailures,proto3" json:"max_failures,omitempty"`
-	// enforcing_consecutive_5xx is the % chance that a host will be actually ejected
+	// EnforcingConsecutive5XX is the % chance that a host will be actually ejected
 	// when an outlier status is detected through consecutive 5xx.
 	// This setting can be used to disable ejection or to ramp it up slowly. Defaults to 100.
 	EnforcingConsecutive_5Xx uint32 `protobuf:"varint,3,opt,name=enforcing_consecutive_5xx,json=enforcingConsecutive5xx,proto3" json:"enforcing_consecutive_5xx,omitempty"`

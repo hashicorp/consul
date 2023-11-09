@@ -31,88 +31,6 @@ type routeTestCase struct {
 	alsoRunTestForV2   bool
 }
 
-func makeRouteDiscoChainTests(enterprise bool) []routeTestCase {
-	return []routeTestCase{
-		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-splitter-overweight",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-overweight", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-overrides",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple-with-overrides", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "splitter-with-resolver-redirect-multidc", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-splitter",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-splitter", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-grpc-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "grpc-router", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-router",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "chain-and-router", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-lb-in-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "lb-resolver", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-route-to-lb-resolver",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "redirect-to-lb-node", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-resolver-with-lb",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "resolver-with-lb", enterprise, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-	}
-}
-
 func TestRoutesFromSnapshot(t *testing.T) {
 	// TODO: we should move all of these to TestAllResourcesFromSnapshot
 	// eventually to test all of the xDS types at once with the same input,
@@ -262,9 +180,66 @@ func TestRoutesFromSnapshot(t *testing.T) {
 			// TODO(proxystate): terminating gateway will come at a later time
 			alsoRunTestForV2: false,
 		},
+		{
+			name: "api-gateway-with-multiple-hostnames",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotAPIGateway(t, "default", nil, func(entry *structs.APIGatewayConfigEntry, bound *structs.BoundAPIGatewayConfigEntry) {
+					entry.Listeners = []structs.APIGatewayListener{
+						{
+							Name:     "http",
+							Protocol: structs.ListenerProtocolHTTP,
+							Port:     8080,
+							Hostname: "*.example.com",
+						},
+					}
+					bound.Listeners = []structs.BoundAPIGatewayListener{
+						{
+							Name: "http",
+							Routes: []structs.ResourceReference{
+								{Kind: structs.HTTPRoute, Name: "backend-route"},
+								{Kind: structs.HTTPRoute, Name: "frontend-route"},
+								{Kind: structs.HTTPRoute, Name: "generic-route"},
+							}},
+					}
+				},
+					[]structs.BoundRoute{
+						&structs.HTTPRouteConfigEntry{
+							Kind:      structs.HTTPRoute,
+							Name:      "backend-route",
+							Hostnames: []string{"backend.example.com"},
+							Parents:   []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{Services: []structs.HTTPService{{Name: "backend"}}},
+							},
+						},
+						&structs.HTTPRouteConfigEntry{
+							Kind:      structs.HTTPRoute,
+							Name:      "frontend-route",
+							Hostnames: []string{"frontend.example.com"},
+							Parents:   []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{Services: []structs.HTTPService{{Name: "frontend"}}},
+							},
+						},
+						&structs.HTTPRouteConfigEntry{
+							Kind:    structs.HTTPRoute,
+							Name:    "generic-route",
+							Parents: []structs.ResourceReference{{Kind: structs.APIGateway, Name: "api-gateway"}},
+							Rules: []structs.HTTPRouteRule{
+								{
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/frontend"}}},
+									Services: []structs.HTTPService{{Name: "frontend"}},
+								},
+								{
+									Matches:  []structs.HTTPMatch{{Path: structs.HTTPPathMatch{Match: structs.HTTPPathMatchPrefix, Value: "/backend"}}},
+									Services: []structs.HTTPService{{Name: "backend"}},
+								},
+							},
+						},
+					}, nil, nil)
+			},
+		},
 	}
-
-	tests = append(tests, makeRouteDiscoChainTests(false)...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
