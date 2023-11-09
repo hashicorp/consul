@@ -187,9 +187,9 @@ jobs:
         if: ${{ failure() }}
         run: .github/scripts/notify_slack.sh
 
-  tests-combine-summaries:
+  combine-tests-summaries:
     name: Combine Test Reports
-    needs: [ tests ]
+    needs: [ go-test ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-node@v3
