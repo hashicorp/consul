@@ -4,8 +4,6 @@
 package connect
 
 import (
-	// "fmt"
-	// "net/url"
 	"testing"
 
 	"github.com/stretchr/testify/require"
