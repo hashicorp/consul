@@ -153,7 +153,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-server-v1"),
@@ -172,7 +172,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-server-v2"),
@@ -191,7 +191,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewBlankspaceServiceWithDefaults(
 				clusterName,
 				newServiceID("static-client"),

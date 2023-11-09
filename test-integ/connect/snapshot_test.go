@@ -6,12 +6,11 @@ package connect
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/test-integ/topoutil"
 )
@@ -59,7 +58,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client1",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             staticServerSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",
@@ -77,7 +76,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client2",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             staticClientSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",
@@ -103,7 +102,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 						Kind:     topology.NodeKindDataplane,
 						Name:     "dc1-client3",
 						Disabled: true,
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             staticServerSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",

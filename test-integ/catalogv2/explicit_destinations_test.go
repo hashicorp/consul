@@ -147,7 +147,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("single-server"),
@@ -161,7 +161,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("single-client"),
@@ -203,7 +203,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("multi-server"),
@@ -217,7 +217,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("multi-client"),

@@ -151,7 +151,7 @@ func NewTopologyMeshGatewaySet(
 			Kind:      nodeKind,
 			Partition: sid.Partition,
 			Name:      name,
-			Services: []*topology.Service{{
+			Workloads: []*topology.Service{{
 				ID:             sid,
 				Port:           8443,
 				EnvoyAdminPort: 19000,

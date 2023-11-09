@@ -147,7 +147,7 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("static-server"),
@@ -163,7 +163,7 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			topoutil.NewFortioServiceWithDefaults(
 				clusterName,
 				newServiceID("static-client"),

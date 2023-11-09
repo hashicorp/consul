@@ -279,7 +279,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		Addresses: []*topology.Address{
 			{Network: clu.Datacenter},
 		},
-		Services: []*topology.Service{
+		Workloads: []*topology.Service{
 			svc.Service,
 		},
 		Cluster: clusterName,
@@ -521,6 +521,6 @@ func newTopologyMeshGatewaySet(
 	mutateFn func(i int, node *topology.Node),
 ) (topology.ServiceID, []*topology.Node) {
 	nodes := topoutil.NewTopologyMeshGatewaySet(nodeKind, partition, namePrefix, num, networks, mutateFn)
-	sid := nodes[0].Services[0].ID
+	sid := nodes[0].Workloads[0].ID
 	return sid, nodes
 }
