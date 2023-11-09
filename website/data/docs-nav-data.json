@@ -373,7 +373,115 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "access/api-gateway"
+            "path": "access/api-gateway/overview"
+          },
+          {
+            "title": "Technical specifications (Kubernetes)",
+            "path": "access/api-gateway/k8s-tech-specs"
+          },
+          {
+            "title": "Install on Kubernetes",
+            "path": "access/api-gateway/k8s-install"
+          },
+          {
+            "title": "Upgrade on Kubernetes",
+            "path": "access/api-gateway/k8s-upgrade"
+          },
+          {
+            "title": "Deploy listener",
+            "routes": [
+              {
+                "title": "Deploy listener to VMs",
+                "path": "access/api-gateway/deploy-listener/vm"
+              },
+              {
+                "title": "Deploy listener to Kubernetes",
+                "path": "access/api-gateway/deploy-listener/k8s"
+              }
+            ]
+          },
+          {
+            "title": "Define route",
+            "routes": [
+              {
+                "title": "Define route on VMs",
+                "path": "access/api-gateway/define-route/vm"
+              },
+              {
+                "title": "Define route on Kubernetes",
+                "path": "access/api-gateway/define-route/k8s"
+              },
+              {
+                "title": "Reroute traffic in Kubernetes",
+                "path": "access/api-gateway/define-route/k8s-reroute-traffic"
+              },
+              {
+                "title": "Route to peered services in Kubernetes",
+                "path": "access/api-gateway/define-route/k8s-route-peered"
+              }
+            ]
+          },
+          {
+            "title": "Secure traffic",
+            "routes": [
+              {
+                "title": "Encrypt traffic on VMs",
+                "path": "access/api-gateway/secure-traffic/vm"
+              },
+              {
+                "title": "Verify requests with JWTS on VMs",
+                "path": "access/api-gateway/secure-traffic/vm-jwt"
+              },
+              {
+                "title": "Verify requests with JWTS on Kubernetes",
+                "path": "access/api-gateway/secure-traffic/k8s-jwt"
+              }
+            ]
+          },
+          {
+            "title": "Reference",
+            "routes": [
+              {
+                "title": "Overview",
+                "href": "reference/api-gateway/overview"
+              },
+              {
+                "title": "Gateway",
+                "href": "reference/api-gateway/gateway"
+              },
+              {
+                "title": "GatewayClass",
+                "href": "reference/api-gateway/gatewayclass"
+              },
+              {
+                "title": "GatewayClassConfig",
+                "href": "reference/api-gateway/gatewayclassconfig"
+              },
+              {
+                "title": "GatewayPolicy",
+                "href": "reference/api-gateway/gatewaypolicy"
+              },
+              {
+                "title": "RouteAuthFilter",
+                "href": "reference/api-gateway/routeauthfilter"
+              },
+              {
+                "title": "Routes",
+                "href": "reference/api-gateway/routes"
+              },
+              {
+                "title": "RouteRetryFilter",
+                "href": "reference/api-gateway/routeretryfilter"
+              },
+              {
+                "title": "RouteTimeoutFilter",
+                "href": "reference/api-gateway/routetimeoutfilter"
+              },
+              {
+                "title": "MeshService",
+                "href": "reference/api-gateway/meshservice"
+              }
+            ]
           }
         ]
       },
@@ -382,7 +490,19 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "access/ingress-gateway"
+            "path": "access/ingress-gateway/overview"
+          },
+          {
+            "title": "Create and manage ingress gateway",
+            "path": "access/ingress-gateway/create"
+          },
+          {
+            "title": "Serve TLS certificate from external service",
+            "path": "access/ingress-gateway/external-service"
+          },
+          {
+            "title": "Reference",
+            "href": "reference/config-entry/ingress-gateway"
           }
         ]
       }
@@ -669,7 +789,40 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "manage-traffic"
+        "path": "manage-traffic/overview"
+      },
+      {
+        "title": "Overview",
+        "path": "manage-traffic/route-local"
+      },
+      {
+        "title": "Overview",
+        "path": "manage-traffic/rate-limit"
+      },
+      {
+        "title": "Failover",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "manage-traffic/failover/overview"
+          },
+          {
+            "title": "Configure failover services for Kubernetes",
+            "path": "manage-traffic/failover/configure-k8s"
+          },
+          {
+            "title": "Automate geo-failover with prepared queries",
+            "path": "manage-traffic/failover/prepared-query"
+          },
+          {
+            "title": "Route traffic to virtual services",
+            "path": "manage-traffic/failover/virtual-service"
+          },
+          {
+            "title": "Failover with sameness groups",
+            "path": "manage-traffic/failover/sameness-group"
+          }
+        ]
       }
     ]
   },
@@ -678,7 +831,23 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "observe"
+        "path": "observe/overview"
+      },
+      {
+        "title": "Access logs",
+        "path": "observe/access-log"
+      },
+      {
+        "title": "UI visualization",
+        "path": "observe/ui-visualization"
+      },
+      {
+        "title": "Distributed tracing",
+        "path": "observe/distributed-tracing"
+      },
+      {
+        "title": "Kubernetes metrics",
+        "path": "observe/metrics"
       }
     ]
   },
@@ -687,7 +856,19 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "dynamic-app"
+        "path": "dynamic-app/overview"
+      },
+      {
+        "title": "Consul KV",
+        "path": "dynamic-app/kv"
+      },
+      {
+        "title": "Session",
+        "path": "dynamic-app/session"
+      },
+      {
+        "title": "Watch",
+        "path": "dynamic-app/watch"
       }
     ]
   },
@@ -1068,8 +1249,49 @@
         "path": "reference/acl"
       },
       {
-        "title": "API gateways",
-        "path": "reference/api-gateway"
+        "title": "API gateway",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "reference/api-gateway/overview"
+          },
+          {
+            "title": "Gateway",
+            "path": "reference/api-gateway/gateway"
+          },
+          {
+            "title": "GatewayClass",
+            "path": "reference/api-gateway/gatewayclass"
+          },
+          {
+            "title": "GatewayClassConfig",
+            "path": "reference/api-gateway/gatewayclassconfig"
+          },
+          {
+            "title": "GatewayPolicy",
+            "path": "reference/api-gateway/gatewaypolicy"
+          },
+          {
+            "title": "RouteAuthFilter",
+            "path": "reference/api-gateway/routeauthfilter"
+          },
+          {
+            "title": "Routes",
+            "path": "reference/api-gateway/routes"
+          },
+          {
+            "title": "RouteRetryFilter",
+            "path": "reference/api-gateway/routeretryfilter"
+          },
+          {
+            "title": "RouteTimeoutFilter",
+            "path": "reference/api-gateway/routetimeoutfilter"
+          },
+          {
+            "title": "MeshService",
+            "path": "reference/api-gateway/meshservice"
+          }
+        ]
       },
       {
         "title": "Configuration entries",
@@ -1168,10 +1390,6 @@
       {
         "title": "Health checks",
         "path": "reference/health-check"
-      },
-      {
-        "title": "Ingress gateways",
-        "path": "reference/ingress-gateway"
       },
       {
         "title": "Proxies",
