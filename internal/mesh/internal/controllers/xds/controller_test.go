@@ -119,7 +119,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_NoProxyStateTemplate() {
 		// Track the id of a non-existent ProxyStateTemplate.
 		proxyStateTemplateId := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "not-found").WithTenancy(tenancy).ID()
 
-		defer suite.client.MustDelete(suite.T(), proxyStateTemplateId)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplateId) })
 
 		suite.mapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
 		suite.leafMapper.TrackItem(proxyStateTemplateId, []resource.ReferenceOrID{})
@@ -148,7 +148,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_RemoveTrackingProxiesNotConne
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), proxyStateTemplate.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplate.Id) })
 
 		suite.mapper.TrackItem(proxyStateTemplate.Id, []resource.ReferenceOrID{})
 
@@ -209,7 +209,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_MissingEndpoint() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -252,7 +252,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_ReadEndpointError() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -431,7 +431,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(svc.Id) })
 
 		// Wait for the endpoint to be written.
 		retry.Run(suite.T(), func(r *retry.R) {
@@ -457,7 +457,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), secondService.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(secondService.Id) })
 
 		secondEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "second-service").
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -484,7 +484,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), secondEndpoints.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(secondEndpoints.Id) })
 
 		// Update the endpoint references on the fooProxyStateTemplate.
 		suite.fooEndpointRefs["test-cluster-2"] = &pbproxystate.EndpointRef{
@@ -502,7 +502,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateEndpointRefe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -614,7 +614,7 @@ func (suite *xdsControllerTestSuite) TestController_ComputeAddUpdateDeleteLeafRe
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), fooProxyStateTemplate.Id)
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
 
 		retry.Run(suite.T(), func(r *retry.R) {
 			suite.client.RequireVersionChanged(r, fooProxyStateTemplate.Id, oldVersion)
@@ -724,6 +724,8 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooService.Id) })
+
 	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
 			{
@@ -749,6 +751,8 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		WithOwner(fooService.Id).
 		Write(suite.T(), suite.client)
 
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooEndpoints.Id) })
+
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
 		Id:   fooEndpoints.Id,
@@ -768,6 +772,8 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 		}).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
 
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
@@ -814,6 +820,14 @@ func (suite *xdsControllerTestSuite) setupFooProxyStateTemplateWithReferences(te
 	suite.expectedFooProxyStateEndpoints = expectedFooProxyStateEndpoints
 	suite.expectedTrustBundle = expectedTrustBundle
 	suite.expectedFooProxyStateSpiffes = expectedFooLeafSpiffes
+
+	suite.T().Cleanup(func() {
+		suite.fooEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
+		suite.fooLeafRefs = make(map[string]*pbproxystate.LeafCertificateRef)
+		suite.expectedFooProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
+		suite.expectedTrustBundle = make(map[string]*pbproxystate.TrustBundle)
+		suite.expectedFooProxyStateSpiffes = make(map[string]string)
+	})
 }
 
 // Setup:
@@ -826,6 +840,8 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithData(suite.T(), &pbcatalog.Service{}).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooService.Id) })
 
 	fooEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -852,10 +868,14 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooEndpoints.Id) })
+
 	fooBarService := resourcetest.Resource(pbcatalog.ServiceType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.Service{}).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooBarService.Id) })
 
 	fooBarEndpoints := resourcetest.Resource(pbcatalog.ServiceEndpointsType, "foo-bar-service").
 		WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -881,6 +901,8 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithOwner(fooBarService.Id).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooBarEndpoints.Id) })
 
 	fooRequiredEndpoints := make(map[string]*pbproxystate.EndpointRef)
 	fooRequiredEndpoints["test-cluster-1"] = &pbproxystate.EndpointRef{
@@ -908,6 +930,8 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(fooProxyStateTemplate.Id) })
+
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, fooProxyStateTemplate.Id)
 	})
@@ -920,6 +944,8 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 		}).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() { suite.deleteResourceFunc(barProxyStateTemplate.Id) })
 
 	retry.Run(suite.T(), func(r *retry.R) {
 		suite.client.RequireResourceExists(r, barProxyStateTemplate.Id)
@@ -1001,6 +1027,13 @@ func (suite *xdsControllerTestSuite) setupFooBarProxyStateTemplateAndEndpoints(t
 	suite.fooBarService = fooBarService
 	suite.expectedFooProxyStateEndpoints = expectedFooProxyStateEndpoints
 	suite.expectedBarProxyStateEndpoints = expectedBarProxyStateEndpoints
+
+	suite.T().Cleanup(func() {
+		suite.barEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
+		suite.fooEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
+		suite.expectedFooProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
+		suite.expectedBarProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
+	})
 }
 
 func (suite *xdsControllerTestSuite) TestReconcile_prevWatchesToCancel() {
@@ -1131,7 +1164,7 @@ func (suite *xdsControllerTestSuite) TestReconcile_SidecarProxyGoldenFileInputs(
 					WithTenancy(tenancy).
 					Write(suite.T(), suite.client)
 
-				defer suite.client.MustDelete(suite.T(), proxyStateTemplate.Id)
+				suite.T().Cleanup(func() { suite.deleteResourceFunc(proxyStateTemplate.Id) })
 
 				// Check with resource service that it exists.
 				retry.Run(suite.T(), func(r *retry.R) {
@@ -1201,6 +1234,8 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(svc.Id) })
+
 		// create endpoints with svc as owner.
 		eps := resourcetest.Resource(pbcatalog.ServiceEndpointsType, svcName).
 			WithData(suite.T(), &pbcatalog.ServiceEndpoints{Endpoints: []*pbcatalog.Endpoint{
@@ -1222,6 +1257,8 @@ func (suite *xdsControllerTestSuite) addRequiredEndpointsAndRefs(pst *pbmesh.Pro
 			WithOwner(svc.Id).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
+
+		suite.T().Cleanup(func() { suite.deleteResourceFunc(eps.Id) })
 
 		// add to working list of required endpoints.
 		requiredEps[clusterName] = &pbproxystate.EndpointRef{
@@ -1246,7 +1283,6 @@ func JSONToProxyTemplate(t *testing.T, json []byte) *pbmesh.ProxyStateTemplate {
 func (suite *xdsControllerTestSuite) runTestCaseWithTenancies(testCase func(tenancy *pbresource.Tenancy)) {
 	for _, tenancy := range suite.tenancies {
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
-			defer suite.cleanup()
 			testCase(tenancy)
 		})
 	}
@@ -1256,33 +1292,8 @@ func (suite *xdsControllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenan
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
-func (suite *xdsControllerTestSuite) cleanup() {
-	if suite.fooProxyStateTemplate != nil {
-		suite.client.MustDelete(suite.T(), suite.fooProxyStateTemplate.Id)
+func (suite *xdsControllerTestSuite) deleteResourceFunc(id *pbresource.ID) func() {
+	return func() {
+		suite.client.MustDelete(suite.T(), id)
 	}
-	if suite.barProxyStateTemplate != nil {
-		suite.client.MustDelete(suite.T(), suite.barProxyStateTemplate.Id)
-	}
-	if suite.fooEndpoints != nil {
-		suite.client.MustDelete(suite.T(), suite.fooEndpoints.Id)
-	}
-	if suite.fooBarEndpoints != nil {
-		suite.client.MustDelete(suite.T(), suite.fooBarEndpoints.Id)
-	}
-	if suite.fooService != nil {
-		suite.client.MustDelete(suite.T(), suite.fooService.Id)
-	}
-	if suite.fooBarService != nil {
-		suite.client.MustDelete(suite.T(), suite.fooBarService.Id)
-	}
-
-	// resetting maps so that stale data does not get referenced in other tests
-	// avoid setting them to nil
-	suite.expectedFooProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
-	suite.expectedBarProxyStateEndpoints = make(map[string]*pbproxystate.Endpoints)
-	suite.expectedFooProxyStateSpiffes = make(map[string]string)
-	suite.expectedTrustBundle = make(map[string]*pbproxystate.TrustBundle)
-	suite.barEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
-	suite.fooEndpointRefs = make(map[string]*pbproxystate.EndpointRef)
-	suite.fooLeafRefs = make(map[string]*pbproxystate.LeafCertificateRef)
 }
