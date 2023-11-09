@@ -34,6 +34,7 @@ flowchart TD
   mesh/v2beta1/destinations
   mesh/v2beta1/grpcroute
   mesh/v2beta1/httproute
+  mesh/v2beta1/meshgateway
   mesh/v2beta1/proxyconfiguration
   mesh/v2beta1/proxystatetemplate --> auth/v2beta1/computedtrafficpermissions
   mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/service
