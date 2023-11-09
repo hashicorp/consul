@@ -106,5 +106,7 @@ During the downgrade as the raft replication logs start flowing into the ce serv
 
 - Panic and stop the downgrade
 
+  Config Entries regarding traffic routing cannot be safely filtered because Consul cannot know whether the resulting filtered config entries send traffic towards services which can handle that traffic. In these situations, you are required to first remove references to services within non default namespaces or partitions from within those config entries. When encountering these config entries Consul CE in the downgrade mode will panic in order to not cause harm to existing service mesh routing.
+  
   For example :-
   - Service Splitter,Service Resolver,Service Router Config Entry requests - if these config entries have references to tenanted services it will cause a panic.
