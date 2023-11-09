@@ -1823,7 +1823,7 @@
       },
       {
         "title": "Enterprise to CE Downgrade",
-        "href": "/docs/enterprise/ent-to-ce-downgrades"
+        "href": "enterprise/ent-to-ce-downgrades"
       },
       {
         "title": "Audit Logging",
