@@ -5,7 +5,6 @@ package testing
 
 import (
 	"context"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 
 	"github.com/hashicorp/go-uuid"
