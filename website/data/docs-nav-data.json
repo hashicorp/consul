@@ -1822,6 +1822,10 @@
         "path": "enterprise/admin-partitions"
       },
       {
+        "title": "Enterprise to CE Downgrade",
+        "href": "/docs/enterprise/ent-to-ce-downgrades"
+      },
+      {
         "title": "Audit Logging",
         "path": "enterprise/audit-logging"
       },
