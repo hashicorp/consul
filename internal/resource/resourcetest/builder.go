@@ -43,6 +43,22 @@ func Resource(rtype *pbresource.Type, name string) *resourceBuilder {
 	}
 }
 
+func ResourceWithTenancy(rtype *pbresource.Type, name string, tenancy *pbresource.Tenancy) *resourceBuilder {
+	return &resourceBuilder{
+		resource: &pbresource.Resource{
+			Id: &pbresource.ID{
+				Type: &pbresource.Type{
+					Group:        rtype.Group,
+					GroupVersion: rtype.GroupVersion,
+					Kind:         rtype.Kind,
+				},
+				Name:    name,
+				Tenancy: tenancy,
+			},
+		},
+	}
+}
+
 func ResourceID(id *pbresource.ID) *resourceBuilder {
 	return &resourceBuilder{
 		resource: &pbresource.Resource{
