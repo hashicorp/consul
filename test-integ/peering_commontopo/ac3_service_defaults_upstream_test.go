@@ -40,7 +40,7 @@ type ac3SvcDefaultsSuite struct {
 	sidClient  topology.ServiceID
 	nodeClient topology.NodeID
 
-	upstream *topology.Upstream
+	upstream *topology.Destination
 }
 
 func (s *ac3SvcDefaultsSuite) testName() string {
@@ -60,7 +60,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Name:      "ac3-server",
 		Partition: partition,
 	}
-	upstream := &topology.Upstream{
+	upstream := &topology.Destination{
 		ID: topology.ServiceID{
 			Name:      serverSID.Name,
 			Partition: partition,
@@ -78,7 +78,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			clu.Datacenter,
 			sid,
 			func(s *topology.Service) {
-				s.Upstreams = []*topology.Upstream{
+				s.Destinations = []*topology.Destination{
 					upstream,
 				}
 			},

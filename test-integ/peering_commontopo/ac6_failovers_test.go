@@ -346,8 +346,8 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		nearClu.Datacenter,
 		clientSID,
 		func(s *topology.Service) {
-			// Upstream per partition
-			s.Upstreams = []*topology.Upstream{
+			// Destination per partition
+			s.Destinations = []*topology.Destination{
 				{
 					ID: topology.ServiceID{
 						Name:      nearServerSID.Name,
@@ -436,8 +436,8 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 	require.Len(t, svcs, 1, "expected exactly one client in datacenter")
 
 	client := svcs[0]
-	require.Len(t, client.Upstreams, 1, "expected one upstream for client")
-	upstream := client.Upstreams[0]
+	require.Len(t, client.Destinations, 1, "expected one upstream for client")
+	upstream := client.Destinations[0]
 
 	fmt.Println("### preconditions")
 

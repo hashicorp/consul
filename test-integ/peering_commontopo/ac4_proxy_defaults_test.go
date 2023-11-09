@@ -24,7 +24,7 @@ type ac4ProxyDefaultsSuite struct {
 
 	serverSID topology.ServiceID
 	clientSID topology.ServiceID
-	upstream  *topology.Upstream
+	upstream  *topology.Destination
 }
 
 var ac4ProxyDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -54,7 +54,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Partition: partition,
 	}
 	// Define server as upstream for client
-	upstream := &topology.Upstream{
+	upstream := &topology.Destination{
 		ID:        serverSID,
 		LocalPort: 5000,
 		Peer:      peer,
@@ -70,7 +70,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 			clu.Datacenter,
 			clientSID,
 			func(s *topology.Service) {
-				s.Upstreams = []*topology.Upstream{
+				s.Destinations = []*topology.Destination{
 					upstream,
 				}
 			},
@@ -165,11 +165,11 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 		dcSvcs := dc.ServicesByID(s.clientSID)
 		require.Len(t, dcSvcs, 1, "expected exactly one client")
 		client = dcSvcs[0]
-		require.Len(t, client.Upstreams, 1, "expected exactly one upstream for client")
+		require.Len(t, client.Destinations, 1, "expected exactly one upstream for client")
 
 		server := dc.ServicesByID(s.serverSID)
 		require.Len(t, server, 1, "expected exactly one server")
-		require.Len(t, server[0].Upstreams, 0, "expected no upstream for server")
+		require.Len(t, server[0].Destinations, 0, "expected no upstream for server")
 	})
 
 	t.Run("peered upstream exists in catalog", func(t *testing.T) {

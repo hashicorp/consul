@@ -27,7 +27,7 @@ type suiteRotateGW struct {
 	sidClient  topology.ServiceID
 	nodeClient topology.NodeID
 
-	upstream *topology.Upstream
+	upstream *topology.Destination
 
 	newMGWNodeName string
 }
@@ -70,7 +70,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	)
 
 	// Make clients which have server upstreams
-	upstream := &topology.Upstream{
+	upstream := &topology.Destination{
 		ID: topology.ServiceID{
 			Name:      server.ID.Name,
 			Partition: partition,
@@ -88,7 +88,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 			Partition: partition,
 		},
 		func(s *topology.Service) {
-			s.Upstreams = []*topology.Upstream{
+			s.Destinations = []*topology.Destination{
 				upstream,
 			}
 		},

@@ -27,7 +27,7 @@ import (
 //  1. The test spins up a one-server cluster with static-server and static-client.
 //  2. A snapshot is taken and the cluster is restored from the snapshot
 //  3. A new static-server replaces the old one
-//  4. At the end, we assert the static-client's upstream is updated with the
+//  4. At the end, we assert the static-client's destination is updated with the
 //     new static-server
 func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	t.Parallel()
@@ -88,7 +88,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 									"-http-port", "8080",
 									"-redirect-port", "-disabled",
 								},
-								Upstreams: []*topology.Upstream{
+								Destinations: []*topology.Destination{
 									{
 										ID:        staticServerSID,
 										LocalPort: 5000,

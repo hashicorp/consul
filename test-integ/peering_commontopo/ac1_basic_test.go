@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
-
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
 type ac1BasicSuite struct {
@@ -31,8 +30,8 @@ type ac1BasicSuite struct {
 	sidClientHTTP  topology.ServiceID
 	nodeClientHTTP topology.NodeID
 
-	upstreamHTTP *topology.Upstream
-	upstreamTCP  *topology.Upstream
+	upstreamHTTP *topology.Destination
+	upstreamTCP  *topology.Destination
 }
 
 var ac1BasicSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -66,7 +65,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		Name:      prefix + "server-http",
 		Partition: partition,
 	}
-	upstreamHTTP := &topology.Upstream{
+	upstreamHTTP := &topology.Destination{
 		ID: topology.ServiceID{
 			Name:      httpServerSID.Name,
 			Partition: partition,
@@ -74,7 +73,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		LocalPort: 5001,
 		Peer:      peer,
 	}
-	upstreamTCP := &topology.Upstream{
+	upstreamTCP := &topology.Destination{
 		ID: topology.ServiceID{
 			Name:      tcpServerSID.Name,
 			Partition: partition,
@@ -94,7 +93,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 				clu.Datacenter,
 				sid,
 				func(s *topology.Service) {
-					s.Upstreams = []*topology.Upstream{
+					s.Destinations = []*topology.Destination{
 						upstreamTCP,
 						upstreamHTTP,
 					}
