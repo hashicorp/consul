@@ -1822,10 +1822,6 @@
         "path": "enterprise/admin-partitions"
       },
       {
-        "title": "Enterprise to CE Downgrade",
-        "path": "enterprise/ent-to-ce-downgrades"
-      },
-      {
         "title": "Audit Logging",
         "path": "enterprise/audit-logging"
       },
@@ -1894,6 +1890,10 @@
             "path": "enterprise/license/faq"
           }
         ]
+      },
+      {
+        "title": "Enterprise to CE Downgrade",
+        "path": "enterprise/ent-to-ce-downgrades"
       }
     ]
   },
