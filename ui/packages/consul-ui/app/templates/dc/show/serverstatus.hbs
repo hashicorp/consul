@@ -222,15 +222,17 @@ as |item|}}
       {{#if certs.data}}
           {{#let certs.data as |certs|}}
             {{#each certs as |cert index|}}
-                <Hds::Toast
-                  @color='warning'
-                  {{notification sticky=true retainPrevMsgs=index}}
-                  as |T|>
-                  <T.Title>Warning!</T.Title>
-                  <T.Description>
-                    {{cert.Certificate}} expires in {{cert.ExpiresInDays}} Days.
-                  </T.Description>
-                </Hds::Toast>
+                {{#if (lt cert.ExpiresInDays 29)}}
+                  <Hds::Toast
+                    @color='warning'
+                    {{notification sticky=true retainPrevMsgs=index}}
+                    as |T|>
+                    <T.Title>Warning!</T.Title>
+                    <T.Description>
+                      {{cert.Certificate}} expires in {{cert.ExpiresInDays}} Days.
+                    </T.Description>
+                  </Hds::Toast>
+                {{/if}}
             {{/each}}
           {{/let}}
       {{/if}}
