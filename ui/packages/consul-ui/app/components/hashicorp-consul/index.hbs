@@ -59,6 +59,8 @@
                       @item={{flash.item}}
                       @error={{flash.error}}
                     />
+                  {{else if (eq flash.model 'certificate')}}
+                    {{flash.item.Certificate}} expires in {{flash.item.ExpiresInDays}} Days.
                   {{/if}}
                 {{/if}}
               </T.Description>

@@ -16,6 +16,8 @@ export default class BaseRoute extends Route {
   @service('repository/permission') permissions;
   @service('router') router;
   @service('routlet') routlet;
+  @service('flashMessages') notify;
+  @service store;
 
   _setRouteName() {
     super._setRouteName(...arguments);
@@ -29,6 +31,23 @@ export default class BaseRoute extends Route {
     if (typeof queryParams !== 'undefined') {
       this.queryParams = queryParams;
     }
+  }
+
+  @action
+  didTransition() {
+    this.notify.clearMessages();
+    const certs = this.store.peekAll('certificate').toArray();
+    for (const cert of certs) {
+      if (cert.ExpiresInDays < 29) {
+        this.notify.add({
+          type: 'warning',
+          sticky: true,
+          model: 'certificate',
+          item: cert,
+        });
+      }
+    }
+    return true;
   }
 
   redirect(model, transition) {

@@ -217,26 +217,6 @@ as |item|}}
 
       </div>
     </BlockSlot>
-
-    <DataSource @src={{uri '/*/*/*/certificates-cache'}} as |certs|>
-      {{#if certs.data}}
-          {{#let certs.data as |certs|}}
-            {{#each certs as |cert index|}}
-                {{#if (lt cert.ExpiresInDays 29)}}
-                  <Hds::Toast
-                    @color='warning'
-                    {{notification sticky=true retainPrevMsgs=index}}
-                    as |T|>
-                    <T.Title>Warning!</T.Title>
-                    <T.Description>
-                      {{cert.Certificate}} expires in {{cert.ExpiresInDays}} Days.
-                    </T.Description>
-                  </Hds::Toast>
-                {{/if}}
-            {{/each}}
-          {{/let}}
-      {{/if}}
-    </DataSource>
 {{/let}}
   </DataLoader>
 </Route>
