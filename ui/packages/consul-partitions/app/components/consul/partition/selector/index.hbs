@@ -14,16 +14,22 @@
     @src={{uri "/*/*/${dc}/partitions" (hash dc=@dc.Name)}}
     @onchange={{fn (optional @onchange)}}
   />
-  <SNL.Title class="consul-side-nav__selector-title">{{t "components.hashicorp-consul.side-nav.partitions.title"}}</SNL.Title>
+  <SNL.Title class="consul-side-nav__selector-title">{{t
+      "components.hashicorp-consul.side-nav.partitions.title"
+    }}</SNL.Title>
   <NavSelector
     @list={{@list}}
     @items={{sort-by "Name:asc" (reject-by "DeletedAt" @partitions)}}
     @item={{partition}}
     @key="Name"
     @icon="users"
-    @placeholder={{t "components.hashicorp-consul.side-nav.partitions.placeholder"}}
+    @placeholder={{t
+      "components.hashicorp-consul.side-nav.partitions.placeholder"
+    }}
     @footerLink={{href-to "dc.partitions" @dc.Name}}
-    @footerLinkText={{t "components.hashicorp-consul.side-nav.partitions.footer"}}
+    @footerLinkText={{t
+      "components.hashicorp-consul.side-nav.partitions.footer"
+    }}
     @disabled={{not canChoose}}
     data-test-datacenter-disclosure-menu
     as |Dropdown item|
@@ -34,13 +40,9 @@
         @href={{if
           item.href
           item.href
-          (if
-            isManaging
-            (href-to
-              "dc.services.index"
-              params=(hash partition=item.Name nspace=undefined dc=@dc.Name)
-            )
-            (href-to "." params=(hash partition=item.Name nspace=undefined))
+          (href-to
+            "dc.services.index"
+            params=(hash partition=item.Name nspace=undefined peer=undefined dc=@dc.Name)
           )
         }}
         @isHrefExternal={{false}}
