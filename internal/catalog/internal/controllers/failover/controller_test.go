@@ -77,7 +77,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), failover.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(failover.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingService)
 
@@ -94,7 +94,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
@@ -120,7 +120,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownPort("admin"))
 
@@ -143,7 +143,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUsingMeshDestinationPort(apiServiceRef, "admin"))
 
@@ -166,7 +166,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
@@ -192,7 +192,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionMissingDestinationService(otherServiceRef))
 
@@ -209,7 +209,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "admin"))
 
@@ -232,7 +232,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 
@@ -255,7 +255,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		otherServiceData = &pbcatalog.Service{
 			Workloads: &pbcatalog.WorkloadSelector{Prefixes: []string{"other-"}},
@@ -275,7 +275,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		failoverData = &pbcatalog.FailoverPolicy{
 			Config: &pbcatalog.FailoverConfig{
@@ -289,7 +289,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), failover.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(failover.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionUnknownDestinationPort(otherServiceRef, "bar"))
 
@@ -308,7 +308,7 @@ func (suite *controllerSuite) TestController() {
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client)
 
-		defer suite.client.MustDelete(suite.T(), svc.Id)
+		suite.T().Cleanup(suite.deleteResourceFunc(svc.Id))
 
 		suite.client.WaitForStatusCondition(suite.T(), failover.Id, StatusKey, ConditionOK)
 	})
@@ -328,4 +328,10 @@ func (suite *controllerSuite) runTestCaseWithTenancies(testCase func(tenancy *pb
 
 func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
+}
+
+func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
+	return func() {
+		suite.client.MustDelete(suite.T(), id)
+	}
 }
