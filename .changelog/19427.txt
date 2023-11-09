@@ -1,4 +1,4 @@
 ```release-note:feature
-ui: Display flash message notification in UI, when any of the certificates - TLS Certificate, CA Root Certificate,
+ui: Displays flash message notification in UI, when any of the certificates - TLS Certificate, CA Root Certificate,
 Signing CA certificate is/are about to expire within 28Days.
 ```
