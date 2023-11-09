@@ -161,7 +161,7 @@ function lint_install {
     install_versioned_tool \
         'gci' \
         'github.com/daixiang0/gci' \
-        'v0.10.1' \
+        'v0.11.2' \
         'github.com/daixiang0/gci'
 }
 
