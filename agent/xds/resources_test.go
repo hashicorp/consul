@@ -193,239 +193,9 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: true,
 		},
 		{
-			name: "connect-proxy-with-chain",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", false, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", false, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-chain-and-failover",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-exported-to-peers",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This test is only concerned about the SPIFFE cert validator config in the public listener
-					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
-					ns.Proxy.Upstreams = structs.Upstreams{}
-				}, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "peering-trust-bundles",
-						Result:        proxycfg.TestPeerTrustBundles(t),
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "transparent-proxy",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxy(t)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name:   "connect-proxy-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeering,
-			// TODO(proxystate): peering will come at a later date.
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
-			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
-			// TODO(proxystate): peering will come at a later date.
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "connect-proxy-with-peered-upstreams-http2",
-			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
-			// TODO(proxystate): peering will come at a later date.
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "transparent-proxy-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeeringTProxy,
-			// TODO(proxystate): peering will come at a later date.
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "local-mesh-gateway-with-peered-upstreams",
-			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
-			// TODO(proxystate): mesh gateways and peering will come at a later date.
-			alsoRunTestForV2: false,
-		},
-		{
 			name:             "telemetry-collector",
 			create:           proxycfg.TestConfigSnapshotTelemetryCollector,
 			alsoRunTestForV2: false,
-		},
-		{
-			name:             "transparent-proxy-catalog-destinations-only",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "transparent-proxy-dial-instances-directly",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-min-version-auto",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSVersionAuto,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-min-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSv1_3,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-max-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										TLSMaxVersion: types.TLSv1_2,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-outgoing-cipher-suites",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Outgoing: &structs.MeshDirectionalTLSConfig{
-										CipherSuites: []types.TLSCipherSuite{
-											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-incoming-min-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										TLSMinVersion: types.TLSv1_3,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-incoming-max-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										TLSMaxVersion: types.TLSv1_2,
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-with-tls-incoming-cipher-suites",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
-					{
-						CorrelationID: "mesh",
-						Result: &structs.ConfigEntryResponse{
-							Entry: &structs.MeshConfigEntry{
-								TLS: &structs.MeshTLSConfig{
-									Incoming: &structs.MeshDirectionalTLSConfig{
-										CipherSuites: []types.TLSCipherSuite{
-											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-										},
-									},
-								},
-							},
-						},
-					},
-				})
-			},
-			alsoRunTestForV2: true,
 		},
 		{
 			name: "grpc-public-listener",
@@ -583,87 +353,6 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 			},
 			alsoRunTestForV2: true,
 		},
-		{
-			name: "transparent-proxy-http-upstream",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "transparent-proxy-with-resolver-redirect-upstream",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
-			alsoRunTestForV2: true,
-		},
-		{
-			name:             "transparent-proxy-terminating-gateway",
-			create:           proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "access-logs-defaults",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This should be passed into the snapshot through proxy-defaults
-					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
-						Enabled: true,
-					}
-				},
-					nil)
-			},
-		},
-		{
-			name: "access-logs-json-file",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This should be passed into the snapshot through proxy-defaults
-					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
-						Enabled:    true,
-						Type:       structs.FileLogSinkType,
-						Path:       "/tmp/accesslog.txt",
-						JSONFormat: "{ \"custom_start_time\": \"%START_TIME%\" }",
-					}
-				},
-					nil)
-			},
-		},
-		{
-			name: "access-logs-text-stderr-disablelistenerlogs",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					// This should be passed into the snapshot through proxy-defaults
-					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
-						Enabled:             true,
-						DisableListenerLogs: true,
-						Type:                structs.StdErrLogSinkType,
-						TextFormat:          "CUSTOM FORMAT %START_TIME%",
-					}
-				},
-					nil)
-			},
-		},
-		{
-			name: "connect-proxy-with-tproxy-and-permissive-mtls",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
-					ns.Proxy.Mode = structs.ProxyModeTransparent
-					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
-				},
-					nil)
-			},
-			alsoRunTestForV2: true,
-		},
-		{
-			name: "connect-proxy-without-tproxy-and-permissive-mtls",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
-					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
-				},
-					nil)
-			},
-			alsoRunTestForV2: true,
-		},
 	}
 	tests = append(tests, getConnectProxyDiscoChainTests(false)...)
 	tests = append(tests, getConnectProxyTransparentProxyGoldenTestCases()...)
@@ -677,6 +366,9 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 	tests = append(tests, getConnectProxyJWTProviderGoldenTestCases()...)
 	tests = append(tests, getTerminatingGatewayPeeringGoldenTestCases()...)
 	tests = append(tests, getIngressGatewayGoldenTestCases()...)
+	tests = append(tests, getAccessLogsGoldenTestCases()...)
+	tests = append(tests, getTLSGoldenTestCases()...)
+	tests = append(tests, getPeeredGoldenTestCases()...)
 
 	latestEnvoyVersion := xdscommon.EnvoyVersions[0]
 	for _, envoyVersion := range xdscommon.EnvoyVersions {
@@ -694,6 +386,40 @@ func TestAllResourcesFromSnapshot(t *testing.T) {
 
 func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 	return []goldenTestCase{
+		{
+			name: "transparent-proxy",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxy(t)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name:             "transparent-proxy-catalog-destinations-only",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyCatalogDestinationsOnly,
+			alsoRunTestForV2: true,
+		},
+		{
+			name:             "transparent-proxy-dial-instances-directly",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyDialDirectly,
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "transparent-proxy-http-upstream",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name:             "transparent-proxy-with-resolver-redirect-upstream",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyResolverRedirectUpstream,
+			alsoRunTestForV2: true,
+		},
+		{
+			name:             "transparent-proxy-terminating-gateway",
+			create:           proxycfg.TestConfigSnapshotTransparentProxyTerminatingGatewayCatalogDestinationsOnly,
+			alsoRunTestForV2: true,
+		},
 		{
 			name:   "transparent-proxy-destination",
 			create: proxycfg.TestConfigSnapshotTransparentProxyDestination,
@@ -721,6 +447,43 @@ func getConnectProxyTransparentProxyGoldenTestCases() []goldenTestCase {
 
 func getConnectProxyDiscoChainTests(enterprise bool) []goldenTestCase {
 	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-chain",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", false, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-external-sni",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "external-sni", false, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-chain-and-failover",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "failover", false, nil, nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-exported-to-peers",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This test is only concerned about the SPIFFE cert validator config in the public listener
+					// so we empty out the upstreams to avoid generating unnecessary upstream listeners.
+					ns.Proxy.Upstreams = structs.Upstreams{}
+				}, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "peering-trust-bundles",
+						Result:        proxycfg.TestPeerTrustBundles(t),
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
 		{
 			name: "custom-upstream-default-chain",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
@@ -3162,6 +2925,261 @@ func getIngressGatewayGoldenTestCases() []goldenTestCase {
 				}, nil, nil)
 			},
 			// TODO(proxystate): ingress gateway will come at a later time
+			alsoRunTestForV2: false,
+		},
+	}
+}
+
+func getAccessLogsGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "access-logs-defaults",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled: true,
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-json-file",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:    true,
+						Type:       structs.FileLogSinkType,
+						Path:       "/tmp/accesslog.txt",
+						JSONFormat: "{ \"custom_start_time\": \"%START_TIME%\" }",
+					}
+				},
+					nil)
+			},
+		},
+		{
+			name: "access-logs-text-stderr-disablelistenerlogs",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					// This should be passed into the snapshot through proxy-defaults
+					ns.Proxy.AccessLogs = structs.AccessLogsConfig{
+						Enabled:             true,
+						DisableListenerLogs: true,
+						Type:                structs.StdErrLogSinkType,
+						TextFormat:          "CUSTOM FORMAT %START_TIME%",
+					}
+				},
+					nil)
+			},
+		},
+	}
+}
+
+func getTLSGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name: "connect-proxy-with-tls-outgoing-min-version-auto",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSVersionAuto,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-min-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSv1_3,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-max-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										TLSMaxVersion: types.TLSv1_2,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-outgoing-cipher-suites",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Outgoing: &structs.MeshDirectionalTLSConfig{
+										CipherSuites: []types.TLSCipherSuite{
+											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-incoming-min-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSv1_3,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-incoming-max-version",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										TLSMaxVersion: types.TLSv1_2,
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tls-incoming-cipher-suites",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										CipherSuites: []types.TLSCipherSuite{
+											types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+											types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+										},
+									},
+								},
+							},
+						},
+					},
+				})
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-with-tproxy-and-permissive-mtls",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+					ns.Proxy.Mode = structs.ProxyModeTransparent
+					ns.Proxy.TransparentProxy.OutboundListenerPort = 1234
+				},
+					nil)
+			},
+			alsoRunTestForV2: true,
+		},
+		{
+			name: "connect-proxy-without-tproxy-and-permissive-mtls",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshot(t, func(ns *structs.NodeService) {
+					ns.Proxy.MutualTLSMode = structs.MutualTLSModePermissive
+				},
+					nil)
+			},
+			alsoRunTestForV2: true,
+		},
+	}
+}
+
+func getPeeredGoldenTestCases() []goldenTestCase {
+	return []goldenTestCase{
+		{
+			name:   "connect-proxy-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeering,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "connect-proxy-with-peered-upstreams-escape-overrides",
+			create: proxycfg.TestConfigSnapshotPeeringWithEscapeOverrides,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "connect-proxy-with-peered-upstreams-http2",
+			create: proxycfg.TestConfigSnapshotPeeringWithHTTP2,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "transparent-proxy-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringTProxy,
+			// TODO(proxystate): peering will come at a later date.
+			alsoRunTestForV2: false,
+		},
+		{
+			name:   "local-mesh-gateway-with-peered-upstreams",
+			create: proxycfg.TestConfigSnapshotPeeringLocalMeshGateway,
+			// TODO(proxystate): mesh gateways and peering will come at a later date.
 			alsoRunTestForV2: false,
 		},
 	}
