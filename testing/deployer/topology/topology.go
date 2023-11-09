@@ -410,19 +410,11 @@ func (c *Cluster) SortedNodes() []*Node {
 	return out
 }
 
-func (c *Cluster) FindService(id NodeServiceID) *Service {
-	id.Normalize()
-
-	nid := id.NodeID()
-	sid := id.ServiceID()
-	return c.ServiceByID(nid, sid)
+func (c *Cluster) WorkloadByID(nid NodeID, sid ServiceID) *Workload {
+	return c.NodeByID(nid).WorkloadByID(sid)
 }
 
-func (c *Cluster) ServiceByID(nid NodeID, sid ServiceID) *Service {
-	return c.NodeByID(nid).ServiceByID(sid)
-}
-
-func (c *Cluster) ServicesByID(sid ServiceID) []*Service {
+func (c *Cluster) WorkloadsByID(sid ServiceID) []*Workload {
 	sid.Normalize()
 
 	var out []*Service
@@ -714,7 +706,7 @@ func (n *Node) DigestExposedPorts(ports map[int]int) bool {
 	return true
 }
 
-func (n *Node) ServiceByID(sid ServiceID) *Service {
+func (n *Node) WorkloadByID(sid ServiceID) *Service {
 	sid.Normalize()
 	for _, svc := range n.Workloads {
 		if svc.ID == sid {
@@ -756,7 +748,7 @@ type Port struct {
 }
 
 // TODO(rb): really this should now be called "workload" or "instance"
-type Service struct {
+type Workload struct {
 	ID    ServiceID
 	Image string
 
@@ -816,7 +808,8 @@ type Service struct {
 	Workload    string      `json:"-"`
 }
 
-func (s *Service) ExposedPort(name string) int {
+func (w *Workload) ExposedPort(name string) int {
+	s := w // TODO
 	if s.Node == nil {
 		panic("ExposedPort cannot be called until after Compile")
 	}
@@ -835,26 +828,27 @@ func (s *Service) ExposedPort(name string) int {
 	return s.Node.ExposedPort(internalPort)
 }
 
-func (s *Service) PortOrDefault(name string) int {
-	if len(s.Ports) > 0 {
-		return s.Ports[name].Number
+func (w *Workload) PortOrDefault(name string) int {
+	if len(w.Ports) > 0 {
+		return w.Ports[name].Number
 	}
-	return s.Port
+	return w.Port
 }
 
-func (s *Service) IsV2() bool {
-	return s.NodeVersion == NodeVersionV2
+func (w *Workload) IsV2() bool {
+	return w.NodeVersion == NodeVersionV2
 }
 
-func (s *Service) IsV1() bool {
-	return !s.IsV2()
+func (w *Workload) IsV1() bool {
+	return !w.IsV2()
 }
 
-func (s *Service) inheritFromExisting(existing *Service) {
-	s.ExposedEnvoyAdminPort = existing.ExposedEnvoyAdminPort
+func (w *Workload) inheritFromExisting(existing *Service) {
+	w.ExposedEnvoyAdminPort = existing.ExposedEnvoyAdminPort
 }
 
-func (s *Service) ports() []int {
+func (w *Workload) ports() []int {
+	s := w // TODO
 	var out []int
 	if len(s.Ports) > 0 {
 		seen := make(map[int]struct{})
@@ -882,19 +876,20 @@ func (s *Service) ports() []int {
 	return out
 }
 
-func (s *Service) HasCheck() bool {
-	return s.CheckTCP != "" || s.CheckHTTP != ""
+func (w *Workload) HasCheck() bool {
+	return w.CheckTCP != "" || w.CheckHTTP != ""
 }
 
-func (s *Service) DigestExposedPorts(ports map[int]int) {
-	if s.EnvoyAdminPort > 0 {
-		s.ExposedEnvoyAdminPort = ports[s.EnvoyAdminPort]
+func (w *Workload) DigestExposedPorts(ports map[int]int) {
+	if w.EnvoyAdminPort > 0 {
+		w.ExposedEnvoyAdminPort = ports[w.EnvoyAdminPort]
 	} else {
-		s.ExposedEnvoyAdminPort = 0
+		w.ExposedEnvoyAdminPort = 0
 	}
 }
 
-func (s *Service) Validate() error {
+func (w *Workload) Validate() error {
+	s := w // TODO
 	if s.ID.Name == "" {
 		return fmt.Errorf("service name is required")
 	}
