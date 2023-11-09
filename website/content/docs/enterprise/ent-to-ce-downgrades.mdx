@@ -93,7 +93,7 @@ During the downgrade as the raft replication logs start flowing into the ce serv
 
 - Drop the request
 
-   For example :-
+   For example :
    - Register requests - register requests having non default namespace, having services or health checks in non default namespace or partition are dropped.
 
    - Peering Write Requests - peering write requests are dropped if the local partiton connecting to the peer is non default. 
