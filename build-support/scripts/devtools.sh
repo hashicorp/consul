@@ -144,6 +144,9 @@ function lint_install {
     local golangci_lint_version
     golangci_lint_version="$(make --no-print-directory print-GOLANGCI_LINT_VERSION)"
 
+    local gci_version
+    gci_version="$(make --no-print-directory print-GCI_VERSION)"
+
     install_unversioned_tool \
         'lint-consul-retry' \
         'github.com/hashicorp/lint-consul-retry@master'
@@ -161,7 +164,7 @@ function lint_install {
     install_versioned_tool \
         'gci' \
         'github.com/daixiang0/gci' \
-        'v0.11.2' \
+        "${gci_version}" \
         'github.com/daixiang0/gci'
 }
 
