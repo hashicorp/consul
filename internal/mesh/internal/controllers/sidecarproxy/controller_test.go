@@ -152,120 +152,115 @@ func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tena
 			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 		},
 	}
+	// DB will be a service with a single workload, IN the mesh that will
+	// be a destination of web.
 
-	for _, tenancy := range suite.tenancies {
-		// DB will be a service with a single workload, IN the mesh that will
-		// be a destination of web.
+	suite.dbWorkloadID = resourcetest.Resource(pbcatalog.WorkloadType, "db-abc").
+		WithData(suite.T(), suite.dbWorkload).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client.ResourceServiceClient).Id
 
-		tenancyString := resourcetest.ToTenancyString(tenancy)
+	suite.dbService = resourcetest.Resource(pbcatalog.ServiceType, "db-service").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"db-abc"}},
+			VirtualIps: []string{"1.1.1.1"},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			}}).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client)
 
-		suite.dbWorkloadID[tenancyString] = resourcetest.Resource(pbcatalog.WorkloadType, "db-abc").
-			WithData(suite.T(), suite.dbWorkload).
-			WithTenancy(tenancy).
-			Write(suite.T(), resourceClient).Id
-
-		suite.dbService[tenancyString] = resourcetest.Resource(pbcatalog.ServiceType, "db-service").
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"db-abc"}},
-				VirtualIps: []string{"1.1.1.1"},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-				}}).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client)
-
-		suite.dbEndpointsData[tenancyString] = &pbcatalog.ServiceEndpoints{
-			Endpoints: []*pbcatalog.Endpoint{
-				{
-					TargetRef: suite.dbWorkloadID[tenancyString],
-					Addresses: suite.dbWorkload.Addresses,
-					Ports:     suite.dbWorkload.Ports,
-					Identity:  "db-identity",
-				},
+	suite.dbEndpointsData = &pbcatalog.ServiceEndpoints{
+		Endpoints: []*pbcatalog.Endpoint{
+			{
+				TargetRef: suite.dbWorkloadID,
+				Addresses: suite.dbWorkload.Addresses,
+				Ports:     suite.dbWorkload.Ports,
+				Identity:  "db-identity",
 			},
-		}
-
-		suite.dbEndpoints[tenancyString] = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "db-service").
-			WithData(suite.T(), suite.dbEndpointsData[tenancyString]).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client)
-
-		suite.apiWorkloadID[tenancyString] = resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
-			WithTenancy(tenancy).
-			WithData(suite.T(), suite.apiWorkload).
-			Write(suite.T(), resourceClient).Id
-
-		suite.apiComputedTrafficPermissions[tenancyString] = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-			WithData(suite.T(), suite.apiComputedTrafficPermissionsData).
-			WithTenancy(tenancy).
-			Write(suite.T(), resourceClient)
-
-		suite.apiService[tenancyString] = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
-			WithData(suite.T(), suite.apiServiceData).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client.ResourceServiceClient)
-
-		suite.apiEndpointsData[tenancyString] = &pbcatalog.ServiceEndpoints{
-			Endpoints: []*pbcatalog.Endpoint{
-				{
-					TargetRef: suite.apiWorkloadID[tenancyString],
-					Addresses: suite.apiWorkload.Addresses,
-					Ports:     suite.apiWorkload.Ports,
-					Identity:  "api-identity",
-				},
-			},
-		}
-
-		suite.apiEndpoints[tenancyString] = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
-			WithData(suite.T(), suite.apiEndpointsData[tenancyString]).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client.ResourceServiceClient)
-
-		suite.webWorkload[tenancyString] = resourcetest.Resource(pbcatalog.WorkloadType, "web-def").
-			WithData(suite.T(), webWorkloadData).
-			WithTenancy(tenancy).
-			Write(suite.T(), suite.client)
-
-		resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, webWorkloadData.Identity).
-			WithData(suite.T(), &pbauth.ComputedTrafficPermissions{IsDefault: true}).
-			WithTenancy(tenancy).
-			Write(suite.T(), resourceClient)
-
-		resourcetest.Resource(pbcatalog.ServiceType, "web").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-					{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-				}}).
-			Write(suite.T(), suite.client)
-
-		resourcetest.Resource(pbcatalog.ServiceEndpointsType, "web").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.ServiceEndpoints{
-				Endpoints: []*pbcatalog.Endpoint{
-					{
-						TargetRef: suite.webWorkload[tenancyString].Id,
-						Addresses: webWorkloadData.Addresses,
-						Ports:     webWorkloadData.Ports,
-						Identity:  "web-identity",
-					},
-				},
-			}).Write(suite.T(), suite.client)
-
-		identityRef := &pbresource.Reference{
-			Name:    suite.apiWorkload.Identity,
-			Tenancy: suite.apiWorkloadID[tenancyString].Tenancy,
-			Type:    pbauth.WorkloadIdentityType,
-		}
-
-		suite.proxyStateTemplate[tenancyString] = builder.New(resource.ReplaceType(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID[tenancyString]),
-			identityRef, "test.consul", "dc1", false, nil).
-			BuildLocalApp(suite.apiWorkload, suite.apiComputedTrafficPermissionsData).
-			Build()
+		},
 	}
+
+	suite.dbEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "db-service").
+		WithData(suite.T(), suite.dbEndpointsData).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client)
+
+	suite.apiWorkloadID = resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
+		WithTenancy(tenancy).
+		WithData(suite.T(), suite.apiWorkload).
+		Write(suite.T(), suite.client.ResourceServiceClient).Id
+
+	suite.apiComputedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+		WithData(suite.T(), suite.apiComputedTrafficPermissionsData).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client.ResourceServiceClient)
+
+	suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
+		WithData(suite.T(), suite.apiServiceData).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client.ResourceServiceClient)
+
+	suite.apiEndpointsData = &pbcatalog.ServiceEndpoints{
+		Endpoints: []*pbcatalog.Endpoint{
+			{
+				TargetRef: suite.apiWorkloadID,
+				Addresses: suite.apiWorkload.Addresses,
+				Ports:     suite.apiWorkload.Ports,
+				Identity:  "api-identity",
+			},
+		},
+	}
+
+	suite.apiEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
+		WithData(suite.T(), suite.apiEndpointsData).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client.ResourceServiceClient)
+
+	suite.webWorkload = resourcetest.Resource(pbcatalog.WorkloadType, "web-def").
+		WithData(suite.T(), webWorkloadData).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client)
+
+	resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, webWorkloadData.Identity).
+		WithData(suite.T(), &pbauth.ComputedTrafficPermissions{IsDefault: true}).
+		WithTenancy(tenancy).
+		Write(suite.T(), suite.client.ResourceServiceClient)
+
+	resourcetest.Resource(pbcatalog.ServiceType, "web").
+		WithTenancy(tenancy).
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{Names: []string{"web-def"}},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			}}).
+		Write(suite.T(), suite.client)
+
+	resourcetest.Resource(pbcatalog.ServiceEndpointsType, "web").
+		WithTenancy(tenancy).
+		WithData(suite.T(), &pbcatalog.ServiceEndpoints{
+			Endpoints: []*pbcatalog.Endpoint{
+				{
+					TargetRef: suite.webWorkload.Id,
+					Addresses: webWorkloadData.Addresses,
+					Ports:     webWorkloadData.Ports,
+					Identity:  "web-identity",
+				},
+			},
+		}).Write(suite.T(), suite.client)
+
+	identityRef := &pbresource.Reference{
+		Name:    suite.apiWorkload.Identity,
+		Tenancy: suite.apiWorkloadID.Tenancy,
+		Type:    pbauth.WorkloadIdentityType,
+	}
+
+	suite.proxyStateTemplate = builder.New(resource.ReplaceType(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID),
+		identityRef, "test.consul", "dc1", false, nil).
+		BuildLocalApp(suite.apiWorkload, suite.apiComputedTrafficPermissionsData).
+		Build()
 }
 
 func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoServicesInCache() {
@@ -553,22 +548,22 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpd
 }
 
 func (suite *controllerTestSuite) TestController() {
+	mgr := controller.NewManager(suite.client, suite.runtime.Logger)
+
+	// Initialize controller dependencies.
+	c := cache.New()
+	trustDomainFetcher := func() (string, error) { return "test.consul", nil }
+
+	mgr.Register(Controller(c, trustDomainFetcher, "dc1", false))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This is a comprehensive test that checks the overall controller behavior as various resources change state.
 		// This should test interactions between the reconciler, the mappers, and the destinationsCache to ensure they work
 		// together and produce expected result.
 
 		// Run the controller manager
-		mgr := controller.NewManager(suite.client, suite.runtime.Logger)
-
-		// Initialize controller dependencies.
-		c := cache.New()
-		trustDomainFetcher := func() (string, error) { return "test.consul", nil }
-
-		mgr.Register(Controller(c, trustDomainFetcher, "dc1", false))
-		mgr.SetRaftLeader(true)
-		go mgr.Run(suite.ctx)
-
 		var (
 			// Create proxy state template IDs to check against in this test.
 			apiProxyStateTemplateID = resourcetest.ResourceWithTenancy(pbmesh.ProxyStateTemplateType, "api-abc", tenancy).ID()
@@ -995,61 +990,24 @@ func (suite *controllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy)
 
 func (suite *controllerTestSuite) cleanupResources() {
 
-	req := &pbresource.DeleteRequest{
-		Id: suite.apiWorkloadID,
-	}
-	_, err := suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.apiComputedTrafficPermissions.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.apiService.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.apiEndpoints.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.webWorkload.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.dbWorkloadID,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.dbService.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
-
-	req = &pbresource.DeleteRequest{
-		Id: suite.dbEndpoints.Id,
-	}
-	_, err = suite.client.ResourceServiceClient.Delete(context.Background(), req)
-	require.NoError(suite.T(), err)
+	suite.client.MustDelete(suite.T(), suite.apiWorkloadID)
+	suite.client.MustDelete(suite.T(), suite.apiComputedTrafficPermissions.Id)
+	suite.client.MustDelete(suite.T(), suite.apiService.Id)
+	suite.client.MustDelete(suite.T(), suite.apiEndpoints.Id)
+	suite.client.MustDelete(suite.T(), suite.webWorkload.Id)
+	suite.client.MustDelete(suite.T(), suite.dbWorkloadID)
+	suite.client.MustDelete(suite.T(), suite.dbService.Id)
+	suite.client.MustDelete(suite.T(), suite.dbEndpoints.Id)
 }
 
 func (suite *controllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Tenancy)) {
 	for _, tenancy := range suite.tenancies {
-		suite.setupSuiteWithTenancy(tenancy)
 		suite.Run(suite.appendTenancyInfo(tenancy), func() {
+			suite.setupSuiteWithTenancy(tenancy)
+			suite.T().Cleanup(func() {
+				suite.cleanupResources()
+			})
 			t(tenancy)
 		})
-		suite.cleanupResources()
 	}
 }
