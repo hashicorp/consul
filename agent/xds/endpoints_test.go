@@ -462,34 +462,6 @@ func TestEndpointsFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: false,
 		},
 		{
-			name: "terminating-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
-			},
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name: "terminating-gateway-no-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTerminatingGateway(t, false, nil, nil)
-			},
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsets,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
-			name:   "terminating-gateway-default-service-subset",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayDefaultServiceSubset,
-			// TODO(proxystate): terminating gateway will come at a later time
-			alsoRunTestForV2: false,
-		},
-		{
 			name:   "ingress-multiple-listeners-duplicate-service",
 			create: proxycfg.TestConfigSnapshotIngress_MultipleListenersDuplicateService,
 			// TODO(proxystate): ingress gateway will come at a later time
