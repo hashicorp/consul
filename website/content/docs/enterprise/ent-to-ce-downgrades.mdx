@@ -89,13 +89,22 @@ This change will give you more information to work with in the event something g
 
 ## What happens during the downgrade
 
-During the downgrade as the raft replication logs start flowing into the ce server we either drop certain requests or filter certain data with reference to enterprise data.
+During the downgrade as the raft replication logs start flowing into the ce server we handle them in one of the following ways :- 
 
-For example :-
+- Drop the request
 
-Register requests - register requests having non default namespace or having services or health checks in non default namespace or partition are dropped.
+   For example :-
+   - Register requests - register requests having non default namespace, having services or health checks in non default namespace or partition are dropped.
 
-Acl Token Batch Set requests -  acl  tokens with non default namespace or partiton are filtered out.
+   - Peering Write Requests - peering write requests are dropped if the local partiton connecting to the peer is non default. 
 
+- Filter out tenanted data from the request
 
-Peering Write Requests - peering write requests are dropped if the local partiton connecting to the peer is non default.
+  For example :-
+  - Acl Token Batch Set requests -  acl  tokens with non default namespace or partiton are filtered out.
+  - Acl Policy Batch Set requests -  acl  policies with non default namespace or partiton are filtered out.
+
+- Panic and stop the downgrade
+
+  For example :-
+  - Service Splitter,Service Resolver,Service Router Config Entry requests - if these config entries have references to tenanted services it will cause a panic.
