@@ -218,7 +218,7 @@ function pre_commit_install {
 
     # Can't disappoint the linux/debian folks
     if command -v "apt" &>/dev/null; then
-        apt-get install -yq pre-commit && pre-commit install
+        sudo apt-get install -yq pre-commit && pre-commit install
         return 0
     fi
 

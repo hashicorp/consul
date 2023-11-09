@@ -11,6 +11,21 @@ repos:
     # `pre-commit run gci` to run in isolation
     -   id: my-cmd
         name: gci
+        # skip all generated go files
+        exclude: |
+            (?x)(
+                ^proto-public/|
+                ^proto/|
+                ^agent/xds/z_xds_packages\.go$|
+                ^testing/deployer/topology/default_versions\.go$|
+                \.deepcopy\.go$|
+                \.gen\.go$|
+                \.pb\.go$|
+                \.pb\.binary\.go$|
+                generated_funcs\.go$|
+                _generated_test\.go$|
+                mock_.+\.go$
+            )
         args:
         - "gci"
         - "write"
