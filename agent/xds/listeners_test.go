@@ -551,190 +551,39 @@ func TestListenersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name: "ingress-gateway",
+			name: "terminating-gateway",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil, nil, nil)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, nil)
 			},
 		},
 		{
-			name: "ingress-gateway-nil-config-entry",
+			name: "terminating-gateway-custom-trace-listener",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway_NilConfigEntry(t)
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, func(ns *structs.NodeService) {
+					ns.Proxy.Config = map[string]interface{}{}
+					ns.Proxy.Config["protocol"] = "http"
+					ns.Proxy.Config["envoy_listener_tracing_json"] = customTraceJSON(t)
+				}, nil)
 			},
 		},
 		{
-			name: "ingress-gateway-bind-addrs",
+			name: "terminating-gateway-with-tls-incoming-min-version",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", func(ns *structs.NodeService) {
-					//
-					ns.TaggedAddresses = map[string]structs.ServiceAddress{
-						"lan": {Address: "10.0.0.1"},
-						"wan": {Address: "172.16.0.1"},
-					}
-					ns.Proxy.Config = map[string]interface{}{
-						"envoy_gateway_no_default_bind":       true,
-						"envoy_gateway_bind_tagged_addresses": true,
-						"envoy_gateway_bind_addresses": map[string]structs.ServiceAddress{
-							"foo": {Address: "8.8.8.8"},
+				return proxycfg.TestConfigSnapshotTerminatingGateway(t, true, nil, []proxycfg.UpdateEvent{
+					{
+						CorrelationID: "mesh",
+						Result: &structs.ConfigEntryResponse{
+							Entry: &structs.MeshConfigEntry{
+								TLS: &structs.MeshTLSConfig{
+									Incoming: &structs.MeshDirectionalTLSConfig{
+										TLSMinVersion: types.TLSv1_3,
+									},
+								},
+							},
 						},
-					}
-				}, nil, nil)
+					},
+				})
 			},
-		},
-		{
-			name: "ingress-gateway-no-services",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, false, "tcp",
-					"default", nil, nil, nil)
-			},
-		},
-		{
-			name: "ingress-with-chain-external-sni",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"external-sni", nil, nil, nil)
-			},
-		},
-		{
-			name: "ingress-with-tcp-chain-failover-through-remote-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"failover-through-remote-gateway", nil, nil, nil)
-			},
-		},
-		{
-			name: "ingress-with-tcp-chain-failover-through-local-gateway",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp",
-					"failover-through-local-gateway", nil, nil, nil)
-			},
-		},
-		{
-			name: "ingress-splitter-with-resolver-redirect",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "http",
-					"splitter-with-resolver-redirect-multidc", nil, nil, nil)
-			},
-		},
-
-		{
-			name:   "ingress-http-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_HTTPMultipleServices,
-		},
-		{
-			name:   "ingress-grpc-multiple-services",
-			create: proxycfg.TestConfigSnapshotIngress_GRPCMultipleServices,
-		},
-
-		{
-			name: "ingress-with-tls-listener",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.TLS.Enabled = true
-					}, nil)
-			},
-		},
-		{
-			name: "ingress-with-tls-listener-min-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.TLS.Enabled = true
-						entry.TLS.TLSMinVersion = types.TLSv1_3
-					}, nil)
-			},
-		},
-		{
-			name: "ingress-with-tls-listener-max-version",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.TLS.Enabled = true
-						entry.TLS.TLSMaxVersion = types.TLSv1_2
-					}, nil)
-			},
-		},
-		{
-			name: "ingress-with-tls-listener-cipher-suites",
-			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotIngressGateway(t, true, "tcp", "default", nil,
-					func(entry *structs.IngressGatewayConfigEntry) {
-						entry.TLS.Enabled = true
-						entry.TLS.CipherSuites = []types.TLSCipherSuite{
-							types.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-							types.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
-						}
-					}, nil)
-			},
-		},
-		{
-			name:   "ingress-with-tls-mixed-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_MixedListeners,
-		},
-		{
-			name:   "ingress-with-tls-min-version-listeners-gateway-defaults",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMinVersionListenersGatewayDefaults,
-		},
-		{
-			name:   "ingress-with-single-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressGateway_SingleTLSListener,
-		},
-		{
-			name:   "ingress-with-tls-mixed-min-version-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedMinVersionListeners,
-		},
-		{
-			name:   "ingress-with-tls-mixed-max-version-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedMaxVersionListeners,
-		},
-		{
-			name:   "ingress-with-tls-mixed-cipher-suites-listeners",
-			create: proxycfg.TestConfigSnapshotIngressGateway_TLSMixedCipherVersionListeners,
-		},
-		{
-			name:   "ingress-with-sds-listener-gw-level",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_GatewayLevel,
-		},
-		{
-			name:   "ingress-with-sds-listener-listener-level",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel,
-		},
-		{
-			name:   "ingress-with-sds-listener-gw-level-http",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_GatewayAndListenerLevel_HTTP,
-		},
-		{
-			name:   "ingress-with-sds-listener-gw-level-mixed-tls",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_GatewayLevel_MixedTLS,
-		},
-		{
-			name:   "ingress-with-sds-service-level",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_ServiceLevel,
-		},
-		{
-			name:   "ingress-with-sds-listener+service-level",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_ListenerAndServiceLevel,
-		},
-		{
-			name:   "ingress-with-sds-service-level-mixed-no-tls",
-			create: proxycfg.TestConfigSnapshotIngressGatewaySDS_MixedNoTLS,
-		},
-		{
-			name:   "ingress-with-grpc-single-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressGateway_SingleTLSListener_GRPC,
-		},
-		{
-			name:   "ingress-with-http2-single-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressGateway_SingleTLSListener_HTTP2,
-		},
-		{
-			name:   "ingress-with-http2-and-grpc-multiple-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressGateway_MultiTLSListener_MixedHTTP2gRPC,
-		},
-		{
-			name:   "ingress-with-http2-and-grpc-multiple-tls-listener",
-			create: proxycfg.TestConfigSnapshotIngressGateway_GWTLSListener_MixedHTTP2gRPC,
 		},
 		{
 			name: "transparent-proxy-http-upstream",
