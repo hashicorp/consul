@@ -40,7 +40,7 @@ func TestSprawl_CatalogV2(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc1-client1",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "ping"},
 								Image:          "rboyer/pingpong:latest",
@@ -64,7 +64,7 @@ func TestSprawl_CatalogV2(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc1-client2",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",
@@ -174,7 +174,7 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc1-client1",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "mesh-gateway"},
 								Port:           8443,
@@ -186,7 +186,7 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc1-client2",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "ping"},
 								Image:          "rboyer/pingpong:latest",
@@ -226,7 +226,7 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindClient,
 						Name: "dc2-client1",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "mesh-gateway"},
 								Port:           8443,
@@ -238,7 +238,7 @@ func TestSprawl(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc2-client2",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",
@@ -263,7 +263,7 @@ func TestSprawl(t *testing.T) {
 						Kind:    topology.NodeKindDataplane,
 						Version: topology.NodeVersionV2,
 						Name:    "dc2-client3",
-						Services: []*topology.Service{
+						Workloads: []*topology.Service{
 							{
 								ID:             topology.ServiceID{Name: "pong"},
 								Image:          "rboyer/pingpong:latest",

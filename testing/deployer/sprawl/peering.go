@@ -193,9 +193,9 @@ func (s *Sprawl) awaitMeshGateways() {
 	mgws := []*topology.Service{}
 	for _, clu := range s.topology.Clusters {
 		for _, node := range clu.Nodes {
-			for _, svc := range node.Services {
-				if svc.IsMeshGateway {
-					mgws = append(mgws, svc)
+			for _, wrk := range node.Workloads {
+				if wrk.IsMeshGateway {
+					mgws = append(mgws, wrk)
 				}
 			}
 		}

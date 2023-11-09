@@ -390,11 +390,12 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 			if n.Disabled {
 				continue
 			}
-			for _, s := range n.Services {
-				if s.Disabled || s.EnvoyAdminPort <= 0 {
+			for _, wrk := range n.Workloads {
+				s := wrk // TODO
+				if wrk.Disabled || wrk.EnvoyAdminPort <= 0 {
 					continue
 				}
-				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), s.EnvoyAdminPort)
+				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), wrk.EnvoyAdminPort)
 
 				for fn, target := range targets {
 					u := prefix + "/" + target
@@ -402,7 +403,7 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 					body, err := scrapeURL(client, u)
 					if err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not scrape %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}

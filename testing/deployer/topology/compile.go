@@ -317,7 +317,13 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q node %q has more than one public address", c.Name, n.Name)
 			}
 
-			if n.IsDataplane() && len(n.Services) > 1 {
+			if len(n.Services) > 0 {
+				logger.Warn("please use Node.Workloads instead of Node.Services")
+				n.Workloads = append(n.Workloads, n.Services...)
+				n.Services = nil
+			}
+
+			if n.IsDataplane() && len(n.Workloads) > 1 {
 				// Our use of consul-dataplane here is supposed to mimic that
 				// of consul-k8s, which ultimately has one IP per Service, so
 				// we introduce the same limitation here.
@@ -325,7 +331,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 			}
 
 			seenServices := make(map[ServiceID]struct{})
-			for _, svc := range n.Services {
+			for _, wrk := range n.Workloads {
+				svc := wrk // TODO
 				if n.IsAgent() {
 					// Default to that of the enclosing node.
 					svc.ID.Partition = n.Partition
@@ -525,8 +532,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		if c.EnableV2 {
 			// Populate the VirtualPort field on all implied upstreams.
 			for _, n := range c.Nodes {
-				for _, svc := range n.Services {
-					for _, u := range svc.ImpliedUpstreams {
+				for _, wrk := range n.Workloads {
+					for _, u := range wrk.ImpliedUpstreams {
 						res, ok := c.Services[u.ID]
 						if ok {
 							for _, sp := range res.Ports {
@@ -652,8 +659,8 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 	for _, c := range clusters {
 		c.Peerings = clusteredPeerings[c.Name]
 		for _, n := range c.Nodes {
-			for _, svc := range n.Services {
-				for _, u := range svc.Upstreams {
+			for _, wrk := range n.Workloads {
+				for _, u := range wrk.Upstreams {
 					if u.Peer == "" {
 						u.Cluster = c.Name
 						u.Peering = nil
@@ -668,7 +675,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 					// this helps in generating fortio assertions; otherwise field is ignored
 					u.ID.Partition = remotePeer.Link.Partition
 				}
-				for _, u := range svc.ImpliedUpstreams {
+				for _, u := range wrk.ImpliedUpstreams {
 					if u.Peer == "" {
 						u.Cluster = c.Name
 						u.Peering = nil
@@ -843,26 +850,26 @@ func inheritAndValidateNodes(
 			currAddr.inheritFromExisting(prevAddr)
 		}
 
-		svcMap := mapifyServices(currNode.Node.Services)
+		wrkMap := mapifyWorkloads(currNode.Node.Workloads)
 
-		for _, svc := range node.Services {
-			currSvc, ok := svcMap[svc.ID]
+		for _, wrk := range node.Workloads {
+			currWrk, ok := wrkMap[wrk.ID]
 			if !ok {
 				continue // service has vanished, this is ok
 			}
 			// don't care about index permutation
 
-			if currSvc.ID != svc.ID ||
-				currSvc.Port != svc.Port ||
-				!maps.Equal(currSvc.Ports, svc.Ports) ||
-				currSvc.EnvoyAdminPort != svc.EnvoyAdminPort ||
-				currSvc.EnvoyPublicListenerPort != svc.EnvoyPublicListenerPort ||
-				isSame(currSvc.Command, svc.Command) != nil ||
-				isSame(currSvc.Env, svc.Env) != nil {
-				return fmt.Errorf("cannot edit some address fields for %q", svc.ID)
+			if currWrk.ID != wrk.ID ||
+				currWrk.Port != wrk.Port ||
+				!maps.Equal(currWrk.Ports, wrk.Ports) ||
+				currWrk.EnvoyAdminPort != wrk.EnvoyAdminPort ||
+				currWrk.EnvoyPublicListenerPort != wrk.EnvoyPublicListenerPort ||
+				isSame(currWrk.Command, wrk.Command) != nil ||
+				isSame(currWrk.Env, wrk.Env) != nil {
+				return fmt.Errorf("cannot edit some address fields for %q", wrk.ID)
 			}
 
-			currSvc.inheritFromExisting(svc)
+			currWrk.inheritFromExisting(wrk)
 		}
 	}
 	return nil
@@ -935,10 +942,10 @@ type nodeWithPosition struct {
 	Node *Node
 }
 
-func mapifyServices(services []*Service) map[ServiceID]*Service {
+func mapifyWorkloads(workloads []*Service) map[ServiceID]*Service {
 	m := make(map[ServiceID]*Service)
-	for _, svc := range services {
-		m[svc.ID] = svc
+	for _, wrk := range workloads {
+		m[wrk.ID] = wrk
 	}
 	return m
 }

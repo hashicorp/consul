@@ -15,16 +15,16 @@ func (t *Topology) ComputeRelationships() []Relationship {
 	var out []Relationship
 	for _, cluster := range t.Clusters {
 		for _, n := range cluster.Nodes {
-			for _, s := range n.Services {
-				for _, u := range s.Upstreams {
+			for _, w := range n.Workloads {
+				for _, u := range w.Upstreams {
 					out = append(out, Relationship{
-						Caller:   s,
+						Caller:   w,
 						Upstream: u,
 					})
 				}
-				for _, u := range s.ImpliedUpstreams {
+				for _, u := range w.ImpliedUpstreams {
 					out = append(out, Relationship{
-						Caller:   s,
+						Caller:   w,
 						Upstream: u,
 					})
 				}

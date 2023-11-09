@@ -42,7 +42,7 @@ func (s *Sprawl) syncAllServicesForDataplaneInstances() error {
 
 func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
 	for _, node := range cluster.Nodes {
-		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
+		if !node.RunsWorkloads() || len(node.Workloads) == 0 || node.Disabled {
 			continue
 		}
 
@@ -63,8 +63,8 @@ func (s *Sprawl) registerServicesToAgents(cluster *topology.Cluster) error {
 			return err
 		}
 
-		for _, svc := range node.Services {
-			if err := s.registerAgentService(agentClient, cluster, node, svc); err != nil {
+		for _, wrk := range node.Workloads {
+			if err := s.registerAgentService(agentClient, cluster, node, wrk); err != nil {
 				return err
 			}
 		}
@@ -264,7 +264,7 @@ func (s *Sprawl) syncServicesForDataplaneInstances(cluster *topology.Cluster) er
 	var syncService func(node *topology.Node, svc *topology.Service) error
 
 	for _, node := range cluster.Nodes {
-		if !node.RunsWorkloads() || len(node.Services) == 0 {
+		if !node.RunsWorkloads() || len(node.Workloads) == 0 {
 			continue
 		}
 
@@ -280,13 +280,13 @@ func (s *Sprawl) syncServicesForDataplaneInstances(cluster *topology.Cluster) er
 		}
 
 		// Register/deregister services on the node
-		for _, svc := range node.Services {
+		for _, wrk := range node.Workloads {
 			if !node.Disabled {
 				syncService = registerServiceAtNode
 			} else {
 				syncService = deregisterServiceAtNode
 			}
-			syncService(node, svc)
+			syncService(node, wrk)
 		}
 
 		// Deregister the virtual node if node is disabled

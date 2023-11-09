@@ -219,11 +219,12 @@ func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
 
 	sids := make(map[topology.ServiceID]struct{})
 	for _, node := range cluster.Nodes {
-		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
+		if !node.RunsWorkloads() || len(node.Workloads) == 0 || node.Disabled {
 			continue
 		}
 
-		for _, svc := range node.Services {
+		for _, wrk := range node.Workloads {
+			svc := wrk // TODO
 			sid := svc.ID
 
 			if _, done := sids[sid]; done {

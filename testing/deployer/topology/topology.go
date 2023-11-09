@@ -427,7 +427,7 @@ func (c *Cluster) ServicesByID(sid ServiceID) []*Service {
 
 	var out []*Service
 	for _, n := range c.Nodes {
-		for _, svc := range n.Services {
+		for _, svc := range n.Workloads {
 			if svc.ID == sid {
 				out = append(out, svc)
 			}
@@ -504,7 +504,9 @@ type Node struct {
 	Disabled bool `json:",omitempty"`
 
 	Addresses []*Address
-	Services  []*Service
+	Workloads []*Service
+	// Deprecated: use Workloads
+	Services []*Service
 
 	// denormalized at topology compile
 	Cluster    string
@@ -663,9 +665,9 @@ func (n *Node) IsDataplane() bool {
 	return n.Kind == NodeKindDataplane
 }
 
-func (n *Node) SortedServices() []*Service {
+func (n *Node) SortedWorkloads() []*Service {
 	var out []*Service
-	out = append(out, n.Services...)
+	out = append(out, n.Workloads...)
 	sort.Slice(out, func(i, j int) bool {
 		mi := out[i].IsMeshGateway
 		mj := out[j].IsMeshGateway
@@ -680,7 +682,7 @@ func (n *Node) SortedServices() []*Service {
 }
 
 func (n *Node) NeedsTransparentProxy() bool {
-	for _, svc := range n.Services {
+	for _, svc := range n.Workloads {
 		if svc.EnableTransparentProxy {
 			return true
 		}
@@ -705,7 +707,7 @@ func (n *Node) DigestExposedPorts(ports map[int]int) bool {
 			))
 		}
 	}
-	for _, svc := range n.Services {
+	for _, svc := range n.Workloads {
 		svc.DigestExposedPorts(ports)
 	}
 
@@ -714,7 +716,7 @@ func (n *Node) DigestExposedPorts(ports map[int]int) bool {
 
 func (n *Node) ServiceByID(sid ServiceID) *Service {
 	sid.Normalize()
-	for _, svc := range n.Services {
+	for _, svc := range n.Workloads {
 		if svc.ID == sid {
 			return svc
 		}

@@ -59,7 +59,8 @@ func (s *Sprawl) PrintDetails() error {
 				})
 			}
 
-			for _, svc := range node.Services {
+			for _, wrk := range node.Workloads {
+				svc := wrk // TODO
 				if svc.IsMeshGateway {
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "mesh-gateway",
