@@ -262,7 +262,9 @@ func (g *Generator) Generate(step Step) error {
 				addImage("", node.Images.Consul)
 				addImage("", node.Images.EnvoyConsulImage())
 				addImage("", node.Images.LocalDataplaneImage())
-				addImage("", node.Images.LocalDataplaneTProxyImage())
+				if node.NeedsTransparentProxy() {
+					addImage("", node.Images.LocalDataplaneTProxyImage())
+				}
 
 				if node.IsAgent() {
 					addVolume(node.DockerName())

@@ -303,7 +303,7 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeEnvoyClusterFromL4Destination(l4.L4)
+	err := pr.makeEnvoyClustersAndEndpointsFromL4Destination(l4.L4)
 	if err != nil {
 		return nil, err
 	}

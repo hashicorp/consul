@@ -80,8 +80,8 @@
             <Hds::SideNav::Header::HomeLink
               @icon='consul-color'
               @ariaLabel='Consul'
-              @route='index'
-              @query={{hash peer=undefined}}
+              @href={{href-to 'index' params=(hash peer=undefined)}}
+              @isHrefExternal={{false}}
             />
           </:logo>
           <:actions>

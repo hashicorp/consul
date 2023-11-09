@@ -3,23 +3,22 @@
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "9191_foo",
+      "name": "8080_s1",
       "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
-            "foo.example.com",
-            "foo.example.com:9191"
+            "s1.ingress.*",
+            "s1.ingress.*:8080"
           ],
-          "name": "foo",
+          "name": "s1",
           "routes": [
             {
               "match": {
                 "prefix": "/"
               },
               "route": {
-                "cluster": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "timeout": "22s"
+                "cluster": "s1.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
@@ -28,23 +27,22 @@
     },
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-      "name": "9191_web",
+      "name": "8080_s2",
       "validateClusters": true,
       "virtualHosts": [
         {
           "domains": [
-            "www.example.com",
-            "www.example.com:9191"
+            "s2.ingress.*",
+            "s2.ingress.*:8080"
           ],
-          "name": "web",
+          "name": "s2",
           "routes": [
             {
               "match": {
                 "prefix": "/"
               },
               "route": {
-                "cluster": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "timeout": "22s"
+                "cluster": "s2.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
