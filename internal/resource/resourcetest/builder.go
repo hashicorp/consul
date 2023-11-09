@@ -194,7 +194,7 @@ func (b *resourceBuilder) Write(t T, client pbresource.ResourceServiceClient) *p
 		id := proto.Clone(rsp.Resource.Id).(*pbresource.ID)
 		id.Uid = ""
 		t.Cleanup(func() {
-			rtestClient.MustDelete(t, id)
+			rtestClient.CleanupDelete(t, id)
 		})
 	}
 

@@ -134,6 +134,10 @@ Use these links to navigate to a particular top-level stanza.
 
     - `vault` ((#v-global-secretsbackend-vault))
 
+      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
+        agent annotation and [Vault Connect CA namespace](/consul/docs/connect/ca/vault#namespace).
+        To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
+
       - `enabled` ((#v-global-secretsbackend-vault-enabled)) (`boolean: false`) - Enabling the Vault secrets backend will replace Kubernetes secrets with referenced Vault secrets.
 
       - `consulServerRole` ((#v-global-secretsbackend-vault-consulserverrole)) (`string: ""`) - The Vault role for the Consul server.
@@ -235,7 +239,6 @@ Use these links to navigate to a particular top-level stanza.
             {
               "connect": [{
                 "ca_config": [{
-                     "namespace": "my-vault-ns",
                      "leaf_cert_ttl": "36h"
                   }]
               }]
@@ -288,6 +291,8 @@ Use these links to navigate to a particular top-level stanza.
     - `secretKey` ((#v-global-gossipencryption-secretkey)) (`string: ""`) - The key within the Kubernetes secret or Vault secret key that holds the gossip
       encryption key.
 
+    - `logLevel` ((#v-global-gossipencryption-loglevel)) (`string: ""`) - Override global log verbosity level for gossip-encryption-autogenerate-job pods. One of "trace", "debug", "info", "warn", or "error".
+
   - `recursors` ((#v-global-recursors)) (`array<string>: []`) - A list of addresses of upstream DNS servers that are used to recursively resolve DNS queries.
     These values are given as `-recursor` flags to Consul servers and clients.
     Refer to [`-recursor`](/consul/docs/agent/config/cli-flags#_recursor) for more details.
@@ -301,6 +306,8 @@ Use these links to navigate to a particular top-level stanza.
       servers and clients and all consul-k8s-control-plane components, as well as generate certificate
       authority (optional) and server and client certificates.
       This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
+
+    - `logLevel` ((#v-global-tls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
     - `enableAutoEncrypt` ((#v-global-tls-enableautoencrypt)) (`boolean: false`) - If true, turns on the auto-encrypt feature on clients and servers.
       It also switches consul-k8s-control-plane components to retrieve the CA from the servers
@@ -383,6 +390,8 @@ Use these links to navigate to a particular top-level stanza.
       for all Consul and consul-k8s-control-plane components.
       This requires Consul >= 1.4.
 
+    - `logLevel` ((#v-global-acls-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
+
     - `bootstrapToken` ((#v-global-acls-bootstraptoken)) - A Kubernetes or Vault secret containing the bootstrap token to use for creating policies and
       tokens for all Consul and consul-k8s-control-plane components. If `secretName` and `secretKey`
       are unset, a default secret name and secret key are used. If the secret is populated, then
@@ -414,7 +423,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the replication token.
 
-    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
+    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods. 
       This should be a YAML map corresponding to a Kubernetes
       [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
       object.
@@ -440,7 +449,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretName` ((#v-global-acls-partitiontoken-secretname)) (`string: null`) - The name of the Vault secret that holds the partition token.
 
-      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the partition token.
+      - `secretKey` ((#v-global-acls-partitiontoken-secretkey)) (`string: null`) - The key within the Vault secret that holds the parition token.
 
     - `tolerations` ((#v-global-acls-tolerations)) (`string: ""`) - tolerations configures the taints and tolerations for the server-acl-init
       and server-acl-init-cleanup jobs. This should be a multi-line string matching the
@@ -465,6 +474,14 @@ Use these links to navigate to a particular top-level stanza.
         "sample/annotation2": "bar"
       ```
 
+  - `argocd` ((#v-global-argocd)) - If argocd.enabled is set to true, following annotations are added to
+    job - server-acl-init-job
+    annotations -
+      argocd.argoproj.io/hook: Sync
+      argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
+    - `enabled` ((#v-global-argocd-enabled)) (`boolean: false`)
+
   - `enterpriseLicense` ((#v-global-enterpriselicense)) - <EnterpriseAlert inline /> This value refers to a Kubernetes or Vault secret that you have created
     that contains your enterprise license. It is required if you are using an
     enterprise binary. Defining it here applies it to your cluster once a leader
@@ -484,7 +501,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `connectInject.enabled`, and one of
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
       `meshGateway.enabled` or `externalServers.enabled` to be true.
       Requires Consul 1.8+.
 
@@ -508,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
       `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
@@ -517,6 +534,8 @@ Use these links to navigate to a particular top-level stanza.
       $ kubectl config view \
         -o jsonpath="{.clusters[?(@.name=='<your cluster name>')].cluster.server}"
       ```
+
+    - `logLevel` ((#v-global-federation-loglevel)) (`string: ""`) - Override global log verbosity level for the create-federation-secret-job pods. One of "trace", "debug", "info", "warn", or "error".
 
   - `metrics` ((#v-global-metrics)) - Configures metrics for Consul service mesh
 
@@ -622,6 +641,21 @@ Use these links to navigate to a particular top-level stanza.
     ]
     ```
 
+  - `experiments` ((#v-global-experiments)) (`array<string>: []`) - Consul feature flags that will be enabled across components.
+    Supported feature flags:
+    * `resource-apis`:
+      _**Danger**_! This feature is under active development. It is not
+      recommended for production use. Setting this flag during an
+      upgrade could risk breaking your Consul cluster.
+      If this flag is set, Consul components will use the
+      V2 resources APIs for all operations.
+
+    Example:
+
+    ```yaml
+    experiments: [ "resource-apis" ]
+    ```
+
 ### server ((#h-server))
 
 - `server` ((#v-server)) - Server, when enabled, configures a server cluster to run. This should
@@ -631,6 +665,8 @@ Use these links to navigate to a particular top-level stanza.
   - `enabled` ((#v-server-enabled)) (`boolean: global.enabled`) - If true, the chart will install all the resources necessary for a
     Consul server cluster. If you're running Consul externally and want agents
     within Kubernetes to join that cluster, this should probably be false.
+
+  - `logLevel` ((#v-server-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `image` ((#v-server-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers running
     Consul server agents.
@@ -1004,7 +1040,7 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
     and configure a sink and filters for their audit logs. Please refer to
     [audit logs](/consul/docs/enterprise/audit-logging) documentation
     for further information.
@@ -1012,7 +1048,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
       global.acls.manageSystemACLs must be enabled to use this feature.
 
-    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul 
       will log auditing events.
 
       Example:
@@ -1027,7 +1063,7 @@ Use these links to navigate to a particular top-level stanza.
           rotate_duration: 24h
           rotate_max_files: 15
           rotate_bytes: 25165824
-
+          
       ```
 
       The sink object supports the following keys:
@@ -1124,7 +1160,7 @@ Use these links to navigate to a particular top-level stanza.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
     `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:
@@ -1144,6 +1180,8 @@ Use these links to navigate to a particular top-level stanza.
   - `enabled` ((#v-client-enabled)) (`boolean: false`) - If true, the chart will install all
     the resources necessary for a Consul client on every Kubernetes node. This _does not_ require
     `server.enabled`, since the agents can be configured to join an external cluster.
+
+  - `logLevel` ((#v-client-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `image` ((#v-client-image)) (`string: null`) - The name of the Docker image (including any tag) for the containers
     running Consul client agents.
@@ -1742,6 +1780,10 @@ Use these links to navigate to a particular top-level stanza.
       These CRDs can clash with existing Gateway API CRDs if they are already installed in your cluster.
       If this setting is false, you will need to install the Gateway API CRDs manually.
 
+    - `manageNonStandardCRDs` ((#v-connectinject-apigateway-managenonstandardcrds)) (`boolean: false`) - Enables Consul on Kubernets to manage only the non-standard CRDs used for Gateway API. If manageExternalCRDs is true 
+      then all CRDs will be installed; otherwise, if manageNonStandardCRDs is true then only TCPRoute, GatewayClassConfig and MeshService
+      will be installed.
+
     - `managedGatewayClass` ((#v-connectinject-apigateway-managedgatewayclass)) - Configuration settings for the GatewayClass installed by Consul on Kubernetes.
 
       - `nodeSelector` ((#v-connectinject-apigateway-managedgatewayclass-nodeselector)) (`string: null`) - This value defines [`nodeSelector`](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)
@@ -1772,6 +1814,8 @@ Use these links to navigate to a particular top-level stanza.
               - external-dns.alpha.kubernetes.io/hostname
           ```
 
+      - `resources` ((#v-connectinject-apigateway-managedgatewayclass-resources)) (`map`) - The resource settings for Pods handling traffic for Gateway API.
+
       - `deployment` ((#v-connectinject-apigateway-managedgatewayclass-deployment)) - This value defines the number of pods to deploy for each Gateway as well as a min and max number of pods for all Gateways
 
         - `defaultInstances` ((#v-connectinject-apigateway-managedgatewayclass-deployment-defaultinstances)) (`integer: 1`)
@@ -1779,6 +1823,14 @@ Use these links to navigate to a particular top-level stanza.
         - `maxInstances` ((#v-connectinject-apigateway-managedgatewayclass-deployment-maxinstances)) (`integer: 1`)
 
         - `minInstances` ((#v-connectinject-apigateway-managedgatewayclass-deployment-mininstances)) (`integer: 1`)
+
+      - `openshiftSCCName` ((#v-connectinject-apigateway-managedgatewayclass-openshiftsccname)) (`string: restricted-v2`) - The name of the OpenShift SecurityContextConstraints resource to use for Gateways.
+        Only applicable if `global.openshift.enabled` is true.
+
+      - `mapPrivilegedContainerPorts` ((#v-connectinject-apigateway-managedgatewayclass-mapprivilegedcontainerports)) (`integer: 0`) - This value defines the amount we will add to privileged container ports on gateways that use this class.
+        This is useful if you don't want to give your containers extra permissions to run privileged ports.
+        Example: The gateway listener is defined on port 80, but the underlying value of the port on the container
+        will be the 80 + the number defined below.
 
     - `serviceAccount` ((#v-connectinject-apigateway-serviceaccount)) - Configuration for the ServiceAccount created for the api-gateway component
 
@@ -1790,8 +1842,6 @@ Use these links to navigate to a particular top-level stanza.
           "sample/annotation1": "foo"
           "sample/annotation2": "bar"
         ```
-
-    - `resources` ((#v-connectinject-apigateway-resources)) (`map`) - The resource settings for Pods handling traffic for Gateway API.
 
   - `cni` ((#v-connectinject-cni)) - Configures consul-cni plugin for Consul Service mesh services
 
@@ -1926,7 +1976,7 @@ Use these links to navigate to a particular top-level stanza.
   - `imageConsul` ((#v-connectinject-imageconsul)) (`string: null`) - The Docker image for Consul to use when performing Connect injection.
     Defaults to global.image.
 
-  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Override global log verbosity level. One of "debug", "info", "warn", or "error".
+  - `logLevel` ((#v-connectinject-loglevel)) (`string: ""`) - Sets the `logLevel` for the `consul-dataplane` sidecar and the `consul-connect-inject-init` container. When set, this value overrides the global log verbosity level. One of "debug", "info", "warn", or "error".
 
   - `serviceAccount` ((#v-connectinject-serviceaccount))
 
@@ -2148,6 +2198,8 @@ Use these links to navigate to a particular top-level stanza.
     This setting is required for [Cluster Peering](/consul/docs/connect/cluster-peering/k8s).
     Requirements: consul 1.6.0+ if using `global.acls.manageSystemACLs``.
 
+  - `logLevel` ((#v-meshgateway-loglevel)) (`string: ""`) - Override global log verbosity level for mesh-gateway-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+
   - `replicas` ((#v-meshgateway-replicas)) (`integer: 1`) - Number of replicas for the Deployment.
 
   - `wanAddress` ((#v-meshgateway-wanaddress)) - What gets registered as WAN address for the gateway.
@@ -2311,6 +2363,8 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-ingressgateways-enabled)) (`boolean: false`) - Enable ingress gateway deployment. Requires `connectInject.enabled=true`.
 
+  - `logLevel` ((#v-ingressgateways-loglevel)) (`string: ""`) - Override global log verbosity level for ingress-gateways-deployment pods. One of "trace", "debug", "info", "warn", or "error".
+
   - `defaults` ((#v-ingressgateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
     will override the default values provided here. Annotations will
@@ -2423,8 +2477,9 @@ Use these links to navigate to a particular top-level stanza.
 
   - `gateways` ((#v-ingressgateways-gateways)) (`array<map>`) - Gateways is a list of gateway objects. The only required field for
     each is `name`, though they can also contain any of the fields in
-    `defaults`. Values defined here override the defaults except in the
-    case of annotations where both will be applied.
+    `defaults`. You must provide a unique name for each ingress gateway. These names 
+    must be unique across different namespaces. 
+    Values defined here override the defaults, except in the case of annotations where both will be applied.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
 
@@ -2439,6 +2494,8 @@ Use these links to navigate to a particular top-level stanza.
   Requirements: consul >= 1.8.0
 
   - `enabled` ((#v-terminatinggateways-enabled)) (`boolean: false`) - Enable terminating gateway deployment. Requires `connectInject.enabled=true`.
+
+  - `logLevel` ((#v-terminatinggateways-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
 
   - `defaults` ((#v-terminatinggateways-defaults)) - Defaults sets default values for all gateway fields. With the exception
     of annotations, defining any of these values in the `gateways` list
@@ -2545,7 +2602,7 @@ Use these links to navigate to a particular top-level stanza.
 
 ### apiGateway ((#h-apigateway))
 
-- `apiGateway` ((#v-apigateway)) - [DEPRECATED] Use connectInject.apiGateway instead. This stanza will be removed with the release of Consul 1.17
+- `apiGateway` ((#v-apigateway)) - [DEPRECATED] Use connectInject.apiGateway instead.
   Configuration settings for the Consul API Gateway integration
 
   - `enabled` ((#v-apigateway-enabled)) (`boolean: false`) - When true the helm chart will install the Consul API Gateway controller
@@ -2696,7 +2753,9 @@ Use these links to navigate to a particular top-level stanza.
 
   - `enabled` ((#v-telemetrycollector-enabled)) (`boolean: false`) - Enables the consul-telemetry-collector deployment
 
-  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.1`) - The name of the Docker image (including any tag) for the containers running
+  - `logLevel` ((#v-telemetrycollector-loglevel)) (`string: ""`) - Override global log verbosity level. One of "trace", "debug", "info", "warn", or "error".
+
+  - `image` ((#v-telemetrycollector-image)) (`string: hashicorp/consul-telemetry-collector:0.0.2`) - The name of the Docker image (including any tag) for the containers running
     the consul-telemetry-collector
 
   - `resources` ((#v-telemetrycollector-resources)) (`map`) - The resource settings for consul-telemetry-collector pods.
