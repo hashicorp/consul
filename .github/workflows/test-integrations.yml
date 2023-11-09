@@ -510,7 +510,7 @@ jobs:
           go-version-file: 'go.mod'
       - run: go env
       - name: Build image
-        run: make test-compat-integ-setup
+        run: make test-deployer-setup
       - name: Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
