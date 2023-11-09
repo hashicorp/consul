@@ -27,7 +27,7 @@ available here:
 </Tab>
 <Tab heading="Docker">
 
-Docker containers are available at these locations:
+Docker containers are available at this location:
 
 - **CE:** https://hub.docker.com/_/consul
 
@@ -86,6 +86,8 @@ This change will give you more information to work with in the event something g
 - Update server binaries to use the CE version
 
 - Restart or redeploy the servers one at a time with an env var named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` set to `true` on the servers.
+
+- Validate that all servers are on CE and healthy using `consul members` command
 
 ## What happens during the downgrade
 
