@@ -41,19 +41,19 @@ consul snapshot save backup.snap
 
 You can inspect the snapshot to ensure if was successful with:
 
-```
-consul snapshot inspect backup.snap
-```
+    ```
+    consul snapshot inspect backup.snap
+    ```
 
-Example output:
+    Example output:
 
-```
-ID           2-1182-1542056499724
-Size         4115
-Index        1182
-Term         2
-Version      1
-```
+    ```
+    ID           2-1182-1542056499724
+    Size         4115
+    Index        1182
+    Term         2
+    Version      1
+    ```
 
 This will ensure you have a safe fallback option in case something goes wrong. Store
 this snapshot somewhere safe. More documentation on snapshot usage is available here:
