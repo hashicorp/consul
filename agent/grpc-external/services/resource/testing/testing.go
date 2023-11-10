@@ -7,11 +7,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -20,9 +21,7 @@ import (
 	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage/inmem"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -56,23 +55,6 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 // default partition and namespace are available.
 func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
 	return RunResourceServiceWithConfig(t, svc.Config{}, registerFns...)
-}
-
-// RunResourceServiceWithTenancies runs a Resource Service with tenancies returned from TestTenancies.
-func RunResourceServiceWithTenancies(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
-	mockTenancyBridge := &svc.MockTenancyBridge{}
-
-	for _, tenant := range rtest.TestTenancies() {
-		mockTenancyBridge.On("PartitionExists", tenant.Partition).Return(true, nil)
-		mockTenancyBridge.On("NamespaceExists", tenant.Partition, tenant.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenant.Partition).Return(false, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenant.Partition, tenant.Namespace).Return(false, nil)
-	}
-
-	cfg := &svc.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	return RunResourceServiceWithConfig(t, *cfg, registerFns...)
 }
 
 // RunResourceServiceWithConfig runs a ResourceService with caller injectable config to ease mocking dependencies.
@@ -112,17 +94,10 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 		mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
-		mockTenancyBridge.On("PartitionExists", "foo").Return(true, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
 		mockTenancyBridge.On("IsPartitionMarkedForDeletion", "foo").Return(false, nil)
 		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 		config.TenancyBridge = mockTenancyBridge
-	} else {
-		switch config.TenancyBridge.(type) {
-		case *tenancy.V2TenancyBridge:
-			err = initTenancy(ctx, backend)
-			require.NoError(t, err)
-		}
 	}
 
 	if config.ACLResolver == nil {
@@ -165,14 +140,6 @@ func RunResourceServiceWithConfig(t *testing.T, config svc.Config, registerFns .
 	)
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = conn.Close() })
-	client := pbresource.NewResourceServiceClient(conn)
-	if config.TenancyBridge != nil {
-		switch config.TenancyBridge.(type) {
-		case *tenancy.V2TenancyBridge:
-			config.TenancyBridge.(*tenancy.V2TenancyBridge).WithClient(client)
-		}
 
-	}
-
-	return client
+	return pbresource.NewResourceServiceClient(conn)
 }

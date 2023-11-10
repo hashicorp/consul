@@ -1,5 +1,0 @@
-flowchart TD
-  t1 --> t2
-  t1 --> t3
-  t2 --> t4
-  t4 --> t1

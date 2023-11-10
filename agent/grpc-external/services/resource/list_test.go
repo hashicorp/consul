@@ -6,8 +6,6 @@ package resource
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/acl"
@@ -28,66 +26,28 @@ import (
 func TestList_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
+
 	demo.RegisterTypes(server.Registry)
 
-	type testCase struct {
-		modReqFn    func(req *pbresource.ListRequest)
-		errContains string
-	}
-
-	testCases := map[string]testCase{
-		"no type": {
-			modReqFn:    func(req *pbresource.ListRequest) { req.Type = nil },
-			errContains: "type is required",
-		},
-		"no tenancy": {
-			modReqFn:    func(req *pbresource.ListRequest) { req.Tenancy = nil },
-			errContains: "tenancy is required",
-		},
-		"partition mixed case": {
-			modReqFn:    func(req *pbresource.ListRequest) { req.Tenancy.Partition = "Default" },
-			errContains: "tenancy.partition invalid",
-		},
-		"partition too long": {
-			modReqFn: func(req *pbresource.ListRequest) {
-				req.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
-			},
-			errContains: "tenancy.partition invalid",
-		},
-		"namespace mixed case": {
-			modReqFn:    func(req *pbresource.ListRequest) { req.Tenancy.Namespace = "Default" },
-			errContains: "tenancy.namespace invalid",
-		},
-		"namespace too long": {
-			modReqFn: func(req *pbresource.ListRequest) {
-				req.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
-			},
-			errContains: "tenancy.namespace invalid",
-		},
-		"name_prefix mixed case": {
-			modReqFn:    func(req *pbresource.ListRequest) { req.NamePrefix = "Violator" },
-			errContains: "name_prefix invalid",
-		},
-		"partitioned resource provides non-empty namespace": {
-			modReqFn: func(req *pbresource.ListRequest) {
-				req.Type = demo.TypeV1RecordLabel
-				req.Tenancy.Namespace = "bad"
-			},
-			errContains: "cannot have a namespace",
+	testCases := map[string]func(*pbresource.ListRequest){
+		"no type":    func(req *pbresource.ListRequest) { req.Type = nil },
+		"no tenancy": func(req *pbresource.ListRequest) { req.Tenancy = nil },
+		"partitioned resource provides non-empty namespace": func(req *pbresource.ListRequest) {
+			req.Type = demo.TypeV1RecordLabel
+			req.Tenancy.Namespace = "bad"
 		},
 	}
-	for desc, tc := range testCases {
+	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.ListRequest{
 				Type:    demo.TypeV2Album,
 				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
-			tc.modReqFn(req)
+			modFn(req)
 
 			_, err := client.List(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -156,46 +116,6 @@ func TestList_Many(t *testing.T) {
 	}
 }
 
-func TestList_NamePrefix(t *testing.T) {
-	for desc, tc := range listTestCases() {
-		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
-
-			expectedResources := []*pbresource.Resource{}
-
-			namePrefixIndex := 0
-			// create a name prefix that is always present
-			namePrefix := fmt.Sprintf("%s-", strconv.Itoa(namePrefixIndex))
-			for i := 0; i < 10; i++ {
-				artist, err := demo.GenerateV2Artist()
-				require.NoError(t, err)
-
-				// Prevent test flakes if the generated names collide.
-				artist.Id.Name = fmt.Sprintf("%d-%s", i, artist.Id.Name)
-
-				rsp, err := client.Write(tc.ctx, &pbresource.WriteRequest{Resource: artist})
-				require.NoError(t, err)
-
-				// only matching name prefix are expected
-				if i == namePrefixIndex {
-					expectedResources = append(expectedResources, rsp.Resource)
-				}
-			}
-
-			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       demo.TypeV2Artist,
-				Tenancy:    resource.DefaultNamespacedTenancy(),
-				NamePrefix: namePrefix,
-			})
-
-			require.NoError(t, err)
-			prototest.AssertElementsMatch(t, expectedResources, rsp.Resources)
-		})
-	}
-}
-
 func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 	// Test units of tenancy get defaulted correctly when empty.
 	ctx := context.Background()
@@ -206,7 +126,7 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			client := testClient(t, server)
 
 			// Write partition scoped record label
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("LooneyTunes")
 			require.NoError(t, err)
 			recordLabelRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 			require.NoError(t, err)
@@ -230,6 +150,7 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 				prototest.AssertDeepEqual(t, artistRsp.Resource, listRsp.Resources[0])
 			}
 		})
+
 	}
 }
 

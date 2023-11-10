@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -91,6 +92,11 @@ func runQueue[T queue.ItemType](ctx context.Context, ctrl Controller) queue.Work
 func (c *controllerRunner) watch(ctx context.Context, typ *pbresource.Type, add func(*pbresource.Resource)) error {
 	wl, err := c.client.WatchList(ctx, &pbresource.WatchListRequest{
 		Type: typ,
+		Tenancy: &pbresource.Tenancy{
+			Partition: storage.Wildcard,
+			PeerName:  storage.Wildcard,
+			Namespace: storage.Wildcard,
+		},
 	})
 	if err != nil {
 		c.logger.Error("failed to create watch", "error", err)
