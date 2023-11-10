@@ -20,7 +20,7 @@ export default class CertificateService extends RepositoryService {
   async fetchAll({ partition, ns, dc }, { uri }, request) {
     return (
       await request`
-      GET /v1/internal/ui/certificates-expiry-days/
+      GET /v1/internal/ui/certificates-expiry-days
       X-Request-ID: ${uri}
     `
     )((headers, body, cache) => {
@@ -38,11 +38,5 @@ export default class CertificateService extends RepositoryService {
         body: body,
       };
     });
-  }
-
-  @dataSource('/:partition/:ns/:dc/certificates-cache')
-  async find(params) {
-    const items = this.store.peekAll('certificate').toArray();
-    return items;
   }
 }
