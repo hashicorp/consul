@@ -150,26 +150,29 @@ on your servers to reload the configuration:
 consul reload
 ```
 
-## What happens during the downgrade
+## Downgrade process details
 
-During the downgrade as the raft replication logs start flowing into the ce server we handle them in one of the following ways:
+During the downgrade process, the Consul CE server handles the raft replication logs in one of the following ways:
 
-- Drop the request
+- Drops the request. 
+- Filters out data from requests sent from non-default namespaces and partitions
+- Panics and stops the downgrade 
 
-   For example :
-   - Register requests - register requests having non default namespace, having services or health checks in non default namespace or partition are dropped.
+The server may drop the following types of requests: 
 
-   - Peering Write Requests - peering write requests are dropped if the local partiton connecting to the peer is non default. 
+- Registration requests in non-default namespace and services or health checks in non-default namespaces or partitions.
 
-- Filter out tenanted data from the request
+- Write requests to peered clusters if the local partiton connecting to the peer is non-default. 
 
-  For example :
-  - Intention Sources - Intention sources targeting non default namespaces or partitions are filtered out of the config entry.
-  - Exported Services - Exports of services within non default namespaces or partitions are filtered out of the config entry.
+The server may filter out data from requests to non-default namespaces and partitions in the following cases:
 
-- Panic and stop the downgrade
+- Intention sources that target non-default namespaces or partitions are filtered out of the configuration entry.
+- Exports of services within non-default namespaces or partitions are filtered out of the configuration entry.
 
-  Config Entries regarding traffic routing cannot be safely filtered because Consul cannot know whether the resulting filtered config entries send traffic towards services which can handle that traffic. In these situations, you are required to first remove references to services within non default namespaces or partitions from within those config entries. When encountering these config entries Consul CE in the downgrade mode will panic in order to not cause harm to existing service mesh routing.
+The server may panic and stop the downgrade when configuration entries that route traffic cannot be safely filtered. This is because Consul cannot know whether the resulting filtered configuration entries send traffic to services that can handle the traffic. Consul CE panics in order to prevent harm to existing service mesh routes.
+
+In these situations, you must first remove references to services within non-default namespaces or partitions from those configuration entries. 
   
-  For example :
-  - Service Splitter,Service Resolver,Service Router Config Entry requests - if these config entries have references to tenanted services it will cause a panic.
+The server may panic in the following cases:
+
+- Service splitter, service resolver, and service router configuration entry requests that have references to services located in non-default namespaces and partitions cause the server to panic.
