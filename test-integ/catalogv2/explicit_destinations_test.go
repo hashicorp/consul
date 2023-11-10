@@ -68,15 +68,15 @@ func TestBasicL4ExplicitDestinations(t *testing.T) {
 	for _, ship := range ships {
 		t.Run("relationship: "+ship.String(), func(t *testing.T) {
 			var (
-				svc = ship.Caller
-				u   = ship.Upstream
+				wrk  = ship.Caller
+				dest = ship.Destination
 			)
 
-			clusterPrefix := clusterPrefixForUpstream(u)
+			clusterPrefix := clusterPrefixForDestination(dest)
 
-			asserter.UpstreamEndpointStatus(t, svc, clusterPrefix+".", "HEALTHY", 1)
-			asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
-			asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, u.ID)
+			asserter.DestinationEndpointStatus(t, wrk, clusterPrefix+".", "HEALTHY", 1)
+			asserter.HTTPServiceEchoes(t, wrk, dest.LocalPort, "")
+			asserter.FortioFetch2FortioName(t, wrk, dest, cluster.Name, dest.ID)
 		})
 	}
 }
@@ -128,8 +128,8 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 ) {
 	clusterName := cluster.Name
 
-	newServiceID := func(name string) topology.ServiceID {
-		return topology.ServiceID{
+	newID := func(name string) topology.ID {
+		return topology.ID{
 			Partition: partition,
 			Namespace: namespace,
 			Name:      name,
@@ -147,10 +147,10 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("single-server"),
+				newID("single-server"),
 				topology.NodeVersionV2,
 				nil,
 			),
@@ -161,16 +161,16 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("single-client"),
+				newID("single-client"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc")  // v2 mode turns this on, so turn it off
-					delete(svc.Ports, "http2") // v2 mode turns this on, so turn it off
-					svc.Upstreams = []*topology.Upstream{{
-						ID:           newServiceID("single-server"),
+				func(wrk *topology.Workload) {
+					delete(wrk.Ports, "grpc")  // v2 mode turns this on, so turn it off
+					delete(wrk.Ports, "http2") // v2 mode turns this on, so turn it off
+					wrk.Destinations = []*topology.Destination{{
+						ID:           newID("single-server"),
 						PortName:     "http",
 						LocalAddress: "0.0.0.0", // needed for an assertion
 						LocalPort:    5000,
@@ -203,10 +203,10 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("multi-server"),
+				newID("multi-server"),
 				topology.NodeVersionV2,
 				nil,
 			),
@@ -217,21 +217,21 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("multi-client"),
+				newID("multi-client"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.Upstreams = []*topology.Upstream{
+				func(wrk *topology.Workload) {
+					wrk.Destinations = []*topology.Destination{
 						{
-							ID:           newServiceID("multi-server"),
+							ID:           newID("multi-server"),
 							PortName:     "http",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5000,
 						},
 						{
-							ID:           newServiceID("multi-server"),
+							ID:           newID("multi-server"),
 							PortName:     "http2",
 							LocalAddress: "0.0.0.0", // needed for an assertion
 							LocalPort:    5001,
