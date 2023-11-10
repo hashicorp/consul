@@ -23,8 +23,6 @@ message HealthStatus {
   string output = 4;
 }
 
-// +kubebuilder:validation:Enum=HEALTH_ANY;HEALTH_PASSING;HEALTH_WARNING;HEALTH_CRITICAL;HEALTH_MAINTENANCE
-// +kubebuilder:validation:Type=string
 enum Health {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
   HEALTH_ANY = 0;

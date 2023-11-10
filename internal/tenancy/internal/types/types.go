@@ -4,7 +4,7 @@
 package types
 
 const (
-	GroupName      = "tenancy"
-	VersionV2Beta1 = "v2beta1"
-	CurrentVersion = VersionV2Beta1
+	GroupName       = "tenancy"
+	VersionV1Alpha1 = "v1alpha1"
+	CurrentVersion  = VersionV1Alpha1
 )
