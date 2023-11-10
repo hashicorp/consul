@@ -4231,6 +4231,36 @@ func serviceGatewayNodes(tx ReadTxn, ws memdb.WatchSet, service string, kind str
 	return maxIdx, ret, nil
 }
 
+// metricsProtocolForAPIGateway determines the protocol that should be used when fetching metrics for an api gateway
+// Since api gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForAPIGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.APIGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get api-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.APIGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(string(l.Protocol)) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
 // metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
 // Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
 // when all listeners are HTTP-like.
@@ -4304,7 +4334,11 @@ func (s *Store) ServiceTopology(
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
 		}
-
+	case structs.ServiceKindAPIGateway:
+		maxIdx, protocol, err = metricsProtocolForAPIGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
 	case structs.ServiceKindTypical:
 		maxIdx, protocol, err = protocolForService(tx, ws, sn)
 		if err != nil {

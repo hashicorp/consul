@@ -438,7 +438,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	args.ServiceKind = structs.ServiceKind(kind[0])
 
 	switch args.ServiceKind {
-	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
+	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
 		// allowed
 	default:
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unsupported service kind %q", args.ServiceKind)}
