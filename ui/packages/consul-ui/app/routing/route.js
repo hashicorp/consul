@@ -35,18 +35,24 @@ export default class BaseRoute extends Route {
 
   @action
   didTransition() {
-    this.notify.clearMessages();
+    // get certificate expiry details from store.
+    // if available and expiry is less than 29Days, then add to notification.
     const certs = this.store.peekAll('certificate').toArray();
-    for (const cert of certs) {
-      if (cert.ExpiresInDays < 29) {
+
+    for (let i = 0; i < certs?.length; i++) {
+      if (certs[i].ExpiresInDays < 29) {
+        if (i === 0) {
+          this.notify.clearMessages();
+        }
         this.notify.add({
           type: 'warning',
           sticky: true,
           model: 'certificate',
-          item: cert,
+          item: certs[i],
         });
       }
     }
+
     return true;
   }
 
