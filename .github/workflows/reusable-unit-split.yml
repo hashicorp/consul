@@ -193,7 +193,7 @@ jobs:
       - name: Install junit-report-merger
         run: npm install -g junit-report-merger
 
-      - name: Merge reports
+      - name: Merge junit summaries
         run: jrm ./junit-test-summary.xml "junit-test-summary-0/*.xml" "junit-test-summary-1/*.xml" "junit-test-summary-2/*.xml" "junit-test-summary-3/*.xml" "junit-test-summary-4/*.xml" "junit-test-summary-5/*.xml" "junit-test-summary-6/*.xml" "junit-test-summary-7/*.xml" "junit-test-summary-8/*.xml" "junit-test-summary-9/*.xml" "junit-test-summary-10/*.xml" "junit-test-summary-11/*.xml"
 
       - name: Upload test artifacts
