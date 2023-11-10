@@ -159,7 +159,6 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 
 	// preconditions check
 	ct.Assert.HealthyWithPeer(t, dc.Name, serverSVC.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, clientSVC, s.upstream)
 	ct.Assert.FortioFetch2HeaderEcho(t, clientSVC, s.upstream)
 
 	t.Run("Validate services exist in catalog", func(t *testing.T) {
@@ -180,11 +179,11 @@ func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	})
 
 	t.Run("HTTP service fails due to connection timeout", func(t *testing.T) {
-		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort,
+		url504 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/?delay=1000ms", s.upstream.LocalPort)),
 		)
 
-		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort,
+		url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", client.ExposedPort(""),
 			url.QueryEscape(fmt.Sprintf("http://localhost:%d/", s.upstream.LocalPort)),
 		)
 

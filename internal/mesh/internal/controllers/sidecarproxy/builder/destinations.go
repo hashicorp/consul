@@ -248,7 +248,7 @@ func (b *Builder) buildDestination(
 			panic(fmt.Sprintf("it should not be possible to have a tcp protocol here: %v", effectiveProtocol))
 		}
 
-		rb := lb.addL7Router(routeName, "", effectiveProtocol)
+		rb := lb.addL7Router(routeName, statPrefix, effectiveProtocol)
 		if destination.Explicit == nil {
 			rb.addIPAndPortMatch(destination.VirtualIPs, virtualPortNumber)
 		}
@@ -372,7 +372,7 @@ func (b *ListenerBuilder) addL4RouterForDirect(clusterName, statPrefix string) *
 	router := &pbproxystate.Router{}
 
 	if statPrefix == "" {
-		statPrefix = "upstream."
+		statPrefix = fmt.Sprintf("upstream.%s", clusterName)
 	}
 
 	router.Destination = &pbproxystate.Router_L4{

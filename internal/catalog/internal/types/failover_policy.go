@@ -15,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedFailoverPolicy = resource.DecodedResource[*pbcatalog.FailoverPolicy]
+
 func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.FailoverPolicyType,
@@ -24,36 +26,32 @@ func RegisterFailoverPolicy(r resource.Registry) {
 		Validate: ValidateFailoverPolicy,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookFailoverPolicy,
-			Write: aclWriteHookFailoverPolicy,
+			Write: resource.DecodeAndAuthorizeWrite(aclWriteHookFailoverPolicy),
 			List:  resource.NoOpACLListHook,
 		},
 	})
 }
 
-func MutateFailoverPolicy(res *pbresource.Resource) error {
-	var failover pbcatalog.FailoverPolicy
+var MutateFailoverPolicy = resource.DecodeAndMutate(mutateFailoverPolicy)
 
-	if err := res.Data.UnmarshalTo(&failover); err != nil {
-		return resource.NewErrDataParse(&failover, err)
-	}
-
+func mutateFailoverPolicy(res *DecodedFailoverPolicy) (bool, error) {
 	changed := false
 
 	// Handle eliding empty configs.
-	if failover.Config != nil && failover.Config.IsEmpty() {
-		failover.Config = nil
+	if res.Data.Config != nil && res.Data.Config.IsEmpty() {
+		res.Data.Config = nil
 		changed = true
 	}
 
-	if failover.Config != nil {
-		if mutateFailoverConfig(res.Id.Tenancy, failover.Config) {
+	if res.Data.Config != nil {
+		if mutateFailoverConfig(res.Id.Tenancy, res.Data.Config) {
 			changed = true
 		}
 	}
 
-	for port, pc := range failover.PortConfigs {
+	for port, pc := range res.Data.PortConfigs {
 		if pc.IsEmpty() {
-			delete(failover.PortConfigs, port)
+			delete(res.Data.PortConfigs, port)
 			changed = true
 		} else {
 			if mutateFailoverConfig(res.Id.Tenancy, pc) {
@@ -61,16 +59,12 @@ func MutateFailoverPolicy(res *pbresource.Resource) error {
 			}
 		}
 	}
-	if len(failover.PortConfigs) == 0 {
-		failover.PortConfigs = nil
+	if len(res.Data.PortConfigs) == 0 {
+		res.Data.PortConfigs = nil
 		changed = true
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&failover)
+	return changed, nil
 }
 
 func mutateFailoverConfig(policyTenancy *pbresource.Tenancy, config *pbcatalog.FailoverConfig) (changed bool) {
@@ -109,35 +103,31 @@ func isLocalPeer(p string) bool {
 	return p == "local" || p == ""
 }
 
-func ValidateFailoverPolicy(res *pbresource.Resource) error {
-	var failover pbcatalog.FailoverPolicy
+var ValidateFailoverPolicy = resource.DecodeAndValidate(validateFailoverPolicy)
 
-	if err := res.Data.UnmarshalTo(&failover); err != nil {
-		return resource.NewErrDataParse(&failover, err)
-	}
-
+func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 	var merr error
 
-	if failover.Config == nil && len(failover.PortConfigs) == 0 {
+	if res.Data.Config == nil && len(res.Data.PortConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "config",
 			Wrapped: fmt.Errorf("at least one of config or port_configs must be set"),
 		})
 	}
 
-	if failover.Config != nil {
+	if res.Data.Config != nil {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidField{
 				Name:    "config",
 				Wrapped: err,
 			}
 		}
-		if cfgErr := validateFailoverConfig(failover.Config, false, wrapConfigErr); cfgErr != nil {
+		if cfgErr := validateFailoverConfig(res.Data.Config, false, wrapConfigErr); cfgErr != nil {
 			merr = multierror.Append(merr, cfgErr)
 		}
 	}
 
-	for portName, pc := range failover.PortConfigs {
+	for portName, pc := range res.Data.PortConfigs {
 		wrapConfigErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
@@ -333,7 +323,7 @@ func aclReadHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.Auth
 	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext)
 }
 
-func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedFailoverPolicy) error {
 	// FailoverPolicy is name-aligned with Service
 	serviceName := res.Id.Name
 
@@ -342,15 +332,10 @@ func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.Aut
 		return err
 	}
 
-	dec, err := resource.Decode[*pbcatalog.FailoverPolicy](res)
-	if err != nil {
-		return err
-	}
-
 	// Ensure you have service:read on any destination that may be affected by
 	// traffic FROM this config change.
-	if dec.Data.Config != nil {
-		for _, dest := range dec.Data.Config.Destinations {
+	if res.Data.Config != nil {
+		for _, dest := range res.Data.Config.Destinations {
 			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
 			destServiceName := dest.Ref.GetName()
 			if err := authorizer.ToAllowAuthorizer().ServiceReadAllowed(destServiceName, destAuthzContext); err != nil {
@@ -358,7 +343,7 @@ func aclWriteHookFailoverPolicy(authorizer acl.Authorizer, authzContext *acl.Aut
 			}
 		}
 	}
-	for _, pc := range dec.Data.PortConfigs {
+	for _, pc := range res.Data.PortConfigs {
 		for _, dest := range pc.Destinations {
 			destAuthzContext := resource.AuthorizerContext(dest.Ref.GetTenancy())
 			destServiceName := dest.Ref.GetName()

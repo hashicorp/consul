@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"io"
 	"net"
 	"os"
@@ -21,6 +20,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/internal/auth"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -71,15 +73,14 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -468,6 +469,9 @@ type Server struct {
 	registry resource.Registry
 
 	useV2Resources bool
+
+	// useV2Tenancy is tied to the "v2tenancy" feature flag.
+	useV2Tenancy bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -557,6 +561,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		registry:                flat.Registry,
 		useV2Resources:          flat.UseV2Resources(),
+		useV2Tenancy:            flat.UseV2Tenancy(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -834,7 +839,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Setup insecure resource service client.
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger, flat); err != nil {
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
 		return nil, err
 	}
 
@@ -931,9 +936,17 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	// When not enabled, the v1 tenancy bridge is used by default.
+	if s.useV2Tenancy {
+		tenancy.RegisterControllers(
+			s.controllerManager,
+			tenancy.Dependencies{Registry: deps.Registry},
+		)
+	}
+
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-
+		multicluster.RegisterControllers(s.controllerManager)
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1456,7 +1469,7 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	tenancyBridge := NewV1TenancyBridge(s)
-	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+	if s.useV2Tenancy {
 		tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
 		tenancyBridge = tenancyBridgeV2.WithClient(s.insecureResourceServiceClient)
 	}
@@ -1467,20 +1480,22 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 		ACLResolver:   s.ACLResolver,
 		Logger:        logger.Named("grpc-api.resource"),
 		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
 
 	reflection.Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger, deps Deps) error {
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
 	if s.raftStorageBackend == nil {
 		return fmt.Errorf("raft storage backend cannot be nil")
 	}
 
+	// Can't use interface type var here since v2 specific "WithClient(...)" is called futher down.
 	tenancyBridge := NewV1TenancyBridge(s)
 	tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
-	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+	if s.useV2Tenancy {
 		tenancyBridge = tenancyBridgeV2
 	}
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
@@ -1489,6 +1504,7 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 		ACLResolver:   resolver.DANGER_NO_AUTH{},
 		Logger:        logger.Named("grpc-api.resource"),
 		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)

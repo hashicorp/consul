@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	reg, err := s.validateListRequest(req)
+	reg, err := s.ensureListRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 	return &pbresource.ListResponse{Resources: result}, nil
 }
 
-func (s *Server) validateListRequest(req *pbresource.ListRequest) (*resource.Registration, error) {
+func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Type == nil:
@@ -97,6 +97,10 @@ func (s *Server) validateListRequest(req *pbresource.ListRequest) (*resource.Reg
 	// Check type exists.
 	reg, err := s.resolveType(req.Type)
 	if err != nil {
+		return nil, err
+	}
+
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
 		return nil, err
 	}
 

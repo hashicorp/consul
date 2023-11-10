@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
-func (g *Generator) generateAgentHCL(node *topology.Node) string {
+func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string {
 	if !node.IsAgent() {
 		panic("generateAgentHCL only applies to agents")
 	}
@@ -34,6 +34,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node) string {
 	b.add("log_level", "trace")
 	b.add("enable_debug", true)
 	b.add("use_streaming_backend", true)
+
+	if enableV2 {
+		b.addSlice("experiments", []string{"resource-apis"})
+	}
 
 	// speed up leaves
 	b.addBlock("performance", func() {

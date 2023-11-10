@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
@@ -25,20 +24,16 @@ func RegisterGRPCRoute(r resource.Registry) {
 	})
 }
 
-func MutateGRPCRoute(res *pbresource.Resource) error {
-	var route pbmesh.GRPCRoute
+var MutateGRPCRoute = resource.DecodeAndMutate(mutateGRPCRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func mutateGRPCRoute(res *DecodedGRPCRoute) (bool, error) {
 	changed := false
 
-	if mutateParentRefs(res.Id.Tenancy, route.ParentRefs) {
+	if mutateParentRefs(res.Id.Tenancy, res.Data.ParentRefs) {
 		changed = true
 	}
 
-	for _, rule := range route.Rules {
+	for _, rule := range res.Data.Rules {
 		for _, backend := range rule.BackendRefs {
 			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
 				continue
@@ -49,33 +44,25 @@ func MutateGRPCRoute(res *pbresource.Resource) error {
 		}
 	}
 
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&route)
+	return changed, nil
 }
 
-func ValidateGRPCRoute(res *pbresource.Resource) error {
-	var route pbmesh.GRPCRoute
+var ValidateGRPCRoute = resource.DecodeAndValidate(validateGRPCRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func validateGRPCRoute(res *DecodedGRPCRoute) error {
 	var merr error
-	if err := validateParentRefs(res.Id, route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, res.Data.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
-	if len(route.Hostnames) > 0 {
+	if len(res.Data.Hostnames) > 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "hostnames",
 			Wrapped: errors.New("should not populate hostnames"),
 		})
 	}
 
-	for i, rule := range route.Rules {
+	for i, rule := range res.Data.Rules {
 		wrapRuleErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "rules",

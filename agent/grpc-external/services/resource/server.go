@@ -35,6 +35,11 @@ type Config struct {
 	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
 	TenancyBridge TenancyBridge
+
+	// UseV2Tenancy is true if the "v2tenancy" experiement is active, false otherwise.
+	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
+	// flag is false.
+	UseV2Tenancy bool
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -232,6 +237,36 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 			return err
 		case !exists:
 			return status.Errorf(errCode, "namespace not found: %v", tenancy.Namespace)
+		}
+	}
+	return nil
+}
+
+func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy) error {
+	if scope == resource.ScopePartition && tenancy.Namespace != "" {
+		return status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(resourceType),
+			tenancy.Namespace,
+		)
+	}
+	if scope == resource.ScopeCluster {
+		if tenancy.Partition != "" {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Partition,
+			)
+		}
+		if tenancy.Namespace != "" {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Namespace,
+			)
 		}
 	}
 	return nil

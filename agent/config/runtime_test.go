@@ -6576,6 +6576,10 @@ func TestLoad_FullConfig(t *testing.T) {
 		KVMaxValueSize:        1234567800,
 		LeaveDrainTime:        8265 * time.Second,
 		LeaveOnTerm:           true,
+		Locality: &Locality{
+			Region: strPtr("us-east-2"),
+			Zone:   strPtr("us-east-2b"),
+		},
 		Logging: logging.Config{
 			LogLevel:       "k1zo9Spt",
 			LogJSON:        true,
@@ -6677,6 +6681,10 @@ func TestLoad_FullConfig(t *testing.T) {
 							Warning: 1,
 						},
 					},
+				},
+				Locality: &structs.Locality{
+					Region: "us-east-1",
+					Zone:   "us-east-1a",
 				},
 			},
 			{
@@ -6835,6 +6843,10 @@ func TestLoad_FullConfig(t *testing.T) {
 				EnableTagOverride: true,
 				Connect: &structs.ServiceConnect{
 					Native: true,
+				},
+				Locality: &structs.Locality{
+					Region: "us-west-1",
+					Zone:   "us-west-1a",
 				},
 				Checks: structs.CheckTypes{
 					&structs.CheckType{

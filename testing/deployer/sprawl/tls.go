@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
@@ -113,6 +114,29 @@ fi
 		if err != nil {
 			return fmt.Errorf("could not create all necessary TLS certificates in docker volume: %v", err)
 		}
+
+		var capture bytes.Buffer
+		err = s.runner.DockerExec(ctx, []string{"run",
+			"--rm",
+			"-i",
+			"--net=none",
+			"-u", consulUserArg,
+			"-v", cluster.TLSVolumeName + ":/data",
+			"-w", "/data",
+			"busybox:1.34",
+			"cat",
+			"/data/consul-agent-ca.pem",
+		}, &capture, nil)
+		if err != nil {
+			return fmt.Errorf("could not read CA PEM from docker volume: %v", err)
+		}
+
+		caPEM := capture.String()
+		if caPEM == "" {
+			return fmt.Errorf("found empty CA PEM")
+		}
+
+		s.secrets.SaveGeneric(cluster.Name, secrets.CAPEM, caPEM)
 	}
 
 	return nil

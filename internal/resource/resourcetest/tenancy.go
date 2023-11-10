@@ -4,12 +4,26 @@
 package resourcetest
 
 import (
+	"github.com/hashicorp/consul/agent/structs"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
+
+// TestTenancies returns a list of tenancies which represent
+// the namespace and partition combinations that can be used in unit tests
+func TestTenancies() []*pbresource.Tenancy {
+	isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+
+	tenancies := []*pbresource.Tenancy{Tenancy("default.default")}
+	if isEnterprise {
+		tenancies = append(tenancies, Tenancy("default.bar"), Tenancy("foo.default"), Tenancy("foo.bar"))
+	}
+
+	return tenancies
+}
 
 // Tenancy constructs a pbresource.Tenancy from a concise string representation
 // suitable for use in unit tests.
