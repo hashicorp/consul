@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/oklog/ulid/v2"
 	"github.com/stretchr/testify/mock"
@@ -19,8 +20,10 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
@@ -457,7 +460,24 @@ func TestWrite_Create_Tenancy_NotFound(t *testing.T) {
 	}
 }
 
-func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
+func TestWrite_Create_With_DeletionTimestamp_Fails(t *testing.T) {
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.RegisterTypes(server.Registry)
+
+	res := rtest.Resource(demo.TypeV1Artist, "blur").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithData(t, &pbdemov1.Artist{Name: "Blur"}).
+		WithMeta(resource.DeletionTimestampKey, time.Now().Format(time.RFC3339)).
+		Build()
+
+	_, err := client.Write(testContext(t), &pbresource.WriteRequest{Resource: res})
+	require.Error(t, err)
+	require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+	require.Contains(t, err.Error(), resource.DeletionTimestampKey)
+}
+
+func TestWrite_Create_With_TenancyMarkedForDeletion_Fails(t *testing.T) {
 	// Verify resource write fails when its partition or namespace is marked for deletion.
 	testCases := map[string]struct {
 		modFn       func(artist, recordLabel *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource
@@ -468,7 +488,7 @@ func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
 				mockTenancyBridge.On("IsPartitionMarkedForDeletion", "ap1").Return(true, nil)
 				return artist
 			},
-			errContains: "partition marked for deletion",
+			errContains: "tenancy marked for deletion",
 		},
 		"namespaced resources namespace marked for deletion": {
 			modFn: func(artist, _ *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource {
@@ -476,14 +496,14 @@ func TestWrite_Tenancy_MarkedForDeletion(t *testing.T) {
 				mockTenancyBridge.On("IsNamespaceMarkedForDeletion", "ap1", "ns1").Return(true, nil)
 				return artist
 			},
-			errContains: "namespace marked for deletion",
+			errContains: "tenancy marked for deletion",
 		},
 		"partitioned resources partition marked for deletion": {
 			modFn: func(_, recordLabel *pbresource.Resource, mockTenancyBridge *MockTenancyBridge) *pbresource.Resource {
 				mockTenancyBridge.On("IsPartitionMarkedForDeletion", "ap1").Return(true, nil)
 				return recordLabel
 			},
-			errContains: "partition marked for deletion",
+			errContains: "tenancy marked for deletion",
 		},
 	}
 	for desc, tc := range testCases {
@@ -902,4 +922,169 @@ func (b *blockOnceBackend) Read(ctx context.Context, consistency storage.ReadCon
 	}
 
 	return res, err
+}
+
+func TestEnsureFinalizerRemoved(t *testing.T) {
+	type testCase struct {
+		mod         func(input, existing *pbresource.Resource)
+		errContains string
+	}
+
+	testCases := map[string]testCase{
+		"one finalizer removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f1")
+			},
+		},
+		"all finalizers removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f1")
+				resource.RemoveFinalizer(input, "f1")
+			},
+		},
+		"all finalizers removed from input and no finalizer key": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+			},
+		},
+		"no finalizers removed from input": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(input, "f1")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"input finalizers not proper subset of existing": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(existing, "f1")
+				resource.AddFinalizer(existing, "f2")
+				resource.AddFinalizer(input, "f3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"existing has no finalizers for input to remove": {
+			mod: func(input, existing *pbresource.Resource) {
+				resource.AddFinalizer(input, "f3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			input := rtest.Resource(demo.TypeV1Artist, "artist1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
+				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
+				Build()
+
+			existing := rtest.Resource(demo.TypeV1Artist, "artist1").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemov1.Artist{Name: "artist1"}).
+				WithMeta(resource.DeletionTimestampKey, "someTimestamp").
+				Build()
+
+			tc.mod(input, existing)
+
+			err := ensureFinalizerRemoved(input, existing)
+			if tc.errContains != "" {
+				require.Error(t, err)
+				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+				require.ErrorContains(t, err, tc.errContains)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
+	type testCase struct {
+		modFn       func(res *pbresource.Resource)
+		errContains string
+	}
+	testCases := map[string]testCase{
+		"no-op write rejected": {
+			modFn:       func(res *pbresource.Resource) {},
+			errContains: "no-op write of resource marked for deletion not allowed",
+		},
+		"remove one finalizer": {
+			modFn: func(res *pbresource.Resource) {
+				resource.RemoveFinalizer(res, "finalizer1")
+			},
+		},
+		"remove all finalizers": {
+			modFn: func(res *pbresource.Resource) {
+				resource.RemoveFinalizer(res, "finalizer1")
+				resource.RemoveFinalizer(res, "finalizer2")
+			},
+		},
+		"adding finalizer fails": {
+			modFn: func(res *pbresource.Resource) {
+				resource.AddFinalizer(res, "finalizer3")
+			},
+			errContains: "expected at least one finalizer to be removed",
+		},
+		"remove deletionTimestamp fails": {
+			modFn: func(res *pbresource.Resource) {
+				delete(res.Metadata, resource.DeletionTimestampKey)
+			},
+			errContains: "cannot remove deletionTimestamp",
+		},
+		"modify deletionTimestamp fails": {
+			modFn: func(res *pbresource.Resource) {
+				res.Metadata[resource.DeletionTimestampKey] = "bad"
+			},
+			errContains: "cannot modify deletionTimestamp",
+		},
+		"modify data fails": {
+			modFn: func(res *pbresource.Resource) {
+				var err error
+				res.Data, err = anypb.New(&pbdemo.Artist{Name: "New Order"})
+				require.NoError(t, err)
+			},
+			errContains: "cannot modify data",
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			server, client, ctx := testDeps(t)
+			demo.RegisterTypes(server.Registry)
+
+			// Create a resource with finalizers
+			res := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"}).
+				WithMeta(resource.FinalizerKey, "finalizer1 finalizer2").
+				Write(t, client)
+
+			// Mark for deletion - resource should now be frozen
+			_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Verify marked for deletion
+			rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+			require.NoError(t, err)
+			require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
+
+			// Apply test case mods
+			tc.modFn(rsp.Resource)
+
+			// Verify write results
+			_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: rsp.Resource})
+			if tc.errContains == "" {
+				require.NoError(t, err)
+			} else {
+				require.Error(t, err)
+				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
+				require.ErrorContains(t, err, tc.errContains)
+			}
+		})
+	}
 }
