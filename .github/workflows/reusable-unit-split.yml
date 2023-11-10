@@ -170,7 +170,7 @@ jobs:
       - name: Upload test artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{env.TEST_RESULTS}}/gotestsum-report.xml
+          name: gotestsum-report.xml
           path: junit-test-summary-${{ matrix.index }}
           retention-days: 1
 
