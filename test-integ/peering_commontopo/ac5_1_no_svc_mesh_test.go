@@ -5,7 +5,6 @@ package peering
 
 import (
 	"fmt"
-
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -19,8 +18,8 @@ type ac5_1NoSvcMeshSuite struct {
 	DC   string
 	Peer string
 
-	serverSID topology.ServiceID
-	clientSID topology.ServiceID
+	serverSID topology.ID
+	clientSID topology.ID
 }
 
 var (
@@ -47,23 +46,23 @@ func (s *ac5_1NoSvcMeshSuite) setup(t *testing.T, ct *commonTopo) {
 	partition := "default"
 	peer := LocalPeerName(peerClu, partition)
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac5-server-http",
 		Partition: partition,
 	}
 
 	// Make client which will dial server
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac5-http-client",
 		Partition: partition,
 	}
 
 	// disable service mesh for client in s.DC
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.EnvoyAdminPort = 0
 				s.DisableServiceMesh = true
 			},
@@ -79,7 +78,7 @@ func (s *ac5_1NoSvcMeshSuite) setup(t *testing.T, ct *commonTopo) {
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
 			nil,

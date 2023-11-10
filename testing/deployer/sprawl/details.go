@@ -59,29 +59,29 @@ func (s *Sprawl) PrintDetails() error {
 				})
 			}
 
-			for _, svc := range node.Services {
-				if svc.IsMeshGateway {
+			for _, wrk := range node.Workloads {
+				if wrk.IsMeshGateway {
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "mesh-gateway",
 						Container:             node.DockerName(),
-						ExposedPort:           node.ExposedPort(svc.Port),
-						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						ExposedPort:           node.ExposedPort(wrk.Port),
+						ExposedEnvoyAdminPort: node.ExposedPort(wrk.EnvoyAdminPort),
 						Addresses:             addrs,
-						Service:               svc.ID.String(),
+						Service:               wrk.ID.String(),
 					})
 				} else {
 					ports := make(map[string]int)
-					for name, port := range svc.Ports {
+					for name, port := range wrk.Ports {
 						ports[name] = node.ExposedPort(port.Number)
 					}
 					cd.Apps = append(cd.Apps, appDetail{
 						Type:                  "app",
 						Container:             node.DockerName(),
-						ExposedPort:           node.ExposedPort(svc.Port),
+						ExposedPort:           node.ExposedPort(wrk.Port),
 						ExposedPorts:          ports,
-						ExposedEnvoyAdminPort: node.ExposedPort(svc.EnvoyAdminPort),
+						ExposedEnvoyAdminPort: node.ExposedPort(wrk.EnvoyAdminPort),
 						Addresses:             addrs,
-						Service:               svc.ID.String(),
+						Service:               wrk.ID.String(),
 					})
 				}
 			}
