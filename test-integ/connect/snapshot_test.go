@@ -4,20 +4,16 @@
 package connect
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+
+	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // Test_Snapshot_Restore_Agentless verifies consul agent can continue
@@ -151,47 +147,24 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 		},
 	}
 	sp := sprawltest.Launch(t, clu)
-
-	client, err := sp.HTTPClientForCluster("dc1")
-	require.NoError(t, err)
+	asserter := topoutil.NewAsserter(sp)
 
 	staticClient := sp.Topology().Clusters["dc1"].ServiceByID(
 		topology.NewNodeID("dc1-client2", "default"),
 		staticClientSID,
 	)
-	staticClientAddress := fmt.Sprintf("%s:%d", staticClient.Node.LocalAddress(), staticClient.Port)
-
-	// The following url causes the static-client's fortio server to
-	// fetch the ?url= param (the upstream static-server in our case).
-	url := fmt.Sprintf("http://%s/fortio/fetch2?url=%s", staticClientAddress,
-		url.QueryEscape("http://localhost:5000"),
+	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Upstream{
+		ID:        staticServerSID,
+		LocalPort: 5000,
+	})
+	staticServer := sp.Topology().Clusters["dc1"].ServiceByID(
+		topology.NewNodeID("dc1-client1", "default"),
+		staticServerSID,
 	)
-
-	// We retry the first request until we get 200 OK since it may take a while
-	// for the server to be available.
-	// Use a custom retry.Timer since the default one usually times out too early.
-	retrySendRequest := func(isSuccess bool) {
-		t.Log("static-client sending requests to static-server...")
-		retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
-			resp, err := client.Post(url, "text/plain", nil)
-			require.NoError(r, err)
-			defer resp.Body.Close()
-
-			if isSuccess {
-				require.Equal(r, http.StatusOK, resp.StatusCode)
-			} else {
-				require.NotEqual(r, http.StatusOK, resp.StatusCode)
-			}
-			body, err := io.ReadAll(resp.Body)
-			require.NoError(r, err)
-			fmt.Println("Body: ", string(body), resp.StatusCode)
-		})
-	}
-	retrySendRequest(true)
-	t.Log("...ok, got 200 responses")
+	asserter.HTTPStatus(t, staticServer, staticServer.Port, 200)
 
 	t.Log("Take a snapshot of the cluster and restore ...")
-	err = sp.SnapshotSave("dc1")
+	err := sp.SnapshotSave("dc1")
 	require.NoError(t, err)
 
 	// Shutdown existing static-server
@@ -199,7 +172,8 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	cluster := cfg.Cluster("dc1")
 	cluster.Nodes[1].Disabled = true //  client 1 -- static-server
 	require.NoError(t, sp.Relaunch(cfg))
-	retrySendRequest(false)
+	// verify static-server is down
+	asserter.HTTPStatus(t, staticServer, staticServer.Port, 504)
 
 	// Add a new static-server
 	cfg = sp.Config()
@@ -207,6 +181,6 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	cluster.Nodes[3].Disabled = false //  client 3 -- new static-server
 	require.NoError(t, sp.Relaunch(cfg))
 
-	// Ensure the static-client connected to static-server
-	retrySendRequest(true)
+	// Ensure the static-client connected to the new static-server
+	asserter.HTTPServiceEchoes(t, staticClient, staticClient.Port, "")
 }
