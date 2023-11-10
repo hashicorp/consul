@@ -17,17 +17,17 @@ type ac1BasicSuite struct {
 	Peer string
 
 	// test points
-	sidServerHTTP  topology.ServiceID
-	sidServerTCP   topology.ServiceID
+	sidServerHTTP  topology.ID
+	sidServerTCP   topology.ID
 	nodeServerHTTP topology.NodeID
 	nodeServerTCP  topology.NodeID
 
 	// 1.1
-	sidClientTCP  topology.ServiceID
+	sidClientTCP  topology.ID
 	nodeClientTCP topology.NodeID
 
 	// 1.2
-	sidClientHTTP  topology.ServiceID
+	sidClientHTTP  topology.ID
 	nodeClientHTTP topology.NodeID
 
 	upstreamHTTP *topology.Destination
@@ -57,16 +57,16 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 	cluPeerName := LocalPeerName(clu, "default")
 	const prefix = "ac1-"
 
-	tcpServerSID := topology.ServiceID{
+	tcpServerSID := topology.ID{
 		Name:      prefix + "server-tcp",
 		Partition: partition,
 	}
-	httpServerSID := topology.ServiceID{
+	httpServerSID := topology.ID{
 		Name:      prefix + "server-http",
 		Partition: partition,
 	}
 	upstreamHTTP := &topology.Destination{
-		ID: topology.ServiceID{
+		ID: topology.ID{
 			Name:      httpServerSID.Name,
 			Partition: partition,
 		},
@@ -74,7 +74,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		Peer:      peer,
 	}
 	upstreamTCP := &topology.Destination{
-		ID: topology.ServiceID{
+		ID: topology.ID{
 			Name:      tcpServerSID.Name,
 			Partition: partition,
 		},
@@ -84,15 +84,15 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 
 	// Make clients which have server upstreams
 	setupClientServiceAndConfigs := func(protocol string) (serviceExt, *topology.Node) {
-		sid := topology.ServiceID{
+		sid := topology.ID{
 			Name:      prefix + "client-" + protocol,
 			Partition: partition,
 		}
 		svc := serviceExt{
-			Service: NewFortioServiceWithDefaults(
+			Workload: NewFortioServiceWithDefaults(
 				clu.Datacenter,
 				sid,
-				func(s *topology.Service) {
+				func(s *topology.Workload) {
 					s.Destinations = []*topology.Destination{
 						upstreamTCP,
 						upstreamHTTP,
@@ -122,7 +122,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 	httpClient, httpClientNode := setupClientServiceAndConfigs("http")
 
 	httpServer := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			httpServerSID,
 			nil,
@@ -153,7 +153,7 @@ func (s *ac1BasicSuite) setup(t *testing.T, ct *commonTopo) {
 		},
 	}
 	tcpServer := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			tcpServerSID,
 			nil,
@@ -208,20 +208,20 @@ func (s *ac1BasicSuite) test(t *testing.T, ct *commonTopo) {
 	ac := s
 
 	// refresh this from Topology
-	svcClientTCP := dc.ServiceByID(
+	svcClientTCP := dc.WorkloadByID(
 		ac.nodeClientTCP,
 		ac.sidClientTCP,
 	)
-	svcClientHTTP := dc.ServiceByID(
+	svcClientHTTP := dc.WorkloadByID(
 		ac.nodeClientHTTP,
 		ac.sidClientHTTP,
 	)
 	// our ac has the node/sid for server in the peer DC
-	svcServerHTTP := peer.ServiceByID(
+	svcServerHTTP := peer.WorkloadByID(
 		ac.nodeServerHTTP,
 		ac.sidServerHTTP,
 	)
-	svcServerTCP := peer.ServiceByID(
+	svcServerTCP := peer.WorkloadByID(
 		ac.nodeServerTCP,
 		ac.sidServerTCP,
 	)
@@ -235,7 +235,7 @@ func (s *ac1BasicSuite) test(t *testing.T, ct *commonTopo) {
 	tcs := []struct {
 		acSub int
 		proto string
-		svc   *topology.Service
+		svc   *topology.Workload
 	}{
 		{1, "tcp", svcClientTCP},
 		{2, "http", svcClientHTTP},

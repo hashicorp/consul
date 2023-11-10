@@ -32,8 +32,8 @@ import (
 func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	t.Parallel()
 
-	staticServerSID := topology.NewServiceID("static-server", "default", "default")
-	staticClientSID := topology.NewServiceID("static-client", "default", "default")
+	staticServerSID := topology.NewID("static-server", "default", "default")
+	staticClientSID := topology.NewID("static-client", "default", "default")
 
 	clu := &topology.Config{
 		Images: utils.TargetImages(),
@@ -58,7 +58,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client1",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
 								ID:             staticServerSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",
@@ -76,7 +76,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client2",
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
 								ID:             staticClientSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",
@@ -102,7 +102,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 						Kind:     topology.NodeKindDataplane,
 						Name:     "dc1-client3",
 						Disabled: true,
-						Workloads: []*topology.Service{
+						Workloads: []*topology.Workload{
 							{
 								ID:             staticServerSID,
 								Image:          "docker.mirror.hashicorp.services/fortio/fortio",
@@ -148,15 +148,15 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	sp := sprawltest.Launch(t, clu)
 	asserter := topoutil.NewAsserter(sp)
 
-	staticClient := sp.Topology().Clusters["dc1"].ServiceByID(
+	staticClient := sp.Topology().Clusters["dc1"].WorkloadByID(
 		topology.NewNodeID("dc1-client2", "default"),
 		staticClientSID,
 	)
-	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Upstream{
+	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Destination{
 		ID:        staticServerSID,
 		LocalPort: 5000,
 	})
-	staticServer := sp.Topology().Clusters["dc1"].ServiceByID(
+	staticServer := sp.Topology().Clusters["dc1"].WorkloadByID(
 		topology.NewNodeID("dc1-client1", "default"),
 		staticServerSID,
 	)

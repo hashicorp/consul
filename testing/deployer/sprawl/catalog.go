@@ -929,7 +929,7 @@ func workloadToSidecarCatalogRegistration(
 	cluster *topology.Cluster,
 	node *topology.Node,
 	wrk *topology.Workload,
-) (topology.ServiceID, *api.CatalogRegistration) {
+) (topology.ID, *api.CatalogRegistration) {
 	if node.IsV2() {
 		panic("don't call this")
 	}

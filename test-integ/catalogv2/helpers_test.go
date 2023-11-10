@@ -22,7 +22,7 @@ func clusterPrefixForDestination(dest *topology.Destination) string {
 	}
 }
 
-func clusterPrefix(port string, svcID topology.ServiceID, cluster string) string {
+func clusterPrefix(port string, svcID topology.ID, cluster string) string {
 	if svcID.PartitionOrDefault() == "default" {
 		return strings.Join([]string{port, svcID.Name, svcID.Namespace, cluster, "internal"}, ".")
 	} else {

@@ -37,12 +37,12 @@ type ac6FailoversSuite struct {
 	FarInNSAlt   bool
 
 	// launch outputs, for querying during test
-	clientSID topology.ServiceID
+	clientSID topology.ID
 	// near = same DC as client; far = other DC
-	nearServerSID topology.ServiceID
+	nearServerSID topology.ID
 	// used to remove the node and trigger failover
 	nearServerNode topology.NodeID
-	farServerSID   topology.ServiceID
+	farServerSID   topology.ID
 	farServerNode  topology.NodeID
 }
 
@@ -217,7 +217,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 	}
 
 	// - server in clientPartition/DC (main target)
-	nearServerSID := topology.ServiceID{
+	nearServerSID := topology.ID{
 		Name:      "ac6-server",
 		Partition: defaultToEmptyForCE("default"),
 		Namespace: defaultToEmptyForCE("default"),
@@ -233,7 +233,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		nearServerSID,
 		nil,
 	)
-	nearServerNode := ct.AddServiceNode(nearClu, serviceExt{Service: nearServer})
+	nearServerNode := ct.AddServiceNode(nearClu, serviceExt{Workload: nearServer})
 
 	nearClu.InitialConfigEntries = append(nearClu.InitialConfigEntries,
 		&api.ServiceConfigEntry{
@@ -245,7 +245,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		},
 	)
 	// - server in otherPartition/otherDC
-	farServerSID := topology.ServiceID{
+	farServerSID := topology.ID{
 		Name:      nearServerSID.Name,
 		Partition: defaultToEmptyForCE("default"),
 		Namespace: defaultToEmptyForCE("default"),
@@ -261,7 +261,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		farServerSID,
 		nil,
 	)
-	farServerNode := ct.AddServiceNode(farClu, serviceExt{Service: farServer})
+	farServerNode := ct.AddServiceNode(farClu, serviceExt{Workload: farServer})
 	if nearClu != farClu {
 		ct.ExportService(farClu, farServerSID.Partition,
 			api.ExportedService{
@@ -337,7 +337,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		},
 	)
 
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac6-client",
 		Partition: defaultToEmptyForCE(nearServerSID.Partition),
 		Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
@@ -345,11 +345,11 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 	client := NewFortioServiceWithDefaults(
 		nearClu.Datacenter,
 		clientSID,
-		func(s *topology.Service) {
+		func(s *topology.Workload) {
 			// Destination per partition
 			s.Destinations = []*topology.Destination{
 				{
-					ID: topology.ServiceID{
+					ID: topology.ID{
 						Name:      nearServerSID.Name,
 						Partition: defaultToEmptyForCE(nearServerSID.Partition),
 						Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
@@ -362,7 +362,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 			}
 		},
 	)
-	ct.AddServiceNode(nearClu, serviceExt{Service: client})
+	ct.AddServiceNode(nearClu, serviceExt{Workload: client})
 	nearClu.InitialConfigEntries = append(nearClu.InitialConfigEntries,
 		&api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
@@ -432,7 +432,7 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 		farClu = ct.Sprawl.Topology().Clusters["dc1"]
 	}
 
-	svcs := nearClu.ServicesByID(s.clientSID)
+	svcs := nearClu.WorkloadsByID(s.clientSID)
 	require.Len(t, svcs, 1, "expected exactly one client in datacenter")
 
 	client := svcs[0]

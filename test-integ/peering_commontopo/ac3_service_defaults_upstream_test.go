@@ -35,9 +35,9 @@ type ac3SvcDefaultsSuite struct {
 	Peer string
 
 	// test points
-	sidServer  topology.ServiceID
+	sidServer  topology.ID
 	nodeServer topology.NodeID
-	sidClient  topology.ServiceID
+	sidClient  topology.ID
 	nodeClient topology.NodeID
 
 	upstream *topology.Destination
@@ -56,12 +56,12 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 	cluPeerName := LocalPeerName(clu, "default")
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac3-server",
 		Partition: partition,
 	}
 	upstream := &topology.Destination{
-		ID: topology.ServiceID{
+		ID: topology.ID{
 			Name:      serverSID.Name,
 			Partition: partition,
 		},
@@ -69,15 +69,15 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Peer:      peer,
 	}
 
-	sid := topology.ServiceID{
+	sid := topology.ID{
 		Name:      "ac3-client",
 		Partition: partition,
 	}
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			sid,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.Destinations = []*topology.Destination{
 					upstream,
 				}
@@ -112,7 +112,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	clientNode := ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			serverSID,
 			nil,
@@ -158,12 +158,12 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	peer := ct.Sprawl.Topology().Clusters[s.Peer]
 
 	// refresh this from Topology
-	svcClient := dc.ServiceByID(
+	svcClient := dc.WorkloadByID(
 		s.nodeClient,
 		s.sidClient,
 	)
 	// our ac has the node/sid for server in the peer DC
-	svcServer := peer.ServiceByID(
+	svcServer := peer.WorkloadByID(
 		s.nodeServer,
 		s.sidServer,
 	)

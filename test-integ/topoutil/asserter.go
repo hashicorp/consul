@@ -179,7 +179,7 @@ func (a *Asserter) HTTPStatus(
 }
 
 // asserts that the service sid in cluster and exported by peer localPeerName is passing health checks,
-func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.ServiceID, peerName string) {
+func (a *Asserter) HealthyWithPeer(t *testing.T, cluster string, sid topology.ID, peerName string) {
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
