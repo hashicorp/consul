@@ -851,7 +851,7 @@ func (w *Workload) ports() []int {
 		seen := make(map[int]struct{})
 		for _, port := range w.Ports {
 			if _, ok := seen[port.Number]; !ok {
-				// It'w totally fine to expose the same port twice in a workload.
+				// It's totally fine to expose the same port twice in a workload.
 				seen[port.Number] = struct{}{}
 				out = append(out, port.Number)
 			}
