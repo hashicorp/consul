@@ -808,23 +808,22 @@ type Workload struct {
 }
 
 func (w *Workload) ExposedPort(name string) int {
-	s := w // TODO
-	if s.Node == nil {
+	if w.Node == nil {
 		panic("ExposedPort cannot be called until after Compile")
 	}
 
 	var internalPort int
 	if name == "" {
-		internalPort = s.Port
+		internalPort = w.Port
 	} else {
-		port, ok := s.Ports[name]
+		port, ok := w.Ports[name]
 		if !ok {
 			panic("port with name " + name + " not present on service")
 		}
 		internalPort = port.Number
 	}
 
-	return s.Node.ExposedPort(internalPort)
+	return w.Node.ExposedPort(internalPort)
 }
 
 func (w *Workload) PortOrDefault(name string) int {
@@ -847,27 +846,26 @@ func (w *Workload) inheritFromExisting(existing *Workload) {
 }
 
 func (w *Workload) ports() []int {
-	s := w // TODO
 	var out []int
-	if len(s.Ports) > 0 {
+	if len(w.Ports) > 0 {
 		seen := make(map[int]struct{})
-		for _, port := range s.Ports {
+		for _, port := range w.Ports {
 			if _, ok := seen[port.Number]; !ok {
-				// It's totally fine to expose the same port twice in a workload.
+				// It'w totally fine to expose the same port twice in a workload.
 				seen[port.Number] = struct{}{}
 				out = append(out, port.Number)
 			}
 		}
-	} else if s.Port > 0 {
-		out = append(out, s.Port)
+	} else if w.Port > 0 {
+		out = append(out, w.Port)
 	}
-	if s.EnvoyAdminPort > 0 {
-		out = append(out, s.EnvoyAdminPort)
+	if w.EnvoyAdminPort > 0 {
+		out = append(out, w.EnvoyAdminPort)
 	}
-	if s.EnvoyPublicListenerPort > 0 {
-		out = append(out, s.EnvoyPublicListenerPort)
+	if w.EnvoyPublicListenerPort > 0 {
+		out = append(out, w.EnvoyPublicListenerPort)
 	}
-	for _, dest := range s.Destinations {
+	for _, dest := range w.Destinations {
 		if dest.LocalPort > 0 {
 			out = append(out, dest.LocalPort)
 		}
@@ -888,11 +886,10 @@ func (w *Workload) DigestExposedPorts(ports map[int]int) {
 }
 
 func (w *Workload) Validate() error {
-	s := w // TODO
-	if s.ID.Name == "" {
+	if w.ID.Name == "" {
 		return fmt.Errorf("service name is required")
 	}
-	if s.Image == "" && !s.IsMeshGateway {
+	if w.Image == "" && !w.IsMeshGateway {
 		return fmt.Errorf("service image is required")
 	}
 
@@ -905,28 +902,28 @@ func (w *Workload) Validate() error {
 		w.ImpliedUpstreams = nil
 	}
 
-	if s.IsV2() {
-		if len(s.Ports) > 0 && s.Port > 0 {
+	if w.IsV2() {
+		if len(w.Ports) > 0 && w.Port > 0 {
 			return fmt.Errorf("cannot specify both singleport and multiport on service in v2")
 		}
-		if s.Port > 0 {
-			s.Ports = map[string]*Port{
+		if w.Port > 0 {
+			w.Ports = map[string]*Port{
 				"legacy": {
-					Number:   s.Port,
+					Number:   w.Port,
 					Protocol: "tcp",
 				},
 			}
-			s.Port = 0
+			w.Port = 0
 		}
 
-		if !s.DisableServiceMesh && s.EnvoyPublicListenerPort > 0 {
-			s.Ports["mesh"] = &Port{
-				Number:   s.EnvoyPublicListenerPort,
+		if !w.DisableServiceMesh && w.EnvoyPublicListenerPort > 0 {
+			w.Ports["mesh"] = &Port{
+				Number:   w.EnvoyPublicListenerPort,
 				Protocol: "mesh",
 			}
 		}
 
-		for name, port := range s.Ports {
+		for name, port := range w.Ports {
 			if port == nil {
 				return fmt.Errorf("cannot be nil")
 			}
@@ -944,40 +941,40 @@ func (w *Workload) Validate() error {
 			port.ActualProtocol = proto
 		}
 	} else {
-		if len(s.Ports) > 0 {
+		if len(w.Ports) > 0 {
 			return fmt.Errorf("cannot specify mulitport on service in v1")
 		}
-		if s.Port <= 0 {
+		if w.Port <= 0 {
 			return fmt.Errorf("service has invalid port")
 		}
-		if s.EnableTransparentProxy {
+		if w.EnableTransparentProxy {
 			return fmt.Errorf("tproxy does not work with v1 yet")
 		}
 	}
-	if s.DisableServiceMesh && s.IsMeshGateway {
+	if w.DisableServiceMesh && w.IsMeshGateway {
 		return fmt.Errorf("cannot disable service mesh and still run a mesh gateway")
 	}
-	if s.DisableServiceMesh && len(s.Destinations) > 0 {
+	if w.DisableServiceMesh && len(w.Destinations) > 0 {
 		return fmt.Errorf("cannot disable service mesh and configure destinations")
 	}
-	if s.DisableServiceMesh && len(s.ImpliedDestinations) > 0 {
+	if w.DisableServiceMesh && len(w.ImpliedDestinations) > 0 {
 		return fmt.Errorf("cannot disable service mesh and configure implied destinations")
 	}
-	if s.DisableServiceMesh && s.EnableTransparentProxy {
+	if w.DisableServiceMesh && w.EnableTransparentProxy {
 		return fmt.Errorf("cannot disable service mesh and activate tproxy")
 	}
 
-	if s.DisableServiceMesh {
-		if s.EnvoyAdminPort != 0 {
+	if w.DisableServiceMesh {
+		if w.EnvoyAdminPort != 0 {
 			return fmt.Errorf("cannot use envoy admin port without a service mesh")
 		}
 	} else {
-		if s.EnvoyAdminPort <= 0 {
+		if w.EnvoyAdminPort <= 0 {
 			return fmt.Errorf("envoy admin port is required")
 		}
 	}
 
-	for _, dest := range s.Destinations {
+	for _, dest := range w.Destinations {
 		if dest.ID.Name == "" {
 			return fmt.Errorf("destination service name is required")
 		}
@@ -995,7 +992,7 @@ func (w *Workload) Validate() error {
 			return fmt.Errorf("implied field cannot be set")
 		}
 	}
-	for _, dest := range s.ImpliedDestinations {
+	for _, dest := range w.ImpliedDestinations {
 		if dest.ID.Name == "" {
 			return fmt.Errorf("implied destination service name is required")
 		}

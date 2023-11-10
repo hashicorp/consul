@@ -391,7 +391,6 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 				continue
 			}
 			for _, wrk := range n.Workloads {
-				s := wrk // TODO
 				if wrk.Disabled || wrk.EnvoyAdminPort <= 0 {
 					continue
 				}
@@ -408,18 +407,18 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 						continue
 					}
 
-					outFn := filepath.Join(snapDir, n.DockerName()+"--"+s.ID.TFString()+"."+fn)
+					outFn := filepath.Join(snapDir, n.DockerName()+"--"+wrk.ID.TFString()+"."+fn)
 
 					if err := os.WriteFile(outFn+".tmp", body, 0644); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
 
 					if err := os.Rename(outFn+".tmp", outFn); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
