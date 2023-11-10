@@ -43,4 +43,8 @@ flowchart TD
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedproxyconfiguration
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedroutes
   mesh/v2beta1/tcproute
+  multicluster/v2beta1/computedexportedservices --> catalog/v2beta1/service
+  multicluster/v2beta1/computedexportedservices --> multicluster/v2beta1/exportedservices
+  multicluster/v2beta1/computedexportedservices --> multicluster/v2beta1/namespaceexportedservices
+  multicluster/v2beta1/computedexportedservices --> multicluster/v2beta1/partitionexportedservices
 ```
