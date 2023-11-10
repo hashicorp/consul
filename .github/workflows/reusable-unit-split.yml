@@ -170,8 +170,8 @@ jobs:
       - name: Upload test artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: gotestsum-report.xml
-          path: junit-test-summary-${{ matrix.index }}
+          name: junit-test-summary-${{ matrix.index }}
+          path: gotestsum-report.xml
           retention-days: 1
 
       - name: Notify Slack
