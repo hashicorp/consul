@@ -1,5 +1,5 @@
-resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
-	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+	name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
     image        = docker_image.{{.ImageResource}}.image_id
     restart      = "on-failure"
@@ -20,10 +20,10 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
   env = [
 			"DP_CONSUL_ADDRESSES=server.{{.Node.Cluster}}-consulcluster.lan",
 			"DP_SERVICE_NODE_NAME={{.Node.PodName}}",
-			"DP_PROXY_SERVICE_ID={{.Service.ID.Name}}",
+			"DP_PROXY_SERVICE_ID={{.Workload.ID.Name}}",
     {{ if .Enterprise }}
-      "DP_SERVICE_NAMESPACE={{.Service.ID.Namespace}}",
-      "DP_SERVICE_PARTITION={{.Service.ID.Partition}}",
+      "DP_SERVICE_NAMESPACE={{.Workload.ID.Namespace}}",
+      "DP_SERVICE_PARTITION={{.Workload.ID.Partition}}",
     {{ end }}
     {{ if .Token }}
       "DP_CREDENTIAL_TYPE=static",

@@ -190,12 +190,12 @@ func (s *Sprawl) awaitMeshGateways() {
 	startTime := time.Now()
 	s.logger.Info("awaiting mesh gateways")
 	// TODO: maybe a better way to do this
-	mgws := []*topology.Service{}
+	mgws := []*topology.Workload{}
 	for _, clu := range s.topology.Clusters {
 		for _, node := range clu.Nodes {
-			for _, svc := range node.Services {
-				if svc.IsMeshGateway {
-					mgws = append(mgws, svc)
+			for _, wrk := range node.Workloads {
+				if wrk.IsMeshGateway {
+					mgws = append(mgws, wrk)
 				}
 			}
 		}

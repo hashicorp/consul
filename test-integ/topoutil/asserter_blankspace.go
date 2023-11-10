@@ -18,16 +18,16 @@ import (
 // on the correct instance using HTTP1 or HTTP2.
 func (a *Asserter) CheckBlankspaceNameViaHTTP(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	useHTTP2 bool,
 	path string,
 	clusterName string,
-	sid topology.ServiceID,
+	sid topology.ID,
 ) {
 	t.Helper()
 
-	a.checkBlankspaceNameViaHTTPWithCallback(t, service, upstream, useHTTP2, path, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
+	a.checkBlankspaceNameViaHTTPWithCallback(t, workload, dest, useHTTP2, path, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
 		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), remoteName)
 	}, func(r *retry.R) {})
 }
@@ -36,8 +36,8 @@ func (a *Asserter) CheckBlankspaceNameViaHTTP(
 // but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaHTTP(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	useHTTP2 bool,
 	path string,
 	expect map[string]int,
@@ -45,7 +45,7 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaHTTP(
 	t.Helper()
 
 	got := make(map[string]int)
-	a.checkBlankspaceNameViaHTTPWithCallback(t, service, upstream, useHTTP2, path, 100, func(_ *retry.R) {
+	a.checkBlankspaceNameViaHTTPWithCallback(t, workload, dest, useHTTP2, path, 100, func(_ *retry.R) {
 		got = make(map[string]int)
 	}, func(_ *retry.R, name string) {
 		got[name]++
@@ -56,8 +56,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaHTTP(
 
 func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	useHTTP2 bool,
 	path string,
 	count int,
@@ -68,8 +68,8 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	t.Helper()
 
 	var (
-		node         = service.Node
-		internalPort = service.PortOrDefault(upstream.PortName)
+		node         = workload.Node
+		internalPort = workload.PortOrDefault(dest.PortName)
 		addr         = fmt.Sprintf("%s:%d", node.LocalAddress(), internalPort)
 		client       = a.mustGetHTTPClient(t, node.Cluster)
 	)
@@ -86,16 +86,16 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 	}
 
 	var actualURL string
-	if upstream.Implied {
+	if dest.Implied {
 		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
-			upstream.ID.Name,
-			upstream.ID.Namespace,
-			upstream.ID.Partition,
-			upstream.VirtualPort,
+			dest.ID.Name,
+			dest.ID.Namespace,
+			dest.ID.Partition,
+			dest.VirtualPort,
 			path,
 		)
 	} else {
-		actualURL = fmt.Sprintf("http://localhost:%d/%s", upstream.LocalPort, path)
+		actualURL = fmt.Sprintf("http://localhost:%d/%s", dest.LocalPort, path)
 	}
 
 	multiassert(t, count, resetFn, func(r *retry.R) {
@@ -111,14 +111,14 @@ func (a *Asserter) checkBlankspaceNameViaHTTPWithCallback(
 // on the correct instance using plain tcp sockets.
 func (a *Asserter) CheckBlankspaceNameViaTCP(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	clusterName string,
-	sid topology.ServiceID,
+	sid topology.ID,
 ) {
 	t.Helper()
 
-	a.checkBlankspaceNameViaTCPWithCallback(t, service, upstream, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
+	a.checkBlankspaceNameViaTCPWithCallback(t, workload, dest, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
 		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), remoteName)
 	}, func(r *retry.R) {})
 }
@@ -127,14 +127,14 @@ func (a *Asserter) CheckBlankspaceNameViaTCP(
 // but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaTCP(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	expect map[string]int,
 ) {
 	t.Helper()
 
 	got := make(map[string]int)
-	a.checkBlankspaceNameViaTCPWithCallback(t, service, upstream, 100, func(_ *retry.R) {
+	a.checkBlankspaceNameViaTCPWithCallback(t, workload, dest, 100, func(_ *retry.R) {
 		got = make(map[string]int)
 	}, func(_ *retry.R, name string) {
 		got[name]++
@@ -145,8 +145,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaTCP(
 
 func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	count int,
 	resetFn func(r *retry.R),
 	attemptFn func(r *retry.R, remoteName string),
@@ -154,11 +154,11 @@ func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 ) {
 	t.Helper()
 
-	require.False(t, upstream.Implied, "helper does not support tproxy yet")
-	port := upstream.LocalPort
+	require.False(t, dest.Implied, "helper does not support tproxy yet")
+	port := dest.LocalPort
 	require.True(t, port > 0)
 
-	node := service.Node
+	node := workload.Node
 
 	// We can't use the forward proxy for TCP yet, so use the exposed port on localhost instead.
 	exposedPort := node.ExposedPort(port)
@@ -179,14 +179,14 @@ func (a *Asserter) checkBlankspaceNameViaTCPWithCallback(
 // on the correct instance using gRPC.
 func (a *Asserter) CheckBlankspaceNameViaGRPC(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	clusterName string,
-	sid topology.ServiceID,
+	sid topology.ID,
 ) {
 	t.Helper()
 
-	a.checkBlankspaceNameViaGRPCWithCallback(t, service, upstream, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
+	a.checkBlankspaceNameViaGRPCWithCallback(t, workload, dest, 1, func(_ *retry.R) {}, func(r *retry.R, remoteName string) {
 		require.Equal(r, fmt.Sprintf("%s::%s", clusterName, sid.String()), remoteName)
 	}, func(_ *retry.R) {})
 }
@@ -195,14 +195,14 @@ func (a *Asserter) CheckBlankspaceNameViaGRPC(
 // but it is verifying a relative traffic split.
 func (a *Asserter) CheckBlankspaceNameTrafficSplitViaGRPC(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	expect map[string]int,
 ) {
 	t.Helper()
 
 	got := make(map[string]int)
-	a.checkBlankspaceNameViaGRPCWithCallback(t, service, upstream, 100, func(_ *retry.R) {
+	a.checkBlankspaceNameViaGRPCWithCallback(t, workload, dest, 100, func(_ *retry.R) {
 		got = make(map[string]int)
 	}, func(_ *retry.R, name string) {
 		got[name]++
@@ -213,8 +213,8 @@ func (a *Asserter) CheckBlankspaceNameTrafficSplitViaGRPC(
 
 func (a *Asserter) checkBlankspaceNameViaGRPCWithCallback(
 	t *testing.T,
-	service *topology.Service,
-	upstream *topology.Upstream,
+	workload *topology.Workload,
+	dest *topology.Destination,
 	count int,
 	resetFn func(r *retry.R),
 	attemptFn func(r *retry.R, remoteName string),
@@ -222,11 +222,11 @@ func (a *Asserter) checkBlankspaceNameViaGRPCWithCallback(
 ) {
 	t.Helper()
 
-	require.False(t, upstream.Implied, "helper does not support tproxy yet")
-	port := upstream.LocalPort
+	require.False(t, dest.Implied, "helper does not support tproxy yet")
+	port := dest.LocalPort
 	require.True(t, port > 0)
 
-	node := service.Node
+	node := workload.Node
 
 	// We can't use the forward proxy for gRPC yet, so use the exposed port on localhost instead.
 	exposedPort := node.ExposedPort(port)
