@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+	"google.golang.org/protobuf/proto"
+
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/agent/structs"
 	cat "github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
@@ -20,11 +23,8 @@ import (
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"google.golang.org/protobuf/proto"
-
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 type controllerSuite struct {
@@ -60,7 +60,7 @@ func (suite *controllerSuite) SetupTest() {
 		Logger: testutil.Logger(suite.T()),
 	}
 	suite.reconciler = &reconciler{}
-	suite.isEnterprise = (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	suite.isEnterprise = versiontest.IsEnterprise()
 }
 
 func (suite *controllerSuite) TestReconcile() {
