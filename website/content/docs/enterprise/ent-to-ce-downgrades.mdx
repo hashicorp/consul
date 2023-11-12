@@ -40,14 +40,6 @@ this snapshot somewhere safe. Refer to the following documentation for additiona
 1. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to
 reload the configuration:
-
-    ```
-    consul reload
-    ```
-
-   This change gives you more information to work with in the event something goes wrong.
-
-
 1. Remove references to services in non-default namespaces and partitions from service resolver, service splitter, and service router configuration entries.
 
 
