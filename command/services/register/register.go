@@ -86,7 +86,7 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	svcs := []*api.AgentServiceRegistration{{
+	svcFromFlags := []*api.AgentServiceRegistration{{
 		Kind:            api.ServiceKind(c.flagKind),
 		ID:              c.flagId,
 		Name:            c.flagName,
@@ -108,13 +108,20 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	var svcsFromFiles []*api.AgentServiceRegistration
 	if len(args) > 0 {
 		var err error
-		svcs, err = services.ServicesFromFiles(c.UI, args)
+		svcsFromFiles, err = services.ServicesFromFiles(c.UI, args)
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Error: %s", err))
 			return 1
 		}
+	}
+
+	// Merge or Sync argument values, if argument is provided in cmd arg,
+	// but not in file.
+	for _, svc := range svcsFromFiles {
+		MergeArgs(svc, svcFromFlags[0])
 	}
 
 	// Create and test the HTTP client
@@ -125,6 +132,12 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// Create all the services
+	var svcs []*api.AgentServiceRegistration
+	if len(svcsFromFiles) > 0 {
+		svcs = svcsFromFiles
+	} else {
+		svcs = svcFromFlags
+	}
 	for _, svc := range svcs {
 		if err := client.Agent().ServiceRegister(svc); err != nil {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s",
@@ -144,6 +157,46 @@ func (c *cmd) Synopsis() string {
 
 func (c *cmd) Help() string {
 	return c.help
+}
+
+// If arguments and service file both are input while registering services,
+// this function merges the values from both sources.
+// A argument value from cmd flag is taken, if it is not specified in service file definition.
+func MergeArgs(svcFile *api.AgentServiceRegistration, svcFlag *api.AgentServiceRegistration) {
+	if svcFlag.ID != "" && svcFile.ID == "" {
+		svcFile.ID = svcFlag.ID
+	}
+	if svcFlag.Name != "" && svcFile.Name == "" {
+		svcFile.Name = svcFlag.Name
+	}
+	if svcFlag.Address != "" && svcFile.Address == "" {
+		svcFile.Address = svcFlag.Address
+	}
+	if svcFlag.Port != 0 && svcFile.Port == 0 {
+		svcFile.Port = svcFlag.Port
+	}
+	if svcFlag.Kind != "" && svcFile.Kind == "" {
+		svcFile.Kind = svcFlag.Kind
+	}
+	if svcFlag.SocketPath != "" && svcFile.SocketPath == "" {
+		svcFile.SocketPath = svcFlag.SocketPath
+	}
+	if svcFile.Meta == nil {
+		svcFile.Meta = make(map[string]string)
+	}
+	for k, v := range svcFlag.Meta {
+		svcFile.Meta[k] = v
+	}
+	if svcFile.TaggedAddresses == nil {
+		svcFile.TaggedAddresses = make(map[string]api.ServiceAddress)
+	}
+	for k, v := range svcFlag.TaggedAddresses {
+		svcFile.TaggedAddresses[k] = v
+	}
+	if svcFile.Tags == nil {
+		svcFile.Tags = []string{}
+	}
+	svcFile.Tags = append(svcFile.Tags, svcFlag.Tags...)
 }
 
 const (
