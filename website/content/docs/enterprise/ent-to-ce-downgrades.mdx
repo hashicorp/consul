@@ -32,22 +32,6 @@ Docker containers are available on [Docker Hub](https://hub.docker.com/r/hashico
 
 1. Take a snapshot:
 1. Inspect the snapshot to ensure that Consul successfully captured it using the following command:
-
-    ```
-    consul snapshot inspect backup.snap
-    ```
-
-    Example output:
-
-    ```
-    ID           2-1182-1542056499724
-    Size         4115
-    Index        1182
-    Term         2
-    Version      1
-    ```
-
-    Inspecting the snapshot ensures that you have a safe fallback option in case something goes wrong. Store
 this snapshot somewhere safe. Refer to the following documentation for additional information about creating and using snapshots:
 
     - [Consul Snapshot](/consul/commands/snapshot)
