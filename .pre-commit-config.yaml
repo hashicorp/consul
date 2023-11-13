@@ -10,7 +10,8 @@ repos:
     # Formats go imports into deterministic sections
     # `pre-commit run gci` to run in isolation
     -   id: my-cmd
-        name: gci
+        name: Formating go imports
+        alias: gci
         # skip all generated go files
         exclude: |
             (?x)(
