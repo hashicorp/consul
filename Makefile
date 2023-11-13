@@ -10,7 +10,6 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-# Keep in sync with golangci-lint hook in .pre-commit-config.yaml
 GOLANGCI_LINT_VERSION='v1.51.1'
 MOCKERY_VERSION='v2.20.0'
 BUF_VERSION='v1.26.0'
