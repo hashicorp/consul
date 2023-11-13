@@ -3,12 +3,24 @@
 
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+#
+# Guidelines for adding new pre-commit hooks
+# ====================================================================
+# A hook SHOULD be blazingly fast (<2s) to impose minimal latency on
+# developer workflows (e.g. golangci-lint takes > 8s)
+#
+# A hook SHOULD attempt to fix errors, not just identify them.
+#
+# A hook SHOULD address common errors in files that tend to change
+# frequently. While surfacing esoteric issues is nice, hooks that have a
+# wider impact are preferred.
+#
 repos:
 -   repo: https://github.com/tekwizely/pre-commit-golang
     rev: v1.0.0-rc.1
     hooks:
-    # Formats go imports into deterministic sections
-    # `pre-commit run gci` to run in isolation
+    # Formats go imports into deterministic sections.
+    # `pre-commit run gci` to run in isolation.
     -   id: my-cmd
         name: Formatting go imports
         alias: gci
@@ -38,9 +50,3 @@ repos:
         - "prefix(github.com/hashicorp/)"
         - "--section"
         - "prefix(github.com/hashicorp/consul/)"
-
--   repo: https://github.com/golangci/golangci-lint
-    # Keep in sync with GOLANGCI_LINT_VERSION in Makefile
-    rev: v1.51.1
-    hooks:
-      - id: golangci-lint
