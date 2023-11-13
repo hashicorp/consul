@@ -10,7 +10,7 @@ repos:
     # Formats go imports into deterministic sections
     # `pre-commit run gci` to run in isolation
     -   id: my-cmd
-        name: Formating go imports
+        name: Formatting go imports
         alias: gci
         # skip all generated go files
         exclude: |
@@ -38,3 +38,9 @@ repos:
         - "prefix(github.com/hashicorp/)"
         - "--section"
         - "prefix(github.com/hashicorp/consul/)"
+
+-   repo: https://github.com/golangci/golangci-lint
+    # Keep in sync with GOLANGCI_LINT_VERSION in Makefile
+    rev: v1.51.1
+    hooks:
+      - id: golangci-lint
