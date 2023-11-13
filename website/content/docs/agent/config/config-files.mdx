@@ -957,7 +957,12 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
       additional policy rules or the `config_file_service_registration` token can be replaced using
       the [Set Agent Token](/consul/commands/acl/set-agent-token) CLI command.
 
-    - `replication` ((#acl_tokens_replication)) - The ACL token used to
+    - `dns` ((#acl_tokens_dns)) - Specifies the token that agents use to request information needed to respond to DNS queries.
+      If the `dns` token is not set, the `default` token is used instead.
+      Because the `default` token allows unauthenticated HTTP API access to list nodes and services, it is
+      strongly recommended to use the `dns` token. DNS tokens should be [created using the templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token) to ensure the token has the permissions needed to respond to all DNS queries.
+
+    - `replication` ((#acl_tokens_replication)) - Specifies the token used to
       authorize secondary datacenters with the primary datacenter for replication
       operations. This token is required for servers outside the [`primary_datacenter`](#primary_datacenter) when ACLs are enabled. This token may be provided later using the [agent token API](/consul/api-docs/agent#update-acl-tokens) on each server. This token must have at least "read" permissions on ACL data but if ACL token replication is enabled then it must have "write" permissions. This also enables service mesh data replication, for which the token will require both operator "write" and intention "read" permissions for replicating CA and Intention data.
 
