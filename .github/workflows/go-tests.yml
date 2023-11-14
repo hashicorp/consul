@@ -501,7 +501,7 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
-      - name: set environment variables for COMMIT_MESSAGE and SHORT_REF
+      - name: Set environment variables for COMMIT_MESSAGE and SHORT_REF
         run: |
           export COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
           export SHORT_REF=$(git rev-parse --short "${{ github.ref_name }}")
