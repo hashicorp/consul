@@ -91,9 +91,10 @@ All Consul clients must be able to initiate Gossip, HTTPS, and RPC connections t
 For Consul on Kubernetes, a dedicated `partition` Kubernetes `LoadBalancer` service is deployed to allow communication from clients to servers for admin partitions support (refer to [Kubernetes Requirements](#kubernetes-requirements) for additional information).
 
 For other runtimes, refer to the documentation for your infrastructure environment for instructions on how to allow communication on the following ports:
+- 443 (HTTPS API requests)
 - 8300 (RPC)
 - 8301 (Gossip)
-- 443 (HTTPS API requests)
+- 8502 (gRPC from [Consul Dataplane](/consul/docs/connect/dataplane/consul-dataplane))
 
 ### Security Configurations
 
@@ -156,14 +157,14 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 1. Create the license secret in server cluster.
 
   ```shell-session
-  $ kubectl create --context ${SERVER_CONTEXT} ns consul
+  $ kubectl create --context ${SERVER_CONTEXT} namespace consul
   $ kubectl create secret --context ${SERVER_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
 
 1. Create the license secret in the non-default partition cluster for your workloads. This step must be repeated for every additional non-default partition cluster.
 
   ```shell-session
-  $ kubectl create --context ${CLIENT_CONTEXT} ns consul
+  $ kubectl create --context ${CLIENT_CONTEXT} namespace consul
   $ kubectl create secret --context ${CLIENT_CONTEXT} --namespace consul generic license --from-file=key=./path/to/license.hclic
   ```
 
@@ -186,7 +187,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     enableConsulNamespaces: true
     tls:
       enabled: true
-    image: hashicorp/consul-enterprise:1.14.0-ent
+    image: hashicorp/consul-enterprise:1.16.3-ent
     adminPartitions:
       enabled: true
     acls:
@@ -209,7 +210,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ helm install ${HELM_RELEASE_SERVER} hashicorp/consul --version "1.0.0" --create-namespace --namespace consul --values server.yaml
   ```
 
-1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration. The IP address is used to bootstrap connectivity between servers and workload pods on the non-default partition cluster. <a name="get-external-ip-address"/>
+1. After the server starts, get the external IP address for partition service so that it can be added to the client configuration (`externalServers.hosts`). The IP address is used to bootstrap connectivity between servers and workload pods on the non-default partition cluster. <a name="get-external-ip-address"/>
 
   ```shell-session
   $ kubectl get services --selector="app=consul,component=server" --namespace consul --output jsonpath="{range .items[*]}{@.status.loadBalancer.ingress[*].ip}{end}"
@@ -222,7 +223,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl config view --output "jsonpath={.clusters[?(@.name=='${CLIENT_CONTEXT}')].cluster.server}"
   ```
 
-  Use the IP address printed to the console to configure the `k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition cluster running your workloads.
+  Use the IP address printed to the console to configure the `externalServers.k8sAuthMethodHost` parameter in the workload configuration file for your non-default partition cluster running your workloads.
 
 1. Copy the server certificate to the non-default partition cluster running your workloads.
 
@@ -230,13 +231,13 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-cert --context ${SERVER_CONTEXT} -n consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. Copy the server key to the non-default partition cluster running your workloads.
+1. Copy the server key to the non-default partition cluster running your workloads:
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-ca-key --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
   ```
 
-1. If ACLs were enabled in the server configuration values file, copy the token to the non-default partition cluster running your workloads.
+1. If ACLs were enabled in the server configuration values file, copy the token to the non-default partition cluster running your workloads:
 
   ```shell-session
   $ kubectl get secret ${HELM_RELEASE_SERVER}-consul-partitions-acl-token --context ${SERVER_CONTEXT} --namespace consul --output yaml | kubectl apply --namespace consul --context ${CLIENT_CONTEXT} --filename -
@@ -252,7 +253,7 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
 
 1. Create a configuration for each non-default admin partition.
 
-  <CodeTabs heading="partition-workload.yaml">
+  <CodeTabs heading="client.yaml">
 
   <CodeBlockConfig lineNumbers highlight="2,12,15,20,27,29,33">
 
@@ -261,10 +262,10 @@ Verify that your Consul deployment meets the [Kubernetes Requirements](#kubernet
     name: consul
     enabled: false
     enableConsulNamespaces: true
-    image: hashicorp/consul-enterprise:1.14.0-ent
+    image: hashicorp/consul-enterprise:1.16.3-ent
     adminPartitions:
       enabled: true
-      name: partition-workload
+      name: clients
     tls:
       enabled: true
       caCert:
@@ -312,12 +313,13 @@ You can log into the Consul UI to verify that the partitions appear as expected.
 1. If ACLs are enabled, you will need the partitions ACL token, which can be read from the Kubernetes secret. The token is an encoded string that must be decoded in base64, e.g.:
 
   ```shell-session
-  $ kubectl get secret --namespace consul ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token --template "{{ .data.token | base64decode }}"
+  $ kubectl get secret --namespace consul --context ${SERVER_CONTEXT} --template "{{ .data.token | base64decode }}" ${HELM_RELEASE_SERVER}-consul-bootstrap-acl-token
   ```
 
-  The example command gets the token using the secret name configured in the values file (`bootstrap.secretName`), decodes the secret, and prints the usable token to the console in JSON format.
+  The example command gets the secret from the default partition cluster, decodes the secret, and prints the token to the console.
 
-1. Open the Consul UI in a browser using the external IP address and port number described in a previous step (see [step 5](#get-external-ip-address)).
+1. Open the Consul UI in a browser using the external IP address and port number described in a previous step (see [step 4](#get-external-ip-address)).
+
 1. Click **Log in** and enter the decoded token when prompted.
 
 You will see the `default` and `clients` partitions available in the **Admin Partition** drop-down menu.
