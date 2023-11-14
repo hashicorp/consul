@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestMeshGatewayACLs(t *testing.T) {
@@ -14,17 +16,14 @@ func TestMeshGatewayACLs(t *testing.T) {
 
 	meshGateway := &pbmesh.MeshGateway{}
 
-	res := resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
-		WithData(t, meshGateway).
-		Build()
-
 	testCases := []struct {
-		Name        string
-		Rules       string
-		ExpectList  string
-		ExpectRead  string
-		ExpectWrite string
+		Name           string
+		EnterpriseOnly bool
+		Rules          string
+		ExpectList     string
+		ExpectRead     string
+		ExpectWrite    string
+		Resource       *pbresource.Resource
 	}{
 		{
 			Name:        `no rules`,
@@ -32,6 +31,10 @@ func TestMeshGatewayACLs(t *testing.T) {
 			ExpectList:  resourcetest.DEFAULT,
 			ExpectRead:  resourcetest.DENY,
 			ExpectWrite: resourcetest.DENY,
+			Resource: resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
+				WithTenancy(resource.DefaultPartitionedTenancy()).
+				WithData(t, meshGateway).
+				Build(),
 		},
 		{
 			Name:        `mesh write`,
@@ -39,6 +42,10 @@ func TestMeshGatewayACLs(t *testing.T) {
 			ExpectList:  resourcetest.DEFAULT,
 			ExpectRead:  resourcetest.ALLOW,
 			ExpectWrite: resourcetest.ALLOW,
+			Resource: resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
+				WithTenancy(resource.DefaultPartitionedTenancy()).
+				WithData(t, meshGateway).
+				Build(),
 		},
 		{
 			Name:        `mesh read only`,
@@ -46,14 +53,49 @@ func TestMeshGatewayACLs(t *testing.T) {
 			ExpectList:  resourcetest.DEFAULT,
 			ExpectRead:  resourcetest.ALLOW,
 			ExpectWrite: resourcetest.DENY,
+			Resource: resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
+				WithTenancy(resource.DefaultPartitionedTenancy()).
+				WithData(t, meshGateway).
+				Build(),
+		},
+		{
+			Name:           `non-default partition`,
+			EnterpriseOnly: true,
+			Rules:          `partition "other" { mesh = "write" }`,
+			ExpectList:     resourcetest.DEFAULT,
+			ExpectRead:     resourcetest.ALLOW,
+			ExpectWrite:    resourcetest.ALLOW,
+			Resource: resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
+				WithTenancy(&pbresource.Tenancy{
+					Partition: "other",
+					PeerName:  resource.DefaultPeerName,
+				}).
+				WithData(t, meshGateway).
+				Build(),
+		},
+		{
+			Name:           `mesh write in wrong partition`,
+			EnterpriseOnly: true,
+			Rules:          `partition "other" { mesh = "write" }`,
+			ExpectList:     resourcetest.DEFAULT,
+			ExpectRead:     resourcetest.DENY,
+			ExpectWrite:    resourcetest.DENY,
+			Resource: resourcetest.Resource(pbmesh.MeshGatewayType, "mesh-gateway").
+				WithTenancy(resource.DefaultPartitionedTenancy()).
+				WithData(t, meshGateway).
+				Build(),
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.Name, func(t *testing.T) {
+			if testCase.EnterpriseOnly && !versiontest.IsEnterprise() {
+				t.Skip("skipping enterprise-only test case")
+			}
+
 			tc := resourcetest.ACLTestCase{
 				Rules:                    testCase.Rules,
-				Res:                      res,
+				Res:                      testCase.Resource,
 				ListOK:                   testCase.ExpectList,
 				ReadOK:                   testCase.ExpectRead,
 				WriteOK:                  testCase.ExpectWrite,
