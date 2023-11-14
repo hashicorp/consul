@@ -4,57 +4,57 @@
 }}
 
 {{#if (and (can "use nspaces") (can "choose nspaces"))}}
-  <DataSource
-    @src={{uri
-      "/${partition}/*/${dc}/namespaces"
-      (hash partition=@partition dc=@dc.Name)
-    }}
-    @onchange={{fn (optional @onchange)}}
-  />
   {{#let
     @list
     (if @nspace (hash Name=@nspace) (hash Name="default"))
     (is-href "dc.nspaces" @dc.Name)
     as |SNL nspace isManaging|
   }}
-    <SNL.Title class="consul-side-nav__selector-title">{{t "components.hashicorp-consul.side-nav.nspaces.title"}}</SNL.Title>
+    <SNL.Title class="consul-side-nav__selector-title">{{t
+        "components.hashicorp-consul.side-nav.nspaces.title"
+      }}</SNL.Title>
     <NavSelector
       @list={{@list}}
       @items={{sort-by "Name:asc" (reject-by "DeletedAt" @nspaces)}}
       @item={{nspace}}
       @key="Name"
       @icon="folder"
-      @placeholder={{t "components.hashicorp-consul.side-nav.nspaces.placeholder"}}
+      @placeholder={{t
+        "components.hashicorp-consul.side-nav.nspaces.placeholder"
+      }}
       @footerLink={{href-to "dc.nspaces" @dc.Name}}
-      @footerLinkText={{t "components.hashicorp-consul.side-nav.nspaces.footer"}}
+      @footerLinkText={{t
+        "components.hashicorp-consul.side-nav.nspaces.footer"
+      }}
       data-test-nspace-menu
-      as |Dropdown item|
+      as |Selector|
     >
-      <Dropdown.Checkmark
-        @selected={{eq nspace.Name item.Name}}
-        @href={{if
-          isManaging
-          (href-to
-            "dc.services.index"
-            params=(hash
-              partition=(if (gt @partition.length 0) @partition undefined)
-              nspace=item.Name
-              dc=@dc.Name
-            )
-          )
-          (href-to
-            "."
-            params=(hash
-              partition=(if (gt @partition.length 0) @partition undefined)
-              nspace=item.Name
-            )
+      <Selector.Data>
+        <DataSource
+          @src={{uri
+            "/${partition}/*/${dc}/namespaces"
+            (hash partition=@partition dc=@dc.Name)
+          }}
+          @loading="lazy"
+          @onchange={{fn (optional @onchange)}}
+        />
+      </Selector.Data>
+      <Selector.Dropdown.Checkmark
+        @selected={{eq nspace.Name Selector.item.Name}}
+        @href={{href-to
+          "dc.services.index"
+          params=(hash
+            partition=(if (gt @partition.length 0) @partition undefined)
+            nspace=Selector.item.Name
+            peer=undefined
+            dc=@dc.Name
           )
         }}
         @isHrefExternal={{false}}
         data-test-nspace-item
       >
-        {{item.Name}}
-      </Dropdown.Checkmark>
+        {{Selector.item.Name}}
+      </Selector.Dropdown.Checkmark>
     </NavSelector>
   {{/let}}
 {{/if}}

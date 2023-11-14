@@ -5,13 +5,15 @@ package types
 
 import (
 	"errors"
-	"github.com/hashicorp/consul/agent/structs"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
-	"testing"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func inValidExportedServices() *pbmulticluster.ExportedServices {
@@ -149,7 +151,7 @@ func TestExportedServicesValidation(t *testing.T) {
 		expectErrorENT []string
 	}
 
-	isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+	isEnterprise := versiontest.IsEnterprise()
 
 	run := func(t *testing.T, tc testcase) {
 		expectError := tc.expectErrorCE

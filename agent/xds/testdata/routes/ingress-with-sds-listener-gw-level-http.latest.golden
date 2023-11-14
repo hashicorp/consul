@@ -1,0 +1,31 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+      "name": "8080",
+      "validateClusters": true,
+      "virtualHosts": [
+        {
+          "domains": [
+            "http.ingress.*",
+            "http.ingress.*:8080"
+          ],
+          "name": "http",
+          "routes": [
+            {
+              "match": {
+                "prefix": "/"
+              },
+              "route": {
+                "cluster": "http.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
+  "versionInfo": "00000001"
+}
