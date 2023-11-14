@@ -118,10 +118,10 @@ func (c *cmd) Run(args []string) int {
 		}
 	}
 
-	// Merge or Sync argument values, if argument is provided in cmd arg,
+	// Combine or Sync argument values, if argument is provided in cmd arg,
 	// but not in file.
 	for _, svc := range svcsFromFiles {
-		MergeArgs(svc, svcFromFlags[0])
+		CombineArgs(svc, svcFromFlags[0])
 	}
 
 	// Create and test the HTTP client
@@ -160,9 +160,9 @@ func (c *cmd) Help() string {
 }
 
 // If arguments and service file both are input while registering services,
-// this function merges the values from both sources.
+// this function combines the inputs from both sources.
 // A argument value from cmd flag is taken, if it is not specified in service file definition.
-func MergeArgs(svcFile *api.AgentServiceRegistration, svcFlag *api.AgentServiceRegistration) {
+func CombineArgs(svcFile *api.AgentServiceRegistration, svcFlag *api.AgentServiceRegistration) {
 	if svcFlag.ID != "" && svcFile.ID == "" {
 		svcFile.ID = svcFlag.ID
 	}
