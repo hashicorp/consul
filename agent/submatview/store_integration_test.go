@@ -20,8 +20,6 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -32,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestStore_IntegrationWithBackend(t *testing.T) {

@@ -23,9 +23,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/agent/proxycfg"
@@ -36,6 +33,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
 )
 
 // NOTE: For these tests, prefer not using xDS protobuf "factory" methods if

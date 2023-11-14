@@ -8,11 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-memdb"
 )
 
 // Store implements an in-memory resource database using go-memdb.

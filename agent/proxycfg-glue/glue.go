@@ -7,9 +7,6 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -22,6 +19,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 )
 
 // ServerDataSourceDeps contains the dependencies needed for sourcing data from

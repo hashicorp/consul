@@ -6,10 +6,9 @@ package types
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]

@@ -13,11 +13,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/go-multierror"
 )
 
 type propertyOverride struct {

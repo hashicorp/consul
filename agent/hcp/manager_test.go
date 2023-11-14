@@ -12,9 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 
-	"github.com/hashicorp/go-hclog"
-
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestManager_Run(t *testing.T) {

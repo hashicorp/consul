@@ -8,11 +8,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
 )
 
 // lanMergeDelegate is used to handle a cluster merge on the LAN gossip

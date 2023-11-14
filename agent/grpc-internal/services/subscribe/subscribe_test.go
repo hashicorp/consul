@@ -19,9 +19,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/rate"
 	"github.com/hashicorp/consul/agent/consul/state"
@@ -35,6 +32,8 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
 )
 
 func TestServer_Subscribe_SubjectIsRequired(t *testing.T) {

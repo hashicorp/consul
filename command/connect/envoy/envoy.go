@@ -18,9 +18,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/encoding/protojson"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds"
@@ -31,6 +28,8 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 )
 
 func New(ui cli.Ui) *cmd {

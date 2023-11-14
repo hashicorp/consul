@@ -14,9 +14,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/memberlist"
-
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/memberlist"
 )
 
 func checkForKey(key string, keyring *memberlist.Keyring) error {

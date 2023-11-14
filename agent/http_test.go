@@ -28,9 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/http2"
 
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
 	"github.com/hashicorp/consul/agent/structs"
@@ -39,6 +36,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestHTTPServer_UnixSocket(t *testing.T) {

@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -24,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/go-hclog"
 )
 
 // testInitialIndex is the first index that will be used in simulated updates.

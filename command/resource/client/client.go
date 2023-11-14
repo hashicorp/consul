@@ -19,11 +19,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-rootcerts"
-
-	"github.com/hashicorp/consul/api"
 )
 
 // NOTE: This client is copied from the api module to temporarily facilitate the resource cli commands

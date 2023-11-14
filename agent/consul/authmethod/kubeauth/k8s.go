@@ -18,11 +18,10 @@ import (
 	client_rest "k8s.io/client-go/rest"
 	cert "k8s.io/client-go/util/cert"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 )
 
 func init() {

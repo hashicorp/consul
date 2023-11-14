@@ -10,14 +10,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-memdb"
 )
 
 func TestServiceHTTPChecks_Fetch(t *testing.T) {

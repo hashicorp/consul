@@ -15,11 +15,10 @@ import (
 
 	testing "github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/freeport"
+	"github.com/hashicorp/go-hclog"
 )
 
 // TestService returns a Service instance based on a static TLS Config.

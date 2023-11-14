@@ -14,11 +14,10 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/hashicorp/go-hclog"
-
 	grpcinternal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/internal/storage"
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
+	"github.com/hashicorp/go-hclog"
 )
 
 // forwardingServer implements the gRPC forwarding service.

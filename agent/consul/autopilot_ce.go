@@ -6,9 +6,8 @@
 package consul
 
 import (
-	autopilot "github.com/hashicorp/raft-autopilot"
-
 	"github.com/hashicorp/consul/agent/metadata"
+	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 func (s *Server) autopilotPromoter() autopilot.Promoter {

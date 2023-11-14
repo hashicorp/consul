@@ -27,17 +27,6 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	"github.com/hashicorp/go-connlimit"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/raft"
-	autopilot "github.com/hashicorp/raft-autopilot"
-	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
-	raftwal "github.com/hashicorp/raft-wal"
-	walmetrics "github.com/hashicorp/raft-wal/metrics"
-	"github.com/hashicorp/raft-wal/verifier"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -92,6 +81,16 @@ import (
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
 	cslversion "github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
+	raftboltdb "github.com/hashicorp/raft-boltdb/v2"
+	raftwal "github.com/hashicorp/raft-wal"
+	walmetrics "github.com/hashicorp/raft-wal/metrics"
+	"github.com/hashicorp/raft-wal/verifier"
+	"github.com/hashicorp/serf/serf"
 )
 
 // NOTE The "consul.client.rpc" and "consul.client.rpc.exceeded" counters are defined in consul/client.go

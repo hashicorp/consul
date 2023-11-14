@@ -6,9 +6,8 @@ package ca
 import (
 	"fmt"
 
-	"github.com/hashicorp/vault/api/auth/gcp"
-
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/vault/api/auth/gcp"
 )
 
 var _ VaultAuthenticator = (*gcp.GCPAuth)(nil)

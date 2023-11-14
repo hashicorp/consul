@@ -17,10 +17,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-	"github.com/hashicorp/raft"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/raft"
 )
 
 // MockFSM is a simple FSM for testing that simply stores its logs in a slice of

@@ -11,8 +11,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/ttlcache"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
@@ -20,6 +18,7 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestStore_Get(t *testing.T) {

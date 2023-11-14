@@ -15,11 +15,10 @@ import (
 
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/go-hclog"
-
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

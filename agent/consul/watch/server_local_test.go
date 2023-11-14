@@ -12,9 +12,8 @@ import (
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/go-memdb"
 )
 
 type mockStoreProvider struct {

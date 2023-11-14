@@ -13,9 +13,6 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/connect"
@@ -31,6 +28,8 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/proto/private/pbpeerstream"
 	"github.com/hashicorp/consul/proto/private/pbservice"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 )
 
 type MaterializedViewStore interface {

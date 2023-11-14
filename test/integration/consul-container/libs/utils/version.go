@@ -8,9 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/go-version"
-
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/go-version"
 )
 
 var (

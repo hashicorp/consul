@@ -6,9 +6,8 @@ package state
 import (
 	"fmt"
 
-	memdb "github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/structs"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 const tableFederationStates = "federation-states"

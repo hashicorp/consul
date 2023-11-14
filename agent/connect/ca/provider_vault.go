@@ -16,14 +16,13 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/go-hclog"
+	vaultapi "github.com/hashicorp/vault/api"
 )
 
 const (

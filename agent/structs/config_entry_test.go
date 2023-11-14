@@ -15,13 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
-	"github.com/hashicorp/hcl"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/hcl"
 )
 
 func TestConfigEntries_ACLs(t *testing.T) {

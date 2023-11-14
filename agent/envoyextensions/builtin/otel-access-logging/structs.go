@@ -18,11 +18,10 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 	cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (

@@ -8,9 +8,6 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
@@ -19,6 +16,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 )
 
 const source proxycfg.ProxySource = "catalog"

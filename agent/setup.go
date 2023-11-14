@@ -16,10 +16,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"google.golang.org/grpc/grpclog"
 
-	"github.com/hashicorp/go-hclog"
-	wal "github.com/hashicorp/raft-wal"
-	"github.com/hashicorp/raft-wal/verifier"
-
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
@@ -48,6 +44,9 @@ import (
 	"github.com/hashicorp/consul/lib/hoststats"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
+	wal "github.com/hashicorp/raft-wal"
+	"github.com/hashicorp/raft-wal/verifier"
 )
 
 // TODO: BaseDeps should be renamed in the future once more of Agent.Start

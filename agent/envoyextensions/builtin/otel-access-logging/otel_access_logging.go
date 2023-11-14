@@ -14,10 +14,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/api"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/go-multierror"
 )
 
 type otelAccessLogging struct {

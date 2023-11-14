@@ -16,14 +16,13 @@ import (
 	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/hashicorp/consul/agent/hcp/telemetry"
+	"github.com/hashicorp/consul/version"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
-
-	"github.com/hashicorp/consul/agent/hcp/telemetry"
-	"github.com/hashicorp/consul/version"
 )
 
 const (

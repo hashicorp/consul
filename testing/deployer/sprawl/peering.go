@@ -12,10 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/go-hclog"
 )
 
 // TODO: this is definitely a grpc resolver/balancer issue to look into

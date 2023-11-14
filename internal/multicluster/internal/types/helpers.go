@@ -6,11 +6,10 @@ package types
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
 func validateExportedServiceConsumerCommon(consumer *pbmulticluster.ExportedServicesConsumer, indx int) error {

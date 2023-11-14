@@ -18,9 +18,6 @@ import (
 	"golang.org/x/time/rate"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	grpc "github.com/hashicorp/consul/agent/grpc-internal"
@@ -40,6 +37,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 )
 
 func testClientConfig(t *testing.T) (string, *Config) {

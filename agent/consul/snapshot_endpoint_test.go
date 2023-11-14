@@ -13,13 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	autopilot "github.com/hashicorp/raft-autopilot"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 // verifySnapshot is a helper that does a snapshot and restore.

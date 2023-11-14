@@ -14,8 +14,6 @@ import (
 	"github.com/go-jose/go-jose/v3/jwt"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-cleanhttp"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
@@ -23,6 +21,7 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	libutils "github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 // TestJWTAuthConnectService summary:

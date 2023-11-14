@@ -8,9 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	memdb "github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
@@ -18,6 +15,8 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
+	memdb "github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-multierror"
 )
 
 var (

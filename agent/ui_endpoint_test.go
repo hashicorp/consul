@@ -21,8 +21,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
@@ -31,6 +29,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
 )
 
 func TestUIEndpointsFailInV2(t *testing.T) {

@@ -15,8 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-cleanhttp"
-
 	"github.com/hashicorp/consul/api"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -24,6 +22,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/testing/deployer/util"
+	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (

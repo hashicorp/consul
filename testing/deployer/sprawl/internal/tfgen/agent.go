@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2/hclwrite"
-
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 )
 
 func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string {

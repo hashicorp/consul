@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/consul/prepared_query"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 // preparedQueriesTableSchema returns a new table schema used for storing

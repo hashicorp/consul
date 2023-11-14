@@ -10,10 +10,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	memdb "github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_Usage_NodeUsage(t *testing.T) {

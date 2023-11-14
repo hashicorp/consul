@@ -17,11 +17,10 @@ import (
 	"github.com/aws/aws-sdk-go/service/acmpca"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

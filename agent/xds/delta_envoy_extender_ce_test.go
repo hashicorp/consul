@@ -19,9 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-hclog"
-	goversion "github.com/hashicorp/go-version"
-
 	propertyoverride "github.com/hashicorp/consul/agent/envoyextensions/builtin/property-override"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
@@ -33,6 +30,8 @@ import (
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-hclog"
+	goversion "github.com/hashicorp/go-version"
 )
 
 func TestEnvoyExtenderWithSnapshot(t *testing.T) {

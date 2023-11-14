@@ -8,12 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
+	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 )
 
 func TestMerge_LAN(t *testing.T) {

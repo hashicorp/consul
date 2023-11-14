@@ -10,13 +10,12 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
 type XRouteData interface {

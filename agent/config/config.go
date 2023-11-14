@@ -10,9 +10,8 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/hcl"
-
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/hcl"
 )
 
 // Source parses configuration from some source.

@@ -19,11 +19,10 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/yamux"
-
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/yamux"
 )
 
 func TestConfigurator_IncomingConfig_Common(t *testing.T) {

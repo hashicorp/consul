@@ -18,12 +18,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/serf"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/structs"
@@ -32,6 +26,11 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/serf"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{

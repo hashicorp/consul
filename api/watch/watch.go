@@ -12,9 +12,8 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/go-hclog"
-
 	consulapi "github.com/hashicorp/consul/api"
+	"github.com/hashicorp/go-hclog"
 )
 
 const DefaultTimeout = 10 * time.Second

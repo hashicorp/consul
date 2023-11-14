@@ -18,8 +18,6 @@ import (
 	"gotest.tools/v3/assert"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/connect/ca"
 	"github.com/hashicorp/consul/agent/structs"
@@ -27,6 +25,7 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-uuid"
 )
 
 func TestConnectCA_ConfigurationSet_ChangeKeyConfig_Primary(t *testing.T) {

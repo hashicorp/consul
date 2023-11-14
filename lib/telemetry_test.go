@@ -12,9 +12,8 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-multierror"
 )
 
 func newCfg() TelemetryConfig {

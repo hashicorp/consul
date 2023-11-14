@@ -15,8 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/acl"
 	resolver "github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/connect"
@@ -25,6 +23,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-uuid"
 )
 
 const testACLToken = "acl-token"

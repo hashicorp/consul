@@ -10,10 +10,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
-
-	"github.com/hashicorp/consul/agent/metadata"
 )
 
 func TestUtil_CanServersUnderstandProtocol(t *testing.T) {

@@ -7,9 +7,8 @@ import (
 	"errors"
 	"fmt"
 
-	multierror "github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/api"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // TxnKVOp is used to define a single operation on the KVS inside a

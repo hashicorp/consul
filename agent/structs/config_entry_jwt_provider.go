@@ -9,9 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/go-multierror"
 )
 
 const (

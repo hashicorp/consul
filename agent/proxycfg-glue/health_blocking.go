@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-memdb"
 )
 
 // ServerHealthBlocking exists due to a bug with the streaming backend and its interaction with ACLs.

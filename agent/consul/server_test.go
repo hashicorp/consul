@@ -27,11 +27,6 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
-
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	rpcRate "github.com/hashicorp/consul/agent/consul/rate"
@@ -51,6 +46,10 @@ import (
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
 )
 
 const (

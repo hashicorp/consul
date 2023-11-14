@@ -6,11 +6,10 @@ package proxy
 import (
 	"crypto/x509"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/lib"
+	"github.com/hashicorp/go-hclog"
 )
 
 // Proxy implements the built-in connect proxy.

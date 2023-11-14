@@ -15,13 +15,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"golang.org/x/exp/maps"
 
-	"github.com/hashicorp/go-hclog"
-
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/testing/deployer/util"
+	"github.com/hashicorp/go-hclog"
 )
 
 const DockerPrefix = "cslc" // ConSuLCluster

@@ -9,8 +9,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -18,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/go-hclog"
 )
 
 // DirectRPC is the interface that needs to be satisifed for AutoConfig to be able to perform

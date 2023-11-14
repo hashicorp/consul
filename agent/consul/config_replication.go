@@ -10,11 +10,10 @@ import (
 
 	"github.com/armon/go-metrics"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 )
 
 func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry, lastRemoteIndex uint64) ([]structs.ConfigEntry, []structs.ConfigEntry) {

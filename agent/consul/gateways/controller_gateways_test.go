@@ -13,8 +13,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
@@ -22,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestBoundAPIGatewayBindRoute(t *testing.T) {

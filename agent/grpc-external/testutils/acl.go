@@ -8,11 +8,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-uuid"
 )
 
 func ACLAnonymous(t *testing.T) resolver.Result {

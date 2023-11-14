@@ -14,11 +14,10 @@ import (
 	"golang.org/x/sync/singleflight"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/ttlcache"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

@@ -6,9 +6,8 @@ package agent
 import (
 	"testing"
 
-	"github.com/hashicorp/hcl"
-
 	"github.com/hashicorp/consul/agent/config"
+	"github.com/hashicorp/hcl"
 )
 
 // TestDefaultConfig triggers a data race in the HCL parser.

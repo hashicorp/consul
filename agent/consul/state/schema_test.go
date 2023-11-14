@@ -9,9 +9,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/hashicorp/go-memdb"
 )
 
 type indexerTestCase struct {

@@ -13,10 +13,9 @@ import (
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
+	"github.com/hashicorp/go-multierror"
 )
 
 var _ extensioncommon.BasicExtension = (*lua)(nil)

@@ -21,9 +21,6 @@ import (
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/coordinate"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	grpcexternal "github.com/hashicorp/consul/agent/grpc-external"
@@ -36,6 +33,8 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 const localTestDC = "dc1"

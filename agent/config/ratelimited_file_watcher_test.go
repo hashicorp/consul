@@ -11,9 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestNewRateLimitedWatcher(t *testing.T) {

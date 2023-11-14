@@ -21,8 +21,6 @@ import (
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
 	"github.com/miekg/dns"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
@@ -32,6 +30,7 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/go-hclog"
 )
 
 var DNSCounters = []prometheus.CounterDefinition{

@@ -15,10 +15,9 @@ import (
 
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul-awsauth/iamauthtest"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestNewValidator(t *testing.T) {

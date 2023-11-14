@@ -8,9 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/raft"
-
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/raft"
 )
 
 type testAddr struct {

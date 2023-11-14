@@ -11,12 +11,11 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/serf/coordinate"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestRTTCommand_noTabs(t *testing.T) {

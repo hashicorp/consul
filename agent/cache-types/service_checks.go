@@ -10,12 +10,11 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 // Recommended name for registration.

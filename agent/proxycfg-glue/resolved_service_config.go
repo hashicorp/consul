@@ -6,8 +6,6 @@ package proxycfgglue
 import (
 	"context"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
@@ -15,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-memdb"
 )
 
 // CacheResolvedServiceConfig satisfies the proxycfg.ResolvedServiceConfig

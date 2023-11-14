@@ -7,14 +7,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/xroutemapper"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 )
 
 type loader struct {

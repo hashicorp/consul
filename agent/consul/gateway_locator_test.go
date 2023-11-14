@@ -12,13 +12,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	memdb "github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
+	memdb "github.com/hashicorp/go-memdb"
 )
 
 func TestGatewayLocator(t *testing.T) {

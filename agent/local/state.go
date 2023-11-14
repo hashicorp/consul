@@ -17,9 +17,6 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/structs"
@@ -28,6 +25,8 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 )
 
 var StateCounters = []prometheus.CounterDefinition{

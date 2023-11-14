@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/internal/controller"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
@@ -17,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/lib/channels"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ProxyConnection implements the queue.ItemType interface so that it can be used in a controller.Event.

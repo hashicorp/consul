@@ -12,8 +12,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
@@ -26,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/go-uuid"
 )
 
 func randomACLIdentity(t *testing.T) structs.ACLIdentity {

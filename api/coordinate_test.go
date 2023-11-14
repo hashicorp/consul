@@ -10,9 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/serf/coordinate"
-
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/serf/coordinate"
 )
 
 func TestAPI_CoordinateDatacenters(t *testing.T) {

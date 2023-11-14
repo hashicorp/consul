@@ -6,9 +6,8 @@ package structs
 import (
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
-
 	"github.com/hashicorp/consul/acl"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 type ACLCachesConfig struct {

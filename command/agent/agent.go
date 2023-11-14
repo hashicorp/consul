@@ -17,9 +17,6 @@ import (
 
 	mcli "github.com/mitchellh/cli"
 
-	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"
 	hcpbootstrap "github.com/hashicorp/consul/agent/hcp/bootstrap"
@@ -30,6 +27,8 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
 	consulversion "github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
 )
 
 func New(ui cli.Ui) *cmd {

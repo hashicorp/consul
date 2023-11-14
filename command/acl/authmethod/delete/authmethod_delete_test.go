@@ -11,13 +11,12 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-uuid"
-
 	"github.com/hashicorp/consul/agent"
 	// activate testing auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/hashicorp/go-uuid"
 )
 
 func TestAuthMethodDeleteCommand_noTabs(t *testing.T) {

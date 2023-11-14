@@ -6,10 +6,9 @@ package state
 import (
 	"sync"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/go-memdb"
 )
 
 // ReadTxn is implemented by memdb.Txn to perform read operations.

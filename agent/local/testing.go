@@ -8,9 +8,8 @@ import (
 
 	"github.com/mitchellh/go-testing-interface"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/go-hclog"
 )
 
 // TestState returns a configured *State for testing.

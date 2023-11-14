@@ -8,10 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
+	"github.com/hashicorp/go-hclog"
 )
 
 // View receives events from, and return results to, Materializer. A view is

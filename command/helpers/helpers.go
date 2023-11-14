@@ -13,10 +13,9 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/decode"
+	"github.com/hashicorp/go-multierror"
 )
 
 func LoadFromFile(path string) (string, error) {

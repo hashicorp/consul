@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbacl"
+	"github.com/hashicorp/go-memdb"
 )
 
 // ACLTokens is used when saving a snapshot

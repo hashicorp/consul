@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
@@ -24,6 +22,7 @@ import (
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestConfigSource_Success(t *testing.T) {

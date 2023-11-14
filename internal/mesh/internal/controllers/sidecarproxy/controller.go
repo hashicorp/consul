@@ -9,8 +9,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
@@ -21,6 +19,7 @@ import (
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 )
 
 // ControllerName is the name for this controller. It's used for logging or status keys.

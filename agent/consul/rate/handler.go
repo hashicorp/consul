@@ -15,10 +15,9 @@ import (
 	"github.com/armon/go-metrics"
 	"golang.org/x/time/rate"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/go-hclog"
 )
 
 var (

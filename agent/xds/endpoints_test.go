@@ -11,11 +11,10 @@ import (
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/go-hclog"
 )
 
 func Test_makeLoadAssignment(t *testing.T) {

@@ -14,11 +14,10 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/connect"
 	"github.com/hashicorp/consul/ipaddr"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (

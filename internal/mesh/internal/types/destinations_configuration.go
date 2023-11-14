@@ -4,11 +4,10 @@
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/go-multierror"
 )
 
 func RegisterDestinationsConfiguration(r resource.Registry) {
