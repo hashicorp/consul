@@ -6,6 +6,7 @@ package consul
 import (
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -2243,12 +2244,13 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
 				if err != nil {
 					// Shouldn't be possible
-					return
+					return status, fmt.Errorf("error parsing leaf cert: %w", err)
 				}
 			}
 
 			tlsInfo := hcpclient.ServerTLSInfo{
 				Enabled:              true,
+				CertIssuer:           leaf.Issuer.CommonName,
 				CertName:             leaf.Subject.CommonName,
 				CertSerial:           leaf.SerialNumber.String(),
 				CertExpiry:           leaf.NotAfter,
@@ -2256,6 +2258,49 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 				VerifyOutgoing:       s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
 				VerifyServerHostname: s.tlsConfigurator.VerifyServerHostname(),
 			}
+
+			// Collect metadata for all CA certs used for internal RPC
+			metadata := make([]hcpclient.CertificateMetadata, 0)
+			for _, pemStr := range s.tlsConfigurator.ManualCAPems() {
+				block, _ := pem.Decode([]byte(pemStr))
+				if block == nil {
+					return status, fmt.Errorf("error decoding manual ca pem")
+				}
+				cert, err := x509.ParseCertificate(block.Bytes)
+				if err != nil {
+					return status, fmt.Errorf("error parsing manual ca pem: %w", err)
+				}
+
+				metadatum := hcpclient.CertificateMetadata{
+					CertExpiry: cert.NotAfter,
+					CertName:   cert.Subject.CommonName,
+					CertSerial: cert.SerialNumber.String(),
+				}
+				metadata = append(metadata, metadatum)
+			}
+			for ix, certBytes := range tlsCert.Certificate {
+				if ix == 0 {
+					// Skip the leaf cert at index 0. Only collect intermediates
+					continue
+				}
+
+				cert, err := x509.ParseCertificate(certBytes)
+				if err != nil {
+					return status, fmt.Errorf("error parsing tls cert index %d: %w", ix, err)
+				}
+
+				metadatum := hcpclient.CertificateMetadata{
+					CertExpiry: cert.NotAfter,
+					CertName:   cert.Subject.CommonName,
+					CertSerial: cert.SerialNumber.String(),
+				}
+				metadata = append(metadata, metadatum)
+			}
+			tlsInfo.CertificateAuthorities = metadata
+
+			status.ServerTLSMetadata.InternalRPC = tlsInfo
+			// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
+			// when deprecation path is ready
 			status.TLS = tlsInfo
 		}
 
