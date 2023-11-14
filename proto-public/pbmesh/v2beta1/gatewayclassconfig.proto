@@ -5,7 +5,7 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
-message GatewayClassConfig{
+message GatewayClassConfig {
   optional Consul consul = 1;
   optional CopyAnnotations copyAnnotations = 2;
   optional Deployment deployment = 3;
