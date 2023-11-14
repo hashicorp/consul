@@ -155,6 +155,8 @@ func (c *hcpClient) PushServerStatus(ctx context.Context, s *ServerStatus) error
 	return err
 }
 
+// ServerStatus is used to collect server status information in order to push
+// to HCP. Fields should mirror HashicorpCloudGlobalNetworkManager20220215ServerState
 type ServerStatus struct {
 	ID         string
 	Name       string
@@ -164,10 +166,14 @@ type ServerStatus struct {
 	RPCPort    int
 	Datacenter string
 
-	Autopilot ServerAutopilot
-	Raft      ServerRaft
-	TLS       ServerTLSInfo
-	ACL       ServerACLInfo
+	Autopilot         ServerAutopilot
+	Raft              ServerRaft
+	ACL               ServerACLInfo
+	ServerTLSMetadata ServerTLSMetadata
+
+	// TODO: TLS will be deprecated in favor of ServerTLSInfo in GNM. Handle
+	// removal in a subsequent PR
+	TLS ServerTLSInfo
 
 	ScadaStatus string
 }
@@ -191,14 +197,29 @@ type ServerACLInfo struct {
 	Enabled bool
 }
 
+// ServerTLSInfo mirrors HashicorpCloudGlobalNetworkManager20220215TLSInfo
 type ServerTLSInfo struct {
-	Enabled              bool
-	CertExpiry           time.Time
-	CertName             string
-	CertSerial           string
-	VerifyIncoming       bool
-	VerifyOutgoing       bool
-	VerifyServerHostname bool
+	Enabled                bool
+	CertExpiry             time.Time
+	CertIssuer             string
+	CertName               string
+	CertSerial             string
+	CertificateAuthorities []CertificateMetadata
+	VerifyIncoming         bool
+	VerifyOutgoing         bool
+	VerifyServerHostname   bool
+}
+
+// ServerTLSMetadata mirrors HashicorpCloudGlobalNetworkManager20220215ServerTLSMetadata
+type ServerTLSMetadata struct {
+	InternalRPC ServerTLSInfo
+}
+
+// CertificateMetadata mirrors HashicorpCloudGlobalNetworkManager20220215CertificateMetadata
+type CertificateMetadata struct {
+	CertExpiry time.Time
+	CertName   string
+	CertSerial string
 }
 
 func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManager20220215ServerState {
