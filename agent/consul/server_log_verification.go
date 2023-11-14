@@ -7,10 +7,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/raft-wal/verifier"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 var _ verifier.IsCheckpointFn = isLogVerifyCheckpoint

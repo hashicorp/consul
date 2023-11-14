@@ -6,10 +6,10 @@ package consul
 import (
 	"testing"
 
+	"github.com/hashicorp/raft"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/raft"
 )
 
 type testAddr struct {

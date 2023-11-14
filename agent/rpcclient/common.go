@@ -6,12 +6,12 @@ package rpcclient
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/submatview"
-	"github.com/hashicorp/go-hclog"
 )
 
 // NetRPC reprents an interface for making RPC requests

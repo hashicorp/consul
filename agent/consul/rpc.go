@@ -17,6 +17,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-connlimit"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-raftchunking"
+	"github.com/hashicorp/memberlist"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/yamux"
 	"google.golang.org/grpc"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
@@ -31,13 +38,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-connlimit"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-raftchunking"
-	"github.com/hashicorp/memberlist"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/yamux"
 )
 
 var RPCCounters = []prometheus.CounterDefinition{

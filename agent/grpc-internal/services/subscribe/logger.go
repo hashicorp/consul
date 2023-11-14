@@ -7,9 +7,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/go-uuid"
 )
 
 // streamID is used in logs as a unique identifier for a subscription. The value

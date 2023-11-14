@@ -9,6 +9,7 @@ import (
 	"net"
 	"strconv"
 
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
-	"github.com/hashicorp/go-hclog"
 )
 
 // NewBackend returns a storage backend that uses Raft for durable persistence

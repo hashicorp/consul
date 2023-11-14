@@ -8,9 +8,8 @@ package structs
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/hcl"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeConfigEntry_CE(t *testing.T) {

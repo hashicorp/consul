@@ -7,10 +7,10 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/go-memdb"
 )
 
 type indexerTestCase struct {

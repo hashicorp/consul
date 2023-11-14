@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/raft"
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/raft"
 )
 
 func init() {

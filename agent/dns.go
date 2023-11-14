@@ -19,6 +19,7 @@ import (
 	"github.com/armon/go-metrics/prometheus"
 	"github.com/armon/go-radix"
 	"github.com/coredns/coredns/plugin/pkg/dnsutil"
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 
 	"github.com/hashicorp/consul/acl"
@@ -30,7 +31,6 @@ import (
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 var DNSCounters = []prometheus.CounterDefinition{

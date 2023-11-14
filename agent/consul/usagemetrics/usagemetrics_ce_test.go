@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
@@ -19,8 +21,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/version"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
 )
 
 func newStateStore() (*state.Store, error) {

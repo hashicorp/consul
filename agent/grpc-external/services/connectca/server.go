@@ -6,6 +6,8 @@ package connectca
 import (
 	"crypto/x509"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,8 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbconnectca"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 type Server struct {

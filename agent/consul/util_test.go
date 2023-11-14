@@ -8,11 +8,11 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
 )
 
 func TestUtil_CanServersUnderstandProtocol(t *testing.T) {

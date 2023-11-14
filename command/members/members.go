@@ -11,13 +11,13 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/serf/serf"
 	"github.com/mitchellh/cli"
 	"github.com/ryanuber/columnize"
 
 	"github.com/hashicorp/consul/acl"
 	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/serf/serf"
 )
 
 // cmd is a Command implementation that queries a running

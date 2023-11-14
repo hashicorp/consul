@@ -6,9 +6,8 @@ package protohcl
 import (
 	"fmt"
 
-	"google.golang.org/protobuf/reflect/protoreflect"
-
 	"github.com/hashicorp/hcl/v2"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func (u UnmarshalOptions) decodeBlocks(ctx *UnmarshalContext, blocks hcl.Blocks, msg protoreflect.Message, f protoreflect.FieldDescriptor) (protoreflect.Value, error) {

@@ -6,6 +6,7 @@ package operator
 import (
 	"context"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
@@ -13,7 +14,6 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pboperator"
-	"github.com/hashicorp/go-hclog"
 )
 
 // For private/internal gRPC handlers, protoc-gen-rpc-glue generates the

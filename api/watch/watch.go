@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/mapstructure"
 
 	consulapi "github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
 )
 
 const DefaultTimeout = 10 * time.Second

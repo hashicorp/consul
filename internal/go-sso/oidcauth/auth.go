@@ -17,9 +17,8 @@ import (
 	"sync"
 
 	"github.com/coreos/go-oidc"
-	"github.com/patrickmn/go-cache"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/patrickmn/go-cache"
 )
 
 // Claims represents a set of claims or assertions computed about a given

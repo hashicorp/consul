@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/submatview"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/go-hclog"
 )
 
 type Subscriber interface {

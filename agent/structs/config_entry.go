@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/miekg/dns"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
@@ -21,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/envoyextensions"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/decode"
-	"github.com/hashicorp/go-multierror"
 )
 
 const (

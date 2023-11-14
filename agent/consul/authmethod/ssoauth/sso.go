@@ -7,10 +7,11 @@ import (
 	"context"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth"
-	"github.com/hashicorp/go-hclog"
 )
 
 func init() {

@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-checkpoint"
+	"github.com/hashicorp/go-hclog"
 	mcli "github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
@@ -27,8 +29,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/service_os"
 	consulversion "github.com/hashicorp/consul/version"
-	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/go-hclog"
 )
 
 func New(ui cli.Ui) *cmd {

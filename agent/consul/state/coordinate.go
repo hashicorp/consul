@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
 )
 
 const tableCoordinates = "coordinates"

@@ -11,12 +11,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/proto/private/prototest"
-	"github.com/hashicorp/go-version"
 )
 
 // update allows golden files to be updated based on the current output.

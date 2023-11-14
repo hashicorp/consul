@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	uuid "github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	uuid "github.com/hashicorp/go-uuid"
 )
 
 func TestRoleUpdateCommand_noTabs(t *testing.T) {

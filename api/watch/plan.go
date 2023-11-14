@@ -11,8 +11,9 @@ import (
 	"reflect"
 	"time"
 
-	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
+
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 const (

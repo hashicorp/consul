@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 // CanServersUnderstandProtocol checks to see if all the servers in the given

@@ -10,10 +10,10 @@ import (
 	"testing"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-multierror"
 )
 
 func newCfg() TelemetryConfig {

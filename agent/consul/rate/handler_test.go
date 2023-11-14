@@ -9,13 +9,13 @@ import (
 	"net/netip"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/consul/agent/metrics"
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestHandler(t *testing.T) {

@@ -7,10 +7,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-hclog"
+
 	iamauth "github.com/hashicorp/consul-awsauth"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (

@@ -12,6 +12,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
@@ -19,8 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
 )
 
 // ServiceSummary is used to summarize a service

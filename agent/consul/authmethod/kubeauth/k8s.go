@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"strings"
 
+	cleanhttp "github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-hclog"
 	"gopkg.in/square/go-jose.v2/jwt"
 	authv1 "k8s.io/api/authentication/v1"
 	client_metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +22,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/structs"
-	cleanhttp "github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-hclog"
 )
 
 func init() {

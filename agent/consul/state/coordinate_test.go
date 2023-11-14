@@ -8,13 +8,13 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 // TODO(partitions): test partitioned nodes here

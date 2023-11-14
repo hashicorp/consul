@@ -4,10 +4,11 @@
 package router
 
 import (
-	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
+	"github.com/hashicorp/consul/types"
 )
 
 // routerFn selects one of the router operations to map to incoming Serf events.

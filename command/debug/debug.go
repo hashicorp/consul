@@ -20,13 +20,13 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/hcdiag/command"
 	"github.com/mitchellh/cli"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/hcdiag/command"
 )
 
 const (

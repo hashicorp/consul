@@ -21,6 +21,11 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-sockaddr/template"
+	"github.com/hashicorp/memberlist"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -41,11 +46,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-bexpr"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-sockaddr/template"
-	"github.com/hashicorp/memberlist"
 )
 
 type FlagValuesTarget = decodeTarget

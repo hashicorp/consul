@@ -8,9 +8,10 @@ package state
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 )
 
 // SamenessGroupDefaultIndex is a placeholder for CE. Sameness-groups are enterprise only.

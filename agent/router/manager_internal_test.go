@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (

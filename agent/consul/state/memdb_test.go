@@ -8,11 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/hashicorp/go-memdb"
 )
 
 func testValidSchema() *memdb.DBSchema {

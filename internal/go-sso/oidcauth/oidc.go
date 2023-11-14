@@ -12,9 +12,8 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
-	"golang.org/x/oauth2"
-
 	"github.com/hashicorp/go-uuid"
+	"golang.org/x/oauth2"
 )
 
 var (

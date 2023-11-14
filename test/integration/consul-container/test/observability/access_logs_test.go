@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/semver"
 
@@ -17,7 +18,6 @@ import (
 	libservice "github.com/hashicorp/consul/test/integration/consul-container/libs/service"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 // TestAccessLogs Summary

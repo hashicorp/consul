@@ -8,10 +8,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/hcl"
 )
 
 func TestHookTranslateKeys(t *testing.T) {

@@ -6,6 +6,9 @@ package envoyextensions
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-version"
+
 	awslambda "github.com/hashicorp/consul/agent/envoyextensions/builtin/aws-lambda"
 	extauthz "github.com/hashicorp/consul/agent/envoyextensions/builtin/ext-authz"
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/lua"
@@ -14,8 +17,6 @@ import (
 	"github.com/hashicorp/consul/agent/envoyextensions/builtin/wasm"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/go-version"
 )
 
 type extensionConstructor func(api.EnvoyExtension) (extensioncommon.EnvoyExtender, error)

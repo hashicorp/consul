@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
@@ -17,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (

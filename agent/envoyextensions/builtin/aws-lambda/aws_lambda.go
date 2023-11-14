@@ -17,12 +17,12 @@ import (
 	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_resource_v3 "github.com/envoyproxy/go-control-plane/pkg/resource/v3"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	pstruct "google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/go-multierror"
 )
 
 var _ extensioncommon.BasicExtension = (*awsLambda)(nil)

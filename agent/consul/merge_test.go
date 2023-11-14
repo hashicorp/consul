@@ -6,13 +6,13 @@ package consul
 import (
 	"testing"
 
+	uuid "github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
 	"github.com/hashicorp/consul/version"
-	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/serf/serf"
 )
 
 func TestMerge_LAN(t *testing.T) {

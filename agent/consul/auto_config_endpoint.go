@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"regexp"
 
+	bexpr "github.com/hashicorp/go-bexpr"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/pbconfig"
 	"github.com/hashicorp/consul/proto/private/pbconnect"
 	"github.com/hashicorp/consul/tlsutil"
-	bexpr "github.com/hashicorp/go-bexpr"
 )
 
 type AutoConfigOptions struct {

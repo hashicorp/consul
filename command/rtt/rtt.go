@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 // TODO(partitions): how will this command work when asking for RTT between a

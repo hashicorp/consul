@@ -7,8 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/vault/api"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // VaultAuthenticator defines the interface for logging into Vault using an auth method.

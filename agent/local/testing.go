@@ -6,10 +6,10 @@ package local
 import (
 	"os"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/mitchellh/go-testing-interface"
 
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/go-hclog"
 )
 
 // TestState returns a configured *State for testing.

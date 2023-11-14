@@ -13,11 +13,11 @@ import (
 	"testing"
 	"time"
 
+	radix "github.com/hashicorp/go-immutable-radix"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	radix "github.com/hashicorp/go-immutable-radix"
 )
 
 type Limited struct {

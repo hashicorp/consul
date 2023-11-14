@@ -14,13 +14,14 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/yamux"
+
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/yamux"
 )
 
 const DefaultDialTimeout = 10 * time.Second

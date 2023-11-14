@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-uuid"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -24,7 +25,6 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-uuid"
 )
 
 type RuntimeSOAConfig struct {

@@ -7,11 +7,11 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
 )
 
 func TestServer_Key_params(t *testing.T) {

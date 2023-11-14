@@ -7,6 +7,9 @@ import (
 	"testing"
 	time "time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	mock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -15,9 +18,6 @@ import (
 	structs "github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	types "github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/raft"
-	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 var testTime = time.Date(2022, 4, 14, 10, 56, 00, 0, time.UTC)

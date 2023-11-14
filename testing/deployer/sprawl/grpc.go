@@ -8,12 +8,12 @@ import (
 	"crypto/tls"
 	"fmt"
 
+	"github.com/hashicorp/go-rootcerts"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
-	"github.com/hashicorp/go-rootcerts"
 )
 
 func (s *Sprawl) dialServerGRPC(cluster *topology.Cluster, node *topology.Node, token string) (*grpc.ClientConn, func(), error) {

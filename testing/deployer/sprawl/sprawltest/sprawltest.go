@@ -13,6 +13,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -22,8 +24,6 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 )
 
 // TODO(rb): move comments to doc.go

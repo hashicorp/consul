@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/grpc"
 
@@ -25,8 +27,6 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/tfgen"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 )
 
 // TODO: manage workdir externally without chdir

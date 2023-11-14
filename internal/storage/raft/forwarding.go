@@ -9,6 +9,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,7 +18,6 @@ import (
 	grpcinternal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/internal/storage"
 	pbstorage "github.com/hashicorp/consul/proto/private/pbstorage"
-	"github.com/hashicorp/go-hclog"
 )
 
 // forwardingServer implements the gRPC forwarding service.

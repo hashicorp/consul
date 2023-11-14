@@ -6,6 +6,7 @@ package subscribe
 import (
 	"errors"
 
+	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -15,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Server implements a StateChangeSubscriptionServer for accepting SubscribeRequests,

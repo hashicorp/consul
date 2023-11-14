@@ -9,6 +9,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
@@ -18,7 +19,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/consul/rate"
 	pbacl "github.com/hashicorp/consul/proto-public/pbacl"
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestServerRateLimiterMiddleware_Integration(t *testing.T) {

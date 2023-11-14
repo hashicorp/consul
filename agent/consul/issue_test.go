@@ -7,12 +7,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/raft"
+
 	consulfsm "github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/raft"
 )
 
 func makeLog(buf []byte) *raft.Log {

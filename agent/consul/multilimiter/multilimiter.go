@@ -10,9 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"golang.org/x/time/rate"
-
 	radix "github.com/hashicorp/go-immutable-radix"
+	"golang.org/x/time/rate"
 )
 
 var _ RateLimiter = &MultiLimiter{}

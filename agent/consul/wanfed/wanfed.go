@@ -12,9 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/memberlist"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/tlsutil"
-	"github.com/hashicorp/memberlist"
 )
 
 const (

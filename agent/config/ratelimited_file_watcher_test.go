@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestNewRateLimitedWatcher(t *testing.T) {

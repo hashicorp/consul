@@ -14,6 +14,8 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
@@ -26,8 +28,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
 )
 
 var ClientCounters = []prometheus.CounterDefinition{

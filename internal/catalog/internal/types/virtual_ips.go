@@ -4,11 +4,12 @@
 package types
 
 import (
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedVirtualIPs = resource.DecodedResource[*pbcatalog.VirtualIPs]

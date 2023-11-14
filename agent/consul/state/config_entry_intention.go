@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"sort"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 type ServiceIntentionLegacyIDIndex struct {

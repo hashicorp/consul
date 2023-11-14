@@ -9,8 +9,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // Manager is responsible for scheduling the execution of controllers.

@@ -13,11 +13,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/hcp"
-	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/go-uuid"
 	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 	"github.com/hashicorp/hcp-sdk-go/resource"
+
+	"github.com/hashicorp/consul/agent/hcp"
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 // TestEndpoint returns an hcp.TestEndpoint to be used in an hcp.MockHCPServer.

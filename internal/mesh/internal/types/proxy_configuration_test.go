@@ -7,6 +7,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/iptables"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-multierror"
 )
 
 func TestProxyConfigurationACLs(t *testing.T) {

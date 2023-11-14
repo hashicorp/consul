@@ -31,13 +31,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-cleanhttp"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/go-version"
 )
 
 // TestPerformanceConfig configures the performance parameters.

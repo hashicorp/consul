@@ -11,11 +11,11 @@ import (
 
 	metrics "github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
 )
 
 var ReplicationGauges = []prometheus.GaugeDefinition{

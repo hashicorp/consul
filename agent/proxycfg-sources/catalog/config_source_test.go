@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -22,7 +23,6 @@ import (
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestConfigSource_Success(t *testing.T) {

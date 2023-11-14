@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/raft"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
@@ -20,8 +22,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/snapshot"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/raft"
 )
 
 func New(ui cli.Ui) *cmd {

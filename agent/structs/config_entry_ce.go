@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func (e *ProxyConfigEntry) validateEnterpriseMeta() error {

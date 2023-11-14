@@ -8,9 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	log "github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMonitor_Start(t *testing.T) {

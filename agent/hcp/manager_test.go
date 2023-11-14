@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/go-hclog"
 )
 
 func TestManager_Run(t *testing.T) {

@@ -11,13 +11,13 @@ import (
 	"hash/fnv"
 	"html/template"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/stringslice"
-	"github.com/hashicorp/go-multierror"
 )
 
 //go:embed acltemplatedpolicy/schemas/node.json

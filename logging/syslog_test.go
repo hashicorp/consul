@@ -8,9 +8,8 @@ package logging
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	gsyslog "github.com/hashicorp/go-syslog"
+	"github.com/stretchr/testify/require"
 )
 
 // testSyslogFunc is a wrapper for injecting WriteLevel functionality into a Syslogger

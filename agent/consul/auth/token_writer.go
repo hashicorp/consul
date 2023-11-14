@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-memdb"
-	"github.com/hashicorp/go-uuid"
 )
 
 // ErrCannotWriteGlobalToken indicates that writing a token failed because

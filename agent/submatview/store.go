@@ -10,9 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/lib/ttlcache"
-	"github.com/hashicorp/go-hclog"
 )
 
 // Store of Materializers. Store implements an interface similar to

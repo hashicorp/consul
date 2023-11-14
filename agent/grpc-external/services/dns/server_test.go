@@ -9,6 +9,7 @@ import (
 	"net"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/proto-public/pbdns"
-	"github.com/hashicorp/go-hclog"
 )
 
 var txtRR = []string{"Hello world"}

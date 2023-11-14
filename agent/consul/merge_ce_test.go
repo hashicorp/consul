@@ -8,11 +8,11 @@ package consul
 import (
 	"testing"
 
+	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/serf/serf"
 )
 
 func TestMerge_CE_LAN(t *testing.T) {

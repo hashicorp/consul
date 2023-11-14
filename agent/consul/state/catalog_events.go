@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"strings"
 
+	memdb "github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
-	memdb "github.com/hashicorp/go-memdb"
 )
 
 // EventSubjectService is a stream.Subject used to route and receive events for

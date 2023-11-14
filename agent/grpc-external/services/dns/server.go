@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/miekg/dns"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,7 +16,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/proto-public/pbdns"
-	"github.com/hashicorp/go-hclog"
 )
 
 type LocalAddr struct {

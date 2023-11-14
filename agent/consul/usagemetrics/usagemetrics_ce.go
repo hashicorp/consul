@@ -7,10 +7,10 @@ package usagemetrics
 
 import (
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/serf/serf"
 )
 
 func (u *UsageMetricsReporter) emitNodeUsage(nodeUsage state.NodeUsage) {

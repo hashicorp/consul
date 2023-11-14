@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-memdb"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
@@ -17,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/maps"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/hashicorp/go-memdb"
 )
 
 const (

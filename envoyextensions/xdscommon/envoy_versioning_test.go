@@ -8,10 +8,10 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-version"
 )
 
 func TestDetermineEnvoyVersionFromNode(t *testing.T) {

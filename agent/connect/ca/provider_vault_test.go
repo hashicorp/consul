@@ -15,6 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
+	vaultapi "github.com/hashicorp/vault/api"
+	"github.com/hashicorp/vault/api/auth/gcp"
+	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,10 +26,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-hclog"
-	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/hashicorp/vault/api/auth/gcp"
-	vaultconst "github.com/hashicorp/vault/sdk/helper/consts"
 )
 
 const pkiTestPolicyBase = `

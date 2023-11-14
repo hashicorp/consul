@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-bexpr"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/connect"
@@ -15,7 +16,6 @@ import (
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-	"github.com/hashicorp/go-bexpr"
 )
 
 func makeLbEndpoint(addr string, port int, health pbproxystate.HealthStatus, weight int) *pbproxystate.Endpoint {

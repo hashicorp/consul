@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/lib/retry"
-	"github.com/hashicorp/go-memdb"
 )
 
 var (

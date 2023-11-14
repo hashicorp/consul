@@ -6,9 +6,10 @@ package consul
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/agent/structs"
 	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // AutopilotGetConfiguration is used to retrieve the current Autopilot configuration.

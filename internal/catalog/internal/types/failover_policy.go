@@ -6,13 +6,13 @@ package types
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedFailoverPolicy = resource.DecodedResource[*pbcatalog.FailoverPolicy]

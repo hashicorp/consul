@@ -11,11 +11,12 @@ import (
 	"net"
 	"strings"
 
+	"github.com/hashicorp/go-version"
+	"github.com/hashicorp/serf/serf"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/serf/serf"
 )
 
 var (

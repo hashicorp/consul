@@ -9,11 +9,11 @@ import (
 	"strconv"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
-
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-secure-stdlib/awsutil"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 // NewAWSAuthClient returns a VaultAuthClient that can log into Vault using the AWS auth method.

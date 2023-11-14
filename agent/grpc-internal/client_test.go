@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/tcpproxy"
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,7 +26,6 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-hclog"
 )
 
 // useTLSForDcAlwaysTrue tell GRPC to always return the TLS is enabled

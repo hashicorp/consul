@@ -6,12 +6,12 @@ package acl
 import (
 	"testing"
 
+	"github.com/hashicorp/go-uuid"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	structs "github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-uuid"
 )
 
 func generateID(t *testing.T) string {

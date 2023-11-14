@@ -8,9 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/serf/coordinate"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRTT_ComputeDistance(t *testing.T) {

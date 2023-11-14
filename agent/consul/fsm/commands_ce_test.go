@@ -13,6 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-raftchunking"
+	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/raft"
+	"github.com/hashicorp/serf/coordinate"
 	"github.com/mitchellh/mapstructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,11 +34,6 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-raftchunking"
-	raftchunkingtypes "github.com/hashicorp/go-raftchunking/types"
-	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/raft"
-	"github.com/hashicorp/serf/coordinate"
 )
 
 func generateUUID() (ret string) {

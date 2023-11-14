@@ -6,8 +6,9 @@ package resource
 import (
 	"fmt"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-bexpr"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // FilterResourcesByMetadata will use the provided go-bexpr based filter to

@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-version"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/gateways"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-version"
 )
 
 const (

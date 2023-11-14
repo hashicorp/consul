@@ -6,9 +6,10 @@ package aclfilter
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-hclog"
 )
 
 const (

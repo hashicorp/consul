@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/raft"
+	autopilot "github.com/hashicorp/raft-autopilot"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/hashicorp/raft"
-	autopilot "github.com/hashicorp/raft-autopilot"
 )
 
 func TestOperator_RaftConfiguration(t *testing.T) {

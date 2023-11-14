@@ -6,9 +6,10 @@ package structs
 import (
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-multierror"
 )
 
 // ServiceDefinition is used to JSON decode the Service definitions. For

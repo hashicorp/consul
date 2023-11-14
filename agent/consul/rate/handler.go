@@ -13,11 +13,11 @@ import (
 	"sync/atomic"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/consul/multilimiter"
 	"github.com/hashicorp/consul/agent/metadata"
-	"github.com/hashicorp/go-hclog"
 )
 
 var (

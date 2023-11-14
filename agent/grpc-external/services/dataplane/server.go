@@ -4,6 +4,8 @@
 package dataplane
 
 import (
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
@@ -12,8 +14,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 )
 
 type Server struct {

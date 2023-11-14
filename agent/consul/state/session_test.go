@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/go-memdb"
 )
 
 func TestStateStore_SessionCreate_SessionGet(t *testing.T) {

@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/hashicorp/go-memdb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/go-memdb"
 )
 
 const tableConnectIntentions = "connect-intentions"

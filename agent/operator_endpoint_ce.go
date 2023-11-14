@@ -6,8 +6,9 @@
 package agent
 
 import (
-	"github.com/hashicorp/consul/api"
 	autopilot "github.com/hashicorp/raft-autopilot"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func autopilotToAPIServerEnterprise(_ *autopilot.ServerState, _ *api.AutopilotServer) {

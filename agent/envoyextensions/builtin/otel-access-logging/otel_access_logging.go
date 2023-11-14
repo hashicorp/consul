@@ -9,6 +9,7 @@ import (
 	envoy_extensions_access_loggers_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_extensions_access_loggers_otel_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/open_telemetry/v3"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/mapstructure"
 	v1 "go.opentelemetry.io/proto/otlp/common/v1"
 	"google.golang.org/protobuf/proto"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	ext_cmn "github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/go-multierror"
 )
 
 type otelAccessLogging struct {
