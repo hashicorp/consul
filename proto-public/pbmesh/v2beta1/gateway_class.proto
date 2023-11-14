@@ -17,11 +17,11 @@ message GatewayClass {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
   // ControllerName is the name of the controller that manages Gateways of this class
-  string controllerName = 1;
+  string controller_name = 1;
 
   // ParametersRef is a reference to a resource that contains the configuration
   // parameters corresponding to the GatewayClass.
-  ParametersReference parametersRef = 2;
+  ParametersReference parameters_ref = 2;
 
   // Description of GatewayClass
   string description = 3;
