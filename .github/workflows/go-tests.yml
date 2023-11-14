@@ -512,15 +512,7 @@ jobs:
         with:
           payload: |
             {
-              "message: "❌ Failed: `${{ github.event.sender.login }}`'s <${GITHUB_ACTIONS_ENDPOINT}> workflow failed for commit <${GITHUB_ENDPOINT}|${SHORT_REF}> on `${{ github.ref_name }}`!\n\n- <${COMMIT_MESSAGE}",
-              "attachments": [
-                {
-                  "fallback": "GitHub Actions workflow failed!",
-                  "text": "❌ Failed: `${{ github.event.sender.login }}`'s <${GITHUB_ACTIONS_ENDPOINT}> workflow failed for commit <${GITHUB_ENDPOINT}|${SHORT_REF}> on `${{ github.ref_name }}`!\n\n- <${COMMIT_MESSAGE}",
-                  "footer": "${GITHUB_REPOSITORY}",
-                  "ts": "$(date +%s)",
-                  "color": "danger"
-                }
+              "message: "❌ Failed: `${{ github.event.sender.login }}`'s <${GITHUB_ACTIONS_ENDPOINT}> workflow failed for commit <${GITHUB_ENDPOINT}|${SHORT_REF}> on `${{ github.ref_name }}`!\n\n- <${COMMIT_MESSAGE}"
               ]
             }
         env:
