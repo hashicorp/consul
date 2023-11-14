@@ -34,4 +34,4 @@ repos:
         - "--section"
         - "default"
         - "--section"
-        - "prefix(github.com/hashicorp/consul)"
+        - "prefix(github.com/hashicorp/consul/)"

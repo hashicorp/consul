@@ -8,9 +8,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+	"github.com/stretchr/testify/require"
 )
 
 // TestingOldPre1dot7MsgpackHandle is the common configuration pre-1.7.0

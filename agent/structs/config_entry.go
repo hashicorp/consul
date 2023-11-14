@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/go-multierror"
 	"github.com/miekg/dns"
 	"github.com/mitchellh/hashstructure"
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/envoyextensions"

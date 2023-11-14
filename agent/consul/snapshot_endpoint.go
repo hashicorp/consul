@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul-net-rpc/go-msgpack/codec"
+
 	"github.com/hashicorp/consul/agent/pool"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/snapshot"
