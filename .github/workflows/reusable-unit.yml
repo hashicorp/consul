@@ -72,7 +72,7 @@ jobs:
         with:
           go-version-file: 'go.mod'
           cache: true
-      - run: mkdir -p ${{env.TEST_RESULTS}}
+      - run: echo "FAIL" && exit 1 && mkdir -p ${{env.TEST_RESULTS}}
       - name: go mod download
         working-directory: ${{inputs.directory}}
         run: go mod download
