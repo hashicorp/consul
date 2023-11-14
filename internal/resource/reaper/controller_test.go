@@ -4,7 +4,6 @@
 package reaper
 
 import (
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )

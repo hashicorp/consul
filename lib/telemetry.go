@@ -15,9 +15,10 @@ import (
 	"github.com/armon/go-metrics/circonus"
 	"github.com/armon/go-metrics/datadog"
 	"github.com/armon/go-metrics/prometheus"
+	prometheuscore "github.com/prometheus/client_golang/prometheus"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
-	prometheuscore "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/hashicorp/consul/lib/retry"
 )

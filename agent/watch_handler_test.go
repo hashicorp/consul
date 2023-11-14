@@ -11,10 +11,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-hclog"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMakeWatchHandler(t *testing.T) {

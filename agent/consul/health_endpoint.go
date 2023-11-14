@@ -8,10 +8,11 @@ import (
 	"sort"
 
 	"github.com/armon/go-metrics"
+	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
 	bexpr "github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"

@@ -11,9 +11,10 @@ import (
 	"hash/fnv"
 	"html/template"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/xeipuuv/gojsonschema"
 	"golang.org/x/exp/slices"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/api"

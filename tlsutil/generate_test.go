@@ -13,10 +13,9 @@ import (
 	"encoding/pem"
 	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
-
-	"strings"
 
 	"github.com/stretchr/testify/require"
 )

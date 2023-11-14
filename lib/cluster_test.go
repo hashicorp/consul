@@ -4,10 +4,11 @@
 package lib
 
 import (
-	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestDurationMinusBuffer(t *testing.T) {

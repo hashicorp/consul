@@ -14,11 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/mapstructure"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"

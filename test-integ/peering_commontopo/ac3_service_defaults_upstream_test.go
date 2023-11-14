@@ -11,13 +11,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/itchyny/gojq"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-cleanhttp"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/hashicorp/go-cleanhttp"
-	"github.com/itchyny/gojq"
-	"github.com/stretchr/testify/require"
 )
 
 var ac3SvcDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{

@@ -10,16 +10,16 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/proto/private/pboperator"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/raft"
 	autopilot "github.com/hashicorp/raft-autopilot"
 
 	"github.com/hashicorp/consul/acl"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto/private/pboperator"
 )
 
 // OperatorRaftConfiguration is used to inspect the current Raft configuration.

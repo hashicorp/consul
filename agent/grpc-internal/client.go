@@ -10,11 +10,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/armon/go-metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
-
-	"github.com/armon/go-metrics"
 
 	"github.com/hashicorp/consul/agent/grpc-internal/balancer"
 	agentmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"

@@ -14,10 +14,11 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"google.golang.org/grpc/grpclog"
+
 	"github.com/hashicorp/go-hclog"
 	wal "github.com/hashicorp/raft-wal"
 	"github.com/hashicorp/raft-wal/verifier"
-	"google.golang.org/grpc/grpclog"
 
 	autoconf "github.com/hashicorp/consul/agent/auto-config"
 	"github.com/hashicorp/consul/agent/cache"

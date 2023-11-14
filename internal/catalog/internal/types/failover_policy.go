@@ -6,8 +6,9 @@ package types
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-multierror"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"

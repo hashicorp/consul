@@ -8,12 +8,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
-	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-
 	"github.com/hashicorp/consul/internal/catalog/catalogtest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
+	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
 )
 
 var (

@@ -7,13 +7,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/mitchellh/cli"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/agent"
 	apply "github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestResourceListCommand(t *testing.T) {

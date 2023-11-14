@@ -6,7 +6,6 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/lib/channels"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/lib/channels"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )

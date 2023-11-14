@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/connect"

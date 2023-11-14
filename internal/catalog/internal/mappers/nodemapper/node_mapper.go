@@ -5,6 +5,7 @@ package nodemapper
 
 import (
 	"context"
+
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"

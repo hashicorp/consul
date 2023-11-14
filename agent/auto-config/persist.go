@@ -8,8 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/consul/proto/private/pbautoconf"
 	"google.golang.org/protobuf/encoding/protojson"
+
+	"github.com/hashicorp/consul/proto/private/pbautoconf"
 )
 
 const (

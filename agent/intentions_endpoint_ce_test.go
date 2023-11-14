@@ -10,8 +10,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestCE_IntentionsCreate_failure(t *testing.T) {

@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/oklog/ulid/v2"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestListByOwner_InputValidation(t *testing.T) {

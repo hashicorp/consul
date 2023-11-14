@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
 )
 
 // TestRotateGW ensures that peered services continue to be able to talk to their

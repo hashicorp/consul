@@ -19,16 +19,16 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/armon/circbuf"
 	http2 "golang.org/x/net/http2"
 
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/armon/circbuf"
 	"github.com/hashicorp/consul/agent/exec"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib"
-	"github.com/hashicorp/go-cleanhttp"
 )
 
 const (

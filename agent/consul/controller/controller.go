@@ -11,8 +11,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/state"

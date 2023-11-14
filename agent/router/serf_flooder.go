@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
+
+	"github.com/hashicorp/consul/agent/metadata"
 )
 
 // FloodAddrFn gets the address and port to use for a given server when

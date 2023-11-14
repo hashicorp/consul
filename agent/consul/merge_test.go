@@ -6,9 +6,10 @@ package consul
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	uuid "github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/types"

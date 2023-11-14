@@ -8,9 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/copystructure"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/types"
-	"github.com/mitchellh/copystructure"
 )
 
 var (

@@ -8,12 +8,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/consul/tlsutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/tlsutil"
 )
 
 const AllowedPeerEndpointPrefix = "/hashicorp.consul.internal.peerstream.PeerStreamService/"

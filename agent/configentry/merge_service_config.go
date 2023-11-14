@@ -6,10 +6,11 @@ package configentry
 import (
 	"fmt"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
+
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"

@@ -8,8 +8,9 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/hashicorp/go-rootcerts"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/go-rootcerts"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"

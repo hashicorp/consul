@@ -6,9 +6,10 @@ package sidecarproxy
 import (
 	"context"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"

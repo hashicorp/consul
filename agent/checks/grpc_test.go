@@ -14,15 +14,16 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	hv1 "google.golang.org/grpc/health/grpc_health_v1"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/agent/mock"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/go-hclog"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/health"
-	hv1 "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 var (

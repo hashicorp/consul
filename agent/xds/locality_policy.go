@@ -5,6 +5,7 @@ package xds
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/structs"

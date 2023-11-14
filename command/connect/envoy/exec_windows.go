@@ -7,11 +7,12 @@ package envoy
 import (
 	"errors"
 	"fmt"
-	"github.com/natefinch/npipe"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"time"
+
+	"github.com/natefinch/npipe"
 )
 
 func makeBootstrapPipe(bootstrapJSON []byte) (string, error) {

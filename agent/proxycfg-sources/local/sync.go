@@ -7,14 +7,13 @@ import (
 	"context"
 	"time"
 
-	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
-
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/local"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 )
 
 const resyncFrequency = 30 * time.Second

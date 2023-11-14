@@ -8,8 +8,9 @@ import (
 	"time"
 
 	metrics "github.com/armon/go-metrics"
-	memdb "github.com/hashicorp/go-memdb"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
+	memdb "github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/discoverychain"

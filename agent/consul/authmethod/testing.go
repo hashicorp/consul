@@ -6,9 +6,10 @@ package authmethod
 import (
 	"sort"
 
-	"github.com/hashicorp/go-bexpr"
 	"github.com/mitchellh/go-testing-interface"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-bexpr"
 )
 
 // RequireIdentityMatch tests to see if the given Identity matches the provided

@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 // cmd is a Command implementation that queries a running

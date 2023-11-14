@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/hashicorp/hcl/v2"
 )
 
 // MessageDecoder provides an abstract way to decode protobuf messages from HCL

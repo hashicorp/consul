@@ -9,8 +9,9 @@ import (
 	"testing"
 
 	envoy_admin_v3 "github.com/envoyproxy/go-control-plane/envoy/admin/v3"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 )
 
 // A majority of unit tests for validateupstream.go are in the agent/xds/validateupstream-test package due to internal

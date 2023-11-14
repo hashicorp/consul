@@ -10,8 +10,9 @@ import (
 
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/go-multierror"
 	"github.com/testcontainers/testcontainers-go"
+
+	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )

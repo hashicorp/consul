@@ -5,11 +5,11 @@ package xds
 
 import (
 	envoy_discovery_v3 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/hashicorp/go-hclog"
-
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func logTraceRequest(logger hclog.Logger, msg string, pb proto.Message) {

@@ -5,15 +5,16 @@ package proxycfg
 
 import (
 	"errors"
-	"github.com/hashicorp/consul/lib/channels"
 	"runtime/debug"
 	"sync"
 
-	"github.com/hashicorp/go-hclog"
 	"golang.org/x/time/rate"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/structs"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/lib/channels"
 	"github.com/hashicorp/consul/tlsutil"
 )
 

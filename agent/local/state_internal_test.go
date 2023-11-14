@@ -6,9 +6,10 @@ package local
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRegistrationTokenFallback(t *testing.T) {

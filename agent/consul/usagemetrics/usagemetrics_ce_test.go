@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/state"

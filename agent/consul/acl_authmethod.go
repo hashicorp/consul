@@ -7,12 +7,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/agent/consul/authmethod"
-	"github.com/hashicorp/consul/agent/structs"
-
 	// register these as a builtin auth method
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/awsauth"
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"
 	_ "github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 type authMethodValidatorEntry struct {

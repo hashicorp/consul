@@ -7,9 +7,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/consul/autopilotevents"
 	"github.com/hashicorp/consul/agent/consul/stream"

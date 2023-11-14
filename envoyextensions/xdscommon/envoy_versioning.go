@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+
 	"github.com/hashicorp/go-version"
 )
 

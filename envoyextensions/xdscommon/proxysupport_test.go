@@ -7,8 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/hashicorp/go-version"
 )
 
 func TestProxySupportOrder(t *testing.T) {

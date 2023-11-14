@@ -15,9 +15,10 @@ import (
 	"syscall"
 	"time"
 
+	mcli "github.com/mitchellh/cli"
+
 	"github.com/hashicorp/go-checkpoint"
 	"github.com/hashicorp/go-hclog"
-	mcli "github.com/mitchellh/cli"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/config"

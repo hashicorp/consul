@@ -12,9 +12,10 @@ import (
 	"time"
 
 	"github.com/go-openapi/runtime"
+	"github.com/stretchr/testify/require"
+
 	hcptelemetry "github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/client/consul_telemetry_service"
 	"github.com/hashicorp/hcp-sdk-go/clients/cloud-consul-telemetry-gateway/preview/2023-04-14/models"
-	"github.com/stretchr/testify/require"
 )
 
 type mockTGW struct {

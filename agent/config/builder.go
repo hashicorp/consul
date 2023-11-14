@@ -21,12 +21,13 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics/prometheus"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/go-sockaddr/template"
 	"github.com/hashicorp/memberlist"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/agent/cache"
 	"github.com/hashicorp/consul/agent/checks"

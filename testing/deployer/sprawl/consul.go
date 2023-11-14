@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/consul/testing/deployer/util"

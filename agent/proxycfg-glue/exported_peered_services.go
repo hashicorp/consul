@@ -6,7 +6,6 @@ package proxycfgglue
 import (
 	"context"
 
-	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/cache"
@@ -14,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/watch"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/structs/aclfilter"
 )
 
 // CacheExportedPeeredServices satisfies the proxycfg.ExportedPeeredServices

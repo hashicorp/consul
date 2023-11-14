@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mitchellh/copystructure"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/mitchellh/copystructure"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestAC7_2RotateLeader ensures that after a leader rotation, information continues to replicate to peers

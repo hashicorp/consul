@@ -6,8 +6,9 @@ package structs
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func TestDeduplicate(t *testing.T) {

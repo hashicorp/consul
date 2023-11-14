@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-memdb"
 	hashstructure_v2 "github.com/mitchellh/hashstructure/v2"
+
+	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/lib/retry"
 )

@@ -6,8 +6,9 @@ package dns_test
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/agent/dns"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/dns"
 )
 
 func TestValidLabel(t *testing.T) {

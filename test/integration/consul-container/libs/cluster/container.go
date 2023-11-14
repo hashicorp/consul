@@ -18,8 +18,6 @@ import (
 	goretry "github.com/avast/retry-go"
 	dockercontainer "github.com/docker/docker/api/types/container"
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/go-multierror"
 	"github.com/otiai10/copy"
 	"github.com/pkg/errors"
 	"github.com/testcontainers/testcontainers-go"
@@ -27,6 +25,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 

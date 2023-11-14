@@ -6,9 +6,10 @@ package structs_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEncodeDecodeProto(t *testing.T) {

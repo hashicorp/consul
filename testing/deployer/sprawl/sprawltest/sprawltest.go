@@ -13,14 +13,15 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/topology"

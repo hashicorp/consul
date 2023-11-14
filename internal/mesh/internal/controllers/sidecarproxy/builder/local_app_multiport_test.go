@@ -7,10 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testing/golden"
-
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/internal/testing/golden"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
 

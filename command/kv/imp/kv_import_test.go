@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/agent"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent"
 )
 
 func TestKVImportCommand_noTabs(t *testing.T) {

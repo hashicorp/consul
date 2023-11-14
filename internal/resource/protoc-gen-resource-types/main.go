@@ -6,9 +6,10 @@ package main
 import (
 	"flag"
 
-	"github.com/hashicorp/consul/internal/resource/protoc-gen-resource-types/internal/generate"
 	"google.golang.org/protobuf/compiler/protogen"
 	plugin "google.golang.org/protobuf/types/pluginpb"
+
+	"github.com/hashicorp/consul/internal/resource/protoc-gen-resource-types/internal/generate"
 )
 
 var (

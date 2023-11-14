@@ -10,9 +10,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/stretchr/testify/require"
 )
 
 // golden reads from the golden file returning the contents as a string.

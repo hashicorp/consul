@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc"
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 )
 
 func TestConfigValidate(t *testing.T) {

@@ -8,9 +8,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/rboyer/safeio"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/hcl/v2/hclwrite"
-	"github.com/rboyer/safeio"
 )
 
 func WriteHCLResourceFile(

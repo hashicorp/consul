@@ -10,8 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 func TestAPIServers_WithServiceRunError(t *testing.T) {

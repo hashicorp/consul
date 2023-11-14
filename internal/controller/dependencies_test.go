@@ -6,8 +6,9 @@ package controller
 import (
 	"testing"
 
-	"github.com/hashicorp/consul/internal/testing/golden"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/internal/testing/golden"
 )
 
 func TestDependenciesGolden(t *testing.T) {

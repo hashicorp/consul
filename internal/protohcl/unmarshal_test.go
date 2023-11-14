@@ -16,8 +16,9 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/consul/internal/protohcl/testproto"
 	"github.com/hashicorp/hcl/v2/hclparse"
+
+	"github.com/hashicorp/consul/internal/protohcl/testproto"
 )
 
 func TestPrimitives(t *testing.T) {

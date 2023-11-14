@@ -4,15 +4,17 @@
 package xdscommon
 
 import (
+	"testing"
+
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 	duration "google.golang.org/protobuf/types/known/durationpb"
-	"testing"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestCloneIndexedResources(t *testing.T) {

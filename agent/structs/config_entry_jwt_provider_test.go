@@ -7,8 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/acl"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func newTestAuthz(t *testing.T, src string) acl.Authorizer {

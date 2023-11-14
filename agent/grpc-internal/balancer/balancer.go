@@ -60,12 +60,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
 	gbalancer "google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/go-hclog"
 )
 
 // NewBuilder constructs a new Builder. Calling Register will add the Builder

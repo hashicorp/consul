@@ -11,11 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/square/go-jose.v2/jwt"
+
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 )
 
 func setupForOIDC(t *testing.T) (*Authenticator, *oidcauthtest.Server) {

@@ -6,16 +6,16 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/agent/xds/response"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
-	"google.golang.org/protobuf/types/known/durationpb"
+	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the

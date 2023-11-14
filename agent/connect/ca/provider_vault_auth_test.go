@@ -15,11 +15,13 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/hashicorp/consul/agent/structs"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	"github.com/hashicorp/vault/api/auth/gcp"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
-	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func TestVaultCAProvider_GCPAuthClient(t *testing.T) {

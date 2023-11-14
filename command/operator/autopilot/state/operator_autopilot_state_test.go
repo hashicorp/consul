@@ -11,11 +11,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 // update allows golden files to be updated based on the current output.

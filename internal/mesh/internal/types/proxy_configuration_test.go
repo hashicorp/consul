@@ -7,9 +7,10 @@ import (
 	"math"
 	"testing"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/structpb"
+
+	"github.com/hashicorp/go-multierror"
 
 	catalogtesthelpers "github.com/hashicorp/consul/internal/catalog/catalogtest/helpers"
 	"github.com/hashicorp/consul/internal/resource"

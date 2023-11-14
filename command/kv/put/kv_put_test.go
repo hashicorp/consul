@@ -11,10 +11,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/mitchellh/cli"
 )
 
 func TestKVPutCommand_noTabs(t *testing.T) {

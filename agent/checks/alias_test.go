@@ -17,7 +17,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/types"
-	//"github.com/stretchr/testify/require"
 )
 
 // Test that we do a backoff on error.

@@ -13,10 +13,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"

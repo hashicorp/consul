@@ -12,11 +12,13 @@ import (
 	"net/http"
 	"time"
 
+	"golang.org/x/net/http2"
+
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/go-hclog"
-	"golang.org/x/net/http2"
 )
 
 // Service represents a Consul service that accepts and/or connects via Connect.

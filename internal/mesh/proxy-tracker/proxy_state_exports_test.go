@@ -4,13 +4,15 @@
 package proxytracker
 
 import (
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 func TestProxyState_Authorize(t *testing.T) {

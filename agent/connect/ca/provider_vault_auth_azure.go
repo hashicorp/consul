@@ -9,9 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/vault/sdk/helper/jsonutil"
+
+	"github.com/hashicorp/consul/agent/structs"
 )
 
 func NewAzureAuthClient(authMethod *structs.VaultAuthMethod) (*VaultAuthClient, error) {

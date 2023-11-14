@@ -7,11 +7,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
-	"github.com/stretchr/testify/require"
 )
 
 // TODO(intentions): add test for viewing permissions and ID-less

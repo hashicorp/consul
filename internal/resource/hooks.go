@@ -4,9 +4,10 @@
 package resource
 
 import (
+	"google.golang.org/protobuf/proto"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/proto"
 )
 
 // DecodedValidationHook is the function signature needed for usage with the DecodeAndValidate function

@@ -12,11 +12,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/mitchellh/go-testing-interface"
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	vaultapi "github.com/hashicorp/vault/api"
-	"github.com/mitchellh/go-testing-interface"
-	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/sdk/freeport"

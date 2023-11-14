@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 

@@ -11,9 +11,10 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {

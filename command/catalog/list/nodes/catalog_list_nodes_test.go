@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/mitchellh/cli"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/testrpc"
-	"github.com/mitchellh/cli"
 )
 
 func TestCatalogListNodesCommand_noTabs(t *testing.T) {

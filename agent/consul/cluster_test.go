@@ -7,9 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
-	"github.com/hashicorp/consul/testrpc"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
+
+	"github.com/hashicorp/consul/testrpc"
 )
 
 type testClusterConfig struct {

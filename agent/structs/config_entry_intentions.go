@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/lib/stringslice"
 )
 
 type ServiceIntentionsConfigEntry struct {

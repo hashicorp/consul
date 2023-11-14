@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/mod/semver"
+
+	"github.com/hashicorp/go-cleanhttp"
 
 	"github.com/hashicorp/consul/api"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"

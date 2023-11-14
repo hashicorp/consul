@@ -12,9 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/memberlist"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/memberlist"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func checkForKey(key string, keyring *memberlist.Keyring) error {

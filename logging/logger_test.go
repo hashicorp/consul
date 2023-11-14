@@ -10,8 +10,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestLogger_SetupBasic(t *testing.T) {

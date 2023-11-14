@@ -8,14 +8,13 @@ import (
 	"strings"
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-
-	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 )
 
 func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConfiguration, error) {

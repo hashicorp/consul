@@ -7,9 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/consul/authmethod/kubeauth"

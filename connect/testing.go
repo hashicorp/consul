@@ -13,8 +13,9 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/hashicorp/go-hclog"
 	testing "github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"

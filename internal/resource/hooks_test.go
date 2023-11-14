@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
-	"github.com/stretchr/testify/require"
 )
 
 func TestDecodeAndValidate(t *testing.T) {

@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
-	"github.com/stretchr/testify/require"
 )
 
 func TestStateStore(t *testing.T, publisher state.EventPublisher) *state.Store {

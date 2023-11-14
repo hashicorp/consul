@@ -12,19 +12,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/agent/connect"
+	// activate testing auth method
+	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/acl"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
-
-	// activate testing auth method
-	_ "github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 )
 
 func TestAuthMethodCreateCommand_noTabs(t *testing.T) {

@@ -17,8 +17,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/go-uuid"
 	"github.com/mitchellh/go-testing-interface"
+
+	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"

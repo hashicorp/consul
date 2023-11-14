@@ -4,12 +4,12 @@
 package builder
 
 import (
-	"google.golang.org/protobuf/types/known/durationpb"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"

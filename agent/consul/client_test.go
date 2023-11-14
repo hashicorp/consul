@@ -7,9 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	"net"
 	"os"
 	"strings"
@@ -17,14 +14,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
-
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 
 	msgpackrpc "github.com/hashicorp/consul-net-rpc/net-rpc-msgpackrpc"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/serf/serf"
 
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
@@ -36,6 +31,10 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"

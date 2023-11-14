@@ -9,9 +9,10 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/hashicorp/consul/api"
 	"github.com/mitchellh/reflectwalk"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/api"
 )
 
 func TestCheckDefinition_Defaults(t *testing.T) {

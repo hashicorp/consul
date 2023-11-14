@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )

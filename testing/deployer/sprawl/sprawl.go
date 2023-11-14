@@ -15,13 +15,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/tfgen"

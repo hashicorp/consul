@@ -7,11 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // DecodedResource is a generic holder to contain an original Resource and its

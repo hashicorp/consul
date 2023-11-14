@@ -8,10 +8,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/hashicorp/consul/proto/private/pbcommon"
-
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/consul/proto/private/pbcommon"
 	"github.com/hashicorp/consul/proto/private/pbservice"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/types"
