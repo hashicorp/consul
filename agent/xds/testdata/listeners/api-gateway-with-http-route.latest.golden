@@ -1,9 +1,8 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
-      "name": "http:1.2.3.4:8080",
       "address": {
         "socketAddress": {
           "address": "1.2.3.4",
@@ -17,14 +16,6 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "statPrefix": "ingress_upstream_certificate",
-                "rds": {
-                  "configSource": {
-                    "ads": {},
-                    "resourceApiVersion": "V3"
-                  },
-                  "routeConfigName": "8080"
-                },
                 "httpFilters": [
                   {
                     "name": "envoy.filters.http.router",
@@ -33,6 +24,14 @@
                     }
                   }
                 ],
+                "rds": {
+                  "configSource": {
+                    "ads": {},
+                    "resourceApiVersion": "V3"
+                  },
+                  "routeConfigName": "8080"
+                },
+                "statPrefix": "ingress_upstream_certificate",
                 "tracing": {
                   "randomSampling": {}
                 },
@@ -49,7 +48,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "tlsParams": {},
+                "alpnProtocols": [
+                  "http/1.1"
+                ],
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -60,9 +61,7 @@
                     }
                   }
                 ],
-                "alpnProtocols": [
-                  "http/1.1"
-                ]
+                "tlsParams": {}
               },
               "requireClientCertificate": false
             }
@@ -77,9 +76,10 @@
           }
         }
       ],
+      "name": "http:1.2.3.4:8080",
       "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

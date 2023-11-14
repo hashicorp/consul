@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <Route @name={{routeName}} as |route|>
@@ -83,6 +83,7 @@
             <Consul::Service::List
               @items={{collection.items}}
               @partition={{partition}}
+              @nspace={{nspace}}
               @isPeerDetail={{true}}
             />
           </collection.Collection>

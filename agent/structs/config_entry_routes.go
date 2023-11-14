@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -343,6 +343,38 @@ type HTTPMatch struct {
 	Query   []HTTPQueryMatch
 }
 
+func (m HTTPMatch) DeepEqual(other HTTPMatch) bool {
+	if m.Method != other.Method {
+		return false
+	}
+
+	if m.Path != other.Path {
+		return false
+	}
+
+	if len(m.Headers) != len(other.Headers) {
+		return false
+	}
+
+	if len(m.Query) != len(other.Query) {
+		return false
+	}
+
+	for i := 0; i < len(m.Headers); i++ {
+		if m.Headers[i] != other.Headers[i] {
+			return false
+		}
+	}
+
+	for i := 0; i < len(m.Query); i++ {
+		if m.Query[i] != other.Query[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 // HTTPMatchMethod specifies which type of HTTP verb should
 // be used for matching a given request.
 type HTTPMatchMethod string
@@ -422,6 +454,13 @@ type HTTPFilters struct {
 	URLRewrite    *URLRewrite
 	RetryFilter   *RetryFilter
 	TimeoutFilter *TimeoutFilter
+	JWT           *JWTFilter
+}
+
+// HTTPResponseFilters specifies a list of filters used to modify the
+// response returned by an upstream
+type HTTPResponseFilters struct {
+	Headers []HTTPHeaderFilter
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -436,10 +475,10 @@ type URLRewrite struct {
 }
 
 type RetryFilter struct {
-	NumRetries            *uint32
+	NumRetries            uint32
 	RetryOn               []string
 	RetryOnStatusCodes    []uint32
-	RetryOnConnectFailure *bool
+	RetryOnConnectFailure bool
 }
 
 type TimeoutFilter struct {
@@ -453,6 +492,9 @@ type HTTPRouteRule struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+	// ResponseFilters is a list of HTTP-based filters used to modify a response
+	// returned by the upstream service
+	ResponseFilters HTTPResponseFilters
 	// Matches specified the matching criteria used in the routing table. If a
 	// request matches the given HTTPMatch configuration, then traffic is routed
 	// to services specified in the Services field.
@@ -471,6 +513,10 @@ type HTTPService struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
+
+	// ResponseFilters is a list of HTTP-based filters used to modify the
+	// response returned from the upstream service
+	ResponseFilters HTTPResponseFilters
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }

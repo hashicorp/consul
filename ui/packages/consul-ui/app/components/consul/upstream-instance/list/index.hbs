@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <div
@@ -49,7 +49,7 @@
               Local bind socket path
           </dt>
           <dd>
-            <CopyButton
+            <ConsulCopyButton
               @value={{item.LocalBindSocketPath}}
               @name="Local bind socket path"
             />
@@ -73,7 +73,7 @@
             Address
           </dt>
           <dd>
-            <CopyButton
+            <ConsulCopyButton
               @value={{combinedAddress}}
               @name="Address"
             />

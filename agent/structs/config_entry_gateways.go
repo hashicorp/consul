@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package structs
 
@@ -887,6 +887,17 @@ type APIGatewayListener struct {
 	Protocol APIGatewayListenerProtocol
 	// TLS is the TLS settings for the listener.
 	TLS APIGatewayTLSConfiguration
+
+	// Override is the policy that overrides all other policy and route specific configuration
+	Override *APIGatewayPolicy `json:",omitempty"`
+	// Default is the policy that is the default for the listener and route, routes can override this behavior
+	Default *APIGatewayPolicy `json:",omitempty"`
+}
+
+// APIGatewayPolicy holds the policy that configures the gateway listener, this is used in the `Override` and `Default` fields of a listener
+type APIGatewayPolicy struct {
+	// JWT holds the JWT configuration for the Listener
+	JWT *APIGatewayJWTRequirement `json:",omitempty"`
 }
 
 func (l APIGatewayListener) GetHostname() string {

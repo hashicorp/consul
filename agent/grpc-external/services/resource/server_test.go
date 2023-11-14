@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -20,6 +20,7 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
@@ -74,19 +75,21 @@ func testServer(t *testing.T) *Server {
 			}
 		})
 
-	// Mock the V1 tenancy bridge since we can't use the real thing.
+	// Mock the tenancy bridge since we can't use the real thing.
 	mockTenancyBridge := &MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
 	mockTenancyBridge.On("PartitionExists", mock.Anything).Return(false, nil)
 	mockTenancyBridge.On("NamespaceExists", mock.Anything, mock.Anything).Return(false, nil)
+	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
+	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
 	return NewServer(Config{
-		Logger:          testutil.Logger(t),
-		Registry:        resource.NewRegistry(),
-		Backend:         backend,
-		ACLResolver:     mockACLResolver,
-		V1TenancyBridge: mockTenancyBridge,
+		Logger:        testutil.Logger(t),
+		Registry:      resource.NewRegistry(),
+		Backend:       backend,
+		ACLResolver:   mockACLResolver,
+		TenancyBridge: mockTenancyBridge,
 	})
 }
 
@@ -126,4 +129,127 @@ func modifyArtist(t *testing.T, res *pbresource.Resource) *pbresource.Resource {
 	res = clone(res)
 	res.Data = data
 	return res
+}
+
+// wildcardTenancyCases returns permutations of tenancy and type scope used as input
+// to endpoints that accept wildcards for tenancy.
+func wildcardTenancyCases() map[string]struct {
+	typ     *pbresource.Type
+	tenancy *pbresource.Tenancy
+} {
+	return map[string]struct {
+		typ     *pbresource.Type
+		tenancy *pbresource.Tenancy
+	}{
+		"namespaced type with empty partition": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with empty namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+		"namespaced type with empty peername": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: resource.DefaultPartitionName,
+				Namespace: resource.DefaultNamespaceName,
+				PeerName:  "",
+			},
+		},
+		"namespaced type with empty partition and namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with wildcard partition and empty namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"namespaced type with empty partition and wildcard namespace": {
+			typ: demo.TypeV2Artist,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
+		"partitioned type with empty partition": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+		"partitioned type with wildcard partition": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				PeerName:  "local",
+			},
+		},
+	}
+}
+
+// tenancyCases returns permutations of valid tenancy structs in a resource id to use as inputs.
+// - the id is for a recordLabel when the resource is partition scoped
+// - the id is for an artist when the resource is namespace scoped
+func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID {
+	tenancyCases := map[string]func(artistId, recordlabelId *pbresource.ID) *pbresource.ID{
+		"namespaced resource provides nonempty partition and namespace": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
+			return artistId
+		},
+		"namespaced resource inherits tokens partition when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Partition = ""
+			return id
+		},
+		"namespaced resource inherits tokens namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Namespace = ""
+			return id
+		},
+		"namespaced resource inherits tokens partition and namespace when empty": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy.Partition = ""
+			id.Tenancy.Namespace = ""
+			return id
+		},
+		"namespaced resource inherits tokens partition and namespace when tenacy nil": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			id := clone(artistId)
+			id.Tenancy = nil
+			return id
+		},
+		"partitioned resource provides nonempty partition": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			return recordLabelId
+		},
+		"partitioned resource inherits tokens partition when empty": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy.Partition = ""
+			return id
+		},
+		"partitioned resource inherits tokens partition when tenancy nil": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			id := clone(recordLabelId)
+			id.Tenancy = nil
+			return id
+		},
+	}
+	return tenancyCases
 }

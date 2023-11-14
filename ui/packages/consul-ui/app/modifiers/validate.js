@@ -1,12 +1,20 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 import Modifier from 'ember-modifier';
 import { action } from '@ember/object';
+import { registerDestructor } from '@ember/destroyable';
 
 class ValidationError extends Error {}
+
+function cleanup(instance) {
+  if (instance && instance?.element) {
+    instance?.element?.removeEventListener('input', instance?.listen);
+    instance?.element?.removeEventListener('blur', instance?.reset);
+  }
+}
 
 export default class ValidateModifier extends Modifier {
   item = null;
@@ -70,37 +78,24 @@ export default class ValidateModifier extends Modifier {
     }
   }
 
-  async connect([value], _hash) {
-    this.element.addEventListener('input', this.listen);
-    this.element.addEventListener('blur', this.reset);
-    if (this.element.value.length > 0) {
-      await Promise.resolve();
-      if (this && this.element) {
-        this.validate(this.element.value, this.hash.validations);
-      }
-    }
-  }
-
   @action
   listen(e) {
     this.validate(e.target.value, this.hash.validations);
   }
 
-  disconnect() {
-    this.item = null;
-    this.hash = null;
-    this.element.removeEventListener('input', this.listen);
-    this.element.removeEventListener('blur', this.reset);
+  constructor(owner, args) {
+    super(owner, args);
+    registerDestructor(this, cleanup);
   }
 
-  didReceiveArguments() {
-    const [value] = this.args.positional;
-    const _hash = this.args.named;
+  async modify(element, positional, named) {
+    cleanup.call(this);
 
-    this.item = value;
-    this.hash = _hash;
+    this.element = element;
+    this.hash = named;
+    this.item = positional[0];
 
-    if (typeof _hash.chart === 'undefined') {
+    if (typeof this.hash.chart === 'undefined') {
       this.hash.chart = {
         state: {
           context: {},
@@ -108,22 +103,24 @@ export default class ValidateModifier extends Modifier {
         dispatch: (state) => {
           switch (state) {
             case 'ERROR':
-              _hash.onchange(this.hash.chart.state.context.errors);
+              this.hash.onchange(this.hash.chart.state.context.errors);
               break;
             case 'RESET':
-              _hash.onchange();
+              this.hash.onchange();
               break;
           }
         },
       };
     }
-  }
 
-  didInstall() {
-    this.connect(this.args.positional, this.args.named);
-  }
+    this.element.addEventListener('input', this.listen);
+    this.element.addEventListener('blur', this.reset);
 
-  willRemove() {
-    this.disconnect();
+    if (this.element.value.length > 0) {
+      await Promise.resolve();
+      if (this && this.element) {
+        this.validate(this.element.value, this.hash.validations);
+      }
+    }
   }
 }

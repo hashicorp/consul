@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package instances
 
@@ -11,9 +11,11 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/mitchellh/cli"
+	"golang.org/x/exp/maps"
+
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
-	"github.com/mitchellh/cli"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -135,9 +137,11 @@ func formatNodesCounts(usageStats map[string]api.ServiceUsage) (string, error) {
 
 	fmt.Fprint(tw, "\t\n")
 
-	for dc, usage := range usageStats {
-		nodesTotal += usage.Nodes
-		fmt.Fprintf(tw, "%s\t%d\n", dc, usage.Nodes)
+	nodes := maps.Keys(usageStats)
+	sort.Strings(nodes)
+	for _, dc := range nodes {
+		nodesTotal += usageStats[dc].Nodes
+		fmt.Fprintf(tw, "%s\t%d\n", dc, usageStats[dc].Nodes)
 	}
 
 	fmt.Fprint(tw, "\t\n")

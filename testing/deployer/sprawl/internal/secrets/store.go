@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package secrets
 
 import (
@@ -15,6 +18,7 @@ const (
 	GossipKey      = "gossip"
 	BootstrapToken = "bootstrap-token"
 	AgentRecovery  = "agent-recovery"
+	CAPEM          = "ca-pem"
 )
 
 func (s *Store) SaveGeneric(cluster, name, value string) {
@@ -33,12 +37,22 @@ func (s *Store) ReadAgentToken(cluster string, nid topology.NodeID) string {
 	return s.read(encode(cluster, "agent", nid.String()))
 }
 
-func (s *Store) SaveServiceToken(cluster string, sid topology.ServiceID, value string) {
-	s.save(encode(cluster, "service", sid.String()), value)
+// Deprecated: SaveWorkloadToken
+func (s *Store) SaveServiceToken(cluster string, wid topology.ID, value string) {
+	s.SaveWorkloadToken(cluster, wid, value)
 }
 
-func (s *Store) ReadServiceToken(cluster string, sid topology.ServiceID) string {
-	return s.read(encode(cluster, "service", sid.String()))
+func (s *Store) SaveWorkloadToken(cluster string, wid topology.ID, value string) {
+	s.save(encode(cluster, "workload", wid.String()), value)
+}
+
+// Deprecated: ReadWorkloadToken
+func (s *Store) ReadServiceToken(cluster string, wid topology.ID) string {
+	return s.ReadWorkloadToken(cluster, wid)
+}
+
+func (s *Store) ReadWorkloadToken(cluster string, wid topology.ID) string {
+	return s.read(encode(cluster, "workload", wid.String()))
 }
 
 func (s *Store) save(key, value string) {

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 import BaseAbility from './base';
@@ -20,7 +20,8 @@ export default class PolicyAbility extends BaseAbility {
   get canWrite() {
     return (
       this.env.var('CONSUL_ACLS_ENABLED') &&
-      (typeof this.item === 'undefined' || typeOf([this.item]) !== 'policy-management') &&
+      (typeof this.item === 'undefined' ||
+        !['policy-management', 'read-only'].includes(typeOf([this.item]))) &&
       super.canWrite
     );
   }

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package sprawl
 
 import (
@@ -83,61 +86,41 @@ func tokenForNode(node *topology.Node, enterprise bool) *api.ACLToken {
 	return token
 }
 
-func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
+// Deprecated: tokenForWorkload
+func tokenForService(wrk *topology.Workload, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
+	return tokenForWorkload(wrk, overridePolicy, enterprise)
+}
+
+func tokenForWorkload(wrk *topology.Workload, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
 	token := &api.ACLToken{
-		Description: "service--" + svc.ID.ACLString(),
+		Description: "service--" + wrk.ID.ACLString(),
 		Local:       false,
 	}
 	if overridePolicy != nil {
 		token.Policies = []*api.ACLTokenPolicyLink{{ID: overridePolicy.ID}}
+	} else if wrk.IsV2() {
+		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			TemplateVariables: &api.ACLTemplatedPolicyVariables{
+				Name: wrk.ID.Name,
+			},
+		}}
 	} else {
 		token.ServiceIdentities = []*api.ACLServiceIdentity{{
-			ServiceName: svc.ID.Name,
+			ServiceName: wrk.ID.Name,
 		}}
 	}
 
 	if enterprise {
-		token.Namespace = svc.ID.Namespace
-		token.Partition = svc.ID.Partition
+		token.Namespace = wrk.ID.Namespace
+		token.Partition = wrk.ID.Partition
 	}
 
 	return token
 }
 
-func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy {
-	policyName := "mesh-gateway--" + svc.ID.ACLString()
-
-	policy := &api.ACLPolicy{
-		Name:        policyName,
-		Description: policyName,
-	}
-	if enterprise {
-		policy.Partition = svc.ID.Partition
-		policy.Namespace = "default"
-	}
-
-	if enterprise {
-		policy.Rules = `
-namespace_prefix "" {
-  service "mesh-gateway" {
-    policy = "write"
-  }
-  service_prefix "" {
-    policy = "read"
-  }
-  node_prefix "" {
-    policy = "read"
-  }
-}
-agent_prefix "" {
-  policy = "read"
-}
-# for peering
-mesh = "write"
-peering = "read"
-`
-	} else {
-		policy.Rules = `
+const (
+	meshGatewayCommunityRules = `
 service "mesh-gateway" {
   policy = "write"
 }
@@ -154,6 +137,70 @@ agent_prefix "" {
 mesh = "write"
 peering = "read"
 `
+
+	meshGatewayEntDefaultRules = `
+namespace_prefix "" {
+  service "mesh-gateway" {
+    policy = "write"
+  }
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+agent_prefix "" {
+  policy = "read"
+}
+# for peering
+mesh = "write"
+
+partition_prefix "" {
+  peering = "read"
+}
+`
+
+	meshGatewayEntNonDefaultRules = `
+namespace_prefix "" {
+  service "mesh-gateway" {
+    policy = "write"
+  }
+  service_prefix "" {
+    policy = "read"
+  }
+  node_prefix "" {
+    policy = "read"
+  }
+}
+agent_prefix "" {
+  policy = "read"
+}
+# for peering
+mesh = "write"
+`
+)
+
+func policyForMeshGateway(wrk *topology.Workload, enterprise bool) *api.ACLPolicy {
+	policyName := "mesh-gateway--" + wrk.ID.ACLString()
+
+	policy := &api.ACLPolicy{
+		Name:        policyName,
+		Description: policyName,
+	}
+	if enterprise {
+		policy.Partition = wrk.ID.Partition
+		policy.Namespace = "default"
+	}
+
+	if enterprise {
+		if wrk.ID.Partition == "default" {
+			policy.Rules = meshGatewayEntDefaultRules
+		} else {
+			policy.Rules = meshGatewayEntNonDefaultRules
+		}
+	} else {
+		policy.Rules = meshGatewayCommunityRules
 	}
 
 	return policy

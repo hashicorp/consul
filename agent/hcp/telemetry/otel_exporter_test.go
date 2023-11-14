@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package telemetry
 
 import (
@@ -31,13 +34,15 @@ func (m *mockMetricsClient) ExportMetrics(ctx context.Context, protoMetrics *met
 
 type mockEndpointProvider struct {
 	endpoint *url.URL
+	disabled bool
 }
 
 func (m *mockEndpointProvider) GetEndpoint() *url.URL { return m.endpoint }
+func (m *mockEndpointProvider) IsDisabled() bool      { return m.disabled }
 
 func TestTemporality(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	require.Equal(t, metricdata.CumulativeTemporality, exp.Temporality(metric.InstrumentKindCounter))
 }
 
@@ -63,7 +68,7 @@ func TestAggregation(t *testing.T) {
 		test := test
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			exp := &OTELExporter{}
+			exp := &otelExporter{}
 			require.Equal(t, test.expAgg, exp.Aggregation(test.kind))
 		})
 	}
@@ -77,13 +82,20 @@ func TestExport(t *testing.T) {
 		client   MetricsClient
 		provider EndpointProvider
 	}{
+		"earlyReturnDisabledProvider": {
+			client: &mockMetricsClient{},
+			provider: &mockEndpointProvider{
+				disabled: true,
+			},
+		},
 		"earlyReturnWithoutEndpoint": {
 			client:   &mockMetricsClient{},
 			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutScopeMetrics": {
-			client:  &mockMetricsClient{},
-			metrics: mutateMetrics(nil),
+			client:   &mockMetricsClient{},
+			metrics:  mutateMetrics(nil),
+			provider: &mockEndpointProvider{},
 		},
 		"earlyReturnWithoutMetrics": {
 			client: &mockMetricsClient{},
@@ -91,6 +103,7 @@ func TestExport(t *testing.T) {
 				{Metrics: []metricdata.Metrics{}},
 			},
 			),
+			provider: &mockEndpointProvider{},
 		},
 		"errorWithExportFailure": {
 			client: &mockMetricsClient{
@@ -107,6 +120,9 @@ func TestExport(t *testing.T) {
 				},
 			},
 			),
+			provider: &mockEndpointProvider{
+				endpoint: &url.URL{},
+			},
 			wantErr: "failed to export metrics",
 		},
 	} {
@@ -122,7 +138,7 @@ func TestExport(t *testing.T) {
 				}
 			}
 
-			exp := NewOTELExporter(test.client, provider)
+			exp := newOTELExporter(test.client, provider)
 
 			err := exp.Export(context.Background(), test.metrics)
 			if test.wantErr != "" {
@@ -179,7 +195,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 			u, err := url.Parse(testExportEndpoint)
 			require.NoError(t, err)
 
-			exp := NewOTELExporter(tc.client, &mockEndpointProvider{
+			exp := newOTELExporter(tc.client, &mockEndpointProvider{
 				endpoint: u,
 			})
 
@@ -209,7 +225,7 @@ func TestExport_CustomMetrics(t *testing.T) {
 
 func TestForceFlush(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -219,7 +235,7 @@ func TestForceFlush(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	t.Parallel()
-	exp := &OTELExporter{}
+	exp := &otelExporter{}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 

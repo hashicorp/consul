@@ -1,11 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
 import { action } from '@ember/object';
+import { registerDestructor } from '@ember/destroyable';
 
 const TAB = 9;
 const ESC = 27;
@@ -38,6 +39,12 @@ const keys = {
 
 const MENU_ITEMS = '[role^="menuitem"]';
 
+function cleanup(instance) {
+  if (instance) {
+    instance?.doc?.removeEventListener('keydown', instance?.keydown);
+  }
+}
+
 export default class AriaMenuModifier extends Modifier {
   @service('-document') doc;
   orientation = 'vertical';
@@ -46,7 +53,7 @@ export default class AriaMenuModifier extends Modifier {
   async keydown(e) {
     if (e.keyCode === ESC) {
       this.options.onclose(e);
-      this.$trigger.focus();
+      this.$trigger?.focus();
       return;
     }
     const $items = [...this.element.querySelectorAll(MENU_ITEMS)];
@@ -55,7 +62,7 @@ export default class AriaMenuModifier extends Modifier {
       if (e.shiftKey) {
         if (pos === 0) {
           this.options.onclose(e);
-          this.$trigger.focus();
+          this.$trigger?.focus();
         }
       } else {
         if (pos === $items.length - 1) {
@@ -68,7 +75,7 @@ export default class AriaMenuModifier extends Modifier {
     if (typeof keys[this.orientation][e.keyCode] === 'undefined') {
       return;
     }
-    $items[keys[this.orientation][e.keyCode]($items, pos)].focus();
+    $items[keys[this.orientation][e.keyCode]($items, pos)]?.focus();
     e.stopPropagation();
     e.preventDefault();
   }
@@ -85,28 +92,19 @@ export default class AriaMenuModifier extends Modifier {
     }
   }
 
-  connect(params, named) {
-    this.$trigger = this.doc.getElementById(this.element.getAttribute('aria-labelledby'));
-    if (typeof named.openEvent !== 'undefined') {
-      this.focus(named.openEvent);
+  modify(element, positional, named) {
+    this.params = positional;
+    this.options = named;
+
+    if (!this.$trigger) {
+      this.element = element;
+      this.$trigger = this.doc.getElementById(element.getAttribute('aria-labelledby'));
+      if (typeof named.openEvent !== 'undefined') {
+        this.focus(named.openEvent);
+      }
+
+      this.doc.addEventListener('keydown', this.keydown);
     }
-    this.doc.addEventListener('keydown', this.keydown);
-  }
-
-  disconnect() {
-    this.doc.removeEventListener('keydown', this.keydown);
-  }
-
-  didReceiveArguments() {
-    this.params = this.args.positional;
-    this.options = this.args.named;
-  }
-
-  didInstall() {
-    this.connect(this.args.positional, this.args.named);
-  }
-
-  willRemove() {
-    this.disconnect();
+    registerDestructor(this, cleanup);
   }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package peering
 
@@ -277,7 +277,7 @@ func (s *Server) GenerateToken(
 				Name: req.PeerName,
 				Meta: req.Meta,
 
-				// PartitionOrEmpty is used to avoid writing "default" in OSS.
+				// PartitionOrEmpty is used to avoid writing "default" in CE.
 				Partition: entMeta.PartitionOrEmpty(),
 			}
 		} else {
@@ -452,7 +452,7 @@ func (s *Server) Establish(
 		// while the original connection is still active.
 		// State: pbpeering.PeeringState_ESTABLISHING,
 
-		// PartitionOrEmpty is used to avoid writing "default" in OSS.
+		// PartitionOrEmpty is used to avoid writing "default" in CE.
 		Partition: entMeta.PartitionOrEmpty(),
 		Remote: &pbpeering.RemoteInfo{
 			Partition:  tok.Remote.Partition,
@@ -943,7 +943,7 @@ func (s *Server) PeeringDelete(ctx context.Context, req *pbpeering.PeeringDelete
 			PeerServerAddresses:   existing.PeerServerAddresses,
 			DeletedAt:             timestamppb.New(time.Now().UTC()),
 
-			// PartitionOrEmpty is used to avoid writing "default" in OSS.
+			// PartitionOrEmpty is used to avoid writing "default" in CE.
 			Partition: entMeta.PartitionOrEmpty(),
 		},
 	}

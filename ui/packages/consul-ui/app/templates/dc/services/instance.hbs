@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <Route @name={{routeName}} as |route|>
@@ -162,7 +162,7 @@
           </BlockSlot>
           <BlockSlot @name='actions'>
             {{#let (or item.Service.Address item.Node.Address) as |address|}}
-              <CopyButton @value={{address}} @name='Address'>{{address}}</CopyButton>
+              <ConsulCopyButton @value={{address}} @name='Address'>{{address}}</ConsulCopyButton>
             {{/let}}
           </BlockSlot>
           <BlockSlot @name='content'>

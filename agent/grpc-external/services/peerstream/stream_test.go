@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package peerstream
 
@@ -1433,10 +1433,6 @@ func makeClient(t *testing.T, srv *testServer, peerID string) *MockClient {
 	require.NoError(t, err)
 	receivedSub3, err := client.Recv()
 	require.NoError(t, err)
-
-	// This is required when the client subscribes to server address replication messages.
-	// We assert for the handler to be called at least once but the data doesn't matter.
-	srv.mockSnapshotHandler.expect("", 0, 0, nil)
 
 	// Issue services, roots, and server address subscription to server.
 	// Note that server address may not come as an initial message
@@ -3060,9 +3056,9 @@ func requireEqualInstances(t *testing.T, expect, got structs.CheckServiceNodes) 
 type testServer struct {
 	*Server
 
-	// mockSnapshotHandler is solely used for handling autopilot events
+	// readyServersSnapshotHandler is solely used for handling autopilot events
 	// which don't come from the state store.
-	mockSnapshotHandler *mockSnapshotHandler
+	readyServersSnapshotHandler *dummyReadyServersSnapshotHandler
 }
 
 func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.Store) {
@@ -3104,8 +3100,8 @@ func newTestServer(t *testing.T, configFn func(c *Config)) (*testServer, *state.
 	t.Cleanup(grpcServer.Stop)
 
 	return &testServer{
-		Server:              srv,
-		mockSnapshotHandler: handler,
+		Server:                      srv,
+		readyServersSnapshotHandler: handler,
 	}, store
 }
 

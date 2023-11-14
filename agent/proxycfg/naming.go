@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package proxycfg
 
@@ -153,7 +153,7 @@ func ParseUpstreamIDString(input string) (typ, dc, name string, meta *acl.Enterp
 // This should be used for any situation where we generate identifiers in Envoy
 // xDS structures for this upstream.
 //
-// This will ensure that generated identifiers for the same thing in OSS and
+// This will ensure that generated identifiers for the same thing in CE and
 // Enterprise render the same and omit default namespaces and partitions.
 func (u UpstreamID) EnvoyID() string {
 	name := u.enterpriseIdentifierPrefix() + u.Name

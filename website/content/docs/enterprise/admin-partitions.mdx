@@ -23,7 +23,7 @@ Admin partitions exist a level above namespaces in the identity hierarchy. They 
 
 As of Consul v1.11, every _datacenter_ contains a single administrative partition named `default` when created. With Consul Enterprise, operators have the option of creating multiple partitions within a single datacenter.
 
--> **Preexisting nodes**: Admin partitions were introduced in Consul 1.11. Nodes existed in global scope prior to 1.11. After upgrading to Consul 1.11 or later, all nodes will be scoped to an admin partition, which will be the `default` partition when initially upgrading an existing deployment or for OSS versions.
+-> **Preexisting nodes**: Admin partitions were introduced in Consul 1.11. Nodes existed in global scope prior to 1.11. After upgrading to Consul 1.11 or later, all nodes will be scoped to an admin partition, which will be the `default` partition when initially upgrading an existing deployment or for CE versions.
 
 There are tutorials available to help you get started with admin partitions.
 
@@ -53,7 +53,12 @@ Only resources in the `default` admin partition will be replicated to secondary 
 
 ### DNS Queries
 
-Client agents will be configured to operate within a specific admin partition. The DNS interface will only return results for the admin partition within the scope of the client.
+When queried, the DNS interface returns results for a single admin partition.
+The query may explicitly specify the admin partition to use in the lookup.
+If you do not specify an admin partition in the query,
+the lookup uses the admin partition of the Consul agent that received the query.
+Server agents always exist within the `default` admin partition.
+Client agents are configured to operate within a specific admin partition.
 
 By default, Consul on Kubernetes uses [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents to manage communication between service instances. But to use the Consul DNS for service discovery, you must start a Consul client in client admin partitions.
 
@@ -64,6 +69,8 @@ The partition in which [`proxy-defaults`](/consul/docs/connect/config-entries/pr
 ### Cross-partition Networking
 
 You can configure services to be discoverable by downstream services in any partition within the datacenter. Specify the upstream services that you want to be available for discovery by configuring the `exported-services` configuration entry in the partition where the services are registered. Refer to the [`exported-services` documentation](/consul/docs/connect/config-entries/exported-services) for details. Additionally, the requests made by downstream applications must have the correct DNS name for the Virtual IP Service lookup to occur. Service Virtual IP lookups allow for communications across Admin Partitions when using Transparent Proxy. Refer to the [Service Virtual IP Lookups for Consul Enterprise](/consul/docs/services/discovery/dns-static-lookups#service-virtual-ip-lookups-for-consul-enterprise) for additional information.
+
+-> **Export mesh gateway **: When ACL is enabled in Consul-k8s and `meshgateway.mode` is set to `local`, the `mesh-gateway` service must be exported to their consumers for cross-partition traffic.
 
 ### Cluster Peering
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package local
 
@@ -72,8 +72,12 @@ func TestSync(t *testing.T) {
 	go Sync(ctx, SyncConfig{
 		Manager: cfgMgr,
 		State:   state,
-		Tokens:  tokens,
-		Logger:  hclog.NewNullLogger(),
+		NodeLocality: &structs.Locality{
+			Region: "some-region",
+			Zone:   "some-zone",
+		},
+		Tokens: tokens,
+		Logger: hclog.NewNullLogger(),
 	})
 
 	// Expect the service in the local state to be registered.
@@ -107,6 +111,13 @@ func TestSync(t *testing.T) {
 	select {
 	case reg := <-registerCh:
 		require.Equal(t, serviceID, reg.service.ID)
+		require.Equal(t,
+			&structs.Locality{
+				Region: "some-region",
+				Zone:   "some-zone",
+			},
+			reg.service.Locality,
+		)
 		require.Equal(t, userToken, reg.token)
 	case <-time.After(100 * time.Millisecond):
 		t.Fatal("timeout waiting for service to be registered")

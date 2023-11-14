@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
@@ -20,7 +20,7 @@ func EqualType(a, b *pbresource.Type) bool {
 		a.Kind == b.Kind
 }
 
-// EqualType compares two resource tenancies for equality without reflection.
+// EqualTenancy compares two resource tenancies for equality without reflection.
 func EqualTenancy(a, b *pbresource.Tenancy) bool {
 	if a == b {
 		return true
@@ -35,7 +35,7 @@ func EqualTenancy(a, b *pbresource.Tenancy) bool {
 		a.Namespace == b.Namespace
 }
 
-// EqualType compares two resource IDs for equality without reflection.
+// EqualID compares two resource IDs for equality without reflection.
 func EqualID(a, b *pbresource.ID) bool {
 	if a == b {
 		return true

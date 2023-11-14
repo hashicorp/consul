@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resourcetest
 
@@ -13,6 +13,7 @@ import (
 )
 
 func ValidateAndNormalize(t *testing.T, registry resource.Registry, res *pbresource.Resource) {
+	t.Helper()
 	typ := res.Id.Type
 
 	typeInfo, ok := registry.Resolve(typ)

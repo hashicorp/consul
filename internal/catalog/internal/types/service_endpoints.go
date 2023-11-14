@@ -1,44 +1,44 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-const (
-	ServiceEndpointsKind = "ServiceEndpoints"
-)
-
-var (
-	ServiceEndpointsV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         ServiceEndpointsKind,
-	}
-
-	ServiceEndpointsType = ServiceEndpointsV1Alpha1Type
-)
+type DecodedServiceEndpoints = resource.DecodedResource[*pbcatalog.ServiceEndpoints]
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     ServiceEndpointsV1Alpha1Type,
+		Type:     pbcatalog.ServiceEndpointsType,
 		Proto:    &pbcatalog.ServiceEndpoints{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
+		ACLs: &resource.ACLHooks{
+			Read: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+				return authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.GetName(), context)
+			},
+			Write: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, p *pbresource.Resource) error {
+				return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(p.GetId().GetName(), context)
+			},
+			List: resource.NoOpACLListHook,
+		},
 	})
 }
 
 func MutateServiceEndpoints(res *pbresource.Resource) error {
 	if res.Owner == nil {
 		res.Owner = &pbresource.ID{
-			Type:    ServiceV1Alpha1Type,
+			Type:    pbcatalog.ServiceType,
 			Tenancy: res.Id.Tenancy,
 			Name:    res.Id.Name,
 		}
@@ -47,24 +47,20 @@ func MutateServiceEndpoints(res *pbresource.Resource) error {
 	return nil
 }
 
-func ValidateServiceEndpoints(res *pbresource.Resource) error {
-	var svcEndpoints pbcatalog.ServiceEndpoints
+var ValidateServiceEndpoints = resource.DecodeAndValidate[*pbcatalog.ServiceEndpoints](validateServiceEndpoints)
 
-	if err := res.Data.UnmarshalTo(&svcEndpoints); err != nil {
-		return resource.NewErrDataParse(&svcEndpoints, err)
-	}
-
+func validateServiceEndpoints(res *DecodedServiceEndpoints) error {
 	var err error
-	if !resource.EqualType(res.Owner.Type, ServiceV1Alpha1Type) {
+	if !resource.EqualType(res.Owner.Type, pbcatalog.ServiceType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{
-			ResourceType: ServiceEndpointsV1Alpha1Type,
+			ResourceType: pbcatalog.ServiceEndpointsType,
 			OwnerType:    res.Owner.Type,
 		})
 	}
 
 	if !resource.EqualTenancy(res.Owner.Tenancy, res.Id.Tenancy) {
 		err = multierror.Append(err, resource.ErrOwnerTenantInvalid{
-			ResourceType:    ServiceEndpointsV1Alpha1Type,
+			ResourceType:    pbcatalog.ServiceEndpointsType,
 			ResourceTenancy: res.Id.Tenancy,
 			OwnerTenancy:    res.Owner.Tenancy,
 		})
@@ -80,8 +76,8 @@ func ValidateServiceEndpoints(res *pbresource.Resource) error {
 		})
 	}
 
-	for idx, endpoint := range svcEndpoints.Endpoints {
-		if endpointErr := validateEndpoint(endpoint, res); endpointErr != nil {
+	for idx, endpoint := range res.Data.Endpoints {
+		if endpointErr := validateEndpoint(endpoint, res.Resource); endpointErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "endpoints",
 				Index:   idx,
@@ -101,7 +97,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 	// corresponding workloads that Consul has knowledge of.
 	if endpoint.TargetRef != nil {
 		// Validate the target reference
-		if refErr := validateReference(WorkloadType, res.Id.GetTenancy(), endpoint.TargetRef); refErr != nil {
+		if refErr := validateReference(pbcatalog.WorkloadType, res.Id.GetTenancy(), endpoint.TargetRef); refErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidField{
 				Name:    "target_ref",
 				Wrapped: refErr,
@@ -128,14 +124,32 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 		})
 	}
 
+	if healthErr := validateHealth(endpoint.HealthStatus); healthErr != nil {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "health_status",
+			Wrapped: healthErr,
+		})
+	}
+
 	// Validate the endpoints ports
 	for portName, port := range endpoint.Ports {
 		// Port names must be DNS labels
-		if portNameErr := validatePortName(portName); portNameErr != nil {
+		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
 				Key:     portName,
 				Wrapped: portNameErr,
+			})
+		}
+
+		if protoErr := ValidateProtocol(port.Protocol); protoErr != nil {
+			err = multierror.Append(err, resource.ErrInvalidMapValue{
+				Map: "ports",
+				Key: portName,
+				Wrapped: resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: protoErr,
+				},
 			})
 		}
 
@@ -146,7 +160,7 @@ func validateEndpoint(endpoint *pbcatalog.Endpoint, res *pbresource.Resource) er
 				Map: "ports",
 				Key: portName,
 				Wrapped: resource.ErrInvalidField{
-					Name:    "phsical_port",
+					Name:    "physical_port",
 					Wrapped: errInvalidPhysicalPort,
 				},
 			})

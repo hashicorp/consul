@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <ListCollection
@@ -14,7 +14,7 @@ as |item index|>
   {{else}}
     <span>
       {{item.ID}}
-      <CopyButton
+      <ConsulCopyButton
         @value={{item.ID}}
         @name="ID"
       />
@@ -28,7 +28,7 @@ as |item index|>
         ID
       </dt>
       <dd>
-        <CopyButton
+        <ConsulCopyButton
           @value={{item.ID}}
           @name="ID"
         />

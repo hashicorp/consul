@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cluster
 
@@ -270,6 +270,11 @@ func (b *Builder) Datacenter(name string) *Builder {
 
 func (b *Builder) Peering(enable bool) *Builder {
 	b.conf.Set("peering.enabled", enable)
+	return b
+}
+
+func (b *Builder) SetACLToken(token string) *Builder {
+	b.conf.Set("acl.tokens.agent", token)
 	return b
 }
 

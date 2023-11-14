@@ -1,0 +1,5 @@
+Name:            builtin/node
+Input variables:
+	Name: String - Required - The node name.
+Example usage:
+	consul acl token create -templated-policy builtin/node -var name:node-1

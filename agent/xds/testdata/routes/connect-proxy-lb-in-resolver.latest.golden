@@ -1,34 +1,22 @@
 {
-  "versionInfo": "00000001",
+  "nonce": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "db",
+      "validateClusters": true,
       "virtualHosts": [
         {
-          "name": "db",
           "domains": [
             "*"
           ],
+          "name": "db",
           "routes": [
             {
               "match": {
                 "prefix": "/"
               },
               "route": {
-                "weightedClusters": {
-                  "clusters": [
-                    {
-                      "name": "something-else.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                      "weight": 9550
-                    },
-                    {
-                      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                      "weight": 450
-                    }
-                  ],
-                  "totalWeight": 10000
-                },
                 "hashPolicy": [
                   {
                     "cookie": {
@@ -58,15 +46,27 @@
                     },
                     "terminal": true
                   }
-                ]
+                ],
+                "weightedClusters": {
+                  "clusters": [
+                    {
+                      "name": "something-else.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 9550
+                    },
+                    {
+                      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                      "weight": 450
+                    }
+                  ],
+                  "totalWeight": 10000
+                }
               }
             }
           ]
         }
-      ],
-      "validateClusters": true
+      ]
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "nonce": "00000001"
+  "versionInfo": "00000001"
 }

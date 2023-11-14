@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
 <Route
@@ -101,6 +101,7 @@ as |sort filters items partition nspace|}}
           <Consul::Service::List
             @items={{collection.items}}
             @partition={{partition}}
+            @nspace={{nspace}}
           >
           </Consul::Service::List>
         </collection.Collection>

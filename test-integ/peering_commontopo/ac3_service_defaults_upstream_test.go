@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
@@ -8,14 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/itchyny/gojq"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 )
 
 var ac3SvcDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -33,12 +35,12 @@ type ac3SvcDefaultsSuite struct {
 	Peer string
 
 	// test points
-	sidServer  topology.ServiceID
+	sidServer  topology.ID
 	nodeServer topology.NodeID
-	sidClient  topology.ServiceID
+	sidClient  topology.ID
 	nodeClient topology.NodeID
 
-	upstream *topology.Upstream
+	upstream *topology.Destination
 }
 
 func (s *ac3SvcDefaultsSuite) testName() string {
@@ -54,12 +56,12 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 	cluPeerName := LocalPeerName(clu, "default")
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac3-server",
 		Partition: partition,
 	}
-	upstream := &topology.Upstream{
-		ID: topology.ServiceID{
+	upstream := &topology.Destination{
+		ID: topology.ID{
 			Name:      serverSID.Name,
 			Partition: partition,
 		},
@@ -67,16 +69,16 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 		Peer:      peer,
 	}
 
-	sid := topology.ServiceID{
+	sid := topology.ID{
 		Name:      "ac3-client",
 		Partition: partition,
 	}
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			sid,
-			func(s *topology.Service) {
-				s.Upstreams = []*topology.Upstream{
+			func(s *topology.Workload) {
+				s.Destinations = []*topology.Destination{
 					upstream,
 				}
 			},
@@ -110,7 +112,7 @@ func (s *ac3SvcDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	clientNode := ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			serverSID,
 			nil,
@@ -156,12 +158,12 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	peer := ct.Sprawl.Topology().Clusters[s.Peer]
 
 	// refresh this from Topology
-	svcClient := dc.ServiceByID(
+	svcClient := dc.WorkloadByID(
 		s.nodeClient,
 		s.sidClient,
 	)
 	// our ac has the node/sid for server in the peer DC
-	svcServer := peer.ServiceByID(
+	svcServer := peer.WorkloadByID(
 		s.nodeServer,
 		s.sidServer,
 	)
@@ -170,7 +172,6 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	// these could be done parallel with each other, but complexity
 	// probably not worth the speed boost
 	ct.Assert.HealthyWithPeer(t, dc.Name, svcServer.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, svcClient, s.upstream)
 	// TODO: we need to let the upstream start serving properly before we do this. if it
 	// isn't ready and returns a 5xx (which it will do if it's not up yet!), it will stick
 	// in a down state for PassiveHealthCheck.Interval
@@ -182,7 +183,7 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 	// TODO: what is default? namespace? partition?
 	clusterName := fmt.Sprintf("%s.default.%s.external", s.upstream.ID.Name, s.upstream.Peer)
 	nonceStatus := http.StatusInsufficientStorage
-	url507 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort,
+	url507 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort(""),
 		url.QueryEscape(fmt.Sprintf("http://localhost:%d/?status=%d", s.upstream.LocalPort, nonceStatus)),
 	)
 
@@ -218,7 +219,7 @@ func (s *ac3SvcDefaultsSuite) test(t *testing.T, ct *commonTopo) {
 		require.True(r, resultAsBool)
 	})
 
-	url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort,
+	url200 := fmt.Sprintf("http://localhost:%d/fortio/fetch2?url=%s", svcClient.ExposedPort(""),
 		url.QueryEscape(fmt.Sprintf("http://localhost:%d/", s.upstream.LocalPort)),
 	)
 	retry.RunWith(&retry.Timer{Timeout: time.Minute * 1, Wait: time.Millisecond * 500}, t, func(r *retry.R) {

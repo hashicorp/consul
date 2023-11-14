@@ -1,48 +1,34 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package types
 
 import (
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 )
 
-const (
-	HealthChecksKind = "HealthChecks"
-)
-
-var (
-	HealthChecksV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         HealthChecksKind,
-	}
-
-	HealthChecksType = HealthChecksV1Alpha1Type
-)
+type DecodedHealthChecks = resource.DecodedResource[*pbcatalog.HealthChecks]
 
 func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HealthChecksV1Alpha1Type,
+		Type:     pbcatalog.HealthChecksType,
 		Proto:    &pbcatalog.HealthChecks{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateHealthChecks,
+		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.HealthChecks](),
 	})
 }
 
-func ValidateHealthChecks(res *pbresource.Resource) error {
-	var checks pbcatalog.HealthChecks
+var ValidateHealthChecks = resource.DecodeAndValidate(validateHealthChecks)
 
-	if err := res.Data.UnmarshalTo(&checks); err != nil {
-		return resource.NewErrDataParse(&checks, err)
-	}
-
+func validateHealthChecks(res *DecodedHealthChecks) error {
 	var err error
 
 	// Validate the workload selector
-	if selErr := validateSelector(checks.Workloads, false); selErr != nil {
+	if selErr := ValidateSelector(res.Data.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -50,7 +36,7 @@ func ValidateHealthChecks(res *pbresource.Resource) error {
 	}
 
 	// Validate each check
-	for idx, check := range checks.HealthChecks {
+	for idx, check := range res.Data.HealthChecks {
 		if checkErr := validateCheck(check); checkErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "checks",

@@ -1,8 +1,8 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: MPL-2.0
+  SPDX-License-Identifier: BUSL-1.1
 }}
 
-  <li>
-    <a href={{href-to 'docs'}} target="_blank">Eng Docs</a>
-  </li>
+{{#let @dropdown as |DD|}}
+  <DD.Interactive @href={{href-to "docs"}} @isHrefExternal={{true}} @text={{t "components.hashicorp-consul.side-nav.support-menu.eng-docs" }} />
+{{/let}}

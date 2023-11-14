@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: MPL-2.0
+ * SPDX-License-Identifier: BUSL-1.1
  */
 
 @import 'ember-power-select';
@@ -8,7 +8,6 @@
 @import 'consul-ui/components/anchors';
 @import 'consul-ui/components/auth-form';
 @import 'consul-ui/components/auth-modal';
-@import 'consul-ui/components/auth-profile';
 @import 'consul-ui/components/breadcrumbs';
 @import 'consul-ui/components/buttons';
 @import 'consul-ui/components/card';
@@ -16,7 +15,7 @@
 @import 'consul-ui/components/code-editor';
 @import 'consul-ui/components/composite-row';
 @import 'consul-ui/components/confirmation-dialog';
-@import 'consul-ui/components/copy-button';
+@import 'consul-ui/components/consul-copy-button';
 @import 'consul-ui/components/definition-table';
 @import 'consul-ui/components/disclosure-menu';
 @import 'consul-ui/components/display-toggle';
@@ -53,12 +52,8 @@
 @import 'consul-ui/components/route/title';
 @import 'consul-ui/components/app-view';
 @import 'consul-ui/components/brand-loader';
-@import 'consul-ui/components/skip-links';
 @import 'consul-ui/components/app';
 /* app chrome */
-@import 'consul-ui/components/main-header-horizontal';
-@import 'consul-ui/components/main-nav-horizontal';
-@import 'consul-ui/components/main-nav-vertical';
 @import 'consul-ui/components/hashicorp-consul';
 /**/
 @import 'consul-ui/components/menu-panel';
@@ -113,5 +108,4 @@
 @import 'consul-ui/components/consul/node/peer-info';
 @import 'consul-ui/components/consul/peer/info';
 @import 'consul-ui/components/consul/peer/form';
-@import 'consul-ui/components/consul/hcp/home';
 @import 'consul-ui/components/consul/node/agentless-notice';

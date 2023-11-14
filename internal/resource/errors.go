@@ -1,19 +1,23 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package resource
 
 import (
 	"fmt"
+	"strings"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
 	ErrMissing                  = NewConstError("missing required field")
+	ErrMissingOneOf             = NewConstError("missing one of the required fields")
 	ErrEmpty                    = NewConstError("cannot be empty")
 	ErrReferenceTenancyNotEqual = NewConstError("resource tenancy and reference tenancy differ")
+	ErrUnsupported              = NewConstError("field is currently not supported")
 )
 
 // ConstError is more or less equivalent to the stdlib errors.errorstring. However, having
@@ -133,6 +137,20 @@ type ErrOwnerTenantInvalid struct {
 }
 
 func (err ErrOwnerTenantInvalid) Error() string {
+	if err.ResourceTenancy == nil && err.OwnerTenancy != nil {
+		return fmt.Sprintf(
+			"empty resource tenancy cannot be owned by a resource in partition %s, namespace %s and peer %s",
+			err.OwnerTenancy.Partition, err.OwnerTenancy.Namespace, err.OwnerTenancy.PeerName,
+		)
+	}
+
+	if err.ResourceTenancy != nil && err.OwnerTenancy == nil {
+		return fmt.Sprintf(
+			"resource in partition %s, namespace %s and peer %s cannot be owned by a resource with empty tenancy",
+			err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
+		)
+	}
+
 	return fmt.Sprintf(
 		"resource in partition %s, namespace %s and peer %s cannot be owned by a resource in partition %s, namespace %s and peer %s",
 		err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
@@ -146,4 +164,18 @@ type ErrInvalidReferenceType struct {
 
 func (err ErrInvalidReferenceType) Error() string {
 	return fmt.Sprintf("reference must have type %s", ToGVK(err.AllowedType))
+}
+
+type ErrInvalidFields struct {
+	Names   []string
+	Wrapped error
+}
+
+func (err ErrInvalidFields) Error() string {
+	allFields := strings.Join(err.Names, ",")
+	return fmt.Sprintf("invalid %q fields: %v", allFields, err.Wrapped)
+}
+
+func (err ErrInvalidFields) Unwrap() error {
+	return err.Wrapped
 }

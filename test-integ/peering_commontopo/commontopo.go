@@ -1,23 +1,24 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package peering
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
-	"text/tabwriter"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // commonTopo helps create a shareable topology configured to represent
@@ -39,72 +40,110 @@ type commonTopo struct {
 	// shortcuts to corresponding entry in Cfg
 	DC1 *topology.Cluster
 	DC2 *topology.Cluster
+	// nil if includeDC3 is false
 	DC3 *topology.Cluster
 
 	// set after Launch. Should be considered read-only
 	Sprawl *sprawl.Sprawl
-	Assert *asserter
+	Assert *topoutil.Asserter
 
 	// track per-DC services to prevent duplicates
-	services map[string]map[topology.ServiceID]struct{}
+	services map[string]map[topology.ID]struct{}
+
+	// if zero, no DCs are agentless
+	agentlessDC string
+
+	// if true, create DC3 and associated links (currently only used by ac5.2)
+	includeDC3 bool
+
+	peerThroughMGW bool
+}
+
+func NewCommonTopoWithoutAgentless(t *testing.T) *commonTopo {
+	t.Helper()
+	return newCommonTopo(t, "", false, true)
 }
 
 func NewCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
+	return newCommonTopo(t, "dc2", false, true)
+}
 
-	ct := commonTopo{}
+func newCommonTopo(t *testing.T, agentlessDC string, includeDC3 bool, peerThroughMGW bool) *commonTopo {
+	t.Helper()
+
+	ct := commonTopo{
+		agentlessDC:    agentlessDC,
+		includeDC3:     includeDC3,
+		peerThroughMGW: peerThroughMGW,
+	}
+
+	const nServers = 3
 
 	// Make 3-server clusters in dc1 and dc2
 	// For simplicity, the Name and Datacenter of the clusters are the same.
 	// dc1 and dc2 should be symmetric.
-	dc1 := clusterWithJustServers("dc1", 3)
+	dc1 := ct.clusterWithJustServers("dc1", nServers)
 	ct.DC1 = dc1
-	dc2 := clusterWithJustServers("dc2", 3)
+	dc2 := ct.clusterWithJustServers("dc2", nServers)
 	ct.DC2 = dc2
-	// dc3 is a failover cluster for both dc1 and dc2
-	dc3 := clusterWithJustServers("dc3", 1)
-	// dc3 is only used for certain failover scenarios and does not need tenancies
-	dc3.Partitions = []*topology.Partition{{Name: "default"}}
-	ct.DC3 = dc3
+	clusters := []*topology.Cluster{dc1, dc2}
+
+	var dc3 *topology.Cluster
+
+	if ct.includeDC3 {
+		// dc3 is a failover cluster for both dc1 and dc2
+		dc3 = ct.clusterWithJustServers("dc3", 1)
+		// dc3 is only used for certain failover scenarios and does not need tenancies
+		dc3.Partitions = []*topology.Partition{{Name: "default"}}
+		ct.DC3 = dc3
+		// dc3 is only used for certain failover scenarios and does not need tenancies
+		dc3.Partitions = []*topology.Partition{{Name: "default"}}
+
+		clusters = append(clusters, dc3)
+	}
 
 	injectTenancies(dc1)
 	injectTenancies(dc2)
-	// dc3 is only used for certain failover scenarios and does not need tenancies
-	dc3.Partitions = []*topology.Partition{{Name: "default"}}
+	// dc3 doesn't get tenancies
 
-	ct.services = map[string]map[topology.ServiceID]struct{}{}
-	for _, dc := range []*topology.Cluster{dc1, dc2, dc3} {
-		ct.services[dc.Datacenter] = map[topology.ServiceID]struct{}{}
+	ct.services = map[string]map[topology.ID]struct{}{}
+	for _, dc := range clusters {
+		ct.services[dc.Datacenter] = map[topology.ID]struct{}{}
 	}
 
 	peerings := addPeerings(dc1, dc2)
-	peerings = append(peerings, addPeerings(dc1, dc3)...)
-	peerings = append(peerings, addPeerings(dc2, dc3)...)
+	if ct.includeDC3 {
+		peerings = append(peerings, addPeerings(dc1, dc3)...)
+		peerings = append(peerings, addPeerings(dc2, dc3)...)
+	}
 
-	addMeshGateways(dc1, topology.NodeKindClient)
-	addMeshGateways(dc2, topology.NodeKindClient)
-	addMeshGateways(dc3, topology.NodeKindClient)
-	// TODO: consul-topology doesn't support this yet
-	// addMeshGateways(dc2, topology.NodeKindDataplane)
+	ct.addMeshGateways(dc1)
+	ct.addMeshGateways(dc2)
+	if ct.includeDC3 {
+		ct.addMeshGateways(dc3)
+	}
 
-	setupGlobals(dc1)
-	setupGlobals(dc2)
-	setupGlobals(dc3)
+	ct.setupGlobals(dc1)
+	ct.setupGlobals(dc2)
+	if ct.includeDC3 {
+		ct.setupGlobals(dc3)
+	}
+
+	networks := []*topology.Network{
+		{Name: "wan", Type: "wan"},
+		{Name: dc1.Datacenter}, // "dc1" LAN
+		{Name: dc2.Datacenter}, // "dc2" LAN
+	}
+	if ct.includeDC3 {
+		networks = append(networks, &topology.Network{Name: dc3.Datacenter})
+	}
 
 	// Build final configuration
 	ct.Cfg = &topology.Config{
-		Images: utils.TargetImages(),
-		Networks: []*topology.Network{
-			{Name: dc1.Datacenter}, // "dc1" LAN
-			{Name: dc2.Datacenter}, // "dc2" LAN
-			{Name: dc3.Datacenter}, // "dc3" LAN
-			{Name: "wan", Type: "wan"},
-		},
-		Clusters: []*topology.Cluster{
-			dc1,
-			dc2,
-			dc3,
-		},
+		Images:   utils.TargetImages(),
+		Networks: networks,
+		Clusters: clusters,
 		Peerings: peerings,
 	}
 	return &ct
@@ -117,18 +156,18 @@ func (ct *commonTopo) Launch(t *testing.T) {
 	}
 	ct.Sprawl = sprawltest.Launch(t, ct.Cfg)
 
-	ct.Assert = newAsserter(ct.Sprawl)
+	ct.Assert = topoutil.NewAsserter(ct.Sprawl)
 	ct.postLaunchChecks(t)
 }
 
 // tests that use Relaunch might want to call this again afterwards
 func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 	t.Logf("TESTING RELATIONSHIPS: \n%s",
-		renderRelationships(computeRelationships(ct.Sprawl.Topology())),
+		topology.RenderRelationships(ct.Sprawl.Topology().ComputeRelationships()),
 	)
 
 	// check that exports line up as expected
-	for _, clu := range ct.Sprawl.Config().Clusters {
+	for _, clu := range ct.Sprawl.Topology().Clusters {
 		// expected exports per peer
 		type key struct {
 			peer      string
@@ -139,10 +178,12 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 		for _, e := range clu.InitialConfigEntries {
 			if e.GetKind() == api.ExportedServices {
 				asExport := e.(*api.ExportedServicesConfigEntry)
-				// do we care about the partition?
 				for _, svc := range asExport.Services {
 					for _, con := range svc.Consumers {
-						// do we care about con.Partition?
+						// if Peer is unset, this is an export to another partition in the same DC, so we don't need to check it
+						if con.Peer == "" {
+							continue
+						}
 						// TODO: surely there is code to normalize this
 						partition := asExport.Partition
 						if partition == "" {
@@ -180,16 +221,16 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 // PeerName is how you'd address a remote dc+partition locally
 // as your peer name.
 func LocalPeerName(clu *topology.Cluster, partition string) string {
+	if partition == "" {
+		partition = "default"
+	}
 	return fmt.Sprintf("peer-%s-%s", clu.Datacenter, partition)
 }
 
 // TODO: move these to topology
 // TODO: alternatively, delete it: we only use it in one place, to bundle up args
 type serviceExt struct {
-	*topology.Service
-
-	// default NodeKindClient
-	NodeKind topology.NodeKind
+	*topology.Workload
 
 	Exports    []api.ServiceConsumer
 	Config     *api.ServiceConfigEntry
@@ -204,7 +245,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	ct.services[clusterName][svc.ID] = struct{}{}
 
 	// TODO: inline
-	serviceHostnameString := func(dc string, id topology.ServiceID) string {
+	serviceHostnameString := func(dc string, id topology.ID) string {
 		n := id.Name
 		// prepend <namespace>- and <partition>- if they are not default/empty
 		// avoids hostname limit of 63 chars in most cases
@@ -224,20 +265,24 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		return n
 	}
 
+	nodeKind := topology.NodeKindClient
+	// TODO: bug in deployer somewhere; it should guard against a KindDataplane node with
+	// DisableServiceMesh services on it; dataplane is only for service-mesh
+	if !svc.DisableServiceMesh && clu.Datacenter == ct.agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
+
 	node := &topology.Node{
-		Kind:      topology.NodeKindClient,
+		Kind:      nodeKind,
 		Name:      serviceHostnameString(clu.Datacenter, svc.ID),
 		Partition: svc.ID.Partition,
 		Addresses: []*topology.Address{
 			{Network: clu.Datacenter},
 		},
-		Services: []*topology.Service{
-			svc.Service,
+		Workloads: []*topology.Workload{
+			svc.Workload,
 		},
 		Cluster: clusterName,
-	}
-	if svc.NodeKind != "" {
-		node.Kind = svc.NodeKind
 	}
 	clu.Nodes = append(clu.Nodes, node)
 
@@ -262,7 +307,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 }
 
 func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *api.Client {
-	cl, err := ct.Sprawl.APIClientForNode(clu.Name, clu.FirstClient().ID(), "")
+	cl, err := ct.Sprawl.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
 	return cl
 }
@@ -272,7 +317,7 @@ func (ct *commonTopo) APIClientForCluster(t *testing.T, clu *topology.Cluster) *
 func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svcs ...api.ExportedService) {
 	var found bool
 	for _, ce := range clu.InitialConfigEntries {
-		// We check Name because it must be "default" in OSS whereas Partition will be "".
+		// We check Name because it must be "default" in CE whereas Partition will be "".
 		if ce.GetKind() == api.ExportedServices && ce.GetName() == partition {
 			found = true
 			e := ce.(*api.ExportedServicesConfigEntry)
@@ -282,8 +327,8 @@ func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svc
 	if !found {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ExportedServicesConfigEntry{
-				Name:      partition, // this NEEDs to be "default" in OSS
-				Partition: ConfigEntryPartition(partition),
+				Name:      topology.PartitionOrDefault(partition), // this NEEDs to be "default" in CE
+				Partition: topology.DefaultToEmpty(partition),
 				Services:  svcs,
 			},
 		)
@@ -302,54 +347,32 @@ func (ct *commonTopo) ClusterByDatacenter(t *testing.T, name string) *topology.C
 	return nil
 }
 
-// Since OSS config entries do not contain the partition field,
-// this func converts default partition to empty string.
+// Deprecated: topoutil.ConfigEntryPartition
 func ConfigEntryPartition(p string) string {
-	if p == "default" {
-		return "" // make this OSS friendly
-	}
-	return p
+	return topoutil.ConfigEntryPartition(p)
 }
 
-// disableNode is a no-op if the node is already disabled.
+// DisableNode is a no-op if the node is already disabled.
 func DisableNode(t *testing.T, cfg *topology.Config, clusterName string, nid topology.NodeID) *topology.Config {
-	nodes := cfg.Cluster(clusterName).Nodes
-	var found bool
-	for _, n := range nodes {
-		if n.ID() == nid {
-			found = true
-			if n.Disabled {
-				return cfg
-			}
-			t.Logf("disabling node %s in cluster %s", nid.String(), clusterName)
-			n.Disabled = true
-			break
-		}
+	changed, err := cfg.DisableNode(clusterName, nid)
+	require.NoError(t, err)
+	if changed {
+		t.Logf("disabling node %s in cluster %s", nid.String(), clusterName)
 	}
-	require.True(t, found, "expected to find nodeID %q in cluster %q", nid.String(), clusterName)
 	return cfg
 }
 
-// enableNode is a no-op if the node is already enabled.
+// EnableNode is a no-op if the node is already enabled.
 func EnableNode(t *testing.T, cfg *topology.Config, clusterName string, nid topology.NodeID) *topology.Config {
-	nodes := cfg.Cluster(clusterName).Nodes
-	var found bool
-	for _, n := range nodes {
-		if n.ID() == nid {
-			found = true
-			if !n.Disabled {
-				return cfg
-			}
-			t.Logf("enabling node %s in cluster %s", nid.String(), clusterName)
-			n.Disabled = false
-			break
-		}
+	changed, err := cfg.EnableNode(clusterName, nid)
+	require.NoError(t, err)
+	if changed {
+		t.Logf("enabling node %s in cluster %s", nid.String(), clusterName)
 	}
-	require.True(t, found, "expected to find nodeID %q in cluster %q", nid.String(), clusterName)
 	return cfg
 }
 
-func setupGlobals(clu *topology.Cluster) {
+func (ct *commonTopo) setupGlobals(clu *topology.Cluster) {
 	for _, part := range clu.Partitions {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ProxyConfigEntry{
@@ -364,33 +387,70 @@ func setupGlobals(clu *topology.Cluster) {
 				},
 			},
 		)
+		if ct.peerThroughMGW {
+			clu.InitialConfigEntries = append(clu.InitialConfigEntries,
+				&api.MeshConfigEntry{
+					Peering: &api.PeeringMeshConfig{
+						PeerThroughMeshGateways: true,
+					},
+				},
+			)
+		}
 	}
 }
 
 // addMeshGateways adds a mesh gateway for every partition in the cluster.
 // Assumes that the LAN network name is equal to datacenter name.
-func addMeshGateways(c *topology.Cluster, kind topology.NodeKind) {
+func (ct *commonTopo) addMeshGateways(c *topology.Cluster) {
+	nodeKind := topology.NodeKindClient
+	if c.Datacenter == ct.agentlessDC {
+		nodeKind = topology.NodeKindDataplane
+	}
 	for _, p := range c.Partitions {
-		c.Nodes = topology.MergeSlices(c.Nodes, newTopologyMeshGatewaySet(
-			kind,
+		sid, nodes := newTopologyMeshGatewaySet(
+			nodeKind,
 			p.Name,
 			fmt.Sprintf("%s-%s-mgw", c.Name, p.Name),
 			1,
 			[]string{c.Datacenter, "wan"},
 			nil,
-		))
+		)
+		c.Nodes = topology.MergeSlices(c.Nodes, nodes)
+		// for services exported in the same cluster between partitions, we need
+		// to export the mesh gateway (but not for peering)
+		// https://github.com/hashicorp/consul/pull/19052
+		consumers := []api.ServiceConsumer{}
+		for _, cp := range c.Partitions {
+			if cp.Name == p.Name {
+				continue
+			}
+			consumers = append(consumers, api.ServiceConsumer{
+				Partition: cp.Name,
+			})
+		}
+		if len(consumers) > 0 {
+			ct.ExportService(c, p.Name, api.ExportedService{
+				Name:      sid.Name,
+				Namespace: sid.Namespace,
+				Consumers: consumers,
+			})
+		}
 	}
 }
 
-func clusterWithJustServers(name string, numServers int) *topology.Cluster {
+func (ct *commonTopo) clusterWithJustServers(name string, numServers int) *topology.Cluster {
+	nets := []string{name}
+	if !ct.peerThroughMGW {
+		nets = append(nets, "wan")
+	}
 	return &topology.Cluster{
 		Enterprise: utils.IsEnterprise(),
 		Name:       name,
 		Datacenter: name,
-		Nodes: newTopologyServerSet(
+		Nodes: topoutil.NewTopologyServerSet(
 			name+"-server",
 			numServers,
-			[]string{name, "wan"},
+			nets,
 			nil,
 		),
 	}
@@ -443,31 +503,13 @@ func injectTenancies(clu *topology.Cluster) {
 	}
 }
 
-func newTopologyServerSet(
-	namePrefix string,
-	num int,
-	networks []string,
-	mutateFn func(i int, node *topology.Node),
-) []*topology.Node {
-	var out []*topology.Node
-	for i := 1; i <= num; i++ {
-		name := namePrefix + strconv.Itoa(i)
-
-		node := &topology.Node{
-			Kind: topology.NodeKindServer,
-			Name: name,
-		}
-		for _, net := range networks {
-			node.Addresses = append(node.Addresses, &topology.Address{Network: net})
-		}
-
-		if mutateFn != nil {
-			mutateFn(i, node)
-		}
-
-		out = append(out, node)
-	}
-	return out
+// Deprecated: topoutil.NewFortioServiceWithDefaults
+func NewFortioServiceWithDefaults(
+	cluster string,
+	sid topology.ID,
+	mut func(s *topology.Workload),
+) *topology.Workload {
+	return topoutil.NewFortioServiceWithDefaults(cluster, sid, topology.NodeVersionV1, mut)
 }
 
 func newTopologyMeshGatewaySet(
@@ -477,134 +519,8 @@ func newTopologyMeshGatewaySet(
 	num int,
 	networks []string,
 	mutateFn func(i int, node *topology.Node),
-) []*topology.Node {
-	var out []*topology.Node
-	for i := 1; i <= num; i++ {
-		name := namePrefix + strconv.Itoa(i)
-
-		node := &topology.Node{
-			Kind:      nodeKind,
-			Partition: partition,
-			Name:      name,
-			Services: []*topology.Service{{
-				ID:             topology.ServiceID{Name: "mesh-gateway"},
-				Port:           8443,
-				EnvoyAdminPort: 19000,
-				IsMeshGateway:  true,
-			}},
-		}
-		for _, net := range networks {
-			node.Addresses = append(node.Addresses, &topology.Address{Network: net})
-		}
-
-		if mutateFn != nil {
-			mutateFn(i, node)
-		}
-
-		out = append(out, node)
-	}
-	return out
-}
-
-const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
-
-func NewFortioServiceWithDefaults(
-	cluster string,
-	sid topology.ServiceID,
-	mut func(s *topology.Service),
-) *topology.Service {
-	const (
-		httpPort  = 8080
-		grpcPort  = 8079
-		adminPort = 19000
-	)
-	sid.Normalize()
-
-	svc := &topology.Service{
-		ID:             sid,
-		Image:          HashicorpDockerProxy + "/fortio/fortio",
-		Port:           httpPort,
-		EnvoyAdminPort: adminPort,
-		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
-		Env: []string{
-			"FORTIO_NAME=" + cluster + "::" + sid.String(),
-		},
-		Command: []string{
-			"server",
-			"-http-port", strconv.Itoa(httpPort),
-			"-grpc-port", strconv.Itoa(grpcPort),
-			"-redirect-port", "-disabled",
-		},
-	}
-	if mut != nil {
-		mut(svc)
-	}
-	return svc
-}
-
-// computeRelationships will analyze a full topology and generate all of the
-// downstream/upstream information for all of them.
-func computeRelationships(topo *topology.Topology) []Relationship {
-	var out []Relationship
-	for _, cluster := range topo.Clusters {
-		for _, n := range cluster.Nodes {
-			for _, s := range n.Services {
-				for _, u := range s.Upstreams {
-					out = append(out, Relationship{
-						Caller:   s,
-						Upstream: u,
-					})
-				}
-			}
-		}
-	}
-	return out
-}
-
-// renderRelationships will take the output of ComputeRelationships and display
-// it in tabular form.
-func renderRelationships(ships []Relationship) string {
-	var buf bytes.Buffer
-	w := tabwriter.NewWriter(&buf, 0, 0, 3, ' ', tabwriter.Debug)
-	fmt.Fprintf(w, "DOWN\tnode\tservice\tport\tUP\tservice\t\n")
-	for _, r := range ships {
-		fmt.Fprintf(w,
-			"%s\t%s\t%s\t%d\t%s\t%s\t\n",
-			r.downCluster(),
-			r.Caller.Node.ID().String(),
-			r.Caller.ID.String(),
-			r.Upstream.LocalPort,
-			r.upCluster(),
-			r.Upstream.ID.String(),
-		)
-	}
-	fmt.Fprintf(w, "\t\t\t\t\t\t\n")
-
-	w.Flush()
-	return buf.String()
-}
-
-type Relationship struct {
-	Caller   *topology.Service
-	Upstream *topology.Upstream
-}
-
-func (r Relationship) String() string {
-	return fmt.Sprintf(
-		"%s on %s in %s via :%d => %s in %s",
-		r.Caller.ID.String(),
-		r.Caller.Node.ID().String(),
-		r.downCluster(),
-		r.Upstream.LocalPort,
-		r.Upstream.ID.String(),
-		r.upCluster(),
-	)
-}
-
-func (r Relationship) downCluster() string {
-	return r.Caller.Node.Cluster
-}
-
-func (r Relationship) upCluster() string {
-	return r.Upstream.Cluster
+) (topology.ID, []*topology.Node) {
+	nodes := topoutil.NewTopologyMeshGatewaySet(nodeKind, partition, namePrefix, num, networks, mutateFn)
+	sid := nodes[0].Workloads[0].ID
+	return sid, nodes
 }

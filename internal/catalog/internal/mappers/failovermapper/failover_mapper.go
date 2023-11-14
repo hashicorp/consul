@@ -1,16 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package failovermapper
 
 import (
 	"context"
 
-	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -24,17 +23,17 @@ type Mapper struct {
 // New creates a new Mapper.
 func New() *Mapper {
 	return &Mapper{
-		b: bimapper.New(types.FailoverPolicyType, types.ServiceType),
+		b: bimapper.New(pbcatalog.FailoverPolicyType, pbcatalog.ServiceType),
 	}
 }
 
 // TrackFailover extracts all Service references from the provided
 // FailoverPolicy and indexes them so that MapService can turn Service events
 // into FailoverPolicy events properly.
-func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.FailoverPolicy, *pbcatalog.FailoverPolicy]) {
+func (m *Mapper) TrackFailover(failover *resource.DecodedResource[*pbcatalog.FailoverPolicy]) {
 	destRefs := failover.Data.GetUnderlyingDestinationRefs()
 	destRefs = append(destRefs, &pbresource.Reference{
-		Type:    types.ServiceType,
+		Type:    pbcatalog.ServiceType,
 		Tenancy: failover.Resource.Id.Tenancy,
 		Name:    failover.Resource.Id.Name,
 	})
@@ -42,7 +41,11 @@ func (m *Mapper) TrackFailover(failover *resource.DecodedResource[pbcatalog.Fail
 }
 
 func (m *Mapper) trackFailover(failover *pbresource.ID, services []*pbresource.Reference) {
-	m.b.TrackItem(failover, services)
+	var servicesAsIDsOrRefs []resource.ReferenceOrID
+	for _, s := range services {
+		servicesAsIDsOrRefs = append(servicesAsIDsOrRefs, s)
+	}
+	m.b.TrackItem(failover, servicesAsIDsOrRefs)
 }
 
 // UntrackFailover forgets the links inserted by TrackFailover for the provided

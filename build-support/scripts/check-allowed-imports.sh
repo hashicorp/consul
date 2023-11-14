@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 
 readonly SCRIPT_NAME="$(basename ${BASH_SOURCE[0]})"
@@ -46,7 +46,7 @@ function main {
          then
             module_root="$1"
          else
-            allowed_packages+="$1"
+            allowed_packages+=("$1")
          fi
          shift     
       esac

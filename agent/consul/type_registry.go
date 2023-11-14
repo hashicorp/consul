@@ -1,10 +1,16 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package consul
 
 import (
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/tenancy"
 )
 
 // NewTypeRegistry returns a registry populated with all supported resource
@@ -20,6 +26,9 @@ func NewTypeRegistry() resource.Registry {
 	demo.RegisterTypes(registry)
 	mesh.RegisterTypes(registry)
 	catalog.RegisterTypes(registry)
+	auth.RegisterTypes(registry)
+	tenancy.RegisterTypes(registry)
+	multicluster.RegisterTypes(registry)
 
 	return registry
 }

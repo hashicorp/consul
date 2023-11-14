@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cluster
 
@@ -10,14 +10,12 @@ import (
 	"io"
 
 	jsonpatch "github.com/evanphx/json-patch"
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/testcontainers/testcontainers-go"
 	"google.golang.org/grpc"
-
-	agentconfig "github.com/hashicorp/consul/agent/config"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/lib/decode"
 
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
@@ -45,6 +43,7 @@ type Agent interface {
 	Exec(ctx context.Context, cmd []string) (string, error)
 	DataDir() string
 	GetGRPCConn() *grpc.ClientConn
+	GetAPIClientConfig() api.Config
 }
 
 // Config is a set of configurations required to create a Agent
@@ -78,7 +77,8 @@ type Config struct {
 	UseAPIWithTLS  bool // TODO
 	UseGRPCWithTLS bool
 
-	ACLEnabled bool
+	ACLEnabled     bool
+	TokenBootstrap string
 }
 
 func (c *Config) DockerImage() string {
@@ -93,10 +93,6 @@ func (c Config) Clone() Config {
 		copy(c2.Cmd, c.Cmd)
 	}
 	return c2
-}
-
-type decodeTarget struct {
-	agentconfig.Config `mapstructure:",squash"`
 }
 
 // MutatebyAgentConfig mutates config by applying the fields in the input hclConfig
@@ -134,7 +130,10 @@ func convertHcl2Json(in string) (string, error) {
 		return "", err
 	}
 
-	var target decodeTarget
+	// We target an opaque map so that changes to config fields not yet present
+	// in a tagged version of `consul` (missing from latest released schema)
+	// can be used in tests.
+	var target map[string]any
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(

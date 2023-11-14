@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package prototest
 
@@ -13,12 +13,12 @@ type TestingT interface {
 	Fatalf(string, ...any)
 }
 
-func AssertDeepEqual(t TestingT, x, y interface{}, opts ...cmp.Option) {
+func AssertDeepEqual(t TestingT, exp, got interface{}, opts ...cmp.Option) {
 	t.Helper()
 
 	opts = append(opts, protocmp.Transform())
 
-	if diff := cmp.Diff(x, y, opts...); diff != "" {
+	if diff := cmp.Diff(exp, got, opts...); diff != "" {
 		t.Fatalf("assertion failed: values are not equal\n--- expected\n+++ actual\n%v", diff)
 	}
 }

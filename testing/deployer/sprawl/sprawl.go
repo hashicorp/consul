@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package sprawl
 
 import (
@@ -13,9 +16,11 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
@@ -28,10 +33,12 @@ import (
 
 // Sprawl is the definition of a complete running Consul deployment topology.
 type Sprawl struct {
-	logger  hclog.Logger
-	runner  *runner.Runner
-	license string
-	secrets secrets.Store
+	logger hclog.Logger
+	// set after initial Launch is complete
+	launchLogger hclog.Logger
+	runner       *runner.Runner
+	license      string
+	secrets      secrets.Store
 
 	workdir string
 
@@ -40,7 +47,9 @@ type Sprawl struct {
 	topology  *topology.Topology
 	generator *tfgen.Generator
 
-	clients map[string]*api.Client // one per cluster
+	clients        map[string]*api.Client      // one per cluster
+	grpcConns      map[string]*grpc.ClientConn // one per cluster (when v2 enabled)
+	grpcConnCancel map[string]func()           // one per cluster (when v2 enabled)
 }
 
 // Topology allows access to the topology that defines the resources. Do not
@@ -55,6 +64,12 @@ func (s *Sprawl) Config() *topology.Config {
 		panic(err)
 	}
 	return c2
+}
+
+// ResourceServiceClientForCluster returns a shared common client that defaults
+// to using the management token for this cluster.
+func (s *Sprawl) ResourceServiceClientForCluster(clusterName string) pbresource.ResourceServiceClient {
+	return pbresource.NewResourceServiceClient(s.grpcConns[clusterName])
 }
 
 func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) {
@@ -110,6 +125,21 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 	)
 }
 
+// APIClientForCluster is a convenience wrapper for APIClientForNode that returns
+// an API client for an agent node in the cluster, preferring clients, then servers
+func (s *Sprawl) APIClientForCluster(clusterName, token string) (*api.Client, error) {
+	clu := s.topology.Clusters[clusterName]
+	// TODO: this always goes to the first client, but we might want to balance this
+	firstAgent := clu.FirstClient()
+	if firstAgent == nil {
+		firstAgent = clu.FirstServer()
+	}
+	if firstAgent == nil {
+		return nil, fmt.Errorf("failed to find agent in cluster %s", clusterName)
+	}
+	return s.APIClientForNode(clusterName, firstAgent.ID(), token)
+}
+
 func copyConfig(cfg *topology.Config) (*topology.Config, error) {
 	dup, err := copystructure.Copy(cfg)
 	if err != nil {
@@ -149,10 +179,12 @@ func Launch(
 	}
 
 	s := &Sprawl{
-		logger:  logger,
-		runner:  runner,
-		workdir: workdir,
-		clients: make(map[string]*api.Client),
+		logger:         logger,
+		runner:         runner,
+		workdir:        workdir,
+		clients:        make(map[string]*api.Client),
+		grpcConns:      make(map[string]*grpc.ClientConn),
+		grpcConnCancel: make(map[string]func()),
 	}
 
 	if err := s.ensureLicense(); err != nil {
@@ -170,7 +202,7 @@ func Launch(
 		return nil, fmt.Errorf("topology.Compile: %w", err)
 	}
 
-	s.logger.Info("compiled topology", "ct", jd(s.topology)) // TODO
+	s.logger.Debug("compiled topology", "ct", jd(s.topology)) // TODO
 
 	start := time.Now()
 	if err := s.launch(); err != nil {
@@ -182,17 +214,30 @@ func Launch(
 		return nil, fmt.Errorf("error gathering diagnostic details: %w", err)
 	}
 
+	s.launchLogger = s.logger
+
 	return s, nil
 }
 
 func (s *Sprawl) Relaunch(
 	cfg *topology.Config,
 ) error {
+	return s.RelaunchWithPhase(cfg, "")
+}
+
+func (s *Sprawl) RelaunchWithPhase(
+	cfg *topology.Config,
+	phase string,
+) error {
 	// Copy this BEFORE compiling so we capture the original definition, without denorms.
 	var err error
 	s.config, err = copyConfig(cfg)
 	if err != nil {
 		return err
+	}
+
+	if phase != "" {
+		s.logger = s.launchLogger.Named(phase)
 	}
 
 	newTopology, err := topology.Recompile(s.logger.Named("recompile"), cfg, s.topology)
@@ -202,7 +247,7 @@ func (s *Sprawl) Relaunch(
 
 	s.topology = newTopology
 
-	s.logger.Info("compiled replacement topology", "ct", jd(s.topology)) // TODO
+	s.logger.Debug("compiled replacement topology", "ct", jd(s.topology)) // TODO
 
 	start := time.Now()
 	if err := s.relaunch(); err != nil {
@@ -214,6 +259,32 @@ func (s *Sprawl) Relaunch(
 		return fmt.Errorf("error gathering diagnostic details: %w", err)
 	}
 
+	return nil
+}
+
+// SnapshotSave saves a snapshot of a cluster and restore with the snapshot
+func (s *Sprawl) SnapshotSave(clusterName string) error {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return fmt.Errorf("no such cluster: %s", clusterName)
+	}
+	var (
+		client = s.clients[cluster.Name]
+	)
+	snapshot := client.Snapshot()
+	snap, _, err := snapshot.Save(nil)
+	if err != nil {
+		return fmt.Errorf("error saving snapshot: %w", err)
+	}
+	s.logger.Info("snapshot saved")
+	time.Sleep(3 * time.Second)
+	defer snap.Close()
+
+	// Restore the snapshot.
+	if err := snapshot.Restore(nil, snap); err != nil {
+		return fmt.Errorf("error restoring snapshot: %w", err)
+	}
+	s.logger.Info("snapshot restored")
 	return nil
 }
 
@@ -319,11 +390,11 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 			if n.Disabled {
 				continue
 			}
-			for _, s := range n.Services {
-				if s.Disabled || s.EnvoyAdminPort <= 0 {
+			for _, wrk := range n.Workloads {
+				if wrk.Disabled || wrk.EnvoyAdminPort <= 0 {
 					continue
 				}
-				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), s.EnvoyAdminPort)
+				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), wrk.EnvoyAdminPort)
 
 				for fn, target := range targets {
 					u := prefix + "/" + target
@@ -331,23 +402,23 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 					body, err := scrapeURL(client, u)
 					if err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not scrape %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
 
-					outFn := filepath.Join(snapDir, n.DockerName()+"--"+s.ID.TFString()+"."+fn)
+					outFn := filepath.Join(snapDir, n.DockerName()+"--"+wrk.ID.TFString()+"."+fn)
 
 					if err := os.WriteFile(outFn+".tmp", body, 0644); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
 
 					if err := os.Rename(outFn+".tmp", outFn); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
@@ -383,7 +454,7 @@ func (s *Sprawl) CaptureLogs(ctx context.Context) error {
 		return err
 	}
 
-	s.logger.Info("Capturing logs")
+	s.logger.Debug("Capturing logs")
 
 	var merr error
 	for _, container := range containers {

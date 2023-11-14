@@ -24,7 +24,7 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 1,
+    "id": 3,
     "links": [],
     "liveNow": false,
     "panels": [
@@ -97,7 +97,7 @@
                     },
                     "editorMode": "code",
                     "exemplar": false,
-                    "expr": "consul_consul_server_0_members_servers{pod=\"consul-server-0\"}",
+                    "expr": "consul_consul_server_0_consul_members_servers{pod=\"consul-server-0\"}",
                     "hide": false,
                     "instant": true,
                     "legendFormat": "__auto",
@@ -113,7 +113,7 @@
                 "type": "prometheus",
                 "uid": "PBFA97CFB590B2093"
             },
-            "description": "No data in agentless mode",
+            "description": "",
             "fieldConfig": {
                 "defaults": {
                     "mappings": [],
@@ -140,7 +140,7 @@
                 "x": 6,
                 "y": 1
             },
-            "id": 29,
+            "id": 60,
             "options": {
                 "colorMode": "value",
                 "graphMode": "none",
@@ -162,9 +162,9 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "editorMode": "code",
+                    "editorMode": "builder",
                     "exemplar": false,
-                    "expr": "count(kube_pod_container_resource_limits{pod=~\"consul-client-.*\", container=\"consul\", resource=\"memory\"})",
+                    "expr": "count(consul_dataplane_envoy_connected)",
                     "hide": false,
                     "instant": true,
                     "legendFormat": "__auto",
@@ -172,7 +172,7 @@
                     "refId": "A"
                 }
             ],
-            "title": "Number of Consul Clients (No data in agentless mode)",
+            "title": "Number of Connected Consul-dataplanes",
             "type": "stat"
         },
         {
@@ -271,12 +271,158 @@
             "type": "timeseries"
         },
         {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 6,
+                "x": 0,
+                "y": 9
+            },
+            "id": 61,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "last"
+                    ],
+                    "fields": "/.*/",
+                    "limit": 1,
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "pluginVersion": "9.5.5",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max(consul_consul_server_0_version{pod=\"consul-server-0\"}) by (version)",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "Consul Server Version",
+            "transformations": [
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true,
+                            "Value": true
+                        },
+                        "indexByName": {},
+                        "renameByName": {
+                            "Time": ""
+                        }
+                    }
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+            },
+            "description": "No data in agentless mode",
+            "fieldConfig": {
+                "defaults": {
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": null
+                            },
+                            {
+                                "color": "red",
+                                "value": 80
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 8,
+                "x": 6,
+                "y": 9
+            },
+            "id": 29,
+            "options": {
+                "colorMode": "value",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "reduceOptions": {
+                    "calcs": [
+                        "last"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "textMode": "auto"
+            },
+            "pluginVersion": "9.5.5",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "count(kube_pod_container_resource_limits{pod=~\"consul-client-.*\", container=\"consul\", resource=\"memory\"})",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "__auto",
+                    "range": false,
+                    "refId": "A"
+                }
+            ],
+            "title": "Number of Consul Clients (No data in agentless mode)",
+            "type": "stat"
+        },
+        {
             "collapsed": true,
             "gridPos": {
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 9
+                "y": 17
             },
             "id": 40,
             "panels": [
@@ -326,8 +472,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -342,7 +487,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 10
+                        "y": 18
                     },
                     "id": 22,
                     "options": {
@@ -431,8 +576,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -447,7 +591,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 10
+                        "y": 18
                     },
                     "id": 18,
                     "options": {
@@ -535,8 +679,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -551,7 +694,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 18
+                        "y": 26
                     },
                     "id": 20,
                     "options": {
@@ -639,8 +782,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -655,7 +797,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 18
+                        "y": 26
                     },
                     "id": 46,
                     "options": {
@@ -731,8 +873,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -747,7 +888,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 26
+                        "y": 34
                     },
                     "id": 47,
                     "options": {
@@ -824,8 +965,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -840,7 +980,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 26
+                        "y": 34
                     },
                     "id": 41,
                     "options": {
@@ -917,8 +1057,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -933,7 +1072,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 34
+                        "y": 42
                     },
                     "id": 42,
                     "options": {
@@ -974,7 +1113,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 10
+                "y": 18
             },
             "id": 43,
             "panels": [
@@ -1024,7 +1163,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1039,7 +1179,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 11
+                        "y": 19
                     },
                     "id": 44,
                     "options": {
@@ -1116,7 +1256,8 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green"
+                                        "color": "green",
+                                        "value": null
                                     },
                                     {
                                         "color": "red",
@@ -1131,7 +1272,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 11
+                        "y": 19
                     },
                     "id": 45,
                     "options": {
@@ -1172,7 +1313,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 11
+                "y": 19
             },
             "id": 14,
             "panels": [
@@ -1237,7 +1378,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 12
+                        "y": 20
                     },
                     "id": 6,
                     "options": {
@@ -1313,7 +1454,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 12
+                        "y": 20
                     },
                     "id": 4,
                     "options": {
@@ -1410,7 +1551,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 20
+                        "y": 28
                     },
                     "id": 2,
                     "options": {
@@ -1475,7 +1616,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 20
+                        "y": 28
                     },
                     "id": 8,
                     "options": {
@@ -1572,7 +1713,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 28
+                        "y": 36
                     },
                     "id": 48,
                     "options": {
@@ -1614,7 +1755,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 12
+                "y": 20
             },
             "id": 24,
             "panels": [
@@ -1678,7 +1819,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 13
+                        "y": 21
                     },
                     "id": 26,
                     "options": {
@@ -1753,7 +1894,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 13
+                        "y": 21
                     },
                     "id": 28,
                     "options": {
@@ -1849,7 +1990,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 21
+                        "y": 29
                     },
                     "id": 23,
                     "options": {
@@ -1913,7 +2054,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 21
+                        "y": 29
                     },
                     "id": 25,
                     "options": {
@@ -1957,7 +2098,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 13
+                "y": 21
             },
             "id": 54,
             "panels": [
@@ -2006,8 +2147,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -2022,7 +2162,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 17
+                        "y": 25
                     },
                     "id": 55,
                     "options": {
@@ -2082,8 +2222,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -2098,7 +2237,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 17
+                        "y": 25
                     },
                     "id": 56,
                     "options": {
@@ -2178,8 +2317,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -2195,7 +2333,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 25
+                        "y": 33
                     },
                     "id": 59,
                     "options": {
@@ -2243,8 +2381,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -2260,7 +2397,7 @@
                         "h": 8,
                         "w": 9,
                         "x": 15,
-                        "y": 25
+                        "y": 33
                     },
                     "id": 58,
                     "options": {
@@ -2304,7 +2441,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 14
+                "y": 22
             },
             "id": 30,
             "panels": [
@@ -2368,7 +2505,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 15
+                        "y": 23
                     },
                     "id": 31,
                     "options": {
@@ -2459,7 +2596,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 15
+                        "y": 23
                     },
                     "id": 34,
                     "options": {
@@ -2500,7 +2637,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 15
+                "y": 23
             },
             "id": 49,
             "panels": [
@@ -2564,7 +2701,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 16
+                        "y": 24
                     },
                     "id": 50,
                     "options": {
@@ -2655,7 +2792,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 16
+                        "y": 24
                     },
                     "id": 51,
                     "options": {
@@ -2747,7 +2884,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 24
+                        "y": 32
                     },
                     "id": 52,
                     "options": {
@@ -2839,7 +2976,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 24
+                        "y": 32
                     },
                     "id": 53,
                     "options": {
@@ -2880,7 +3017,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 16
+                "y": 24
             },
             "id": 33,
             "panels": [
@@ -2930,8 +3067,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -2946,7 +3082,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 14
+                        "y": 22
                     },
                     "id": 37,
                     "options": {
@@ -3023,8 +3159,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -3039,7 +3174,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 14
+                        "y": 22
                     },
                     "id": 36,
                     "options": {
@@ -3116,8 +3251,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -3132,7 +3266,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 22
+                        "y": 30
                     },
                     "id": 39,
                     "options": {
@@ -3209,8 +3343,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -3225,7 +3358,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 22
+                        "y": 30
                     },
                     "id": 32,
                     "options": {
@@ -3302,8 +3435,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -3318,7 +3450,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 0,
-                        "y": 30
+                        "y": 38
                     },
                     "id": 38,
                     "options": {
@@ -3395,8 +3527,7 @@
                                 "mode": "absolute",
                                 "steps": [
                                     {
-                                        "color": "green",
-                                        "value": null
+                                        "color": "green"
                                     },
                                     {
                                         "color": "red",
@@ -3411,7 +3542,7 @@
                         "h": 8,
                         "w": 12,
                         "x": 12,
-                        "y": 30
+                        "y": 38
                     },
                     "id": 35,
                     "options": {
@@ -3462,6 +3593,6 @@
     "timepicker": {},
     "timezone": "",
     "title": "Consul K8s monitoring (control plane)",
-    "version": 2,
+    "version": 8,
     "weekStart": ""
 }

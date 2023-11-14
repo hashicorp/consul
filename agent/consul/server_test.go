@@ -1,14 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package consul
 
 import (
 	"context"
 	"crypto/x509"
+	"flag"
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -26,6 +28,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 
@@ -35,10 +38,12 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -335,8 +340,9 @@ func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 			oldNotify()
 		}
 	}
-	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler())
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
+	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
+	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
 	if err != nil {
 		return nil, err
 	}
@@ -1243,7 +1249,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1281,7 +1287,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1315,7 +1321,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1334,7 +1340,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
@@ -2099,4 +2105,39 @@ func TestServer_hcpManager(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 	hcp1.AssertExpectations(t)
 
+}
+
+// goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
+// returning the contents as a string.
+func goldenMarkdown(t *testing.T, name, got string) string {
+	t.Helper()
+
+	golden := filepath.Join("testdata", name+".md")
+	update := flag.Lookup("update").Value.(flag.Getter).Get().(bool)
+	if update && got != "" {
+		err := os.WriteFile(golden, []byte(got), 0644)
+		require.NoError(t, err)
+	}
+
+	expected, err := os.ReadFile(golden)
+	require.NoError(t, err)
+
+	return string(expected)
+}
+
+func TestServer_ControllerDependencies(t *testing.T) {
+	t.Parallel()
+
+	_, conf := testServerConfig(t)
+	deps := newDefaultDeps(t, conf)
+	deps.Experiments = []string{"resource-apis"}
+	deps.LeafCertManager = &leafcert.Manager{}
+
+	s1, err := newServerWithDeps(t, conf, deps)
+	require.NoError(t, err)
+
+	waitForLeaderEstablishment(t, s1)
+	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
+	expected := goldenMarkdown(t, "v2-resource-dependencies", actual)
+	require.Equal(t, expected, actual)
 }
