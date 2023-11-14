@@ -505,10 +505,10 @@ jobs:
           fi
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
-#      - name: evaluate upstream job results
-#        run: |
-#          # exit 1 if failure or cancelled result for any upstream job
-#          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
-#            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
-#            exit 1
-#          fi
+      - name: evaluate upstream job results
+        run: |
+          # exit 1 if failure or cancelled result for any upstream job
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+            exit 1
+          fi
