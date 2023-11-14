@@ -2237,7 +2237,6 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 
 		tlsCert := s.tlsConfigurator.Cert()
 		if tlsCert != nil {
-			status.TLS.Enabled = true
 			leaf := tlsCert.Leaf
 			if leaf == nil {
 				// Parse the leaf cert
@@ -2247,12 +2246,17 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 					return
 				}
 			}
-			status.TLS.CertName = leaf.Subject.CommonName
-			status.TLS.CertSerial = leaf.SerialNumber.String()
-			status.TLS.CertExpiry = leaf.NotAfter
-			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
-			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
-			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+
+			tlsInfo := hcpclient.ServerTLSInfo{
+				Enabled:              true,
+				CertName:             leaf.Subject.CommonName,
+				CertSerial:           leaf.SerialNumber.String(),
+				CertExpiry:           leaf.NotAfter,
+				VerifyIncoming:       s.tlsConfigurator.VerifyIncomingRPC(),
+				VerifyOutgoing:       s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
+				VerifyServerHostname: s.tlsConfigurator.VerifyServerHostname(),
+			}
+			status.TLS = tlsInfo
 		}
 
 		status.Raft.IsLeader = s.raft.State() == raft.Leader
