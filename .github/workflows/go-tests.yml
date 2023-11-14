@@ -41,7 +41,7 @@ jobs:
           fetch-depth: 0  
       - name: Get changed files
         id: read-files
-        run: ./.github/scripts/filter_changed_files_go_test.sh
+        run: ./.github/scripts/filter_changed_files_go_test.shit
 
   setup:
     needs: [conditional-skip]
@@ -94,9 +94,6 @@ jobs:
             fi
     - run: make proto-lint
       name: "Protobuf Lint"
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
   check-codegen:
      needs:
      - setup
@@ -116,9 +113,6 @@ jobs:
            echo "Generated code was not updated correctly"
            exit 1
          fi
-     - name: Notify Slack
-       if: ${{ failure() }}
-       run: .github/scripts/notify_slack.sh
 
   lint-enums:
     needs:
@@ -134,9 +128,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
     needs:
@@ -151,9 +142,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: make lint-container-test-deps
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
     needs:
@@ -169,9 +157,6 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-    - name: Notify Slack
-      if: ${{ failure() }}
-      run: .github/scripts/notify_slack.sh
 
   lint:
     needs:
@@ -519,11 +504,6 @@ jobs:
       - name: Notify Slack
         if: ${{ failure() && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
         id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-        with:
-          payload: |
-            {
-              "message": "One or more tests have failed on ${{ github.ref_name }} branch. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            }
+        run: .github/scripts/notify_slack.sh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
