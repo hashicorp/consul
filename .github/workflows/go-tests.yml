@@ -494,17 +494,6 @@ jobs:
     runs-on: ubuntu-latest
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - name: Notify Slack
-#        if: github.ref_name == 'main' || startsWith(github.ref_name, 'release/')
-        id: slack
-        run: |
-          # notify slack if any upstream job failed
-          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
-            .github/scripts/notify_slack.sh
-          fi
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
       - name: evaluate upstream job results
         run: |
           # exit 1 if failure or cancelled result for any upstream job
