@@ -37,7 +37,7 @@ message Ports {
 }
 
 message CopyAnnotations {
-   repeated string service = 1;
+  repeated string service = 1;
 }
 
 message Deployment {
