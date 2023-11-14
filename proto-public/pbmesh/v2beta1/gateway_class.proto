@@ -16,11 +16,11 @@ import "pbresource/annotations.proto";
 message GatewayClass {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
-  // ControllerName is the name of the controller that manages Gateways of this class
+  // ControllerName is the name of the Kubernetes controller that manages Gateways of this class
   string controller_name = 1;
 
-  // ParametersRef is a reference to a resource that contains the configuration
-  // parameters corresponding to the GatewayClass.
+  // ParametersRef refers to a resource responsible for configuring
+  // the behavior of the GatewayClass.
   ParametersReference parameters_ref = 2;
 
   // Description of GatewayClass
@@ -30,7 +30,7 @@ message GatewayClass {
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
 //
-// ParametersReference specifies a resource that contains controller-specific configuration
+// ParametersReference specifies a resource that contains Kubernetes controller-specific configuration
 // for a resource
 // https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.ParametersReference
 //

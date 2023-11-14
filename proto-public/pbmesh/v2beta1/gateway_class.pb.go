@@ -35,10 +35,10 @@ type GatewayClass struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	// ControllerName is the name of the controller that manages Gateways of this class
+	// ControllerName is the name of the Kubernetes controller that manages Gateways of this class
 	ControllerName string `protobuf:"bytes,1,opt,name=controller_name,json=controllerName,proto3" json:"controller_name,omitempty"`
-	// ParametersRef is a reference to a resource that contains the configuration
-	// parameters corresponding to the GatewayClass.
+	// ParametersRef refers to a resource responsible for configuring
+	// the behavior of the GatewayClass.
 	ParametersRef *ParametersReference `protobuf:"bytes,2,opt,name=parameters_ref,json=parametersRef,proto3" json:"parameters_ref,omitempty"`
 	// Description of GatewayClass
 	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
@@ -100,7 +100,7 @@ func (x *GatewayClass) GetDescription() string {
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
 //
-// ParametersReference specifies a resource that contains controller-specific configuration
+// ParametersReference specifies a resource that contains Kubernetes controller-specific configuration
 // for a resource
 // https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.ParametersReference
 type ParametersReference struct {
