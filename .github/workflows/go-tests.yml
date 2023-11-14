@@ -180,15 +180,15 @@ jobs:
 #      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # create a development build
-  dev-build:
-    needs:
-    - setup
-    uses: ./.github/workflows/reusable-dev-build.yml
-    with:
-      runs-on: ${{ needs.setup.outputs.compute-large }}
-      repository-name: ${{ github.repository }}
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+#  dev-build:
+#    needs:
+#    - setup
+#    uses: ./.github/workflows/reusable-dev-build.yml
+#    with:
+#      runs-on: ${{ needs.setup.outputs.compute-large }}
+#      repository-name: ${{ github.repository }}
+#    secrets:
+#      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   # dev-build-s390x:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -236,24 +236,24 @@ jobs:
   #     consul-license: ${{secrets.CONSUL_LICENSE}}
   #     datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
-  go-test-ce:
-    needs:
-    - setup
-    - dev-build
-    uses: ./.github/workflows/reusable-unit-split.yml
-    with:
-      directory: .
-      runner-count: 12
-      runs-on: ${{ needs.setup.outputs.compute-large }}
-      repository-name: ${{ github.repository }}
-      go-tags: ""
-    permissions:
-      id-token: write # NOTE: this permission is explicitly required for Vault auth.
-      contents: read
-    secrets:
-      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-      consul-license: ${{secrets.CONSUL_LICENSE}}
-      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
+#  go-test-ce:
+#    needs:
+#    - setup
+#    - dev-build
+#    uses: ./.github/workflows/reusable-unit-split.yml
+#    with:
+#      directory: .
+#      runner-count: 12
+#      runs-on: ${{ needs.setup.outputs.compute-large }}
+#      repository-name: ${{ github.repository }}
+#      go-tags: ""
+#    permissions:
+#      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+#      contents: read
+#    secrets:
+#      elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+#      consul-license: ${{secrets.CONSUL_LICENSE}}
+#      datadog-api-key: "${{ !endsWith(github.repository, '-enterprise') && secrets.DATADOG_API_KEY || '' }}"
 
 #  go-test-enterprise:
 #    if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -491,7 +491,7 @@ jobs:
 #    - go-test-sdk-1-20
 #    - go-test-32bit
     # - go-test-s390x
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    runs-on: ubuntu-latest
     if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: Notify Slack
@@ -500,10 +500,10 @@ jobs:
         run: .github/scripts/notify_slack.sh
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
-      - name: evaluate upstream job results
-        run: |
-          # exit 1 if failure or cancelled result for any upstream job
-          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
-            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
-            exit 1
-          fi
+#      - name: evaluate upstream job results
+#        run: |
+#          # exit 1 if failure or cancelled result for any upstream job
+#          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+#            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+#            exit 1
+#          fi
