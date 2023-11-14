@@ -1,0 +1,49 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v2beta1;
+
+import "pbresource/annotations.proto";
+
+// NOTE: this should align to the GAMMA/gateway-api version, or at least be
+// easily translatable.
+//
+// https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.GatewayClass
+//
+// This is a Resource type.
+message GatewayClass {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
+  // ControllerName is the name of the Kubernetes controller that manages Gateways of this class
+  string controller_name = 1;
+
+  // ParametersRef refers to a resource responsible for configuring
+  // the behavior of the GatewayClass.
+  ParametersReference parameters_ref = 2;
+
+  // Description of GatewayClass
+  string description = 3;
+}
+
+// NOTE: this should align to the GAMMA/gateway-api version, or at least be
+// easily translatable.
+//
+// ParametersReference specifies a resource that contains Kubernetes controller-specific configuration
+// for a resource
+// https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.ParametersReference
+//
+message ParametersReference {
+  // The Kubernetes Group that the referred object belongs to
+  string group = 1;
+
+  // The Kubernetes Kind that the referred object is
+  string kind = 2;
+
+  // The name of the referred object
+  string name = 3;
+
+  // The kubernetes namespace that the referred object is in
+  string namespace = 4;
+}
