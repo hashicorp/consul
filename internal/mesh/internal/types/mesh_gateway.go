@@ -24,7 +24,7 @@ func RegisterMeshGateway(r resource.Registry) {
 			},
 			List: resource.NoOpACLListHook,
 		},
-		Mutate:   nil, // TODO NET-6425
-		Validate: nil, // TODO NET-6424
+		Mutate:   nil, // TODO NET-6418
+		Validate: nil, // TODO NET-6417
 	})
 }
