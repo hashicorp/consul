@@ -5,6 +5,7 @@ package envoy
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -637,11 +638,12 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "telemetry-collector-with-flush-interval-configured",
+			name: "telemetry-collector-no-default-flush-interval-when-interval-preconfigured",
 			baseArgs: BootstrapTplArgs{
 				ProxyID: "web-sidecar-proxy",
 			},
 			input: BootstrapConfig{
+				// Explicitly defined StatsFlushInterval by end user should not be overriden.
 				StatsFlushInterval:              "10s",
 				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
 			},
@@ -650,6 +652,24 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				ProxyID:            "web-sidecar-proxy",
 				StatsConfigJSON:    defaultStatsConfigJSON,
 				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
+			},
+		},
+		{
+			name: "telemetry-collector-no-default-flush-interval-when-sinks-preconfigured",
+			baseArgs: BootstrapTplArgs{
+				ProxyID: "web-sidecar-proxy",
+			},
+			input: BootstrapConfig{
+				// If stats sinks are explicitly defined by end user, do not default StatsFlushInterval.
+				StatsdURL:                       "udp://127.0.0.1:9125",
+				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsFlushInterval: "",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     fmt.Sprintf(`%s,%s`, expectedStatsdSink, expectedTelemetryCollectorStatsSink),
 				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 		},
