@@ -499,7 +499,7 @@ jobs:
 #        if: github.ref_name == 'main' || startsWith(github.ref_name, 'release/')
         id: slack
         run: |
-          # notify slack if any upstream job failed.
+          # notify slack if any upstream job failed
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
             .github/scripts/notify_slack.sh
           fi
