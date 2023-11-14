@@ -27,7 +27,7 @@ const (
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
 // easily translatable.
 //
-// https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1alpha2.GatewayClass
+// https://gateway-api.sigs.k8s.io/reference/spec/#gateway.networking.k8s.io/v1.GatewayClass
 //
 // This is a Resource type.
 type GatewayClass struct {
