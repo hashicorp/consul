@@ -60,6 +60,8 @@ the lookup uses the admin partition of the Consul agent that received the query.
 Server agents always exist within the `default` admin partition.
 Client agents are configured to operate within a specific admin partition.
 
+By default, Consul on Kubernetes uses [Consul dataplanes](/consul/docs/connect/dataplane) instead of client agents to manage communication between service instances. But to use the Consul DNS for service discovery, you must start a Consul client in client admin partitions.
+
 ### Service Mesh Configurations
 
 The partition in which [`proxy-defaults`](/consul/docs/connect/config-entries/proxy-defaults) and [`mesh`](/consul/docs/connect/config-entries/mesh) configurations are created define the scope of the configurations. Services registered in a partition will use the `proxy-defaults` and `mesh` configurations that have been created in the partition.
