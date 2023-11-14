@@ -512,3 +512,28 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
+      - name: set environment variables for commit message and short ref
+        run: |
+          export COMMIT_MESSAGE=$(git log -1 --pretty=%B | head -n1)
+          export SHORT_REF=$(git rev-parse --short "${{ github.ref_name }}")
+      - name: Notify Slack
+        if: ${{ failure() }} # github.ref_name == 'main' || startsWith(github.ref_name, 'release/')
+        id: slack
+        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        with:
+          payload: |
+            {
+              "attachments": [
+                {
+                  "fallback": "GitHub Actions workflow failed!",
+                  "text": "❌ Failed: `${{ github.event.sender.login }}`'s <${GITHUB_ACTIONS_ENDPOINT}> workflow failed for commit <${GITHUB_ENDPOINT}|${SHORT_REF}> on `${{ github.ref_name }}`!\n\n- <${COMMIT_MESSAGE}",
+                  "footer": "${GITHUB_REPOSITORY}",
+                  "ts": "$(date +%s)",
+                  "color": "danger"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
+          GITHUB_ENDPOINT: "https://github.com/${{ github.event.repository.name }}/commit/${{ github.sha }}"
+          GITHUB_ACTIONS_ENDPOINT: "https://github.com/${{ github.event.repository.name }}/actions/runs/${{ github.run_id }}"
