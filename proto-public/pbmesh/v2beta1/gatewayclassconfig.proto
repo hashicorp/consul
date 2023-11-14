@@ -5,4 +5,48 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
-message GatewayClassConfig{}
+message GatewayClassConfig{
+  optional Consul consul = 1;
+  optional CopyAnnotations copyAnnotations = 2;
+  optional Deployment deployment = 3;
+  optional Image image = 4;
+  optional string logLevel = 5;
+  optional uint32 mapPrivilegedContainerPorts = 6;
+  optional string nodeSelector = 7;
+  optional string openshiftSCCName = 8;
+  optional string serviceType = 9;
+  optional bool useHostPorts = 10;
+}
+
+message Consul {
+  optional string address = 1;
+  optional Authentication authentication = 2;
+  optional string scheme = 3;
+}
+
+message Authentication {
+  optional string address = 1;
+  optional bool managed = 2;
+  optional string method = 3;
+  optional string namespace = 4;
+}
+
+message Ports {
+  optional uint32 grpc = 1;
+  optional uint32 http = 2;
+}
+
+message CopyAnnotations {
+   repeated string service = 1;
+}
+
+message Deployment {
+  optional uint32 defaultInstances = 1;
+  optional uint32 minInstances = 2;
+  optional uint32 maxInstances = 3;
+}
+
+message Image {
+  optional string consulAPIGateway = 1;
+  optional string envoy = 2;
+}
