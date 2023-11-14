@@ -501,7 +501,7 @@ jobs:
         run: |
           # notify slack if any upstream job failed.
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
-            sh .github/scripts/notify_slack.sh
+            .github/scripts/notify_slack.sh
           fi
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}
