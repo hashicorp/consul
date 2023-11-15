@@ -66,7 +66,7 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 3. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
 is set to `debug`. After doing this, issue the following command on your servers to reload the configuration:
 
-```
+```shell
 consul reload
 ```
 
@@ -92,7 +92,6 @@ This change will give you more information to work with in the event something g
  Example :- 
    ```shell
    sudo systemctl restart consul
-
    ```
 
 **2.** Issue the following command to discover which server is currently the leader:
@@ -103,7 +102,7 @@ consul operator raft list-peers
 
 You should receive output similar to this (exact formatting and content may differ based on version):
 
-```
+```shell
 Node       ID                                    Address         State     Voter  RaftProtocol
 dc1-node1  ae15858f-7f5f-4dcb-b7d5-710fdcdd2745  10.11.0.2:8300  leader    true   3
 dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true   3
@@ -137,7 +136,6 @@ agent for last.
    Example :- 
    ```shell
    sudo systemctl restart consul
-
    ```
 
 To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
@@ -159,7 +157,7 @@ consul members
 
 You should receive output similar to this:
 
-```
+```shell
 Node       Address         Status  Type    Build  Protocol  DC
 dc1-node1  10.11.0.2:8301  alive   server  1.18.0  2         dc1
 dc1-node2  10.11.0.3:8301  alive   server  1.18.0  2         dc1
