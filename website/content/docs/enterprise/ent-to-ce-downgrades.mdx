@@ -112,9 +112,8 @@ dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true 
 Take note of which agent is the leader.
 
 
-**3.** Update server binaries to use the CE version
 
-**4.** The following steps must be done in order on the server agents, leaving the leader
+**3.** Update server binaries to use the CE version.The following steps must be done in order on the server agents, leaving the leader
 agent for last.
  - An env var named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` should be set to `true` on the servers. 
 
@@ -151,7 +150,7 @@ consul info
 Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
 this should avoid an unexpected leadership election due to loss of quorum.
 
-**5.** Double-check that all servers are showing up in the cluster as expected and are on 
+**4.** Double-check that all servers are showing up in the cluster as expected and are on 
 the correct version by issuing:
 
 ```shell
@@ -182,7 +181,7 @@ dc1-node2  20e6be1b-f1cb-4aab-929f-f7d2d43d9a96  10.11.0.3:8300  follower  true 
 dc1-node3  658c343b-8769-431f-a71a-236f9dbb17b3  10.11.0.4:8300  follower  true   3
 ```
 
-**6.** Set your `log_level` back to its original value and issue the following command
+**5.** Set your `log_level` back to its original value and issue the following command
 on your servers to reload the configuration:
 
 ```shell
