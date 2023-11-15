@@ -5,10 +5,10 @@ package envoy
 
 import (
 	"bytes"
-	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"net"
 	"net/url"
 	"os"
@@ -819,8 +819,10 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 //     its metrics to the collector using its own loopback listener at this path.
 //
 //   - The hash is needed because UNIX domain socket paths must be less than 104 characters. By using a b64 encoded
-//     SHA1 hash we end up with 27 chars for the name, 5 chars for the extension, and the remainder is saved for
-//     the configurable socket dir. The length of the directory's path is validated on writes to avoid going over.
+//     SHA3 20-byte hash we end up with 27 chars for the name, 5 chars for the extension, and the remainder is saved
+//     for the configurable socket dir. The length of the directory's path is validated on writes to avoid going over.
+//     The 20-byte hash length was chosen for backwards (length) compatibility with socket paths previously generated
+//     from SHA1 hashes of the same length.
 func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBindSocketDir string) {
 	// Normalize namespace to "default". This ensures we match the namespace behaviour in proxycfg package,
 	// where a dynamic listener will be created at the same socket path via xDS.
@@ -830,10 +832,10 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 	}
 	id := ns + "_" + args.ProxyID
 
-	h := sha1.New()
-	h.Write([]byte(id))
-	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-	path := path.Join(telemetryCollectorBindSocketDir, hash+".sock")
+	h := make([]byte, 20)
+	sha3.ShakeSum256(h, []byte(id))
+	hash := base64.RawURLEncoding.EncodeToString(h)
+	p := path.Join(telemetryCollectorBindSocketDir, hash+".sock")
 
 	if args.StatsSinksJSON != "" {
 		args.StatsSinksJSON += ",\n"
@@ -877,7 +879,7 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 			}
 		  ]
 		}
-	  }`, path)
+	  }`, p)
 }
 
 func containsSelfAdminCluster(clustersJSON string) (bool, error) {

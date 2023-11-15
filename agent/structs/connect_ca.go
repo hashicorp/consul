@@ -73,7 +73,7 @@ func (r IndexedCARoots) Active() *CARoot {
 // CARoot represents a root CA certificate that is trusted.
 type CARoot struct {
 	// ID is a globally unique ID (UUID) representing this CA chain. It is
-	// calculated from the SHA1 of the primary CA certificate.
+	// calculated from the SHA256 checksum of the primary CA certificate.
 	ID string
 
 	// Name is a human-friendly name for this CA root. This value is

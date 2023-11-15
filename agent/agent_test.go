@@ -3688,69 +3688,6 @@ func TestAgent_checkStateSnapshot(t *testing.T) {
 	}
 }
 
-func TestAgent_checkStateSnapshot_backcompat(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-	a := NewTestAgent(t, "")
-	defer a.Shutdown()
-
-	// First register a service
-	svc := &structs.NodeService{
-		ID:      "redis",
-		Service: "redis",
-		Tags:    []string{"foo"},
-		Port:    8000,
-	}
-	if err := a.addServiceFromSource(svc, nil, false, "", ConfigSourceLocal); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Register a check
-	check1 := &structs.HealthCheck{
-		Node:        a.Config.NodeName,
-		CheckID:     "service:redis",
-		Name:        "redischeck",
-		Status:      api.HealthPassing,
-		ServiceID:   "redis",
-		ServiceName: "redis",
-	}
-	if err := a.AddCheck(check1, nil, true, "", ConfigSourceLocal); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Snapshot the state
-	snap := a.snapshotCheckState()
-
-	// Unload all of the checks
-	if err := a.unloadChecks(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Mutate the path to look like the old md5 checksum
-	dir := filepath.Join(a.config.DataDir, checksDir)
-	new_path := filepath.Join(dir, check1.CompoundCheckID().StringHashSHA256())
-	old_path := filepath.Join(dir, check1.CompoundCheckID().StringHashMD5())
-	if err := os.Rename(new_path, old_path); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Reload the checks and restore the snapshot.
-	if err := a.loadChecks(a.Config, snap); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	// Search for the check
-	out := requireCheckExists(t, a, check1.CheckID)
-
-	// Make sure state was restored
-	if out.Status != api.HealthPassing {
-		t.Fatalf("should have restored check state")
-	}
-}
-
 func TestAgent_loadChecks_checkFails(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

@@ -5,7 +5,6 @@ package structs
 
 import (
 	"bytes"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
@@ -2257,16 +2256,6 @@ func NewCheckID(id types.CheckID, entMeta *acl.EnterpriseMeta) CheckID {
 	cid.EnterpriseMeta = *entMeta
 	cid.EnterpriseMeta.Normalize()
 	return cid
-}
-
-// StringHashMD5 is used mainly to populate part of the filename of a check
-// definition persisted on the local agent (deprecated in favor of StringHashSHA256)
-// Kept around for backwards compatibility
-func (cid CheckID) StringHashMD5() string {
-	hasher := md5.New()
-	hasher.Write([]byte(cid.ID))
-	cid.EnterpriseMeta.AddToHash(hasher, true)
-	return fmt.Sprintf("%x", hasher.Sum(nil))
 }
 
 // StringHashSHA256 is used mainly to populate part of the filename of a check

@@ -3535,23 +3535,7 @@ func (a *Agent) loadCheckState(check *structs.HealthCheck) error {
 	buf, err := os.ReadFile(file)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// try the md5 based name. This can be removed once we no longer support upgrades from versions that use MD5 hashing
-			oldFile := filepath.Join(a.config.DataDir, checkStateDir, cid.StringHashMD5())
-			buf, err = os.ReadFile(oldFile)
-			if err != nil {
-				if os.IsNotExist(err) {
-					return nil
-				} else {
-					return fmt.Errorf("failed reading check state %q: %w", file, err)
-				}
-			}
-			if err := os.Rename(oldFile, file); err != nil {
-				a.logger.Error("Failed renaming check state",
-					"file", oldFile,
-					"targetFile", file,
-					"error", err,
-				)
-			}
+			return fmt.Errorf("failed reading check state %q: %w", file, err)
 		} else {
 			return fmt.Errorf("failed reading file %q: %w", file, err)
 		}

@@ -5,9 +5,9 @@ package proxycfg
 
 import (
 	"context"
-	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"golang.org/x/crypto/sha3"
 	"path"
 	"strings"
 
@@ -698,18 +698,20 @@ func (s *handlerConnectProxy) maybeInitializeTelemetryCollectorWatches(ctx conte
 	// they each have a distinct path to send their telemetry data.
 	id := s.proxyID.NamespaceOrDefault() + "_" + s.proxyID.ID
 
-	// UNIX domain sockets paths have a max length of 108, so we take a hash of the compound ID
-	// to limit the length of the socket path.
-	h := sha1.New()
-	h.Write([]byte(id))
-	hash := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-	path := path.Join(cfg.TelemetryCollectorBindSocketDir, hash+".sock")
+	// UNIX domain sockets paths have a max length of 108, so we take a hash (20 bytes) of
+	// the compound ID to limit the length of the socket path. The 20-byte hash length was
+	// chosen for backwards (length) compatibility with socket paths previously generated
+	// from SHA1 hashes of the same length.
+	h := make([]byte, 20)
+	sha3.ShakeSum256(h, []byte(id))
+	hash := base64.RawURLEncoding.EncodeToString(h)
+	p := path.Join(cfg.TelemetryCollectorBindSocketDir, hash+".sock")
 
 	upstream := structs.Upstream{
 		DestinationNamespace: acl.DefaultNamespaceName,
 		DestinationPartition: s.proxyID.PartitionOrDefault(),
 		DestinationName:      api.TelemetryCollectorName,
-		LocalBindSocketPath:  path,
+		LocalBindSocketPath:  p,
 		Config: map[string]interface{}{
 			"protocol": "grpc",
 		},

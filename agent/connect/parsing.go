@@ -7,7 +7,6 @@ import (
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
@@ -108,9 +107,9 @@ func parseCerts(pemValue string) ([]*x509.Certificate, error) {
 	return out, nil
 }
 
-// CalculateCertFingerprint calculates the SHA-1 fingerprint from the cert bytes.
+// CalculateCertFingerprint calculates the SHA256 checksum from the cert bytes.
 func CalculateCertFingerprint(cert []byte) string {
-	hash := sha1.Sum(cert)
+	hash := sha256.Sum256(cert)
 	return HexString(hash[:])
 }
 
