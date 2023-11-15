@@ -11,7 +11,7 @@ This document describes how to downgrade from Consul Enterprise to Consul commun
 
 ## Download the CE binary version
 
-First, download the binary for the CE version you want.
+First, download the binary for the CE version(>=1.18).
 
 <Tabs>
 <Tab heading="Binary">
@@ -76,7 +76,7 @@ This change will give you more information to work with in the event something g
 
     service resolver: 
     1. remove  services configured as failovers in non default namespace or belonging to a sameness group. 
-   2. remove services configured as redirects belonging to non default namespaces or partiton.
+    2. remove services configured as redirects belonging to non default namespaces or partiton.
 
     service splitter: 
     1. remove services configured as splits belonging to non default namespaces or partiton
