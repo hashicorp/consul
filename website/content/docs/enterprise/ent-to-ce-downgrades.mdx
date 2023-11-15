@@ -196,13 +196,13 @@ During the downgrade process, the Consul CE server handles the raft replication 
 - Filters out data from requests sent from non-default namespaces or partitions
 - Panics and stops the downgrade 
 
-The server may drop the following types of requests: 
+Following are some examples where the server may drop the requests: 
 
 - Registration requests in non-default namespace and services or health checks in non-default namespaces or partitions.
 
 - Write requests to peered clusters if the local partiton connecting to the peer is non-default. 
 
-The server may filter out data from requests to non-default namespaces or partitions in the following cases:
+Following are some examples where the server may filter out data from requests:
 
 - Intention sources that target non-default namespaces or partitions are filtered out of the configuration entry.
 - Exports of services within non-default namespaces or partitions are filtered out of the configuration entry.
