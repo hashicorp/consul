@@ -152,7 +152,9 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 				clusterName,
 				newID("single-server"),
 				topology.NodeVersionV2,
-				nil,
+				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "single-server-identity"
+				},
 			),
 		},
 	}
@@ -169,6 +171,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 				func(wrk *topology.Workload) {
 					delete(wrk.Ports, "grpc")  // v2 mode turns this on, so turn it off
 					delete(wrk.Ports, "http2") // v2 mode turns this on, so turn it off
+					wrk.WorkloadIdentity = "single-client-identity"
 					wrk.Destinations = []*topology.Destination{{
 						ID:           newID("single-server"),
 						PortName:     "http",
@@ -187,12 +190,12 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		},
 	}, &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
-			IdentityName: "single-server",
+			IdentityName: "single-server-identity",
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
 			Sources: []*pbauth.Source{{
-				IdentityName: "single-client",
+				IdentityName: "single-client-identity",
 				Namespace:    namespace,
 			}},
 		}},
@@ -208,7 +211,9 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 				clusterName,
 				newID("multi-server"),
 				topology.NodeVersionV2,
-				nil,
+				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "multi-server-identity"
+				},
 			),
 		},
 	}
@@ -223,6 +228,7 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 				newID("multi-client"),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "multi-client-identity"
 					wrk.Destinations = []*topology.Destination{
 						{
 							ID:           newID("multi-server"),
@@ -249,12 +255,12 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		},
 	}, &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
-			IdentityName: "multi-server",
+			IdentityName: "multi-server-identity",
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
 			Sources: []*pbauth.Source{{
-				IdentityName: "multi-client",
+				IdentityName: "multi-client-identity",
 				Namespace:    namespace,
 			}},
 		}},
