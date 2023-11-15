@@ -69,6 +69,9 @@ var defaultGrpcTlsAddr = net.TCPAddrFromAddrPort(netip.MustParseAddrPort("127.0.
 // checks for warnings on deprecated fields and flags.  These tests
 // should check one option at a time if possible
 func TestLoad_IntegrationWithFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 	dataDir := testutil.TempDir(t, "config")
 
 	run := func(t *testing.T, tc testCase) {

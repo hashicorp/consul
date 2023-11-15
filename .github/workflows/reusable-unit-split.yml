@@ -115,8 +115,6 @@ jobs:
           PACKAGE_NAMES="${{ join(matrix.package, ' ') }}"
           # PACKAGE_NAMES="${{ matrix.package }}"
 
-          ${{inputs.go-test-flags}}
-          
           # some tests expect this umask, and arm images have a different default
           umask 0022
 
@@ -130,6 +128,7 @@ jobs:
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
           -tags="${{env.GOTAGS}}" \
+          ${{inputs.go-test-flags}} \
           -cover -coverprofile=coverage.txt \
           -timeout=30m
 
