@@ -1,0 +1,53 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.mesh.v2beta1;
+
+message GatewayClassConfig {
+  optional Consul consul = 1;
+  optional CopyAnnotations copy_annotations = 2;
+  optional Deployment deployment = 3;
+  optional Image image = 4;
+  optional string log_level = 5;
+  optional uint32 map_privileged_container_ports = 6;
+  optional string node_selector = 7;
+  optional string openshift_scc_name = 8;
+  optional string service_type = 9;
+  optional bool use_host_ports = 10;
+}
+
+message Consul {
+  optional string address = 1;
+  optional Authentication authentication = 2;
+  optional string scheme = 3;
+  optional Ports ports = 4;
+}
+
+message Authentication {
+  optional string address = 1;
+  optional bool managed = 2;
+  optional string method = 3;
+  optional string namespace = 4;
+}
+
+message Ports {
+  optional uint32 grpc = 1;
+  optional uint32 http = 2;
+}
+
+message CopyAnnotations {
+  repeated string service = 1;
+}
+
+message Deployment {
+  optional uint32 default_instances = 1;
+  optional uint32 min_instances = 2;
+  optional uint32 max_instances = 3;
+}
+
+message Image {
+  optional string consul_api_gateway = 1;
+  optional string envoy = 2;
+}
