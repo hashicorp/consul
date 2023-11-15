@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/require"
 )
@@ -459,7 +460,7 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 
 	cfg := ct.Sprawl.Config()
 	DisableNode(t, cfg, nearClu.Name, s.nearServerNode)
-	require.NoError(t, ct.Sprawl.RelaunchWithPhase(cfg, "failover"))
+	require.NoError(t, ct.Sprawl.RelaunchWithPhase(cfg, sprawl.LaunchPhaseRegular))
 	// Clusters for imported services rely on outlier detection for
 	// failovers, NOT eds_health_status. This means that killing the
 	// node above does not actually make the envoy cluster UNHEALTHY
