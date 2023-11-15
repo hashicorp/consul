@@ -22,7 +22,7 @@ message Consul {
   optional string address = 1;
   optional Authentication authentication = 2;
   optional string scheme = 3;
-  optional Ports ports;
+  optional Ports ports = 4;
 }
 
 message Authentication {
