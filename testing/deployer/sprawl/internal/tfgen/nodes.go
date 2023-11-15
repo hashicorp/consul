@@ -73,51 +73,51 @@ func (g *Generator) generateNodeContainers(
 		}
 	}
 
-	svcContainers := []Resource{}
-	for _, svc := range node.SortedServices() {
-		token := g.sec.ReadServiceToken(node.Cluster, svc.ID)
+	wrkContainers := []Resource{}
+	for _, wrk := range node.SortedWorkloads() {
+		token := g.sec.ReadWorkloadToken(node.Cluster, wrk.ID)
 		switch {
-		case svc.IsMeshGateway && !node.IsDataplane():
-			svcContainers = append(svcContainers, Eval(tfMeshGatewayT, struct {
+		case wrk.IsMeshGateway && !node.IsDataplane():
+			wrkContainers = append(wrkContainers, Eval(tfMeshGatewayT, struct {
 				terraformPod
 				ImageResource string
 				Enterprise    bool
-				Service       *topology.Service
+				Workload      *topology.Workload
 				Token         string
 			}{
 				terraformPod:  pod,
 				ImageResource: DockerImageResourceName(node.Images.EnvoyConsulImage()),
 				Enterprise:    cluster.Enterprise,
-				Service:       svc,
+				Workload:      wrk,
 				Token:         token,
 			}))
-		case svc.IsMeshGateway && node.IsDataplane():
-			svcContainers = append(svcContainers, Eval(tfMeshGatewayDataplaneT, &struct {
+		case wrk.IsMeshGateway && node.IsDataplane():
+			wrkContainers = append(wrkContainers, Eval(tfMeshGatewayDataplaneT, &struct {
 				terraformPod
 				ImageResource string
 				Enterprise    bool
-				Service       *topology.Service
+				Workload      *topology.Workload
 				Token         string
 			}{
 				terraformPod:  pod,
 				ImageResource: DockerImageResourceName(node.Images.LocalDataplaneImage()),
 				Enterprise:    cluster.Enterprise,
-				Service:       svc,
+				Workload:      wrk,
 				Token:         token,
 			}))
 
-		case !svc.IsMeshGateway:
-			svcContainers = append(svcContainers, Eval(tfAppT, struct {
+		case !wrk.IsMeshGateway:
+			wrkContainers = append(wrkContainers, Eval(tfAppT, struct {
 				terraformPod
 				ImageResource string
-				Service       *topology.Service
+				Workload      *topology.Workload
 			}{
 				terraformPod:  pod,
-				ImageResource: DockerImageResourceName(svc.Image),
-				Service:       svc,
+				ImageResource: DockerImageResourceName(wrk.Image),
+				Workload:      wrk,
 			}))
 
-			if svc.DisableServiceMesh {
+			if wrk.DisableServiceMesh {
 				break
 			}
 
@@ -125,7 +125,7 @@ func (g *Generator) generateNodeContainers(
 			var img string
 			if node.IsDataplane() {
 				tmpl = tfAppDataplaneT
-				if svc.EnableTransparentProxy {
+				if wrk.EnableTransparentProxy {
 					img = DockerImageResourceName(node.Images.LocalDataplaneTProxyImage())
 				} else {
 					img = DockerImageResourceName(node.Images.LocalDataplaneImage())
@@ -133,23 +133,23 @@ func (g *Generator) generateNodeContainers(
 			} else {
 				img = DockerImageResourceName(node.Images.EnvoyConsulImage())
 			}
-			svcContainers = append(svcContainers, Eval(tmpl, struct {
+			wrkContainers = append(wrkContainers, Eval(tmpl, struct {
 				terraformPod
 				ImageResource string
-				Service       *topology.Service
+				Workload      *topology.Workload
 				Token         string
 				Enterprise    bool
 			}{
 				terraformPod:  pod,
 				ImageResource: img,
-				Service:       svc,
+				Workload:      wrk,
 				Token:         token,
 				Enterprise:    cluster.Enterprise,
 			}))
 		}
 
 		if step.StartServices() {
-			containers = append(containers, svcContainers...)
+			containers = append(containers, wrkContainers...)
 		}
 	}
 

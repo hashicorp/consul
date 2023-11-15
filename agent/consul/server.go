@@ -20,6 +20,9 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/internal/auth"
+	"github.com/hashicorp/consul/internal/mesh"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -70,10 +73,8 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
@@ -937,12 +938,15 @@ func isV1CatalogRequest(rpcName string) bool {
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
-		tenancy.RegisterControllers(s.controllerManager)
+		tenancy.RegisterControllers(
+			s.controllerManager,
+			tenancy.Dependencies{Registry: deps.Registry},
+		)
 	}
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-
+		multicluster.RegisterControllers(s.controllerManager)
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err

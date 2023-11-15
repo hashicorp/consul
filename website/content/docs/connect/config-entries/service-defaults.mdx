@@ -205,7 +205,7 @@ BalanceInboundConnections = "exact_balance"
 Mode                      = "<mode for directing traffic>"
 RateLimits = {
   InstanceLevel = {
-    RequestsPerScond = <average number of requests allowed to the service per second>
+    RequestsPerSecond = <average number of requests allowed to the service per second>
     RequestsMaxBurst = <max number of concurrent requests allowed to the service>
     Routes = [		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       {
@@ -318,7 +318,7 @@ spec:
   mode: <mode for directing traffic>
   rateLimits:
     instanceLevel:
-      requestsPerScond: <average number of requests allowed to the service per second>
+      requestsPerSecond: <average number of requests allowed to the service per second>
       requestsMaxBurst: <max number of concurrent requests allowed to the service>
       routes: 		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       - pathExact: "<limits apply paths that match this value>"
@@ -409,7 +409,7 @@ spec:
 	"Mode": "<mode for directing traffic>",
   "RateLimits": {
     "InstanceLevel": {
-      "RequestsPerScond": 100,
+      "RequestsPerSecond": 100,
       "RequestsMaxBurst": 200,
       "Routes": [
         {
@@ -623,7 +623,7 @@ Map containing a set of request rate limit configurations for instances of the s
 - Default: None
 - Data type: Map
 
-### `RateLimits{}.InstanceLevel{}.RequestsPerScond`
+### `RateLimits{}.InstanceLevel{}.RequestsPerSecond`
 
 Specifies the average number of requests per second allowed to the service. If the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `RequestsPerSecond` up to the value specified in `RequestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
 

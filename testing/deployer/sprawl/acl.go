@@ -202,58 +202,56 @@ func (s *Sprawl) createCrossNamespaceCatalogReadPolicies(cluster *topology.Clust
 	return nil
 }
 
-func (s *Sprawl) createAllServiceTokens() error {
+func (s *Sprawl) createAllWorkloadTokens() error {
 	for _, cluster := range s.topology.Clusters {
-		if err := s.createServiceTokens(cluster); err != nil {
-			return fmt.Errorf("createServiceTokens[%s]: %w", cluster.Name, err)
+		if err := s.createWorkloadTokens(cluster); err != nil {
+			return fmt.Errorf("createWorkloadTokens[%s]: %w", cluster.Name, err)
 		}
 	}
 	return nil
 }
 
-func (s *Sprawl) createServiceTokens(cluster *topology.Cluster) error {
+func (s *Sprawl) createWorkloadTokens(cluster *topology.Cluster) error {
 	var (
 		client = s.clients[cluster.Name]
 		logger = s.logger.With("cluster", cluster.Name)
 	)
 
-	sids := make(map[topology.ServiceID]struct{})
+	workloadIDs := make(map[topology.ID]struct{})
 	for _, node := range cluster.Nodes {
-		if !node.RunsWorkloads() || len(node.Services) == 0 || node.Disabled {
+		if !node.RunsWorkloads() || len(node.Workloads) == 0 || node.Disabled {
 			continue
 		}
 
-		for _, svc := range node.Services {
-			sid := svc.ID
-
-			if _, done := sids[sid]; done {
+		for _, wrk := range node.Workloads {
+			if _, done := workloadIDs[wrk.ID]; done {
 				continue
 			}
 
 			var overridePolicy *api.ACLPolicy
-			if svc.IsMeshGateway {
+			if wrk.IsMeshGateway {
 				var err error
-				overridePolicy, err = CreateOrUpdatePolicy(client, policyForMeshGateway(svc, cluster.Enterprise))
+				overridePolicy, err = CreateOrUpdatePolicy(client, policyForMeshGateway(wrk, cluster.Enterprise))
 				if err != nil {
 					return fmt.Errorf("could not create policy: %w", err)
 				}
 			}
 
-			token, err := CreateOrUpdateToken(client, tokenForService(svc, overridePolicy, cluster.Enterprise))
+			token, err := CreateOrUpdateToken(client, tokenForWorkload(wrk, overridePolicy, cluster.Enterprise))
 			if err != nil {
 				return fmt.Errorf("could not create token: %w", err)
 			}
 
-			logger.Debug("created service token",
-				"service", svc.ID.Name,
-				"namespace", svc.ID.Namespace,
-				"partition", svc.ID.Partition,
+			logger.Debug("created workload token",
+				"workload", wrk.ID.Name,
+				"namespace", wrk.ID.Namespace,
+				"partition", wrk.ID.Partition,
 				"token", token.SecretID,
 			)
 
-			s.secrets.SaveServiceToken(cluster.Name, sid, token.SecretID)
+			s.secrets.SaveWorkloadToken(cluster.Name, wrk.ID, token.SecretID)
 
-			sids[sid] = struct{}{}
+			workloadIDs[wrk.ID] = struct{}{}
 		}
 	}
 

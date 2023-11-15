@@ -7,11 +7,10 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/topology"
+	"github.com/stretchr/testify/require"
 )
 
 type ac6FailoversSuite struct {
@@ -38,12 +37,12 @@ type ac6FailoversSuite struct {
 	FarInNSAlt   bool
 
 	// launch outputs, for querying during test
-	clientSID topology.ServiceID
+	clientSID topology.ID
 	// near = same DC as client; far = other DC
-	nearServerSID topology.ServiceID
+	nearServerSID topology.ID
 	// used to remove the node and trigger failover
 	nearServerNode topology.NodeID
-	farServerSID   topology.ServiceID
+	farServerSID   topology.ID
 	farServerNode  topology.NodeID
 }
 
@@ -199,8 +198,13 @@ func (s *ac6FailoversSuite) testName() (ret string) {
 }
 
 func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
-	if !utils.IsEnterprise() && (s.NearInPartAlt || s.FarInPartAlt) {
-		t.Skip("ENT required for nondefault partitions")
+	if !utils.IsEnterprise() {
+		if s.NearInPartAlt || s.FarInPartAlt {
+			t.Skip("ENT required for nondefault partitions")
+		}
+		if s.NearInNSAlt || s.FarInNSAlt {
+			t.Skip("ENT required for nondefault namespaces")
+		}
 	}
 
 	nearClu := ct.DC1
@@ -213,10 +217,10 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 	}
 
 	// - server in clientPartition/DC (main target)
-	nearServerSID := topology.ServiceID{
+	nearServerSID := topology.ID{
 		Name:      "ac6-server",
-		Partition: ConfigEntryPartition("default"),
-		Namespace: "default",
+		Partition: defaultToEmptyForCE("default"),
+		Namespace: defaultToEmptyForCE("default"),
 	}
 	if s.NearInPartAlt {
 		nearServerSID.Partition = "part1"
@@ -229,22 +233,22 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		nearServerSID,
 		nil,
 	)
-	nearServerNode := ct.AddServiceNode(nearClu, serviceExt{Service: nearServer})
+	nearServerNode := ct.AddServiceNode(nearClu, serviceExt{Workload: nearServer})
 
 	nearClu.InitialConfigEntries = append(nearClu.InitialConfigEntries,
 		&api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      nearServerSID.Name,
-			Partition: ConfigEntryPartition(nearServerSID.Partition),
-			Namespace: nearServerSID.Namespace,
+			Partition: defaultToEmptyForCE(nearServerSID.Partition),
+			Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
 			Protocol:  "http",
 		},
 	)
 	// - server in otherPartition/otherDC
-	farServerSID := topology.ServiceID{
+	farServerSID := topology.ID{
 		Name:      nearServerSID.Name,
-		Partition: "default",
-		Namespace: "default",
+		Partition: defaultToEmptyForCE("default"),
+		Namespace: defaultToEmptyForCE("default"),
 	}
 	if s.FarInPartAlt {
 		farServerSID.Partition = "part1"
@@ -257,12 +261,12 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		farServerSID,
 		nil,
 	)
-	farServerNode := ct.AddServiceNode(farClu, serviceExt{Service: farServer})
+	farServerNode := ct.AddServiceNode(farClu, serviceExt{Workload: farServer})
 	if nearClu != farClu {
 		ct.ExportService(farClu, farServerSID.Partition,
 			api.ExportedService{
 				Name:      farServerSID.Name,
-				Namespace: farServerSID.Namespace,
+				Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 				Consumers: []api.ServiceConsumer{
 					{
 						Peer: LocalPeerName(nearClu, nearServerSID.Partition),
@@ -274,7 +278,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		ct.ExportService(farClu, farServerSID.Partition,
 			api.ExportedService{
 				Name:      farServerSID.Name,
-				Namespace: farServerSID.Namespace,
+				Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 				Consumers: []api.ServiceConsumer{
 					{
 						// this must not be "", or else it is basically ignored altogether
@@ -292,7 +296,7 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 			{
 				Service:   farServerSID.Name,
 				Peer:      LocalPeerName(farClu, farServerSID.Partition),
-				Namespace: farServerSID.Namespace,
+				Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 			},
 		}
 	} else {
@@ -306,8 +310,8 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		targets = []api.ServiceResolverFailoverTarget{
 			{
 				Service:   farServerSID.Name,
-				Partition: part,
-				Namespace: farServerSID.Namespace,
+				Partition: defaultToEmptyForCE(part),
+				Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 			},
 		}
 	}
@@ -316,15 +320,15 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		&api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      farServerSID.Name,
-			Partition: ConfigEntryPartition(farServerSID.Partition),
-			Namespace: farServerSID.Namespace,
+			Partition: defaultToEmptyForCE(farServerSID.Partition),
+			Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 			Protocol:  "http",
 		},
 		&api.ServiceResolverConfigEntry{
 			Kind:      api.ServiceResolver,
 			Name:      nearServerSID.Name,
-			Partition: ConfigEntryPartition(nearServerSID.Partition),
-			Namespace: nearServerSID.Namespace,
+			Partition: defaultToEmptyForCE(nearServerSID.Partition),
+			Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
 			Failover: map[string]api.ServiceResolverFailover{
 				"*": {
 					Targets: targets,
@@ -333,22 +337,22 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		},
 	)
 
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac6-client",
-		Partition: nearServerSID.Partition,
-		Namespace: nearServerSID.Namespace,
+		Partition: defaultToEmptyForCE(nearServerSID.Partition),
+		Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
 	}
 	client := NewFortioServiceWithDefaults(
 		nearClu.Datacenter,
 		clientSID,
-		func(s *topology.Service) {
-			// Upstream per partition
-			s.Upstreams = []*topology.Upstream{
+		func(s *topology.Workload) {
+			// Destination per partition
+			s.Destinations = []*topology.Destination{
 				{
-					ID: topology.ServiceID{
+					ID: topology.ID{
 						Name:      nearServerSID.Name,
-						Partition: nearServerSID.Partition,
-						Namespace: nearServerSID.Namespace,
+						Partition: defaultToEmptyForCE(nearServerSID.Partition),
+						Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
 					},
 					LocalPort: 5000,
 					// exposed so we can hit it directly
@@ -358,13 +362,13 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 			}
 		},
 	)
-	ct.AddServiceNode(nearClu, serviceExt{Service: client})
+	ct.AddServiceNode(nearClu, serviceExt{Workload: client})
 	nearClu.InitialConfigEntries = append(nearClu.InitialConfigEntries,
 		&api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      clientSID.Name,
-			Partition: ConfigEntryPartition(clientSID.Partition),
-			Namespace: clientSID.Namespace,
+			Partition: defaultToEmptyForCE(clientSID.Partition),
+			Namespace: defaultToEmptyForCE(clientSID.Namespace),
 			Protocol:  "http",
 		},
 	)
@@ -374,21 +378,21 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		&api.ServiceIntentionsConfigEntry{
 			Kind:      api.ServiceIntentions,
 			Name:      nearServerSID.Name,
-			Partition: ConfigEntryPartition(nearServerSID.Partition),
-			Namespace: nearServerSID.Namespace,
+			Partition: defaultToEmptyForCE(nearServerSID.Partition),
+			Namespace: defaultToEmptyForCE(nearServerSID.Namespace),
 			Sources: []*api.SourceIntention{{
 				Name:      clientSID.Name,
-				Namespace: clientSID.Namespace,
+				Namespace: defaultToEmptyForCE(clientSID.Namespace),
 				// in this field, "" -> destination partition, so no ConfigEntryPartition :eyeroll:
 				// https://developer.hashicorp.com/consul/docs/connect/config-entries/service-intentions#sources-partition
-				Partition: topology.PartitionOrDefault(clientSID.Partition),
+				Partition: defaultToEmptyForCE(clientSID.Partition),
 				Action:    api.IntentionActionAllow,
 			}},
 		},
 	)
 	farSource := api.SourceIntention{
 		Name:      clientSID.Name,
-		Namespace: clientSID.Namespace,
+		Namespace: defaultToEmptyForCE(clientSID.Namespace),
 		Peer:      LocalPeerName(nearClu, clientSID.Partition),
 		Action:    api.IntentionActionAllow,
 	}
@@ -402,8 +406,8 @@ func (s *ac6FailoversSuite) setup(t *testing.T, ct *commonTopo) {
 		&api.ServiceIntentionsConfigEntry{
 			Kind:      api.ServiceIntentions,
 			Name:      farServerSID.Name,
-			Partition: ConfigEntryPartition(farServerSID.Partition),
-			Namespace: farServerSID.Namespace,
+			Partition: defaultToEmptyForCE(farServerSID.Partition),
+			Namespace: defaultToEmptyForCE(farServerSID.Namespace),
 			Sources:   []*api.SourceIntention{&farSource},
 		},
 	)
@@ -428,12 +432,12 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 		farClu = ct.Sprawl.Topology().Clusters["dc1"]
 	}
 
-	svcs := nearClu.ServicesByID(s.clientSID)
+	svcs := nearClu.WorkloadsByID(s.clientSID)
 	require.Len(t, svcs, 1, "expected exactly one client in datacenter")
 
 	client := svcs[0]
-	require.Len(t, client.Upstreams, 1, "expected one upstream for client")
-	upstream := client.Upstreams[0]
+	require.Len(t, client.Destinations, 1, "expected one upstream for client")
+	upstream := client.Destinations[0]
 
 	fmt.Println("### preconditions")
 
@@ -463,4 +467,11 @@ func (s *ac6FailoversSuite) test(t *testing.T, ct *commonTopo) {
 	expectSID := s.farServerSID
 	expectSID.Normalize()
 	ct.Assert.FortioFetch2FortioName(t, client, upstream, farClu.Name, expectSID)
+}
+
+func defaultToEmptyForCE(tenancy string) string {
+	if utils.IsEnterprise() {
+		return tenancy
+	}
+	return topology.DefaultToEmpty(tenancy)
 }

@@ -1,0 +1,242 @@
+---
+layout: docs
+page_title: TrafficPermissions resource configuration reference
+description: The TrafficPermissions CRD defines rules for allowing and denying traffic between services within the service mesh. Learn how to configure traffic permissions for the v2 catalog to authorize service-to-service communication in a network with zero-trust security.
+---
+
+# TrafficPermissions configuration reference
+
+This page provides reference information for the `TrafficPermissions` resource, which authorizes east-west traffic between services within the service mesh. The traffic permissions CRD replaces the service intentions CRD when using the v2 catalog API. Refer to [changes to Consul's existing architecture](/consul/docs/architecture/catalog/v2#changes-to-consul-s-existing-architecture) for more information.
+
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in a traffic permissions CRD. Click on a property name to view additional details, including default values.
+
+- [`apiVersion`](#apiversion): string | required | must be set to `auth.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `TrafficPermissions`
+- [`metadata`](#metadata): map | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): map | required
+  - [`destination`](#spec-destination): map
+    - [`identityName`](#spec-destination-identityname): string
+  - [`action`](#spec-action): string
+  - [`permissions`](#spec-permissions): list of maps
+    - [`sources`](#spec-permissions-sources): map
+      - [`identityName`](#spec-permissions-sources-identityname): string
+    - [`destinationRules`](#spec-permissions-destinationrules):
+      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
+
+## Complete configuration
+
+When every field is defined, a traffic permissions CRD has the following form:
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1    # required
+kind: TrafficPermissions                         # required
+metadata:
+  name: <permissionsResourceName>
+  namespace: <default>
+spec:
+  destination:
+    identityName: <permissionsDestinationService>
+  action: allow
+  permissions:
+    - sources:
+      identityName: <sourceWorkloadIdentity> 
+    destinationRules:
+      portNames: 
+        - <servicePortName>
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the `TrafficPermissions` custom resource definition (CRD).
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `auth.consul.hashicorp.com/v2beta1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `auth.consul.hashicorp.com/v2beta1`.
+
+### `kind`
+
+Specifies the type of CRD to implement. Must be set to `TrafficPermissions`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `TrafficPermissions`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the CRD and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the CRD. The name is metadata that you can use to reference the resource when performing Consul operations, such as using the `consul resource` command. Refer to [`consul resource`](/consul/docs/k8s/connect/multiport/reference/resource-command) for more information.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `TrafficPermissions` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.destination`
+
+Specifies the proxies of the services where these traffic permissions apply.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.destination.identityName`
+
+Specifies the Workload identity for a service. The permissions you configure in this `TrafficPermissions` CRD apply to sidecar proxies when a request has this identity as their destination.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.action`
+
+Specifies whether the proxy should _allow traffic_ or _deny traffic_ between the destination in [`spec.destination`](#spec-destination) and the sources in [`spec.permissions.sources`](#spec-permissions-sources).
+
+By default, Consul allows traffic between all services. When the Helm value `global.acls.manageSystemACLs` is set to `true`, then Consul operates in "default-deny" mode. In this mode, `TrafficPermissions` CRDs that allow traffic between services are required for service-to-service traffic.
+
+#### Values
+
+- Default: None
+- Data type: String that must contain one of the following values:
+
+  - `ACTION_ALLOW`
+  - `ACTION_DENY`
+
+### `spec.permissions`
+
+Permissions is a list of the traffic permissions Consul evaluates requests against. When the list contains more than one permission, Consul follows OR semantics to select the permission.
+
+#### Values
+
+- Default: None
+- Data type: List of maps
+
+### `spec.permissions.sources`
+
+Lists sources for traffic in the permission. This block contains information Consul uses to evaluate the service that originated the request when the sidecar proxy authorizes incoming traffic.
+
+To specify wildcard references in this block using `*`, omit all other fields. For example, you can apply traffic permissions to all namespaces using the wildcard, but you cannot specify an identity name, partition, peer, or sameness group in the same source.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.sources.identityName`
+
+Specifies the Workload identity for the service that originates the request.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.destinationRules`
+
+Specifies L7 properties to match against when Consul enforces traffic permissions.
+
+When [`spec.action`](#spec-action) _allows traffic_, Consul authorizes requests to the destination service when the request matches one or more rules defined in this block. Requests that do not match any rules are denied.
+
+When [`spec.action`](#spec-action) _denies traffic_, Consul denies authorization to requests that match one or more rules defined in this block. Requests that do not match any rules are allowed.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.permissions.destinationRules.portNames`
+
+Specifies a port name that the Kubernetes Service exposes at the destination.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+## Examples
+
+The following examples demonstrate common `TrafficPermissions` CRD configuration patterns for specific use cases.
+
+### Allow traffic to multiple ports
+
+The following example configures traffic permissions to allow traffic when the `web` service makes a request to the `api` service on the `api` port or `admin` port.
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: api-allow-web-all
+spec:
+  destination:
+    identityName: "api"
+  action: ACTION_ALLOW
+  permissions:
+    - sources:
+        - identityName: "web"
+      destinationRules:
+        - portNames: ["api", "admin"]
+
+```
+
+### Deny traffic between a service and a specific port
+
+The following example configures traffic permissions to deny traffic when the `web` service makes a request to the `api` service on the `admin` port.
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: web-to-admin-port-deny
+spec:
+  destination:
+    identityName: api
+  action: ACTION_DENY
+  permissions:
+    - sources:
+        - identityName: web
+      destinationRules:
+        - portNames: ["admin"]
+```

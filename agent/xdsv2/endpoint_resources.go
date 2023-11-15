@@ -7,9 +7,7 @@ import (
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_endpoint_v3 "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-	"google.golang.org/protobuf/proto"
 )
 
 func makeEnvoyLbEndpoint(endpoint *pbproxystate.Endpoint) *envoy_endpoint_v3.LbEndpoint {
@@ -45,17 +43,4 @@ func makeEnvoyClusterLoadAssignment(clusterName string, endpoints []*pbproxystat
 		ClusterName: clusterName,
 		Endpoints:   []*envoy_endpoint_v3.LocalityLbEndpoints{localityLbEndpoints},
 	}
-}
-
-func (pr *ProxyResources) makeXDSEndpoints() ([]proto.Message, error) {
-	endpoints := make([]proto.Message, 0)
-
-	for clusterName, eps := range pr.proxyState.GetEndpoints() {
-		if clusterName != xdscommon.LocalAppClusterName {
-			protoEndpoint := makeEnvoyClusterLoadAssignment(clusterName, eps.Endpoints)
-			endpoints = append(endpoints, protoEndpoint)
-		}
-	}
-
-	return endpoints, nil
 }

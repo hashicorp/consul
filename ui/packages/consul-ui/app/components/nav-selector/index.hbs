@@ -1,0 +1,62 @@
+{{!
+  Copyright (c) HashiCorp, Inc.
+  SPDX-License-Identifier: BUSL-1.1
+}}
+
+{{#let @list as |SNL|}}
+  <SNL.Item class='consul-side-nav__selector'>
+    <Hds::Dropdown
+      @listPosition='bottom-left'
+      @width='15.5rem'
+      class='hds-side-nav__dropdown'
+      @isInline={{true}}
+      ...attributes
+      as |DD|
+    >
+      <DD.ToggleButton
+        class='consul-side-nav__selector-toggle'
+        @icon={{@icon}}
+        @text={{get @item @key}}
+        disabled={{eq @disabled true}}
+      />
+      <DD.Header @hasDivider={{true}}>
+        {{yield (hash Data=(component 'nav-selector/generic'))}}
+        {{#if @description}}
+          <div class='consul-side-nav__selector-description'>
+            <Hds::Text::Body @size='100' @color='faint'>{{@description}}</Hds::Text::Body>
+          </div>
+        {{/if}}
+        <Hds::Form::TextInput::Base
+          @type='search'
+          @value={{this.search}}
+          placeholder={{@placeholder}}
+          aria-label={{@placeholder}}
+          {{on 'input' this.onSearchInput}}
+        />
+      </DD.Header>
+      {{#if (eq this.filteredItems.length 0)}}
+        <DD.Description @text='No results' />
+      {{else}}
+        {{#each this.filteredItems as |item|}}
+          {{yield (hash
+            Dropdown=DD
+            item=item
+          )}}
+        {{/each}}
+      {{/if}}
+      {{#if @footerLink}}
+        <DD.Footer @hasDivider={{true}}>
+          <Hds::Link::Standalone
+            @href={{@footerLink}}
+            @isHrefExternal={{false}}
+            @text={{@footerLinkText}}
+            @iconPosition='trailing'
+            @icon='arrow-right'
+            @color='secondary'
+            data-test-nav-selector-footer-link
+          />
+        </DD.Footer>
+      {{/if}}
+    </Hds::Dropdown>
+  </SNL.Item>
+{{/let}}
