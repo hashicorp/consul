@@ -68,9 +68,9 @@ require (
 	github.com/hashicorp/hcp-sdk-go v0.61.0
 	github.com/hashicorp/hil v0.0.0-20200423225030-a18a1cd20038
 	github.com/hashicorp/memberlist v0.5.1-0.20231024164941-f2362678b85d
-	github.com/hashicorp/raft v1.5.1-0.20231024165115-d79654935a01
+	github.com/hashicorp/raft v1.6.0
 	github.com/hashicorp/raft-autopilot v0.1.6
-	github.com/hashicorp/raft-boltdb/v2 v2.2.3-0.20231024164814-4cd9b96914bd
+	github.com/hashicorp/raft-boltdb/v2 v2.3.0
 	github.com/hashicorp/raft-wal v0.3.0
 	github.com/hashicorp/serf v0.10.2-0.20231025180740-47cf9d6680b5
 	github.com/hashicorp/vault-plugin-auth-alicloud v0.14.0
