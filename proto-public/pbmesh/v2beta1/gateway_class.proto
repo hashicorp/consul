@@ -21,10 +21,10 @@ message GatewayClass {
 
   // ParametersRef refers to a resource responsible for configuring
   // the behavior of the GatewayClass.
-  ParametersReference parameters_ref = 2;
+  optional ParametersReference parameters_ref = 2;
 
   // Description of GatewayClass
-  string description = 3;
+  optional string description = 3;
 }
 
 // NOTE: this should align to the GAMMA/gateway-api version, or at least be
@@ -45,5 +45,5 @@ message ParametersReference {
   string name = 3;
 
   // The kubernetes namespace that the referred object is in
-  string namespace = 4;
+  optional string namespace = 4;
 }
