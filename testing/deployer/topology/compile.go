@@ -342,7 +342,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				wrk.Node = n
 				wrk.NodeVersion = n.Version
 				if n.IsV2() {
-					wrk.Workload = wrk.ID.Name + "-" + n.PodName()
+					wrk.Workload = wrk.ID.Name + "-" + n.Name
 				}
 
 				if !IsValidLabel(wrk.ID.Partition) {
