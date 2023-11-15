@@ -21,8 +21,8 @@ The following list outlines field hierarchy, data types, and requirements in a `
    - [`name`](#metadata-name): string | required 
    - [`namespace`](#metadata-namespace): string  | `default`
 - [`spec`](#spec): map | required
-  - [`idleTimeout`](#spec-idletimeout): number | `0`
-  - [`requestTimeout`](#spec-retryonconnectfailure): number | `0`
+  - [`idleTimeout`](#spec-idletimeout): string | `""`
+  - [`requestTimeout`](#spec-retryonconnectfailure): string | `""`
 
 ## Complete configuration
 
@@ -97,18 +97,18 @@ Map that contains the details about the gateway policy. The `apiVersion`, `kind`
 
 ### `spec.idleTimeout
 
-Specifies the total amount of time permitted for the request stream to be idle.
+Specifies the total amount of time permitted for the request stream to be idle. Must specify a parseable number and a unit, for example "5s". 
 
 #### Values
 
-- Default: 0
-- Data type: Integer
+- Default: ""
+- Data type: string
 
 ### `spec.requestTimeout`
 
-Specifies the total amount of time in nanoseconds, including retry attempts, Consul permits for the entire downstream request to be processed.
+Specifies the total amount of time in nanoseconds, including retry attempts, Consul permits for the entire downstream request to be processed. Must specify a parseable number and a unit, for example "5s". 
 
 #### Values
 
-- Default: 0
+- Default: ""
 - Data type: Integer
