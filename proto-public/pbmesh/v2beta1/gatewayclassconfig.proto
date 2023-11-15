@@ -10,7 +10,7 @@ message GatewayClassConfig {
   optional CopyAnnotations copy_annotations = 2;
   optional Deployment deployment = 3;
   optional Image image = 4;
-  optional string logLevel = 5;
+  optional string log_level = 5;
   optional uint32 map_privileged_container_ports = 6;
   optional string node_selector = 7;
   optional string openshift_scc_name = 8;
