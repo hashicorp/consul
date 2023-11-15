@@ -32,7 +32,9 @@ docker run -d --name consul-envoy-check "$consul_latest"
 envoy_version=""
 while true; do
     # We have to retry in case consul doesn't fully start up before we get here.
+    set +e
     envoy_version="$(docker exec consul-envoy-check sh -c 'wget -q localhost:8500/v1/agent/self -O -' | jq -r '.xDS.SupportedProxies.envoy[0]')"
+    set -e
     if [[ -n "$envoy_version" ]]; then
         break
     fi

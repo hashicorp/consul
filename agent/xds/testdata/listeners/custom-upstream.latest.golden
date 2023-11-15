@@ -5,8 +5,8 @@
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
       "address": {
         "socketAddress": {
-          "address": "11.11.11.11",
-          "portValue": 11111
+          "address": "127.0.0.1",
+          "portValue": 9191
         }
       },
       "filterChains": [
@@ -16,14 +16,15 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "random-cluster",
-                "statPrefix": "foo-stats"
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.db.default.default.dc1"
               }
             }
           ]
         }
       ],
-      "name": "db:custom-upstream"
+      "name": "db:127.0.0.1:9191",
+      "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",

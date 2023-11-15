@@ -4,6 +4,7 @@
 package topoutil
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
@@ -11,20 +12,21 @@ import (
 
 const HashicorpDockerProxy = "docker.mirror.hashicorp.services"
 
-func NewFortioServiceWithDefaults(
+func NewFortioWorkloadWithDefaults(
 	cluster string,
-	sid topology.ServiceID,
+	sid topology.ID,
 	nodeVersion topology.NodeVersion,
-	mut func(s *topology.Service),
-) *topology.Service {
+	mut func(*topology.Workload),
+) *topology.Workload {
 	const (
 		httpPort  = 8080
 		grpcPort  = 8079
+		tcpPort   = 8078
 		adminPort = 19000
 	)
 	sid.Normalize()
 
-	svc := &topology.Service{
+	wrk := &topology.Workload{
 		ID:             sid,
 		Image:          HashicorpDockerProxy + "/fortio/fortio",
 		EnvoyAdminPort: adminPort,
@@ -36,28 +38,70 @@ func NewFortioServiceWithDefaults(
 			"server",
 			"-http-port", strconv.Itoa(httpPort),
 			"-grpc-port", strconv.Itoa(grpcPort),
+			"-tcp-port", strconv.Itoa(tcpPort),
 			"-redirect-port", "-disabled",
 		},
 	}
 
 	if nodeVersion == topology.NodeVersionV2 {
-		svc.Ports = map[string]*topology.Port{
-			// TODO(rb/v2): once L7 works in v2 switch these back
-			"http":     {Number: httpPort, Protocol: "tcp"},
-			"http-alt": {Number: httpPort, Protocol: "tcp"},
-			"grpc":     {Number: grpcPort, Protocol: "tcp"},
-			// "http":     {Number: httpPort, Protocol: "http"},
-			// "http-alt": {Number: httpPort, Protocol: "http"},
-			// "grpc":     {Number: grpcPort, Protocol: "grpc"},
+		wrk.Ports = map[string]*topology.Port{
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
 		}
 	} else {
-		svc.Port = httpPort
+		wrk.Port = httpPort
 	}
 
 	if mut != nil {
-		mut(svc)
+		mut(wrk)
 	}
-	return svc
+	return wrk
+}
+
+func NewBlankspaceWorkloadWithDefaults(
+	cluster string,
+	sid topology.ID,
+	nodeVersion topology.NodeVersion,
+	mut func(*topology.Workload),
+) *topology.Workload {
+	const (
+		httpPort  = 8080
+		grpcPort  = 8079
+		tcpPort   = 8078
+		adminPort = 19000
+	)
+	sid.Normalize()
+
+	wrk := &topology.Workload{
+		ID:             sid,
+		Image:          HashicorpDockerProxy + "/rboyer/blankspace",
+		EnvoyAdminPort: adminPort,
+		CheckTCP:       "127.0.0.1:" + strconv.Itoa(httpPort),
+		Command: []string{
+			"-name", cluster + "::" + sid.String(),
+			"-http-addr", fmt.Sprintf(":%d", httpPort),
+			"-grpc-addr", fmt.Sprintf(":%d", grpcPort),
+			"-tcp-addr", fmt.Sprintf(":%d", tcpPort),
+		},
+	}
+
+	if nodeVersion == topology.NodeVersionV2 {
+		wrk.Ports = map[string]*topology.Port{
+			"http":  {Number: httpPort, Protocol: "http"},
+			"http2": {Number: httpPort, Protocol: "http2"},
+			"grpc":  {Number: grpcPort, Protocol: "grpc"},
+			"tcp":   {Number: tcpPort, Protocol: "tcp"},
+		}
+	} else {
+		wrk.Port = httpPort
+	}
+
+	if mut != nil {
+		mut(wrk)
+	}
+	return wrk
 }
 
 func NewTopologyServerSet(
@@ -96,18 +140,18 @@ func NewTopologyMeshGatewaySet(
 	mutateFn func(i int, node *topology.Node),
 ) []*topology.Node {
 	var out []*topology.Node
-	sid := topology.ServiceID{
+	sid := topology.ID{
 		Name:      "mesh-gateway",
-		Partition: ConfigEntryPartition(partition),
+		Partition: topology.DefaultToEmpty(partition),
 	}
 	for i := 1; i <= num; i++ {
 		name := namePrefix + strconv.Itoa(i)
 
 		node := &topology.Node{
 			Kind:      nodeKind,
-			Partition: partition,
+			Partition: sid.Partition,
 			Name:      name,
-			Services: []*topology.Service{{
+			Workloads: []*topology.Workload{{
 				ID:             sid,
 				Port:           8443,
 				EnvoyAdminPort: 19000,

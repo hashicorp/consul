@@ -42,18 +42,16 @@ const (
 	envoyHttpConnectionManagerFilterName       = "envoy.filters.network.http_connection_manager"
 )
 
-func (pr *ProxyResources) makeXDSListeners() ([]proto.Message, error) {
-	listeners := make([]proto.Message, 0)
-
+func (pr *ProxyResources) makeEnvoyResourceGraphsStartingFromListeners() error {
 	for _, l := range pr.proxyState.Listeners {
 		protoListener, err := pr.makeListener(l)
 		// TODO: aggregate errors for listeners and still return any properly formed listeners.
 		if err != nil {
-			return nil, err
+			return err
 		}
-		listeners = append(listeners, protoListener)
+		pr.envoyResources[xdscommon.ListenerType][protoListener.Name] = protoListener
 	}
-	return listeners, nil
+	return nil
 }
 
 func (pr *ProxyResources) makeListener(listener *pbproxystate.Listener) (*envoy_listener_v3.Listener, error) {
@@ -305,11 +303,11 @@ func (pr *ProxyResources) makeEnvoyResourcesForSNIDestination(sni *pbproxystate.
 }
 
 func (pr *ProxyResources) makeEnvoyResourcesForL4Destination(l4 *pbproxystate.Router_L4) ([]*envoy_listener_v3.Filter, error) {
-	err := pr.makeEnvoyClusterFromL4Destination(l4.L4)
+	err := pr.makeEnvoyClustersAndEndpointsFromL4Destination(l4.L4)
 	if err != nil {
 		return nil, err
 	}
-	envoyFilters, err := makeL4Filters(l4.L4)
+	envoyFilters, err := pr.makeL4Filters(l4.L4)
 	return envoyFilters, err
 }
 
@@ -334,7 +332,7 @@ func getAlpnProtocols(protocol pbproxystate.L7Protocol) []string {
 	return alpnProtocols
 }
 
-func makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
+func (pr *ProxyResources) makeL4Filters(l4 *pbproxystate.L4Destination) ([]*envoy_listener_v3.Filter, error) {
 	var envoyFilters []*envoy_listener_v3.Filter
 	if l4 != nil {
 		rbacFilters, err := MakeRBACNetworkFilters(l4.TrafficPermissions)
@@ -442,7 +440,7 @@ func (pr *ProxyResources) makeL7Filters(l7 *pbproxystate.L7Destination) ([]*envo
 			}
 		} else {
 			// Add Envoy route under the route resource since it's not inlined.
-			pr.envoyResources[xdscommon.RouteType] = append(pr.envoyResources[xdscommon.RouteType], routeConfig)
+			pr.envoyResources[xdscommon.RouteType][routeConfig.Name] = routeConfig
 
 			httpConnMgr.RouteSpecifier = &envoy_http_v3.HttpConnectionManager_Rds{
 				Rds: &envoy_http_v3.Rds{

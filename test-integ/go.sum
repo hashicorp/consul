@@ -259,6 +259,8 @@ github.com/prometheus/procfs v0.0.2/go.mod h1:TjEm7ze935MbeOT/UhFTIMYKhuLP4wbCsT
 github.com/prometheus/procfs v0.0.8/go.mod h1:7Qr8sr6344vo1JqZ6HhLceV9o3AJ1Ff+GxbHq6oeK9A=
 github.com/prometheus/procfs v0.8.0 h1:ODq8ZFEaYeCaZOJlZZdJA2AbQR98dSHSM1KW/You5mo=
 github.com/prometheus/procfs v0.8.0/go.mod h1:z7EfXMXOkbkqb9IINtpCn86r/to3BnA0uaxHdg830/4=
+github.com/rboyer/blankspace v0.2.1 h1:GzFPETXKOhuwS/jPRUTFIYo9I+RhafEIhnbPByg8S+c=
+github.com/rboyer/blankspace v0.2.1/go.mod h1:GhnCkDlx1SYD6m4XCde73ncQ8pFTLSJvlCNmCMg2moQ=
 github.com/rboyer/safeio v0.2.3 h1:gUybicx1kp8nuM4vO0GA5xTBX58/OBd8MQuErBfDxP8=
 github.com/rboyer/safeio v0.2.3/go.mod h1:d7RMmt7utQBJZ4B7f0H/cU/EdZibQAU1Y8NWepK2dS8=
 github.com/rogpeppe/go-internal v1.10.0 h1:TMyTOH3F/DB16zRVcYyreMH6GnZZrwQVAoYjRBZyWFQ=
