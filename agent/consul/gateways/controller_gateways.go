@@ -667,6 +667,8 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		return nil
 	})
 
+	g.BoundGateway.Services = make(structs.ServiceRouteReferences)
+
 	// now try and bind all of the route's current refs
 	for _, ref := range route.GetParents() {
 		if !g.shouldBindRoute(ref) {
@@ -708,6 +710,9 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		}
 
 		if refDidBind {
+			for _, serviceName := range route.GetServiceNames() {
+				g.BoundGateway.Services.AddService(structs.NewServiceKey(serviceName.Name, &serviceName.EnterpriseMeta), routeRef)
+			}
 			boundRefs = append(boundRefs, ref)
 		}
 	}
@@ -720,6 +725,11 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 			break
 		}
 	}
+
+	// if didUpdate {
+	// for _, serviceName := range route.GetServiceNames() {
+	// }
+	// }
 
 	return didUpdate, boundRefs, errors
 }
@@ -1138,6 +1148,8 @@ func removeRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*ga
 	for _, entry := range entries {
 		if entry.unbindRoute(route) {
 			modified = append(modified, entry)
+			entry.BoundGateway.Services.RemoveRouteRef(route)
+			fmt.Printf("\n\n\n\nBOUNDGATEWAYSERVICES: %#v", entry.BoundGateway.Services)
 		}
 	}
 

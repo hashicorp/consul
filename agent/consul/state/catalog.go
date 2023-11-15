@@ -3831,6 +3831,9 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		if service.GatewayKind == structs.ServiceKindTerminatingGateway && !hasNonConnectInstance {
 			continue
 		}
+		if service.GatewayKind == structs.ServiceKindAPIGateway && !hasConnectInstance {
+			continue
+		}
 
 		existing, err := tx.First(tableGatewayServices, indexID, service.Gateway, sn.CompoundServiceName().ServiceName, service.Port)
 		if err != nil {
@@ -4517,8 +4520,21 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var downstreamSources = make(map[string]string)
+	downstreamSources := make(map[string]string)
 	for _, dn := range downstreamNames {
+		downstreamSources[dn.String()] = structs.TopologySourceRegistration
+	}
+
+	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx, ws, dc, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	for _, dn := range downstreamGWs {
+		downstreamNames = append(downstreamNames, dn)
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
@@ -4660,6 +4676,43 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		resp = append(resp, item)
 	}
 	return maxIdx, resp, nil
+}
+
+// downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	iter, err := tx.Get(tableConfigEntries, indexLink, service.ToServiceID())
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var (
+		idx  uint64
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]struct{})
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry, ok := raw.(*structs.BoundAPIGatewayConfigEntry)
+		if !ok {
+			continue
+		}
+
+		if entry.ModifyIndex > idx {
+			idx = entry.ModifyIndex
+		}
+
+		serviceName := structs.NewServiceName(entry.Name, &entry.EnterpriseMeta)
+		if _, ok := seen[serviceName]; ok {
+			continue
+		}
+
+		seen[serviceName] = struct{}{}
+
+		resp = append(resp, serviceName)
+
+	}
+
+	return idx, resp, nil
 }
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
@@ -4876,19 +4929,22 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.GatewayService) error {
 	// Only ingress gateways are standalone items in the mesh topology viz
-	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
+	if (gs.GatewayKind != structs.ServiceKindIngressGateway && gs.GatewayKind != structs.ServiceKindAPIGateway) || gs.Service.Name == structs.WildcardSpecifier {
 		return nil
 	}
 
+	// HERE
 	mapping := upstreamDownstream{
 		Upstream:   gs.Service,
 		Downstream: gs.Gateway,
 		Refs:       make(map[string]struct{}),
 		RaftIndex:  gs.RaftIndex,
 	}
+
 	if err := tx.Insert(tableMeshTopology, &mapping); err != nil {
 		return fmt.Errorf("failed inserting %s mapping: %s", tableMeshTopology, err)
 	}
+
 	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
 		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}

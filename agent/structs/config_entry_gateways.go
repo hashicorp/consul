@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -928,6 +929,75 @@ func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
+type ServiceKey string
+
+func NewServiceKey(name string, entMeta *acl.EnterpriseMeta) ServiceKey {
+	key := name
+
+	if namespace := entMeta.NamespaceOrEmpty(); namespace != "" {
+		key = fmt.Sprintf("%s.%s", key, namespace)
+	}
+
+	if partition := entMeta.PartitionOrEmpty(); partition != "" {
+		key = fmt.Sprintf("%s.%s", key, partition)
+	}
+	return ServiceKey(key)
+}
+
+func (s ServiceKey) ServiceName() string {
+	name, _, _ := strings.Cut(string(s), ".")
+	return name
+}
+
+func (s ServiceKey) EnterpriseMeta() *acl.EnterpriseMeta {
+	parts := strings.Split(string(s), ".")
+	if len(parts) == 1 {
+		return acl.DefaultEnterpriseMeta()
+	}
+	namespace := ""
+	partition := ""
+
+	if len(parts) >= 2 {
+		namespace = parts[1]
+	}
+
+	if len(parts) == 3 {
+		partition = parts[2]
+	}
+
+	entMeta := acl.NewEnterpriseMetaWithPartition(namespace, partition)
+	return &entMeta
+}
+
+// ServiceRouteReferences is a map with a key of "name.namespace.partition" for a routed to service from a
+// bound gateway listener with a value being a slice of resource references of the routes that reference the service
+type ServiceRouteReferences map[ServiceKey][]ResourceReference
+
+func (s ServiceRouteReferences) AddService(key ServiceKey, routeRef ResourceReference) {
+	if s[key] == nil {
+		s[key] = make([]ResourceReference, 0)
+	}
+
+	if slices.Contains(s[key], routeRef) {
+		return
+	}
+
+	s[key] = append(s[key], routeRef)
+}
+
+func (s ServiceRouteReferences) RemoveRouteRef(routeRef ResourceReference) {
+	for key := range s {
+		for idx, ref := range s[key] {
+			if ref.IsSame(&routeRef) {
+				s[key] = append(s[key][0:idx], s[key][idx+1:]...)
+				if len(s[key]) == 0 {
+					delete(s, key)
+				}
+			}
+		}
+	}
+}
+
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name. This type is never written from the client.
 // It is only written by the controller in order to represent an API gateway
@@ -944,6 +1014,9 @@ type BoundAPIGatewayConfigEntry struct {
 	// Listeners are the valid listeners of an APIGateway with information about
 	// what certificates and routes have successfully bound to it.
 	Listeners []BoundAPIGatewayListener
+
+	// Services are all the services that are routed to from an APIGateway
+	Services ServiceRouteReferences
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -972,6 +1045,22 @@ func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) b
 		}
 		if !listener.IsSame(otherListener) {
 			return false
+		}
+	}
+
+	for key, refs := range e.Services {
+		if _, ok := other.Services[key]; !ok {
+			return false
+		}
+
+		if len(refs) != len(other.Services[key]) {
+			return false
+		}
+
+		for idx, ref := range refs {
+			if !ref.IsSame(&other.Services[key][idx]) {
+				return false
+			}
 		}
 	}
 
@@ -1077,6 +1166,14 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+func (e *BoundAPIGatewayConfigEntry) ListRelatedServices() []ServiceID {
+	ids := make([]ServiceID, 0, len(e.Services))
+	for key := range e.Services {
+		ids = append(ids, NewServiceID(key.ServiceName(), key.EnterpriseMeta()))
+	}
+	return ids
 }
 
 // BoundAPIGatewayListener is an API gateway listener with information

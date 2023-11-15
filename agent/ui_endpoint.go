@@ -669,7 +669,7 @@ func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, 
 				sum.ChecksCritical++
 			}
 		}
-		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway {
+		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway && sum.Kind != structs.ServiceKindAPIGateway {
 			continue
 		}
 		resp = append(resp, sum)

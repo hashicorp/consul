@@ -572,3 +572,34 @@ func httpQueryMatchToStructs(a HTTPQueryMatchType) structs.HTTPQueryMatchType {
 		return structs.HTTPQueryMatchExact
 	}
 }
+
+// mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
+func serviceRefsToStructs(a map[string]*ListOfResourceReference) structs.ServiceRouteReferences {
+	m := make(structs.ServiceRouteReferences, len(a))
+
+	for key, refs := range a {
+		serviceKey := structs.ServiceKey(key)
+		m[serviceKey] = make([]structs.ResourceReference, 0, len(refs.Ref))
+		for _, ref := range refs.Ref {
+			structsRef := structs.ResourceReference{}
+			ResourceReferenceToStructs(ref, &structsRef)
+			m[serviceKey] = append(m[serviceKey], structsRef)
+		}
+	}
+	return m
+}
+
+func serviceRefFromStructs(a structs.ServiceRouteReferences) map[string]*ListOfResourceReference {
+	m := make(map[string]*ListOfResourceReference, len(a))
+
+	for serviceKey, refs := range a {
+		key := string(serviceKey)
+		m[key] = &ListOfResourceReference{Ref: make([]*ResourceReference, len(refs))}
+		for _, ref := range refs {
+			resourceRef := &ResourceReference{}
+			ResourceReferenceFromStructs(&ref, resourceRef)
+			m[key].Ref = append(m[key].Ref, resourceRef)
+		}
+	}
+	return m
+}
