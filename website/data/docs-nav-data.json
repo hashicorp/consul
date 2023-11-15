@@ -66,7 +66,170 @@
       }
     ]
   },
-
+  {
+    "title": "Architecture",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "architecture"
+      },
+      {
+        "title": "v1 APIs",
+        "routes": [
+          {
+            "title": "Agent",
+            "routes": [
+              {
+                "title": "ACL resolver",
+                "path": "architecture/v1/agent/acl"
+              },
+              {
+                "title": "Checks",
+                "path": "architecture/v1/agent/check"
+              },
+              {
+                "title": "Consul DNS",
+                "path": "architecture/v1/agent/dns"
+              },
+              {
+                "title": "HTTP API",
+                "path": "architecture/v1/agent/http-api"
+              },
+              {
+                "title": "Proxy configuration controller",
+                "path": "architecture/v1/agent/proxy-config"
+              }
+            ]
+          },
+          {
+            "title": "Server",
+            "routes": [
+              {
+                "title": "Raft",
+                "path": "architecture/v1/server/raft"
+              },
+              {
+                "title": "Remote procude calls (RPCs)",
+                "path": "architecture/v1/server/rpc"
+              }
+            ]
+          },
+          {
+            "title": "State",
+            "routes": [
+              {
+                "title": "ACLs",
+                "path": "architecture/v1/state/acl"
+              },
+              {
+                "title": "Catalog",
+                "path": "architecture/v1/state/catalog"
+              },
+              {
+                "title": "Cloud auto-pilot",
+                "path": "architecture/v1/state/autopilot"
+              },
+              {
+                "title": "Cluster peering API",
+                "path": "architecture/v1/state/peering"
+              },
+              {
+                "title": "Gateway manager",
+                "path": "architecture/v1/state/gateway"
+              },
+              {
+                "title": "Key-value (KV) store",
+                "path": "architecture/v1/state/kv"
+              },
+              {
+                "title": "Network areas",
+                "path": "architecture/v1/state/area"
+              },
+              {
+                "title": "Network coordinates",
+                "path": "architecture/v1/state/coordinate"
+              },
+              {
+                "title": "Prepared query API",
+                "path": "architecture/v1/state/prepared-query"
+              },
+              {
+                "title": "Service mesh management",
+                "path": "architecture/v1/state/mesh"
+              },
+              {
+                "title": "Sessions and notifications",
+                "path": "architecture/v1/state/session"
+              },
+              {
+                "title": "WAN federation",
+                "path": "architecture/v1/state/federation"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "v2 APIs",
+        "routes": [
+          {
+            "title": "Agent",
+            "path": "architecture/v2/agent"
+          },
+          {
+            "title": "Consul dataplanes",
+            "path": "architecture/v2/consul-dataplane"
+          },
+          {
+            "title": "Server",
+            "routes": [
+              {
+                "title": "ACLs",
+                "path": "architecture/v2/server/acl"
+              },
+              {
+                "title": "Catalog",
+                "path": "architecture/v2/server/catalog"
+              },
+              {
+                "title": "Consul DNS",
+                "path": "architecture/v2/server/dns"
+              },
+              {
+                "title": "Gossip",
+                "path": "architecture/v2/server/gossip"
+              },
+              {
+                "title": "Health checks",
+                "path": "architecture/v2/server/health-check"
+              },
+              {
+                "title": "Service mesh management",
+                "path": "architecture/v2/server/mesh"
+              },
+              {
+                "title": "Watches",
+                "path": "architecture/v2/server/watch"
+              }
+            ]
+          },
+          {
+            "title": "State",
+            "routes": [
+              {
+                "title": "Raft",
+                "path": "architecture/v2/state/raft"
+              },
+              {
+                "title": "State backends",
+                "path": "architecture/v2/state/backend"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
   {
     "divider": true
   },
@@ -1523,170 +1686,6 @@
   {
     "title": "Glossary",
     "path": "glossary"
-  },
-  {
-    "title": "Architecture",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "architecture"
-      },
-      {
-        "title": "v1 APIs",
-        "routes": [
-          {
-            "title": "Agent",
-            "routes": [
-              {
-                "title": "ACL resolver",
-                "path": "architecture/v1/agent/acl"
-              },
-              {
-                "title": "Checks",
-                "path": "architecture/v1/agent/check"
-              },
-              {
-                "title": "Consul DNS",
-                "path": "architecture/v1/agent/dns"
-              },
-              {
-                "title": "HTTP API",
-                "path": "architecture/v1/agent/http-api"
-              },
-              {
-                "title": "Proxy configuration controller",
-                "path": "architecture/v1/agent/proxy-config"
-              }
-            ]
-          },
-          {
-            "title": "Server",
-            "routes": [
-              {
-                "title": "Raft",
-                "path": "architecture/v1/server/raft"
-              },
-              {
-                "title": "Remote procude calls (RPCs)",
-                "path": "architecture/v1/server/rpc"
-              }
-            ]
-          },
-          {
-            "title": "State",
-            "routes": [
-              {
-                "title": "ACLs",
-                "path": "architecture/v1/state/acl"
-              },
-              {
-                "title": "Catalog",
-                "path": "architecture/v1/state/catalog"
-              },
-              {
-                "title": "Cloud auto-pilot",
-                "path": "architecture/v1/state/autopilot"
-              },
-              {
-                "title": "Cluster peering API",
-                "path": "architecture/v1/state/peering"
-              },
-              {
-                "title": "Gateway manager",
-                "path": "architecture/v1/state/gateway"
-              },
-              {
-                "title": "Key-value (KV) store",
-                "path": "architecture/v1/state/kv"
-              },
-              {
-                "title": "Network areas",
-                "path": "architecture/v1/state/area"
-              },
-              {
-                "title": "Network coordinates",
-                "path": "architecture/v1/state/coordinate"
-              },
-              {
-                "title": "Prepared query API",
-                "path": "architecture/v1/state/prepared-query"
-              },
-              {
-                "title": "Service mesh management",
-                "path": "architecture/v1/state/mesh"
-              },
-              {
-                "title": "Sessions and notifications",
-                "path": "architecture/v1/state/session"
-              },
-              {
-                "title": "WAN federation",
-                "path": "architecture/v1/state/federation"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "v2 APIs",
-        "routes": [
-          {
-            "title": "Agent",
-            "path": "architecture/v2/agent"
-          },
-          {
-            "title": "Consul dataplanes",
-            "path": "architecture/v2/consul-dataplane"
-          },
-          {
-            "title": "Server",
-            "routes": [
-              {
-                "title": "ACLs",
-                "path": "architecture/v2/server/acl"
-              },
-              {
-                "title": "Catalog",
-                "path": "architecture/v2/server/catalog"
-              },
-              {
-                "title": "Consul DNS",
-                "path": "architecture/v2/server/dns"
-              },
-              {
-                "title": "Gossip",
-                "path": "architecture/v2/server/gossip"
-              },
-              {
-                "title": "Health checks",
-                "path": "architecture/v2/server/health-check"
-              },
-              {
-                "title": "Service mesh management",
-                "path": "architecture/v2/server/mesh"
-              },
-              {
-                "title": "Watches",
-                "path": "architecture/v2/server/watch"
-              }
-            ]
-          },
-          {
-            "title": "State",
-            "routes": [
-              {
-                "title": "Raft",
-                "path": "architecture/v2/state/raft"
-              },
-              {
-                "title": "State backends",
-                "path": "architecture/v2/state/backend"
-              }
-            ]
-          }
-        ]
-      }
-    ]
   },
   {
     "title": "Concepts",
