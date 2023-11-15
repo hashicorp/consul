@@ -64,8 +64,14 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
 3. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
-is set to `debug`. After doing this, issue the following command on your servers to
-reload the configuration:
+is set to `debug`. After doing this, issue the following command on your servers to reload the configuration:
+
+```
+consul reload
+```
+
+This change will give you more information to work with in the event something goes wrong.
+
 4. Modify the following config entries if applicable :-
 
     service resolver: 
