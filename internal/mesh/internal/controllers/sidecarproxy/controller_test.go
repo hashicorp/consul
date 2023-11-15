@@ -566,8 +566,8 @@ func (suite *controllerTestSuite) TestController() {
 		// Run the controller manager
 		var (
 			// Create proxy state template IDs to check against in this test.
-			apiProxyStateTemplateID = resourcetest.ResourceWithTenancy(pbmesh.ProxyStateTemplateType, "api-abc", tenancy).ID()
-			webProxyStateTemplateID = resourcetest.ResourceWithTenancy(pbmesh.ProxyStateTemplateType, "web-def", tenancy).ID()
+			apiProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").WithTenancy(tenancy).ID()
+			webProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "web-def").WithTenancy(tenancy).ID()
 
 			apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.apiService.Id)
 			dbComputedRoutesID  = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService.Id)
