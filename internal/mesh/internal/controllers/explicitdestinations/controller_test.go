@@ -5,6 +5,7 @@ package explicitdestinations
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -57,135 +58,147 @@ type controllerTestSuite struct {
 	destService3Routes *pbmesh.ComputedRoutes
 
 	expComputedDest *pbmesh.ComputedExplicitDestinations
+	tenancies       []*pbresource.Tenancy
 }
 
 func TestFindDuplicates(t *testing.T) {
 	// Create some conflicting destinations.
-	dest1 := &pbmesh.Destinations{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Names: []string{"foo"},
-		},
-		Destinations: []*pbmesh.Destination{
-			{
-				ListenAddr: &pbmesh.Destination_IpPort{
-					IpPort: &pbmesh.IPPortAddress{
-						Ip:   "127.0.0.1",
-						Port: 1000,
+	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest1 := &pbmesh.Destinations{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"foo"},
+			},
+			Destinations: []*pbmesh.Destination{
+				{
+					ListenAddr: &pbmesh.Destination_IpPort{
+						IpPort: &pbmesh.IPPortAddress{
+							Ip:   "127.0.0.1",
+							Port: 1000,
+						},
+					},
+				},
+				{
+					ListenAddr: &pbmesh.Destination_IpPort{
+						IpPort: &pbmesh.IPPortAddress{
+							Ip:   "127.0.0.1",
+							Port: 2000,
+						},
 					},
 				},
 			},
-			{
-				ListenAddr: &pbmesh.Destination_IpPort{
-					IpPort: &pbmesh.IPPortAddress{
-						Ip:   "127.0.0.1",
-						Port: 2000,
+		}
+		dest2 := &pbmesh.Destinations{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"foo"},
+			},
+			Destinations: []*pbmesh.Destination{
+				{
+					ListenAddr: &pbmesh.Destination_IpPort{
+						IpPort: &pbmesh.IPPortAddress{
+							Ip:   "127.0.0.1",
+							Port: 1000,
+						},
 					},
 				},
 			},
-		},
-	}
-	dest2 := &pbmesh.Destinations{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Names: []string{"foo"},
-		},
-		Destinations: []*pbmesh.Destination{
-			{
-				ListenAddr: &pbmesh.Destination_IpPort{
-					IpPort: &pbmesh.IPPortAddress{
-						Ip:   "127.0.0.1",
-						Port: 1000,
+		}
+		dest3 := &pbmesh.Destinations{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"foo"},
+			},
+			Destinations: []*pbmesh.Destination{
+				{
+					ListenAddr: &pbmesh.Destination_Unix{
+						Unix: &pbmesh.UnixSocketAddress{
+							Path: "/foo/bar",
+						},
 					},
 				},
 			},
-		},
-	}
-	dest3 := &pbmesh.Destinations{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Names: []string{"foo"},
-		},
-		Destinations: []*pbmesh.Destination{
-			{
-				ListenAddr: &pbmesh.Destination_Unix{
-					Unix: &pbmesh.UnixSocketAddress{
-						Path: "/foo/bar",
+		}
+		dest4 := &pbmesh.Destinations{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"foo"},
+			},
+			Destinations: []*pbmesh.Destination{
+				{
+					ListenAddr: &pbmesh.Destination_Unix{
+						Unix: &pbmesh.UnixSocketAddress{
+							Path: "/foo/bar",
+						},
 					},
 				},
 			},
-		},
-	}
-	dest4 := &pbmesh.Destinations{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Names: []string{"foo"},
-		},
-		Destinations: []*pbmesh.Destination{
-			{
-				ListenAddr: &pbmesh.Destination_Unix{
-					Unix: &pbmesh.UnixSocketAddress{
-						Path: "/foo/bar",
+		}
+		destNonConflicting := &pbmesh.Destinations{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Names: []string{"foo"},
+			},
+			Destinations: []*pbmesh.Destination{
+				{
+					ListenAddr: &pbmesh.Destination_IpPort{
+						IpPort: &pbmesh.IPPortAddress{
+							Ip:   "127.0.0.1",
+							Port: 3000,
+						},
+					},
+				},
+				{
+					ListenAddr: &pbmesh.Destination_Unix{
+						Unix: &pbmesh.UnixSocketAddress{
+							Path: "/baz/bar",
+						},
 					},
 				},
 			},
-		},
-	}
-	destNonConflicting := &pbmesh.Destinations{
-		Workloads: &pbcatalog.WorkloadSelector{
-			Names: []string{"foo"},
-		},
-		Destinations: []*pbmesh.Destination{
-			{
-				ListenAddr: &pbmesh.Destination_IpPort{
-					IpPort: &pbmesh.IPPortAddress{
-						Ip:   "127.0.0.1",
-						Port: 3000,
-					},
-				},
-			},
-			{
-				ListenAddr: &pbmesh.Destination_Unix{
-					Unix: &pbmesh.UnixSocketAddress{
-						Path: "/baz/bar",
-					},
-				},
-			},
-		},
-	}
+		}
 
-	var destinations []*types.DecodedDestinations
-	dest1Res := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(t, dest1).
-		Build()
-	destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest1Res))
-	dest2Res := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-		WithData(t, dest2).
-		Build()
-	destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest2Res))
-	dest3Res := resourcetest.Resource(pbmesh.DestinationsType, "dest3").
-		WithData(t, dest3).
-		Build()
-	destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest3Res))
-	dest4Res := resourcetest.Resource(pbmesh.DestinationsType, "dest4").
-		WithData(t, dest4).
-		Build()
-	destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest4Res))
-	nonConflictingDestRes := resourcetest.Resource(pbmesh.DestinationsType, "nonConflictingDest").
-		WithData(t, destNonConflicting).
-		Build()
-	destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, nonConflictingDestRes))
+		var destinations []*types.DecodedDestinations
+		dest1Res := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithData(t, dest1).
+			WithTenancy(tenancy).
+			Build()
+		destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest1Res))
+		dest2Res := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+			WithData(t, dest2).
+			WithTenancy(tenancy).
+			Build()
+		destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest2Res))
+		dest3Res := resourcetest.Resource(pbmesh.DestinationsType, "dest3").
+			WithData(t, dest3).
+			WithTenancy(tenancy).
+			Build()
+		destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest3Res))
+		dest4Res := resourcetest.Resource(pbmesh.DestinationsType, "dest4").
+			WithData(t, dest4).
+			WithTenancy(tenancy).
+			Build()
+		destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, dest4Res))
+		nonConflictingDestRes := resourcetest.Resource(pbmesh.DestinationsType, "nonConflictingDest").
+			WithData(t, destNonConflicting).
+			WithTenancy(tenancy).
+			Build()
+		destinations = append(destinations, resourcetest.MustDecode[*pbmesh.Destinations](t, nonConflictingDestRes))
 
-	duplicates := findConflicts(destinations)
+		duplicates := findConflicts(destinations)
 
-	require.Contains(t, duplicates, resource.NewReferenceKey(dest1Res.Id))
-	require.Contains(t, duplicates, resource.NewReferenceKey(dest2Res.Id))
-	require.Contains(t, duplicates, resource.NewReferenceKey(dest3Res.Id))
-	require.Contains(t, duplicates, resource.NewReferenceKey(dest4Res.Id))
-	require.NotContains(t, duplicates, resource.NewReferenceKey(nonConflictingDestRes.Id))
+		require.Contains(t, duplicates, resource.NewReferenceKey(dest1Res.Id))
+		require.Contains(t, duplicates, resource.NewReferenceKey(dest2Res.Id))
+		require.Contains(t, duplicates, resource.NewReferenceKey(dest3Res.Id))
+		require.Contains(t, duplicates, resource.NewReferenceKey(dest4Res.Id))
+		require.NotContains(t, duplicates, resource.NewReferenceKey(nonConflictingDestRes.Id))
+	}, t)
 }
 
 func (suite *controllerTestSuite) SetupTest() {
-	resourceClient := svctest.RunResourceService(suite.T(), types.Register, catalog.RegisterTypes)
-	suite.client = resourcetest.NewClient(resourceClient)
+	suite.tenancies = resourcetest.TestTenancies()
+	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
+	suite.client = resourcetest.NewClient(resourceClient)
+}
+
+func (suite *controllerTestSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 
 	suite.ctl = &reconciler{
 		mapper: mapper.New(),
@@ -202,7 +215,12 @@ func (suite *controllerTestSuite) SetupTest() {
 
 	suite.workloadRes = resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
 		WithData(suite.T(), suite.workload).
+		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(func() {
+		suite.client.MustDelete(suite.T(), suite.workloadRes.Id)
+	})
 
 	suite.serviceData = &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{Names: []string{"service-1-workloads"}},
@@ -222,17 +240,30 @@ func (suite *controllerTestSuite) SetupTest() {
 		},
 	}
 	suite.destService1 = resourcetest.Resource(pbcatalog.ServiceType, "dest-service-1").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		WithData(suite.T(), suite.serviceData).
 		Build()
+
+	suite.T().Cleanup(func() {
+		suite.client.MustDelete(suite.T(), suite.destService1.Id)
+	})
+
 	suite.destService2 = resourcetest.Resource(pbcatalog.ServiceType, "dest-service-2").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		WithData(suite.T(), suite.serviceData).
 		Build()
+	suite.T().Cleanup(func() {
+		suite.client.MustDelete(suite.T(), suite.destService2.Id)
+	})
+
 	suite.destService3 = resourcetest.Resource(pbcatalog.ServiceType, "dest-service-3").
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		WithData(suite.T(), suite.serviceData).
 		Build()
+
+	suite.T().Cleanup(func() {
+		suite.client.MustDelete(suite.T(), suite.destService3.Id)
+	})
 
 	suite.destService1Ref = resource.Reference(suite.destService1.Id, "")
 	suite.destService2Ref = resource.Reference(suite.destService2.Id, "")
@@ -353,373 +384,430 @@ func (suite *controllerTestSuite) SetupTest() {
 }
 
 func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
-	id := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, "not-found").ID()
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Build()
-	decDest := resourcetest.MustDecode[*pbmesh.Destinations](suite.T(), dest)
-	suite.ctl.mapper.TrackDestinations(id, []*types.DecodedDestinations{decDest})
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		id := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, "not-found").WithTenancy(tenancy).ID()
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Build()
+		decDest := resourcetest.MustDecode[*pbmesh.Destinations](suite.T(), dest)
+		suite.ctl.mapper.TrackDestinations(id, []*types.DecodedDestinations{decDest})
 
-	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: id,
+		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: id,
+		})
+		require.NoError(suite.T(), err)
+
+		suite.client.RequireResourceNotFound(suite.T(), id)
+
+		// Check that we're not tracking services for this workload anymore.
+		reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
+		require.NoError(suite.T(), err)
+		require.Nil(suite.T(), reqs)
+
+		reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
+		require.NoError(suite.T(), err)
+		require.Nil(suite.T(), reqs)
 	})
-	require.NoError(suite.T(), err)
-
-	suite.client.RequireResourceNotFound(suite.T(), id)
-
-	// Check that we're not tracking services for this workload anymore.
-	reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), reqs)
-
-	reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), reqs)
 }
 
 func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
-	resourcetest.Resource(pbcatalog.WorkloadType, "non-mesh").
-		WithData(suite.T(), &pbcatalog.Workload{
-			Addresses: []*pbcatalog.WorkloadAddress{{Host: "1.1.1.1"}},
-			Ports: map[string]*pbcatalog.WorkloadPort{
-				"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-			},
-		}).
-		Write(suite.T(), suite.client)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		resourcetest.Resource(pbcatalog.WorkloadType, "non-mesh").
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbcatalog.Workload{
+				Addresses: []*pbcatalog.WorkloadAddress{{Host: "1.1.1.1"}},
+				Ports: map[string]*pbcatalog.WorkloadPort{
+					"tcp": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				},
+			}).
+			Write(suite.T(), suite.client)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, "non-mesh").
-		Write(suite.T(), suite.client).Id
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, "non-mesh").
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
 
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Build()
-	decDest := resourcetest.MustDecode[*pbmesh.Destinations](suite.T(), dest)
-	suite.ctl.mapper.TrackDestinations(cdID, []*types.DecodedDestinations{decDest})
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Build()
+		decDest := resourcetest.MustDecode[*pbmesh.Destinations](suite.T(), dest)
+		suite.ctl.mapper.TrackDestinations(cdID, []*types.DecodedDestinations{decDest})
 
-	err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		// Check that we're not tracking services for this workload anymore.
+		reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
+		require.NoError(suite.T(), err)
+		require.Nil(suite.T(), reqs)
+
+		reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
+		require.NoError(suite.T(), err)
+		require.Nil(suite.T(), reqs)
 	})
-	require.NoError(suite.T(), err)
-
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	// Check that we're not tracking services for this workload anymore.
-	reqs, err := suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService1)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), reqs)
-
-	reqs, err = suite.ctl.mapper.MapService(context.TODO(), controller.Runtime{}, suite.destService2)
-	require.NoError(suite.T(), err)
-	require.Nil(suite.T(), reqs)
 }
 
-func (suite *controllerTestSuite) writeServices(t *testing.T) {
+func (suite *controllerTestSuite) writeServices(t *testing.T, tenancy *pbresource.Tenancy) {
 	// Write all services.
 	resourcetest.Resource(pbcatalog.ServiceType, suite.destService1Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.serviceData).
 		Write(t, suite.client)
 	resourcetest.Resource(pbcatalog.ServiceType, suite.destService2Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.serviceData).
 		Write(t, suite.client)
 	resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.serviceData).
 		Write(t, suite.client)
 }
 
-func (suite *controllerTestSuite) writeComputedRoutes(t *testing.T) {
+func (suite *controllerTestSuite) writeComputedRoutes(t *testing.T, tenancy *pbresource.Tenancy) {
 	// Write computed routes
 	resourcetest.Resource(pbmesh.ComputedRoutesType, suite.destService1Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.destService1Routes).
 		Write(t, suite.client)
 	resourcetest.Resource(pbmesh.ComputedRoutesType, suite.destService2Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.destService2Routes).
 		Write(t, suite.client)
 	resourcetest.Resource(pbmesh.ComputedRoutesType, suite.destService3Ref.Name).
+		WithTenancy(tenancy).
 		WithData(t, suite.destService3Routes).
 		Write(t, suite.client)
 }
 
 func (suite *controllerTestSuite) TestReconcile_HappyPath() {
-	// Add configs in reverse alphabetical order.
-	d2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d2)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		// Add configs in reverse alphabetical order.
+		d2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d2)
+		require.NoError(suite.T(), err)
 
-	d1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Write(suite.T(), suite.client)
-	_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d1)
-	require.NoError(suite.T(), err)
+		d1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Write(suite.T(), suite.client)
+		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, d1)
+		require.NoError(suite.T(), err)
 
-	suite.writeServices(suite.T())
-	suite.writeComputedRoutes(suite.T())
+		suite.writeServices(suite.T(), tenancy)
+		suite.writeComputedRoutes(suite.T(), tenancy)
 
-	cdID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id)
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		cdID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id)
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+
+		require.NoError(suite.T(), err)
+
+		suite.requireComputedDestinations(suite.T(), cdID)
+		suite.client.RequireStatusCondition(suite.T(), d1.Id, ControllerName, ConditionDestinationsAccepted())
 	})
-
-	require.NoError(suite.T(), err)
-
-	suite.requireComputedDestinations(suite.T(), cdID)
-	suite.client.RequireStatusCondition(suite.T(), d1.Id, ControllerName, ConditionDestinationsAccepted())
 }
 
 func (suite *controllerTestSuite) TestReconcile_NoDestinations() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest1).
-		Build()
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Build()
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+
+		require.NoError(suite.T(), err)
+
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
 	})
-
-	require.NoError(suite.T(), err)
-
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
 }
 
 func (suite *controllerTestSuite) TestReconcile_AllDestinationsInvalid() {
-	// We add a destination with services refs that don't exist which should result
-	// in computed mapper being deleted because all mapper are invalid.
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest1).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		// We add a destination with services refs that don't exist which should result
+		// in computed mapper being deleted because all mapper are invalid.
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+
+		require.NoError(suite.T(), err)
+
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
 	})
-
-	require.NoError(suite.T(), err)
-
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ConflictingDestination() {
-	dest1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest1)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest1)
+		require.NoError(suite.T(), err)
 
-	// Write a conflicting destinations resource.
-	destData := proto.Clone(suite.dest2).(*pbmesh.Destinations)
-	destData.Destinations[0] = suite.dest1.Destinations[0]
+		// Write a conflicting destinations resource.
+		destData := proto.Clone(suite.dest2).(*pbmesh.Destinations)
+		destData.Destinations[0] = suite.dest1.Destinations[0]
 
-	dest2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-		WithData(suite.T(), destData).
-		Write(suite.T(), suite.client)
-	_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
-	require.NoError(suite.T(), err)
+		dest2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+			WithTenancy(tenancy).
+			WithData(suite.T(), destData).
+			Write(suite.T(), suite.client)
+		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
+		require.NoError(suite.T(), err)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		// Expect that the status on both resource is updated showing conflict.
+		suite.client.RequireStatusCondition(suite.T(), dest1.Id, ControllerName,
+			ConditionConflictFound(suite.workloadRes.Id))
+		suite.client.RequireStatusCondition(suite.T(), dest2.Id, ControllerName,
+			ConditionConflictFound(suite.workloadRes.Id))
+
+		// Update dest2 back to have non-conflicting data.
+		dest2 = resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
+		require.NoError(suite.T(), err)
+
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+
+		// Expect status on both to be updated to say that there's no conflict.
+		suite.client.RequireStatusCondition(suite.T(), dest1.Id, ControllerName,
+			ConditionConflictNotFound)
+		suite.client.RequireStatusCondition(suite.T(), dest2.Id, ControllerName,
+			ConditionConflictNotFound)
 	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	// Expect that the status on both resource is updated showing conflict.
-	suite.client.RequireStatusCondition(suite.T(), dest1.Id, ControllerName,
-		ConditionConflictFound(suite.workloadRes.Id))
-	suite.client.RequireStatusCondition(suite.T(), dest2.Id, ControllerName,
-		ConditionConflictFound(suite.workloadRes.Id))
-
-	// Update dest2 back to have non-conflicting data.
-	dest2 = resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err = suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest2)
-	require.NoError(suite.T(), err)
-
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
-	})
-	require.NoError(suite.T(), err)
-
-	// Expect status on both to be updated to say that there's no conflict.
-	suite.client.RequireStatusCondition(suite.T(), dest1.Id, ControllerName,
-		ConditionConflictNotFound)
-	suite.client.RequireStatusCondition(suite.T(), dest2.Id, ControllerName,
-		ConditionConflictNotFound)
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_NoService() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
-	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
 
-	suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
-		ConditionDestinationServiceNotFound(resource.ReferenceToString(suite.destService3Ref)))
+		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
+			ConditionDestinationServiceNotFound(resource.ReferenceToString(suite.destService3Ref)))
+	})
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ServiceNotOnMesh() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
-		WithData(suite.T(), &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
-			Ports: []*pbcatalog.ServicePort{
-				{
-					TargetPort: "tcp",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
+				Ports: []*pbcatalog.ServicePort{
+					{
+						TargetPort: "tcp",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+					},
 				},
-			},
-		}).
-		Write(suite.T(), suite.client)
+			}).
+			Write(suite.T(), suite.client)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
 
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
+			ConditionMeshProtocolNotFound(resource.ReferenceToString(suite.destService3Ref)))
 	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
-		ConditionMeshProtocolNotFound(resource.ReferenceToString(suite.destService3Ref)))
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_DestinationPortIsMesh() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
-		WithData(suite.T(), &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
-			Ports: []*pbcatalog.ServicePort{
-				{
-					TargetPort: "tcp",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
+				Ports: []*pbcatalog.ServicePort{
+					{
+						TargetPort: "tcp",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+					},
 				},
-			},
-		}).
-		Write(suite.T(), suite.client)
+			}).
+			Write(suite.T(), suite.client)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
 
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
+			ConditionMeshProtocolDestinationPort(resource.ReferenceToString(suite.destService3Ref), "tcp"))
 	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
-		ConditionMeshProtocolDestinationPort(resource.ReferenceToString(suite.destService3Ref), "tcp"))
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesNotFound() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
-		WithData(suite.T(), &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
-			Ports: []*pbcatalog.ServicePort{
-				{
-					TargetPort: "tcp",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+		resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
+				Ports: []*pbcatalog.ServicePort{
+					{
+						TargetPort: "tcp",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					{
+						TargetPort: "mesh",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+					},
 				},
-				{
-					TargetPort: "mesh",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-				},
-			},
-		}).
-		Write(suite.T(), suite.client)
+			}).
+			Write(suite.T(), suite.client)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
 
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
+			ConditionDestinationComputedRoutesNotFound(resource.ReferenceToString(suite.destService3Ref)))
 	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
-		ConditionDestinationComputedRoutesNotFound(resource.ReferenceToString(suite.destService3Ref)))
 }
 
 func (suite *controllerTestSuite) TestReconcile_StatusUpdate_ComputedRoutesPortNotFound() {
-	dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-	_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
-	require.NoError(suite.T(), err)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		dest := resourcetest.Resource(pbmesh.DestinationsType, "dest").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
+		_, err := suite.ctl.mapper.MapDestinations(suite.ctx, suite.runtime, dest)
+		require.NoError(suite.T(), err)
 
-	destService := resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
-		WithData(suite.T(), &pbcatalog.Service{
-			Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
-			Ports: []*pbcatalog.ServicePort{
-				{
-					TargetPort: "tcp",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
-				},
-				{
-					TargetPort: "mesh",
-					Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-				},
-			},
-		}).
-		Write(suite.T(), suite.client)
-
-	resourcetest.Resource(pbmesh.ComputedRoutesType, destService.Id.Name).
-		WithData(suite.T(), &pbmesh.ComputedRoutes{
-			PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
-				"some-other-port": {
-					Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
-					Config: &pbmesh.ComputedPortRoutes_Http{
-						Http: &pbmesh.ComputedHTTPRoute{},
+		destService := resourcetest.Resource(pbcatalog.ServiceType, suite.destService3Ref.Name).
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbcatalog.Service{
+				Workloads: &pbcatalog.WorkloadSelector{Names: []string{suite.workloadRes.Id.Name}},
+				Ports: []*pbcatalog.ServicePort{
+					{
+						TargetPort: "tcp",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+					},
+					{
+						TargetPort: "mesh",
+						Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
 					},
 				},
-			},
-		}).
-		Write(suite.T(), suite.client)
+			}).
+			Write(suite.T(), suite.client)
 
-	cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
-		Write(suite.T(), suite.client).Id
+		resourcetest.Resource(pbmesh.ComputedRoutesType, destService.Id.Name).
+			WithTenancy(tenancy).
+			WithData(suite.T(), &pbmesh.ComputedRoutes{
+				PortedConfigs: map[string]*pbmesh.ComputedPortRoutes{
+					"some-other-port": {
+						Protocol: pbcatalog.Protocol_PROTOCOL_HTTP,
+						Config: &pbmesh.ComputedPortRoutes_Http{
+							Http: &pbmesh.ComputedHTTPRoute{},
+						},
+					},
+				},
+			}).
+			Write(suite.T(), suite.client)
 
-	err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-		ID: cdID,
+		cdID := resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id.Name).
+			WithTenancy(tenancy).
+			Write(suite.T(), suite.client).Id
+
+		err = suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: cdID,
+		})
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), cdID)
+
+		suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
+			ConditionDestinationComputedRoutesPortNotFound(resource.ReferenceToString(suite.destService3Ref), "tcp"))
 	})
-	require.NoError(suite.T(), err)
-	suite.client.RequireResourceNotFound(suite.T(), cdID)
-
-	suite.client.RequireStatusCondition(suite.T(), dest.Id, ControllerName,
-		ConditionDestinationComputedRoutesPortNotFound(resource.ReferenceToString(suite.destService3Ref), "tcp"))
 }
 
 func (suite *controllerTestSuite) TestController() {
@@ -730,106 +818,113 @@ func (suite *controllerTestSuite) TestController() {
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	cdID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id)
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		cdID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, suite.workloadRes.Id)
 
-	dest1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
-		WithData(suite.T(), suite.dest1).
-		Write(suite.T(), suite.client)
-
-	// At this point, none of the services or routes yet exist and so we should see the status of the destinations
-	// resource to reflect that. The CED resource should not be created in this case.
-	testutil.RunStep(suite.T(), "check that destinations status is updated", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			serviceRef := resource.IDToString(suite.destService1.Id)
-			suite.client.WaitForStatusCondition(r, dest1.Id, ControllerName, ConditionDestinationServiceNotFound(serviceRef))
-
-			suite.client.RequireResourceNotFound(r, cdID)
-		})
-	})
-
-	dest2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-		WithData(suite.T(), suite.dest2).
-		Write(suite.T(), suite.client)
-
-	suite.writeServices(suite.T())
-
-	// After we write services, we expect another reconciliation to be kicked off to validate and find that there are no computed routes.
-	testutil.RunStep(suite.T(), "check that destinations status says that there are no computed routes", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			suite.client.WaitForStatusCondition(r, dest1.Id, ControllerName,
-				ConditionDestinationComputedRoutesNotFound(resource.IDToString(suite.destService1.Id)))
-			suite.client.WaitForStatusCondition(r, dest2.Id, ControllerName,
-				ConditionDestinationComputedRoutesNotFound(resource.IDToString(suite.destService3.Id)))
-
-			suite.client.RequireResourceNotFound(r, cdID)
-		})
-	})
-
-	// Now write computed routes to get a computed resource.
-	suite.writeComputedRoutes(suite.T())
-
-	testutil.RunStep(suite.T(), "computed destinations generation", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceExists(r, cdID)
-			suite.requireComputedDestinations(r, cdID)
-		})
-	})
-
-	testutil.RunStep(suite.T(), "add another workload", func(t *testing.T) {
-		// Create another workload that will match only dest2.
-		matchingWorkload := resourcetest.Resource(pbcatalog.WorkloadType, "test-extra-workload").
-			WithData(t, suite.workload).
-			Write(t, suite.client)
-		matchingWorkloadCDID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, matchingWorkload.Id)
-
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceExists(r, cdID)
-			suite.requireComputedDestinations(r, cdID)
-
-			matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)
-			dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, matchingWorkloadCD)
-			prototest.AssertDeepEqual(r, suite.dest2.GetDestinations(), dec.GetData().GetDestinations())
-		})
-	})
-
-	testutil.RunStep(suite.T(), "update workload selector", func(t *testing.T) {
-		// Update workload selector to no point to some non-existing workload
-		updatedDestinations := proto.Clone(suite.dest2).(*pbmesh.Destinations)
-		updatedDestinations.Workloads = &pbcatalog.WorkloadSelector{
-			Names: []string{"other-workload"},
-		}
-
-		matchingWorkload := resourcetest.Resource(pbcatalog.WorkloadType, "other-workload").
-			WithData(t, suite.workload).
-			Write(t, suite.client)
-		matchingWorkloadCDID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, matchingWorkload.Id)
-		resourcetest.Resource(pbmesh.DestinationsType, "dest2").
-			WithData(suite.T(), updatedDestinations).
+		dest1 := resourcetest.Resource(pbmesh.DestinationsType, "dest1").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest1).
 			Write(suite.T(), suite.client)
 
-		retry.Run(t, func(r *retry.R) {
-			res := suite.client.RequireResourceExists(r, cdID)
+		// At this point, none of the services or routes yet exist and so we should see the status of the destinations
+		// resource to reflect that. The CED resource should not be created in this case.
+		testutil.RunStep(suite.T(), "check that destinations status is updated", func(t *testing.T) {
+			retry.Run(t, func(r *retry.R) {
+				serviceRef := resource.IDToString(suite.destService1.Id)
+				suite.client.WaitForStatusCondition(r, dest1.Id, ControllerName, ConditionDestinationServiceNotFound(serviceRef))
 
-			// The "test-workload" computed destinations should now be updated to use only proxy dest1.
-			expDest := &pbmesh.ComputedExplicitDestinations{
-				Destinations: suite.dest1.Destinations,
-			}
-			dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, res)
-			prototest.AssertDeepEqual(r, expDest.GetDestinations(), dec.GetData().GetDestinations())
-
-			matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)
-			dec = resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, matchingWorkloadCD)
-			prototest.AssertDeepEqual(r, suite.dest2.GetDestinations(), dec.GetData().GetDestinations())
+				suite.client.RequireResourceNotFound(r, cdID)
+			})
 		})
-	})
 
-	// Delete all destinations.
-	suite.client.MustDelete(suite.T(), dest1.Id)
-	suite.client.MustDelete(suite.T(), dest2.Id)
+		dest2 := resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+			WithTenancy(tenancy).
+			WithData(suite.T(), suite.dest2).
+			Write(suite.T(), suite.client)
 
-	testutil.RunStep(suite.T(), "all destinations are deleted", func(t *testing.T) {
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceNotFound(r, cdID)
+		suite.writeServices(suite.T(), tenancy)
+
+		// After we write services, we expect another reconciliation to be kicked off to validate and find that there are no computed routes.
+		testutil.RunStep(suite.T(), "check that destinations status says that there are no computed routes", func(t *testing.T) {
+			retry.Run(t, func(r *retry.R) {
+				suite.client.WaitForStatusCondition(r, dest1.Id, ControllerName,
+					ConditionDestinationComputedRoutesNotFound(resource.IDToString(suite.destService1.Id)))
+				suite.client.WaitForStatusCondition(r, dest2.Id, ControllerName,
+					ConditionDestinationComputedRoutesNotFound(resource.IDToString(suite.destService3.Id)))
+
+				suite.client.RequireResourceNotFound(r, cdID)
+			})
+		})
+
+		// Now write computed routes to get a computed resource.
+		suite.writeComputedRoutes(suite.T(), tenancy)
+
+		testutil.RunStep(suite.T(), "computed destinations generation", func(t *testing.T) {
+			retry.Run(t, func(r *retry.R) {
+				suite.client.RequireResourceExists(r, cdID)
+				suite.requireComputedDestinations(r, cdID)
+			})
+		})
+
+		testutil.RunStep(suite.T(), "add another workload", func(t *testing.T) {
+			// Create another workload that will match only dest2.
+			matchingWorkload := resourcetest.Resource(pbcatalog.WorkloadType, "test-extra-workload").
+				WithTenancy(tenancy).
+				WithData(t, suite.workload).
+				Write(t, suite.client)
+			matchingWorkloadCDID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, matchingWorkload.Id)
+
+			retry.Run(t, func(r *retry.R) {
+				suite.client.RequireResourceExists(r, cdID)
+				suite.requireComputedDestinations(r, cdID)
+
+				matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)
+				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, matchingWorkloadCD)
+				prototest.AssertDeepEqual(r, suite.dest2.GetDestinations(), dec.GetData().GetDestinations())
+			})
+		})
+
+		testutil.RunStep(suite.T(), "update workload selector", func(t *testing.T) {
+			// Update workload selector to no point to some non-existing workload
+			updatedDestinations := proto.Clone(suite.dest2).(*pbmesh.Destinations)
+			updatedDestinations.Workloads = &pbcatalog.WorkloadSelector{
+				Names: []string{"other-workload"},
+			}
+
+			matchingWorkload := resourcetest.Resource(pbcatalog.WorkloadType, "other-workload").
+				WithData(t, suite.workload).
+				WithTenancy(tenancy).
+				Write(t, suite.client)
+			matchingWorkloadCDID := resource.ReplaceType(pbmesh.ComputedExplicitDestinationsType, matchingWorkload.Id)
+			resourcetest.Resource(pbmesh.DestinationsType, "dest2").
+				WithTenancy(tenancy).
+				WithData(suite.T(), updatedDestinations).
+				Write(suite.T(), suite.client)
+
+			retry.Run(t, func(r *retry.R) {
+				res := suite.client.RequireResourceExists(r, cdID)
+
+				// The "test-workload" computed destinations should now be updated to use only proxy dest1.
+				expDest := &pbmesh.ComputedExplicitDestinations{
+					Destinations: suite.dest1.Destinations,
+				}
+				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, res)
+				prototest.AssertDeepEqual(r, expDest.GetDestinations(), dec.GetData().GetDestinations())
+
+				matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)
+				dec = resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, matchingWorkloadCD)
+				prototest.AssertDeepEqual(r, suite.dest2.GetDestinations(), dec.GetData().GetDestinations())
+			})
+		})
+
+		// Delete all destinations.
+		suite.client.MustDelete(suite.T(), dest1.Id)
+		suite.client.MustDelete(suite.T(), dest2.Id)
+
+		testutil.RunStep(suite.T(), "all destinations are deleted", func(t *testing.T) {
+			retry.Run(t, func(r *retry.R) {
+				suite.client.RequireResourceNotFound(r, cdID)
+			})
 		})
 	})
 }
@@ -843,4 +938,17 @@ func (suite *controllerTestSuite) requireComputedDestinations(t resourcetest.T, 
 	decCD := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, cdRes)
 	prototest.AssertElementsMatch(t, suite.expComputedDest.GetDestinations(), decCD.Data.GetDestinations())
 	resourcetest.RequireOwner(t, cdRes, resource.ReplaceType(pbcatalog.WorkloadType, id), true)
+}
+
+func (suite *controllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
+}
+
+func (suite *controllerTestSuite) runTestCaseWithTenancies(t func(*pbresource.Tenancy)) {
+	for _, tenancy := range suite.tenancies {
+		suite.Run(suite.appendTenancyInfo(tenancy), func() {
+			suite.setupWithTenancy(tenancy)
+			t(tenancy)
+		})
+	}
 }
