@@ -429,15 +429,6 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
-
-      # Get go binary from workspace
-      - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: .
-      - name: restore mode+x
-        run: chmod +x consul
       - name: Build image
         run: make test-deployer-setup
       - name: Upgrade Integration Tests
@@ -508,6 +499,7 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
     - upgrade-integration-test
+    - upgrade-integration-test-deployer
     - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
