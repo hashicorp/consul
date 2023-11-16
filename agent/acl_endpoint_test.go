@@ -1361,6 +1361,39 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.ServiceIdentities, 1)
 			require.Equal(t, "sn1", token.ServiceIdentities[0].ServiceName)
 		})
+
+		t.Run("List by ServiceName based on templated policies", func(t *testing.T) {
+			tokenInput := &structs.ACLToken{
+				Description: "token for templated policies service",
+				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
+					{
+						TemplateName: "builtin/service",
+						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
+							Name: "service1",
+						},
+					},
+				},
+			}
+
+			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
+			req.Header.Add("X-Consul-Token", "root")
+			resp := httptest.NewRecorder()
+			_, err := a.srv.ACLTokenCreate(resp, req)
+			require.NoError(t, err)
+
+			req, _ = http.NewRequest("GET", "/v1/acl/tokens?servicename=service1", nil)
+			req.Header.Add("X-Consul-Token", "root")
+			resp = httptest.NewRecorder()
+			raw, err := a.srv.ACLTokenList(resp, req)
+			require.NoError(t, err)
+			tokens, ok := raw.(structs.ACLTokenListStubs)
+			require.True(t, ok)
+			require.Len(t, tokens, 1)
+			token := tokens[0]
+			require.Equal(t, "token for templated policies service", token.Description)
+			require.Len(t, token.TemplatedPolicies, 1)
+			require.Equal(t, "service1", token.TemplatedPolicies[0].TemplateVariables.Name)
+		})
 	})
 
 	t.Run("ACLTemplatedPolicy", func(t *testing.T) {
