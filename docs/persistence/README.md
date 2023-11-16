@@ -3,7 +3,7 @@
 > **Note**  
 > While the content of this document is still accurate, it doesn't cover the new
 > generic resource-oriented storage layer introduced in Consul 1.16. Please see
-> [Resources](../resources) for more information.
+> [Resources](../v2-architecture/controller-architecture-overview) for more information.
 
 The cluser persistence subsystem runs entirely in Server Agents. It handles both read and
 write requests from the [RPC] subsystem. See the [Consul Architecture Guide] for an
