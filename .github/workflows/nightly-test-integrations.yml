@@ -508,6 +508,7 @@ jobs:
     - generate-envoy-job-matrices
     - envoy-integration-test
     - upgrade-integration-test
+    - upgrade-integration-test-deployer
     - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
