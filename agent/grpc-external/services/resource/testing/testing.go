@@ -20,6 +20,7 @@ import (
 	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -55,6 +56,23 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 // default partition and namespace are available.
 func RunResourceService(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
 	return RunResourceServiceWithConfig(t, svc.Config{}, registerFns...)
+}
+
+// RunResourceServiceWithTenancies runs a Resource Service with tenancies returned from TestTenancies.
+func RunResourceServiceWithTenancies(t *testing.T, registerFns ...func(resource.Registry)) pbresource.ResourceServiceClient {
+	mockTenancyBridge := &svc.MockTenancyBridge{}
+
+	for _, tenant := range rtest.TestTenancies() {
+		mockTenancyBridge.On("PartitionExists", tenant.Partition).Return(true, nil)
+		mockTenancyBridge.On("NamespaceExists", tenant.Partition, tenant.Namespace).Return(true, nil)
+		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenant.Partition).Return(false, nil)
+		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenant.Partition, tenant.Namespace).Return(false, nil)
+	}
+
+	cfg := &svc.Config{
+		TenancyBridge: mockTenancyBridge,
+	}
+	return RunResourceServiceWithConfig(t, *cfg, registerFns...)
 }
 
 // RunResourceServiceWithConfig runs a ResourceService with caller injectable config to ease mocking dependencies.

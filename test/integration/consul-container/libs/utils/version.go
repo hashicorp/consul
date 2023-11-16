@@ -5,6 +5,7 @@ package utils
 
 import (
 	"flag"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/consul/testing/deployer/topology"
@@ -56,18 +57,42 @@ func GetLatestImageName() string {
 	return LatestImageName
 }
 
+func LatestImages() topology.Images {
+	img := DockerImage(LatestImageName, LatestVersion)
+
+	var set topology.Images
+	if IsEnterprise() {
+		set.ConsulEnterprise = img
+	} else {
+		set.ConsulCE = img
+	}
+
+	// TODO: have a "latest" dataplane image for testing a service mesh
+	// complete upgrade of data plane
+	if cdp := os.Getenv("DEPLOYER_CONSUL_DATAPLANE_IMAGE"); cdp != "" {
+		set.Dataplane = cdp
+	}
+
+	return set
+}
+
 func TargetImages() topology.Images {
 	img := DockerImage(targetImageName, TargetVersion)
 
+	var set topology.Images
 	if IsEnterprise() {
-		return topology.Images{
-			ConsulEnterprise: img,
-		}
+		set.ConsulEnterprise = img
 	} else {
-		return topology.Images{
-			ConsulCE: img,
-		}
+		set.ConsulCE = img
 	}
+
+	// TODO: have a "target" dataplane image for testing a service mesh
+	// complete upgrade of data plane
+	if cdp := os.Getenv("DEPLOYER_CONSUL_DATAPLANE_IMAGE"); cdp != "" {
+		set.Dataplane = cdp
+	}
+
+	return set
 }
 
 func IsEnterprise() bool { return isInEnterpriseRepo }

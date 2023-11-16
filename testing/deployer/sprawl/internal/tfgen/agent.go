@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/consul/testing/deployer/topology"
 )
 
-func (g *Generator) generateAgentHCL(node *topology.Node) string {
+func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string {
 	if !node.IsAgent() {
 		panic("generateAgentHCL only applies to agents")
 	}
@@ -34,6 +34,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node) string {
 	b.add("log_level", "trace")
 	b.add("enable_debug", true)
 	b.add("use_streaming_backend", true)
+
+	if enableV2 {
+		b.addSlice("experiments", []string{"resource-apis"})
+	}
 
 	// speed up leaves
 	b.addBlock("performance", func() {
@@ -131,7 +135,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node) string {
 	})
 
 	if node.IsServer() {
-		b.add("bootstrap_expect", len(cluster.ServerNodes()))
+		// bootstrap_expect is omitted if this node is a new server
+		if !node.IsNewServer {
+			b.add("bootstrap_expect", len(cluster.ServerNodes()))
+		}
 		// b.add("translate_wan_addrs", true)
 		b.addBlock("rpc", func() {
 			b.add("enable_streaming", true)
@@ -161,6 +168,25 @@ func (g *Generator) generateAgentHCL(node *topology.Node) string {
 			b.add("enabled", true)
 		})
 
+		// b.addBlock("autopilot", func() {
+		// 	b.add("upgrade_version_tag", "build")
+		// })
+
+		if node.AutopilotConfig != nil {
+			b.addBlock("autopilot", func() {
+				for k, v := range node.AutopilotConfig {
+					b.add(k, v)
+				}
+			})
+		}
+
+		if node.Meta != nil {
+			b.addBlock("node_meta", func() {
+				for k, v := range node.Meta {
+					b.add(k, v)
+				}
+			})
+		}
 	} else {
 		if cluster.Enterprise {
 			b.add("partition", node.Partition)

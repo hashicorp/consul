@@ -29,22 +29,27 @@ func (i Images) LocalDataplaneImage() string {
 		tag = "latest"
 	}
 
-	repo, name, ok := strings.Cut(img, "/")
-	if ok {
-		name = repo + "-" + name
-	}
+	name := strings.ReplaceAll(img, "/", "-")
 
 	// ex: local/hashicorp-consul-dataplane:1.1.0
 	return "local/" + name + ":" + tag
 }
 
+func (i Images) LocalDataplaneTProxyImage() string {
+	return spliceImageNamesAndTags(i.Dataplane, i.Consul, "tproxy")
+}
+
 func (i Images) EnvoyConsulImage() string {
-	if i.Consul == "" || i.Envoy == "" {
+	return spliceImageNamesAndTags(i.Consul, i.Envoy, "")
+}
+
+func spliceImageNamesAndTags(base1, base2, nameSuffix string) string {
+	if base1 == "" || base2 == "" {
 		return ""
 	}
 
-	img1, tag1, ok1 := strings.Cut(i.Consul, ":")
-	img2, tag2, ok2 := strings.Cut(i.Envoy, ":")
+	img1, tag1, ok1 := strings.Cut(base1, ":")
+	img2, tag2, ok2 := strings.Cut(base2, ":")
 	if !ok1 {
 		tag1 = "latest"
 	}
@@ -52,22 +57,15 @@ func (i Images) EnvoyConsulImage() string {
 		tag2 = "latest"
 	}
 
-	repo1, name1, ok1 := strings.Cut(img1, "/")
-	repo2, name2, ok2 := strings.Cut(img2, "/")
+	name1 := strings.ReplaceAll(img1, "/", "-")
+	name2 := strings.ReplaceAll(img2, "/", "-")
 
-	if ok1 {
-		name1 = repo1 + "-" + name1
-	} else {
-		name1 = repo1
-	}
-	if ok2 {
-		name2 = repo2 + "-" + name2
-	} else {
-		name2 = repo2
+	if nameSuffix != "" {
+		nameSuffix = "-" + nameSuffix
 	}
 
 	// ex: local/hashicorp-consul-and-envoyproxy-envoy:1.15.0-with-v1.26.2
-	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
+	return "local/" + name1 + "-and-" + name2 + nameSuffix + ":" + tag1 + "-with-" + tag2
 }
 
 // TODO: what is this for and why do we need to do this and why is it named this?

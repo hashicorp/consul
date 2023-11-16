@@ -18,6 +18,7 @@ func Register(r resource.Registry) {
 	RegisterGRPCRoute(r)
 	RegisterDestinationPolicy(r)
 	RegisterComputedRoutes(r)
+	RegisterMeshGateway(r)
 	// todo (v2): uncomment once we implement it.
 	//RegisterDestinationsConfiguration(r)
 }

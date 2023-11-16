@@ -40,10 +40,6 @@ func TestWatchList_InputValidation(t *testing.T) {
 			modFn:       func(req *pbresource.WatchListRequest) { req.Type = nil },
 			errContains: "type is required",
 		},
-		"no tenancy": {
-			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy = nil },
-			errContains: "tenancy is required",
-		},
 		"partition mixed case": {
 			modFn:       func(req *pbresource.WatchListRequest) { req.Tenancy.Partition = "Default" },
 			errContains: "tenancy.partition invalid",
@@ -72,6 +68,20 @@ func TestWatchList_InputValidation(t *testing.T) {
 			modFn: func(req *pbresource.WatchListRequest) {
 				req.Type = demo.TypeV1RecordLabel
 				req.Tenancy.Namespace = "bad"
+			},
+			errContains: "cannot have a namespace",
+		},
+		"cluster scope with non-empty partition": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Type = demo.TypeV1Executive
+				req.Tenancy = &pbresource.Tenancy{Partition: "bad"}
+			},
+			errContains: "cannot have a partition",
+		},
+		"cluster scope with non-empty namespace": {
+			modFn: func(req *pbresource.WatchListRequest) {
+				req.Type = demo.TypeV1Executive
+				req.Tenancy = &pbresource.Tenancy{Namespace: "bad"}
 			},
 			errContains: "cannot have a namespace",
 		},
@@ -381,4 +391,31 @@ func handleResourceStream(t *testing.T, stream pbresource.ResourceService_WatchL
 type resourceOrError struct {
 	rsp *pbresource.WatchEvent
 	err error
+}
+
+func TestWatchList_NoTenancy(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	server := testServer(t)
+	client := testClient(t, server)
+	demo.RegisterTypes(server.Registry)
+
+	// Create a watch.
+	stream, err := client.WatchList(ctx, &pbresource.WatchListRequest{
+		Type: demo.TypeV1RecordLabel,
+	})
+	require.NoError(t, err)
+	rspCh := handleResourceStream(t, stream)
+
+	recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+	require.NoError(t, err)
+
+	// Create and verify upsert event received.
+	recordLabel, err = server.Backend.WriteCAS(ctx, recordLabel)
+	require.NoError(t, err)
+
+	rsp := mustGetResource(t, rspCh)
+
+	require.Equal(t, pbresource.WatchEvent_OPERATION_UPSERT, rsp.Operation)
+	prototest.AssertDeepEqual(t, recordLabel, rsp.Resource)
 }

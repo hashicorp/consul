@@ -1,0 +1,54 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+#
+# Opt-in to running pre-commit hooks by running `make tools`.
+#
+# Guidelines for adding new pre-commit hooks
+# ====================================================================
+# A hook SHOULD be blazingly fast (<2s) to impose minimal latency on
+# developer workflows (e.g. golangci-lint takes > 8s)
+#
+# A hook SHOULD attempt to fix errors, not just identify them.
+#
+# A hook SHOULD address common errors in files that tend to change
+# frequently. While surfacing esoteric issues is nice, hooks that have a
+# wider impact are preferred.
+#
+repos:
+-   repo: https://github.com/tekwizely/pre-commit-golang
+    rev: v1.0.0-rc.1
+    hooks:
+    # Formats go imports into deterministic sections.
+    # `pre-commit run gci` to run in isolation.
+    -   id: my-cmd
+        name: Format go imports
+        alias: gci
+        # skip all generated go files
+        exclude: |
+            (?x)(
+                ^proto-public/|
+                ^proto/|
+                ^agent/xds/z_xds_packages\.go$|
+                ^testing/deployer/topology/default_versions\.go$|
+                \.deepcopy\.go$|
+                \.gen\.go$|
+                \.pb\.go$|
+                \.pb\.binary\.go$|
+                generated_funcs\.go$|
+                _generated_test\.go$|
+                mock_.+\.go$
+            )
+        args:
+        - "gci"
+        - "write"
+        - "--section"
+        - "standard"
+        - "--section"
+        - "default"
+        - "--section"
+        - "prefix(github.com/hashicorp/)"
+        - "--section"
+        - "prefix(github.com/hashicorp/consul/)"

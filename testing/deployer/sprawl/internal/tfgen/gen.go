@@ -122,8 +122,10 @@ func (s Step) String() string {
 	}
 }
 
-func (s Step) StartServers() bool  { return s >= StepServers }
-func (s Step) StartAgents() bool   { return s >= StepAgents }
+func (s Step) StartServers() bool { return s >= StepServers }
+
+func (s Step) StartAgents() bool { return s >= StepAgents }
+
 func (s Step) StartServices() bool { return s >= StepServices }
 
 // func (s Step) InitiatePeering() bool { return s >= StepPeering }
@@ -260,13 +262,16 @@ func (g *Generator) Generate(step Step) error {
 				addImage("", node.Images.Consul)
 				addImage("", node.Images.EnvoyConsulImage())
 				addImage("", node.Images.LocalDataplaneImage())
+				if node.NeedsTransparentProxy() {
+					addImage("", node.Images.LocalDataplaneTProxyImage())
+				}
 
 				if node.IsAgent() {
 					addVolume(node.DockerName())
 				}
 
-				for _, svc := range node.Services {
-					addImage("", svc.Image)
+				for _, wrk := range node.Workloads {
+					addImage("", wrk.Image)
 				}
 
 				myContainers, err := g.generateNodeContainers(step, c, node)

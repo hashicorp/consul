@@ -86,6 +86,12 @@ to view additional details, including default values.
       - [`TimeoutFilter`](#rules-services-filters-timeoutfilter): map
         - [`IdleTimeout`](#rules-services-filters-timeoutfilter): number | `0`
         - [`RequestTimeout`](#rules-services-filters-timeoutfilter): number | `0`
+      - [`JWT`](#rules-filters-jwt): map
+           - [`Providers`](#rules-filters-jwt-providers): list
+              - [`Name`](#rules-filters-jwt-providers): string
+              - [`VerifyClaims`](#rules-filters-jwt-providers): map
+                 - [`Path`](#rules-filters-jwt-providers): list
+                 - [`Value`](#rules-filters-jwt-providers): string
     - [`ResponseFilters`](#rules-services-responsefilters)
       - [`Headers`](#rules-services-responsefilters-headers): list | no default
         - [`Add`](#rules-services-responsefilters-headers-add): map | no default

@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerRequest) (*pbresource.ListByOwnerResponse, error) {
-	reg, err := s.validateListByOwnerRequest(req)
+	reg, err := s.ensureListByOwnerRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 	return &pbresource.ListByOwnerResponse{Resources: result}, nil
 }
 
-func (s *Server) validateListByOwnerRequest(req *pbresource.ListByOwnerRequest) (*resource.Registration, error) {
+func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerRequest) (*resource.Registration, error) {
 	if req.Owner == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "owner is required")
 	}
