@@ -322,14 +322,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        consul-version: [ "1.16", "1.17"]
+        consul-version: [ "1.15", "1.16", "1.17"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
       # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
       - name: Setup Git
         if: ${{ endsWith(github.repository, '-enterprise') }}
@@ -338,15 +338,6 @@ jobs:
         with:
           go-version-file: 'go.mod'
       - run: go env
-
-      # Get go binary from workspace
-      - name: fetch binary
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: '${{ env.CONSUL_BINARY_UPLOAD_NAME }}'
-          path: .
-      - name: restore mode+x
-        run: chmod +x consul
       - name: Build image
         run: make test-deployer-setup
       - name: Upgrade Integration Tests
