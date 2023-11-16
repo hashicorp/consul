@@ -137,6 +137,14 @@ This helper will rig up a `t.Cleanup` handler that will destroy all resources
 created during the test. This can be opted-out of by setting the
 `SPRAWL_KEEP_RUNNING=1` environment variable before running the tests.
 
+### Upgrade test
+We are migrating upgrade tests from consul-container(`/test/integration`) to
+this directory using the [testing/deployer framework](../testing/deployer).
+
+The current implementation supports two upgrade strategies: [standard upgrade](https://developer.hashicorp.com/consul/docs/upgrading/instructions/general-process)
+and [autopilot upgrade](https://developer.hashicorp.com/consul/tutorials/datacenter-operations/upgrade-automation). The basic test scenario can be found in `./test-integ/upgrade/basic`.
+
+
 ### Test assertions
 
 Typical service mesh tests want to ensure that use of a service from another
