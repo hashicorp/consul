@@ -5,7 +5,13 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
+import "pbresource/annotations.proto";
+
+
+// This is a Resource type.
 message GatewayClassConfig {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
   optional Consul consul = 1;
   optional CopyAnnotations copy_annotations = 2;
   optional Deployment deployment = 3;
