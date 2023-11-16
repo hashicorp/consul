@@ -97,7 +97,7 @@ Map that contains the details about the gateway policy. The `apiVersion`, `kind`
 
 ### `spec.idleTimeout
 
-Specifies the total amount of time permitted for the request stream to be idle. Must specify a parseable number and a unit, for example "5s". 
+Specifies the total amount of time permitted for the request stream to be idle. Format the string as `"<number><unit>"`, for example `"5s"`. Consul uses the `metav1.Duration` package of parse the value. Refer to the [Go documentation](https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration) for additional information about defining parseable values.  
 
 #### Values
 
