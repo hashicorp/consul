@@ -7,7 +7,6 @@ package hashicorp.consul.mesh.v2beta1;
 
 import "pbresource/annotations.proto";
 
-
 // This is a Resource type.
 message GatewayClassConfig {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
