@@ -20,6 +20,7 @@ const (
 	GatewayClassKind                 = "GatewayClass"
 	GatewayClassConfigKind           = "GatewayClassConfig"
 	HTTPRouteKind                    = "HTTPRoute"
+	MeshConfigurationKind            = "MeshConfiguration"
 	MeshGatewayKind                  = "MeshGateway"
 	ProxyConfigurationKind           = "ProxyConfiguration"
 	ProxyStateTemplateKind           = "ProxyStateTemplate"
@@ -85,6 +86,12 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         HTTPRouteKind,
+	}
+
+	MeshConfigurationType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         MeshConfigurationKind,
 	}
 
 	MeshGatewayType = &pbresource.Type{
