@@ -1,3 +1,0 @@
-```release-note:improvement
-api: Add support for listing ACL tokens by service name when using templated policies.
-```

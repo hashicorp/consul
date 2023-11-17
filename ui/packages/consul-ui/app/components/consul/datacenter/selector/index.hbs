@@ -1,58 +1,64 @@
-{{!
-  Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
-}}
-
-{{#let @list as |SNL|}}
+<li class='dcs' data-test-datacenter-menu>
   {{#if (gt @dcs.length 1)}}
-    <SNL.Title class='consul-side-nav__selector-title'>{{t "components.hashicorp-consul.side-nav.datacenters.title"}}</SNL.Title>
-    <NavSelector
-      @list={{SNL}}
+    <DisclosureMenu
+      aria-label='Datacenter'
       @items={{sort-by 'Primary:desc' 'Local:desc' 'Name:asc' @dcs}}
-      @item={{@dc}}
-      @key='Name'
-      @icon='server-cluster'
-      @placeholder={{t "components.hashicorp-consul.side-nav.datacenters.placeholder"}}
-      @description={{t "components.hashicorp-consul.side-nav.datacenters.description"}}
-      class='consul-datacenter-selector'
-      data-test-datacenter-menu
-      as |Selector|
+      data-test-datacenter-disclosure-menu
+      as |disclosure|
     >
-      <Selector.Dropdown.Checkmark
-        @selected={{eq @dc.Name Selector.item.Name}}
-        @href={{href-to
-          '.'
-          params=(hash
-            dc=Selector.item.Name partition=undefined nspace=(if (gt @nspace.length 0) @nspace undefined)
-          )
-        }}
-        @isHrefExternal={{false}}
-        class='consul-datacenter-selector__item'
-        data-test-dc-item
-      >
-        <span class='consul-datacenter-selector__dc-name'>
-          {{Selector.item.Name}}
-
-          {{#if (or Selector.item.Local Selector.item.Primary)}}
-            <span class='consul-datacenter-selector__badges'>
-              {{#if Selector.item.Primary}}
-                <Hds::Badge @text='Primary' />
-              {{/if}}
-              {{#if Selector.item.Local}}
-                <Hds::Badge @text='Local' />
-              {{/if}}
-            </span>
-          {{/if}}
-        </span>
-      </Selector.Dropdown.Checkmark>
-    </NavSelector>
+      <disclosure.Action {{on 'click' disclosure.toggle}}>
+        {{@dc.Name}}
+      </disclosure.Action>
+      <disclosure.Menu as |panel|>
+        <DataSource
+          @src={{uri '/*/*/*/datacenters'}}
+          @onchange={{action (mut @dcs) value='data'}}
+        />
+        <p class='dcs-message'>
+          Datacenters shown in this dropdown are available through WAN Federation.
+        </p>
+        <panel.Menu as |menu|>
+          <menu.Separator>
+            DATACENTERS
+          </menu.Separator>
+          {{#each menu.items as |item|}}
+            <menu.Item
+              data-test-dc-item
+              aria-current={{if (eq @dc.Name item.Name) 'true'}}
+              class={{class-map (array 'is-local' item.Local) (array 'is-primary' item.Primary)}}
+            >
+              <menu.Action
+                {{on 'click' disclosure.close}}
+                @href={{href-to
+                  '.'
+                  params=(hash
+                    dc=item.Name
+                    partition=undefined
+                    nspace=(if (gt @nspace.length 0) @nspace undefined)
+                  )
+                }}
+              >
+                {{item.Name}}
+                {{#if item.Primary}}
+                  <span>Primary</span>
+                {{/if}}
+                {{#if item.Local}}
+                  <span>Local</span>
+                {{/if}}
+              </menu.Action>
+            </menu.Item>
+          {{/each}}
+        </panel.Menu>
+      </disclosure.Menu>
+    </DisclosureMenu>
   {{else}}
-    <SNL.Item class='consul-side-nav__datacenter' data-test-datacenter-single>
-      <FlightIcon
-        @name='server-cluster'
-        @color='var(--token-form-control-disabled-foreground-color)'
-      />
-      <Hds::Text::Display @size='200' @color='disabled'>{{@dc.Name}}</Hds::Text::Display>
-    </SNL.Item>
+    <div class='dc-name' data-test-datacenter-single>
+      {{@dcs.firstObject.Name}}
+      {{#let (env 'CONSUL_HCP_MANAGED_RUNTIME') as |managedRuntime|}}
+        {{#if managedRuntime}}
+          <span>{{capitalize managedRuntime}}</span>
+        {{/if}}
+      {{/let}}
+    </div>
   {{/if}}
-{{/let}}
+</li>

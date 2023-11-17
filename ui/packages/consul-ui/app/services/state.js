@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Service, { inject as service } from '@ember/service';
 import { set } from '@ember/object';
 import flat from 'flat';

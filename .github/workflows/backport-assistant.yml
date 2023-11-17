@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 # This action creates downstream PRs for PRs with backport labels defined.
 # See docs here: https://github.com/hashicorp/backport-assistant
 
@@ -21,6 +18,33 @@ jobs:
     runs-on: ubuntu-latest
     container: hashicorpdev/backport-assistant:0.3.4
     steps:
+      - name: Run Backport Assistant for stable-website
+        run: |
+          backport-assistant backport -merge-method=squash -gh-automerge
+        env:
+          BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
+          BACKPORT_TARGET_TEMPLATE: "stable-website"
+          BACKPORT_MERGE_COMMIT: true
+          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+      - name: Backport changes to latest release branch
+        run: |
+          # Use standard token here 
+          resp=$(curl -f -s -H 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' "https://api.github.com/repos/$GITHUB_REPOSITORY/labels?per_page=100")
+          ret="$?"
+          if [[ "$ret" -ne 0 ]]; then
+              echo "The GitHub API returned $ret"
+              exit $ret
+          fi
+          # get the latest backport label excluding any website labels, ex: `backport/0.3.x` and not `backport/website`
+          latest_backport_label=$(echo "$resp" | jq -r '.[] | select(.name | (startswith("backport/") and (contains("website") | not))) | .name' | sort -rV | head -n1)
+          echo "Latest backport label: $latest_backport_label"
+          # set BACKPORT_TARGET_TEMPLATE for backport-assistant
+          # trims backport/ from the beginning with parameter substitution
+          export BACKPORT_TARGET_TEMPLATE="release/${latest_backport_label#backport/}.x"
+          backport-assistant backport -merge-method=squash -gh-automerge
+        env:
+          BACKPORT_LABEL_REGEXP: "type/docs-(?P<target>cherrypick)"
+          GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
       - name: Run Backport Assistant for release branches
         run: |
           backport-assistant backport -merge-method=squash -gh-automerge

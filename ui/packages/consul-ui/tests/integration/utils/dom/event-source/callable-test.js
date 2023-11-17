@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domEventSourceCallable from 'consul-ui/utils/dom/event-source/callable';
 import EventTarget from 'consul-ui/utils/dom/event-target/rsvp';
 

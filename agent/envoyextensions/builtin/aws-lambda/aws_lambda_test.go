@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package awslambda
 
 import (
@@ -23,7 +20,7 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/extensioncommon"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/proto/prototest"
 )
 
 func TestConstructor(t *testing.T) {
@@ -152,7 +149,7 @@ func TestPatchCluster(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			transportSocket, err := extensioncommon.MakeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
+			transportSocket, err := makeUpstreamTLSTransportSocket(&envoy_tls_v3.UpstreamTlsContext{
 				Sni: "*.amazonaws.com",
 			})
 			require.NoError(t, err)
@@ -202,10 +199,7 @@ func TestPatchCluster(t *testing.T) {
 
 			// Test patching the cluster
 			rc := extensioncommon.RuntimeConfig{}
-			patchedCluster, patchSuccess, err := tc.lambda.PatchCluster(extensioncommon.ClusterPayload{
-				RuntimeConfig: &rc,
-				Message:       tc.input,
-			})
+			patchedCluster, patchSuccess, err := tc.lambda.PatchCluster(&rc, tc.input)
 			if tc.isErrExpected {
 				assert.Error(t, err)
 				assert.False(t, patchSuccess)
@@ -310,10 +304,7 @@ func TestPatchRoute(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			l := awsLambda{}
-			r, ok, err := l.PatchRoute(extensioncommon.RoutePayload{
-				RuntimeConfig: tc.conf,
-				Message:       tc.route,
-			})
+			r, ok, err := l.PatchRoute(tc.conf, tc.route)
 			require.NoError(t, err)
 			require.Equal(t, tc.expectRoute, r)
 			require.Equal(t, tc.expectBool, ok)
@@ -462,14 +453,7 @@ func TestPatchFilter(t *testing.T) {
 				PayloadPassthrough: true,
 				InvocationMode:     "asynchronous",
 			}
-			d := extensioncommon.TrafficDirectionOutbound
-			if tc.isInboundFilter {
-				d = extensioncommon.TrafficDirectionInbound
-			}
-			f, ok, err := l.PatchFilter(extensioncommon.FilterPayload{
-				Message:          tc.filter,
-				TrafficDirection: d,
-			})
+			f, ok, err := l.PatchFilter(nil, tc.filter, tc.isInboundFilter)
 			require.Equal(t, tc.expectBool, ok)
 			if tc.expectErr == "" {
 				require.NoError(t, err)

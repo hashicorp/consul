@@ -1,7 +1,7 @@
 ---
 layout: docs
 page_title: Recommendations for operating Consul at scale
-description: >-
+description: >-  
   When using Consul for large scale deployments, you can ensure network resilience by tailoring your network to your needs. Learn more about HashiCorp's recommendations for deploying Consul at scale.
 ---
 
@@ -57,7 +57,7 @@ If appropriate for your use case, we recommend breaking up a single Consul datac
 
 Be aware that the number 5,000 is a heuristic for deployments. The number of agents you deploy per datacenter is limited by performance, not Consul itself. Because gossip stability risk is determined by _the rate of agent churn_ rather than _the number of nodes_, a gossip pool with mostly static nodes may be able to operate effectively with more than 5,000 agents. Meanwhile, a gossip pool with highly dynamic agents, such as spot fleet instances and serverless functions where 10% of agents are replaced each day, may need to be smaller than 5,000 agents.
 
-For additional information about the specific tests we conducted on Consul deployments at scale in order to generate these recommendations, refer to [Consul Scale Test Report to Observe Gossip Stability](https://www.hashicorp.com/blog/consul-scale-test-report-to-observe-gossip-stability) on the HashiCorp blog.
+For additional information about the specifc tests we conducted on Consul deployments at scale in order to generate these recommendations, refer to [Consul Scale Test Report to Observe Gossip Stability](https://www.hashicorp.com/blog/consul-scale-test-report-to-observe-gossip-stability) on the HashiCorp blog.
 
 For most use cases, a limit of 5,000 agents is appropriate. When the `consul.serf.queue.Intent` metric is consistently high, it is an indication that the gossip pool cannot keep up with the sustained level of churn. In this situation, reduce the churn by lowering the number agents per datacenter.
 
@@ -175,13 +175,13 @@ Refer to [Consul agent telemetry](/consul/docs/agent/telemetry#bolt-db-performan
 
 #### Raft database size
 
-Raft writes logs to BoltDB, which is designed as a single grow-only file. As a result, if you add 1GB of log entries and then you take a snapshot, only a small number of recent log entries may appear in the file. However, the actual file on disk never shrinks smaller than the 1GB size it grew.
+Raft writes logs to BoltDB, which is designed as a single grow-only file. As a result, if you add 1GB of log entries and then you take a snapshot, only a small number of recent log entries may appear in the file. However, the actual file on disk never shrinks smaller than the 1GB size it grew.  
 
 If you need to reclaim disk space, use the `bbolt` CLI to copy the data to a new database and repoint to the new database in the process. However, be aware that the `bbolt compact` command requires the database to be offline while being pointed to the new database.
 
 In many cases, including in large clusters, disk space is not a primary concern because Raft logs rarely grow larger than a small number of GiB. However, an inflated file with lots of free space significantly degrades write performance overall due to _freelist management_.
 
-After they are written to disk, Raft logs are eventually captured in a snapshot and log nodes are removed from BoltDB. BoltDB keeps track of the pages for the removed nodes in its freelist. BoltDB also writes this freelist to disk every time there is a Raft write. When the Raft log grows large quickly and then gets truncated, the size of the freelist can become very large. In the worst case reported to us, the freelist was over 10MB. When this large freelist is written to disk on every Raft commit, the result is a large write amplification for what should be a small Raft commit.
+After they are written to disk, Raft logs are eventually captured in a snapshot and log nodes are removed from BoltDB. BoltDB keeps track of the pages for the removed nodes in its freelist. BoltDB also writes this freelist to disk every time there is a Raft write. When the Raft log grows large quickly and then gets truncated, the size of the freelist can become very large. In the worst case reported to us, the freelist was over 10MB. When this large freelist is written to disk on every Raft commit, the result is a large write amplification for what should be a small Raft commit.  
 
 To figure out if a Consul server’s disk performance issues are the result of BoldDB’s freelist, try the following strategies:
 
@@ -208,7 +208,7 @@ For example, if snapshot A on the leader has an index of 99 and the current inde
 
 When the leader takes snapshot B at index 199, it truncates the logs that accumulated between snapshot A and snapshot B, which means it truncates Raft logs with indexes between 100 and 199.
 
-Because the new server restored snapshot A, the new server has a current index of 99. It requests logs 100 to 150 because index 150 was the current index when it started the replication restore process. At this point, the leader recognizes that it only has logs 200 and higher, and does not have logs for indexes 100 to 150. The leader determines that the new server’s state is stale and starts the process over by sending the new server the latest snapshot, snapshot B.
+Because the new server restored snapshot A, the new server has a current index of 99. It requests logs 100 to 150 because index 150 was the current index when it started the replication restore process. At this point, the leader recognizes that it only has logs 200 and higher, and does not have logs for indexes 100 to 150. The leader determines that the new server’s state is stale and starts the process over by sending the new server the latest snapshot, snapshot B.  
 
 Consul keeps a configurable number of [Raft trailing logs](/consul/docs/agent/config/config-files#raft_trailing_logs) to prevent the snapshot install loop from repeating. The trailing logs are the last logs that went into the snapshot, and the new server can more easily catch up to the current state using these logs. The default Raft trailing logs configuration value is suitable for most deployments.
 

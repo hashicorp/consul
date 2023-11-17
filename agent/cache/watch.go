@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package cache
 
 import (
@@ -9,17 +6,26 @@ import (
 	"reflect"
 	"time"
 
-	"google.golang.org/protobuf/proto"
-
-	"github.com/hashicorp/consul/agent/cacheshim"
 	"github.com/hashicorp/consul/lib"
+	"google.golang.org/protobuf/proto"
 )
 
 // UpdateEvent is a struct summarizing an update to a cache entry
-type UpdateEvent = cacheshim.UpdateEvent
+type UpdateEvent struct {
+	// CorrelationID is used by the Notify API to allow correlation of updates
+	// with specific requests. We could return the full request object and
+	// cachetype for consumers to match against the calls they made but in
+	// practice it's cleaner for them to choose the minimal necessary unique
+	// identifier given the set of things they are watching. They might even
+	// choose to assign random IDs for example.
+	CorrelationID string
+	Result        interface{}
+	Meta          ResultMeta
+	Err           error
+}
 
 // Callback is the function type accepted by NotifyCallback.
-type Callback = cacheshim.Callback
+type Callback func(ctx context.Context, event UpdateEvent)
 
 // Notify registers a desire to be updated about changes to a cache result.
 //
@@ -117,7 +123,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 		// Check the index of the value returned in the cache entry to be sure it
 		// changed
 		if index == 0 || index < meta.Index {
-			cb(ctx, UpdateEvent{CorrelationID: correlationID, Result: res, Meta: meta, Err: err})
+			cb(ctx, UpdateEvent{correlationID, res, meta, err})
 
 			// Update index for next request
 			index = meta.Index
@@ -177,7 +183,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 
 		// Check for a change in the value or an index change
 		if index < meta.Index || !isEqual(lastValue, res) {
-			cb(ctx, UpdateEvent{CorrelationID: correlationID, Result: res, Meta: meta, Err: err})
+			cb(ctx, UpdateEvent{correlationID, res, meta, err})
 
 			// Update index and lastValue
 			lastValue = res

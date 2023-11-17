@@ -1,11 +1,8 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 syntax = "proto3";
 
 package hashicorp.consul.dns;
 
-import "annotations/ratelimit/ratelimit.proto";
+import "proto-public/annotations/ratelimit/ratelimit.proto";
 
 option go_package = "github.com/hashicorp/consul/proto-public/pbdns";
 
@@ -14,7 +11,6 @@ service DNSService {
   rpc Query(QueryRequest) returns (QueryResponse) {
     option (hashicorp.consul.internal.ratelimit.spec) = {
       operation_type: OPERATION_TYPE_READ,
-      operation_category: OPERATION_CATEGORY_DNS
     };
   }
 }

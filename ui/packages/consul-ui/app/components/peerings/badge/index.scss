@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .peerings-badge {
   display: flex;
   align-items: center;
@@ -12,35 +7,36 @@
   gap: 4px;
 
   &.active {
-    background: var(--token-color-surface-success);
-    color: var(--token-color-foreground-success);
+    background: rgb(var(--tone-green-050));
+    color: rgb(var(--tone-green-600));
   }
   &.pending {
-    background: var(--token-color-consul-surface);
-    color: var(--token-color-consul-brand);
+    background: rgb(var(--tone-strawberry-050));
+    color: rgb(var(--tone-strawberry-500));
   }
   &.establishing {
-    background: var(--token-color-surface-action);
-    color: var(--token-color-foreground-action);
+    background: rgb(var(--tone-blue-050));
+    color: rgb(var(--tone-blue-500));
   }
   &.failing {
-    background: var(--token-color-surface-critical);
-    color: var(--token-color-foreground-critical);
+    background: rgb(var(--tone-red-050));
+    color: rgb(var(--tone-red-500));
   }
   &.deleting {
-    background: var(--token-color-surface-warning);
-    color: var(--token-color-foreground-warning-on-surface);
+    background: rgb(var(--tone-yellow-050));
+    color: rgb(var(--tone-yellow-800));
   }
   &.terminated {
-    background: var(--token-color-surface-interactive-active);
-    color: var(--token-color-foreground-primary);
+    background: rgb(var(--tone-gray-150));
+    color: rgb(var(--tone-gray-800));
   }
   &.undefined {
-    background: var(--token-color-surface-interactive-active);
-    color: var(--token-color-foreground-primary);
+    background: rgb(var(--tone-gray-150));
+    color: rgb(var(--tone-gray-800));
   }
 
   .peerings-badge__text {
-    @extend %body-100-medium;
+    font-weight: 500;
+    font-size: 13px;
   }
 }

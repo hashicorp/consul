@@ -1,3 +1,0 @@
-```release-note:bug
-UI : Nodes list view was breaking for synthetic-nodes. Fix handles non existence of consul-version meta for node.
-```

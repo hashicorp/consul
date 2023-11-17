@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package tokencreate
 
 import (
@@ -29,22 +26,19 @@ type cmd struct {
 	http  *flags.HTTPFlags
 	help  string
 
-	accessor                 string
-	secret                   string
-	policyIDs                []string
-	policyNames              []string
-	description              string
-	roleIDs                  []string
-	roleNames                []string
-	serviceIdents            []string
-	nodeIdents               []string
-	templatedPolicy          string
-	templatedPolicyFile      string
-	templatedPolicyVariables []string
-	expirationTTL            time.Duration
-	local                    bool
-	showMeta                 bool
-	format                   string
+	accessor      string
+	secret        string
+	policyIDs     []string
+	policyNames   []string
+	description   string
+	roleIDs       []string
+	roleNames     []string
+	serviceIdents []string
+	nodeIdents    []string
+	expirationTTL time.Duration
+	local         bool
+	showMeta      bool
+	format        string
 }
 
 func (c *cmd) init() {
@@ -79,12 +73,6 @@ func (c *cmd) init() {
 		token.PrettyFormat,
 		fmt.Sprintf("Output format {%s}", strings.Join(token.GetSupportedFormats(), "|")),
 	)
-	c.flags.Var((*flags.AppendSliceValue)(&c.templatedPolicyVariables), "var", "Templated policy variables."+
-		" Must be used in combination with -templated-policy flag to specify required variables."+
-		" May be specified multiple times with different variables."+
-		" Format is VariableName:Value")
-	c.flags.StringVar(&c.templatedPolicy, "templated-policy", "", "The templated policy name.  Use -var flag to specify variables when required.")
-	c.flags.StringVar(&c.templatedPolicyFile, "templated-policy-file", "", "Path to a file containing templated policies and variables.")
 	c.http = &flags.HTTPFlags{}
 	flags.Merge(c.flags, c.http.ClientFlags())
 	flags.Merge(c.flags, c.http.ServerFlags())
@@ -99,16 +87,8 @@ func (c *cmd) Run(args []string) int {
 
 	if len(c.policyNames) == 0 && len(c.policyIDs) == 0 &&
 		len(c.roleNames) == 0 && len(c.roleIDs) == 0 &&
-		len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 &&
-		len(c.templatedPolicy) == 0 && len(c.templatedPolicyFile) == 0 {
-		c.UI.Error("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, -service-identity, -node-identity, -templated-policy, or -templated-policy-file at least once")
-		return 1
-	}
-
-	if len(c.templatedPolicyFile) != 0 && len(c.templatedPolicy) != 0 {
-		c.UI.Error("Cannot combine the use of templated-policy flag with templated-policy-file. " +
-			"To create a token with a single templated policy and simple use case, use -templated-policy. " +
-			"For multiple templated policies and more complicated use cases, use -templated-policy-file")
+		len(c.serviceIdents) == 0 && len(c.nodeIdents) == 0 {
+		c.UI.Error(fmt.Sprintf("Cannot create a token without specifying -policy-name, -policy-id, -role-name, -role-id, -service-identity, or -node-identity at least once"))
 		return 1
 	}
 
@@ -141,13 +121,6 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 	newToken.NodeIdentities = parsedNodeIdents
-
-	parsedTemplatedPolicies, err := acl.ExtractTemplatedPolicies(c.templatedPolicy, c.templatedPolicyFile, c.templatedPolicyVariables)
-	if err != nil {
-		c.UI.Error(err.Error())
-		return 1
-	}
-	newToken.TemplatedPolicies = parsedTemplatedPolicies
 
 	for _, policyName := range c.policyNames {
 		// We could resolve names to IDs here but there isn't any reason why its would be better
@@ -227,8 +200,6 @@ Usage: consul acl token create [options]
                                     -role-id c630d4ef-6 \
                                     -role-name "db-updater" \
                                     -service-identity "web" \
-                                    -service-identity "db:east,west" \
-                                    -templated-policy "builtin/service" \
-                                    -var "name:web"
+                                    -service-identity "db:east,west"
 `
 )

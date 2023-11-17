@@ -26,24 +26,6 @@
             "Datacenter": "middleearth-northwest"
         }
     ],
-    "TemplatedPolicies": [
-        {
-            "TemplateName": "builtin/service",
-            "TemplateVariables": {
-                "Name": "gardener"
-            },
-            "Datacenters": [
-                "middleearth-northwest",
-                "somewhere-east"
-            ]
-        },
-        {
-            "TemplateName": "builtin/node",
-            "TemplateVariables": {
-                "Name": "bagend"
-            }
-        }
-    ],
     "Hash": "YWJjZGVmZ2g=",
     "CreateIndex": 5,
     "ModifyIndex": 10,

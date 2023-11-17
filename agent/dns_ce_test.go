@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package agent
 
@@ -9,12 +7,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/miekg/dns"
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
+	"github.com/miekg/dns"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDNS_CE_PeeredServices(t *testing.T) {

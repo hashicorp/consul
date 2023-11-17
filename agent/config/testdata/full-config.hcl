@@ -1,6 +1,3 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
-
 acl_agent_master_token = "furuQD0b"
 acl_agent_token = "cOshLOQ2"
 acl_datacenter = "m3urck3z"
@@ -285,9 +282,6 @@ enable_syslog = true
 encrypt = "A4wELWqH"
 encrypt_verify_incoming = true
 encrypt_verify_outgoing = true
-experiments = [
-    "foo"
-]
 http_config {
     block_endpoints = [ "RBvAFcGD", "fWOWFznh" ]
     allow_write_http_from = [ "127.0.0.1/8", "22.33.44.55/32", "0.0.0.0/0" ]
@@ -316,10 +310,6 @@ limits {
         read_rate = 99.0
         write_rate = 101.0
     }
-}
-locality = {
-    region = "us-east-2"
-    zone = "us-east-2b"
 }
 log_level = "k1zo9Spt"
 log_json = true
@@ -514,10 +504,6 @@ service = {
     connect {
         native = true
     }
-    locality = {
-        region = "us-west-1"
-        zone = "us-west-1a"
-    }
 }
 services = [
     {
@@ -557,10 +543,6 @@ services = [
         }
         connect {
             sidecar_service {}
-        }
-        locality = {
-            region = "us-east-1"
-            zone = "us-east-1a"
         }
     },
     {

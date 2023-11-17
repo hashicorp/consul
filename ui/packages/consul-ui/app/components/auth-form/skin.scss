@@ -1,10 +1,5 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %auth-form em {
-  @extend %body-100-regular;
-  color: var(--token-color-foreground-faint);
+  @extend %p3;
+  color: rgb(var(--tone-gray-500));
   font-style: normal;
 }

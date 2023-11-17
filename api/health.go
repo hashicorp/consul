@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package api
 
 import (
@@ -67,7 +64,6 @@ type HealthCheckDefinition struct {
 	TLSServerName                          string
 	TLSSkipVerify                          bool
 	TCP                                    string
-	TCPUseTLS                              bool
 	UDP                                    string
 	GRPC                                   string
 	OSService                              string

@@ -1,3 +1,0 @@
-```release-note:bug
-ui: clear peer on home logo link
-```

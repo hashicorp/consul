@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package consul
 
@@ -21,11 +19,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib"
 )
-
-// runEnterpriseRateLimiterConfigEntryController start the rate limiter config controller
-func (s *Server) runEnterpriseRateLimiterConfigEntryController() error {
-	return nil
-}
 
 func (s *Server) registerEnterpriseGRPCServices(deps Deps, srv *grpc.Server) {}
 

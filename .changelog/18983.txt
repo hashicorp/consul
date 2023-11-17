@@ -1,3 +1,0 @@
-```release-note:improvement
-api: added `Token` field to `ServiceRegisterOpts` type in Agent API
-```

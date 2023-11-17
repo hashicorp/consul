@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package internal
 
 import (
@@ -14,10 +11,9 @@ import (
 
 	middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	"github.com/hashicorp/consul/agent/consul/rate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
-
-	"github.com/hashicorp/consul/agent/consul/rate"
 )
 
 var (
@@ -61,14 +57,15 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 	srv := grpc.NewServer(opts...)
 	register(srv)
 
-	return &Handler{srv: srv, listener: NewListener(addr)}
+	lis := &chanListener{addr: addr, conns: make(chan net.Conn), done: make(chan struct{})}
+	return &Handler{srv: srv, listener: lis}
 }
 
 // Handler implements a handler for the rpc server listener, and the
 // agent.Component interface for managing the lifecycle of the grpc.Server.
 type Handler struct {
 	srv      *grpc.Server
-	listener *Listener
+	listener *chanListener
 }
 
 // Handle the connection by sending it to a channel for the grpc.Server to receive.
@@ -82,6 +79,38 @@ func (h *Handler) Run() error {
 
 func (h *Handler) Shutdown() error {
 	h.srv.Stop()
+	return nil
+}
+
+// chanListener implements net.Listener for grpc.Server.
+type chanListener struct {
+	conns chan net.Conn
+	addr  net.Addr
+	done  chan struct{}
+}
+
+// Accept blocks until a connection is received from Handle, and then returns the
+// connection. Accept implements part of the net.Listener interface for grpc.Server.
+func (l *chanListener) Accept() (net.Conn, error) {
+	select {
+	case c := <-l.conns:
+		return c, nil
+	case <-l.done:
+		return nil, &net.OpError{
+			Op:   "accept",
+			Net:  l.addr.Network(),
+			Addr: l.addr,
+			Err:  fmt.Errorf("listener closed"),
+		}
+	}
+}
+
+func (l *chanListener) Addr() net.Addr {
+	return l.addr
+}
+
+func (l *chanListener) Close() error {
+	close(l.done)
 	return nil
 }
 

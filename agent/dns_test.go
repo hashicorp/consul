@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -6310,22 +6307,6 @@ func TestDNS_ServiceLookup_SRV_RFC_TCP_Default(t *testing.T) {
 
 }
 
-func initDNSToken(t *testing.T, rpc RPC) {
-	t.Helper()
-
-	reqToken := structs.ACLTokenSetRequest{
-		Datacenter: "dc1",
-		ACLToken: structs.ACLToken{
-			SecretID:          "279d4735-f8ca-4d48-b5cc-c00a9713bbf8",
-			Policies:          nil,
-			TemplatedPolicies: []*structs.ACLTemplatedPolicy{{TemplateName: "builtin/dns"}},
-		},
-		WriteRequest: structs.WriteRequest{Token: "root"},
-	}
-	err := rpc.RPC(context.Background(), "ACL.TokenSet", &reqToken, &structs.ACLToken{})
-	require.NoError(t, err)
-}
-
 func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
@@ -6338,11 +6319,10 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 	}{
 		{"root", 1},
 		{"anonymous", 0},
-		{"dns", 1},
 	}
 	for _, tt := range tests {
 		t.Run("ACLToken == "+tt.token, func(t *testing.T) {
-			hcl := `
+			a := NewTestAgent(t, `
 				primary_datacenter = "dc1"
 
 				acl {
@@ -6352,33 +6332,12 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 
 					tokens {
 						initial_management = "root"
-`
-			if tt.token == "dns" {
-				// Create a UUID for dns token since it doesn't have an alias
-				dnsToken := "279d4735-f8ca-4d48-b5cc-c00a9713bbf8"
-
-				hcl = hcl + `
-						default = "anonymous"
-						dns = "` + dnsToken + `"
-`
-			} else {
-				hcl = hcl + `
-						default = "` + tt.token + `"
-`
-			}
-
-			hcl = hcl + `
+						default = "`+tt.token+`"
 					}
 				}
-			`
-
-			a := NewTestAgent(t, hcl)
+			`)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
-
-			if tt.token == "dns" {
-				initDNSToken(t, a)
-			}
 
 			// Register a service
 			args := &structs.RegisterRequest{
@@ -6411,7 +6370,6 @@ func TestDNS_ServiceLookup_FilterACL(t *testing.T) {
 		})
 	}
 }
-
 func TestDNS_ServiceLookup_MetaTXT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")

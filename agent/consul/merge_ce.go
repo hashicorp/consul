@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package consul
 
@@ -12,10 +10,6 @@ import (
 )
 
 func (md *lanMergeDelegate) enterpriseNotifyMergeMember(m *serf.Member) error {
-	if memberFIPS := m.Tags["fips"]; memberFIPS != "" {
-		return fmt.Errorf("Member '%s' is FIPS Consul; FIPS Consul is only available in Consul Enterprise",
-			m.Name)
-	}
 	if memberPartition := m.Tags["ap"]; memberPartition != "" {
 		return fmt.Errorf("Member '%s' part of partition '%s'; Partitions are a Consul Enterprise feature",
 			m.Name, memberPartition)

@@ -1,0 +1,13 @@
+%frame-magenta-300 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-gray-000));
+  border-color: rgb(var(--tone-magenta-600));
+  color: rgb(var(--tone-magenta-600));
+}
+%frame-magenta-800 {
+  @extend %frame-border-000;
+  background-color: rgb(var(--tone-magenta-500));
+  border-color: rgb(var(--tone-magenta-800));
+  color: rgb(var(--tone-gray-000));
+}
+
