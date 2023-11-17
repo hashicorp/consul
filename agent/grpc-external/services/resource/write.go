@@ -182,9 +182,11 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// just want to update the current resource.
 			input.Id = existing.Id
 
-			// User is doing a non-CAS write, use the current version.
+			// User is doing a non-CAS write, use the current version and preserve
+			// deferred deletion metadata if not present.
 			if input.Version == "" {
 				input.Version = existing.Version
+				preserveDeferredDeletionMetadata(input, existing)
 			}
 
 			// Check the stored version matches the user-given version.
@@ -404,7 +406,7 @@ func vetIfDeleteRelated(input, existing *pbresource.Resource, tenancyMarkedForDe
 		errMetadataSame := ensureMetadataSameExceptFor(input, existing, resource.DeletionTimestampKey)
 		errDataUnchanged := ensureDataUnchanged(input, existing)
 		if errMetadataSame == nil && errDataUnchanged == nil {
-			return status.Error(codes.InvalidArgument, "no-op write of resource marked for deletion not allowed")
+			return status.Error(codes.InvalidArgument, "cannot no-op write resource marked for deletion")
 		}
 	}
 
@@ -436,4 +438,34 @@ func vetIfDeleteRelated(input, existing *pbresource.Resource, tenancyMarkedForDe
 	}
 
 	return nil
+}
+
+// preserveDeferredDeletionMetadata only applies to user writes (Version == "") which is a precondition.
+func preserveDeferredDeletionMetadata(input, existing *pbresource.Resource) {
+	// preserve existing deletionTimestamp if not provided in input
+	if !resource.IsMarkedForDeletion(input) && resource.IsMarkedForDeletion(existing) {
+		if input.Metadata == nil {
+			input.Metadata = make(map[string]string)
+		}
+		input.Metadata[resource.DeletionTimestampKey] = existing.Metadata[resource.DeletionTimestampKey]
+	}
+
+	// Only preserve finalizers if the is key absent from input and present in existing.
+	// If the key is present in input, the user clearly wants to remove finalizers!
+	inputHasKey := false
+	if input.Metadata != nil {
+		_, inputHasKey = input.Metadata[resource.FinalizerKey]
+	}
+
+	existingHasKey := false
+	if existing.Metadata != nil {
+		_, existingHasKey = existing.Metadata[resource.FinalizerKey]
+	}
+
+	if !inputHasKey && existingHasKey {
+		if input.Metadata == nil {
+			input.Metadata = make(map[string]string)
+		}
+		input.Metadata[resource.FinalizerKey] = existing.Metadata[resource.FinalizerKey]
+	}
 }

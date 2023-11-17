@@ -1011,7 +1011,7 @@ func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
 	testCases := map[string]testCase{
 		"no-op write rejected": {
 			modFn:       func(res *pbresource.Resource) {},
-			errContains: "no-op write of resource marked for deletion not allowed",
+			errContains: "cannot no-op write resource marked for deletion",
 		},
 		"remove one finalizer": {
 			modFn: func(res *pbresource.Resource) {
@@ -1085,6 +1085,150 @@ func TestWrite_ResourceFrozenAfterMarkedForDeletion(t *testing.T) {
 				require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
 				require.ErrorContains(t, err, tc.errContains)
 			}
+		})
+	}
+}
+
+func TestWrite_NonCASWritePreservesFinalizers(t *testing.T) {
+	type testCase struct {
+		existingMeta map[string]string
+		inputMeta    map[string]string
+		expectedMeta map[string]string
+	}
+	testCases := map[string]testCase{
+		"input nil metadata preserves existing finalizers": {
+			inputMeta:    nil,
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+		},
+		"input metadata and no finalizer key preserves existing finalizers": {
+			inputMeta:    map[string]string{},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+		},
+		"input metadata and with empty finalizer key overwrites existing finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: ""},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: ""},
+		},
+		"input metadata with one finalizer key overwrites multiple existing finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer2"},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer2"},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			server, client, ctx := testDeps(t)
+			demo.RegisterTypes(server.Registry)
+
+			// Create the resource based on tc.existingMetadata
+			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy"})
+
+			if tc.existingMeta != nil {
+				for k, v := range tc.existingMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			res := builder.Write(t, client)
+
+			// Build resource for user write based on tc.inputMetadata
+			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.inputMeta != nil {
+				for k, v := range tc.inputMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			userRes := builder.Build()
+
+			// Perform the user write
+			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: userRes})
+			require.NoError(t, err)
+
+			// Verify write result preserved metadata based on testcase.expecteMetadata
+			for k := range tc.expectedMeta {
+				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
+			}
+			require.Equal(t, len(tc.expectedMeta), len(rsp.Resource.Metadata))
+		})
+	}
+}
+
+func TestWrite_NonCASWritePreservesDeletionTimestamp(t *testing.T) {
+	type testCase struct {
+		existingMeta map[string]string
+		inputMeta    map[string]string
+		expectedMeta map[string]string
+	}
+
+	// deletionTimestamp has to be generated via Delete() call and can't be embedded in testdata
+	// even though testcase desc refers to it.
+	testCases := map[string]testCase{
+		"input metadata no deletion timestamp preserves existing deletion timestamp and removes single finalizer": {
+			inputMeta:    map[string]string{resource.FinalizerKey: "finalizer1"},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: "finalizer1"},
+		},
+		"input metadata no deletion timestamp preserves existing deletion timestamp and removes all finalizers": {
+			inputMeta:    map[string]string{resource.FinalizerKey: ""},
+			existingMeta: map[string]string{resource.FinalizerKey: "finalizer1 finalizer2"},
+			expectedMeta: map[string]string{resource.FinalizerKey: ""},
+		},
+	}
+
+	for desc, tc := range testCases {
+		t.Run(desc, func(t *testing.T) {
+			server, client, ctx := testDeps(t)
+			demo.RegisterTypes(server.Registry)
+
+			// Create the resource based on tc.existingMetadata
+			builder := rtest.Resource(demo.TypeV1Artist, "joydivision").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.existingMeta != nil {
+				for k, v := range tc.existingMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			res := builder.Write(t, client)
+
+			// Mark for deletion
+			_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Re-read the deleted res for future comparison of deletionTimestamp
+			delRsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
+			require.NoError(t, err)
+
+			// Build resource for user write based on tc.inputMetadata
+			builder = rtest.Resource(demo.TypeV1Artist, res.Id.Name).
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Joy Division"})
+
+			if tc.inputMeta != nil {
+				for k, v := range tc.inputMeta {
+					builder.WithMeta(k, v)
+				}
+			}
+			userRes := builder.Build()
+
+			// Perform the non-CAS user write
+			rsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: userRes})
+			require.NoError(t, err)
+
+			// Verify write result preserved metadata based on testcase.expecteMetadata
+			for k := range tc.expectedMeta {
+				require.Equal(t, tc.expectedMeta[k], rsp.Resource.Metadata[k])
+			}
+			// Verify deletion timestamp preserved even though it wasn't passed in to the write
+			require.Equal(t, delRsp.Resource.Metadata[resource.DeletionTimestampKey], rsp.Resource.Metadata[resource.DeletionTimestampKey])
 		})
 	}
 }
