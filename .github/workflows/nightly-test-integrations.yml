@@ -406,7 +406,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
-      - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -445,7 +444,7 @@ jobs:
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
-            -timeout=60m \
+            -timeout=20m \
             -parallel=2 \
             -json \
             ./... \
