@@ -161,12 +161,12 @@ func newCommonTopo(t *testing.T) *commonTopo {
 						},
 					},
 				},
-				Enterprise: true,
+				Enterprise: utils.IsEnterprise(),
 				InitialConfigEntries: []api.ConfigEntry{
 					&api.ProxyConfigEntry{
 						Kind:      api.ProxyDefaults,
 						Name:      "global",
-						Partition: "default",
+						Partition: topoutil.ConfigEntryPartition("default"),
 						Config: map[string]any{
 							"protocol": "http",
 						},
@@ -174,14 +174,12 @@ func newCommonTopo(t *testing.T) *commonTopo {
 					&api.ServiceConfigEntry{
 						Kind:      api.ServiceDefaults,
 						Name:      "static-server",
-						Partition: "default",
-						Namespace: "default",
+						Partition: topoutil.ConfigEntryPartition("default"),
 					},
 					&api.ServiceIntentionsConfigEntry{
 						Kind:      api.ServiceIntentions,
 						Name:      "static-server",
-						Partition: "default",
-						Namespace: "default",
+						Partition: topoutil.ConfigEntryPartition("default"),
 						Sources: []*api.SourceIntention{
 							{
 								Name:   "static-client",
