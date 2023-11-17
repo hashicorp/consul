@@ -144,15 +144,15 @@ Take note of which agent is the leader.
    sudo systemctl restart consul
    ```
 
-To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
-following command:
+ - To validate that the agent has rejoined the cluster and is in sync with the leader, issue the
+ following command:
 
-```shell-session
-consul info
-```
+    ```shell-session
+    consul info
+    ```
 
-Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
-this should avoid an unexpected leadership election due to loss of quorum.
+      Check whether the `commit_index` and `last_log_index` fields have the same value. If done properly,
+      this should avoid an unexpected leadership election due to loss of quorum.
 
 **4.** Double-check that all servers are showing up in the cluster as expected and are on 
 the correct version by issuing:
