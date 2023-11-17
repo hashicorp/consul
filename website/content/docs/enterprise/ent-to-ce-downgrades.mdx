@@ -39,13 +39,13 @@ To downgrade consul version on k8s we will have to modify the image version in y
 
 **1.** Take a snapshot:
 
-```
+```shell-session
 $ consul snapshot save backup.snap
 ```
 
 You can inspect the snapshot to ensure if was successful with:
 
-```
+```shell-session
 $ consul snapshot inspect backup.snap
 ```
 
@@ -69,7 +69,7 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
        is set to `debug`. After doing this, issue the following command on your servers to
        reload the configuration:
 
-```
+```shell-session
 $ consul reload
 ```
 
@@ -95,7 +95,7 @@ This change will give you more information to work with in the event something g
 
 **1.** Restart or redeploy all clients with a CE version of the binary. You can use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If you are not using a service management system, you must restart the  agent manually.
 
- Example :- 
+ Example:
    ```shell-session
    $ sudo systemctl restart consul
    ```
@@ -139,7 +139,7 @@ Take note of which agent is the leader.
     
  - Use a service management system (e.g., systemd, upstart, etc.) to restart the Consul service. If you are not using a service management system, you must restart the agent manually.
 
-   Example :- 
+   Example:
    ```shell-session
    $ sudo systemctl restart consul
    ```
