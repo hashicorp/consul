@@ -20,9 +20,15 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/consul/internal/auth"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/multicluster"
+	"github.com/oklog/ulid/v2"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/types/known/anypb"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -33,13 +39,7 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
@@ -73,12 +73,16 @@ import (
 	"github.com/hashicorp/consul/agent/rpc/peering"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
+	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
+	"github.com/hashicorp/consul/internal/storage"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
 	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
@@ -87,6 +91,7 @@ import (
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	"github.com/hashicorp/consul/proto/private/pbsubscribe"
 	"github.com/hashicorp/consul/tlsutil"
 	"github.com/hashicorp/consul/types"
@@ -991,6 +996,60 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 	}
 
 	return s.controllerManager.ValidateDependencies(s.registry.Types())
+}
+
+func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
+	if err := s.createDefaultPartition(ctx, b); err != nil {
+		return err
+	}
+
+	if err := s.createDefaultNamespace(ctx, b); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) createDefaultNamespace(ctx context.Context, b storage.Backend) error {
+	readID := &pbresource.ID{
+		Type:    pbtenancy.NamespaceType,
+		Name:    resource.DefaultNamespaceName,
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
+
+	read, err := b.Read(ctx, storage.StrongConsistency, readID)
+
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		return fmt.Errorf("failed to read the %q namespace: %v", resource.DefaultNamespaceName, err)
+	}
+	if read == nil && errors.Is(err, storage.ErrNotFound) {
+		nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
+		if err != nil {
+			return err
+		}
+
+		// create a default namespace in default partition
+		nsID := &pbresource.ID{
+			Type:    pbtenancy.NamespaceType,
+			Name:    resource.DefaultNamespaceName,
+			Tenancy: resource.DefaultPartitionedTenancy(),
+			Uid:     ulid.Make().String(),
+		}
+
+		_, err = b.WriteCAS(ctx, &pbresource.Resource{
+			Id:         nsID,
+			Generation: ulid.Make().String(),
+			Data:       nsData,
+			Metadata: map[string]string{
+				"generated_at": time.Now().Format(time.RFC3339),
+			},
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to create the %q namespace: %v", resource.DefaultNamespaceName, err)
+		}
+	}
+	s.logger.Info("Created", "namespace", resource.DefaultNamespaceName)
+	return nil
 }
 
 func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler {

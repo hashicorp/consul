@@ -16,12 +16,13 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"golang.org/x/time/rate"
+
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
-	"golang.org/x/time/rate"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/metadata"
@@ -339,6 +340,12 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	if s.config.LogStoreConfig.Verification.Enabled {
 		s.startLogVerification(ctx)
+	}
+
+	if s.useV2Tenancy {
+		if err := s.initTenancy(ctx, s.resourceServiceServer.Backend); err != nil {
+			return err
+		}
 	}
 
 	if s.config.Reporting.License.Enabled && s.reportingManager != nil {

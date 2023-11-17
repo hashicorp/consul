@@ -6,19 +6,22 @@
 package consul
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/armon/go-metrics"
+	"google.golang.org/grpc"
+
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
-	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib"
 )
 
@@ -190,4 +193,9 @@ func (s *Server) updateReportingConfig(config ReloadableConfig) {
 func getEnterpriseReportingDeps(deps Deps) reporting.EntDeps {
 	// no-op
 	return reporting.EntDeps{}
+}
+
+func (s *Server) createDefaultPartition(ctx context.Context, b storage.Backend) error {
+	// no-op
+	return nil
 }
