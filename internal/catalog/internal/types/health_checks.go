@@ -8,9 +8,8 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
-
-type DecodedHealthChecks = resource.DecodedResource[*pbcatalog.HealthChecks]
 
 func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
@@ -22,13 +21,17 @@ func RegisterHealthChecks(r resource.Registry) {
 	})
 }
 
-var ValidateHealthChecks = resource.DecodeAndValidate(validateHealthChecks)
+func ValidateHealthChecks(res *pbresource.Resource) error {
+	var checks pbcatalog.HealthChecks
 
-func validateHealthChecks(res *DecodedHealthChecks) error {
+	if err := res.Data.UnmarshalTo(&checks); err != nil {
+		return resource.NewErrDataParse(&checks, err)
+	}
+
 	var err error
 
 	// Validate the workload selector
-	if selErr := ValidateSelector(res.Data.Workloads, false); selErr != nil {
+	if selErr := ValidateSelector(checks.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -36,7 +39,7 @@ func validateHealthChecks(res *DecodedHealthChecks) error {
 	}
 
 	// Validate each check
-	for idx, check := range res.Data.HealthChecks {
+	for idx, check := range checks.HealthChecks {
 		if checkErr := validateCheck(check); checkErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "checks",

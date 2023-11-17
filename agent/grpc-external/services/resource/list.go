@@ -16,7 +16,7 @@ import (
 )
 
 func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbresource.ListResponse, error) {
-	reg, err := s.ensureListRequestValid(req)
+	reg, err := s.validateListRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (s *Server) List(ctx context.Context, req *pbresource.ListRequest) (*pbreso
 	return &pbresource.ListResponse{Resources: result}, nil
 }
 
-func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.Registration, error) {
+func (s *Server) validateListRequest(req *pbresource.ListRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Type == nil:
@@ -100,13 +100,8 @@ func (s *Server) ensureListRequestValid(req *pbresource.ListRequest) (*resource.
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Type); err != nil {
-		return nil, err
-	}
-
-	if err := validateWildcardTenancy(req.Tenancy, req.NamePrefix); err != nil {
-		return nil, err
-	}
+	// Lowercase
+	resource.Normalize(req.Tenancy)
 
 	// Error when partition scoped and namespace not empty.
 	if reg.Scope == resource.ScopePartition && req.Tenancy.Namespace != "" {

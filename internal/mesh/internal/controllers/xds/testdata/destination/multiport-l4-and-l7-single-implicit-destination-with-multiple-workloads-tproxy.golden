@@ -192,7 +192,7 @@
             "route": {
               "name": "default/local/default/api-app:http"
             },
-            "statPrefix": "upstream.http.api-app.default.default.dc1"
+            "statPrefix": "upstream."
           },
           "match": {
             "destinationPort": 8080,

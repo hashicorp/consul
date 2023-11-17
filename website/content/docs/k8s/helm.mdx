@@ -759,19 +759,6 @@ Use these links to navigate to a particular top-level stanza.
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
 
-  - `persistentVolumeClaimRetentionPolicy` ((#v-server-persistentvolumeclaimretentionpolicy)) (`map`) - The [Persistent Volume Claim (PVC) retention policy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
-    controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
-    WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted, 
-    and WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down.
-
-    Example:
-
-    ```yaml
-    persistentVolumeClaimRetentionPolicy:
-      whenDeleted: Retain
-      whenScaled: Retain
-    ```
-
   - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
     setting will only enable usage of the feature. Consul will automatically initialize

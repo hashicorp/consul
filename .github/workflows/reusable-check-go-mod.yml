@@ -33,3 +33,6 @@ jobs:
           git status -s
           exit 1
         fi
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
