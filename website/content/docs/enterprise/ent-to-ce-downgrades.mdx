@@ -66,8 +66,8 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
 **2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
-is set to `debug`. After doing this, issue the following command on your servers to
-reload the configuration:
+       is set to `debug`. After doing this, issue the following command on your servers to
+       reload the configuration:
 
 ```
 consul reload
@@ -75,22 +75,21 @@ consul reload
 
 This change will give you more information to work with in the event something goes wrong.
 
-**3.** Modify the following config entries if applicable :
+**3.** Modify the following config entries if applicable: 
 
-      [Service resolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver): 
+[Service resolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver): 
 
-      1. remove services configured as failovers in non default namespace or belonging to a sameness group.
-       
-      2. remove services configured as redirects belonging to non default namespaces or partiton.
+1. remove services configured as failovers in non default namespace or  belonging to a sameness group.
 
-      [Service splitter](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-splitter):
+2. remove services configured as redirects belonging to non default namespaces or partiton.
 
-      1. remove services configured as splits belonging to non default namespaces or partiton
+[Service splitter](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-splitter):
 
-      [Service router](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-router):
+1. remove services configured as splits belonging to non default namespaces or partiton
 
-      1. remove services configured as destination belonging to non default namespaces or partiton
+[Service router](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-router):
 
+1. remove services configured as destination belonging to non default namespaces or partiton
 
 ## Perform the Downgrade
 
@@ -119,20 +118,20 @@ Take note of which agent is the leader.
 
 
 
-**3.** Update server binaries to use the CE version.The following steps must be done in order on the server agents, leaving the leader
-agent for last.
+**3.** Update server binaries to use the CE version.The following steps must be done in order on the server agents, leaving the leader agent for last.
+
  - An env var named `CONSUL_ENTERPRISE_DOWNGRADE_TO_CE` should be set to `true` on the servers. 
 
    Following is an example to set the env var if you are using `systemd` :
    1. Edit the Consul systemd service unit file
-    ```shell-session
-    sudo vi /etc/systemd/system/consul.service
-    ```
+      ```shell-session
+      sudo vi /etc/systemd/system/consul.service
+      ```
    2. Add the environment variables you want to set for Consul under the [Service] section of the unit file and save the file
-     ```shell-session
-     [Service]
-      Environment=CONSUL_ENTERPRISE_DOWNGRADE_TO_CE=true
-     ```
+      ```shell-session
+      [Service]
+       Environment=CONSUL_ENTERPRISE_DOWNGRADE_TO_CE=true
+      ```
    3. Reload systemd
       ```shell-session
       sudo systemctl daemon-reload
