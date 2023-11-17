@@ -37,23 +37,27 @@ To downgrade consul version on k8s we will have to modify the image version in y
 
 ## Prepare for the downgrade to CE
 
-1. Take a snapshot.
-  ```shell-session
-    consul snapshot save backup.snap
-  ```
-2. You can inspect the snapshot to ensure if was successful with:
+**1.** Take a snapshot:
 
-  ```shell-session
-   consul snapshot inspect backup.snap
+```
+consul snapshot save backup.snap
+```
+
+You can inspect the snapshot to ensure if was successful with:
+
+```
+consul snapshot inspect backup.snap
+```
 
 Example output:
 
-  ```shell-session
-  ID           2-1182-1542056499724
-  Size         4115
-  Index        1182
-  Term         2
-  Version      1
+```
+ID           2-1182-1542056499724
+Size         4115
+Index        1182
+Term         2
+Version      1
+```
 
 This will ensure you have a safe fallback option in case something goes wrong. Store
 this snapshot somewhere safe. More documentation on snapshot usage is available here:
@@ -61,26 +65,31 @@ this snapshot somewhere safe. More documentation on snapshot usage is available 
 - [consul.io/commands/snapshot](/consul/commands/snapshot)
 - [Backup Consul Data and State tutorial](/consul/tutorials/production-deploy/backup-and-restore)
 
-3. Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
-is set to `debug`. After doing this, issue the following command on your servers to reload the configuration:
+**2.** Temporarily modify your Consul configuration so that its [log_level](/consul/docs/agent/config/cli-flags#_log_level)
+is set to `debug`. After doing this, issue the following command on your servers to
+reload the configuration:
 
-```shell-session
+```
 consul reload
 ```
 
 This change will give you more information to work with in the event something goes wrong.
 
-4. Modify the following config entries if applicable :
+**3.** Modify the following config entries if applicable :
 
-    [Service resolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver): 
-    1. remove  services configured as failovers in non default namespace or belonging to a sameness group. 
-    2. remove services configured as redirects belonging to non default namespaces or partiton.
+      [Service resolver](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-resolver): 
 
-    [Service splitter](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-splitter): 
-    1. remove services configured as splits belonging to non default namespaces or partiton
+      1. remove services configured as failovers in non default namespace or belonging to a sameness group.
+       
+      2. remove services configured as redirects belonging to non default namespaces or partiton.
 
-    [Service router](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-router):
-    1. remove services configured as destination belonging to non default namespaces or partiton
+      [Service splitter](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-splitter):
+
+      1. remove services configured as splits belonging to non default namespaces or partiton
+
+      [Service router](https://developer.hashicorp.com/consul/docs/connect/config-entries/service-router):
+
+      1. remove services configured as destination belonging to non default namespaces or partiton
 
 
 ## Perform the Downgrade
