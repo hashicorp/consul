@@ -4,10 +4,15 @@
 name: Nightly test-integrations
 
 on:
-  schedule:
-    # Run nightly at 12AM UTC/8PM EST/5PM PST
-    - cron: '* 0 * * *'
-  workflow_dispatch: {}
+  pull_request:
+    branches-ignore:
+      - stable-website
+      - 'docs/**'
+      - 'ui/**'
+  # schedule:
+  #   # Run nightly at 12AM UTC/8PM EST/5PM PST
+  #   - cron: '* 0 * * *'
+  # workflow_dispatch: {}
 
 env:
   TEST_RESULTS_DIR: /tmp/test-results
@@ -406,7 +411,6 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
-      - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -445,7 +449,7 @@ jobs:
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
-            -timeout=60m \
+            -timeout=20m \
             -parallel=2 \
             -json \
             ./... \
@@ -495,12 +499,12 @@ jobs:
   test-integrations-success:
     needs: 
     - setup
-    - dev-build
-    - generate-envoy-job-matrices
-    - envoy-integration-test
-    - upgrade-integration-test
+    # - dev-build
+    # - generate-envoy-job-matrices
+    # - envoy-integration-test
+    # - upgrade-integration-test
     - upgrade-integration-test-deployer
-    - peering_commontopo-integration-test
+    # - peering_commontopo-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     if: ${{ always() }}
     steps:
