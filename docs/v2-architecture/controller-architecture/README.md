@@ -56,6 +56,7 @@ reduce operational complexity for our customers.
 
 [Controllers](../../../internal/controller/api.go) implement Consul's business
 logic using asynchronous control loops that respond to changes in resources.
+Please see [Controller docs](controllers.md) for more details about controllers
 
 ## Raft Storage Backend
 

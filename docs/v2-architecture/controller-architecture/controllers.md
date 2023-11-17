@@ -221,5 +221,3 @@ Below is a list of controller best practices that we've learned so far. Many of 
 * Avoid monolithic controllers as much as possible. A single controller should only manage a single resource to avoid complexity and race conditions.
 * If using cached mappers, aim to write (update or delete entries) to mappers in the `Reconcile` method and read from them in the mapper functions used by watches.
 * Fetch all data in the `Reconcile` method and avoid caching it from the mapper functions. This ensures that we get the latest data for each reconciliation.
-
-## Testing
