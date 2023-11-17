@@ -1,0 +1,3 @@
+```release-note:bug
+CLI: fix a panic when deleting a non existing policy by name.
+```
