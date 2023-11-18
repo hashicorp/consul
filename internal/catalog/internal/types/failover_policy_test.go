@@ -11,13 +11,13 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestMutateFailoverPolicy(t *testing.T) {
@@ -749,7 +749,7 @@ func TestFailoverPolicyACLs(t *testing.T) {
 		})
 	}
 
-	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	isEnterprise := versiontest.IsEnterprise()
 
 	serviceRead := func(partition, namespace, name string) string {
 		if isEnterprise {

@@ -24,6 +24,8 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Enum=FAILOVER_MODE_UNSPECIFIED;FAILOVER_MODE_SEQUENTIAL;FAILOVER_MODE_ORDER_BY_LOCALITY
+// +kubebuilder:validation:Type=string
 type FailoverMode int32
 
 const (

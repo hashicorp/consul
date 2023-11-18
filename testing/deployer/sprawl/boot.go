@@ -29,15 +29,31 @@ const (
 	sharedAgentRecoveryToken = "22082b05-05c9-4a0a-b3da-b9685ac1d688"
 )
 
+type LaunchPhase int
+
+const (
+	LaunchPhaseRegular LaunchPhase = iota
+	LaunchPhaseUpgrade
+)
+
+func (lp LaunchPhase) String() string {
+	phaseStr := ""
+	switch lp {
+	case LaunchPhaseRegular:
+		phaseStr = "regular"
+	case LaunchPhaseUpgrade:
+		phaseStr = "upgrade"
+	}
+	return phaseStr
+}
+
 func (s *Sprawl) launch() error {
-	return s.launchType(true)
+	return s.launchType(true, LaunchPhaseRegular)
 }
-
-func (s *Sprawl) relaunch() error {
-	return s.launchType(false)
+func (s *Sprawl) relaunch(launchPhase LaunchPhase) error {
+	return s.launchType(false, launchPhase)
 }
-
-func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
+func (s *Sprawl) launchType(firstTime bool, launchPhase LaunchPhase) (launchErr error) {
 	if err := build.DockerImages(s.logger, s.runner, s.topology); err != nil {
 		return fmt.Errorf("build.DockerImages: %w", err)
 	}
@@ -121,7 +137,7 @@ func (s *Sprawl) launchType(firstTime bool) (launchErr error) {
 
 		s.generator.MarkLaunched()
 	} else {
-		if err := s.updateExisting(); err != nil {
+		if err := s.updateExisting(firstTime, launchPhase); err != nil {
 			return err
 		}
 	}
@@ -182,7 +198,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
-				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress, "enabled", !node.Disabled)
 			}
 		}
 	}
@@ -260,8 +276,11 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("populateInitialConfigEntries[%s]: %w", cluster.Name, err)
 		}
 
-		if err := s.populateInitialResources(cluster); err != nil {
-			return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
+		if cluster.EnableV2 {
+			// Resources are available only in V2
+			if err := s.populateInitialResources(cluster); err != nil {
+				return fmt.Errorf("populateInitialResources[%s]: %w", cluster.Name, err)
+			}
 		}
 
 		if err := s.createAnonymousToken(cluster); err != nil {
@@ -296,12 +315,12 @@ func (s *Sprawl) createFirstTime() error {
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	// We can do this ahead, because we've incrementally run terraform as
@@ -321,9 +340,18 @@ func (s *Sprawl) createFirstTime() error {
 	return nil
 }
 
-func (s *Sprawl) updateExisting() error {
-	if err := s.preRegenTasks(); err != nil {
-		return fmt.Errorf("preRegenTasks: %w", err)
+func (s *Sprawl) updateExisting(firstTime bool, launchPhase LaunchPhase) error {
+	if launchPhase != LaunchPhaseUpgrade {
+		if err := s.preRegenTasks(); err != nil {
+			return fmt.Errorf("preRegenTasks: %w", err)
+		}
+	} else {
+		s.logger.Info("Upgrade - skip preRegenTasks")
+		for _, cluster := range s.topology.Clusters {
+			if err := s.createAgentTokens(cluster); err != nil {
+				return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+			}
+		}
 	}
 
 	// We save all of the terraform to the end. Some of the containers will
@@ -333,7 +361,7 @@ func (s *Sprawl) updateExisting() error {
 		return fmt.Errorf("generator[relaunch]: %w", err)
 	}
 
-	if err := s.postRegenTasks(); err != nil {
+	if err := s.postRegenTasks(firstTime); err != nil {
 		return fmt.Errorf("postRegenTasks: %w", err)
 	}
 
@@ -364,20 +392,23 @@ func (s *Sprawl) preRegenTasks() error {
 
 	// Ideally we start services WITH a token initially, so we pre-create them
 	// before running terraform for them.
-	if err := s.createAllServiceTokens(); err != nil {
-		return fmt.Errorf("createAllServiceTokens: %w", err)
+	if err := s.createAllWorkloadTokens(); err != nil {
+		return fmt.Errorf("createAllWorkloadTokens: %w", err)
 	}
 
-	if err := s.registerAllServicesForDataplaneInstances(); err != nil {
-		return fmt.Errorf("registerAllServicesForDataplaneInstances: %w", err)
+	if err := s.syncAllServicesForDataplaneInstances(); err != nil {
+		return fmt.Errorf("syncAllServicesForDataplaneInstances: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Sprawl) postRegenTasks() error {
-	if err := s.rejoinAllConsulServers(); err != nil {
-		return err
+func (s *Sprawl) postRegenTasks(firstTime bool) error {
+	// rejoinAllConsulServers only for firstTime; otherwise all server agents have retry_join
+	if firstTime {
+		if err := s.rejoinAllConsulServers(); err != nil {
+			return err
+		}
 	}
 
 	for _, cluster := range s.topology.Clusters {
@@ -387,6 +418,9 @@ func (s *Sprawl) postRegenTasks() error {
 
 		// Reconfigure the clients to use a management token.
 		node := cluster.FirstServer()
+		if node.Disabled {
+			continue
+		}
 		s.clients[cluster.Name], err = util.ProxyAPIClient(
 			node.LocalProxyPort(),
 			node.LocalAddress(),

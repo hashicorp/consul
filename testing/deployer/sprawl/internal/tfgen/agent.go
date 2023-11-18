@@ -135,7 +135,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string 
 	})
 
 	if node.IsServer() {
-		b.add("bootstrap_expect", len(cluster.ServerNodes()))
+		// bootstrap_expect is omitted if this node is a new server
+		if !node.IsNewServer {
+			b.add("bootstrap_expect", len(cluster.ServerNodes()))
+		}
 		// b.add("translate_wan_addrs", true)
 		b.addBlock("rpc", func() {
 			b.add("enable_streaming", true)
@@ -165,6 +168,25 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2 bool) string 
 			b.add("enabled", true)
 		})
 
+		// b.addBlock("autopilot", func() {
+		// 	b.add("upgrade_version_tag", "build")
+		// })
+
+		if node.AutopilotConfig != nil {
+			b.addBlock("autopilot", func() {
+				for k, v := range node.AutopilotConfig {
+					b.add(k, v)
+				}
+			})
+		}
+
+		if node.Meta != nil {
+			b.addBlock("node_meta", func() {
+				for k, v := range node.Meta {
+					b.add(k, v)
+				}
+			})
+		}
 	} else {
 		if cluster.Enterprise {
 			b.add("partition", node.Partition)

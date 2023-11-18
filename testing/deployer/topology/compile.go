@@ -130,7 +130,7 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if len(c.Services) == 0 { // always initialize this regardless of v2-ness, because we might late-enable it below
-			c.Services = make(map[ServiceID]*pbcatalog.Service)
+			c.Services = make(map[ID]*pbcatalog.Service)
 		}
 
 		var implicitV2Services bool
@@ -317,53 +317,59 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				return nil, fmt.Errorf("cluster %q node %q has more than one public address", c.Name, n.Name)
 			}
 
-			if n.IsDataplane() && len(n.Services) > 1 {
+			if len(n.Services) > 0 {
+				logger.Warn("please use Node.Workloads instead of Node.Services")
+				n.Workloads = append(n.Workloads, n.Services...)
+				n.Services = nil
+			}
+
+			if n.IsDataplane() && len(n.Workloads) > 1 {
 				// Our use of consul-dataplane here is supposed to mimic that
 				// of consul-k8s, which ultimately has one IP per Service, so
 				// we introduce the same limitation here.
 				return nil, fmt.Errorf("cluster %q node %q uses dataplane, but has more than one service", c.Name, n.Name)
 			}
 
-			seenServices := make(map[ServiceID]struct{})
-			for _, svc := range n.Services {
+			seenServices := make(map[ID]struct{})
+			for _, wrk := range n.Workloads {
 				if n.IsAgent() {
 					// Default to that of the enclosing node.
-					svc.ID.Partition = n.Partition
+					wrk.ID.Partition = n.Partition
 				}
-				svc.ID.Normalize()
+				wrk.ID.Normalize()
 
 				// Denormalize
-				svc.Node = n
-				svc.NodeVersion = n.Version
+				wrk.Node = n
+				wrk.NodeVersion = n.Version
 				if n.IsV2() {
-					svc.Workload = svc.ID.Name + "-" + n.PodName()
+					wrk.Workload = wrk.ID.Name + "-" + n.Name
 				}
 
-				if !IsValidLabel(svc.ID.Partition) {
-					return nil, fmt.Errorf("service partition is not valid: %s", svc.ID.Partition)
+				if !IsValidLabel(wrk.ID.Partition) {
+					return nil, fmt.Errorf("service partition is not valid: %s", wrk.ID.Partition)
 				}
-				if !IsValidLabel(svc.ID.Namespace) {
-					return nil, fmt.Errorf("service namespace is not valid: %s", svc.ID.Namespace)
+				if !IsValidLabel(wrk.ID.Namespace) {
+					return nil, fmt.Errorf("service namespace is not valid: %s", wrk.ID.Namespace)
 				}
-				if !IsValidLabel(svc.ID.Name) {
-					return nil, fmt.Errorf("service name is not valid: %s", svc.ID.Name)
+				if !IsValidLabel(wrk.ID.Name) {
+					return nil, fmt.Errorf("service name is not valid: %s", wrk.ID.Name)
 				}
-				if svc.ID.Partition != n.Partition {
+				if wrk.ID.Partition != n.Partition {
 					return nil, fmt.Errorf("service %s on node %s has mismatched partitions: %s != %s",
-						svc.ID.Name, n.Name, svc.ID.Partition, n.Partition)
+						wrk.ID.Name, n.Name, wrk.ID.Partition, n.Partition)
 				}
-				addTenancy(svc.ID.Partition, svc.ID.Namespace)
+				addTenancy(wrk.ID.Partition, wrk.ID.Namespace)
 
-				if _, exists := seenServices[svc.ID]; exists {
-					return nil, fmt.Errorf("cannot have two services on the same node %q in the same cluster %q with the same name %q", n.ID(), c.Name, svc.ID)
+				if _, exists := seenServices[wrk.ID]; exists {
+					return nil, fmt.Errorf("cannot have two services on the same node %q in the same cluster %q with the same name %q", n.ID(), c.Name, wrk.ID)
 				}
-				seenServices[svc.ID] = struct{}{}
+				seenServices[wrk.ID] = struct{}{}
 
-				if !svc.DisableServiceMesh && n.IsDataplane() {
-					if svc.EnvoyPublicListenerPort <= 0 {
+				if !wrk.DisableServiceMesh && n.IsDataplane() {
+					if wrk.EnvoyPublicListenerPort <= 0 {
 						if _, ok := n.usedPorts[20000]; !ok {
 							// For convenience the FIRST service on a node can get 20000 for free.
-							svc.EnvoyPublicListenerPort = 20000
+							wrk.EnvoyPublicListenerPort = 20000
 						} else {
 							return nil, fmt.Errorf("envoy public listener port is required")
 						}
@@ -371,102 +377,102 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 				}
 
 				// add all of the service ports
-				for _, port := range svc.ports() {
+				for _, port := range wrk.ports() {
 					if ok := exposePort(port); !ok {
 						return nil, fmt.Errorf("port used more than once on cluster %q node %q: %d", c.Name, n.ID(), port)
 					}
 				}
 
 				// TODO(rb): re-expose?
-				// switch svc.Protocol {
+				// switch wrk.Protocol {
 				// case "":
-				// 	svc.Protocol = "tcp"
+				// 	wrk.Protocol = "tcp"
 				// 	fallthrough
 				// case "tcp":
-				// 	if svc.CheckHTTP != "" {
+				// 	if wrk.CheckHTTP != "" {
 				// 		return nil, fmt.Errorf("cannot set CheckHTTP for tcp service")
 				// 	}
 				// case "http":
-				// 	if svc.CheckTCP != "" {
+				// 	if wrk.CheckTCP != "" {
 				// 		return nil, fmt.Errorf("cannot set CheckTCP for tcp service")
 				// 	}
 				// default:
-				// 	return nil, fmt.Errorf("service has invalid protocol: %s", svc.Protocol)
+				// 	return nil, fmt.Errorf("service has invalid protocol: %s", wrk.Protocol)
 				// }
 
-				defaultUpstream := func(u *Upstream) error {
+				defaultDestination := func(dest *Destination) error {
 					// Default to that of the enclosing service.
-					if u.Peer == "" {
-						if u.ID.Partition == "" {
-							u.ID.Partition = svc.ID.Partition
+					if dest.Peer == "" {
+						if dest.ID.Partition == "" {
+							dest.ID.Partition = wrk.ID.Partition
 						}
-						if u.ID.Namespace == "" {
-							u.ID.Namespace = svc.ID.Namespace
+						if dest.ID.Namespace == "" {
+							dest.ID.Namespace = wrk.ID.Namespace
 						}
 					} else {
-						if u.ID.Partition != "" {
-							u.ID.Partition = "" // irrelevant here; we'll set it to the value of the OTHER side for plumbing purposes in tests
+						if dest.ID.Partition != "" {
+							dest.ID.Partition = "" // irrelevant here; we'll set it to the value of the OTHER side for plumbing purposes in tests
 						}
-						u.ID.Namespace = NamespaceOrDefault(u.ID.Namespace)
-						foundPeerNames[c.Name][u.Peer] = struct{}{}
+						dest.ID.Namespace = NamespaceOrDefault(dest.ID.Namespace)
+						foundPeerNames[c.Name][dest.Peer] = struct{}{}
 					}
 
-					addTenancy(u.ID.Partition, u.ID.Namespace)
+					addTenancy(dest.ID.Partition, dest.ID.Namespace)
 
-					if u.Implied {
-						if u.PortName == "" {
-							return fmt.Errorf("implicit upstreams must use port names in v2")
+					if dest.Implied {
+						if dest.PortName == "" {
+							return fmt.Errorf("implicit destinations must use port names in v2")
 						}
 					} else {
-						if u.LocalAddress == "" {
+						if dest.LocalAddress == "" {
 							// v1 defaults to 127.0.0.1 but v2 does not. Safe to do this generally though.
-							u.LocalAddress = "127.0.0.1"
+							dest.LocalAddress = "127.0.0.1"
 						}
-						if u.PortName != "" && n.IsV1() {
-							return fmt.Errorf("explicit upstreams cannot use port names in v1")
+						if dest.PortName != "" && n.IsV1() {
+							return fmt.Errorf("explicit destinations cannot use port names in v1")
 						}
-						if u.PortName == "" && n.IsV2() {
+						if dest.PortName == "" && n.IsV2() {
 							// Assume this is a v1->v2 conversion and name it.
-							u.PortName = "legacy"
+							dest.PortName = "legacy"
 						}
 					}
 
 					return nil
 				}
 
-				for _, u := range svc.Upstreams {
-					if err := defaultUpstream(u); err != nil {
+				for _, dest := range wrk.Destinations {
+					if err := defaultDestination(dest); err != nil {
 						return nil, err
 					}
 				}
 
 				if n.IsV2() {
-					for _, u := range svc.ImpliedUpstreams {
-						u.Implied = true
-						if err := defaultUpstream(u); err != nil {
+					for _, dest := range wrk.ImpliedDestinations {
+						dest.Implied = true
+						if err := defaultDestination(dest); err != nil {
 							return nil, err
 						}
 					}
 				} else {
-					if len(svc.ImpliedUpstreams) > 0 {
-						return nil, fmt.Errorf("v1 does not support implied upstreams yet")
+					if len(wrk.ImpliedDestinations) > 0 {
+						return nil, fmt.Errorf("v1 does not support implied destinations yet")
 					}
 				}
 
-				if err := svc.Validate(); err != nil {
-					return nil, fmt.Errorf("cluster %q node %q service %q is not valid: %w", c.Name, n.Name, svc.ID.String(), err)
+				if err := wrk.Validate(); err != nil {
+					return nil, fmt.Errorf("cluster %q node %q service %q is not valid: %w", c.Name, n.Name, wrk.ID.String(), err)
 				}
 
-				if svc.EnableTransparentProxy && !n.IsDataplane() {
+				if wrk.EnableTransparentProxy && !n.IsDataplane() {
 					return nil, fmt.Errorf("cannot enable tproxy on a non-dataplane node")
 				}
 
 				if n.IsV2() {
 					if implicitV2Services {
-						svc.V2Services = []string{svc.ID.Name}
+						wrk.V2Services = []string{wrk.ID.Name}
 
 						var svcPorts []*pbcatalog.ServicePort
-						for name, cfg := range svc.Ports {
+						for name, cfg := range wrk.Ports {
 							svcPorts = append(svcPorts, &pbcatalog.ServicePort{
 								TargetPort: name,
 								Protocol:   cfg.ActualProtocol,
@@ -478,40 +484,40 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 							Ports:     svcPorts,
 						}
 
-						prev, ok := c.Services[svc.ID]
+						prev, ok := c.Services[wrk.ID]
 						if !ok {
-							c.Services[svc.ID] = v2svc
+							c.Services[wrk.ID] = v2svc
 							prev = v2svc
 						}
 						if prev.Workloads == nil {
 							prev.Workloads = &pbcatalog.WorkloadSelector{}
 						}
-						prev.Workloads.Names = append(prev.Workloads.Names, svc.Workload)
+						prev.Workloads.Names = append(prev.Workloads.Names, wrk.Workload)
 
 					} else {
-						for _, name := range svc.V2Services {
-							v2ID := NewServiceID(name, svc.ID.Namespace, svc.ID.Partition)
+						for _, name := range wrk.V2Services {
+							v2ID := NewServiceID(name, wrk.ID.Namespace, wrk.ID.Partition)
 
 							v2svc, ok := c.Services[v2ID]
 							if !ok {
 								return nil, fmt.Errorf("cluster %q node %q service %q has a v2 service reference that does not exist %q",
-									c.Name, n.Name, svc.ID.String(), name)
+									c.Name, n.Name, wrk.ID.String(), name)
 							}
 							if v2svc.Workloads == nil {
 								v2svc.Workloads = &pbcatalog.WorkloadSelector{}
 							}
-							v2svc.Workloads.Names = append(v2svc.Workloads.Names, svc.Workload)
+							v2svc.Workloads.Names = append(v2svc.Workloads.Names, wrk.Workload)
 						}
 					}
 
-					if svc.WorkloadIdentity == "" {
-						svc.WorkloadIdentity = svc.ID.Name
+					if wrk.WorkloadIdentity == "" {
+						wrk.WorkloadIdentity = wrk.ID.Name
 					}
 				} else {
-					if len(svc.V2Services) > 0 {
+					if len(wrk.V2Services) > 0 {
 						return nil, fmt.Errorf("cannot specify v2 services for v1")
 					}
-					if svc.WorkloadIdentity != "" {
+					if wrk.WorkloadIdentity != "" {
 						return nil, fmt.Errorf("cannot specify workload identities for v1")
 					}
 				}
@@ -523,18 +529,18 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 
 		if c.EnableV2 {
-			// Populate the VirtualPort field on all implied upstreams.
+			// Populate the VirtualPort field on all implied destinations.
 			for _, n := range c.Nodes {
-				for _, svc := range n.Services {
-					for _, u := range svc.ImpliedUpstreams {
-						res, ok := c.Services[u.ID]
+				for _, wrk := range n.Workloads {
+					for _, dest := range wrk.ImpliedDestinations {
+						res, ok := c.Services[dest.ID]
 						if ok {
 							for _, sp := range res.Ports {
 								if sp.Protocol == pbcatalog.Protocol_PROTOCOL_MESH {
 									continue
 								}
-								if sp.TargetPort == u.PortName {
-									u.VirtualPort = sp.VirtualPort
+								if sp.TargetPort == dest.PortName {
+									dest.VirtualPort = sp.VirtualPort
 								}
 							}
 						}
@@ -648,40 +654,40 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 		}
 	}
 
-	// after we decoded the peering stuff, we can fill in some computed data in the upstreams
+	// after we decoded the peering stuff, we can fill in some computed data in the destinations
 	for _, c := range clusters {
 		c.Peerings = clusteredPeerings[c.Name]
 		for _, n := range c.Nodes {
-			for _, svc := range n.Services {
-				for _, u := range svc.Upstreams {
-					if u.Peer == "" {
-						u.Cluster = c.Name
-						u.Peering = nil
+			for _, wrk := range n.Workloads {
+				for _, dest := range wrk.Destinations {
+					if dest.Peer == "" {
+						dest.Cluster = c.Name
+						dest.Peering = nil
 						continue
 					}
-					remotePeer, ok := c.Peerings[u.Peer]
+					remotePeer, ok := c.Peerings[dest.Peer]
 					if !ok {
 						return nil, fmt.Errorf("not possible")
 					}
-					u.Cluster = remotePeer.Link.Name
-					u.Peering = remotePeer.Link
+					dest.Cluster = remotePeer.Link.Name
+					dest.Peering = remotePeer.Link
 					// this helps in generating fortio assertions; otherwise field is ignored
-					u.ID.Partition = remotePeer.Link.Partition
+					dest.ID.Partition = remotePeer.Link.Partition
 				}
-				for _, u := range svc.ImpliedUpstreams {
-					if u.Peer == "" {
-						u.Cluster = c.Name
-						u.Peering = nil
+				for _, dest := range wrk.ImpliedDestinations {
+					if dest.Peer == "" {
+						dest.Cluster = c.Name
+						dest.Peering = nil
 						continue
 					}
-					remotePeer, ok := c.Peerings[u.Peer]
+					remotePeer, ok := c.Peerings[dest.Peer]
 					if !ok {
 						return nil, fmt.Errorf("not possible")
 					}
-					u.Cluster = remotePeer.Link.Name
-					u.Peering = remotePeer.Link
+					dest.Cluster = remotePeer.Link.Name
+					dest.Peering = remotePeer.Link
 					// this helps in generating fortio assertions; otherwise field is ignored
-					u.ID.Partition = remotePeer.Link.Partition
+					dest.ID.Partition = remotePeer.Link.Partition
 				}
 			}
 		}
@@ -843,26 +849,26 @@ func inheritAndValidateNodes(
 			currAddr.inheritFromExisting(prevAddr)
 		}
 
-		svcMap := mapifyServices(currNode.Node.Services)
+		wrkMap := mapifyWorkloads(currNode.Node.Workloads)
 
-		for _, svc := range node.Services {
-			currSvc, ok := svcMap[svc.ID]
+		for _, wrk := range node.Workloads {
+			currWrk, ok := wrkMap[wrk.ID]
 			if !ok {
 				continue // service has vanished, this is ok
 			}
 			// don't care about index permutation
 
-			if currSvc.ID != svc.ID ||
-				currSvc.Port != svc.Port ||
-				!maps.Equal(currSvc.Ports, svc.Ports) ||
-				currSvc.EnvoyAdminPort != svc.EnvoyAdminPort ||
-				currSvc.EnvoyPublicListenerPort != svc.EnvoyPublicListenerPort ||
-				isSame(currSvc.Command, svc.Command) != nil ||
-				isSame(currSvc.Env, svc.Env) != nil {
-				return fmt.Errorf("cannot edit some address fields for %q", svc.ID)
+			if currWrk.ID != wrk.ID ||
+				currWrk.Port != wrk.Port ||
+				!maps.Equal(currWrk.Ports, wrk.Ports) ||
+				currWrk.EnvoyAdminPort != wrk.EnvoyAdminPort ||
+				currWrk.EnvoyPublicListenerPort != wrk.EnvoyPublicListenerPort ||
+				isSame(currWrk.Command, wrk.Command) != nil ||
+				isSame(currWrk.Env, wrk.Env) != nil {
+				return fmt.Errorf("cannot edit some address fields for %q", wrk.ID)
 			}
 
-			currSvc.inheritFromExisting(svc)
+			currWrk.inheritFromExisting(wrk)
 		}
 	}
 	return nil
@@ -935,10 +941,10 @@ type nodeWithPosition struct {
 	Node *Node
 }
 
-func mapifyServices(services []*Service) map[ServiceID]*Service {
-	m := make(map[ServiceID]*Service)
-	for _, svc := range services {
-		m[svc.ID] = svc
+func mapifyWorkloads(workloads []*Service) map[ID]*Service {
+	m := make(map[ID]*Service)
+	for _, wrk := range workloads {
+		m[wrk.ID] = wrk
 	}
 	return m
 }

@@ -5,9 +5,8 @@ package peering
 
 import (
 	"fmt"
-	"time"
-
 	"testing"
+	"time"
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
@@ -26,15 +25,20 @@ import (
 // 9. Delete failing health check from step 3
 // 10. Repeat step 2
 type ac5_2PQFailoverSuite struct {
-	clientSID  topology.ServiceID
-	serverSID  topology.ServiceID
+	clientSID  topology.ID
+	serverSID  topology.ID
 	nodeServer topology.NodeID
+}
+
+type nodeKey struct {
+	dc        string
+	partition string
 }
 
 var ac5_2Context = make(map[nodeKey]ac5_2PQFailoverSuite)
 
 func TestAC5PreparedQueryFailover(t *testing.T) {
-	ct := NewCommonTopo(t)
+	ct := newCommonTopo(t, "dc2", true, true)
 	s := &ac5_2PQFailoverSuite{}
 	s.setup(t, ct)
 	ct.Launch(t)
@@ -52,21 +56,21 @@ func (s *ac5_2PQFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topology.Cl
 	partition := "default"
 	peer := LocalPeerName(peerClu, partition)
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac5-server-http",
 		Partition: partition,
 	}
 
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac5-client-http",
 		Partition: partition,
 	}
 
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.EnvoyAdminPort = 0
 				s.DisableServiceMesh = true
 			},
@@ -83,10 +87,10 @@ func (s *ac5_2PQFailoverSuite) setupDC(ct *commonTopo, clu, peerClu *topology.Cl
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.EnvoyAdminPort = 0
 				s.DisableServiceMesh = true
 			},
@@ -109,22 +113,22 @@ func (s *ac5_2PQFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 *topol
 	)
 	peers = append(peers, LocalPeerName(peer1, partition), LocalPeerName(peer2, partition))
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac5-server-http",
 		Partition: partition,
 	}
 
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac5-client-http",
 		Partition: partition,
 	}
 
 	// disable service mesh for client in DC3
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.EnvoyAdminPort = 0
 				s.DisableServiceMesh = true
 			},
@@ -149,10 +153,10 @@ func (s *ac5_2PQFailoverSuite) setupDC3(ct *commonTopo, clu, peer1, peer2 *topol
 	ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			serverSID,
-			func(s *topology.Service) {
+			func(s *topology.Workload) {
 				s.EnvoyAdminPort = 0
 				s.DisableServiceMesh = true
 			},

@@ -510,7 +510,7 @@ jobs:
           go-version-file: 'go.mod'
       - run: go env
       - name: Build image
-        run: make test-compat-integ-setup
+        run: make test-deployer-setup
       - name: Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
@@ -526,7 +526,7 @@ jobs:
             -timeout=20m \
             -parallel=2 \
             -json \
-            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo` \
+            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \

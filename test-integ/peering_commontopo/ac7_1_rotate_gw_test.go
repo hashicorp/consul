@@ -11,8 +11,6 @@ import (
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // TestRotateGW ensures that peered services continue to be able to talk to their
@@ -23,13 +21,13 @@ type suiteRotateGW struct {
 	DC   string
 	Peer string
 
-	sidServer  topology.ServiceID
+	sidServer  topology.ID
 	nodeServer topology.NodeID
 
-	sidClient  topology.ServiceID
+	sidClient  topology.ID
 	nodeClient topology.NodeID
 
-	upstream *topology.Upstream
+	upstream *topology.Destination
 
 	newMGWNodeName string
 }
@@ -64,7 +62,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 
 	server := NewFortioServiceWithDefaults(
 		peerClu.Datacenter,
-		topology.ServiceID{
+		topology.ID{
 			Name:      prefix + "server-http",
 			Partition: partition,
 		},
@@ -72,8 +70,8 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	)
 
 	// Make clients which have server upstreams
-	upstream := &topology.Upstream{
-		ID: topology.ServiceID{
+	upstream := &topology.Destination{
+		ID: topology.ID{
 			Name:      server.ID.Name,
 			Partition: partition,
 		},
@@ -85,17 +83,17 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	// create client in us
 	client := NewFortioServiceWithDefaults(
 		clu.Datacenter,
-		topology.ServiceID{
+		topology.ID{
 			Name:      prefix + "client",
 			Partition: partition,
 		},
-		func(s *topology.Service) {
-			s.Upstreams = []*topology.Upstream{
+		func(s *topology.Workload) {
+			s.Destinations = []*topology.Destination{
 				upstream,
 			}
 		},
 	)
-	clientNode := ct.AddServiceNode(clu, serviceExt{Service: client,
+	clientNode := ct.AddServiceNode(clu, serviceExt{Workload: client,
 		Config: &api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      client.ID.Name,
@@ -112,7 +110,7 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	})
 	// actually to be used by the other pairing
 	serverNode := ct.AddServiceNode(peerClu, serviceExt{
-		Service: server,
+		Workload: server,
 		Config: &api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      server.ID.Name,
@@ -143,10 +141,10 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 	// add a second mesh gateway "new"
 	s.newMGWNodeName = fmt.Sprintf("new-%s-default-mgw", clu.Name)
 	nodeKind := topology.NodeKindClient
-	if clu.Datacenter == agentlessDC {
+	if clu.Datacenter == ct.agentlessDC {
 		nodeKind = topology.NodeKindDataplane
 	}
-	clu.Nodes = append(clu.Nodes, topoutil.NewTopologyMeshGatewaySet(
+	_, mgwNodes := newTopologyMeshGatewaySet(
 		nodeKind,
 		"default",
 		s.newMGWNodeName,
@@ -155,18 +153,19 @@ func (s *suiteRotateGW) setup(t *testing.T, ct *commonTopo) {
 		func(i int, node *topology.Node) {
 			node.Disabled = true
 		},
-	)...)
+	)
+	clu.Nodes = append(clu.Nodes, mgwNodes...)
 }
 
 func (s *suiteRotateGW) test(t *testing.T, ct *commonTopo) {
 	dc := ct.Sprawl.Topology().Clusters[s.DC]
 	peer := ct.Sprawl.Topology().Clusters[s.Peer]
 
-	svcHTTPServer := peer.ServiceByID(
+	svcHTTPServer := peer.WorkloadByID(
 		s.nodeServer,
 		s.sidServer,
 	)
-	svcHTTPClient := dc.ServiceByID(
+	svcHTTPClient := dc.WorkloadByID(
 		s.nodeClient,
 		s.sidClient,
 	)

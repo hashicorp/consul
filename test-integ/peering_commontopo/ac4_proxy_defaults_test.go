@@ -22,9 +22,9 @@ type ac4ProxyDefaultsSuite struct {
 	nodeClient topology.NodeID
 	nodeServer topology.NodeID
 
-	serverSID topology.ServiceID
-	clientSID topology.ServiceID
-	upstream  *topology.Upstream
+	serverSID topology.ID
+	clientSID topology.ID
+	upstream  *topology.Destination
 }
 
 var ac4ProxyDefaultsSuites []sharedTopoSuite = []sharedTopoSuite{
@@ -49,28 +49,28 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	peer := LocalPeerName(peerClu, "default")
 	cluPeerName := LocalPeerName(clu, "default")
 
-	serverSID := topology.ServiceID{
+	serverSID := topology.ID{
 		Name:      "ac4-server-http",
 		Partition: partition,
 	}
 	// Define server as upstream for client
-	upstream := &topology.Upstream{
+	upstream := &topology.Destination{
 		ID:        serverSID,
 		LocalPort: 5000,
 		Peer:      peer,
 	}
 
 	// Make client which will dial server
-	clientSID := topology.ServiceID{
+	clientSID := topology.ID{
 		Name:      "ac4-http-client",
 		Partition: partition,
 	}
 	client := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			clu.Datacenter,
 			clientSID,
-			func(s *topology.Service) {
-				s.Upstreams = []*topology.Upstream{
+			func(s *topology.Workload) {
+				s.Destinations = []*topology.Destination{
 					upstream,
 				}
 			},
@@ -92,7 +92,7 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 	clientNode := ct.AddServiceNode(clu, client)
 
 	server := serviceExt{
-		Service: NewFortioServiceWithDefaults(
+		Workload: NewFortioServiceWithDefaults(
 			peerClu.Datacenter,
 			serverSID,
 			nil,
@@ -143,34 +143,33 @@ func (s *ac4ProxyDefaultsSuite) setup(t *testing.T, ct *commonTopo) {
 }
 
 func (s *ac4ProxyDefaultsSuite) test(t *testing.T, ct *commonTopo) {
-	var client *topology.Service
+	var client *topology.Workload
 
 	dc := ct.Sprawl.Topology().Clusters[s.DC]
 	peer := ct.Sprawl.Topology().Clusters[s.Peer]
 
-	clientSVC := dc.ServiceByID(
+	clientSVC := dc.WorkloadByID(
 		s.nodeClient,
 		s.clientSID,
 	)
-	serverSVC := peer.ServiceByID(
+	serverSVC := peer.WorkloadByID(
 		s.nodeServer,
 		s.serverSID,
 	)
 
 	// preconditions check
 	ct.Assert.HealthyWithPeer(t, dc.Name, serverSVC.ID, LocalPeerName(peer, "default"))
-	ct.Assert.UpstreamEndpointHealthy(t, clientSVC, s.upstream)
 	ct.Assert.FortioFetch2HeaderEcho(t, clientSVC, s.upstream)
 
 	t.Run("Validate services exist in catalog", func(t *testing.T) {
-		dcSvcs := dc.ServicesByID(s.clientSID)
+		dcSvcs := dc.WorkloadsByID(s.clientSID)
 		require.Len(t, dcSvcs, 1, "expected exactly one client")
 		client = dcSvcs[0]
-		require.Len(t, client.Upstreams, 1, "expected exactly one upstream for client")
+		require.Len(t, client.Destinations, 1, "expected exactly one upstream for client")
 
-		server := dc.ServicesByID(s.serverSID)
+		server := dc.WorkloadsByID(s.serverSID)
 		require.Len(t, server, 1, "expected exactly one server")
-		require.Len(t, server[0].Upstreams, 0, "expected no upstream for server")
+		require.Len(t, server[0].Destinations, 0, "expected no upstream for server")
 	})
 
 	t.Run("peered upstream exists in catalog", func(t *testing.T) {

@@ -28,7 +28,7 @@ import (
 // - Errors with Aborted if the requested Version does not match the stored Version.
 // - Errors with PermissionDenied if ACL check fails
 func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pbresource.DeleteResponse, error) {
-	reg, err := s.validateDeleteRequest(req)
+	reg, err := s.ensureDeleteRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -74,6 +74,21 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 		deleteId = existing.Id
 	}
 
+	// Check finalizers for a deferred delete
+	if resource.HasFinalizers(existing) {
+		if resource.IsMarkedForDeletion(existing) {
+			// Delete previously requested and finalizers still present so nothing to do
+			return &pbresource.DeleteResponse{}, nil
+		}
+
+		// Mark for deletion and let controllers that put finalizers in place do their
+		// thing. Note we're passing in a clone of the recently read resource since
+		// we've not crossed a network/serialization boundary since the read and we
+		// don't want to mutate the in-mem reference.
+		return s.markForDeletion(ctx, clone(existing))
+	}
+
+	// Continue with an immediate delete
 	if err := s.maybeCreateTombstone(ctx, deleteId); err != nil {
 		return nil, err
 	}
@@ -87,6 +102,16 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 	default:
 		return nil, status.Errorf(codes.Internal, "failed delete: %v", err)
 	}
+}
+
+func (s *Server) markForDeletion(ctx context.Context, res *pbresource.Resource) (*pbresource.DeleteResponse, error) {
+	// Write the deletion timestamp
+	res.Metadata[resource.DeletionTimestampKey] = time.Now().Format(time.RFC3339)
+	_, err := s.Write(ctx, &pbresource.WriteRequest{Resource: res})
+	if err != nil {
+		return nil, err
+	}
+	return &pbresource.DeleteResponse{}, nil
 }
 
 // Create a tombstone to capture the intent to delete child resources.
@@ -145,7 +170,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 	}
 }
 
-func (s *Server) validateDeleteRequest(req *pbresource.DeleteRequest) (*resource.Registration, error) {
+func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}

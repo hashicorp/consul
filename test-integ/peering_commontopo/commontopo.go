@@ -40,6 +40,7 @@ type commonTopo struct {
 	// shortcuts to corresponding entry in Cfg
 	DC1 *topology.Cluster
 	DC2 *topology.Cluster
+	// nil if includeDC3 is false
 	DC3 *topology.Cluster
 
 	// set after Launch. Should be considered read-only
@@ -47,67 +48,102 @@ type commonTopo struct {
 	Assert *topoutil.Asserter
 
 	// track per-DC services to prevent duplicates
-	services map[string]map[topology.ServiceID]struct{}
+	services map[string]map[topology.ID]struct{}
+
+	// if zero, no DCs are agentless
+	agentlessDC string
+
+	// if true, create DC3 and associated links (currently only used by ac5.2)
+	includeDC3 bool
+
+	peerThroughMGW bool
 }
 
-const agentlessDC = "dc2"
+func NewCommonTopoWithoutAgentless(t *testing.T) *commonTopo {
+	t.Helper()
+	return newCommonTopo(t, "", false, true)
+}
 
 func NewCommonTopo(t *testing.T) *commonTopo {
 	t.Helper()
+	return newCommonTopo(t, "dc2", false, true)
+}
 
-	ct := commonTopo{}
+func newCommonTopo(t *testing.T, agentlessDC string, includeDC3 bool, peerThroughMGW bool) *commonTopo {
+	t.Helper()
+
+	ct := commonTopo{
+		agentlessDC:    agentlessDC,
+		includeDC3:     includeDC3,
+		peerThroughMGW: peerThroughMGW,
+	}
 
 	const nServers = 3
 
 	// Make 3-server clusters in dc1 and dc2
 	// For simplicity, the Name and Datacenter of the clusters are the same.
 	// dc1 and dc2 should be symmetric.
-	dc1 := clusterWithJustServers("dc1", nServers)
+	dc1 := ct.clusterWithJustServers("dc1", nServers)
 	ct.DC1 = dc1
-	dc2 := clusterWithJustServers("dc2", nServers)
+	dc2 := ct.clusterWithJustServers("dc2", nServers)
 	ct.DC2 = dc2
-	// dc3 is a failover cluster for both dc1 and dc2
-	dc3 := clusterWithJustServers("dc3", 1)
-	// dc3 is only used for certain failover scenarios and does not need tenancies
-	dc3.Partitions = []*topology.Partition{{Name: "default"}}
-	ct.DC3 = dc3
+	clusters := []*topology.Cluster{dc1, dc2}
+
+	var dc3 *topology.Cluster
+
+	if ct.includeDC3 {
+		// dc3 is a failover cluster for both dc1 and dc2
+		dc3 = ct.clusterWithJustServers("dc3", 1)
+		// dc3 is only used for certain failover scenarios and does not need tenancies
+		dc3.Partitions = []*topology.Partition{{Name: "default"}}
+		ct.DC3 = dc3
+		// dc3 is only used for certain failover scenarios and does not need tenancies
+		dc3.Partitions = []*topology.Partition{{Name: "default"}}
+
+		clusters = append(clusters, dc3)
+	}
 
 	injectTenancies(dc1)
 	injectTenancies(dc2)
-	// dc3 is only used for certain failover scenarios and does not need tenancies
-	dc3.Partitions = []*topology.Partition{{Name: "default"}}
+	// dc3 doesn't get tenancies
 
-	ct.services = map[string]map[topology.ServiceID]struct{}{}
-	for _, dc := range []*topology.Cluster{dc1, dc2, dc3} {
-		ct.services[dc.Datacenter] = map[topology.ServiceID]struct{}{}
+	ct.services = map[string]map[topology.ID]struct{}{}
+	for _, dc := range clusters {
+		ct.services[dc.Datacenter] = map[topology.ID]struct{}{}
 	}
 
 	peerings := addPeerings(dc1, dc2)
-	peerings = append(peerings, addPeerings(dc1, dc3)...)
-	peerings = append(peerings, addPeerings(dc2, dc3)...)
+	if ct.includeDC3 {
+		peerings = append(peerings, addPeerings(dc1, dc3)...)
+		peerings = append(peerings, addPeerings(dc2, dc3)...)
+	}
 
-	addMeshGateways(dc1)
-	addMeshGateways(dc2)
-	addMeshGateways(dc3)
+	ct.addMeshGateways(dc1)
+	ct.addMeshGateways(dc2)
+	if ct.includeDC3 {
+		ct.addMeshGateways(dc3)
+	}
 
-	setupGlobals(dc1)
-	setupGlobals(dc2)
-	setupGlobals(dc3)
+	ct.setupGlobals(dc1)
+	ct.setupGlobals(dc2)
+	if ct.includeDC3 {
+		ct.setupGlobals(dc3)
+	}
+
+	networks := []*topology.Network{
+		{Name: "wan", Type: "wan"},
+		{Name: dc1.Datacenter}, // "dc1" LAN
+		{Name: dc2.Datacenter}, // "dc2" LAN
+	}
+	if ct.includeDC3 {
+		networks = append(networks, &topology.Network{Name: dc3.Datacenter})
+	}
 
 	// Build final configuration
 	ct.Cfg = &topology.Config{
-		Images: utils.TargetImages(),
-		Networks: []*topology.Network{
-			{Name: dc1.Datacenter}, // "dc1" LAN
-			{Name: dc2.Datacenter}, // "dc2" LAN
-			{Name: dc3.Datacenter}, // "dc3" LAN
-			{Name: "wan", Type: "wan"},
-		},
-		Clusters: []*topology.Cluster{
-			dc1,
-			dc2,
-			dc3,
-		},
+		Images:   utils.TargetImages(),
+		Networks: networks,
+		Clusters: clusters,
 		Peerings: peerings,
 	}
 	return &ct
@@ -142,10 +178,12 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 		for _, e := range clu.InitialConfigEntries {
 			if e.GetKind() == api.ExportedServices {
 				asExport := e.(*api.ExportedServicesConfigEntry)
-				// do we care about the partition?
 				for _, svc := range asExport.Services {
 					for _, con := range svc.Consumers {
-						// do we care about con.Partition?
+						// if Peer is unset, this is an export to another partition in the same DC, so we don't need to check it
+						if con.Peer == "" {
+							continue
+						}
 						// TODO: surely there is code to normalize this
 						partition := asExport.Partition
 						if partition == "" {
@@ -183,13 +221,16 @@ func (ct *commonTopo) postLaunchChecks(t *testing.T) {
 // PeerName is how you'd address a remote dc+partition locally
 // as your peer name.
 func LocalPeerName(clu *topology.Cluster, partition string) string {
+	if partition == "" {
+		partition = "default"
+	}
 	return fmt.Sprintf("peer-%s-%s", clu.Datacenter, partition)
 }
 
 // TODO: move these to topology
 // TODO: alternatively, delete it: we only use it in one place, to bundle up args
 type serviceExt struct {
-	*topology.Service
+	*topology.Workload
 
 	Exports    []api.ServiceConsumer
 	Config     *api.ServiceConfigEntry
@@ -204,7 +245,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	ct.services[clusterName][svc.ID] = struct{}{}
 
 	// TODO: inline
-	serviceHostnameString := func(dc string, id topology.ServiceID) string {
+	serviceHostnameString := func(dc string, id topology.ID) string {
 		n := id.Name
 		// prepend <namespace>- and <partition>- if they are not default/empty
 		// avoids hostname limit of 63 chars in most cases
@@ -227,7 +268,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	nodeKind := topology.NodeKindClient
 	// TODO: bug in deployer somewhere; it should guard against a KindDataplane node with
 	// DisableServiceMesh services on it; dataplane is only for service-mesh
-	if !svc.DisableServiceMesh && clu.Datacenter == agentlessDC {
+	if !svc.DisableServiceMesh && clu.Datacenter == ct.agentlessDC {
 		nodeKind = topology.NodeKindDataplane
 	}
 
@@ -238,8 +279,8 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		Addresses: []*topology.Address{
 			{Network: clu.Datacenter},
 		},
-		Services: []*topology.Service{
-			svc.Service,
+		Workloads: []*topology.Workload{
+			svc.Workload,
 		},
 		Cluster: clusterName,
 	}
@@ -286,8 +327,8 @@ func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svc
 	if !found {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ExportedServicesConfigEntry{
-				Name:      partition, // this NEEDs to be "default" in CE
-				Partition: ConfigEntryPartition(partition),
+				Name:      topology.PartitionOrDefault(partition), // this NEEDs to be "default" in CE
+				Partition: topology.DefaultToEmpty(partition),
 				Services:  svcs,
 			},
 		)
@@ -306,13 +347,9 @@ func (ct *commonTopo) ClusterByDatacenter(t *testing.T, name string) *topology.C
 	return nil
 }
 
-// Since CE config entries do not contain the partition field,
-// this func converts default partition to empty string.
+// Deprecated: topoutil.ConfigEntryPartition
 func ConfigEntryPartition(p string) string {
-	if p == "default" {
-		return "" // make this CE friendly
-	}
-	return p
+	return topoutil.ConfigEntryPartition(p)
 }
 
 // DisableNode is a no-op if the node is already disabled.
@@ -335,7 +372,7 @@ func EnableNode(t *testing.T, cfg *topology.Config, clusterName string, nid topo
 	return cfg
 }
 
-func setupGlobals(clu *topology.Cluster) {
+func (ct *commonTopo) setupGlobals(clu *topology.Cluster) {
 	for _, part := range clu.Partitions {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ProxyConfigEntry{
@@ -349,35 +386,63 @@ func setupGlobals(clu *topology.Cluster) {
 					Mode: api.MeshGatewayModeLocal,
 				},
 			},
-			&api.MeshConfigEntry{
-				Peering: &api.PeeringMeshConfig{
-					PeerThroughMeshGateways: true,
-				},
-			},
 		)
+		if ct.peerThroughMGW {
+			clu.InitialConfigEntries = append(clu.InitialConfigEntries,
+				&api.MeshConfigEntry{
+					Peering: &api.PeeringMeshConfig{
+						PeerThroughMeshGateways: true,
+					},
+				},
+			)
+		}
 	}
 }
 
 // addMeshGateways adds a mesh gateway for every partition in the cluster.
 // Assumes that the LAN network name is equal to datacenter name.
-func addMeshGateways(c *topology.Cluster) {
+func (ct *commonTopo) addMeshGateways(c *topology.Cluster) {
 	nodeKind := topology.NodeKindClient
-	if c.Datacenter == agentlessDC {
+	if c.Datacenter == ct.agentlessDC {
 		nodeKind = topology.NodeKindDataplane
 	}
 	for _, p := range c.Partitions {
-		c.Nodes = topology.MergeSlices(c.Nodes, topoutil.NewTopologyMeshGatewaySet(
+		sid, nodes := newTopologyMeshGatewaySet(
 			nodeKind,
 			p.Name,
 			fmt.Sprintf("%s-%s-mgw", c.Name, p.Name),
 			1,
 			[]string{c.Datacenter, "wan"},
 			nil,
-		))
+		)
+		c.Nodes = topology.MergeSlices(c.Nodes, nodes)
+		// for services exported in the same cluster between partitions, we need
+		// to export the mesh gateway (but not for peering)
+		// https://github.com/hashicorp/consul/pull/19052
+		consumers := []api.ServiceConsumer{}
+		for _, cp := range c.Partitions {
+			if cp.Name == p.Name {
+				continue
+			}
+			consumers = append(consumers, api.ServiceConsumer{
+				Partition: cp.Name,
+			})
+		}
+		if len(consumers) > 0 {
+			ct.ExportService(c, p.Name, api.ExportedService{
+				Name:      sid.Name,
+				Namespace: sid.Namespace,
+				Consumers: consumers,
+			})
+		}
 	}
 }
 
-func clusterWithJustServers(name string, numServers int) *topology.Cluster {
+func (ct *commonTopo) clusterWithJustServers(name string, numServers int) *topology.Cluster {
+	nets := []string{name}
+	if !ct.peerThroughMGW {
+		nets = append(nets, "wan")
+	}
 	return &topology.Cluster{
 		Enterprise: utils.IsEnterprise(),
 		Name:       name,
@@ -385,7 +450,7 @@ func clusterWithJustServers(name string, numServers int) *topology.Cluster {
 		Nodes: topoutil.NewTopologyServerSet(
 			name+"-server",
 			numServers,
-			[]string{name},
+			nets,
 			nil,
 		),
 	}
@@ -441,8 +506,21 @@ func injectTenancies(clu *topology.Cluster) {
 // Deprecated: topoutil.NewFortioServiceWithDefaults
 func NewFortioServiceWithDefaults(
 	cluster string,
-	sid topology.ServiceID,
-	mut func(s *topology.Service),
-) *topology.Service {
+	sid topology.ID,
+	mut func(s *topology.Workload),
+) *topology.Workload {
 	return topoutil.NewFortioServiceWithDefaults(cluster, sid, topology.NodeVersionV1, mut)
+}
+
+func newTopologyMeshGatewaySet(
+	nodeKind topology.NodeKind,
+	partition string,
+	namePrefix string,
+	num int,
+	networks []string,
+	mutateFn func(i int, node *topology.Node),
+) (topology.ID, []*topology.Node) {
+	nodes := topoutil.NewTopologyMeshGatewaySet(nodeKind, partition, namePrefix, num, networks, mutateFn)
+	sid := nodes[0].Workloads[0].ID
+	return sid, nodes
 }

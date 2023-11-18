@@ -6,16 +6,20 @@ description: Learn how to enable locality-aware routing in Consul so that proxie
 
 # Route traffic to local upstreams
 
-This topic describes how to enable locality-aware routing so that Consul can prioritize sending traffic to upstream services that are in the same region and zone as the downstream service. You should only follow these instructions when every service within a zone has at least enough capacity to handle requests from downstream services within the same zone. 
+This topic describes how to enable locality-aware routing so that Consul can prioritize sending traffic to upstream services that are in the same region and zone as the downstream service.
 
 <EnterpriseAlert> This feature is available in Consul Enterprise. </EnterpriseAlert>
 
+!> **Warning**: Locality-aware routing is an advanced feature that may adversely impact service capacity if used incorrectly. By default, this feature routes 100% of traffic to the most local set of service instances, and failover only occurs when there are no healthy instances available in the most local set. You should only follow these instructions when every service within a zone has enough capacity to handle requests from downstream services within the same zone.
+
+-> **Note**: It is possible to adjust the load balancing and failover behavior for this feature globally or per-service via the [Property Override Envoy extension](/consul/docs/connect/proxies/envoy-extensions/usage/property-override). Please familiarize with Envoy docs on [`overprovisioning_factor`](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/endpoint/v3/endpoint.proto#config-endpoint-v3-clusterloadassignment) and [outlier detection](https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/cluster/v3/outlier_detection.proto#config-cluster-v3-outlierdetection) before attempting to modify configuration.
+
 ## Introduction
 
-By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network zones. You can specify the cloud service provider (CSP) locale for Consul server agents and services registered to the service mesh, which enables several benefits:
+By default, Consul balances traffic to all healthy upstream instances in the cluster, even if the instances are in different network zones. You can specify the cloud service provider (CSP) locality for Consul server agents and services registered to the service mesh, which enables several benefits:
 
-- Consul prioritizes the nearest upstream when routing traffic through the mesh. 
-- When a service instance in the same partition becomes unhealthy, Consul prioritizes failing over to upstream services that are in the same region as the downstream service. Refer to [Failover](/consul/docs/connect/traffic-management/failover) for additional information about failover strategies in Consul.
+- Consul prioritizes the nearest upstream instances when routing traffic through the mesh.
+- When upstream service instances becomes unhealthy, Consul prioritizes failing over to instances that are in the same region as the downstream service. Refer to [Failover](/consul/docs/connect/traffic-management/failover) for additional information about failover strategies in Consul.
 
 When properly implemented, routing traffic to local upstreams can reduce latency and transfer costs associated with sending requests to other regions. 
 
@@ -23,12 +27,10 @@ When properly implemented, routing traffic to local upstreams can reduce latency
 
 For networks deployed to virtual machines, complete the following steps to route traffic to local upstream services:
 
-1. Specify the region and zone for your Consul client agents. 
-1. It is not required, but you can specify the region and zone for your services. Skip this step to allow services to inherit the region and zone configured for the Consul client that the services are registered with. 
-1. Enable service mesh proxies to route traffic locally within the partition.
-1. Start service mesh proxies.
+1. Specify the region and zone for your Consul client agents. This allows services to inherit the region and zone configured for the Consul agent that the services are registered with.
+1. Configure service mesh proxies to route traffic locally within the partition.
 
-For Kubernetes-orchestrated networks, Consul automatically populates geographic information about service instances using the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` annotations from the Kubernetes nodes. As a result, you do not need to specify the regions and zones unless you are implementing a custom Kuberenetes deployment.
+For Kubernetes-orchestrated networks using `consul-k8s`, Consul automatically populates geographic information about service instances using the `topology.kubernetes.io/region` and `topology.kubernetes.io/zone` annotations from the Kubernetes nodes. Similarly, when deploying on AWS ECS using `consul-ecs`, the `AWS_REGION` environment variable and `AvailabilityZone` attribute of the ECS task meta are used. As a result, you do not need to specify the regions and zones on these platforms unless you are implementing a custom deployment.
 
 ## Specify the locality of your Consul agents
 
@@ -49,11 +51,11 @@ locality = {
 }
 ```
 
-## Specify the localities of your service instances
+## Specify the localities of your service instances (optional)
 
-You may only need to configure service localities in service mesh deployments that use [Consul dataplane](/consul/docs/connect/dataplane). This step is optional for networks deployed to virtual machines, which you should allow services to inherit the localities of the Consul agent that they are registered with.  
+-> This step is not typically required and should only be used if defining a custom network topology or your deployed environment requires explicitly setting the locality of certain services instances. Otherwise, follow the instructions above for VM workloads. For Kubernetes and ECS deployments using `consul-k8s` / `consul-ecs`, locality information will be inherited from the host machine.
 
-1. Configure the `locality` block in your service definition. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locale to the proxy so that it can route traffic accordingly. 
+1. Configure the `locality` block in your service definition. The `locality` block is a map containing the `region` and `zone` parameters. When you start a proxy for the service, Consul passes the locality to the proxy so that it can route traffic accordingly.
 
    The parameters should match the values for regions and zones defined in your network. Refer to [`locality`](/consul/docs/services/configuration/services-configuration-reference#locality) in the services configuration reference for additional information.
 
@@ -69,8 +71,11 @@ service {
     region = "us-west-1"
     zone = "us-west-1a"
   }
+  connect = { sidecar_service = {} }
 }
 ```
+
+If registering services manually via the `/agent/service/register` API endpoint, you can specify the `locality` configuration in the payload. Refer to [Register Service](/consul/api-docs/agent/service#register-service) in the API documentation for additional information.
 
 ## Enable service mesh proxies to route traffic locally
 
@@ -86,28 +91,15 @@ You can configure the default routing behavior for all proxies in the mesh as we
    ```shell-session
    $ consul config write proxy-defaults.hcl
    ```
+
 ### Configure routing behavior for individual service
 
 1. Create a service resolver configuration entry and specify the following fields:
-   - `Name`: Specify the name of the service that the routing behavior defined in the configuration entry applies to.
-   - `PrioritizeByLocality`: This block enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Set the `mode` inside the block to - `failover`. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/service-resolver#prioritzebylocality) in the service resolver reference for details about the configuration. 
+   - `Name`: Specify the name of the target upstream service for which downstream clients should use locality-aware routing.
+   - `PrioritizeByLocality`: This block enables proxies in the mesh to use the region and zone defined in the service configuration to route traffic. Set the `mode` inside the block to `failover`. Refer to [`PrioritizeByLocality`](/consul/docs/connect/config-entries/service-resolver#prioritizebylocality) in the service resolver reference for details about the configuration.
 1. Apply the configuration by either calling the [`/config` HTTP API endpoint](/consul/api-docs/config) or running the [`consul config write` CLI command](/consul/commands/config/write). 
    The following example writes a proxy defaults configuration entry from a local HCL file using the CLI:
 
    ```shell-session
    $ consul config write web-resolver.hcl
    ```
-
-## Start the proxies in your datacenter
-
-Envoy requires a bootstrap configuration file before it can start. Use the [`consul connect envoy` command](/consul/commands/connect/envoy) to create the Envoy bootstrap configuration and start the sidecar proxy service. Specify the ID of the sidecar proxy you want to start with the `-sidecar-for` option.  
-
-The following example command starts an Envoy proxy for the `web` proxy service:
-
-```shell-session
-$ consul connect envoy -sidecar-for=web
-```
-
-For details about operating an Envoy proxy in Consul, refer to the [Envoy proxy reference](/consul/docs/connect/proxies/envoy). 
-
-Use the `/agent/service/register` API endpoint to register sidecars independently from their application services. You must include the `locality` configuration in the payload. Refer to [Register Service](/consul/api-docs/agent/service#register-service) in the API documentation for additional information.
