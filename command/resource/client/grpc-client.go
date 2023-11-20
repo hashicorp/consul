@@ -54,10 +54,11 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 
 func checkCertificates(c *GRPCConfig) error {
 	if c.GRPCTLS {
-		if c.CAFile != "" || c.CAPath != "" {
+		if (c.CAFile != "" || c.CAPath != "") && (c.CertFile != "" && c.KeyFile != "") {
 			return nil
 		} else {
-			return fmt.Errorf("you have to provide certificate file and path if you use https or unix schema to communicate")
+			return fmt.Errorf("you have to provide CA certificate file or path and client certificate and key files " +
+				"if you use https or unix schema to communicate")
 		}
 	}
 	return nil

@@ -38,6 +38,14 @@ type GRPCConfig struct {
 	// GRPCTLS is the optional boolean flag to determine the communication protocol
 	GRPCTLS bool
 
+	// CertFile is the optional path to the certificate for Consul
+	// communication. If this is set then you need to also set KeyFile.
+	CertFile string
+
+	// KeyFile is the optional path to the private key for Consul communication.
+	// If this is set then you need to also set CertFile.
+	KeyFile string
+
 	// CAFile is the optional path to the CA certificate used for Consul
 	// communication, defaults to the system bundle if not specified.
 	CAFile string

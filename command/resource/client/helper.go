@@ -18,6 +18,16 @@ func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
 		InsecureSkipVerify: false, // Set to true only if you want to skip server verification
 	}
 
+	if c.CertFile != "" && c.KeyFile != "" {
+		tlsCert, err := tls.LoadX509KeyPair(c.CertFile, c.KeyFile)
+		if err != nil {
+			return nil, err
+		}
+		tlsConfig.Certificates = []tls.Certificate{tlsCert}
+	} else {
+		return nil, fmt.Errorf("both client cert and client key must be provided")
+	}
+
 	if c.CAFile != "" || c.CAPath != "" {
 		rootConfig := &rootcerts.Config{
 			CAFile: c.CAFile,
