@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"crypto/rand"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"strings"
 	"time"
 
+	retry "github.com/avast/retry-go"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-hclog"
@@ -51,6 +53,11 @@ type Sprawl struct {
 	grpcConns      map[string]*grpc.ClientConn // one per cluster (when v2 enabled)
 	grpcConnCancel map[string]func()           // one per cluster (when v2 enabled)
 }
+
+const (
+	UpgradeTypeStandard  = "standard"
+	UpgradeTypeAutopilot = "autopilot"
+)
 
 // Topology allows access to the topology that defines the resources. Do not
 // write to any of these fields.
@@ -222,12 +229,150 @@ func Launch(
 func (s *Sprawl) Relaunch(
 	cfg *topology.Config,
 ) error {
-	return s.RelaunchWithPhase(cfg, "")
+	return s.RelaunchWithPhase(cfg, LaunchPhaseRegular)
+}
+
+func (s *Sprawl) Upgrade(
+	cfg *topology.Config,
+	clusterName string,
+	upgradeType string,
+	targetImages topology.Images,
+	newServersInTopology []int,
+) error {
+	cluster := cfg.Cluster(clusterName)
+	if cluster == nil {
+		return fmt.Errorf("cluster %s not found in topology", clusterName)
+	}
+
+	leader, err := s.Leader(cluster.Name)
+	if err != nil {
+		return fmt.Errorf("error get leader: %w", err)
+	}
+	s.logger.Info("Upgrade cluster", "cluster", cluster.Name, "type", upgradeType, "leader", leader.Name)
+
+	switch upgradeType {
+	case UpgradeTypeAutopilot:
+		err = s.autopilotUpgrade(cfg, cluster, newServersInTopology)
+	case UpgradeTypeStandard:
+		err = s.standardUpgrade(cluster, targetImages)
+	default:
+		err = fmt.Errorf("upgrade type unsupported %s", upgradeType)
+	}
+	if err != nil {
+		return fmt.Errorf("error upgrading cluster: %w", err)
+	}
+
+	s.logger.Info("After upgrade", "server_nodes", cluster.ServerNodes())
+	return nil
+}
+
+// standardUpgrade upgrades server agents in the cluster to the targetImages
+// individually
+func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
+	targetImages topology.Images) error {
+	upgradeFn := func(nodeID topology.NodeID) error {
+		cfgUpgrade := s.Config()
+		clusterCopy := cfgUpgrade.Cluster(cluster.Name)
+
+		// update the server node's image
+		node := clusterCopy.NodeByID(nodeID)
+		node.Images = targetImages
+		s.logger.Info("Upgrading", "node", nodeID.Name, "to_version", node.Images)
+		err := s.RelaunchWithPhase(cfgUpgrade, LaunchPhaseUpgrade)
+		if err != nil {
+			return fmt.Errorf("error relaunch for upgrade: %w", err)
+		}
+		s.logger.Info("Relaunch completed", "node", node.Name)
+		return nil
+	}
+
+	s.logger.Info("Upgrade to", "version", targetImages)
+
+	// upgrade servers one at a time
+	for _, node := range cluster.Nodes {
+		if node.Kind != topology.NodeKindServer {
+			s.logger.Info("Skip non-server node", "node", node.Name)
+			continue
+		}
+		if err := upgradeFn(node.ID()); err != nil {
+			return fmt.Errorf("error upgrading node %s: %w", node.Name, err)
+		}
+	}
+	return nil
+}
+
+// autopilotUpgrade upgrades server agents by joining new servers with
+// higher version. After upgrade completes, the number of server agents
+// are doubled
+func (s *Sprawl) autopilotUpgrade(cfg *topology.Config, cluster *topology.Cluster, newServersInTopology []int) error {
+	leader, err := s.Leader(cluster.Name)
+	if err != nil {
+		return fmt.Errorf("error get leader: %w", err)
+	}
+
+	// sanity check for autopilot upgrade
+	if len(newServersInTopology) < len(cluster.ServerNodes()) {
+		return fmt.Errorf("insufficient new nodes for autopilot upgrade, expect %d, got %d",
+			len(cluster.ServerNodes()), len(newServersInTopology))
+	}
+
+	for _, nodeIdx := range newServersInTopology {
+		node := cluster.Nodes[nodeIdx]
+		if node.Kind != topology.NodeKindServer {
+			return fmt.Errorf("node %s kind is not server", node.Name)
+		}
+
+		if !node.Disabled {
+			return fmt.Errorf("node %s is already enabled", node.Name)
+		}
+
+		node.Disabled = false
+		node.IsNewServer = true
+
+		s.logger.Info("Joining new server", "node", node.Name)
+	}
+
+	err = s.RelaunchWithPhase(cfg, LaunchPhaseUpgrade)
+	if err != nil {
+		return fmt.Errorf("error relaunch for upgrade: %w", err)
+	}
+	s.logger.Info("Relaunch completed for autopilot upgrade")
+
+	// Verify leader is transferred - if upgrade type is autopilot
+	s.logger.Info("Waiting for leader transfer")
+	time.Sleep(20 * time.Second)
+	err = retry.Do(
+		func() error {
+			newLeader, err := s.Leader(cluster.Name)
+			if err != nil {
+				return fmt.Errorf("error get new leader: %w", err)
+			}
+			s.logger.Info("New leader", "addr", newLeader)
+
+			if newLeader.Name == leader.Name {
+				return fmt.Errorf("waiting for leader transfer")
+			}
+
+			return nil
+		},
+		retry.MaxDelay(5*time.Second),
+		retry.Attempts(20),
+	)
+	if err != nil {
+		return fmt.Errorf("Leader transfer failed: %w", err)
+	}
+
+	// Nodes joined the cluster, so we can set all new servers to false
+	for _, node := range cluster.Nodes {
+		node.IsNewServer = false
+	}
+
+	return nil
 }
 
 func (s *Sprawl) RelaunchWithPhase(
 	cfg *topology.Config,
-	phase string,
+	launchPhase LaunchPhase,
 ) error {
 	// Copy this BEFORE compiling so we capture the original definition, without denorms.
 	var err error
@@ -236,9 +381,7 @@ func (s *Sprawl) RelaunchWithPhase(
 		return err
 	}
 
-	if phase != "" {
-		s.logger = s.launchLogger.Named(phase)
-	}
+	s.logger = s.launchLogger.Named(launchPhase.String())
 
 	newTopology, err := topology.Recompile(s.logger.Named("recompile"), cfg, s.topology)
 	if err != nil {
@@ -250,7 +393,7 @@ func (s *Sprawl) RelaunchWithPhase(
 	s.logger.Debug("compiled replacement topology", "ct", jd(s.topology)) // TODO
 
 	start := time.Now()
-	if err := s.relaunch(); err != nil {
+	if err := s.relaunch(launchPhase); err != nil {
 		return err
 	}
 	s.logger.Info("topology is ready for use", "elapsed", time.Since(start))
@@ -285,6 +428,36 @@ func (s *Sprawl) SnapshotSave(clusterName string) error {
 		return fmt.Errorf("error restoring snapshot: %w", err)
 	}
 	s.logger.Info("snapshot restored")
+	return nil
+}
+
+func (s *Sprawl) GetKV(cluster string, key string, queryOpts *api.QueryOptions) ([]byte, error) {
+	client := s.clients[cluster]
+	kvClient := client.KV()
+
+	data, _, err := kvClient.Get(key, queryOpts)
+	if err != nil {
+		return nil, fmt.Errorf("error getting key: %w", err)
+	}
+	return data.Value, nil
+}
+
+func (s *Sprawl) LoadKVDataToCluster(cluster string, numberOfKeys int, writeOpts *api.WriteOptions) error {
+	client := s.clients[cluster]
+	kvClient := client.KV()
+
+	for i := 0; i <= numberOfKeys; i++ {
+		p := &api.KVPair{
+			Key: fmt.Sprintf("key-%d", i),
+		}
+		token := make([]byte, 131072) // 128K size of value
+		rand.Read(token)
+		p.Value = token
+		_, err := kvClient.Put(p, writeOpts)
+		if err != nil {
+			return fmt.Errorf("error writing kv: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -390,11 +563,11 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 			if n.Disabled {
 				continue
 			}
-			for _, s := range n.Services {
-				if s.Disabled || s.EnvoyAdminPort <= 0 {
+			for _, wrk := range n.Workloads {
+				if wrk.Disabled || wrk.EnvoyAdminPort <= 0 {
 					continue
 				}
-				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), s.EnvoyAdminPort)
+				prefix := fmt.Sprintf("http://%s:%d", n.LocalAddress(), wrk.EnvoyAdminPort)
 
 				for fn, target := range targets {
 					u := prefix + "/" + target
@@ -402,23 +575,23 @@ func (s *Sprawl) SnapshotEnvoy(ctx context.Context) error {
 					body, err := scrapeURL(client, u)
 					if err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not scrape %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
 
-					outFn := filepath.Join(snapDir, n.DockerName()+"--"+s.ID.TFString()+"."+fn)
+					outFn := filepath.Join(snapDir, n.DockerName()+"--"+wrk.ID.TFString()+"."+fn)
 
 					if err := os.WriteFile(outFn+".tmp", body, 0644); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}
 
 					if err := os.Rename(outFn+".tmp", outFn); err != nil {
 						merr = multierror.Append(merr, fmt.Errorf("could not write output %q for %s on %s: %w",
-							target, s.ID.String(), n.ID().String(), err,
+							target, wrk.ID.String(), n.ID().String(), err,
 						))
 						continue
 					}

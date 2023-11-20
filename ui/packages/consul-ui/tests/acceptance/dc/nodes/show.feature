@@ -23,25 +23,6 @@ Feature: dc / nodes / show: Show node
 
     When I click metadata on the tabs
     And I see metadataIsSelected on the tabs
-  Scenario: Given 1 node all the tabs are visible and clickable and the RTT one isn't there
-    Given 1 node models from yaml
-    ---
-    ID: node-0
-    ---
-    When I visit the node page for yaml
-    ---
-      dc: dc1
-      node: node-0
-    ---
-    And I see healthChecksIsSelected on the tabs
-
-    When I click serviceInstances on the tabs
-    And I see serviceInstancesIsSelected on the tabs
-
-    And I don't see roundTripTime on the tabs
-
-    When I click lockSessions on the tabs
-    And I see lockSessionsIsSelected on the tabs
   Scenario: Given 1 node with no checks all the tabs are visible but the serviceInstances tab is selected
     Given 1 node models from yaml
     ---

@@ -46,7 +46,7 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: "1.10.1"
+  GOTESTSUM_VERSION: "1.11.0"
   GOARCH: ${{inputs.go-arch}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
   GOTAGS: ${{ inputs.go-tags}}
@@ -96,19 +96,15 @@ jobs:
             # some tests expect this umask, and arm images have a different default
             umask 0022
 
-            ${{inputs.go-test-flags}}
-
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-              --format=short-verbose \
+              --format=github-actions \
               --jsonfile /tmp/jsonfile/go-test.log \
-              --debug \
-              --rerun-fails=3 \
-              --rerun-fails-max-failures=40 \
+              --rerun-fails \
               --rerun-fails-report=/tmp/gotestsum-rerun-fails \
               --packages="$PACKAGE_NAMES" \
               --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
               -tags="${{env.GOTAGS}}" \
-              ${GO_TEST_FLAGS-} \
+              ${{inputs.go-test-flags}} \
               -cover -coverprofile=coverage.txt \
               -timeout=30m
 
@@ -154,6 +150,3 @@ jobs:
       - name: "Re-run fails report"
         run: |
           .github/scripts/rerun_fails_report.sh /tmp/gotestsum-rerun-fails
-      - name: Notify Slack
-        if: ${{ failure() }}
-        run: .github/scripts/notify_slack.sh

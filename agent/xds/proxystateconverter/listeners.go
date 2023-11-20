@@ -829,32 +829,12 @@ func (s *Converter) injectConnectTLSForPublicListener(cfgSnap *proxycfg.ConfigSn
 	return nil
 }
 
-func getAlpnProtocols(protocol string) []string {
-	var alpnProtocols []string
-
-	switch protocol {
-	case "grpc", "http2":
-		alpnProtocols = append(alpnProtocols, "h2", "http/1.1")
-	case "http":
-		alpnProtocols = append(alpnProtocols, "http/1.1")
-	}
-
-	return alpnProtocols
-}
-
 func (s *Converter) createInboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot) (*pbproxystate.TransportSocket, error) {
 	switch cfgSnap.Kind {
 	case structs.ServiceKindConnectProxy:
 	case structs.ServiceKindMeshGateway:
 	default:
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
-	}
-
-	cfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
 	}
 
 	// Add all trust bundle peer names, including local.
@@ -882,7 +862,6 @@ func (s *Converter) createInboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot) (*pb
 		Key:  cfgSnap.Leaf().PrivateKeyPEM,
 	}
 	ts.TlsParameters = makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming())
-	ts.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
 
 	return ts, nil
 }

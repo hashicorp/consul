@@ -160,6 +160,17 @@ func (tp *ACLTemplatedPolicy) ValidateTemplatedPolicy(schema string) error {
 		return fmt.Errorf("failed to load json schema for validation %w", err)
 	}
 
+	// validate service and node identity names
+	if tp.TemplateVariables != nil {
+		if tp.TemplateName == api.ACLTemplatedPolicyServiceName && !acl.IsValidServiceIdentityName(tp.TemplateVariables.Name) {
+			return fmt.Errorf("service identity %q has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", tp.TemplateVariables.Name)
+		}
+
+		if tp.TemplateName == api.ACLTemplatedPolicyNodeName && !acl.IsValidNodeIdentityName(tp.TemplateVariables.Name) {
+			return fmt.Errorf("node identity %q  has an invalid name. Only lowercase alphanumeric characters, '-' and '_' are allowed", tp.TemplateVariables.Name)
+		}
+	}
+
 	if res.Valid() {
 		return nil
 	}

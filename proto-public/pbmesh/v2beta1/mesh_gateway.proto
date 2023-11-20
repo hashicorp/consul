@@ -5,4 +5,8 @@ syntax = "proto3";
 
 package hashicorp.consul.mesh.v2beta1;
 
-message MeshGateway {}
+import "pbresource/annotations.proto";
+
+message MeshGateway {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+}

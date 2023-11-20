@@ -66,17 +66,17 @@ func TestBasicL4ImplicitDestinations(t *testing.T) {
 	for _, ship := range ships {
 		t.Run("relationship: "+ship.String(), func(t *testing.T) {
 			var (
-				svc = ship.Caller
-				u   = ship.Upstream
+				wrk  = ship.Caller
+				dest = ship.Destination
 			)
 
-			clusterPrefix := clusterPrefixForUpstream(u)
+			clusterPrefix := clusterPrefixForDestination(dest)
 
-			asserter.UpstreamEndpointStatus(t, svc, clusterPrefix+".", "HEALTHY", 1)
-			if u.LocalPort > 0 {
-				asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
+			asserter.DestinationEndpointStatus(t, wrk, clusterPrefix+".", "HEALTHY", 1)
+			if dest.LocalPort > 0 {
+				asserter.HTTPServiceEchoes(t, wrk, dest.LocalPort, "")
 			}
-			asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, u.ID)
+			asserter.FortioFetch2FortioName(t, wrk, dest, cluster.Name, dest.ID)
 		})
 	}
 }
@@ -128,8 +128,8 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 ) {
 	clusterName := cluster.Name
 
-	newServiceID := func(name string) topology.ServiceID {
-		return topology.ServiceID{
+	newID := func(name string) topology.ID {
+		return topology.ID{
 			Partition: partition,
 			Namespace: namespace,
 			Name:      name,
@@ -147,13 +147,13 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("static-server"),
+				newID("static-server"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.EnableTransparentProxy = true
+				func(wrk *topology.Workload) {
+					wrk.EnableTransparentProxy = true
 				},
 			),
 		},
@@ -163,20 +163,20 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 		Version:   topology.NodeVersionV2,
 		Partition: partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("static-client"),
+				newID("static-client"),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.EnableTransparentProxy = true
-					svc.ImpliedUpstreams = []*topology.Upstream{
+				func(wrk *topology.Workload) {
+					wrk.EnableTransparentProxy = true
+					wrk.ImpliedDestinations = []*topology.Destination{
 						{
-							ID:       newServiceID("static-server"),
+							ID:       newID("static-server"),
 							PortName: "http",
 						},
 						{
-							ID:       newServiceID("static-server"),
+							ID:       newID("static-server"),
 							PortName: "http2",
 						},
 					}

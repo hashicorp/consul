@@ -6,7 +6,6 @@ package nodehealth
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/agent/structs"
 	"testing"
 
 	"github.com/oklog/ulid/v2"
@@ -25,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 var (
@@ -94,7 +94,7 @@ func (suite *nodeHealthControllerTestSuite) SetupTest() {
 	client := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, types.RegisterDNSPolicy)
 	suite.resourceClient = resourcetest.NewClient(client)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
-	suite.isEnterprise = structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+	suite.isEnterprise = versiontest.IsEnterprise()
 }
 
 func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthListError() {
@@ -320,6 +320,7 @@ func (suite *nodeHealthControllerTestSuite) waitForReconciliation(id *pbresource
 		require.Equal(r, reason, nodeHealthStatus.Conditions[0].Reason)
 	})
 }
+
 func (suite *nodeHealthControllerTestSuite) TestController() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
