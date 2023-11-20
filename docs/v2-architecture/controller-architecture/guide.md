@@ -6,7 +6,7 @@ Consul 🚂
 ## Resource Schema
 
 Adding a new resource type begins with defining the object schema as a protobuf
-message, in the appropriate package under [`proto-public`](../../proto-public).
+message, in the appropriate package under [`proto-public`](../../../proto-public).
 
 ```shell
 $ mkdir proto-public/pbfoo/v1alpha1
@@ -34,7 +34,7 @@ $ make proto
 ```
 
 Next, we must add our resource type to the registry. At this point, it's useful
-to add a package (e.g. under [`internal`](../../internal)) to contain the logic
+to add a package (e.g. under [`internal`](../../../internal)) to contain the logic
 associated with this resource type.
 
 The convention is to have this package export variables for its type identifiers
@@ -65,7 +65,7 @@ and a partition.
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
 package's type registration method:
 
-[`type_registry.go`]: ../../agent/consul/type_registry.go
+[`type_registry.go`]: ../../../agent/consul/type_registry.go
 
 ```Go
 import (
@@ -90,7 +90,7 @@ $ consul agent -dev
 ```
 
 You can now use [grpcurl](https://github.com/fullstorydev/grpcurl) to interact
-with the [resource service](../../proto-public/pbresource/resource.proto):
+with the [resource service](../../../proto-public/pbresource/resource.proto):
 
 ```shell
 $ grpcurl -d @ \
@@ -283,7 +283,7 @@ Next, register your controller with the controller manager. Another common
 pattern is to have your package expose a method for registering controllers,
 which is called from `registerControllers` in [`server.go`].
 
-[`server.go`]: ../../agent/consul/server.go
+[`server.go`]: ../../../agent/consul/server.go
 
 ```Go
 package foo
