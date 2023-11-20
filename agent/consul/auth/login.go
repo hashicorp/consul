@@ -48,6 +48,7 @@ func (l *Login) TokenForVerifiedIdentity(identity *authmethod.Identity, authMeth
 		NodeIdentities:    bindings.NodeIdentities,
 		TemplatedPolicies: bindings.TemplatedPolicies,
 		Roles:             bindings.Roles,
+		Policies:          bindings.Policies,
 		EnterpriseMeta:    bindings.EnterpriseMeta,
 	}
 	token.ACLAuthMethodEnterpriseMeta.FillWithEnterpriseMeta(&authMethod.EnterpriseMeta)
