@@ -46,7 +46,7 @@ on:
         required: true
 env:
   TEST_RESULTS: /tmp/test-results
-  GOTESTSUM_VERSION: "1.10.1"
+  GOTESTSUM_VERSION: "1.11.0"
   GOARCH: ${{inputs.go-arch}}
   TOTAL_RUNNERS: ${{inputs.runner-count}}
   CONSUL_LICENSE: ${{secrets.consul-license}}
@@ -119,11 +119,10 @@ jobs:
           umask 0022
 
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-          --format=short-verbose \
+          --format=github-actions \
+          --format-hide-empty-pkg \
           --jsonfile /tmp/jsonfile/go-test.log \
-          --debug \
-          --rerun-fails=3 \
-          --rerun-fails-max-failures=40 \
+          --rerun-fails \
           --rerun-fails-report=/tmp/gotestsum-rerun-fails \
           --packages="$PACKAGE_NAMES" \
           --junitfile ${{env.TEST_RESULTS}}/gotestsum-report.xml -- \
