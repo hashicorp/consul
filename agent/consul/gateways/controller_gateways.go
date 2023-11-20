@@ -1149,7 +1149,6 @@ func removeRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*ga
 		if entry.unbindRoute(route) {
 			modified = append(modified, entry)
 			entry.BoundGateway.Services.RemoveRouteRef(route)
-			fmt.Printf("\n\n\n\nBOUNDGATEWAYSERVICES: %#v", entry.BoundGateway.Services)
 		}
 	}
 

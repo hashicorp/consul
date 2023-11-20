@@ -4399,9 +4399,21 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var upstreamSources = make(map[string]string)
+	upstreamSources := make(map[string]string)
 	for _, un := range upstreamNames {
 		upstreamSources[un.String()] = structs.TopologySourceRegistration
+	}
+
+	if kind == structs.ServiceKind(structs.APIGateway) {
+		upstreamFromGW, err := upstreamsFromGWTxn(tx, ws, sn)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		for _, dn := range upstreamFromGW {
+			upstreamNames = append(upstreamNames, dn)
+			upstreamSources[dn.String()] = structs.TopologySourceRegistration
+		}
 	}
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
@@ -4678,6 +4690,24 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 	return maxIdx, resp, nil
 }
 
+func upstreamsFromGWTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName) ([]structs.ServiceName, error) {
+	val, err := tx.First(tableConfigEntries, indexID, configentry.KindName{Kind: structs.BoundAPIGateway, Name: service.Name})
+	if err != nil {
+		return nil, err
+	}
+
+	if gw, ok := val.(*structs.BoundAPIGatewayConfigEntry); ok {
+		serviceIDs := gw.ListRelatedServices()
+		names := make([]structs.ServiceName, 0, len(serviceIDs))
+		for _, id := range serviceIDs {
+			names = append(names, structs.NewServiceName(id.ID, &id.EnterpriseMeta))
+		}
+		return names, nil
+	}
+
+	return nil, errors.New("not an APIGateway")
+}
+
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
 func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
@@ -4701,14 +4731,20 @@ func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, ws memdb.WatchSet, d
 			idx = entry.ModifyIndex
 		}
 
-		serviceName := structs.NewServiceName(entry.Name, &entry.EnterpriseMeta)
-		if _, ok := seen[serviceName]; ok {
+		gwServiceName := structs.NewServiceName(entry.Name, &entry.EnterpriseMeta)
+		if _, ok := seen[gwServiceName]; ok {
 			continue
 		}
 
-		seen[serviceName] = struct{}{}
+		// This is a hack because for some reason memdb isn't dropping the bound api gateway from the link index after
+		// removing a service from the Services field
+		if _, ok := entry.Services[structs.NewServiceKey(service.Name, &service.EnterpriseMeta)]; !ok {
+			continue
+		}
 
-		resp = append(resp, serviceName)
+		seen[gwServiceName] = struct{}{}
+
+		resp = append(resp, gwServiceName)
 
 	}
 
@@ -4929,7 +4965,7 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.GatewayService) error {
 	// Only ingress gateways are standalone items in the mesh topology viz
-	if (gs.GatewayKind != structs.ServiceKindIngressGateway && gs.GatewayKind != structs.ServiceKindAPIGateway) || gs.Service.Name == structs.WildcardSpecifier {
+	if (gs.GatewayKind != structs.ServiceKindIngressGateway) || gs.Service.Name == structs.WildcardSpecifier {
 		return nil
 	}
 
