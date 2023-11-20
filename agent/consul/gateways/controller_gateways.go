@@ -667,7 +667,9 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		return nil
 	})
 
-	g.BoundGateway.Services = make(structs.ServiceRouteReferences)
+	if g.BoundGateway.Services == nil {
+		g.BoundGateway.Services = make(structs.ServiceRouteReferences)
+	}
 
 	// now try and bind all of the route's current refs
 	for _, ref := range route.GetParents() {
@@ -725,11 +727,6 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 			break
 		}
 	}
-
-	// if didUpdate {
-	// for _, serviceName := range route.GetServiceNames() {
-	// }
-	// }
 
 	return didUpdate, boundRefs, errors
 }
