@@ -53,6 +53,7 @@ const (
 	DefaultServiceProtocol = "tcp"
 
 	ConnectionExactBalance = "exact_balance"
+	configEntryIDKey       = "config_entry_id_key"
 )
 
 var AllConfigEntryKinds = []string{
@@ -95,6 +96,8 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+	ID() string
+	SetID(s string)
 }
 
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
@@ -171,6 +174,14 @@ type ServiceConfigEntry struct {
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *ServiceConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ServiceConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -452,6 +463,14 @@ type ProxyConfigEntry struct {
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *ProxyConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ProxyConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
 }
 
 func (e *ProxyConfigEntry) GetKind() string {
@@ -739,6 +758,10 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+func setID(meta map[string]string, id string) {
+	meta[configEntryIDKey] = id
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {

@@ -47,6 +47,14 @@ type IngressGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *IngressGatewayConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *IngressGatewayConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 type IngressServiceConfig struct {
 	MaxConnections        uint32
 	MaxPendingRequests    uint32
@@ -472,6 +480,14 @@ type TerminatingGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *TerminatingGatewayConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *TerminatingGatewayConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 // A LinkedService is a service represented by a terminating gateway
 type LinkedService struct {
 	// Name is the name of the service, as defined in Consul's catalog
@@ -717,6 +733,14 @@ type APIGatewayConfigEntry struct {
 	RaftIndex
 }
 
+func (e *APIGatewayConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *APIGatewayConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
 func (e *APIGatewayConfigEntry) GetName() string                        { return e.Name }
 func (e *APIGatewayConfigEntry) GetMeta() map[string]string             { return e.Meta }
@@ -948,6 +972,14 @@ type BoundAPIGatewayConfigEntry struct {
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *BoundAPIGatewayConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *BoundAPIGatewayConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
 }
 
 func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {

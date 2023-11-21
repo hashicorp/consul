@@ -29,6 +29,14 @@ type ServiceIntentionsConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceIntentionsConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ServiceIntentionsConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 var _ UpdatableConfigEntry = (*ServiceIntentionsConfigEntry)(nil)
 
 func (e *ServiceIntentionsConfigEntry) GetKind() string {

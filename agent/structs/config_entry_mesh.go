@@ -31,6 +31,14 @@ type MeshConfigEntry struct {
 	RaftIndex
 }
 
+func (e *MeshConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *MeshConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to
 // TPROXY mode when enabled.
 type TransparentProxyMeshConfig struct {

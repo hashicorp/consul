@@ -20,6 +20,14 @@ type SamenessGroupConfigEntry struct {
 	RaftIndex
 }
 
+func (e *SamenessGroupConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *SamenessGroupConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 func (s *SamenessGroupConfigEntry) GetKind() string            { return SamenessGroup }
 func (s *SamenessGroupConfigEntry) GetName() string            { return s.Name }
 func (s *SamenessGroupConfigEntry) GetMeta() map[string]string { return s.Meta }

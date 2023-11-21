@@ -24,6 +24,14 @@ type ExportedServicesConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ExportedServicesConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ExportedServicesConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 // ExportedService manages the exporting of a service in the local partition to
 // other partitions.
 type ExportedService struct {

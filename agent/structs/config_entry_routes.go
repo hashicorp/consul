@@ -48,6 +48,22 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
+func (e *HTTPRouteConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *HTTPRouteConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
+func (e *InlineCertificateConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *InlineCertificateConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 func (e *HTTPRouteConfigEntry) GetKind() string                        { return HTTPRoute }
 func (e *HTTPRouteConfigEntry) GetName() string                        { return e.Name }
 func (e *HTTPRouteConfigEntry) GetMeta() map[string]string             { return e.Meta }
@@ -547,6 +563,14 @@ type TCPRouteConfigEntry struct {
 	Status             Status
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *TCPRouteConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *TCPRouteConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string                        { return TCPRoute }

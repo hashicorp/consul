@@ -72,6 +72,14 @@ type JWTProviderConfigEntry struct {
 	RaftIndex
 }
 
+func (e *JWTProviderConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *JWTProviderConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 // JWTLocation is a location where the JWT could be present in requests.
 //
 // Only one of Header, QueryParam, or Cookie can be specified.

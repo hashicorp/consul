@@ -83,6 +83,14 @@ type ServiceRouterConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceRouterConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ServiceRouterConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 func (e *ServiceRouterConfigEntry) GetKind() string {
 	return ServiceRouter
 }
@@ -541,6 +549,14 @@ type ServiceSplitterConfigEntry struct {
 	RaftIndex
 }
 
+func (e *ServiceSplitterConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ServiceSplitterConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
+}
+
 func (e *ServiceSplitterConfigEntry) GetKind() string {
 	return ServiceSplitter
 }
@@ -878,6 +894,14 @@ type ServiceResolverConfigEntry struct {
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex
+}
+
+func (e *ServiceResolverConfigEntry) ID() string {
+	return e.Meta[configEntryIDKey]
+}
+
+func (e *ServiceResolverConfigEntry) SetID(id string) {
+	setID(e.Meta, id)
 }
 
 func (e *ServiceResolverConfigEntry) RelatedPeers() []string {
@@ -1380,11 +1404,11 @@ type ServiceResolverRedirect struct {
 
 // ToSamenessDiscoveryTargetOpts returns the options required for sameness failover and redirects.
 // These operations should preserve the service name and namespace.
-func (r *ServiceResolverConfigEntry) ToSamenessDiscoveryTargetOpts() DiscoveryTargetOpts {
+func (e *ServiceResolverConfigEntry) ToSamenessDiscoveryTargetOpts() DiscoveryTargetOpts {
 	return DiscoveryTargetOpts{
-		Service:   r.Name,
-		Namespace: r.NamespaceOrDefault(),
-		Partition: r.PartitionOrDefault(),
+		Service:   e.Name,
+		Namespace: e.NamespaceOrDefault(),
+		Partition: e.PartitionOrDefault(),
 	}
 }
 

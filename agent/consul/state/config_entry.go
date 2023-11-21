@@ -6,6 +6,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/oklog/ulid/v2"
 	"strings"
 
 	memdb "github.com/hashicorp/go-memdb"
@@ -254,6 +255,11 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 				controlledConf.SetStatus(existing.(structs.ControlledConfigEntry).GetStatus())
 			}
 		}
+		existingID := existingConf.ID()
+		newID := conf.ID()
+		if newID == "" && existingID != "" {
+			conf.SetID(existingID)
+		}
 	} else {
 		if !statusUpdate {
 			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
@@ -261,6 +267,10 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 			}
 		}
 		raftIndex.CreateIndex = idx
+	}
+	id := conf.ID()
+	if id == "" {
+		conf.SetID(ulid.Make().String())
 	}
 	raftIndex.ModifyIndex = idx
 
