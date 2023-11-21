@@ -21,11 +21,14 @@ type SamenessGroupConfigEntry struct {
 }
 
 func (e *SamenessGroupConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *SamenessGroupConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (s *SamenessGroupConfigEntry) GetKind() string            { return SamenessGroup }

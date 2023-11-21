@@ -32,11 +32,14 @@ type MeshConfigEntry struct {
 }
 
 func (e *MeshConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *MeshConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to

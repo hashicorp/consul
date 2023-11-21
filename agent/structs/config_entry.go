@@ -53,7 +53,7 @@ const (
 	DefaultServiceProtocol = "tcp"
 
 	ConnectionExactBalance = "exact_balance"
-	configEntryIDKey       = "config_entry_id_key"
+	ConfigEntryIDKey       = "config_entry_id_key"
 )
 
 var AllConfigEntryKinds = []string{
@@ -177,11 +177,14 @@ type ServiceConfigEntry struct {
 }
 
 func (e *ServiceConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ServiceConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -466,11 +469,14 @@ type ProxyConfigEntry struct {
 }
 
 func (e *ProxyConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ProxyConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *ProxyConfigEntry) GetKind() string {
@@ -760,11 +766,11 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func setID(meta map[string]string, id string) {
+func setID(meta *map[string]string, id string) {
 	if meta == nil {
-		meta = make(map[string]string)
+		*meta = make(map[string]string)
 	}
-	meta[configEntryIDKey] = id
+	(*meta)[ConfigEntryIDKey] = id
 }
 
 func MakeConfigEntry(kind, name string) (ConfigEntry, error) {

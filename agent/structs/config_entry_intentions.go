@@ -30,11 +30,14 @@ type ServiceIntentionsConfigEntry struct {
 }
 
 func (e *ServiceIntentionsConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ServiceIntentionsConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 var _ UpdatableConfigEntry = (*ServiceIntentionsConfigEntry)(nil)

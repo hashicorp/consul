@@ -49,19 +49,25 @@ type HTTPRouteConfigEntry struct {
 }
 
 func (e *HTTPRouteConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *HTTPRouteConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *InlineCertificateConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *InlineCertificateConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *HTTPRouteConfigEntry) GetKind() string                        { return HTTPRoute }
@@ -566,11 +572,14 @@ type TCPRouteConfigEntry struct {
 }
 
 func (e *TCPRouteConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *TCPRouteConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string                        { return TCPRoute }

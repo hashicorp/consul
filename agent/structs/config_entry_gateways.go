@@ -48,11 +48,14 @@ type IngressGatewayConfigEntry struct {
 }
 
 func (e *IngressGatewayConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *IngressGatewayConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 type IngressServiceConfig struct {
@@ -481,11 +484,14 @@ type TerminatingGatewayConfigEntry struct {
 }
 
 func (e *TerminatingGatewayConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *TerminatingGatewayConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 // A LinkedService is a service represented by a terminating gateway
@@ -734,11 +740,14 @@ type APIGatewayConfigEntry struct {
 }
 
 func (e *APIGatewayConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *APIGatewayConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
@@ -975,11 +984,14 @@ type BoundAPIGatewayConfigEntry struct {
 }
 
 func (e *BoundAPIGatewayConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *BoundAPIGatewayConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {

@@ -84,11 +84,14 @@ type ServiceRouterConfigEntry struct {
 }
 
 func (e *ServiceRouterConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ServiceRouterConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *ServiceRouterConfigEntry) GetKind() string {
@@ -550,11 +553,14 @@ type ServiceSplitterConfigEntry struct {
 }
 
 func (e *ServiceSplitterConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ServiceSplitterConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *ServiceSplitterConfigEntry) GetKind() string {
@@ -897,11 +903,14 @@ type ServiceResolverConfigEntry struct {
 }
 
 func (e *ServiceResolverConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ServiceResolverConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 func (e *ServiceResolverConfigEntry) RelatedPeers() []string {

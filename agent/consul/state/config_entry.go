@@ -255,11 +255,6 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 				controlledConf.SetStatus(existing.(structs.ControlledConfigEntry).GetStatus())
 			}
 		}
-		existingID := existingConf.ID()
-		newID := conf.ID()
-		if newID == "" && existingID != "" {
-			conf.SetID(existingID)
-		}
 	} else {
 		if !statusUpdate {
 			if controlledConf, ok := conf.(structs.ControlledConfigEntry); ok {
@@ -268,10 +263,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 		}
 		raftIndex.CreateIndex = idx
 	}
-	id := conf.ID()
-	if id == "" {
-		conf.SetID(ulid.Make().String())
-	}
+
 	raftIndex.ModifyIndex = idx
 
 	err = validateProposedConfigEntryInGraph(tx, q, conf, existingConf)
@@ -282,7 +274,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 	if err := validateConfigEntryEnterprise(tx, conf); err != nil {
 		return err
 	}
-
+	conf.SetID(ulid.Make().String())
 	return insertConfigEntryWithTxn(tx, idx, conf)
 }
 
@@ -492,6 +484,12 @@ func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry)
 		return fmt.Errorf("cannot insert nil config entry")
 	}
 
+	id := conf.ID()
+
+	// we don't override the ID here because we would like to keep the ID coming from a snapshot restore
+	if id == "" {
+		conf.SetID(ulid.Make().String())
+	}
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
 	kind := conf.GetKind()

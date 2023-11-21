@@ -73,11 +73,14 @@ type JWTProviderConfigEntry struct {
 }
 
 func (e *JWTProviderConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *JWTProviderConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 // JWTLocation is a location where the JWT could be present in requests.

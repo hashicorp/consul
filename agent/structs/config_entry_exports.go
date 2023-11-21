@@ -25,11 +25,14 @@ type ExportedServicesConfigEntry struct {
 }
 
 func (e *ExportedServicesConfigEntry) ID() string {
-	return e.Meta[configEntryIDKey]
+	return e.Meta[ConfigEntryIDKey]
 }
 
 func (e *ExportedServicesConfigEntry) SetID(id string) {
-	setID(e.Meta, id)
+	if e.Meta == nil {
+		e.Meta = make(map[string]string)
+	}
+	e.Meta[ConfigEntryIDKey] = id
 }
 
 // ExportedService manages the exporting of a service in the local partition to
