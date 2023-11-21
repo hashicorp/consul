@@ -299,7 +299,7 @@ func sortRefValue(m map[resource.ReferenceKey]*serviceExports) []*serviceExports
 	return vals
 }
 
-func getNamespaceForServices(exportedServices []*resource.DecodedResource[*pbmulticluster.ExportedServices], namespaceExportedServices []*resource.DecodedResource[*pbmulticluster.NamespaceExportedServices], partitionedExportedServices []*resource.DecodedResource[*pbmulticluster.PartitionExportedServices]) string {
+func getNamespaceForServices(exportedServices []*types.DecodedExportedServices, namespaceExportedServices []*types.DecodedNamespaceExportedServices, partitionedExportedServices []*types.DecodedPartitionExportedServices) string {
 	if len(partitionedExportedServices) > 0 {
 		return storage.Wildcard
 	}
