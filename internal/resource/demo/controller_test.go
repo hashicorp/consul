@@ -55,10 +55,10 @@ func TestArtistReconciler(t *testing.T) {
 	require.Equal(t, "AlbumCreated", status.Conditions[1].Type)
 
 	// Check the albums were created.
-	listRsp, err := client.List(ctx, &pbresource.ListRequest{
+	listRsp, err := client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Type:    TypeV2Album,
 		Tenancy: readRsp.Resource.Id.Tenancy,
-	})
+	}}})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 10)
 
@@ -70,10 +70,10 @@ func TestArtistReconciler(t *testing.T) {
 	require.NoError(t, rec.Reconcile(ctx, runtime, req))
 
 	// Check the album was recreated.
-	listRsp, err = client.List(ctx, &pbresource.ListRequest{
+	listRsp, err = client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Type:    TypeV2Album,
 		Tenancy: readRsp.Resource.Id.Tenancy,
-	})
+	}}})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 10)
 
@@ -93,10 +93,10 @@ func TestArtistReconciler(t *testing.T) {
 	require.NoError(t, rec.Reconcile(ctx, runtime, req))
 
 	// Check there are only 3 albums now.
-	listRsp, err = client.List(ctx, &pbresource.ListRequest{
+	listRsp, err = client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Type:    TypeV2Album,
 		Tenancy: readRsp.Resource.Id.Tenancy,
-	})
+	}}})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
 }

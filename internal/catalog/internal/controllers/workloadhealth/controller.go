@@ -203,9 +203,9 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 
 func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *pbresource.ID) (pbcatalog.Health, error) {
 	rt.Logger.Trace("getWorkloadHealth", "workloadRef", workloadRef)
-	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
+	rsp, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByOwner{FilterByOwner: &pbresource.POCListRequest_ListByOwnerRequest{
 		Owner: workloadRef,
-	})
+	}}})
 
 	if err != nil {
 		return pbcatalog.Health_HEALTH_CRITICAL, err

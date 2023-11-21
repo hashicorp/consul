@@ -71,8 +71,9 @@ func GetDecodedResource[T proto.Message](ctx context.Context, client pbresource.
 	return Decode[T](rsp.Resource)
 }
 
-func ListDecodedResource[T proto.Message](ctx context.Context, client pbresource.ResourceServiceClient, req *pbresource.ListRequest) ([]*DecodedResource[T], error) {
-	rsp, err := client.List(ctx, req)
+func ListDecodedResource[T proto.Message](ctx context.Context, client pbresource.ResourceServiceClient, req *pbresource.POCListRequest) ([]*DecodedResource[T], error) {
+	// TBD: verify which api should be used
+	rsp, err := client.POCList(ctx, req)
 	if err != nil {
 		return nil, err
 	}

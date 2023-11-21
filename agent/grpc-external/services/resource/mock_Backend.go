@@ -82,6 +82,32 @@ func (_m *MockBackend) ListByOwner(ctx context.Context, id *pbresource.ID) ([]*p
 	return r0, r1
 }
 
+// POCList provides a mock function with given fields: ctx, consistency, resType, tenancy, namePrefix
+func (_m *MockBackend) POCList(ctx context.Context, consistency storage.ReadConsistency, resType storage.UnversionedType, tenancy *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
+	ret := _m.Called(ctx, consistency, resType, tenancy, namePrefix)
+
+	var r0 []*pbresource.Resource
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) ([]*pbresource.Resource, error)); ok {
+		return rf(ctx, consistency, resType, tenancy, namePrefix)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) []*pbresource.Resource); ok {
+		r0 = rf(ctx, consistency, resType, tenancy, namePrefix)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*pbresource.Resource)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, storage.ReadConsistency, storage.UnversionedType, *pbresource.Tenancy, string) error); ok {
+		r1 = rf(ctx, consistency, resType, tenancy, namePrefix)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // Read provides a mock function with given fields: ctx, consistency, id
 func (_m *MockBackend) Read(ctx context.Context, consistency storage.ReadConsistency, id *pbresource.ID) (*pbresource.Resource, error) {
 	ret := _m.Called(ctx, consistency, id)

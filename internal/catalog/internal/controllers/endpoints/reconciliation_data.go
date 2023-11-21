@@ -123,11 +123,12 @@ func gatherWorkloadsForService(ctx context.Context, rt controller.Runtime, svc *
 	// it first its possible we can avoid some resource service calls to read individual
 	// workloads selected by name if they are also matched by a prefix.
 	for _, prefix := range sel.GetPrefixes() {
-		rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
+		// TBD: verify which api should be used
+		rsp, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByNamePrefix{FilterByNamePrefix: &pbresource.POCListRequest_ListByNamePrefixRequest{
 			Type:       pbcatalog.WorkloadType,
 			Tenancy:    svc.resource.Id.Tenancy,
 			NamePrefix: prefix,
-		})
+		}}})
 		if err != nil {
 			return nil, err
 		}

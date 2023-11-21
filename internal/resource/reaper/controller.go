@@ -76,7 +76,7 @@ func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runti
 	}
 
 	// Retrieve owner's children
-	listRsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{Owner: tombstone.Owner})
+	listRsp, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByOwner{FilterByOwner: &pbresource.POCListRequest_ListByOwnerRequest{Owner: tombstone.Owner}}})
 	if err != nil {
 		return err
 	}

@@ -41,37 +41,37 @@ type serviceExports struct {
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	rt.Logger = rt.Logger.With("resource-id", req.ID)
 	rt.Logger.Trace("reconciling exported services")
-	exportedServices, err := resource.ListDecodedResource[*pbmulticluster.ExportedServices](ctx, rt.Client, &pbresource.ListRequest{
+	exportedServices, err := resource.ListDecodedResource[*pbmulticluster.ExportedServices](ctx, rt.Client, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
 			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.ExportedServicesType,
-	})
+	}}})
 	if err != nil {
 		rt.Logger.Error("error getting exported services", "error", err)
 		return err
 	}
-	namespaceExportedServices, err := resource.ListDecodedResource[*pbmulticluster.NamespaceExportedServices](ctx, rt.Client, &pbresource.ListRequest{
+	namespaceExportedServices, err := resource.ListDecodedResource[*pbmulticluster.NamespaceExportedServices](ctx, rt.Client, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: req.ID.Tenancy.Partition,
 			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.NamespaceExportedServicesType,
-	})
+	}}})
 	if err != nil {
 		rt.Logger.Error("error getting namespace exported services", "error", err)
 		return err
 	}
-	partitionedExportedServices, err := resource.ListDecodedResource[*pbmulticluster.PartitionExportedServices](ctx, rt.Client, &pbresource.ListRequest{
+	partitionedExportedServices, err := resource.ListDecodedResource[*pbmulticluster.PartitionExportedServices](ctx, rt.Client, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Tenancy: &pbresource.Tenancy{
 			Partition: req.ID.Tenancy.Partition,
 			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbmulticluster.PartitionExportedServicesType,
-	})
+	}}})
 	if err != nil {
 		rt.Logger.Error("error getting partitioned exported services", "error", err)
 		return err
@@ -91,14 +91,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 	namespace := getNamespaceForServices(exportedServices, namespaceExportedServices, partitionedExportedServices)
-	services, err := resource.ListDecodedResource[*pbcatalog.Service](ctx, rt.Client, &pbresource.ListRequest{
+	services, err := resource.ListDecodedResource[*pbcatalog.Service](ctx, rt.Client, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Tenancy: &pbresource.Tenancy{
 			Namespace: namespace,
 			Partition: req.ID.Tenancy.Partition,
 			PeerName:  resource.DefaultPeerName,
 		},
 		Type: pbcatalog.ServiceType,
-	})
+	}}})
 	if err != nil {
 		rt.Logger.Error("error getting services", "error", err)
 		return err

@@ -223,14 +223,14 @@ func (f *Fetcher) FetchImplicitDestinationsData(
 	}
 
 	// For now we need to look up all computed routes within a partition.
-	rsp, err := f.client.List(ctx, &pbresource.ListRequest{
+	rsp, err := f.client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Type: pbmesh.ComputedRoutesType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: proxyID.Tenancy.Partition,
 			PeerName:  proxyID.Tenancy.PeerName,
 		},
-	})
+	}}})
 	if err != nil {
 		return nil, err
 	}

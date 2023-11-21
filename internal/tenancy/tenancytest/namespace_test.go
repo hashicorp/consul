@@ -110,7 +110,7 @@ func TestListNamespace_Success(t *testing.T) {
 
 	require.NotNil(t, res)
 
-	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resource.DefaultPartitionedTenancy()})
+	listRsp, err := cl.POCList(context.Background(), &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{Type: pbtenancy.NamespaceType, Tenancy: resource.DefaultPartitionedTenancy()}}})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
 	names := []string{

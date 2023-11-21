@@ -276,7 +276,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	require.NoError(t, err)
 
 	// verify no new tombstones created and artist's existing tombstone deleted
-	rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+	rsp3, err := client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy}}})
 	require.NoError(t, err)
 	require.Empty(t, rsp3.Resources)
 }

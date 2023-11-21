@@ -26,11 +26,12 @@ func MapSelector(ctx context.Context,
 	var result []controller.Request
 
 	for _, prefix := range selector.GetPrefixes() {
-		resp, err := client.List(ctx, &pbresource.ListRequest{
+		// TBD: verify which api should be used
+		resp, err := client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByNamePrefix{FilterByNamePrefix: &pbresource.POCListRequest_ListByNamePrefixRequest{
 			Type:       pbcatalog.WorkloadType,
 			Tenancy:    tenancy,
 			NamePrefix: prefix,
-		})
+		}}})
 		if err != nil {
 			return nil, err
 		}

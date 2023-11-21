@@ -218,14 +218,14 @@ func (c *Cache) listAllProxyStateTemplatesTemporarily(ctx context.Context, rt co
 	// For tproxy, we generate requests for all proxy states in the cluster.
 	// This will generate duplicate events for proxies already added above,
 	// however, we expect that the controller runtime will de-dup for us.
-	rsp, err := rt.Client.List(ctx, &pbresource.ListRequest{
+	rsp, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByTenancy{FilterByTenancy: &pbresource.POCListRequest_ListByTenancyRequest{
 		Type: pbmesh.ProxyStateTemplateType,
 		Tenancy: &pbresource.Tenancy{
 			Namespace: storage.Wildcard,
 			Partition: tenancy.Partition,
 			PeerName:  tenancy.PeerName,
 		},
-	})
+	}}})
 	if err != nil {
 		return nil, err
 	}

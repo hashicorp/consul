@@ -45,6 +45,7 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		requestType = op.FilterByTenancy.GetType()
 		requestTenancy = op.FilterByTenancy.GetTenancy()
 		name_prefix = ""
+		// TODO: default namespace to wilcard if not provided?
 		// TODO: update validate to only allow wildcard for namespace
 		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
 		if err != nil {
@@ -52,7 +53,7 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		}
 	case *pbresource.POCListRequest_FilterByNamePrefix:
 		requestType = op.FilterByNamePrefix.GetType()
-		requestTenancy = op.FilterByNamePrefix.GetTenancy()	
+		requestTenancy = op.FilterByNamePrefix.GetTenancy()
 		name_prefix = op.FilterByNamePrefix.GetNamePrefix()
 		// TODO: update validate to block all wildcards
 		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
@@ -194,7 +195,7 @@ func (s *Server) validatePOCListRequest(requestType *pbresource.Type, requestTen
 	}
 
 	var reg *resource.Registration
-	if requestType != nil{
+	if requestType != nil {
 		// Check type exists.
 		reg, err := s.resolveType(requestType)
 		if err != nil {

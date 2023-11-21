@@ -78,9 +78,9 @@ func (r *nodeHealthReconciler) Reconcile(ctx context.Context, rt controller.Runt
 }
 
 func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresource.ID) (pbcatalog.Health, error) {
-	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
+	rsp, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByOwner{FilterByOwner: &pbresource.POCListRequest_ListByOwnerRequest{
 		Owner: nodeRef,
-	})
+	}}})
 
 	if err != nil {
 		return pbcatalog.Health_HEALTH_CRITICAL, err

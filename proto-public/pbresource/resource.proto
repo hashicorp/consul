@@ -522,7 +522,6 @@ message POCListRequest {
   message ListByOwnerRequest {
     ID owner = 1;
   }
-
 }
 
 message POCListResponse {

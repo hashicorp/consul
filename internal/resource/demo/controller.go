@@ -68,11 +68,11 @@ func (r *artistReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 		return err
 	}
 
-	actualAlbums, err := rt.Client.List(ctx, &pbresource.ListRequest{
+	actualAlbums, err := rt.Client.POCList(ctx, &pbresource.POCListRequest{Request: &pbresource.POCListRequest_FilterByNamePrefix{FilterByNamePrefix: &pbresource.POCListRequest_ListByNamePrefixRequest{
 		Type:       TypeV2Album,
 		Tenancy:    res.Id.Tenancy,
 		NamePrefix: fmt.Sprintf("%s-", res.Id.Name),
-	})
+	}}})
 	if err != nil {
 		return err
 	}
