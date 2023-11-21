@@ -4690,7 +4690,7 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 	return maxIdx, resp, nil
 }
 
-func upstreamsFromGWTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceName) ([]structs.ServiceName, error) {
+func upstreamsFromGWTxn(tx ReadTxn, service structs.ServiceName) ([]structs.ServiceName, error) {
 	val, err := tx.First(tableConfigEntries, indexID, configentry.KindName{Kind: structs.BoundAPIGateway, Name: service.Name})
 	if err != nil {
 		return nil, err
@@ -4710,7 +4710,7 @@ func upstreamsFromGWTxn(tx ReadTxn, ws memdb.WatchSet, service structs.ServiceNa
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
-func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, ws memdb.WatchSet, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	iter, err := tx.Get(tableConfigEntries, indexLink, service.ToServiceID())
 	if err != nil {
 		return 0, nil, err
