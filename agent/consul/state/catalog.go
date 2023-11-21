@@ -4405,7 +4405,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	if kind == structs.ServiceKind(structs.APIGateway) {
-		upstreamFromGW, err := upstreamsFromGWTxn(tx, ws, sn)
+		upstreamFromGW, err := upstreamsFromGWTxn(tx, sn)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -4537,7 +4537,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
-	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx, ws, dc, sn)
+	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx,  dc, sn)
 	if err != nil {
 		return 0, nil, err
 	}
