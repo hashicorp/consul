@@ -152,7 +152,7 @@
           <disclosure.Menu as |panel|>
             <panel.Menu as |menu|>
               <menu.Separator>
-                Consul v{{env 'CONSUL_VERSION'}}
+                Consul v{{this.consulVersion}}
               </menu.Separator>
               <menu.Item class='docs-link'>
                 <menu.Action @href={{env 'CONSUL_DOCS_URL'}} @external={{true}}>
@@ -202,7 +202,7 @@
 
   <:content-info>
     <p>
-      Consul v{{env 'CONSUL_VERSION'}}
+      Consul v{{this.consulVersion}}
     </p>
     {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
   </:content-info>
