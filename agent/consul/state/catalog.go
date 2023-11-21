@@ -4965,22 +4965,19 @@ func cleanupMeshTopology(tx WriteTxn, idx uint64, service *structs.ServiceNode) 
 
 func insertGatewayServiceTopologyMapping(tx WriteTxn, idx uint64, gs *structs.GatewayService) error {
 	// Only ingress gateways are standalone items in the mesh topology viz
-	if (gs.GatewayKind != structs.ServiceKindIngressGateway) || gs.Service.Name == structs.WildcardSpecifier {
+	if gs.GatewayKind != structs.ServiceKindIngressGateway || gs.Service.Name == structs.WildcardSpecifier {
 		return nil
 	}
 
-	// HERE
 	mapping := upstreamDownstream{
 		Upstream:   gs.Service,
 		Downstream: gs.Gateway,
 		Refs:       make(map[string]struct{}),
 		RaftIndex:  gs.RaftIndex,
 	}
-
 	if err := tx.Insert(tableMeshTopology, &mapping); err != nil {
 		return fmt.Errorf("failed inserting %s mapping: %s", tableMeshTopology, err)
 	}
-
 	if err := indexUpdateMaxTxn(tx, idx, tableMeshTopology); err != nil {
 		return fmt.Errorf("failed updating %s index: %v", tableMeshTopology, err)
 	}
