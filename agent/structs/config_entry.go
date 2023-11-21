@@ -761,6 +761,9 @@ func (c *ConfigEntryRequest) UnmarshalBinary(data []byte) error {
 }
 
 func setID(meta map[string]string, id string) {
+	if meta == nil {
+		meta = make(map[string]string)
+	}
 	meta[configEntryIDKey] = id
 }
 
