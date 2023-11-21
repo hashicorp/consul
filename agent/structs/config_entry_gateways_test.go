@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
@@ -1563,6 +1565,257 @@ func TestListenerUnbindRoute(t *testing.T) {
 			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func Test_ServiceKey_NewServiceKey(t *testing.T) {
+	testCases := map[string]struct {
+		svcName             string
+		entMeta             *acl.EnterpriseMeta
+		expectedServiceName ServiceKey
+	}{
+		"no ent meta": {
+			svcName:             "service",
+			entMeta:             nil,
+			expectedServiceName: "service",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Parallel()
+		t.Run(name, func(t *testing.T) {
+			actual := NewServiceKey(tc.svcName, tc.entMeta)
+			require.Equal(t, tc.expectedServiceName, actual)
+		})
+	}
+}
+
+func Test_ServiceName_ServiceName(t *testing.T) {
+	t.Parallel()
+	serviceKey := ServiceKey("service.ns.partition")
+	expectedServiceName := "service"
+	actual := serviceKey.ServiceName()
+	require.Equal(t, expectedServiceName, actual)
+}
+
+func Test_ServiceRouteReferences_AddService(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		key          ServiceKey
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"key does not exist yet": {
+			key: "service.ns.partition",
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: make(ServiceRouteReferences),
+			expectedRefs: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding new route": {
+			key: "service.ns.partition",
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding existing route": {
+			key: "service.ns.partition",
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.AddService(tc.key, tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
+		})
+	}
+}
+
+func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
+	t.Parallel()
+
+	testCases := map[string]struct {
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"route ref exists for one service": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route ref exists for multiple services": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route exists and is only ref for service--service is removed from refs": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				"service.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				"service-2.ns.partition": []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.RemoveRouteRef(tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
 		})
 	}
 }
