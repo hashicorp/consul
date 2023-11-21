@@ -115,6 +115,9 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		return nil
 	}
 
+	// reset the ID so the user is not able to set it manually.
+	args.Entry.SetID("")
+
 	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err

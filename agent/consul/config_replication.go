@@ -29,8 +29,11 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if configentry.EqualID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
-			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
-				updates = append(updates, remote[remoteIdx])
+			if remote[remoteIdx].GetMeta() == nil || local[localIdx].GetMeta() == nil ||
+				remote[remoteIdx].GetMeta()[structs.ConfigEntryIDKey] != local[localIdx].GetMeta()[structs.ConfigEntryIDKey] {
+				if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
+					updates = append(updates, remote[remoteIdx])
+				}
 			}
 			// increment both indices when equal
 			localIdx += 1

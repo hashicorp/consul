@@ -274,7 +274,9 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 	if err := validateConfigEntryEnterprise(tx, conf); err != nil {
 		return err
 	}
-	conf.SetID(ulid.Make().String())
+	if conf.ID() == "" {
+		conf.SetID(ulid.Make().String())
+	}
 	return insertConfigEntryWithTxn(tx, idx, conf)
 }
 
