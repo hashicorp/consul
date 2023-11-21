@@ -4537,7 +4537,7 @@ func (s *Store) ServiceTopology(
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
-	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx,  dc, sn)
+	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx, sn)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -4710,7 +4710,7 @@ func upstreamsFromGWTxn(tx ReadTxn, service structs.ServiceName) ([]structs.Serv
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
-func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, dc string, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn,  service structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	iter, err := tx.Get(tableConfigEntries, indexLink, service.ToServiceID())
 	if err != nil {
 		return 0, nil, err
