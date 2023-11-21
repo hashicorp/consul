@@ -578,12 +578,12 @@ func serviceRefsToStructs(a map[string]*ListOfResourceReference) structs.Service
 	m := make(structs.ServiceRouteReferences, len(a))
 
 	for key, refs := range a {
-		serviceKey := structs.ServiceKey(key)
-		m[serviceKey] = make([]structs.ResourceReference, 0, len(refs.Ref))
+		serviceName := structs.ServiceNameFromString(key)
+		m[serviceName] = make([]structs.ResourceReference, 0, len(refs.Ref))
 		for _, ref := range refs.Ref {
 			structsRef := structs.ResourceReference{}
 			ResourceReferenceToStructs(ref, &structsRef)
-			m[serviceKey] = append(m[serviceKey], structsRef)
+			m[serviceName] = append(m[serviceName], structsRef)
 		}
 	}
 	return m
@@ -592,13 +592,13 @@ func serviceRefsToStructs(a map[string]*ListOfResourceReference) structs.Service
 func serviceRefFromStructs(a structs.ServiceRouteReferences) map[string]*ListOfResourceReference {
 	m := make(map[string]*ListOfResourceReference, len(a))
 
-	for serviceKey, refs := range a {
-		key := string(serviceKey)
-		m[key] = &ListOfResourceReference{Ref: make([]*ResourceReference, len(refs))}
+	for serviceName, refs := range a {
+		name := serviceName.String()
+		m[name] = &ListOfResourceReference{Ref: make([]*ResourceReference, len(refs))}
 		for _, ref := range refs {
 			resourceRef := &ResourceReference{}
 			ResourceReferenceFromStructs(&ref, resourceRef)
-			m[key].Ref = append(m[key].Ref, resourceRef)
+			m[name].Ref = append(m[name].Ref, resourceRef)
 		}
 	}
 	return m

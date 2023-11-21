@@ -1569,54 +1569,23 @@ func TestListenerUnbindRoute(t *testing.T) {
 	}
 }
 
-func Test_ServiceKey_NewServiceKey(t *testing.T) {
-	testCases := map[string]struct {
-		svcName             string
-		entMeta             *acl.EnterpriseMeta
-		expectedServiceName ServiceKey
-	}{
-		"no ent meta": {
-			svcName:             "service",
-			entMeta:             nil,
-			expectedServiceName: "service",
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Parallel()
-		t.Run(name, func(t *testing.T) {
-			actual := NewServiceKey(tc.svcName, tc.entMeta)
-			require.Equal(t, tc.expectedServiceName, actual)
-		})
-	}
-}
-
-func Test_ServiceName_ServiceName(t *testing.T) {
-	t.Parallel()
-	serviceKey := ServiceKey("service.ns.partition")
-	expectedServiceName := "service"
-	actual := serviceKey.ServiceName()
-	require.Equal(t, expectedServiceName, actual)
-}
-
 func Test_ServiceRouteReferences_AddService(t *testing.T) {
 	t.Parallel()
 
+	key := ServiceName{Name: "service", EnterpriseMeta: acl.EnterpriseMeta{}}
 	testCases := map[string]struct {
-		key          ServiceKey
 		routeRef     ResourceReference
 		subject      ServiceRouteReferences
 		expectedRefs ServiceRouteReferences
 	}{
 		"key does not exist yet": {
-			key: "service.ns.partition",
 			routeRef: ResourceReference{
 				Kind: "http-route",
 				Name: "http-route",
 			},
 			subject: make(ServiceRouteReferences),
 			expectedRefs: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				key: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1625,13 +1594,12 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 			},
 		},
 		"key exists adding new route": {
-			key: "service.ns.partition",
 			routeRef: ResourceReference{
 				Kind: "http-route",
 				Name: "http-route",
 			},
 			subject: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				key: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
@@ -1640,7 +1608,7 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 			},
 
 			expectedRefs: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				key: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
@@ -1653,13 +1621,12 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 			},
 		},
 		"key exists adding existing route": {
-			key: "service.ns.partition",
 			routeRef: ResourceReference{
 				Kind: "http-route",
 				Name: "http-route",
 			},
 			subject: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				key: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1668,7 +1635,7 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 			},
 
 			expectedRefs: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				key: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1680,7 +1647,7 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			tc.subject.AddService(tc.key, tc.routeRef)
+			tc.subject.AddService(key, tc.routeRef)
 
 			require.Equal(t, tc.subject, tc.expectedRefs)
 		})
@@ -1690,6 +1657,8 @@ func Test_ServiceRouteReferences_AddService(t *testing.T) {
 func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 	t.Parallel()
 
+	keySvcOne := ServiceName{Name: "service-one", EnterpriseMeta: acl.EnterpriseMeta{}}
+	keySvcTwo := ServiceName{Name: "service-two", EnterpriseMeta: acl.EnterpriseMeta{}}
 	testCases := map[string]struct {
 		routeRef     ResourceReference
 		subject      ServiceRouteReferences
@@ -1701,7 +1670,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 				Name: "http-route",
 			},
 			subject: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				keySvcOne: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1711,7 +1680,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 						Name: "http-route-other",
 					},
 				},
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
@@ -1719,13 +1688,13 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 				},
 			},
 			expectedRefs: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				keySvcOne: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
 					},
 				},
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
@@ -1740,7 +1709,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 			},
 
 			subject: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				keySvcOne: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1750,7 +1719,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 						Name: "http-route-other",
 					},
 				},
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1762,13 +1731,13 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 				},
 			},
 			expectedRefs: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				keySvcOne: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
 					},
 				},
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",
@@ -1783,13 +1752,13 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 			},
 
 			subject: ServiceRouteReferences{
-				"service.ns.partition": []ResourceReference{
+				keySvcOne: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
 					},
 				},
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route",
@@ -1801,7 +1770,7 @@ func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
 				},
 			},
 			expectedRefs: ServiceRouteReferences{
-				"service-2.ns.partition": []ResourceReference{
+				keySvcTwo: []ResourceReference{
 					{
 						Kind: "http-route",
 						Name: "http-route-other",

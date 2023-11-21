@@ -713,7 +713,7 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 
 		if refDidBind {
 			for _, serviceName := range route.GetServiceNames() {
-				g.BoundGateway.Services.AddService(structs.NewServiceKey(serviceName.Name, &serviceName.EnterpriseMeta), routeRef)
+				g.BoundGateway.Services.AddService(structs.NewServiceName(serviceName.Name, &serviceName.EnterpriseMeta), routeRef)
 			}
 			boundRefs = append(boundRefs, ref)
 		}

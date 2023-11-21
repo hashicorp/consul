@@ -4,6 +4,7 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
@@ -929,51 +930,11 @@ func (a *APIGatewayTLSConfiguration) IsEmpty() bool {
 	return len(a.Certificates) == 0 && len(a.MaxVersion) == 0 && len(a.MinVersion) == 0 && len(a.CipherSuites) == 0
 }
 
-type ServiceKey string
-
-func NewServiceKey(name string, entMeta *acl.EnterpriseMeta) ServiceKey {
-	key := name
-
-	if namespace := entMeta.NamespaceOrEmpty(); namespace != "" {
-		key = fmt.Sprintf("%s.%s", key, namespace)
-	}
-
-	if partition := entMeta.PartitionOrEmpty(); partition != "" {
-		key = fmt.Sprintf("%s.%s", key, partition)
-	}
-	return ServiceKey(key)
-}
-
-func (s ServiceKey) ServiceName() string {
-	name, _, _ := strings.Cut(string(s), ".")
-	return name
-}
-
-func (s ServiceKey) EnterpriseMeta() *acl.EnterpriseMeta {
-	parts := strings.Split(string(s), ".")
-	if len(parts) == 1 {
-		return acl.DefaultEnterpriseMeta()
-	}
-	namespace := ""
-	partition := ""
-
-	if len(parts) >= 2 {
-		namespace = parts[1]
-	}
-
-	if len(parts) == 3 {
-		partition = parts[2]
-	}
-
-	entMeta := acl.NewEnterpriseMetaWithPartition(namespace, partition)
-	return &entMeta
-}
-
-// ServiceRouteReferences is a map with a key of "name.namespace.partition" for a routed to service from a
+// ServiceRouteReferences is a map with a key of ServiceName type for a routed to service from a
 // bound gateway listener with a value being a slice of resource references of the routes that reference the service
-type ServiceRouteReferences map[ServiceKey][]ResourceReference
+type ServiceRouteReferences map[ServiceName][]ResourceReference
 
-func (s ServiceRouteReferences) AddService(key ServiceKey, routeRef ResourceReference) {
+func (s ServiceRouteReferences) AddService(key ServiceName, routeRef ResourceReference) {
 	if s[key] == nil {
 		s[key] = make([]ResourceReference, 0)
 	}
@@ -996,6 +957,16 @@ func (s ServiceRouteReferences) RemoveRouteRef(routeRef ResourceReference) {
 			}
 		}
 	}
+}
+
+// this is to make the map value serializable for tests that compare the json output of the
+// boundAPIGateway
+func (s ServiceRouteReferences) MarshalJSON() ([]byte, error) {
+	m := make(map[string][]ResourceReference, len(s))
+	for key, val := range s {
+		m[key.String()] = val
+	}
+	return json.Marshal(m)
 }
 
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
@@ -1169,9 +1140,13 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 }
 
 func (e *BoundAPIGatewayConfigEntry) ListRelatedServices() []ServiceID {
+	if len(e.Services) == 0 {
+		return nil
+	}
+
 	ids := make([]ServiceID, 0, len(e.Services))
 	for key := range e.Services {
-		ids = append(ids, NewServiceID(key.ServiceName(), key.EnterpriseMeta()))
+		ids = append(ids, key.ToServiceID())
 	}
 	return ids
 }

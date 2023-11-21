@@ -2014,7 +2014,7 @@ func TestAPIGatewayController(t *testing.T) {
 						}},
 					}},
 
-					Services: structs.ServiceRouteReferences{structs.NewServiceKey("tcp-upstream", nil): []structs.ResourceReference{{
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{{
 						Kind: "tcp-route",
 						Name: "tcp-route",
 					}}},
@@ -2245,7 +2245,7 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
-					Services: structs.ServiceRouteReferences{structs.NewServiceKey("tcp-upstream", nil): []structs.ResourceReference{
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{
 						{
 							Kind: "tcp-route",
 							Name: "tcp-route-one",
@@ -2404,7 +2404,7 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
-					Services: structs.ServiceRouteReferences{structs.NewServiceKey("http-upstream", nil): []structs.ResourceReference{
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
 						{
 							Kind: "http-route",
 							Name: "http-route-one",
@@ -2561,7 +2561,7 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
-					Services: structs.ServiceRouteReferences{structs.NewServiceKey("http-upstream", nil): []structs.ResourceReference{{
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{{
 						Kind: "http-route",
 						Name: "http-route",
 					}}},
@@ -2726,13 +2726,13 @@ func TestAPIGatewayController(t *testing.T) {
 						}},
 					}},
 					Services: structs.ServiceRouteReferences{
-						structs.NewServiceKey("http-upstream", nil): []structs.ResourceReference{
+						structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
 							{
 								Kind: "http-route",
 								Name: "http-route",
 							},
 						},
-						structs.NewServiceKey("tcp-upstream", nil): []structs.ResourceReference{
+						structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{
 							{
 								Kind: "tcp-route",
 								Name: "tcp-route",
@@ -3101,7 +3101,7 @@ func TestAPIGatewayController(t *testing.T) {
 						}},
 					}},
 					Services: structs.ServiceRouteReferences{
-						structs.NewServiceKey("http-upstream", nil): []structs.ResourceReference{
+						structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
 							{
 								Kind: "http-route",
 								Name: "http-route",

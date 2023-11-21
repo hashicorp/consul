@@ -1343,7 +1343,7 @@ func (o *BoundAPIGatewayConfigEntry) DeepCopy() *BoundAPIGatewayConfigEntry {
 		}
 	}
 	if o.Services != nil {
-		cp.Services = make(map[ServiceKey][]ResourceReference, len(o.Services))
+		cp.Services = make(map[ServiceName][]ResourceReference, len(o.Services))
 		for k2, v2 := range o.Services {
 			var cp_Services_v2 []ResourceReference
 			if v2 != nil {

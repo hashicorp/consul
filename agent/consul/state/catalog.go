@@ -4710,7 +4710,7 @@ func upstreamsFromGWTxn(tx ReadTxn, service structs.ServiceName) ([]structs.Serv
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
 // There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
-func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn,  service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
 	iter, err := tx.Get(tableConfigEntries, indexLink, service.ToServiceID())
 	if err != nil {
 		return 0, nil, err
@@ -4738,9 +4738,9 @@ func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn,  service structs.Ser
 
 		// This is a hack because for some reason memdb isn't dropping the bound api gateway from the link index after
 		// removing a service from the Services field
-		if _, ok := entry.Services[structs.NewServiceKey(service.Name, &service.EnterpriseMeta)]; !ok {
-			continue
-		}
+		 if _, ok := entry.Services[service]; !ok {
+		 continue
+		 }
 
 		seen[gwServiceName] = struct{}{}
 
