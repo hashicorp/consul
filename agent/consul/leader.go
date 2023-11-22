@@ -1466,7 +1466,9 @@ func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool
 
 func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
 	// we write these defaults directly to the storage backend
-	// without going through the resource service to avoid exploitation
+	// without going through the resource service since tenancy
+	// validation hooks block writes to the default namespace
+	// and partition.
 	if err := s.createDefaultPartition(ctx, b); err != nil {
 		return err
 	}
