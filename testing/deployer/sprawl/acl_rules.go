@@ -102,7 +102,7 @@ func tokenForWorkload(wrk *topology.Workload, overridePolicy *api.ACLPolicy, ent
 		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
 			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
 			TemplateVariables: &api.ACLTemplatedPolicyVariables{
-				Name: wrk.ID.Name,
+				Name: wrk.WorkloadIdentity,
 			},
 		}}
 	} else {

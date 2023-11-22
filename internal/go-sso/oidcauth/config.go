@@ -45,7 +45,6 @@ type Config struct {
 
 	// Comma-separated list of 'aud' claims that are valid for login; any match
 	// is sufficient
-	// TODO(sso): actually just send these down as string claims?
 	BoundAudiences []string
 
 	// Mappings of claims (key) that will be copied to a metadata field

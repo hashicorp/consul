@@ -399,6 +399,7 @@ type Resource struct {
 	// can treat its timestamp component as the resource's modification time.
 	Generation string `protobuf:"bytes,4,opt,name=generation,proto3" json:"generation,omitempty"`
 	// Metadata contains key/value pairs of arbitrary metadata about the resource.
+	// "deletionTimestamp" and "finalizers" keys are reserved for internal use.
 	Metadata map[string]string `protobuf:"bytes,5,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	// Status is used by controllers to communicate the result of attempting to
 	// reconcile and apply the resource (e.g. surface semantic validation errors)

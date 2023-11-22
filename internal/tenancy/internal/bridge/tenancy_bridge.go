@@ -6,6 +6,7 @@ package bridge
 import (
 	"context"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
@@ -29,7 +30,7 @@ func NewV2TenancyBridge() *V2TenancyBridge {
 }
 
 func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
-	read, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
+	rsp, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,
 			Tenancy: &pbresource.Tenancy{
@@ -38,11 +39,11 @@ func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, er
 			Type: pbtenancy.NamespaceType,
 		},
 	})
-	return read != nil && read.Resource != nil, err
+	return rsp != nil && rsp.Resource != nil, err
 }
 
 func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error) {
-	read, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
+	rsp, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,
 			Tenancy: &pbresource.Tenancy{
@@ -51,5 +52,8 @@ func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace stri
 			Type: pbtenancy.NamespaceType,
 		},
 	})
-	return read.Resource != nil, err
+	if err != nil {
+		return false, err
+	}
+	return resource.IsMarkedForDeletion(rsp.Resource), nil
 }
