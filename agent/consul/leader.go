@@ -5,6 +5,7 @@ package consul
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -16,7 +17,9 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/oklog/ulid/v2"
 	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
@@ -29,8 +32,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/structs/aclfilter"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	"github.com/hashicorp/consul/types"
 )
 
@@ -1455,4 +1462,60 @@ func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool
 
 	// prevent continuing server evaluation
 	return false
+}
+
+func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
+	// we write these defaults directly to the storage backend
+	// without going through the resource service to avoid exploitation
+	if err := s.createDefaultPartition(ctx, b); err != nil {
+		return err
+	}
+
+	if err := s.createDefaultNamespace(ctx, b); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) createDefaultNamespace(ctx context.Context, b storage.Backend) error {
+	readID := &pbresource.ID{
+		Type:    pbtenancy.NamespaceType,
+		Name:    resource.DefaultNamespaceName,
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
+
+	read, err := b.Read(ctx, storage.StrongConsistency, readID)
+
+	if err != nil && !errors.Is(err, storage.ErrNotFound) {
+		return fmt.Errorf("failed to read the %q namespace: %v", resource.DefaultNamespaceName, err)
+	}
+	if read == nil && errors.Is(err, storage.ErrNotFound) {
+		nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
+		if err != nil {
+			return err
+		}
+
+		// create a default namespace in default partition
+		nsID := &pbresource.ID{
+			Type:    pbtenancy.NamespaceType,
+			Name:    resource.DefaultNamespaceName,
+			Tenancy: resource.DefaultPartitionedTenancy(),
+			Uid:     ulid.Make().String(),
+		}
+
+		_, err = b.WriteCAS(ctx, &pbresource.Resource{
+			Id:         nsID,
+			Generation: ulid.Make().String(),
+			Data:       nsData,
+			Metadata: map[string]string{
+				"generated_at": time.Now().Format(time.RFC3339),
+			},
+		})
+
+		if err != nil {
+			return fmt.Errorf("failed to create the %q namespace: %v", resource.DefaultNamespaceName, err)
+		}
+	}
+	s.logger.Info("Created", "namespace", resource.DefaultNamespaceName)
+	return nil
 }
