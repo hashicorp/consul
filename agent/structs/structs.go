@@ -2396,6 +2396,15 @@ type IndexedServiceList struct {
 	QueryMeta
 }
 
+type PeerServiceList struct {
+	Services ServiceList
+	Peer     string
+}
+
+type ServicesByPeersList struct {
+	Peers []PeerServiceList
+}
+
 type IndexedPeeredServiceList struct {
 	Services []PeeredServiceName
 	QueryMeta

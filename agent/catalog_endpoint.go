@@ -604,3 +604,41 @@ func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *ht
 		s.nodeMetricsLabels())
 	return out, nil
 }
+
+// PeerExportedServices is used to list the exported services to all the peers. We return a
+// barebones ServiceListingSummary which only contains the name and enterprise meta of a service.
+func (s *HTTPHandlers) PeerExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+
+	// Parse arguments
+	args := structs.DCSpecificRequest{}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	if err := s.parseEntMeta(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+
+	// Make the RPC request
+	var out structs.IndexedExportedServiceList
+	defer setMeta(resp, &out.QueryMeta)
+RPC:
+	if err := s.agent.RPC(req.Context(), "Internal.ExportedPeeredServices", &args, &out); err != nil {
+		// Retry the request allowing stale data if no leader
+		if strings.Contains(err.Error(), structs.ErrNoLeader.Error()) && !args.AllowStale {
+			args.AllowStale = true
+			goto RPC
+		}
+		return nil, err
+	}
+
+	result := structs.ServicesByPeersList{}
+	for peer, svc := range out.Services {
+		Peer := structs.PeerServiceList{
+			Peer:     peer,
+			Services: svc,
+		}
+		result.Peers = append(result.Peers, Peer)
+	}
+	return result, nil
+}
