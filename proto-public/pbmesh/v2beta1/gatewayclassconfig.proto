@@ -6,40 +6,29 @@ syntax = "proto3";
 package hashicorp.consul.mesh.v2beta1;
 
 import "pbresource/annotations.proto";
+import "k8s.io/api/core/v1/generated.proto";
+
 
 // This is a Resource type.
 message GatewayClassConfig {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
-  optional Consul consul = 1;
-  optional CopyAnnotations copy_annotations = 2;
-  optional Deployment deployment = 3;
-  optional Image image = 4;
-  optional string log_level = 5;
-  optional uint32 map_privileged_container_ports = 6;
-  optional string node_selector = 7;
-  optional string openshift_scc_name = 8;
-  optional string service_type = 9;
-  optional bool use_host_ports = 10;
-}
+  // +kubebuilder:validation:Enum=ClusterIP;NodePort;LoadBalancer
+  optional string service_type = 1;
 
-message Consul {
-  optional string address = 1;
-  optional Authentication authentication = 2;
-  optional string scheme = 3;
-  optional Ports ports = 4;
-}
+  // NodeSelector is a selector which must be true for the pod to fit on a node.
+  // Selector which must match a node's labels for the pod to be scheduled on that node.
+  // More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  map<string, string> node_selector = 2;
 
-message Authentication {
-  optional string address = 1;
-  optional bool managed = 2;
-  optional string method = 3;
-  optional string namespace = 4;
-}
-
-message Ports {
-  optional uint32 grpc = 1;
-  optional uint32 http = 2;
+  // Tolerations allow the scheduler to schedule nodes with matching taints.
+  // More Info: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  repeated k8s.io.api.core.v1.Toleration tolerations = 3;
+  optional Deployment deployment = 4;
+  optional CopyAnnotations copy_annotations = 5;
+  optional string pod_security_policy = 6;
+  optional string openshift_scc_name = 7;
+  optional bool use_host_ports = 8;
 }
 
 message CopyAnnotations {
@@ -47,12 +36,22 @@ message CopyAnnotations {
 }
 
 message Deployment {
+  // +kubebuilder:default:=1
+  // +kubebuilder:validation:Maximum=8
+  // +kubebuilder:validation:Minimum=1
+  // Number of gateway instances that should be deployed by default
   optional uint32 default_instances = 1;
+  // +kubebuilder:default:=1
+  // +kubebuilder:validation:Maximum=8
+  // +kubebuilder:validation:Minimum=1
+  // Minimum allowed number of gateway instances
   optional uint32 min_instances = 2;
+  // +kubebuilder:default:=8
+  // +kubebuilder:validation:Maximum=8
+  // +kubebuilder:validation:Minimum=1
+  // Max allowed number of gateway instances
   optional uint32 max_instances = 3;
+  // Resources defines the resource requirements for the gateway.
+  repeated k8s.io.api.core.v1.ResourceRequirements tolerations = 4;
 }
 
-message Image {
-  optional string consul_api_gateway = 1;
-  optional string envoy = 2;
-}
