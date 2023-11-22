@@ -81,8 +81,11 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 			return &pbresource.DeleteResponse{}, nil
 		}
 
-		// Mark for deletion and let controllers that put finalizers in place do their thing
-		return s.markForDeletion(ctx, existing)
+		// Mark for deletion and let controllers that put finalizers in place do their
+		// thing. Note we're passing in a clone of the recently read resource since
+		// we've not crossed a network/serialization boundary since the read and we
+		// don't want to mutate the in-mem reference.
+		return s.markForDeletion(ctx, clone(existing))
 	}
 
 	// Continue with an immediate delete
@@ -102,12 +105,8 @@ func (s *Server) Delete(ctx context.Context, req *pbresource.DeleteRequest) (*pb
 }
 
 func (s *Server) markForDeletion(ctx context.Context, res *pbresource.Resource) (*pbresource.DeleteResponse, error) {
-	if res.Metadata == nil {
-		res.Metadata = map[string]string{}
-	}
-	res.Metadata[resource.DeletionTimestampKey] = time.Now().Format(time.RFC3339)
-
 	// Write the deletion timestamp
+	res.Metadata[resource.DeletionTimestampKey] = time.Now().Format(time.RFC3339)
 	_, err := s.Write(ctx, &pbresource.WriteRequest{Resource: res})
 	if err != nil {
 		return nil, err

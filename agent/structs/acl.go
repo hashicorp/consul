@@ -1084,6 +1084,21 @@ const (
 	//   },
 	// }
 	BindingRuleBindTypeTemplatedPolicy = "templated-policy"
+
+	// BindingRuleBindTypePolicy is the binding rule bind type that only allows
+	// the binding rule to function if a policy with the given name (BindName)
+	// exists at login-time. If it does the token that is created is directly
+	// linked to that policy like:
+	//
+	// &ACLToken{
+	//   ...other fields...
+	//   Policies: *ACLTokenPolicyLink{
+	//     { Name: "<computed BindName>" },
+	//   }
+	// }
+	//
+	// If it does not exist at login-time the rule is ignored.
+	BindingRuleBindTypePolicy = "policy"
 )
 
 type ACLBindingRule struct {
@@ -1106,6 +1121,7 @@ type ACLBindingRule struct {
 	//  - BindingRuleBindTypeService         = "service"
 	//  - BindingRuleBindTypeNode            = "node"
 	//  - BindingRuleBindTypeRole            = "role"
+	//  - BindingRuleBindTypePolicy          = "policy"
 	//  - BindingRuleBindTypeTemplatedPolicy = "templated-policy"
 	BindType string
 

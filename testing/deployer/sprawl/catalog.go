@@ -286,7 +286,9 @@ func (s *Sprawl) syncWorkloadsForDataplaneInstances(cluster *topology.Cluster) e
 			} else {
 				syncWorkload = deregisterWorkloadFromNode
 			}
-			syncWorkload(node, wrk)
+			if err := syncWorkload(node, wrk); err != nil {
+				return err
+			}
 		}
 
 		// Deregister the virtual node if node is disabled
@@ -723,7 +725,7 @@ func workloadInstanceToResources(
 			Data: &pbcatalog.Workload{
 				// TODO(rb): disabling this until node scoping makes sense again
 				// NodeName: node.PodName(),
-				Identity: wrk.ID.Name,
+				Identity: wrk.WorkloadIdentity,
 				Ports:    wlPorts,
 				Addresses: []*pbcatalog.WorkloadAddress{
 					{Host: node.LocalAddress()},
