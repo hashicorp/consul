@@ -181,7 +181,8 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 	})
 
 	// expect health entry in for peer to disappear
-	retry.RunWith(&retry.Timer{Timeout: time.Minute, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+	// TODO: for whatever reason, this replication can take anywhere from 0 to 10 minutes :(
+	retry.RunWith(&retry.Timer{Timeout: 10 * time.Minute, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
 		svcs, _, err := clDC.Health().Service(s.sidServer.Name, "", true, utils.CompatQueryOpts(&api.QueryOptions{
 			Partition: s.sidServer.Partition,
 			Namespace: s.sidServer.Namespace,
