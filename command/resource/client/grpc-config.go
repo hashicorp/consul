@@ -9,9 +9,7 @@ import (
 
 const (
 	// GRPCAddrEnvName defines an environment variable name which sets the gRPC
-	// address for consul connect envoy. Note this isn't actually used by the api
-	// client in this package but is defined here for consistency with all the
-	// other ENV names we use.
+	// server address for the consul CLI.
 	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
 )
 

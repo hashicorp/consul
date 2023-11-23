@@ -4,7 +4,6 @@
 package client
 
 import (
-	"context"
 	"fmt"
 
 	"google.golang.org/grpc"
@@ -32,10 +31,9 @@ func NewGRPCClient(config *GRPCConfig) (*GRPCClient, error) {
 }
 
 func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
-	dialCtx := context.Background()
 	// TODO: decide if we use TLS mode based on the config
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
-	return grpc.DialContext(dialCtx, c.Address, dialOpts...)
+	return grpc.Dial(c.Address, dialOpts...)
 }
