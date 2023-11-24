@@ -20,29 +20,43 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 	var requestType *pbresource.Type
 	var requestTenancy *pbresource.Tenancy
 	var name_prefix string
+	var reg *resource.Registration
+	var err error
 
 	switch op := req.Request.(type) {
 	case *pbresource.POCListRequest_FilterByType:
 		requestType = op.FilterByType.GetType()
 		requestTenancy = op.FilterByType.GetTenancy()
+		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
+		if err != nil {
+			return nil, err
+		}
 	case *pbresource.POCListRequest_FilterByNamePrefix:
 		requestType = op.FilterByNamePrefix.GetType()
 		requestTenancy = op.FilterByNamePrefix.GetTenancy()	
 		name_prefix = op.FilterByNamePrefix.GetNamePrefix()
-	case *pbresource.POCListRequest_FilterByOwner:
-		resp, err := s.ListByOwner(ctx, &pbresource.ListByOwnerRequest{Owner: op.FilterByOwner.GetOwner()})
+		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
 		if err != nil {
 			return nil, err
 		}
-		result := &pbresource.POCListResponse{Resources: resp.Resources}
-		return result, err
+	case *pbresource.POCListRequest_FilterByOwner:
+		ownerReq := &pbresource.ListByOwnerRequest{Owner: op.FilterByOwner.GetOwner()}
+		reg, err = s.ensureListByOwnerRequestValid(ownerReq)
+		if err != nil {
+			return nil, err
+		}
+
+		requestType = ownerReq.Owner.Type
+		requestTenancy = ownerReq.Owner.Tenancy
+
+		// resp, err := s.ListByOwner(ctx, &pbresource.ListByOwnerRequest{Owner: op.FilterByOwner.GetOwner()})
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// result := &pbresource.POCListResponse{Resources: resp.Resources}
+		// return result, err
 	default:
 		fmt.Println("No matching list operations")
-	}
-
-	reg, err := s.validatePOCListRequest(requestType, requestTenancy)
-	if err != nil {
-		return nil, err
 	}
 
 	// v1 ACL subsystem is "wildcard" aware so just pass on through.
@@ -53,7 +67,6 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		return nil, err
 	}
 
-	// TBD: ACL checks for list by tenancy???
 	if reg != nil {
 		// Check ACLs.
 		err = reg.ACLs.List(authz, authzContext)
@@ -65,69 +78,109 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		}
 	}
 
-	// TBD: Defaults for list by tenancy???
 	if reg != nil {
 		// Ensure we're defaulting correctly when request tenancy units are empty.
 		v1EntMetaToV2Tenancy(reg, entMeta, requestTenancy)
 	}
 
-	resources, err := s.Backend.POCList(
-		ctx,
-		readConsistencyFrom(ctx),
-		storage.UnversionedTypeFrom(requestType),
-		requestTenancy,
-		name_prefix,
-	)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed list: %v", err)
-	}
+	// TBD: Tenancy exist check for list by owner??
 
+	var resources []*pbresource.Resource
 	result := make([]*pbresource.Resource, 0)
-	for _, resource := range resources {
-		// Filter out non-matching GroupVersion.
-		if requestType != nil && resource.Id.Type.GroupVersion != requestType.GroupVersion {
-			continue
-		}
 
-		// Need to rebuild authorizer per resource since wildcard inputs may
-		// result in different tenancies. Consider caching per tenancy if this
-		// is deemed expensive.
-		entMeta = v2TenancyToV1EntMeta(resource.Id.Tenancy)
-		authz, authzContext, err = s.getAuthorizer(token, entMeta)
+	switch filter := req.Request.(type) {
+	case *pbresource.POCListRequest_FilterByOwner:
+		// Get owned resources.
+		resources, err = s.Backend.ListByOwner(ctx, filter.FilterByOwner.Owner)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "failed list by owner: %v", err)
 		}
 
-		// TBD: ACL checks list by tenancy???
-		if reg != nil {
-			// Filter out items that don't pass read ACLs.
-			err = reg.ACLs.Read(authz, authzContext, resource.Id, resource)
+		for _, child := range resources {
+			// Retrieve child type's registration to access read ACL hook.
+			childReg, err := s.resolveType(child.Id.Type)
+			if err != nil {
+				return nil, err
+			}
+
+			// Rebuild authorizer if tenancy not identical between owner and child (child scope
+			// may be narrower).
+			childAuthz := authz
+			childAuthzContext := authzContext
+			if !resource.EqualTenancy(filter.FilterByOwner.Owner.Tenancy, child.Id.Tenancy) {
+				childEntMeta := v2TenancyToV1EntMeta(child.Id.Tenancy)
+				childAuthz, childAuthzContext, err = s.getAuthorizer(token, childEntMeta)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			// Filter out children that fail real ACL.
+			err = childReg.ACLs.Read(childAuthz, childAuthzContext, child.Id, child)
 			switch {
 			case acl.IsErrPermissionDenied(err):
 				continue
 			case err != nil:
 				return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 			}
+
+			result = append(result, child)
 		}
-		result = append(result, resource)
+	default:
+		resources, err = s.Backend.POCList(
+			ctx,
+			readConsistencyFrom(ctx),
+			storage.UnversionedTypeFrom(requestType),
+			requestTenancy,
+			name_prefix,
+		)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "failed list: %v", err)
+		}
+
+		for _, resource := range resources {
+			// Filter out non-matching GroupVersion.
+			if requestType != nil && resource.Id.Type.GroupVersion != requestType.GroupVersion {
+				continue
+			}
+
+			// Need to rebuild authorizer per resource since wildcard inputs may
+			// result in different tenancies. Consider caching per tenancy if this
+			// is deemed expensive.
+			entMeta = v2TenancyToV1EntMeta(resource.Id.Tenancy)
+			authz, authzContext, err = s.getAuthorizer(token, entMeta)
+			if err != nil {
+				return nil, err
+			}
+
+			if reg != nil {
+				// Filter out items that don't pass read ACLs.
+				err = reg.ACLs.Read(authz, authzContext, resource.Id, resource)
+				switch {
+				case acl.IsErrPermissionDenied(err):
+					continue
+				case err != nil:
+					return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
+				}
+			}
+			result = append(result, resource)
+		}
 	}
 	return &pbresource.POCListResponse{Resources: result}, nil
 }
 
 func (s *Server) validatePOCListRequest(requestType *pbresource.Type, requestTenancy *pbresource.Tenancy) (*resource.Registration, error) {
-	// TBD: Validation rules???
+	var field string
+	switch {
+	case requestType == nil:
+		field = "type"
+	case requestTenancy == nil:
+		field = "tenancy"
+	}
 
-	// var field string
-	// switch {
-	// case requestType == nil:
-	// 	field = "type"
-	// case requestTenancy == nil:
-	// 	field = "tenancy"
-	// }
-
-	// if field != "" {
-	// 	return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
-	// }
+	if field != "" {
+		return nil, status.Errorf(codes.InvalidArgument, "%s is required", field)
+	}
 
 	var reg *resource.Registration
 	if requestType != nil{
@@ -148,11 +201,9 @@ func (s *Server) validatePOCListRequest(requestType *pbresource.Type, requestTen
 		}
 	}
 
-	// TBD: V2 tenancy feature flag check for list by tenancy???
-
-	// if err = checkV2Tenancy(s.UseV2Tenancy, requestType); err != nil {
-	// 	return nil, err
-	// }
+	if err := checkV2Tenancy(s.UseV2Tenancy, requestType); err != nil {
+		return nil, err
+	}
 
 	// TBD: Drop this???
 
