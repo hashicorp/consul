@@ -26,6 +26,7 @@ const (
 	ACLTemplatedPolicyDNSName              = "builtin/dns"
 	ACLTemplatedPolicyNomadServerName      = "builtin/nomad-server"
 	ACLTemplatedPolicyWorkloadIdentityName = "builtin/workload-identity"
+	ACLTemplatedPolicyAPIGatewayName       = "builtin/api-gateway"
 )
 
 type ACLLink struct {

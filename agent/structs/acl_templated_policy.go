@@ -29,6 +29,9 @@ var ACLTemplatedPolicyServiceSchema string
 //go:embed acltemplatedpolicy/schemas/workload-identity.json
 var ACLTemplatedPolicyWorkloadIdentitySchema string
 
+//go:embed acltemplatedpolicy/schemas/api-gateway.json
+var ACLTemplatedPolicyAPIGatewaySchema string
+
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
@@ -37,6 +40,7 @@ const (
 	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
 	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
 	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
+	ACLTemplatedPolicyAPIGatewayID       = "00000000-0000-0000-0000-000000000008"
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -83,6 +87,12 @@ var (
 			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
 			Schema:       ACLTemplatedPolicyWorkloadIdentitySchema,
 			Template:     ACLTemplatedPolicyWorkloadIdentity,
+		},
+		api.ACLTemplatedPolicyAPIGatewayName: {
+			TemplateID:   ACLTemplatedPolicyAPIGatewayID,
+			TemplateName: api.ACLTemplatedPolicyAPIGatewayName,
+			Schema:       ACLTemplatedPolicyAPIGatewaySchema,
+			Template:     ACLTemplatedPolicyAPIGateway,
 		},
 	}
 )
