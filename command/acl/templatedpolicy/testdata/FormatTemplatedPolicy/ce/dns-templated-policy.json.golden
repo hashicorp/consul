@@ -1,5 +1,6 @@
 {
     "TemplateName": "builtin/dns",
     "Schema": "",
-    "Template": "\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nquery_prefix \"\" {\n\tpolicy = \"read\"\n}"
+    "Template": "\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nquery_prefix \"\" {\n\tpolicy = \"read\"\n}",
+    "Description": "Gives the token or role permissions for the Consul DNS to query services in the network."
 }

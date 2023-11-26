@@ -173,6 +173,7 @@ type ACLTemplatedPolicyResponse struct {
 	TemplateName string
 	Schema       string
 	Template     string
+	Description  string
 }
 
 type ACLTemplatedPolicyVariables struct {
