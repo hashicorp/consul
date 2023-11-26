@@ -52,7 +52,7 @@ You can access the Consul server directly from your host by running `kubectl por
 <Tab heading="Without TLS">
 
 ```shell-session
-$ kubectl port-forward service/consul-server 8500 &
+$ kubectl port-forward service/consul-server -n consul 8500 &
 ```
 
 ```shell-session
@@ -65,7 +65,7 @@ $ export CONSUL_HTTP_ADDR=http://localhost:8500
 If TLS is enabled use port 8501:
 
 ```shell-session
-$ kubectl port-forward service/consul-server 8501 &
+$ kubectl port-forward service/consul-server -n consul 8501 &
 ```
 
 ```shell-session
@@ -79,7 +79,7 @@ $ export CONSUL_HTTP_SSL_VERIFY=false
 If ACLs are enabled also set:
 
 ```shell-session
-$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token --template='{{.data.token | base64decode }}')
+$ export CONSUL_HTTP_TOKEN=$(kubectl get secret consul-bootstrap-acl-token --template='{{.data.token | base64decode }}' -n consul)
 ```
 
 ## Register external services with Consul
@@ -382,14 +382,14 @@ You can verify connectivity of the static-client and terminating gateway via a c
 <Tab heading="Registered with ServiceDefaults destinations">
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs https://example.com/
+$ kubectl exec deploy/static-client -c static-client -- curl -vvvs https://example.com/
 ```
 
 </Tab>
 <Tab heading="Registered with the Consul catalog">
 
 ```shell-session
-$ kubectl exec deploy/static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
+$ kubectl exec deploy/static-client -c static-client -- curl -vvvs --header "Host: example-https.com" http://localhost:1234/
 ```
 
 </Tab>
