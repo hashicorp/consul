@@ -223,9 +223,9 @@ func TestDelete_Success(t *testing.T) {
 					require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 
 					// Derive tombstone name from resource that was deleted.
-					tname := tombstoneName(originalRecordLabelId)
+					tname := TombstoneNameFor(originalRecordLabelId)
 					if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
-						tname = tombstoneName(originalArtistId)
+						tname = TombstoneNameFor(originalArtistId)
 					}
 
 					// Verify tombstone created
@@ -263,7 +263,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 	// verify artist's tombstone created
 	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
 		Id: &pbresource.ID{
-			Name:    tombstoneName(artist.Id),
+			Name:    TombstoneNameFor(artist.Id),
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: artist.Id.Tenancy,
 		},
