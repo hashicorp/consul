@@ -317,28 +317,8 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
-  build-docker-ubi-redhat:
-    name: Docker Build UBI Image for RedHat Registry
-    needs:
-      - set-product-version
-      - build
-    runs-on: ubuntu-latest
-    env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.set-product-version.outputs.product-version}}
-
-    steps:
-      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
-      - uses: hashicorp/actions-docker-build@v1
-        with:
-          version: ${{env.version}}
-          target: ubi
-          arch: amd64
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
-
   build-docker-ubi-dockerhub:
-    name: Docker Build UBI Image for DockerHub
+    name: Docker Build UBI Images
     needs:
       - set-product-version
       - build
@@ -373,6 +353,7 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
 
   verify-linux:
     needs:
