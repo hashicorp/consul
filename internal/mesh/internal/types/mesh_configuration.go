@@ -5,7 +5,8 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
-// RegisterMeshConfiguration takes
+// RegisterMeshConfiguration takes the resource registry and registers
+// the MeshConfiguration resource to it.
 func RegisterMeshConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.MeshConfigurationType,
