@@ -6,10 +6,11 @@ package consul
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/go-hclog"
 	"time"
 
 	"github.com/armon/go-metrics"
-	"github.com/hashicorp/go-hclog"
+	_ "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/agent/configentry"
@@ -29,9 +30,12 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 	for localIdx, remoteIdx = 0, 0; localIdx < len(local) && remoteIdx < len(remote); {
 		if configentry.EqualID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
-			if remote[remoteIdx].GetMeta() == nil || local[localIdx].GetMeta() == nil ||
-				remote[remoteIdx].GetMeta()[structs.ConfigEntryIDKey] != local[localIdx].GetMeta()[structs.ConfigEntryIDKey] {
-				if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
+			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
+				// if ID is not available in either configs, replicate it
+				if remote[remoteIdx].ID() == "" || local[localIdx].ID() == "" {
+					updates = append(updates, remote[remoteIdx])
+					// if ID is different, replicate it
+				} else if remote[remoteIdx].ID() != local[localIdx].ID() {
 					updates = append(updates, remote[remoteIdx])
 				}
 			}
