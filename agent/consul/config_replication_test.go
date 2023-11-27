@@ -273,7 +273,7 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 
 func createConfigEntries(num int, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, num)
-	for i, _ := range entries {
+	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: ulid.Make().String(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
 		entries[i].SetID(ulid.Make().String())
 	}
@@ -282,7 +282,7 @@ func createConfigEntries(num int, indexStart int) []structs.ConfigEntry {
 
 func mutateIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, len(e))
-	for i, _ := range entries {
+	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
 		entries[i].SetID(ulid.Make().String())
 	}
@@ -291,7 +291,7 @@ func mutateIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 
 func clearIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, len(e))
-	for i, _ := range entries {
+	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
 		entries[i].SetID("")
 	}
