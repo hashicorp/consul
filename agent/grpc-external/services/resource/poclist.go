@@ -23,11 +23,6 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 	var reg *resource.Registration
 	var err error
 
-	// by type - query tenancy units can be wildcard (no tenancy is provided)
-	// by tenancy - only namespace can be wildcard
-	// by name prefix - no wildcards
-	// by owner - no wildcards at all
-
 	switch op := req.Request.(type) {
 	case *pbresource.POCListRequest_FilterByType:
 		requestType = op.FilterByType.GetType()

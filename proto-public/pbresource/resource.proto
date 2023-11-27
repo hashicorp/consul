@@ -497,7 +497,7 @@ message WatchEvent {
 }
 
 message POCListRequest {
-  oneof Request {
+  oneof request {
     ListByTypeRequest filter_by_type = 1;
     ListByTenancyRequest filter_by_tenancy = 2;
     ListByNamePrefixRequest filter_by_name_prefix = 3;
