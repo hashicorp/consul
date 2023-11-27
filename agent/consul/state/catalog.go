@@ -4736,11 +4736,6 @@ func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, service structs.Serv
 			continue
 		}
 
-		// This is a hack because for some reason memdb isn't dropping the bound api gateway from the link index after
-		// removing a service from the Services field
-		if _, ok := entry.Services[service]; !ok {
-			continue
-		}
 
 		seen[gwServiceName] = struct{}{}
 

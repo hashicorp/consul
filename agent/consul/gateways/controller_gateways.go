@@ -624,6 +624,7 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	meta := make([]*gatewayMeta, 0, len(boundGateways))
 	for _, b := range boundGateways {
 		bound := b.(*structs.BoundAPIGatewayConfigEntry)
+		bound = bound.DeepCopy()
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
 			if bound.IsInitializedForGateway(gateway) {
