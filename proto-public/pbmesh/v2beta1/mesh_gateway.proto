@@ -9,4 +9,7 @@ import "pbresource/annotations.proto";
 
 message MeshGateway {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
+  // GatewayClassName is the name of the GatewayClass used by the MeshGateway
+  string gateway_class_name = 1;
 }
