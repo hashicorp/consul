@@ -5,7 +5,6 @@ package inmem
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
@@ -211,40 +210,11 @@ func listTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
 		return nil, err
 	}
 
-	list := make([]*pbresource.Resource, 0)
+	var list []*pbresource.Resource
 	for v := iter.Next(); v != nil; v = iter.Next() {
-		res := v.(*pbresource.Resource)
-
-		if q.matches(res) {
-			list = append(list, res)
-		}
+		list = append(list, v.(*pbresource.Resource))
 	}
 	return list, nil
-}
-
-func (s *Store) POCList(typ storage.UnversionedType, ten *pbresource.Tenancy, namePrefix string) ([]*pbresource.Resource, error) {
-	tx := s.txn(false)
-	defer tx.Abort()
-
-	return pocListTxn(tx, query{typ, ten, namePrefix})
-}
-
-func pocListTxn(tx *memdb.Txn, q query) ([]*pbresource.Resource, error) {
-	fmt.Printf("**** in pocListTxn query: %+v", q)
-
-	var iter memdb.ResultIterator
-	var err error
-
-	iter, err = tx.Get(tableNameResources, indexNameID+"_prefix", q)
-	if err != nil {
-		return nil, err
-	}
-
-	var res []*pbresource.Resource
-	for v := iter.Next(); v != nil; v = iter.Next() {
-		res = append(res, v.(*pbresource.Resource))
-	}
-	return res, nil
 }
 
 // WatchList watches resources of the given type, tenancy, and optionally

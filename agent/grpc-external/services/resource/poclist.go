@@ -23,10 +23,29 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 	var reg *resource.Registration
 	var err error
 
+	// by type - query tenancy units can be wildcard (no tenancy is provided)
+	// by tenancy - only namespace can be wildcard
+	// by name prefix - no wildcards
+	// by owner - no wildcards at all
+
 	switch op := req.Request.(type) {
 	case *pbresource.POCListRequest_FilterByType:
 		requestType = op.FilterByType.GetType()
-		requestTenancy = op.FilterByType.GetTenancy()
+		name_prefix = ""
+		requestTenancy = &pbresource.Tenancy{
+			Namespace: "*",
+			Partition: "*",
+			PeerName:  "*",
+		}
+		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
+		if err != nil {
+			return nil, err
+		}
+	case *pbresource.POCListRequest_FilterByTenancy:
+		requestType = op.FilterByTenancy.GetType()
+		requestTenancy = op.FilterByTenancy.GetTenancy()
+		name_prefix = ""
+		// TODO: update validate to only allow wildcard for namespace
 		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
 		if err != nil {
 			return nil, err
@@ -35,6 +54,7 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		requestType = op.FilterByNamePrefix.GetType()
 		requestTenancy = op.FilterByNamePrefix.GetTenancy()	
 		name_prefix = op.FilterByNamePrefix.GetNamePrefix()
+		// TODO: update validate to block all wildcards
 		reg, err = s.validatePOCListRequest(requestType, requestTenancy)
 		if err != nil {
 			return nil, err
@@ -48,13 +68,6 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 
 		requestType = ownerReq.Owner.Type
 		requestTenancy = ownerReq.Owner.Tenancy
-
-		// resp, err := s.ListByOwner(ctx, &pbresource.ListByOwnerRequest{Owner: op.FilterByOwner.GetOwner()})
-		// if err != nil {
-		// 	return nil, err
-		// }
-		// result := &pbresource.POCListResponse{Resources: resp.Resources}
-		// return result, err
 	default:
 		fmt.Println("No matching list operations")
 	}
@@ -82,8 +95,6 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 		// Ensure we're defaulting correctly when request tenancy units are empty.
 		v1EntMetaToV2Tenancy(reg, entMeta, requestTenancy)
 	}
-
-	// TBD: Tenancy exist check for list by owner??
 
 	var resources []*pbresource.Resource
 	result := make([]*pbresource.Resource, 0)
@@ -127,7 +138,7 @@ func (s *Server) POCList(ctx context.Context, req *pbresource.POCListRequest) (*
 			result = append(result, child)
 		}
 	default:
-		resources, err = s.Backend.POCList(
+		resources, err = s.Backend.List(
 			ctx,
 			readConsistencyFrom(ctx),
 			storage.UnversionedTypeFrom(requestType),
@@ -204,14 +215,6 @@ func (s *Server) validatePOCListRequest(requestType *pbresource.Type, requestTen
 	if err := checkV2Tenancy(s.UseV2Tenancy, requestType); err != nil {
 		return nil, err
 	}
-
-	// TBD: Drop this???
-
-	// if err := validateWildcardTenancy(requestTenancy, req.NamePrefix); err != nil {
-	// 	return nil, err
-	// }
-
-	
 
 	return reg, nil
 }

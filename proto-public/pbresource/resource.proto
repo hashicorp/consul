@@ -498,12 +498,17 @@ message WatchEvent {
 
 message POCListRequest {
   oneof Request {
-    ListByTypeRequest filter_by_type = 2;
+    ListByTypeRequest filter_by_type = 1;
+    ListByTenancyRequest filter_by_tenancy = 2;
     ListByNamePrefixRequest filter_by_name_prefix = 3;
-    ListByOwnerRequest filter_by_owner = 5;
+    ListByOwnerRequest filter_by_owner = 4;
   }
 
   message ListByTypeRequest {
+    Type type = 1;
+  }
+
+  message ListByTenancyRequest {
     Type type = 1;
     Tenancy tenancy = 2;
   }
