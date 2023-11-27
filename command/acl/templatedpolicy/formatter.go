@@ -65,6 +65,7 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("Name:            %s\n", templatedPolicy.TemplateName))
+	buffer.WriteString(fmt.Sprintf("Description:     %s\n", templatedPolicy.Description))
 
 	buffer.WriteString("Input variables:")
 	switch templatedPolicy.TemplateName {
