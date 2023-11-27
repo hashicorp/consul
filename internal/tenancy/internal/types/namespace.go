@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -18,9 +20,24 @@ func RegisterNamespace(r resource.Registry) {
 		Type:     pbtenancy.NamespaceType,
 		Proto:    &pbtenancy.Namespace{},
 		Scope:    resource.ScopePartition,
+		Mutate:   MutateNamespace,
 		Validate: ValidateNamespace,
 		// ACLs: TODO
 	})
+}
+
+// MutateNamespace sets the resource data if nil since description and
+// other fields are optional.
+func MutateNamespace(res *pbresource.Resource) error {
+	if res.Data != nil {
+		return nil
+	}
+	data, err := anypb.New(&pbtenancy.Namespace{})
+	if err != nil {
+		return err
+	}
+	res.Data = data
+	return nil
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
