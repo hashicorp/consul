@@ -10,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"google.golang.org/protobuf/proto"
 
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
@@ -83,23 +82,11 @@ func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) str
 	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }
 
-func removeService(consumers []*pbmulticluster.ComputedExportedService, ref *pbresource.Reference) []*pbmulticluster.ComputedExportedService {
-	newConsumers := []*pbmulticluster.ComputedExportedService{}
-	for _, consumer := range consumers {
-		if !proto.Equal(consumer.TargetRef, ref) {
-			newConsumers = append(newConsumers, consumer)
-		}
-	}
-	return newConsumers
-}
-
 func (suite *controllerSuite) getComputedExportedSvc(id *pbresource.ID) *pbmulticluster.ComputedExportedServices {
 	computedExportedService := suite.client.RequireResourceExists(suite.T(), id)
 	decodedComputedExportedService := rtest.MustDecode[*pbmulticluster.ComputedExportedServices](suite.T(), computedExportedService)
 	return decodedComputedExportedService.Data
 }
-
-var svc0, svc2, svc3, svc4, svc5 *pbresource.Resource
 
 func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	id := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").WithTenancy(&pbresource.Tenancy{
@@ -107,7 +94,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	}).ID()
 	require.NotNil(suite.T(), id)
 
-	rtest.Resource(pbcatalog.ServiceType, "svc1").
+	svc1 := rtest.Resource(pbcatalog.ServiceType, "svc1").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -137,7 +124,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	expectedComputedExportedService := getExpectation(tenancy, suite.isEnterprise, 0)
 	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
 
-	svc2 = rtest.Resource(pbcatalog.ServiceType, "svc2").
+	rtest.Resource(pbcatalog.ServiceType, "svc2").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -146,7 +133,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	svc0 = rtest.Resource(pbcatalog.ServiceType, "svc0").
+	svc0 := rtest.Resource(pbcatalog.ServiceType, "svc0").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -172,7 +159,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	expectedComputedExportedService = getExpectation(tenancy, suite.isEnterprise, 1)
 	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
 
-	svc3 = rtest.Resource(pbcatalog.ServiceType, "svc3").
+	svc3 := rtest.Resource(pbcatalog.ServiceType, "svc3").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -212,7 +199,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	expectedComputedExportedService = getExpectation(tenancy, suite.isEnterprise, 4)
 	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
 
-	svc4 = rtest.Resource(pbcatalog.ServiceType, "svc4").
+	svc4 := rtest.Resource(pbcatalog.ServiceType, "svc4").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -238,7 +225,7 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	expectedComputedExportedService = getExpectation(tenancy, suite.isEnterprise, 6)
 	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
 
-	svc5 = rtest.Resource(pbcatalog.ServiceType, "svc5").
+	rtest.Resource(pbcatalog.ServiceType, "svc5").
 		WithData(suite.T(), &pbcatalog.Service{
 			Ports: []*pbcatalog.ServicePort{
 				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
@@ -273,6 +260,37 @@ func (suite *controllerSuite) reconcileTest(tenancy *pbresource.Tenancy) {
 	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
 
 	suite.client.MustDelete(suite.T(), expSvc.Id)
+	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+	require.NoError(suite.T(), err)
+
+	suite.client.RequireResourceNotFound(suite.T(), id)
+
+	nameexpSvc1 := rtest.Resource(pbmulticluster.NamespaceExportedServicesType, "namesvc1").WithData(suite.T(), exportedNamespaceSvcData).WithTenancy(&pbresource.Tenancy{
+		Partition: tenancy.Partition,
+		Namespace: "app",
+	}).Write(suite.T(), suite.client)
+	require.NotNil(suite.T(), nameexpSvc1)
+	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+	require.NoError(suite.T(), err)
+	actualComputedExportedService = suite.getComputedExportedSvc(id)
+	expectedComputedExportedService = getExpectation(&pbresource.Tenancy{
+		Partition: tenancy.Partition,
+		Namespace: "app",
+	}, suite.isEnterprise, 10)
+	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
+
+	expSvc1 := rtest.Resource(pbmulticluster.ExportedServicesType, "expsvc1").WithData(suite.T(), exportedSvcData).WithTenancy(tenancy).Write(suite.T(), suite.client)
+	require.NotNil(suite.T(), expSvc1)
+
+	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+	require.NoError(suite.T(), err)
+	actualComputedExportedService = suite.getComputedExportedSvc(id)
+	expectedComputedExportedService = getExpectation(tenancy, suite.isEnterprise, 11)
+	prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, actualComputedExportedService)
+
+	suite.client.MustDelete(suite.T(), svc0.Id)
+	suite.client.MustDelete(suite.T(), svc1.Id)
+
 	err = suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
 	require.NoError(suite.T(), err)
 
@@ -414,6 +432,15 @@ func getExpectation(tenancy *pbresource.Tenancy, isEnterprise bool, testCase int
 		)
 	case 9:
 		return makeCES(
+			makeConsumer(svc1Ref, peer0Consumer, part0Consumer),
+		)
+	case 10:
+		return makeCES(
+			makeConsumer(svc0Ref, peer1Consumer),
+		)
+	case 11:
+		return makeCES(
+			makeConsumer(svc0Ref, peer1Consumer),
 			makeConsumer(svc1Ref, peer0Consumer, part0Consumer),
 		)
 	}

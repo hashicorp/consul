@@ -1890,6 +1890,10 @@
             "path": "enterprise/license/faq"
           }
         ]
+      },
+      {
+        "title": "Enterprise to CE downgrade",
+        "path": "enterprise/ent-to-ce-downgrades"
       }
     ]
   },

@@ -29,6 +29,9 @@ var ACLTemplatedPolicyServiceSchema string
 //go:embed acltemplatedpolicy/schemas/workload-identity.json
 var ACLTemplatedPolicyWorkloadIdentitySchema string
 
+//go:embed acltemplatedpolicy/schemas/api-gateway.json
+var ACLTemplatedPolicyAPIGatewaySchema string
+
 type ACLTemplatedPolicies []*ACLTemplatedPolicy
 
 const (
@@ -37,6 +40,14 @@ const (
 	ACLTemplatedPolicyDNSID              = "00000000-0000-0000-0000-000000000005"
 	ACLTemplatedPolicyNomadServerID      = "00000000-0000-0000-0000-000000000006"
 	ACLTemplatedPolicyWorkloadIdentityID = "00000000-0000-0000-0000-000000000007"
+	ACLTemplatedPolicyAPIGatewayID       = "00000000-0000-0000-0000-000000000008"
+
+	ACLTemplatedPolicyServiceDescription          = "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
+	ACLTemplatedPolicyNodeDescription             = "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
+	ACLTemplatedPolicyDNSDescription              = "Gives the token or role permissions for the Consul DNS to query services in the network."
+	ACLTemplatedPolicyNomadServerDescription      = "Gives the token or role permissions required for integration with a nomad server."
+	ACLTemplatedPolicyWorkloadIdentityDescription = "Gives the token or role permissions for a specific workload identity."
+	ACLTemplatedPolicyAPIGatewayDescription       = "Gives the token or role permissions for a Consul api gateway"
 
 	ACLTemplatedPolicyNoRequiredVariablesSchema = "" // catch-all schema for all templated policy that don't require a schema
 )
@@ -48,6 +59,7 @@ type ACLTemplatedPolicyBase struct {
 	TemplateID   string
 	Schema       string
 	Template     string
+	Description  string
 }
 
 var (
@@ -59,30 +71,42 @@ var (
 			TemplateName: api.ACLTemplatedPolicyServiceName,
 			Schema:       ACLTemplatedPolicyServiceSchema,
 			Template:     ACLTemplatedPolicyService,
+			Description:  ACLTemplatedPolicyServiceDescription,
 		},
 		api.ACLTemplatedPolicyNodeName: {
 			TemplateID:   ACLTemplatedPolicyNodeID,
 			TemplateName: api.ACLTemplatedPolicyNodeName,
 			Schema:       ACLTemplatedPolicyNodeSchema,
 			Template:     ACLTemplatedPolicyNode,
+			Description:  ACLTemplatedPolicyNodeDescription,
 		},
 		api.ACLTemplatedPolicyDNSName: {
 			TemplateID:   ACLTemplatedPolicyDNSID,
 			TemplateName: api.ACLTemplatedPolicyDNSName,
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyDNS,
+			Description:  ACLTemplatedPolicyDNSDescription,
 		},
 		api.ACLTemplatedPolicyNomadServerName: {
 			TemplateID:   ACLTemplatedPolicyNomadServerID,
 			TemplateName: api.ACLTemplatedPolicyNomadServerName,
 			Schema:       ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     ACLTemplatedPolicyNomadServer,
+			Description:  ACLTemplatedPolicyNomadServerDescription,
 		},
 		api.ACLTemplatedPolicyWorkloadIdentityName: {
 			TemplateID:   ACLTemplatedPolicyWorkloadIdentityID,
 			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
 			Schema:       ACLTemplatedPolicyWorkloadIdentitySchema,
 			Template:     ACLTemplatedPolicyWorkloadIdentity,
+			Description:  ACLTemplatedPolicyWorkloadIdentityDescription,
+		},
+		api.ACLTemplatedPolicyAPIGatewayName: {
+			TemplateID:   ACLTemplatedPolicyAPIGatewayID,
+			TemplateName: api.ACLTemplatedPolicyAPIGatewayName,
+			Schema:       ACLTemplatedPolicyAPIGatewaySchema,
+			Template:     ACLTemplatedPolicyAPIGateway,
+			Description:  ACLTemplatedPolicyAPIGatewayDescription,
 		},
 	}
 )

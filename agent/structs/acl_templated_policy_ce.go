@@ -22,6 +22,9 @@ var ACLTemplatedPolicyNomadServer string
 //go:embed acltemplatedpolicy/policies/ce/workload-identity.hcl
 var ACLTemplatedPolicyWorkloadIdentity string
 
+//go:embed acltemplatedpolicy/policies/ce/api-gateway.hcl
+var ACLTemplatedPolicyAPIGateway string
+
 func (t *ACLToken) TemplatedPolicyList() []*ACLTemplatedPolicy {
 	if len(t.TemplatedPolicies) == 0 {
 		return nil
