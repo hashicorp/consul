@@ -159,16 +159,16 @@ When using WAN federation with mesh gateways, Consul servers must accept WAN Ser
 
 The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, and the direction of traffic from the Consul client's perspective.
 
-| Port name                 | Use                                        | Protocol    | Default port | Default status | Direction             |
-| :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :-------------------- |
-| [DNS](#dns)               | The DNS server                             | TCP and UDP | `8600`       | Enabled        | Incoming              |
-| [HTTP](#http)             | The HTTP API                               | TCP         | `8500`       | Enabled        | Incoming              |
-| [HTTPS](#https)           | The HTTPS API                              | TCP         | `8501`       | Disabled       | Incoming              |
-| [gRPC](#grpc)             | The gRPC API                               | TCP         | `8502`       | Disabled       | Incoming              |
-| [gRPC TLS](#grpc-tls)     | The gRPC API with TLS connections          | TCP         | `8503`       | Disabled       | Incoming              |
-| [LAN Serf](#lan-serf)     | The Serf local area network port           | TCP and UDP | `8301`       | Enabled        | Incoming and outgoing |
+| Port name                    | Use                                        | Protocol    | Default port | Default status | Direction             |
+| :--------------------------- | :----------------------------------------- | :---------- | :----------- | :------------- | :-------------------- |
+| [DNS](#client-dns)           | The DNS server                             | TCP and UDP | `8600`       | Enabled        | Incoming              |
+| [HTTP](#client-http)         | The HTTP API                               | TCP         | `8500`       | Enabled        | Incoming              |
+| [HTTPS](#client-https)       | The HTTPS API                              | TCP         | `8501`       | Disabled       | Incoming              |
+| [gRPC](#client-grpc)         | The gRPC API                               | TCP         | `8502`       | Disabled       | Incoming              |
+| [gRPC TLS](#client-grpc-tls) | The gRPC API with TLS connections          | TCP         | `8503`       | Disabled       | Incoming              |
+| [LAN Serf](#client-lan-serf) | The Serf local area network port           | TCP and UDP | `8301`       | Enabled        | Incoming and outgoing |
 
-### DNS
+### Client DNS
 
 The following table lists information about the client agent's DNS port defaults:
 
@@ -180,7 +180,7 @@ This port receives incoming traffic from workloads to resolve Consul DNS request
 
 If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
 
-### HTTP
+### Client HTTP
 
 The following table lists information about the Consul client's HTTP port defaults:
 
@@ -192,7 +192,7 @@ This port receives incoming traffic from workloads that make HTTP API calls. Con
 
 The Consul CLI uses the HTTP port to interact with Consul by default.
 
-### HTTPS
+### Client HTTPS
 
 The following table lists information about the Consul client's HTTPS port defaults:
 
@@ -206,7 +206,7 @@ This port is disabled by default. You can enable it in the [agent configuration 
 
 When this port is enabled, the Consul CLI uses it to interact with Consul.
 
-### gRPC
+### Client gRPC
 
 The following table lists information about the Consul client's gRPC port defaults:
 
@@ -218,7 +218,7 @@ This port receives incoming traffic from the gateways and Envoy proxies register
 
 We recommend using gRPC TLS instead.
 
-### gRPC TLS
+### Client gRPC TLS
 
 The following table lists information about the Consul client's gRPC with TLS port defaults:
 
@@ -230,7 +230,7 @@ This port receives incoming traffic from the gateways and Envoy proxies register
 
 This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
 
-### LAN serf
+### Client LAN serf
 
 The following table lists information about the Consul client's LAN serf port defaults:
 
