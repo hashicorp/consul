@@ -5,11 +5,14 @@ package api
 
 import (
 	"fmt"
+	"github.com/oklog/ulid/v2"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
+
+const configEntryIDKey = "config_entry_id_key"
 
 func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 	t.Parallel()
@@ -35,8 +38,16 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
 
-		// generic verification
-		require.Equal(t, testEntry.Meta, entry.GetMeta())
+		// Verify that id is generated and it's a valid ULID
+		meta := entry.GetMeta()
+		id, ok := meta[configEntryIDKey]
+		require.True(t, ok)
+		_, err = ulid.Parse(id)
+		require.NoError(t, err)
+		if testEntry.Meta == nil {
+			testEntry.Meta = make(map[string]string)
+		}
+		testEntry.Meta[configEntryIDKey] = id
 
 		// verify it
 		readResolver, ok := entry.(*ServiceResolverConfigEntry)
@@ -66,6 +77,17 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
+
+		// Verify that id is generated and it's a valid ULID
+		meta := entry.GetMeta()
+		id, ok := meta[configEntryIDKey]
+		require.True(t, ok)
+		_, err = ulid.Parse(id)
+		require.NoError(t, err)
+		if testEntry.Meta == nil {
+			testEntry.Meta = make(map[string]string)
+		}
+		testEntry.Meta[configEntryIDKey] = id
 
 		// generic verification
 		require.Equal(t, testEntry.Meta, entry.GetMeta())
@@ -98,6 +120,17 @@ func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, qm)
 		require.NotEqual(t, 0, qm.RequestTime)
+
+		// Verify that id is generated and it's a valid ULID
+		meta := entry.GetMeta()
+		id, ok := meta[configEntryIDKey]
+		require.True(t, ok)
+		_, err = ulid.Parse(id)
+		require.NoError(t, err)
+		if testEntry.Meta == nil {
+			testEntry.Meta = make(map[string]string)
+		}
+		testEntry.Meta[configEntryIDKey] = id
 
 		// generic verification
 		require.Equal(t, testEntry.Meta, entry.GetMeta())
@@ -345,7 +378,7 @@ func TestAPI_ConfigEntry_ServiceResolver_LoadBalancer(t *testing.T) {
 		require.True(t, ok)
 		readResolver.ModifyIndex = 0 // reset for Equals()
 		readResolver.CreateIndex = 0 // reset for Equals()
-
+		readResolver.Meta = nil
 		require.Equal(t, testEntry, readResolver)
 	}
 
