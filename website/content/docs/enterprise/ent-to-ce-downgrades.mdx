@@ -27,11 +27,12 @@ During the downgrade process, the Consul CE server handles the raft replication 
 
 The following examples describe scenarios where the server may drop the requests:
 
-- Registration requests in non-default namespace and services or health checks in non-default namespaces or partitions.
+- Registration requests in non-default namespace 
+- Services or health checks in non-default namespaces or partitions.
 
 - Write requests to peered clusters if the local partition connecting to the peer is non-default.
 
-Following examples describe scenarios where the server may filter out data from requests:
+The following examples describe scenarios where the server may filter out data from requests:
 
 - Intention sources that target non-default namespaces or partitions are filtered out of the configuration entry.
 - Exports of services within non-default namespaces or partitions are filtered out of the configuration entry.
@@ -121,7 +122,7 @@ To downgrade Consul edition on Kubernetes, modify the image version in your Helm
 
 ## Perform the downgrade
 
-1. Restart or redeploy all Consul clients with a CE version of the binary. You can use a service management system, such as `systemd`, `upstart` to restart the Consul service. If you are not using a service management system, you must restart the agent manually. The following example uses `systemctl` to restart the Consul service:
+1. Restart or redeploy all Consul clients with a CE version of the binary. You can use a service management system, such as `systemd` or `upstart`, to restart the Consul service. If you are not using a service management system, you must restart the agent manually. The following example uses `systemctl` to restart the Consul service:
 
     ```shell-session
     $ sudo systemctl restart consul
