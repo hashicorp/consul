@@ -6,19 +6,19 @@ package sidecarproxy
 import (
 	"context"
 	"fmt"
-	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
@@ -577,13 +577,11 @@ func (suite *controllerTestSuite) TestController() {
 			webComputedDestinations *pbresource.Resource
 		)
 
-		testutil.RunStep(suite.T(), "proxy state template generation", func(t *testing.T) {
-			// Check that proxy state template resource is generated for both the api and web workloads.
-			retry.Run(t, func(r *retry.R) {
-				suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-				webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-				apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-			})
+		// Check that proxy state template resource is generated for both the api and web workloads.
+		retry.Run(suite.T(), func(r *retry.R) {
+			suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+			webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+			apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 		})
 
 		// Write a default ComputedRoutes for api.
