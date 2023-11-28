@@ -5,7 +5,6 @@ package resource
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -17,106 +16,45 @@ import (
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
 	server := testServer(t)
 	client := testClient(t, server)
+
 	demo.RegisterTypes(server.Registry)
 
-	type testCase struct {
-		modFn       func(artistId, recordLabelId *pbresource.ID) *pbresource.ID
-		errContains string
-	}
-
-	testCases := map[string]testCase{
-		"no id": {
-			modFn: func(_, _ *pbresource.ID) *pbresource.ID {
-				return nil
-			},
-			errContains: "id is required",
+	testCases := map[string]func(artistId, recordLabelId *pbresource.ID) *pbresource.ID{
+		"no id": func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
+			return nil
 		},
-		"no type": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Type = nil
-				return artistId
-			},
-			errContains: "id.type is required",
+		"no type": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			artistId.Type = nil
+			return artistId
 		},
-		"no name": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Name = ""
-				return artistId
-			},
-			errContains: "id.name invalid",
+		"no name": func(artistId, _ *pbresource.ID) *pbresource.ID {
+			artistId.Name = ""
+			return artistId
 		},
-		"mixed case name": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Name = "DepecheMode"
-				return artistId
-			},
-			errContains: "id.name invalid",
-		},
-		"name too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Name = strings.Repeat("n", resource.MaxNameLength+1)
-				return artistId
-			},
-			errContains: "id.name invalid",
-		},
-		"partition mixed case": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Tenancy.Partition = "Default"
-				return artistId
-			},
-			errContains: "id.tenancy.partition invalid",
-		},
-		"partition name too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
-				return artistId
-			},
-			errContains: "id.tenancy.partition invalid",
-		},
-		"namespace mixed case": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Tenancy.Namespace = "Default"
-				return artistId
-			},
-			errContains: "id.tenancy.namespace invalid",
-		},
-		"namespace name too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
-				artistId.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
-				return artistId
-			},
-			errContains: "id.tenancy.namespace invalid",
-		},
-		"partition scoped resource with namespace": {
-			modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
-				recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
-				return recordLabelId
-			},
-			errContains: "cannot have a namespace",
+		"partition scoped resource with namespace": func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
+			return recordLabelId
 		},
 	}
-	for desc, tc := range testCases {
+	for desc, modFn := range testCases {
 		t.Run(desc, func(t *testing.T) {
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+			recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
 			require.NoError(t, err)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			req := &pbresource.DeleteRequest{Id: tc.modFn(artist.Id, recordLabel.Id), Version: ""}
+			req := &pbresource.DeleteRequest{Id: modFn(artist.Id, recordLabel.Id), Version: ""}
 
 			_, err = client.Delete(testContext(t), req)
 			require.Error(t, err)
 			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.ErrorContains(t, err, tc.errContains)
 		})
 	}
 }
@@ -191,7 +129,7 @@ func TestDelete_Success(t *testing.T) {
 					server, client, ctx := testDeps(t)
 					demo.RegisterTypes(server.Registry)
 
-					recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
+					recordLabel, err := demo.GenerateV1RecordLabel("LoonyTunes")
 					require.NoError(t, err)
 					writeRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: recordLabel})
 					require.NoError(t, err)
@@ -313,68 +251,6 @@ func TestDelete_VersionMismatch(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, codes.Aborted.String(), status.Code(err).String())
 	require.ErrorContains(t, err, "CAS operation failed")
-}
-
-func TestDelete_MarkedForDeletionWhenFinalizersPresent(t *testing.T) {
-	server, client, ctx := testDeps(t)
-	demo.RegisterTypes(server.Registry)
-
-	// Create a resource with a finalizer
-	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
-		WithTenancy(resource.DefaultClusteredTenancy()).
-		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
-		WithMeta(resource.FinalizerKey, "finalizer1").
-		Write(t, client)
-
-	// Delete it
-	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-	require.NoError(t, err)
-
-	// Verify resource has been marked for deletion
-	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-	require.NoError(t, err)
-	require.True(t, resource.IsMarkedForDeletion(rsp.Resource))
-
-	// Delete again - should be no-op
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-	require.NoError(t, err)
-
-	// Verify no-op by checking version still the same
-	rsp2, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-	require.NoError(t, err)
-	rtest.RequireVersionUnchanged(t, rsp2.Resource, rsp.Resource.Version)
-}
-
-func TestDelete_ImmediatelyDeletedAfterFinalizersRemoved(t *testing.T) {
-	server, client, ctx := testDeps(t)
-	demo.RegisterTypes(server.Registry)
-
-	// Create a resource with a finalizer
-	res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
-		WithTenancy(resource.DefaultClusteredTenancy()).
-		WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
-		WithMeta(resource.FinalizerKey, "finalizer1").
-		Write(t, client)
-
-	// Delete should mark it for deletion
-	_, err := client.Delete(ctx, &pbresource.DeleteRequest{Id: res.Id})
-	require.NoError(t, err)
-
-	// Remove the finalizer
-	rsp, err := client.Read(ctx, &pbresource.ReadRequest{Id: res.Id})
-	require.NoError(t, err)
-	resource.RemoveFinalizer(rsp.Resource, "finalizer1")
-	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: rsp.Resource})
-	require.NoError(t, err)
-
-	// Delete should be immediate
-	_, err = client.Delete(ctx, &pbresource.DeleteRequest{Id: rsp.Resource.Id})
-	require.NoError(t, err)
-
-	// Verify deleted
-	_, err = client.Read(ctx, &pbresource.ReadRequest{Id: rsp.Resource.Id})
-	require.Error(t, err)
-	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
 }
 
 func testDeps(t *testing.T) (*Server, pbresource.ResourceServiceClient, context.Context) {

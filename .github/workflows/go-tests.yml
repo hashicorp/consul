@@ -94,6 +94,9 @@ jobs:
             fi
     - run: make proto-lint
       name: "Protobuf Lint"
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
   check-codegen:
      needs:
      - setup
@@ -113,6 +116,9 @@ jobs:
            echo "Generated code was not updated correctly"
            exit 1
          fi
+     - name: Notify Slack
+       if: ${{ failure() }}
+       run: .github/scripts/notify_slack.sh
 
   lint-enums:
     needs:
@@ -128,6 +134,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
 
   lint-container-test-deps:
     needs:
@@ -142,6 +151,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: make lint-container-test-deps
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
 
   lint-consul-retry:
     needs:
@@ -157,6 +169,9 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
+    - name: Notify Slack
+      if: ${{ failure() }}
+      run: .github/scripts/notify_slack.sh
 
   lint:
     needs:
@@ -229,7 +244,7 @@ jobs:
   #     uploaded-binary-name: 'consul-bin-arm64'
   #     runner-count: 12
   #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
-  #     go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
+  #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -243,11 +258,10 @@ jobs:
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
-      runner-count: 6
+      runner-count: 12
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -264,11 +278,10 @@ jobs:
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
       directory: .
-      runner-count: 6
+      runner-count: 12
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -284,11 +297,11 @@ jobs:
     uses: ./.github/workflows/reusable-unit.yml
     with:
       directory: .
-      go-test-flags: "-race -gcflags=all=-d=checkptr=0"
+      go-test-flags: 'GO_TEST_FLAGS="-race -gcflags=all=-d=checkptr=0"'
       package-names-command: "go list ./... | grep -E -v '^github.com/hashicorp/consul/agent(/consul|/local|/routine-leak-checker)?$' | grep -E -v '^github.com/hashicorp/consul(/command|/connect|/snapshot)'"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -305,10 +318,10 @@ jobs:
     with:
       directory: .
       go-arch: "386"
-      go-test-flags: "-short"
+      go-test-flags: 'export GO_TEST_FLAGS="-short"'
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -326,10 +339,10 @@ jobs:
   #   with:
   #     uploaded-binary-name: 'consul-bin-s390x'
   #     directory: .
-  #     go-test-flags: -short"
+  #     go-test-flags: 'export GO_TEST_FLAGS="-short"'
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
-  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   #   permissions:
   #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
   #     contents: read
@@ -347,7 +360,7 @@ jobs:
       directory: envoyextensions
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -365,7 +378,7 @@ jobs:
       directory: troubleshoot
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -383,7 +396,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.19"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -402,7 +415,7 @@ jobs:
       directory: api
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.20"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -421,7 +434,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.19"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -440,7 +453,7 @@ jobs:
       directory: sdk
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
-      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+      go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
       go-version: "1.20"
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -503,15 +516,3 @@ jobs:
             printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
             exit 1
           fi
-      - name: Notify Slack
-        if: ${{ failure() && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/')) }}
-        id: slack
-        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
-        with:
-          # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
-          payload: |
-            {
-              "message": "❌ ${{ github.workflow }} workflow failed: \n\n- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \n- Branch: ${{ github.ref_name }} \n- Message: ${{ github.event.head_commit.message }} \n- Author: ${{ github.event.sender.login }}"
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}

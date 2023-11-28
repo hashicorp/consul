@@ -10,10 +10,8 @@ import (
 	"time"
 
 	"github.com/oklog/ulid/v2"
-	"golang.org/x/exp/maps"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
@@ -39,7 +37,7 @@ import (
 var errUseWriteStatus = status.Error(codes.InvalidArgument, "resource.status can only be set using the WriteStatus endpoint")
 
 func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbresource.WriteResponse, error) {
-	reg, err := s.ensureWriteRequestValid(req)
+	reg, err := s.validateWriteRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -80,16 +78,14 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 		return nil, status.Errorf(codes.Internal, "failed write acl: %v", err)
 	}
 
-	// Check tenancy exists for the V2 resource
-	if err = tenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
+	// Check V1 tenancy exists for the V2 resource
+	if err = v1TenancyExists(reg, s.TenancyBridge, req.Resource.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
-	// This is used later in the "create" and "update" paths to block non-delete related writes
-	// when a tenancy unit has been marked for deletion.
-	tenancyMarkedForDeletion, err := isTenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed tenancy marked for deletion check: %v", err)
+	// Check V1 tenancy not marked for deletion.
+	if err = v1TenancyMarkedForDeletion(reg, s.TenancyBridge, req.Resource.Id.Tenancy); err != nil {
+		return nil, err
 	}
 
 	// At the storage backend layer, all writes are CAS operations.
@@ -129,16 +125,6 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 			// Prevent setting statuses in this endpoint.
 			if len(input.Status) != 0 {
 				return errUseWriteStatus
-			}
-
-			// Reject creation in tenancy unit marked for deletion.
-			if tenancyMarkedForDeletion {
-				return status.Errorf(codes.InvalidArgument, "tenancy marked for deletion: %v", input.Id.Tenancy.String())
-			}
-
-			// Reject attempts to create a resource with a deletionTimestamp.
-			if resource.IsMarkedForDeletion(input) {
-				return status.Errorf(codes.InvalidArgument, "resource.metadata.%s can't be set on resource creation", resource.DeletionTimestampKey)
 			}
 
 			// Generally, we expect resources with owners to be created by controllers,
@@ -222,13 +208,6 @@ func (s *Server) Write(ctx context.Context, req *pbresource.WriteRequest) (*pbre
 				return errUseWriteStatus
 			}
 
-			// If the write is related to a deferred deletion (marking for deletion or removal
-			// of finalizers), make sure nothing else is changed.
-			if err := vetIfDeleteRelated(input, existing, tenancyMarkedForDeletion); err != nil {
-				return err
-			}
-
-			// Otherwise, let the write continue
 		default:
 			return err
 		}
@@ -286,7 +265,7 @@ func (s *Server) retryCAS(ctx context.Context, vsn string, cas func() error) err
 	return err
 }
 
-func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resource.Registration, error) {
+func (s *Server) validateWriteRequest(req *pbresource.WriteRequest) (*resource.Registration, error) {
 	var field string
 	switch {
 	case req.Resource == nil:
@@ -315,10 +294,6 @@ func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resourc
 		return nil, err
 	}
 
-	if err = checkV2Tenancy(s.UseV2Tenancy, req.Resource.Id.Type); err != nil {
-		return nil, err
-	}
-
 	// Check scope
 	if reg.Scope == resource.ScopePartition && req.Resource.Id.Tenancy.Namespace != "" {
 		return nil, status.Errorf(
@@ -330,110 +305,4 @@ func (s *Server) ensureWriteRequestValid(req *pbresource.WriteRequest) (*resourc
 	}
 
 	return reg, nil
-}
-
-func ensureMetadataSameExceptFor(input *pbresource.Resource, existing *pbresource.Resource, ignoreKey string) error {
-	// Work on copies since we're mutating them
-	inputCopy := maps.Clone(input.Metadata)
-	existingCopy := maps.Clone(existing.Metadata)
-
-	delete(inputCopy, ignoreKey)
-	delete(existingCopy, ignoreKey)
-
-	if !maps.Equal(inputCopy, existingCopy) {
-		return status.Error(codes.InvalidArgument, "cannot modify metadata")
-	}
-
-	return nil
-}
-
-func ensureDataUnchanged(input *pbresource.Resource, existing *pbresource.Resource) error {
-	// Check data last since this could potentially be the most expensive comparison.
-	if !proto.Equal(input.Data, existing.Data) {
-		return status.Error(codes.InvalidArgument, "cannot modify data")
-	}
-	return nil
-}
-
-// ensureFinalizerRemoved ensures at least one finalizer was removed.
-func ensureFinalizerRemoved(input *pbresource.Resource, existing *pbresource.Resource) error {
-	inputFinalizers := resource.GetFinalizers(input)
-	existingFinalizers := resource.GetFinalizers(existing)
-	if !inputFinalizers.IsProperSubset(existingFinalizers) {
-		return status.Error(codes.InvalidArgument, "expected at least one finalizer to be removed")
-	}
-	return nil
-}
-
-func vetIfDeleteRelated(input, existing *pbresource.Resource, tenancyMarkedForDeletion bool) error {
-	// Keep track of whether this write is a normal write or a write that is related
-	// to deferred resource deletion involving setting the deletionTimestamp or the
-	// removal of finalizers.
-	deleteRelated := false
-
-	existingMarked := resource.IsMarkedForDeletion(existing)
-	inputMarked := resource.IsMarkedForDeletion(input)
-
-	// Block removal of deletion timestamp
-	if !inputMarked && existingMarked {
-		return status.Errorf(codes.InvalidArgument, "cannot remove %s", resource.DeletionTimestampKey)
-	}
-
-	// Block modification of existing deletion timestamp
-	if existing.Metadata[resource.DeletionTimestampKey] != "" && (existing.Metadata[resource.DeletionTimestampKey] != input.Metadata[resource.DeletionTimestampKey]) {
-		return status.Errorf(codes.InvalidArgument, "cannot modify %s", resource.DeletionTimestampKey)
-	}
-
-	// Block writes that do more than just adding a deletion timestamp
-	if inputMarked && !existingMarked {
-		deleteRelated = deleteRelated || true
-		// Verify rest of resource is unchanged
-		if err := ensureMetadataSameExceptFor(input, existing, resource.DeletionTimestampKey); err != nil {
-			return err
-		}
-		if err := ensureDataUnchanged(input, existing); err != nil {
-			return err
-		}
-	}
-
-	// Block no-op writes writes to resource that already has a deletion timestamp. The
-	// only valid writes should be removal of finalizers.
-	if inputMarked && existingMarked {
-		deleteRelated = deleteRelated || true
-		// Check if a no-op
-		errMetadataSame := ensureMetadataSameExceptFor(input, existing, resource.DeletionTimestampKey)
-		errDataUnchanged := ensureDataUnchanged(input, existing)
-		if errMetadataSame == nil && errDataUnchanged == nil {
-			return status.Error(codes.InvalidArgument, "no-op write of resource marked for deletion not allowed")
-		}
-	}
-
-	// Block writes that do more than removing finalizers if previously marked for deletion.
-	if inputMarked && existingMarked && resource.HasFinalizers(existing) {
-		deleteRelated = deleteRelated || true
-		if err := ensureMetadataSameExceptFor(input, existing, resource.FinalizerKey); err != nil {
-			return err
-		}
-		if err := ensureDataUnchanged(input, existing); err != nil {
-			return err
-		}
-		if err := ensureFinalizerRemoved(input, existing); err != nil {
-			return err
-		}
-	}
-
-	// Classify writes that just remove finalizer as deleteRelated regardless of deletion state.
-	if err := ensureFinalizerRemoved(input, existing); err == nil {
-		if err := ensureDataUnchanged(input, existing); err == nil {
-			deleteRelated = deleteRelated || true
-		}
-	}
-
-	// Lastly, block writes when the resource's tenancy unit has been marked for deletion and
-	// the write is not related a valid delete scenario.
-	if tenancyMarkedForDeletion && !deleteRelated {
-		return status.Errorf(codes.InvalidArgument, "cannot write resource when tenancy marked for deletion: %s", existing.Id.Tenancy)
-	}
-
-	return nil
 }

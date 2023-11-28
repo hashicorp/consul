@@ -17,10 +17,7 @@ const (
 	DestinationsKind                 = "Destinations"
 	DestinationsConfigurationKind    = "DestinationsConfiguration"
 	GRPCRouteKind                    = "GRPCRoute"
-	GatewayClassKind                 = "GatewayClass"
-	GatewayClassConfigKind           = "GatewayClassConfig"
 	HTTPRouteKind                    = "HTTPRoute"
-	MeshGatewayKind                  = "MeshGateway"
 	ProxyConfigurationKind           = "ProxyConfiguration"
 	ProxyStateTemplateKind           = "ProxyStateTemplate"
 	TCPRouteKind                     = "TCPRoute"
@@ -69,28 +66,10 @@ var (
 		Kind:         GRPCRouteKind,
 	}
 
-	GatewayClassType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         GatewayClassKind,
-	}
-
-	GatewayClassConfigType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         GatewayClassConfigKind,
-	}
-
 	HTTPRouteType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         HTTPRouteKind,
-	}
-
-	MeshGatewayType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         MeshGatewayKind,
 	}
 
 	ProxyConfigurationType = &pbresource.Type{

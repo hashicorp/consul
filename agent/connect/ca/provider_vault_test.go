@@ -628,9 +628,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	SkipIfVaultNotPresent(t)
 
 	t.Parallel()

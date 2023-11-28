@@ -71,7 +71,7 @@ func (r *artistReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	actualAlbums, err := rt.Client.List(ctx, &pbresource.ListRequest{
 		Type:       TypeV2Album,
 		Tenancy:    res.Id.Tenancy,
-		NamePrefix: fmt.Sprintf("%s-", res.Id.Name),
+		NamePrefix: fmt.Sprintf("%s/", res.Id.Name),
 	})
 	if err != nil {
 		return err

@@ -53,11 +53,6 @@ func (s *Converter) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) erro
 			continue
 		}
 
-		// route already exists, don't clobber it.
-		if _, ok := s.proxyState.Routes[uid.EnvoyID()]; ok {
-			continue
-		}
-
 		virtualHost, err := s.makeUpstreamHostForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false)
 		if err != nil {
 			return err

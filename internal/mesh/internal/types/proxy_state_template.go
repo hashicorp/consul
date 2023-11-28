@@ -50,21 +50,25 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 	})
 }
 
-var ValidateProxyStateTemplate = resource.DecodeAndValidate(validateProxyStateTemplate)
-
-func validateProxyStateTemplate(res *DecodedProxyStateTemplate) error {
+func ValidateProxyStateTemplate(res *pbresource.Resource) error {
 	// TODO(v2): validate a lot more of this
+
+	var pst pbmesh.ProxyStateTemplate
+
+	if err := res.Data.UnmarshalTo(&pst); err != nil {
+		return resource.NewErrDataParse(&pst, err)
+	}
 
 	var merr error
 
-	if res.Data.ProxyState != nil {
+	if pst.ProxyState != nil {
 		wrapProxyStateErr := func(err error) error {
 			return resource.ErrInvalidField{
 				Name:    "proxy_state",
 				Wrapped: err,
 			}
 		}
-		for name, cluster := range res.Data.ProxyState.Clusters {
+		for name, cluster := range pst.ProxyState.Clusters {
 			if name == "" {
 				merr = multierror.Append(merr, wrapProxyStateErr(resource.ErrInvalidMapKey{
 					Map:     "clusters",

@@ -16,7 +16,20 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"google.golang.org/protobuf/proto"
 )
+
+func (pr *ProxyResources) makeXDSRoutes() ([]proto.Message, error) {
+	routes := make([]proto.Message, 0)
+
+	for name, r := range pr.proxyState.Routes {
+		protoRoute := pr.makeEnvoyRouteConfigFromProxystateRoute(name, r)
+		// TODO: aggregate errors for routes and still return any properly formed routes.
+		routes = append(routes, protoRoute)
+	}
+
+	return routes, nil
+}
 
 func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConfiguration, error) {
 	var route *envoy_route_v3.RouteConfiguration
@@ -234,18 +247,6 @@ func makeEnvoyQueryParamFromProxystateQueryMatch(psMatch *pbproxystate.QueryPara
 	return envoyQueryParamMatcher
 }
 
-func (pr *ProxyResources) addEnvoyClustersAndEndpointsToEnvoyResources(clusterName string) {
-	clusters, endpoints, _ := pr.makeClustersAndEndpoints(clusterName)
-
-	for name, cluster := range clusters {
-		pr.envoyResources[xdscommon.ClusterType][name] = cluster
-	}
-
-	for name, ep := range endpoints {
-		pr.envoyResources[xdscommon.EndpointType][name] = ep
-	}
-}
-
 // TODO (dans): Will this always be envoy_route_v3.Route_Route?
 // Definitely for connect proxies this is the only option.
 func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psRouteDestination *pbproxystate.RouteDestination) *envoy_route_v3.Route_Route {
@@ -259,15 +260,16 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 		envoyRouteRoute.Route.ClusterSpecifier = &envoy_route_v3.RouteAction_Cluster{
 			Cluster: psCluster.GetName(),
 		}
-		pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
+		clusters, _ := pr.makeClusters(psCluster.Name)
+		pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
 
 	case *pbproxystate.RouteDestination_WeightedClusters:
 		psWeightedClusters := psRouteDestination.GetWeightedClusters()
 		envoyClusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(psWeightedClusters.GetClusters()))
 		totalWeight := 0
 		for _, psCluster := range psWeightedClusters.GetClusters() {
-			pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
-
+			clusters, _ := pr.makeClusters(psCluster.Name)
+			pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
 			totalWeight += int(psCluster.Weight.GetValue())
 			envoyClusters = append(envoyClusters, makeEnvoyClusterWeightFromProxystateWeightedCluster(psCluster))
 		}
@@ -316,19 +318,13 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 }
 
 func makeEnvoyClusterWeightFromProxystateWeightedCluster(cluster *pbproxystate.L7WeightedDestinationCluster) *envoy_route_v3.WeightedCluster_ClusterWeight {
-	envoyClusterWeight := makeEnvoyClusterWeightFromNameAndWeight(cluster.GetName(), cluster.GetWeight())
+	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
+		Name:   cluster.GetName(),
+		Weight: cluster.GetWeight(),
+	}
 
 	for _, hm := range cluster.GetHeaderMutations() {
 		injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight, hm)
-	}
-
-	return envoyClusterWeight
-}
-
-func makeEnvoyClusterWeightFromNameAndWeight(name string, weight *wrapperspb.UInt32Value) *envoy_route_v3.WeightedCluster_ClusterWeight {
-	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
-		Name:   name,
-		Weight: weight,
 	}
 
 	return envoyClusterWeight
