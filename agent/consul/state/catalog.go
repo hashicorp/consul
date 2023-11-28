@@ -3670,6 +3670,9 @@ func updateGatewayNamespace(tx WriteTxn, idx uint64, service *structs.GatewaySer
 		if service.GatewayKind == structs.ServiceKindTerminatingGateway && !hasNonConnectInstance {
 			continue
 		}
+		if service.GatewayKind == structs.ServiceKindAPIGateway && !hasConnectInstance {
+			continue
+		}
 
 		existing, err := tx.First(tableGatewayServices, indexID, service.Gateway, sn.CompoundServiceName().ServiceName, service.Port)
 		if err != nil {
@@ -4070,6 +4073,36 @@ func serviceGatewayNodes(tx ReadTxn, ws memdb.WatchSet, service string, kind str
 	return maxIdx, ret, nil
 }
 
+// metricsProtocolForAPIGateway determines the protocol that should be used when fetching metrics for an api gateway
+// Since api gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
+// when all listeners are HTTP-like.
+func metricsProtocolForAPIGateway(tx ReadTxn, ws memdb.WatchSet, sn structs.ServiceName) (uint64, string, error) {
+	idx, conf, err := configEntryTxn(tx, ws, structs.APIGateway, sn.Name, &sn.EnterpriseMeta)
+	if err != nil {
+		return 0, "", fmt.Errorf("failed to get api-gateway config entry for %q: %v", sn.String(), err)
+	}
+	if conf == nil {
+		return 0, "", nil
+	}
+	entry, ok := conf.(*structs.APIGatewayConfigEntry)
+	if !ok {
+		return 0, "", fmt.Errorf("unexpected config entry type: %T", conf)
+	}
+	counts := make(map[string]int)
+	for _, l := range entry.Listeners {
+		if structs.IsProtocolHTTPLike(string(l.Protocol)) {
+			counts["http"] += 1
+		} else {
+			counts["tcp"] += 1
+		}
+	}
+	protocol := "tcp"
+	if counts["tcp"] == 0 && counts["http"] > 0 {
+		protocol = "http"
+	}
+	return idx, protocol, nil
+}
+
 // metricsProtocolForIngressGateway determines the protocol that should be used when fetching metrics for an ingress gateway
 // Since ingress gateways may have listeners with different protocols, favor capturing all traffic by only returning HTTP
 // when all listeners are HTTP-like.
@@ -4143,7 +4176,11 @@ func (s *Store) ServiceTopology(
 		if err != nil {
 			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
 		}
-
+	case structs.ServiceKindAPIGateway:
+		maxIdx, protocol, err = metricsProtocolForAPIGateway(tx, ws, sn)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to fetch protocol for service %s: %v", sn.String(), err)
+		}
 	case structs.ServiceKindTypical:
 		maxIdx, protocol, err = protocolForService(tx, ws, sn)
 		if err != nil {
@@ -4201,9 +4238,21 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var upstreamSources = make(map[string]string)
+	upstreamSources := make(map[string]string)
 	for _, un := range upstreamNames {
 		upstreamSources[un.String()] = structs.TopologySourceRegistration
+	}
+
+	if kind == structs.ServiceKind(structs.APIGateway) {
+		upstreamFromGW, err := upstreamServicesForGatewayTxn(tx, sn)
+		if err != nil {
+			return 0, nil, err
+		}
+
+		for _, dn := range upstreamFromGW {
+			upstreamNames = append(upstreamNames, dn)
+			upstreamSources[dn.String()] = structs.TopologySourceRegistration
+		}
 	}
 
 	upstreamDecisions := make(map[string]structs.IntentionDecisionSummary)
@@ -4322,8 +4371,21 @@ func (s *Store) ServiceTopology(
 		maxIdx = idx
 	}
 
-	var downstreamSources = make(map[string]string)
+	downstreamSources := make(map[string]string)
 	for _, dn := range downstreamNames {
+		downstreamSources[dn.String()] = structs.TopologySourceRegistration
+	}
+
+	idx, downstreamGWs, err := s.downstreamGatewaysForServiceTxn(tx, sn)
+	if err != nil {
+		return 0, nil, err
+	}
+	if idx > maxIdx {
+		maxIdx = idx
+	}
+
+	for _, dn := range downstreamGWs {
+		downstreamNames = append(downstreamNames, dn)
 		downstreamSources[dn.String()] = structs.TopologySourceRegistration
 	}
 
@@ -4453,6 +4515,61 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 		resp = append(resp, csn...)
 	}
 	return maxIdx, resp, nil
+}
+
+func upstreamServicesForGatewayTxn(tx ReadTxn, service structs.ServiceName) ([]structs.ServiceName, error) {
+	val, err := tx.First(tableConfigEntries, indexID, configentry.KindName{Kind: structs.BoundAPIGateway, Name: service.Name})
+	if err != nil {
+		return nil, err
+	}
+
+	if gw, ok := val.(*structs.BoundAPIGatewayConfigEntry); ok {
+		serviceIDs := gw.ListRelatedServices()
+		names := make([]structs.ServiceName, 0, len(serviceIDs))
+		for _, id := range serviceIDs {
+			names = append(names, structs.NewServiceName(id.ID, &id.EnterpriseMeta))
+		}
+		return names, nil
+	}
+
+	return nil, errors.New("not an APIGateway")
+}
+
+// downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
+// There are two factors at play. Upstreams defined in a proxy registration, and the discovery chain for those upstreams.
+func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, service structs.ServiceName) (uint64, []structs.ServiceName, error) {
+	iter, err := tx.Get(tableConfigEntries, indexLink, service.ToServiceID())
+	if err != nil {
+		return 0, nil, err
+	}
+
+	var (
+		idx  uint64
+		resp []structs.ServiceName
+		seen = make(map[structs.ServiceName]struct{})
+	)
+	for raw := iter.Next(); raw != nil; raw = iter.Next() {
+		entry, ok := raw.(*structs.BoundAPIGatewayConfigEntry)
+		if !ok {
+			continue
+		}
+
+		if entry.ModifyIndex > idx {
+			idx = entry.ModifyIndex
+		}
+
+		gwServiceName := structs.NewServiceName(entry.Name, &entry.EnterpriseMeta)
+		if _, ok := seen[gwServiceName]; ok {
+			continue
+		}
+
+		seen[gwServiceName] = struct{}{}
+
+		resp = append(resp, gwServiceName)
+
+	}
+
+	return idx, resp, nil
 }
 
 // downstreamsForServiceTxn will find all downstream services that could route traffic to the input service.
