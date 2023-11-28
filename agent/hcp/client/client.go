@@ -228,10 +228,10 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 	}
 
 	// Convert CA metadata
-	certCAs := make([]*gnmmod.HashicorpCloudGlobalNetworkManager20220215CertificateMetadata,
+	caCerts := make([]*gnmmod.HashicorpCloudGlobalNetworkManager20220215CertificateMetadata,
 		len(s.ServerTLSMetadata.InternalRPC.CertificateAuthorities))
 	for ix, ca := range s.ServerTLSMetadata.InternalRPC.CertificateAuthorities {
-		certCAs[ix] = &gnmmod.HashicorpCloudGlobalNetworkManager20220215CertificateMetadata{
+		caCerts[ix] = &gnmmod.HashicorpCloudGlobalNetworkManager20220215CertificateMetadata{
 			CertExpiry: strfmt.DateTime(ca.CertExpiry),
 			CertName:   ca.CertName,
 			CertSerial: ca.CertSerial,
@@ -278,7 +278,7 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 				VerifyIncoming:         s.ServerTLSMetadata.InternalRPC.VerifyIncoming,
 				VerifyOutgoing:         s.ServerTLSMetadata.InternalRPC.VerifyOutgoing,
 				VerifyServerHostname:   s.ServerTLSMetadata.InternalRPC.VerifyServerHostname,
-				CertificateAuthorities: certCAs,
+				CertificateAuthorities: caCerts,
 			},
 		},
 		Version:     s.Version,

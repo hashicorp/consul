@@ -6,7 +6,6 @@ package consul
 import (
 	"context"
 	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -42,6 +41,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -2262,11 +2262,7 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 			// Collect metadata for all CA certs used for internal RPC
 			metadata := make([]hcpclient.CertificateMetadata, 0)
 			for _, pemStr := range s.tlsConfigurator.ManualCAPems() {
-				block, _ := pem.Decode([]byte(pemStr))
-				if block == nil {
-					return status, fmt.Errorf("error decoding manual ca pem")
-				}
-				cert, err := x509.ParseCertificate(block.Bytes)
+				cert, err := connect.ParseCert(pemStr)
 				if err != nil {
 					return status, fmt.Errorf("error parsing manual ca pem: %w", err)
 				}
