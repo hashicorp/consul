@@ -257,6 +257,7 @@ func (s *Store) intentionMutationLegacyCreate(
 	value *structs.SourceIntention,
 ) error {
 	_, configEntry, err := configEntryTxn(tx, nil, structs.ServiceIntentions, dest.Name, &dest.EnterpriseMeta)
+
 	if err != nil {
 		return fmt.Errorf("service-intentions config entry lookup failed: %v", err)
 	}
@@ -278,6 +279,9 @@ func (s *Store) intentionMutationLegacyCreate(
 
 		upsertEntry = prevEntry.Clone()
 		upsertEntry.Sources = append(upsertEntry.Sources, value)
+		if len(upsertEntry.GetMeta()) > 0 {
+			delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
+		}
 	}
 
 	if err := upsertEntry.LegacyNormalize(); err != nil {
@@ -315,6 +319,10 @@ func (s *Store) intentionMutationLegacyUpdate(
 	}
 
 	upsertEntry := prevEntry.Clone()
+
+	if len(upsertEntry.GetMeta()) > 0 {
+		delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
+	}
 
 	foundMatch := upsertEntry.UpdateSourceByLegacyID(
 		legacyID,
@@ -416,6 +424,10 @@ func (s *Store) intentionMutationLegacyDelete(
 			prevEntry.Name,
 			&prevEntry.EnterpriseMeta,
 		)
+	}
+
+	if len(upsertEntry.GetMeta()) > 0 {
+		delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
 	}
 
 	if err := upsertEntry.LegacyNormalize(); err != nil {
