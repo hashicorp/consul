@@ -4405,7 +4405,7 @@ func (s *Store) ServiceTopology(
 	}
 
 	if kind == structs.ServiceKind(structs.APIGateway) {
-		upstreamFromGW, err := upstreamsFromGWTxn(tx, sn)
+		upstreamFromGW, err := upstreamServicesForGatewayTxn(tx, sn)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -4690,7 +4690,7 @@ func (s *Store) combinedServiceNodesTxn(tx ReadTxn, ws memdb.WatchSet, names []s
 	return maxIdx, resp, nil
 }
 
-func upstreamsFromGWTxn(tx ReadTxn, service structs.ServiceName) ([]structs.ServiceName, error) {
+func upstreamServicesForGatewayTxn(tx ReadTxn, service structs.ServiceName) ([]structs.ServiceName, error) {
 	val, err := tx.First(tableConfigEntries, indexID, configentry.KindName{Kind: structs.BoundAPIGateway, Name: service.Name})
 	if err != nil {
 		return nil, err
