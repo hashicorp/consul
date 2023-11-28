@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/acl"
 )
 
 func TestIngressGatewayConfigEntry(t *testing.T) {
@@ -1563,6 +1565,226 @@ func TestListenerUnbindRoute(t *testing.T) {
 			actualDidUnbind := tc.listener.UnbindRoute(routeRef)
 			require.Equal(t, tc.expectedDidUnbind, actualDidUnbind)
 			require.Equal(t, tc.expectedListener.Routes, tc.listener.Routes)
+		})
+	}
+}
+
+func Test_ServiceRouteReferences_AddService(t *testing.T) {
+	t.Parallel()
+
+	key := ServiceName{Name: "service", EnterpriseMeta: acl.EnterpriseMeta{}}
+	testCases := map[string]struct {
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"key does not exist yet": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: make(ServiceRouteReferences),
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding new route": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+		"key exists adding existing route": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+
+			expectedRefs: ServiceRouteReferences{
+				key: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.AddService(key, tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
+		})
+	}
+}
+
+func Test_ServiceRouteReferences_RemoveRouteRef(t *testing.T) {
+	t.Parallel()
+
+	keySvcOne := ServiceName{Name: "service-one", EnterpriseMeta: acl.EnterpriseMeta{}}
+	keySvcTwo := ServiceName{Name: "service-two", EnterpriseMeta: acl.EnterpriseMeta{}}
+	testCases := map[string]struct {
+		routeRef     ResourceReference
+		subject      ServiceRouteReferences
+		expectedRefs ServiceRouteReferences
+	}{
+		"route ref exists for one service": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route ref exists for multiple services": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+		"route exists and is only ref for service--service is removed from refs": {
+			routeRef: ResourceReference{
+				Kind: "http-route",
+				Name: "http-route",
+			},
+
+			subject: ServiceRouteReferences{
+				keySvcOne: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+				},
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route",
+					},
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+			expectedRefs: ServiceRouteReferences{
+				keySvcTwo: []ResourceReference{
+					{
+						Kind: "http-route",
+						Name: "http-route-other",
+					},
+				},
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			tc.subject.RemoveRouteRef(tc.routeRef)
+
+			require.Equal(t, tc.subject, tc.expectedRefs)
 		})
 	}
 }
