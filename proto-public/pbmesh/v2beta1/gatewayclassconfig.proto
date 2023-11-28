@@ -8,7 +8,6 @@ package hashicorp.consul.mesh.v2beta1;
 import "k8s.io/api/core/v1/generated.proto";
 import "pbresource/annotations.proto";
 
-
 // This is a Resource type.
 message GatewayClassConfig {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
@@ -54,4 +53,3 @@ message Deployment {
   // Resources defines the resource requirements for the gateway.
   repeated k8s.io.api.core.v1.ResourceRequirements resources = 4;
 }
-
