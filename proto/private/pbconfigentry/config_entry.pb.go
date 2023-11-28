@@ -10,13 +10,15 @@
 package pbconfigentry
 
 import (
-	pbcommon "github.com/hashicorp/consul/proto/private/pbcommon"
+	reflect "reflect"
+	sync "sync"
+
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
-	reflect "reflect"
-	sync "sync"
+
+	pbcommon "github.com/hashicorp/consul/proto/pbcommon"
 )
 
 const (
