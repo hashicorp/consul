@@ -1,13 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package controller
+package dependency
 
 import (
 	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/stretchr/testify/require"
@@ -37,7 +38,7 @@ func TestMapOwner(t *testing.T) {
 		Owner: owner,
 	}
 
-	reqs, err := MapOwner(context.Background(), Runtime{}, res)
+	reqs, err := MapOwner(context.Background(), controller.Runtime{}, res)
 	require.NoError(t, err)
 	require.Len(t, reqs, 1)
 	prototest.AssertDeepEqual(t, owner, reqs[0].ID)
@@ -81,7 +82,7 @@ func TestMapOwnerFiltered(t *testing.T) {
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
 			// the runtime is not used by the mapper so its fine to pass an empty struct
-			req, err := mapper(context.Background(), Runtime{}, &pbresource.Resource{
+			req, err := mapper(context.Background(), controller.Runtime{}, &pbresource.Resource{
 				Id:    resourceID("foo", "v1", "other", "x"),
 				Owner: tcase.owner,
 			})
@@ -127,7 +128,7 @@ func TestReplaceType(t *testing.T) {
 
 	mapper := ReplaceType(rtype)
 
-	reqs, err := mapper(nil, Runtime{}, in)
+	reqs, err := mapper(nil, controller.Runtime{}, in)
 	require.NoError(t, err)
 	require.Len(t, reqs, 1)
 
