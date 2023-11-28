@@ -1020,7 +1020,7 @@ func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) b
 	}
 
 	if len(e.Services) != len(other.Services) {
-	    return false
+		return false
 	}
 
 	for key, refs := range e.Services {
