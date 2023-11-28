@@ -2107,6 +2107,70 @@ func TestServer_hcpManager(t *testing.T) {
 
 }
 
+func TestServer_addServerTLSInfo(t *testing.T) {
+	testCases := map[string]struct {
+		expectErr   bool
+		tlsConfig   tlsutil.Config
+		checkStatus func(*testing.T, hcpclient.ServerStatus)
+	}{
+		"Success": {
+			tlsConfig: tlsutil.Config{
+				InternalRPC: tlsutil.ProtocolConfig{
+					CAFile:               "../../test/ca/root.cer",
+					CertFile:             "../../test/key/ourdomain.cer",
+					KeyFile:              "../../test/key/ourdomain.key",
+					VerifyIncoming:       true,
+					VerifyOutgoing:       true,
+					VerifyServerHostname: true,
+				},
+			},
+			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
+				require.NotEmpty(t, s.ServerTLSMetadata.InternalRPC)
+				tlsInfo := s.ServerTLSMetadata.InternalRPC
+				require.True(t, tlsInfo.Enabled)
+				require.Equal(t, "test.internal", tlsInfo.CertIssuer)
+				require.Equal(t, "testco.internal", tlsInfo.CertName)
+				require.Equal(t, "40", tlsInfo.CertSerial)
+				require.NotEmpty(t, tlsInfo.CertExpiry)
+				require.True(t, tlsInfo.VerifyIncoming)
+				require.True(t, tlsInfo.VerifyOutgoing)
+				require.True(t, tlsInfo.VerifyServerHostname)
+
+				require.Len(t, tlsInfo.CertificateAuthorities, 1)
+				manualCAPem := tlsInfo.CertificateAuthorities[0]
+				require.NotEmpty(t, manualCAPem.CertExpiry)
+				require.Equal(t, manualCAPem.CertName, "test.internal")
+				require.NotEmpty(t, manualCAPem.CertSerial)
+
+				// TODO: remove checks for status.TLS once deprecation is ready
+				require.NotEmpty(t, s.TLS)
+				require.EqualValues(t, s.TLS, s.ServerTLSMetadata.InternalRPC)
+			},
+		},
+		"Nil Cert": {
+			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
+				require.Empty(t, s.TLS)
+				require.Empty(t, s.ServerTLSMetadata.InternalRPC)
+			},
+		},
+		// Note on failure case: unlikely and difficult to test since
+		// NewConfigurator will fail if there are issues with the certs
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			status := hcpclient.ServerStatus{}
+			tlsConfigurator, err := tlsutil.NewConfigurator(tc.tlsConfig, hclog.NewNullLogger())
+			require.NoError(t, err)
+
+			err = addServerTLSInfo(&status, tlsConfigurator)
+			require.NoError(t, err)
+
+			require.NotNil(t, tc.checkStatus)
+			tc.checkStatus(t, status)
+		})
+	}
+}
+
 // goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
 // returning the contents as a string.
 func goldenMarkdown(t *testing.T, name, got string) string {
