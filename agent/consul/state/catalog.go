@@ -4736,7 +4736,6 @@ func (s *Store) downstreamGatewaysForServiceTxn(tx ReadTxn, service structs.Serv
 			continue
 		}
 
-
 		seen[gwServiceName] = struct{}{}
 
 		resp = append(resp, gwServiceName)
