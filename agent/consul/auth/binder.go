@@ -36,14 +36,16 @@ func NewBinder(store BinderStateStore, datacenter string) *Binder {
 type BinderStateStore interface {
 	ACLBindingRuleList(ws memdb.WatchSet, methodName string, entMeta *acl.EnterpriseMeta) (uint64, structs.ACLBindingRules, error)
 	ACLRoleGetByName(ws memdb.WatchSet, roleName string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLRole, error)
+	ACLPolicyGetByName(ws memdb.WatchSet, policyName string, entMeta *acl.EnterpriseMeta) (uint64, *structs.ACLPolicy, error)
 }
 
-// Bindings contains the ACL roles, service identities, node identities,
+// Bindings contains the ACL roles, service identities, node identities, policies,
 // templated policies, and enterprise meta to be assigned to the created token.
 type Bindings struct {
 	Roles             []structs.ACLTokenRoleLink
 	ServiceIdentities []*structs.ACLServiceIdentity
 	NodeIdentities    []*structs.ACLNodeIdentity
+	Policies          []structs.ACLTokenPolicyLink
 	TemplatedPolicies structs.ACLTemplatedPolicies
 	EnterpriseMeta    acl.EnterpriseMeta
 }
@@ -58,7 +60,8 @@ func (b *Bindings) None() bool {
 	return len(b.ServiceIdentities) == 0 &&
 		len(b.NodeIdentities) == 0 &&
 		len(b.TemplatedPolicies) == 0 &&
-		len(b.Roles) == 0
+		len(b.Roles) == 0 &&
+		len(b.Policies) == 0
 }
 
 // Bind collects the ACL roles, service identities, etc. to be assigned to the
@@ -119,6 +122,24 @@ func (b *Binder) Bind(authMethod *structs.ACLAuthMethod, verifiedIdentity *authm
 			}
 			bindings.TemplatedPolicies = append(bindings.TemplatedPolicies, templatedPolicy)
 
+		case structs.BindingRuleBindTypePolicy:
+			bindName, err := computeBindName(rule.BindName, verifiedIdentity.ProjectedVars, acl.IsValidRoleName)
+			if err != nil {
+				return nil, err
+			}
+
+			_, policy, err := b.store.ACLPolicyGetByName(nil, bindName, &bindings.EnterpriseMeta)
+			if err != nil {
+				return nil, err
+			}
+
+			if policy != nil {
+				bindings.Policies = append(bindings.Policies, structs.ACLTokenPolicyLink{
+					ID:   policy.ID,
+					Name: policy.Name,
+				})
+			}
+
 		case structs.BindingRuleBindTypeRole:
 			bindName, err := computeBindName(rule.BindName, verifiedIdentity.ProjectedVars, acl.IsValidRoleName)
 			if err != nil {
@@ -177,8 +198,13 @@ func IsValidBindingRule(bindType, bindName string, bindVars *structs.ACLTemplate
 		if _, err := computeBindName(bindName, fakeVarMap, acl.IsValidRoleName); err != nil {
 			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
 		}
+
+	case structs.BindingRuleBindTypePolicy:
+		if _, err := computeBindName(bindName, fakeVarMap, acl.IsValidPolicyName); err != nil {
+			return fmt.Errorf("failed to validate bindType %q: %w", bindType, err)
+		}
 	default:
-		return fmt.Errorf("Invalid Binding Rule: unknown BindType %q", bindType)
+		return fmt.Errorf("invalid Binding Rule: unknown BindType %q", bindType)
 	}
 
 	return nil

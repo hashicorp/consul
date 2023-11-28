@@ -9,18 +9,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/oklog/ulid/v2"
-
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
 func TestListByOwner_InputValidation(t *testing.T) {
@@ -29,84 +31,100 @@ func TestListByOwner_InputValidation(t *testing.T) {
 	demo.RegisterTypes(server.Registry)
 
 	type testCase struct {
-		modFn       func(artistId, recordlabelId *pbresource.ID) *pbresource.ID
+		modFn       func(artistId, recordlabelId, executiveId *pbresource.ID) *pbresource.ID
 		errContains string
 	}
 	testCases := map[string]testCase{
 		"no owner": {
-			modFn: func(artistId, recordLabelId *pbresource.ID) *pbresource.ID {
+			modFn: func(_, _, _ *pbresource.ID) *pbresource.ID {
 				return nil
 			},
 			errContains: "owner is required",
 		},
 		"no type": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Type = nil
 				return artistId
 			},
 			errContains: "owner.type is required",
 		},
 		"no name": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Name = ""
 				return artistId
 			},
 			errContains: "owner.name invalid",
 		},
 		"name mixed case": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Name = "U2"
 				return artistId
 			},
 			errContains: "owner.name invalid",
 		},
 		"name too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Name = strings.Repeat("n", resource.MaxNameLength+1)
 				return artistId
 			},
 			errContains: "owner.name invalid",
 		},
 		"partition mixed case": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Tenancy.Partition = "Default"
 				return artistId
 			},
 			errContains: "owner.tenancy.partition invalid",
 		},
 		"partition too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Tenancy.Partition = strings.Repeat("p", resource.MaxNameLength+1)
 				return artistId
 			},
 			errContains: "owner.tenancy.partition invalid",
 		},
 		"namespace mixed case": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Tenancy.Namespace = "Default"
 				return artistId
 			},
 			errContains: "owner.tenancy.namespace invalid",
 		},
 		"namespace too long": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Tenancy.Namespace = strings.Repeat("n", resource.MaxNameLength+1)
 				return artistId
 			},
 			errContains: "owner.tenancy.namespace invalid",
 		},
 		"no uid": {
-			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
+			modFn: func(artistId, _, _ *pbresource.ID) *pbresource.ID {
 				artistId.Uid = ""
 				return artistId
 			},
 			errContains: "owner uid is required",
 		},
 		"partition scope with non-empty namespace": {
-			modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
+			modFn: func(_, recordLabelId, _ *pbresource.ID) *pbresource.ID {
 				recordLabelId.Uid = ulid.Make().String()
 				recordLabelId.Tenancy.Namespace = "ishouldnothaveanamespace"
 				return recordLabelId
+			},
+			errContains: "cannot have a namespace",
+		},
+		"cluster scope with non-empty partition": {
+			modFn: func(_, _, executiveId *pbresource.ID) *pbresource.ID {
+				executiveId.Uid = ulid.Make().String()
+				executiveId.Tenancy.Partition = "ishouldnothaveapartition"
+				return executiveId
+			},
+			errContains: "cannot have a partition",
+		},
+		"cluster scope with non-empty namespace": {
+			modFn: func(_, _, executiveId *pbresource.ID) *pbresource.ID {
+				executiveId.Uid = ulid.Make().String()
+				executiveId.Tenancy.Namespace = "ishouldnothaveanamespace"
+				return executiveId
 			},
 			errContains: "cannot have a namespace",
 		},
@@ -119,8 +137,11 @@ func TestListByOwner_InputValidation(t *testing.T) {
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 
+			executive, err := demo.GenerateV1Executive("marvin", "CEO")
+			require.NoError(t, err)
+
 			// Each test case picks which resource to use based on the resource type's scope.
-			req := &pbresource.ListByOwnerRequest{Owner: tc.modFn(artist.Id, recordLabel.Id)}
+			req := &pbresource.ListByOwnerRequest{Owner: tc.modFn(artist.Id, recordLabel.Id, executive.Id)}
 
 			_, err = client.ListByOwner(testContext(t), req)
 			require.Error(t, err)
@@ -197,36 +218,29 @@ func TestListByOwner_Many(t *testing.T) {
 
 func TestListByOwner_OwnerTenancyDoesNotExist(t *testing.T) {
 	type testCase struct {
-		modFn       func(artistId, recordlabelId *pbresource.ID) *pbresource.ID
-		errContains string
+		modFn func(artistId, recordlabelId *pbresource.ID) *pbresource.ID
 	}
 	tenancyCases := map[string]testCase{
-		"partition not found when namespace scoped": {
+		"namespace scoped owner with non-existent partition": {
 			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
 				id := clone(artistId)
-				id.Uid = "doesnotmatter"
 				id.Tenancy.Partition = "boguspartition"
 				return id
 			},
-			errContains: "partition not found",
 		},
-		"namespace not found when namespace scoped": {
+		"namespace scoped owner with non-existent namespace": {
 			modFn: func(artistId, _ *pbresource.ID) *pbresource.ID {
 				id := clone(artistId)
-				id.Uid = "doesnotmatter"
 				id.Tenancy.Namespace = "bogusnamespace"
 				return id
 			},
-			errContains: "namespace not found",
 		},
-		"partition not found when partition scoped": {
+		"partition scoped owner with non-existent partition": {
 			modFn: func(_, recordLabelId *pbresource.ID) *pbresource.ID {
 				id := clone(recordLabelId)
-				id.Uid = "doesnotmatter"
 				id.Tenancy.Partition = "boguspartition"
 				return id
 			},
-			errContains: "partition not found",
 		},
 	}
 	for desc, tc := range tenancyCases {
@@ -235,21 +249,21 @@ func TestListByOwner_OwnerTenancyDoesNotExist(t *testing.T) {
 			demo.RegisterTypes(server.Registry)
 			client := testClient(t, server)
 
-			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
-			require.NoError(t, err)
-			recordLabel, err = server.Backend.WriteCAS(testContext(t), recordLabel)
-			require.NoError(t, err)
+			recordLabel := resourcetest.Resource(demo.TypeV1RecordLabel, "looney-tunes").
+				WithTenancy(resource.DefaultPartitionedTenancy()).
+				WithData(t, &pbdemo.RecordLabel{Name: "Looney Tunes"}).
+				Write(t, client)
 
-			artist, err := demo.GenerateV2Artist()
-			require.NoError(t, err)
-			artist, err = server.Backend.WriteCAS(testContext(t), artist)
-			require.NoError(t, err)
+			artist := resourcetest.Resource(demo.TypeV1Artist, "blur").
+				WithTenancy(resource.DefaultNamespacedTenancy()).
+				WithData(t, &pbdemo.Artist{Name: "Blur"}).
+				WithOwner(recordLabel.Id).
+				Write(t, client)
 
-			// Verify non-existant tenancy units in owner err with invalid arg.
-			_, err = client.ListByOwner(testContext(t), &pbresource.ListByOwnerRequest{Owner: tc.modFn(artist.Id, recordLabel.Id)})
-			require.Error(t, err)
-			require.Equal(t, codes.InvalidArgument.String(), status.Code(err).String())
-			require.ErrorContains(t, err, tc.errContains)
+			// Verify non-existant tenancy units in owner return empty list.
+			rsp, err := client.ListByOwner(testContext(t), &pbresource.ListByOwnerRequest{Owner: tc.modFn(artist.Id, recordLabel.Id)})
+			require.NoError(t, err)
+			require.Empty(t, rsp.Resources)
 		})
 	}
 }

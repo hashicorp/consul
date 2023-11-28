@@ -145,7 +145,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		Id: &pbresource.ID{
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: deleteId.Tenancy,
-			Name:    tombstoneName(deleteId),
+			Name:    TombstoneNameFor(deleteId),
 			Uid:     ulid.Make().String(),
 		},
 		Generation: ulid.Make().String(),
@@ -203,7 +203,7 @@ func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resou
 
 // Maintains a deterministic mapping between a resource and it's tombstone's
 // name by embedding the resources's Uid in the name.
-func tombstoneName(deleteId *pbresource.ID) string {
+func TombstoneNameFor(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
 	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, strings.ToLower(deleteId.Uid))
 }

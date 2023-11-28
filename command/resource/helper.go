@@ -185,6 +185,10 @@ type ListResponse struct {
 	Resources []map[string]interface{} `json:"resources"`
 }
 
+func (gvk *GVK) String() string {
+	return fmt.Sprintf("%s.%s.%s", gvk.Group, gvk.Version, gvk.Kind)
+}
+
 func (resource *Resource) Read(gvk *GVK, resourceName string, q *client.QueryOptions) (map[string]interface{}, error) {
 	r := resource.C.NewRequest("GET", strings.ToLower(fmt.Sprintf("/api/%s/%s/%s/%s", gvk.Group, gvk.Version, gvk.Kind, resourceName)))
 	r.SetQueryOptions(q)

@@ -42,11 +42,6 @@ func (s *Server) ListByOwner(ctx context.Context, req *pbresource.ListByOwnerReq
 		return nil, status.Errorf(codes.Internal, "failed list acl: %v", err)
 	}
 
-	// Check tenancy exists for the v2 resource.
-	if err = tenancyExists(reg, s.TenancyBridge, req.Owner.Tenancy, codes.InvalidArgument); err != nil {
-		return nil, err
-	}
-
 	// Get owned resources.
 	children, err := s.Backend.ListByOwner(ctx, req.Owner)
 	if err != nil {
@@ -109,14 +104,8 @@ func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerReques
 		return nil, err
 	}
 
-	// Error when partition scoped and namespace not empty.
-	if reg.Scope == resource.ScopePartition && req.Owner.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped type %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Owner.Type),
-			req.Owner.Tenancy.Namespace,
-		)
+	if err = validateScopedTenancy(reg.Scope, reg.Type, req.Owner.Tenancy); err != nil {
+		return nil, err
 	}
 
 	return reg, nil

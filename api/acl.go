@@ -26,6 +26,7 @@ const (
 	ACLTemplatedPolicyDNSName              = "builtin/dns"
 	ACLTemplatedPolicyNomadServerName      = "builtin/nomad-server"
 	ACLTemplatedPolicyWorkloadIdentityName = "builtin/workload-identity"
+	ACLTemplatedPolicyAPIGatewayName       = "builtin/api-gateway"
 )
 
 type ACLLink struct {
@@ -172,6 +173,7 @@ type ACLTemplatedPolicyResponse struct {
 	TemplateName string
 	Schema       string
 	Template     string
+	Description  string
 }
 
 type ACLTemplatedPolicyVariables struct {
@@ -252,6 +254,9 @@ const (
 
 	// BindingRuleBindTypeNode binds to a node identity with given name.
 	BindingRuleBindTypeNode BindingRuleBindType = "node"
+
+	// BindingRuleBindTypePolicy binds to a specific policy with given name.
+	BindingRuleBindTypePolicy BindingRuleBindType = "policy"
 
 	// BindingRuleBindTypeTemplatedPolicy binds to a templated policy with given template name and variables.
 	BindingRuleBindTypeTemplatedPolicy BindingRuleBindType = "templated-policy"
