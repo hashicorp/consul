@@ -908,46 +908,46 @@ func (o *PeeringServiceMeta) DeepCopy() *PeeringServiceMeta {
 }
 
 // DeepCopy generates a deep copy of *ServiceConfigEntry
-func (e *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
-	var cp ServiceConfigEntry = *e
+func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
+	var cp ServiceConfigEntry = *o
 	{
-		retV := e.Expose.DeepCopy()
+		retV := o.Expose.DeepCopy()
 		cp.Expose = *retV
 	}
-	if e.UpstreamConfig != nil {
-		cp.UpstreamConfig = e.UpstreamConfig.DeepCopy()
+	if o.UpstreamConfig != nil {
+		cp.UpstreamConfig = o.UpstreamConfig.DeepCopy()
 	}
-	if e.Destination != nil {
+	if o.Destination != nil {
 		cp.Destination = new(DestinationConfig)
-		*cp.Destination = *e.Destination
-		if e.Destination.Addresses != nil {
-			cp.Destination.Addresses = make([]string, len(e.Destination.Addresses))
-			copy(cp.Destination.Addresses, e.Destination.Addresses)
+		*cp.Destination = *o.Destination
+		if o.Destination.Addresses != nil {
+			cp.Destination.Addresses = make([]string, len(o.Destination.Addresses))
+			copy(cp.Destination.Addresses, o.Destination.Addresses)
 		}
 	}
-	if e.RateLimits != nil {
+	if o.RateLimits != nil {
 		cp.RateLimits = new(RateLimits)
-		*cp.RateLimits = *e.RateLimits
-		if e.RateLimits.InstanceLevel.Routes != nil {
-			cp.RateLimits.InstanceLevel.Routes = make([]InstanceLevelRouteRateLimits, len(e.RateLimits.InstanceLevel.Routes))
-			copy(cp.RateLimits.InstanceLevel.Routes, e.RateLimits.InstanceLevel.Routes)
+		*cp.RateLimits = *o.RateLimits
+		if o.RateLimits.InstanceLevel.Routes != nil {
+			cp.RateLimits.InstanceLevel.Routes = make([]InstanceLevelRouteRateLimits, len(o.RateLimits.InstanceLevel.Routes))
+			copy(cp.RateLimits.InstanceLevel.Routes, o.RateLimits.InstanceLevel.Routes)
 		}
 	}
-	if e.EnvoyExtensions != nil {
-		cp.EnvoyExtensions = make([]EnvoyExtension, len(e.EnvoyExtensions))
-		copy(cp.EnvoyExtensions, e.EnvoyExtensions)
-		for i2 := range e.EnvoyExtensions {
-			if e.EnvoyExtensions[i2].Arguments != nil {
-				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(e.EnvoyExtensions[i2].Arguments))
-				for k4, v4 := range e.EnvoyExtensions[i2].Arguments {
+	if o.EnvoyExtensions != nil {
+		cp.EnvoyExtensions = make([]EnvoyExtension, len(o.EnvoyExtensions))
+		copy(cp.EnvoyExtensions, o.EnvoyExtensions)
+		for i2 := range o.EnvoyExtensions {
+			if o.EnvoyExtensions[i2].Arguments != nil {
+				cp.EnvoyExtensions[i2].Arguments = make(map[string]interface{}, len(o.EnvoyExtensions[i2].Arguments))
+				for k4, v4 := range o.EnvoyExtensions[i2].Arguments {
 					cp.EnvoyExtensions[i2].Arguments[k4] = v4
 				}
 			}
 		}
 	}
-	if e.Meta != nil {
-		cp.Meta = make(map[string]string, len(e.Meta))
-		for k2, v2 := range e.Meta {
+	if o.Meta != nil {
+		cp.Meta = make(map[string]string, len(o.Meta))
+		for k2, v2 := range o.Meta {
 			cp.Meta[k2] = v2
 		}
 	}
@@ -1070,21 +1070,21 @@ func (o *ServiceDefinition) DeepCopy() *ServiceDefinition {
 }
 
 // DeepCopy generates a deep copy of *ServiceResolverConfigEntry
-func (e *ServiceResolverConfigEntry) DeepCopy() *ServiceResolverConfigEntry {
-	var cp ServiceResolverConfigEntry = *e
-	if e.Subsets != nil {
-		cp.Subsets = make(map[string]ServiceResolverSubset, len(e.Subsets))
-		for k2, v2 := range e.Subsets {
+func (o *ServiceResolverConfigEntry) DeepCopy() *ServiceResolverConfigEntry {
+	var cp ServiceResolverConfigEntry = *o
+	if o.Subsets != nil {
+		cp.Subsets = make(map[string]ServiceResolverSubset, len(o.Subsets))
+		for k2, v2 := range o.Subsets {
 			cp.Subsets[k2] = v2
 		}
 	}
-	if e.Redirect != nil {
+	if o.Redirect != nil {
 		cp.Redirect = new(ServiceResolverRedirect)
-		*cp.Redirect = *e.Redirect
+		*cp.Redirect = *o.Redirect
 	}
-	if e.Failover != nil {
-		cp.Failover = make(map[string]ServiceResolverFailover, len(e.Failover))
-		for k2, v2 := range e.Failover {
+	if o.Failover != nil {
+		cp.Failover = make(map[string]ServiceResolverFailover, len(o.Failover))
+		for k2, v2 := range o.Failover {
 			var cp_Failover_v2 ServiceResolverFailover
 			{
 				retV := v2.DeepCopy()
@@ -1093,16 +1093,16 @@ func (e *ServiceResolverConfigEntry) DeepCopy() *ServiceResolverConfigEntry {
 			cp.Failover[k2] = cp_Failover_v2
 		}
 	}
-	if e.PrioritizeByLocality != nil {
+	if o.PrioritizeByLocality != nil {
 		cp.PrioritizeByLocality = new(ServiceResolverPrioritizeByLocality)
-		*cp.PrioritizeByLocality = *e.PrioritizeByLocality
+		*cp.PrioritizeByLocality = *o.PrioritizeByLocality
 	}
-	if e.LoadBalancer != nil {
-		cp.LoadBalancer = e.LoadBalancer.DeepCopy()
+	if o.LoadBalancer != nil {
+		cp.LoadBalancer = o.LoadBalancer.DeepCopy()
 	}
-	if e.Meta != nil {
-		cp.Meta = make(map[string]string, len(e.Meta))
-		for k2, v2 := range e.Meta {
+	if o.Meta != nil {
+		cp.Meta = make(map[string]string, len(o.Meta))
+		for k2, v2 := range o.Meta {
 			cp.Meta[k2] = v2
 		}
 	}
