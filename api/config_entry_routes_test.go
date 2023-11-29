@@ -18,6 +18,7 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 	route1 := &HTTPRouteConfigEntry{
 		Kind: HTTPRoute,
 		Name: "route1",
+		Meta: map[string]string{},
 	}
 
 	route2 := &HTTPRouteConfigEntry{
@@ -45,6 +46,7 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 
 	// verify it
 	readRoute, ok := entry.(*HTTPRouteConfigEntry)
+	delete(readRoute.Meta, "config_entry_id_key")
 	require.True(t, ok)
 	require.Equal(t, route1.Kind, readRoute.Kind)
 	require.Equal(t, route1.Name, readRoute.Name)

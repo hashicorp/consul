@@ -112,6 +112,7 @@ func TestAPI_ConfigEntries_ServiceIntentions(t *testing.T) {
 			// this also verifies that the update value was persisted and
 			// the updated values are seen
 			readIxn, ok = entry.(*ServiceIntentionsConfigEntry)
+			delete(readIxn.Meta, "config_entry_id_key")
 			require.True(t, ok)
 			require.Equal(t, "service-intentions", readIxn.Kind)
 			require.Equal(t, "foo", readIxn.Name)

@@ -148,6 +148,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 		// verify it
 		readService, ok := entry.(*ServiceConfigEntry)
+		delete(readService.Meta, "config_entry_id_key")
 		require.True(t, ok)
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
