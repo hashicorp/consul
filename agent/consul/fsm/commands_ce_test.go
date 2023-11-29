@@ -1354,7 +1354,6 @@ func TestFSM_ConfigEntry(t *testing.T) {
 		require.NoError(t, err)
 		entry.RaftIndex.CreateIndex = 1
 		entry.RaftIndex.ModifyIndex = 1
-		entry.SetID(config.ID())
 		require.Equal(t, entry, config)
 	}
 }
