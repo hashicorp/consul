@@ -156,7 +156,6 @@ jobs:
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
         go-version-file: 'go.mod'
-    - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
     - run: go install github.com/hashicorp/lint-consul-retry@v1.3.0 && lint-consul-retry
 
   lint:
