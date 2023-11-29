@@ -12,7 +12,16 @@ You can change or disable Consul's default ports in the [agent configuration fil
 
 ## Overview
 
-Consul requires up to six ports in order to function. There are slight differences between the port requirements for Consul servers and clients. When a Consul server has services, proxies, or gateways registered to it, then it acts as both a server and client.
+Consul requires up to six ports in order to function:
+
+1. DNS port
+1. HTTP or HTTPS port
+1. gRPC or gRPC TLS port
+1. Server RPC port
+1. LAN serf port
+1. WAN serf port
+
+There are slight differences between the port requirements for Consul servers and clients. When a Consul server has services, proxies, or gateways registered to it, then it acts as both a server and client.
 
 The exact ports that Consul requires depend on your network's specific configuration. For example, the port for WAN serf communication is only required when using WAN federation.
 
@@ -20,7 +29,7 @@ Clusters have additional port requirements to enable functionality when linked t
 
 ## Consul servers
 
-The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, the port when used to interact with HCP Consul, and the direction of traffic from the Consul server's perspective.
+The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, the port used to interact with HCP Consul, and the direction of traffic from the Consul server's perspective.
 
 | Port name                 | Use                                        | Protocol    | Default port | Default status | HCP-managed port | Direction             |
 | :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :--------------- | :-------------------- |
@@ -43,7 +52,7 @@ The following table lists information about the server agent's DNS port defaults
 
 This port receives incoming traffic from workloads to resolve Consul DNS requests.
 
-The server's DNS port does not need to be open when DNS queries are sent to Consul client. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+The server's DNS port does not need to be open when DNS queries are sent to Consul clients. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
 
 If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
 
