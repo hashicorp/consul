@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
+	"github.com/hashicorp/go-multierror"
 )
 
 type DecodedCloudLink = resource.DecodedResource[*pbhcp.HCCLink]
@@ -28,10 +29,31 @@ func validateHCCLink(res *DecodedCloudLink) error {
 	var err error
 
 	if res.Id.Name != "global" {
-		return resource.ErrInvalidField{
+		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "name",
 			Wrapped: hccLinkConfigurationNameError,
-		}
+		})
+	}
+
+	if res.Data.ClientId == "" {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "client_id",
+			Wrapped: resource.ErrMissing,
+		})
+	}
+
+	if res.Data.ClientSecret == "" {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "client_secret",
+			Wrapped: resource.ErrMissing,
+		})
+	}
+
+	if res.Data.ResourceId == "" {
+		err = multierror.Append(err, resource.ErrInvalidField{
+			Name:    "resource_id",
+			Wrapped: resource.ErrMissing,
+		})
 	}
 
 	return err

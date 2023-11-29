@@ -28,7 +28,11 @@ func createCloudLinkResource(t *testing.T, data protoreflect.ProtoMessage) *pbre
 }
 
 func TestValidateHCCLink_Ok(t *testing.T) {
-	data := &pbhcp.HCCLink{}
+	data := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
 
 	res := createCloudLinkResource(t, data)
 
@@ -49,7 +53,11 @@ func TestValidateHCCLink_ParseError(t *testing.T) {
 }
 
 func TestValidateHCCLink_InvalidName(t *testing.T) {
-	data := &pbhcp.HCCLink{}
+	data := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
 
 	res := createCloudLinkResource(t, data)
 	res.Id.Name = "default"
@@ -59,6 +67,69 @@ func TestValidateHCCLink_InvalidName(t *testing.T) {
 	expected := resource.ErrInvalidField{
 		Name:    "name",
 		Wrapped: hccLinkConfigurationNameError,
+	}
+
+	var actual resource.ErrInvalidField
+	require.ErrorAs(t, err, &actual)
+	require.Equal(t, expected, actual)
+}
+
+func TestValidateHCCLink_MissingClientId(t *testing.T) {
+	data := &pbhcp.HCCLink{
+		ClientId:     "",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+
+	res := createCloudLinkResource(t, data)
+
+	err := ValidateHCCLink(res)
+
+	expected := resource.ErrInvalidField{
+		Name:    "client_id",
+		Wrapped: resource.ErrMissing,
+	}
+
+	var actual resource.ErrInvalidField
+	require.ErrorAs(t, err, &actual)
+	require.Equal(t, expected, actual)
+}
+
+func TestValidateHCCLink_MissingClientSecret(t *testing.T) {
+	data := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "",
+		ResourceId:   "abc",
+	}
+
+	res := createCloudLinkResource(t, data)
+
+	err := ValidateHCCLink(res)
+
+	expected := resource.ErrInvalidField{
+		Name:    "client_secret",
+		Wrapped: resource.ErrMissing,
+	}
+
+	var actual resource.ErrInvalidField
+	require.ErrorAs(t, err, &actual)
+	require.Equal(t, expected, actual)
+}
+
+func TestValidateHCCLink_MissingResourceId(t *testing.T) {
+	data := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "",
+	}
+
+	res := createCloudLinkResource(t, data)
+
+	err := ValidateHCCLink(res)
+
+	expected := resource.ErrInvalidField{
+		Name:    "resource_id",
+		Wrapped: resource.ErrMissing,
 	}
 
 	var actual resource.ErrInvalidField
