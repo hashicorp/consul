@@ -123,6 +123,7 @@ func TestAPI_ConfigEntries_ServiceIntentions(t *testing.T) {
 			require.Equal(t, "service-intentions", readIxn.Kind)
 			require.Equal(t, "bar", readIxn.Name)
 			require.Len(t, readIxn.Sources, 1)
+			delete(readIxn.Meta, "config_entry_id_key")
 			require.Empty(t, readIxn.Meta)
 		}
 	}

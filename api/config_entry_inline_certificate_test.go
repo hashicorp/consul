@@ -88,6 +88,7 @@ func TestAPI_ConfigEntries_InlineCertificate(t *testing.T) {
 	assert.NotEqual(t, 0, qm.RequestTime)
 
 	readCert, ok := entry.(*InlineCertificateConfigEntry)
+	delete(readCert.Meta, "config_entry_id_key")
 	require.True(t, ok)
 	assert.Equal(t, cert1.Kind, readCert.Kind)
 	assert.Equal(t, cert1.Name, readCert.Name)
