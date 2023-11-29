@@ -148,6 +148,11 @@ export default class TopologyMetrics extends Component {
     return kind !== 'ingress-gateway';
   }
 
+  get mainNotAPIGatewayService() {
+    const kind = get(this.args.service.Service, 'Kind') || '';
+
+    return kind !== 'api-gateway';
+  }
   // =actions
   @action
   setHeight(el, item) {
