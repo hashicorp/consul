@@ -157,7 +157,7 @@ jobs:
       with:
         go-version-file: 'go.mod'
     - run: go install github.com/hashicorp/lint-consul-retry@master && lint-consul-retry
-      - run: go install github.com/hashicorp/lint-consul-retry@v1.3.0 && lint-consul-retry
+    - run: go install github.com/hashicorp/lint-consul-retry@v1.3.0 && lint-consul-retry
 
   lint:
     needs:
