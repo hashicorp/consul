@@ -136,12 +136,16 @@ function proto_tools_install {
 }
 
 function lint_install {
+    local lint_consul_retry_version
+    lint_consul_retry_version="$(make --no-print-directory print-LINT_CONSUL_RETRY_VERSION)"
     local golangci_lint_version
     golangci_lint_version="$(make --no-print-directory print-GOLANGCI_LINT_VERSION)"
 
-    install_unversioned_tool \
+    install_versioned_tool \
         'lint-consul-retry' \
-        'github.com/hashicorp/lint-consul-retry@master'
+        'github.com/hashicorp/lint-consul-retry' \
+        "${lint_consul_retry_version}" \
+        'github.com/hashicorp/lint-consul-retry'
 
     install_unversioned_tool \
         'enumcover' \
