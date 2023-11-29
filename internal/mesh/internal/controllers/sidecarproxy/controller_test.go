@@ -521,13 +521,11 @@ func (suite *controllerTestSuite) TestController() {
 		webComputedDestinations *pbresource.Resource
 	)
 
-	testutil.RunStep(suite.T(), "proxy state template generation", func(t *testing.T) {
-		// Check that proxy state template resource is generated for both the api and web workloads.
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-			webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-			apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-		})
+	// Check that proxy state template resource is generated for both the api and web workloads.
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+		webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+		apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 	})
 
 	// Write a default ComputedRoutes for api.
