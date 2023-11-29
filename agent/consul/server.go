@@ -75,6 +75,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/multicluster"
@@ -938,6 +939,8 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	hcpctl.RegisterControllers(s.controllerManager)
+
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
 		tenancy.RegisterControllers(
