@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -135,4 +136,47 @@ func TestValidateHCCLink_MissingResourceId(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
+}
+
+// Currently, we have no specific ACLs configured so the default `operator` permissions are required
+func TestHCCLinkACLs(t *testing.T) {
+	registry := resource.NewRegistry()
+	RegisterHCCLink(registry)
+
+	data := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+	hccLink := createCloudLinkResource(t, data)
+
+	cases := map[string]rtest.ACLTestCase{
+		"no rules": {
+			Rules:   ``,
+			Res:     hccLink,
+			ReadOK:  rtest.DENY,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.DENY,
+		},
+		"hccLink test read": {
+			Rules:   `operator = "read"`,
+			Res:     hccLink,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.DENY,
+			ListOK:  rtest.ALLOW,
+		},
+		"hccLink test write": {
+			Rules:   `operator = "write"`,
+			Res:     hccLink,
+			ReadOK:  rtest.ALLOW,
+			WriteOK: rtest.ALLOW,
+			ListOK:  rtest.ALLOW,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			rtest.RunACLTestCase(t, tc, registry)
+		})
+	}
 }
