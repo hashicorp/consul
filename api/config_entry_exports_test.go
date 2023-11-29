@@ -42,7 +42,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 		// ignore indexes
 		result.CreateIndex = 0
 		result.ModifyIndex = 0
-		delete(result.Meta, "config_entry_id_key")
+		delete(result.Meta, configEntryIDKey)
 		require.Equal(t, exports, result)
 	})
 
@@ -83,7 +83,7 @@ func TestAPI_ConfigEntries_ExportedServices(t *testing.T) {
 		// ignore indexes
 		result.CreateIndex = 0
 		result.ModifyIndex = 0
-		delete(result.Meta, "config_entry_id_key")
+		delete(result.Meta, configEntryIDKey)
 		require.Equal(t, updated, result)
 	})
 

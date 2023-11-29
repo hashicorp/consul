@@ -46,7 +46,7 @@ func TestAPI_ConfigEntries_HTTPRoute(t *testing.T) {
 
 	// verify it
 	readRoute, ok := entry.(*HTTPRouteConfigEntry)
-	delete(readRoute.Meta, "config_entry_id_key")
+	delete(readRoute.Meta, configEntryIDKey)
 	require.True(t, ok)
 	require.Equal(t, route1.Kind, readRoute.Kind)
 	require.Equal(t, route1.Name, readRoute.Name)

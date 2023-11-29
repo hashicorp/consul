@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const configEntryIDKey = "config_entry_id_key"
-
 func TestAPI_ConfigEntry_DiscoveryChain(t *testing.T) {
 	t.Parallel()
 	c, s := makeClient(t)

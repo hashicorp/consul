@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/go-rootcerts"
 )
 
+const configEntryIDKey = "config_entry_id_key"
 const (
 	// HTTPAddrEnvName defines an environment variable name which sets
 	// the HTTP address if there is no -http-addr specified.

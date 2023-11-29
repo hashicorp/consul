@@ -76,7 +76,7 @@ func TestAPI_ConfigEntries_IngressGateway(t *testing.T) {
 
 	// verify it
 	readIngress, ok := entry.(*IngressGatewayConfigEntry)
-	delete(readIngress.Meta, "config_entry_id_key")
+	delete(readIngress.Meta, configEntryIDKey)
 	require.True(t, ok)
 	require.Equal(t, ingress1.Kind, readIngress.Kind)
 	require.Equal(t, ingress1.Name, readIngress.Name)
@@ -256,7 +256,7 @@ func TestAPI_ConfigEntries_TerminatingGateway(t *testing.T) {
 
 	// verify it
 	readTerminating, ok := entry.(*TerminatingGatewayConfigEntry)
-	delete(readTerminating.Meta, "config_entry_id_key")
+	delete(readTerminating.Meta, configEntryIDKey)
 	require.True(t, ok)
 	require.Equal(t, terminating1.Kind, readTerminating.Kind)
 	require.Equal(t, terminating1.Name, readTerminating.Name)
@@ -407,7 +407,7 @@ func TestAPI_ConfigEntries_APIGateway(t *testing.T) {
 
 	// verify it
 	readGW, ok := entry.(*APIGatewayConfigEntry)
-	delete(readGW.Meta, "config_entry_id_key")
+	delete(readGW.Meta, configEntryIDKey)
 	require.True(t, ok)
 	require.Equal(t, apigw1.Kind, readGW.Kind)
 	require.Equal(t, apigw1.Name, readGW.Name)

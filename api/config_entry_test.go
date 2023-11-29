@@ -49,6 +49,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 		// verify it
 		readProxy, ok := entry.(*ProxyConfigEntry)
+		delete(readProxy.Meta, configEntryIDKey)
 		require.True(t, ok)
 		require.Equal(t, global_proxy.Kind, readProxy.Kind)
 		require.Equal(t, global_proxy.Name, readProxy.Name)
@@ -148,7 +149,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 
 		// verify it
 		readService, ok := entry.(*ServiceConfigEntry)
-		delete(readService.Meta, "config_entry_id_key")
+		delete(readService.Meta, configEntryIDKey)
 		require.True(t, ok)
 		require.Equal(t, service.Kind, readService.Kind)
 		require.Equal(t, service.Name, readService.Name)
@@ -247,6 +248,7 @@ func TestAPI_ConfigEntries(t *testing.T) {
 			require.NotEqual(t, 0, qm.RequestTime)
 
 			result, ok := entry.(*MeshConfigEntry)
+			delete(result.Meta, configEntryIDKey)
 			require.True(t, ok)
 
 			// ignore indexes
