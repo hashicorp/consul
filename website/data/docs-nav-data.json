@@ -4,35 +4,6 @@
     "path": "intro"
   },
   {
-    "title": "Why choose Consul?",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "why"
-      },
-      {
-        "title": "Service Meshes",
-        "path": "why/service-mesh"
-      },
-      {
-        "title": "DNS Tools",
-        "path": "why/dns"
-      },
-      {
-        "title": "Configuration Management Tools",
-        "path": "why/config-management"
-      },
-      {
-        "title": "API Gateways",
-        "path": "why/api-gateway"
-      }
-    ]
-  },
-  {
-    "title": "Consul personas",
-    "path": "personas"
-  },
-  {
     "title": "Use cases",
     "routes": [
       {
@@ -48,6 +19,35 @@
         "path": "use-case/network-infrastructure-automation"
       }
     ]
+  },
+  {
+    "title": "Why choose Consul?",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "why"
+      },
+      {
+        "title": "Service mesh",
+        "path": "why/service-mesh"
+      },
+      {
+        "title": "DNS",
+        "path": "why/dns"
+      },
+      {
+        "title": "Configuration management tool",
+        "path": "why/config-management"
+      },
+      {
+        "title": "API gateway",
+        "path": "why/api-gateway"
+      }
+    ]
+  },
+  {
+    "title": "Consul personas",
+    "path": "personas"
   },
   {
     "title": "Get started",
@@ -72,6 +72,10 @@
       {
         "title": "Overview",
         "path": "architecture"
+      },
+      {
+        "title": "Transparent proxy",
+        "path": "architecture/transparent-proxy"
       },
       {
         "title": "v1 APIs",
@@ -238,14 +242,14 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "deploy/overview"
+        "path": "deploy"
       },
       {
         "title": "Deploy server cluster",
         "routes": [
           {
             "title": "Overview",
-            "path": "deploy/server/overview"
+            "path": "deploy/server"
           },
           {
             "title": "Required ports",
@@ -264,7 +268,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "deploy/server/vm/overview"
+                "path": "deploy/server/vm"
               },
               {
                 "title": "Bootstrap a datacenter",
@@ -289,7 +293,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "deploy/server/k8s/overview"
+                "path": "deploy/server/k8s"
               },
               {
                 "title": "Platform guides",
@@ -333,7 +337,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "deploy/workload/overview"
+            "path": "deploy/workload"
           },
           {
             "title": "Virtual machine (VM)",
@@ -344,7 +348,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "deploy/workload/k8s/overview"
+                "path": "deploy/workload/k8s"
               },
               {
                 "title": "Examples",
@@ -370,7 +374,7 @@
                     "routes": [
                       {
                         "title": "Overview",
-                        "path": "deploy/workload/k8s/examples/federation/overview"
+                        "path": "deploy/workload/k8s/examples/federation"
                       },
                       {
                         "title": "Federate Kubernetes clusters",
@@ -387,7 +391,7 @@
                     "routes": [
                       {
                         "title": "Overview",
-                        "path": "deploy/workload/k8s/examples/vault/overview"
+                        "path": "deploy/workload/k8s/examples/vault"
                       },
                       {
                         "title": "System integration",
@@ -398,7 +402,7 @@
                         "routes": [
                           {
                             "title": "Overview",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/overview"
+                            "path": "deploy/workload/k8s/examples/vault/data-integration"
                           },
                           {
                             "title": "Bootstrap token",
@@ -457,7 +461,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "deploy/workload/ecs/overview"
+                "path": "deploy/workload/ecs"
               },
               {
                 "title": "Deploy automatically with Terraform",
@@ -503,21 +507,21 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "secure/overview"
+        "path": "secure"
       },
       {
         "title": "Access Control Lists (ACLs)",
         "routes": [
           {
             "title": "Overview",
-            "path": "secure/acl/overview"
+            "path": "secure/acl"
           },
           {
             "title": "Token",
             "routes": [
               {
                 "title": "Overview",
-                "path": "secure/acl/token/overview"
+                "path": "secure/acl/token"
               },
               {
                 "title": "Service token",
@@ -578,15 +582,11 @@
             "path": "secure/acl/rule"
           },
           {
-            "title": "Enable ACLs in federated datacenters",
-            "path": "secure/acl/enable-federated-datacenters"
-          },
-          {
-            "title": "Configure auth methods",
+            "title": "Auth methods",
             "routes": [
               {
                 "title": "Overview",
-                "path": "secure/acl/auth-method/overview"
+                "path": "secure/acl/auth-method"
               },
               {
                 "title": "Kubernetes",
@@ -605,6 +605,10 @@
                 "path": "secure/acl/auth-method/aws-iam"
               }
             ]
+          },
+          {
+            "title": "Enable ACLs in federated datacenters",
+            "path": "secure/acl/enable-federated-datacenters"
           }
         ]
       }
@@ -615,14 +619,14 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "monitor/overview"
+        "path": "monitor"
       },
       {
         "title": "Agent telemetry",
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor/telemetry/overview"
+            "path": "monitor/telemetry"
           },
           {
             "title": "Enable host metrics",
@@ -643,7 +647,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor/log/overview"
+            "path": "monitor/log"
           },
           {
             "title": "Log agent behavior",
@@ -665,7 +669,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "monitor/wal/overview"
+            "path": "monitor/wal"
           },
           {
             "title": "Enable WAL LogStore backend",
@@ -688,7 +692,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "manage/overview"
+        "path": "manage"
       },
       {
         "title": "Snapshot",
@@ -726,7 +730,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "manage/agent-rate-limit/overview"
+            "path": "manage/agent-rate-limit"
           },
           {
             "title": "Initialize rate limit settings",
@@ -758,7 +762,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "upgrade/overview"
+        "path": "upgrade"
       },
       {
         "title": "Automated upgrades",
@@ -774,7 +778,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "upgrade/compatibility-promise/overview"
+            "path": "upgrade/compatibility-promise"
           },
           {
             "title": "Consul on Kubernetes",
@@ -799,7 +803,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "upgrade/instruction/overview"
+            "path": "upgrade/instruction"
           },
           {
             "title": "General process",
@@ -828,7 +832,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "upgrade/k8s/overview"
+            "path": "upgrade/k8s"
           },
           {
             "title": "consul-k8s",
@@ -874,6 +878,77 @@
           {
             "title": "Register services and health checks",
             "path": "register/service" 
+          },
+          {
+            "title": "Kubernetes",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "register/service/k8s" 
+              },
+              {
+                "title": "Register services with service sync",
+                "path": "register/service/k8s/service-sync"
+              },
+              {
+                "title": "Annotations and labels",
+                "path": "register/service/k8s/annotations"
+              }
+            ]
+          },
+          {
+            "title": "ECS",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "register/service/ecs"
+              },
+              {
+                "title": "Register tasks with Terraform",
+                "path": "register/service/ecs/automate-terraform" 
+              },
+              {
+                "title": "Register tasks manually",
+                "path": "register/service/ecs/manual"
+              },
+              {
+                "title": "Register existing tasks with Terraform",
+                "path": "register/service/ecs/migrate-terraform"
+              },
+              {
+                "title": "Configure ECS task bind address",
+                "path": "register/service/ecs/configure-task-bind-address" 
+              },
+              {
+                "title": "Consul Enterprise",
+                "path": "register/service/ecs/enterprise"
+              },
+              {
+                "title": "Task definition reference",
+                "href": "reference/ecs/task-definition"
+              }
+            ]
+          },
+          {
+            "title": "Lambda",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "register/service/lambda" 
+              },
+              {
+                "title": "Register functions with Terraform",
+                "path": "register/service/lambda/automate-terraform"
+              },
+              {
+                "title": "Register functions manually",
+                "path": "register/service/lambda/manual"
+              }
+            ]
+          },
+          {
+            "title": "Register Nomad jobs",
+            "path": "register/service/nomad"
           },
           {
             "title": "Reference",
@@ -929,74 +1004,23 @@
         ]
       },
       {
+        "title": "Virtual machine (VM)",
+        "path": "register/vm"
+      },
+      {
         "title": "Kubernetes",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "register/k8s" 
-          },
-          {
-            "title": "Register services with service sync",
-            "path": "register/k8s/service-sync"
-          },
-          {
-            "title": "Annotations and labels",
-            "path": "register/k8s/annotations"
-          }
-        ]
+        "path": "register/k8s"
       },
       {
         "title": "ECS",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "register/ecs" 
-          },
-          {
-            "title": "Register tasks with Terraform",
-            "path": "register/ecs/automate-terraform" 
-          },
-          {
-            "title": "Register tasks manually",
-            "path": "register/ecs/manual"
-          },
-          {
-            "title": "Register existing tasks with Terraform",
-            "path": "register/ecs/migrate-terraform"
-          },
-          {
-            "title": "Configure ECS task bind address",
-            "path": "register/ecs/configure-task-bind-address" 
-          },
-          {
-            "title": "Consul Enterprise",
-            "path": "register/ecs/enterprise"
-          },
-          {
-            "title": "Task definition reference",
-            "href": "reference/ecs/task-definition"
-          }
-        ]
+        "path": "register/ecs"
       },
       {
         "title": "Lambda",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "register/lambda" 
-          },
-          {
-            "title": "Register functions with Terraform",
-            "path": "register/lambda/automate-terraform"
-          },
-          {
-            "title": "Register functions manually",
-            "path": "register/lambda/manual"
-          }
-        ]
+        "path": "register/lambda"
       },
       {
-        "title": "Register Nomad jobs",
+        "title": "Nomad",
         "path": "register/nomad"
       }
     ]
@@ -1027,11 +1051,15 @@
           {
             "title": "Issue prepared queries",
             "path": "discover/dns/prepared-query"
+          },
+          {
+            "title": "Resolve Consul DNS in Kubernetes",
+            "path": "discover/dns/k8s"
           }
         ]
       },
       {
-        "title": "Resolve Consul DNS in Kubernetes",
+        "title": "Kubernetes",
         "path": "discover/k8s"
       }
     ]
@@ -1063,6 +1091,23 @@
             "path": "connect/proxy/deploy-sidecar"
           },
           {
+            "title": "Enable transparent proxy",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "connect/proxy/transparent-proxy"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "connect/proxy/transparent-proxy/k8s"
+              },
+              {
+                "title": "ECS",
+                "path": "connect/proxy/transparent-proxy/ecs"
+              }
+            ]
+          },
+          {
             "title": "Envoy extension",
             "href": "envoy-extension"
           },
@@ -1074,25 +1119,11 @@
       },
       {
         "title": "Kubernetes",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/k8s"
-          },
-          {
-            "title": "Transparent proxy",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/k8s/transparent-proxy"
-              },
-              {
-                "title": "Enable transparent proxy",
-                "path": "connect/k8s/transparent-proxy/enable"
-              }
-            ]
-          }
-        ]
+        "path": "connect/k8s"
+      },
+      {
+        "title": "ECS",
+        "path": "connect/ecs"
       }
     ]
   },
@@ -1108,7 +1139,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "access/api-gateway/overview"
+            "path": "access/api-gateway"
           },
           {
             "title": "Technical specifications (Kubernetes)",
@@ -1178,7 +1209,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "href": "reference/api-gateway/overview"
+                "href": "reference/api-gateway"
               },
               {
                 "title": "Gateway",
@@ -1225,7 +1256,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "access/ingress-gateway/overview"
+            "path": "access/ingress-gateway"
           },
           {
             "title": "Create and manage ingress gateway",
@@ -1240,6 +1271,14 @@
             "href": "reference/config-entry/ingress-gateway"
           }
         ]
+      },
+      {
+        "title": "Virtual machine (VM)",
+        "path": "access/vm"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "access/k8s"
       }
     ]
   },
@@ -1257,16 +1296,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/admin-partition/overview"
-          },
-          {
-            "title": "Create and manage admin partition",
-            "path": "segment/admin-partition/create"
-          }
-        ]
+        "path": "segment/admin-partition"
       },
       {
         "title": "Namespace",
@@ -1275,42 +1305,15 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/namespace/overview"
-          },
-          {
-            "title": "Create and manage namespace",
-            "path": "segment/namespace/create"
-          }
-        ]
+        "path": "segment/namespace"
       },
       {
         "title": "Network area",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/network-area/overview"
-          },
-          {
-            "title": "Create and manage network area",
-            "path": "segment/network-area/create"
-          }
-        ]
+        "path": "segment/network-area"
       },
       {
         "title": "Network segment",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "segment/network-segment/overview"
-          },
-          {
-            "title": "Create and manage network segment",
-            "path": "segment/network-segment/create"
-          }
-        ]
+        "path": "segment/network-segment"
       }
     ]
   },
@@ -1378,7 +1381,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "link/mesh-gateway/overview"
+            "path": "link/mesh-gateway"
           },
           {
             "title": "Enable WAN federation control plane traffic",
@@ -1399,22 +1402,12 @@
         ]
       },
       {
+        "title": "Virtual machine (VM)",
+        "path": "link/vm"
+      },
+      {
         "title": "Kubernetes",
-        "routes": [
-          {
-            "title": "Cluster peering",
-            "routes": [
-              {
-                "title": "Establish connections",
-                "href": "link/peering/establish/k8s"
-              },
-              {
-                "title": "Manage connections",
-                "href": "link/peering/manage/k8s"
-              }
-            ]
-          }
-        ]
+        "path": "link/k8s"
       }
     ]
   },
@@ -1430,7 +1423,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-mesh/intention/overview"
+            "path": "secure-mesh/intention"
           },
           {
             "title": "Create and manage intentions",
@@ -1451,7 +1444,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-mesh/certificate/overview"
+            "path": "secure-mesh/certificate"
           },
           {
             "title": "Bootstrap certificate authority (CA)",
@@ -1505,7 +1498,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "secure-mesh/security-model/overview"
+            "path": "secure-mesh/security-model"
           },
           {
             "title": "Consul core",
@@ -1516,6 +1509,14 @@
             "path": "secure-mesh/security-model/nia"
           }
         ]
+      },
+      {
+        "title": "Virtual machine (VM)",
+        "path": "secure-mesh/vm"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "secure-mesh/k8s"
       }
     ]
   },
@@ -1524,14 +1525,14 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "manage-traffic/overview"
+        "path": "manage-traffic"
       },
       {
-        "title": "Overview",
+        "title": "Route local traffic",
         "path": "manage-traffic/route-local"
       },
       {
-        "title": "Overview",
+        "title": "Rate limit service mesh traffic",
         "path": "manage-traffic/rate-limit"
       },
       {
@@ -1539,7 +1540,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "manage-traffic/failover/overview"
+            "path": "manage-traffic/failover"
           },
           {
             "title": "Configure failover services for Kubernetes",
@@ -1558,6 +1559,14 @@
             "path": "manage-traffic/failover/sameness-group"
           }
         ]
+      },
+      {
+        "title": "Virtual machine (VM)",
+        "path": "manage-traffic/vm"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "manage-traffic/k8s"
       }
     ]
   },
@@ -1566,7 +1575,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "observe/overview"
+        "path": "observe"
       },
       {
         "title": "Access logs",
@@ -1591,7 +1600,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "dynamic-app/overview"
+        "path": "dynamic-app"
       },
       {
         "title": "Consul KV",
@@ -1611,11 +1620,52 @@
     "divider": true
   },
   {
+    "title": "Virtual machine (VM)",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "vm"
+      },
+      {
+        "title": "Register services",
+        "href": "register/vm"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/vm"
+      },
+      {
+        "title": "Connect services",
+        "href": "connect/vm"
+      },
+      {
+        "title": "Access services",
+        "href": "access/vm"
+      }
+    ]
+  },
+  {
     "title": "Kubernetes",
     "routes": [
       {
         "title": "Overview",
         "path": "k8s"
+      },
+      {
+        "title": "Register services",
+        "href": "register/k8s"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/k8s"
+      },
+      {
+        "title": "Connect services",
+        "href": "connect/k8s"
+      },
+      {
+        "title": "Access services",
+        "href": "access/k8s"
       }
     ]
   },
@@ -1625,6 +1675,14 @@
       {
         "title": "Overview",
         "path": "ecs"
+      },
+      {
+        "title": "Register services",
+        "href": "register/ecs"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/ecs"
       }
     ]
   },
@@ -1634,6 +1692,14 @@
       {
         "title": "Overview",
         "path": "lambda"
+      },
+      {
+        "title": "Register services",
+        "href": "register/lambda"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/lambda"
       }
     ]
   },
@@ -1643,6 +1709,14 @@
       {
         "title": "Overview",
         "path": "nomad"
+      },
+      {
+        "title": "Register services",
+        "href": "register/nomad"
+      },
+      {
+        "title": "Discover services",
+        "href": "discover/nomad"
       }
     ]
   },
@@ -1657,6 +1731,22 @@
         "path": "integration"
       },
       {
+        "title": "Consul tools",
+        "path": "integration/consul-tools"
+      },
+      {
+        "title": "Consul integration program",
+        "path": "integration/consul"
+      },
+      {
+        "title": "NIA integration program",
+        "path": "integration/nia"
+      },
+      {
+        "title": "Vault integration program",
+        "path": "integration/vault"
+      },
+      {
         "title": "Proxy integration",
         "path": "integration/proxy"
       }
@@ -1668,6 +1758,47 @@
       {
         "title": "Overview",
         "path": "envoy-extension"
+      },
+      {
+        "title": "Authorize with Apigee",
+        "path": "envoy-extension/apigee-external-authz"
+      },
+      {
+        "title": "Authorize with external services",
+        "path": "envoy-extension/external-authz"
+      },
+      {
+        "title": "Run Lua scripts",
+        "path": "envoy-extension/lua"
+      },
+      {
+        "title": "Invoke Lambda functions",
+        "path": "envoy-extension/lambda"
+      },
+      {
+        "title": "Configure Envoy proxy properties",
+        "path": "envoy-extension/property-override"
+      },
+      {
+        "title": "Run WebAssembly plug-ins",
+        "path": "envoy-extension/wasm"
+      },
+      {
+        "title": "Reference",
+        "routes": [
+          {
+            "title": "External authorization",
+            "href": "envoy-extension/wasm"
+          },
+          {
+            "title": "Property override",
+            "href": "envoy-extension/wasm"
+          },
+          {
+            "title": "WebAssembly",
+            "href": "envoy-extension/wasm"
+          }      
+        ]
       }
     ]
   },
@@ -1677,6 +1808,72 @@
       {
         "title": "Overview",
         "path": "cts"
+      },
+      {
+        "title": "Architecture",
+        "path": "cts/architecture"
+      },
+      {
+        "title": "Requirements",
+        "path": "cts/requirements"
+      },
+      {
+        "title": "Security model",
+        "path": "cts/security-model"
+      },
+      {
+        "title": "Install CTS",
+        "path": "cts/install"
+      },
+      {
+        "title": "Configure CTS",
+        "path": "cts/configure"
+      },
+      {
+        "title": "Configure CTS task",
+        "path": "cts/task"
+      },
+      {
+        "title": "Create Terraform module",
+        "path": "cts/terraform-module"
+      },
+      {
+        "title": "Network drivers",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "cts/network-drivers"
+          },
+          {
+            "title": "Terraform",
+            "path": "cts/network-drivers/terraform"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "cts/network-drivers/terraform-cloud"
+          }
+        ]
+      },
+      {
+        "title": "Enterprise",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "cts/enterprise"
+          },
+          {
+            "title": "Terraform",
+            "path": "cts/enterprise/license"
+          },
+          {
+            "title": "Terraform Cloud",
+            "path": "cts/enterprise/terraform-cloud-driver"
+          }
+        ]
+      },
+      {
+        "title": "Reference",
+        "href": "reference/cts"
       }
     ]
   },
@@ -1817,7 +2014,7 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "reference/api-gateway/overview"
+            "path": "reference/api-gateway"
           },
           {
             "title": "Gateway",
