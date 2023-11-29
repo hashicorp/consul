@@ -103,7 +103,10 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
-	return insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c, false)
+	if c.ID() == "" {
+		c.SetID(ulid.Make().String())
+	}
+	return insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c)
 }
 
 // ConfigEntry is called to get a given config entry.
@@ -275,7 +278,7 @@ func ensureConfigEntryTxn(tx WriteTxn, idx uint64, statusUpdate bool, conf struc
 		return err
 	}
 
-	return insertConfigEntryWithTxn(tx, idx, conf, true)
+	return insertConfigEntryWithTxn(tx, idx, conf)
 }
 
 // EnsureConfigEntryCAS is called to do a check-and-set upsert of a given config entry.
@@ -479,18 +482,11 @@ func deleteConfigEntryTxn(tx WriteTxn, idx uint64, kind, name string, entMeta *a
 	return nil
 }
 
-func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry, overrideID bool) error {
+func insertConfigEntryWithTxn(tx WriteTxn, idx uint64, conf structs.ConfigEntry) error {
 	if conf == nil {
 		return fmt.Errorf("cannot insert nil config entry")
 	}
 
-	id := conf.ID()
-
-	// we don't override the ID here because we would like to keep the ID coming from a snapshot restore,
-	// if the restore is from a snapshot before the ID was implemented, so we add it.
-	if id == "" || overrideID {
-		conf.SetID(ulid.Make().String())
-	}
 	// If the config entry is for a terminating or ingress gateway we update the memdb table
 	// that associates gateways <-> services.
 	kind := conf.GetKind()

@@ -5,6 +5,7 @@ package consul
 
 import (
 	"fmt"
+	"github.com/oklog/ulid/v2"
 	"reflect"
 	"time"
 
@@ -114,7 +115,7 @@ func (c *ConfigEntry) Apply(args *structs.ConfigEntryRequest, reply *bool) error
 		*reply = true
 		return nil
 	}
-
+	args.Entry.SetID(ulid.Make().String())
 	resp, err := c.srv.raftApply(structs.ConfigEntryRequestType, args)
 	if err != nil {
 		return err
@@ -174,6 +175,10 @@ func (c *ConfigEntry) shouldSkipUpsertOperation(currentEntry, updatedEntry struc
 		currentRaftIndexCopy      = *currentRaftIndex
 		userProvidedRaftIndexCopy = *userProvidedRaftIndex
 	)
+
+	// set the ID with the current one to not consider it in the diff
+	// no need to restore it, we will override it before writing it
+	updatedEntry.SetID(currentEntry.ID())
 
 	*userProvidedRaftIndex = currentRaftIndexCopy         // change
 	same := reflect.DeepEqual(currentEntry, updatedEntry) // compare
