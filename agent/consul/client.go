@@ -294,7 +294,7 @@ TRY:
 	retryCount++
 	manager, server := c.router.FindLANRoute()
 	if server == nil {
-		metrics.IncrCounterWithLabels([]string{"client", "rpc", "failed"}, 1, []metrics.Label{{Name: "server", Value: "nil"}})
+		metrics.IncrCounter([]string{"client", "rpc", "failed"}, 1)
 		return structs.ErrNoServers
 	}
 
