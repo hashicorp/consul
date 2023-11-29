@@ -214,7 +214,6 @@ func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 	got, ok := raw.(*structs.ServiceIntentionsConfigEntry)
 	require.True(t, ok)
 	initial.RaftIndex = got.RaftIndex
-	initial.SetID(got.Meta[structs.ConfigEntryIDKey])
 	require.Equal(t, initial, got)
 
 	t.Run("update and fail change legacyID", func(t *testing.T) {
@@ -266,7 +265,7 @@ func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 		require.True(t, ok)
 		updated.RaftIndex = got.RaftIndex
 		updated.Sources[0].LegacyCreateTime = &timeA
-		updated.SetID(got.Meta[structs.ConfigEntryIDKey]) // UpdateOver will not replace this
+		// UpdateOver will not replace this
 		require.Equal(t, updated, got)
 	})
 }

@@ -4,7 +4,6 @@
 package state
 
 import (
-	"github.com/oklog/ulid/v2"
 	"sort"
 	"testing"
 	"time"
@@ -1302,11 +1301,6 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 				for k, v := range ixn.Meta {
 					meta[k] = v
 				}
-				id, ok := ixn.Meta[configEntryIDKey]
-				require.True(t, ok)
-				_, err = ulid.Parse(id)
-				require.NoError(t, err)
-				delete(meta, configEntryIDKey)
 				if len(meta) == 0 {
 					ixn.Meta = nil
 				} else {
