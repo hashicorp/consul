@@ -4,6 +4,7 @@
 package state
 
 import (
+	"github.com/oklog/ulid/v2"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -52,8 +53,10 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 					Topic: EventTopicMeshConfig,
 					Index: changeIndex,
 					Payload: EventPayloadConfigEntry{
-						Op:    pbsubscribe.ConfigEntryUpdate_Delete,
-						Value: &structs.MeshConfigEntry{},
+						Op: pbsubscribe.ConfigEntryUpdate_Delete,
+						Value: &structs.MeshConfigEntry{
+							Meta: map[string]string{},
+						},
 					},
 				},
 			},
@@ -72,6 +75,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
 						Value: &structs.ServiceResolverConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -94,6 +98,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Delete,
 						Value: &structs.ServiceResolverConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -113,6 +118,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
 						Value: &structs.IngressGatewayConfigEntry{
 							Name: "gw1",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -135,6 +141,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Delete,
 						Value: &structs.IngressGatewayConfigEntry{
 							Name: "gw1",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -154,6 +161,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
 						Value: &structs.ServiceIntentionsConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -176,6 +184,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Delete,
 						Value: &structs.ServiceIntentionsConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -195,6 +204,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Upsert,
 						Value: &structs.ServiceConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -217,6 +227,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 						Op: pbsubscribe.ConfigEntryUpdate_Delete,
 						Value: &structs.ServiceConfigEntry{
 							Name: "web",
+							Meta: map[string]string{},
 						},
 					},
 				},
@@ -242,6 +253,17 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 
 			events, err := ConfigEntryEventsFromChanges(tx, Changes{Index: changeIndex, Changes: tx.Changes()})
 			require.NoError(t, err)
+
+			// check id is valid and remove it so we can verify that we got the right events
+			for _, e := range events {
+				meta := e.Payload.(EventPayloadConfigEntry).Value.GetMeta()
+				id, ok := meta[structs.ConfigEntryIDKey]
+				require.True(t, ok)
+				_, err := ulid.Parse(id)
+				require.NoError(t, err)
+				delete(meta, structs.ConfigEntryIDKey)
+
+			}
 			require.Equal(t, tc.events, events)
 		})
 	}
