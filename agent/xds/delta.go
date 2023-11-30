@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -310,6 +312,12 @@ func (s *Server) processDelta(stream ADSDeltaStream, reqCh <-chan *envoy_discove
 			defer watchCancel()
 
 			generator.Logger = generator.Logger.With("service_id", proxyID.String()) // enhance future logs
+			if prefix := os.Getenv("EXPERIMENTAL_XDS_PREFIX"); prefix != "" {
+				if strings.HasPrefix(proxyID.String(), prefix) {
+					generator.Logger.Warn("Enabling experimental XDS configuration for service", "proxyID", proxyID.String())
+					generator.experimentalXDS = true
+				}
+			}
 
 			generator.Logger.Trace("watching proxy, pending initial proxycfg snapshot for xDS")
 
@@ -940,25 +948,53 @@ func (t *xDSDeltaType) createDeltaResponse(
 }
 
 func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
-	if _, exist := t.deltaChild.childType.resourceVersions[childName]; !exist {
-		return
-	}
-	if !t.subscribed(childName) {
-		return
-	}
+	if t.generator.experimentalXDS {
+		if !t.subscribed(childName) {
+			return
+		}
 
-	t.generator.Logger.Trace(
-		"triggering implicit update of resource",
-		"typeUrl", t.typeURL,
-		"resource", parentName,
-		"childTypeUrl", t.deltaChild.childType.typeURL,
-		"childResource", childName,
-	)
+		t.generator.Logger.Trace(
+			"triggering implicit update of resource",
+			"typeUrl", t.typeURL,
+			"resource", parentName,
+			"childTypeUrl", t.deltaChild.childType.typeURL,
+			"childResource", childName,
+		)
 
-	// resourceVersions tracks the last known version for this childName that Envoy
-	// has ACKed. By setting this to empty it effectively tells us that Envoy does
-	// not have any data for that child, and we need to re-send.
-	t.deltaChild.childType.resourceVersions[childName] = ""
+		// resourceVersions tracks the last known version for this childName that Envoy
+		// has ACKed. By setting this to empty it effectively tells us that Envoy does
+		// not have any data for that child, and we need to re-send.
+		if _, exist := t.deltaChild.childType.resourceVersions[childName]; exist {
+			t.deltaChild.childType.resourceVersions[childName] = ""
+		}
+
+		// pendingUpdates can contain newer versions that have been sent to Envoy but
+		// that we haven't processed an ACK for yet. These need to be cleared out, too,
+		// so that they aren't moved to resourceVersions by ack()
+		for nonce := range t.deltaChild.childType.pendingUpdates {
+			delete(t.deltaChild.childType.pendingUpdates[nonce], childName)
+		}
+	} else {
+		if _, exist := t.deltaChild.childType.resourceVersions[childName]; !exist {
+			return
+		}
+		if !t.subscribed(childName) {
+			return
+		}
+
+		t.generator.Logger.Trace(
+			"triggering implicit update of resource",
+			"typeUrl", t.typeURL,
+			"resource", parentName,
+			"childTypeUrl", t.deltaChild.childType.typeURL,
+			"childResource", childName,
+		)
+
+		// resourceVersions tracks the last known version for this childName that Envoy
+		// has ACKed. By setting this to empty it effectively tells us that Envoy does
+		// not have any data for that child, and we need to re-send.
+		t.deltaChild.childType.resourceVersions[childName] = ""
+	}
 }
 
 func computeResourceVersions(resourceMap *xdscommon.IndexedResources) (map[string]map[string]string, error) {

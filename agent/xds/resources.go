@@ -19,6 +19,8 @@ type ResourceGenerator struct {
 	IncrementalXDS bool
 
 	ProxyFeatures xdscommon.SupportedProxyFeatures
+
+	experimentalXDS bool
 }
 
 func NewResourceGenerator(
