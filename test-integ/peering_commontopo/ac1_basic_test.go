@@ -51,7 +51,7 @@ var ac1BasicSuites []sharedTopoSuite = []sharedTopoSuite{
 // With permutations:
 //
 //  1. DC A is the dialing peer, DC B is the listening peer
-//  2. vice versa of (a)
+//  2. vice versa of (1)
 //  3. DC A and B are agentful
 //  4. DC A is agentful, DC B is agentless
 //

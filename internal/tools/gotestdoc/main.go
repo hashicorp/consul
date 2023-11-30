@@ -11,6 +11,8 @@ import (
 	"go/token"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/davecgh/go-spew/spew"
@@ -25,11 +27,11 @@ type TestDoc struct {
 }
 
 type Expect struct {
-	When comment.Block
-	Then comment.Block
+	When []comment.Text
+	Then []comment.Text
 }
 
-type Perm comment.Block
+type Perm = comment.Block
 
 const (
 	kwGiven  = "Given"
@@ -45,14 +47,41 @@ const (
 	fsmExpectPerms = "expectPerms"
 )
 
+var whenThenRE = regexp.MustCompile("^When: (.+), then: (.+)$")
+
 func parseExpectItem(li *comment.ListItem) (Expect, error) {
-	// TODO
-	return Expect{}, nil
+	if len(li.Content) != 1 {
+		return Expect{}, fmt.Errorf("length of Expect item content must be 1; is %d", len(li.Content))
+	}
+	contentPara, ok := li.Content[0].(*comment.Paragraph)
+	if !ok {
+		return Expect{}, fmt.Errorf("Expect item must contain paragraph; is %T", li.Content[0])
+	}
+
+	// TODO: support rich text by concating Texts
+	if len(contentPara.Text) != 1 {
+		return Expect{}, fmt.Errorf("Expect item paragraph must be length 1; is %d", len(contentPara.Text))
+	}
+
+	contentPlain, ok := contentPara.Text[0].(comment.Plain)
+	if !ok {
+		return Expect{}, fmt.Errorf("Expect item paragraph must be Plain")
+	}
+
+	matches := whenThenRE.FindStringSubmatch(string(contentPlain))
+	if len(matches) != 3 {
+		return Expect{}, fmt.Errorf(`Expect item must be of the form "When: <...>, then": <...>; is: %q`, contentPlain)
+	}
+
+	return Expect{
+		When: []comment.Text{comment.Plain(matches[1])},
+		Then: []comment.Text{comment.Plain(matches[2])},
+	}, nil
 }
 
 func parseFuncComment(s string) (*TestDoc, error) {
 	docParser := comment.Parser{
-		// TODO: links and symbols
+		// TODO: links and symbols?
 	}
 	doc := docParser.Parse(s)
 	ret := TestDoc{}
@@ -128,7 +157,7 @@ func parseFuncComment(s string) (*TestDoc, error) {
 				for i, li := range v.Items {
 					ex, err := parseExpectItem(li)
 					if err != nil {
-						errs = multierror.Append(errs, fmt.Errorf("parsing expect item %d (%q): %q", i, li.Number, err))
+						errs = multierror.Append(errs, fmt.Errorf("parsing expect item %d (%q): %w", i, li.Number, err))
 					}
 					ret.Expects = append(ret.Expects, ex)
 				}
@@ -162,15 +191,59 @@ func parseFuncComment(s string) (*TestDoc, error) {
 	return &ret, errs
 }
 
-func main() {
-	// TODO: real arg parsing
-	filename := os.Args[1]
-	fset := token.NewFileSet()
-	file, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
-	if err != nil {
-		log.Fatal(err)
+func (t *TestDoc) GoDocComment() *comment.Doc {
+	cont := []comment.Block{
+		&comment.Heading{
+			Text: []comment.Text{
+				comment.Plain(kwGiven),
+			},
+		},
 	}
+	cont = append(cont, t.Givens...)
+	cont = append(cont, &comment.Paragraph{
+		Text: []comment.Text{comment.Plain(kwPerms)},
+	})
+	cont = append(cont, []comment.Block(t.GivenPerms)...)
 
+	cont = append(cont, &comment.Heading{
+		Text: []comment.Text{
+			comment.Plain(kwExpect),
+		},
+	})
+	expectLIs := []*comment.ListItem{}
+	for i, e := range t.Expects {
+		text := []comment.Text{
+			comment.Plain("When: "),
+		}
+		text = append(text, e.When...)
+		text = append(text, comment.Plain(", then: "))
+		text = append(text, e.Then...)
+		expectLIs = append(expectLIs, &comment.ListItem{
+			Number: strconv.Itoa(i + 1),
+			Content: []comment.Block{
+				&comment.Paragraph{
+					Text: text},
+			},
+		})
+	}
+	cont = append(cont, &comment.List{Items: expectLIs})
+	cont = append(cont, &comment.Paragraph{
+		Text: []comment.Text{comment.Plain(kwPerms)},
+	})
+	cont = append(cont, []comment.Block(t.ExpectPerms)...)
+
+	return &comment.Doc{
+		Content: cont,
+	}
+}
+
+func (t *TestDoc) Markdown() []byte {
+	pr := comment.Printer{}
+	gdc := t.GoDocComment()
+	return pr.Markdown(gdc)
+}
+
+func parseFile(file *ast.File) (map[string]*TestDoc, map[string]error) {
 	testDocs := map[string]*TestDoc{}
 	errs := map[string]error{}
 
@@ -190,15 +263,37 @@ func main() {
 			}
 		}
 	}
+	return testDocs, errs
+}
+
+func main() {
+	// TODO: real arg parsing
+	filename := os.Args[1]
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, filename, nil, parser.ParseComments)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	testDocs, errs := parseFile(file)
 
 	if len(errs) > 0 {
 		spew.Printf("ERRORS: %#v", errs)
 	}
-	if len(testDocs) > 0 {
-		spew.Dump(testDocs)
-	}
+	// TODO; parse flags
+	mode := "markdown"
 	if len(errs) > 0 {
 		os.Exit(1)
+	}
+	switch mode {
+	case "dump":
+		if len(testDocs) > 0 {
+			spew.Dump(testDocs)
+		}
+	case "markdown":
+		for name, doc := range testDocs {
+			fmt.Printf("<h1>%s</h1>\n\n%s", name, doc.Markdown())
+		}
 	}
 
 }
