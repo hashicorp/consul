@@ -73,6 +73,10 @@ type JWTProviderConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *JWTProviderConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 // JWTLocation is a location where the JWT could be present in requests.
 //
 // Only one of Header, QueryParam, or Cookie can be specified.

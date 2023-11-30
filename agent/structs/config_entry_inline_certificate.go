@@ -36,6 +36,10 @@ type InlineCertificateConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *InlineCertificateConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 func (e *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }
 func (e *InlineCertificateConfigEntry) GetName() string            { return e.Name }
 func (e *InlineCertificateConfigEntry) Normalize() error           { return nil }

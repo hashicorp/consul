@@ -25,6 +25,10 @@ type ExportedServicesConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ExportedServicesConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 // ExportedService manages the exporting of a service in the local partition to
 // other partitions.
 type ExportedService struct {

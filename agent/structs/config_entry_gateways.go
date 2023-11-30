@@ -48,6 +48,10 @@ type IngressGatewayConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *IngressGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 type IngressServiceConfig struct {
 	MaxConnections        uint32
 	MaxPendingRequests    uint32
@@ -480,6 +484,10 @@ type TerminatingGatewayConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *TerminatingGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 // A LinkedService is a service represented by a terminating gateway
 type LinkedService struct {
 	// Name is the name of the service, as defined in Consul's catalog
@@ -731,6 +739,10 @@ type APIGatewayConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *APIGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
 func (e *APIGatewayConfigEntry) GetName() string                        { return e.Name }
 func (e *APIGatewayConfigEntry) GetMeta() map[string]string             { return e.Meta }
@@ -968,6 +980,10 @@ type BoundAPIGatewayConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *BoundAPIGatewayConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {

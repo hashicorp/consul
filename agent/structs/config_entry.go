@@ -95,6 +95,7 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+	GetHash() uint64
 }
 
 func hashConfigEntry(conf ConfigEntry) (error, uint64) {
@@ -180,6 +181,10 @@ type ServiceConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -467,6 +472,10 @@ type ProxyConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ProxyConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ProxyConfigEntry) GetKind() string {

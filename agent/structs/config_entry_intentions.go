@@ -30,6 +30,10 @@ type ServiceIntentionsConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ServiceIntentionsConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 var _ UpdatableConfigEntry = (*ServiceIntentionsConfigEntry)(nil)
 
 func (e *ServiceIntentionsConfigEntry) GetKind() string {

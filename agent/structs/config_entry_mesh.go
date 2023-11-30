@@ -32,6 +32,10 @@ type MeshConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *MeshConfigEntry) GetHash() uint64 {
+	return e.Hash
+}
+
 // TransparentProxyMeshConfig contains cluster-wide options pertaining to
 // TPROXY mode when enabled.
 type TransparentProxyMeshConfig struct {
