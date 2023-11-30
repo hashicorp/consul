@@ -2117,7 +2117,7 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 			tlsConfig: tlsutil.Config{
 				InternalRPC: tlsutil.ProtocolConfig{
 					CAFile:               "../../test/ca/root.cer",
-					CertFile:             "../../test/key/ourdomain.cer",
+					CertFile:             "../../test/key/ourdomain_with_intermediate.cer",
 					KeyFile:              "../../test/key/ourdomain.key",
 					VerifyIncoming:       true,
 					VerifyOutgoing:       true,
@@ -2135,7 +2135,12 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 					VerifyOutgoing:       true,
 					VerifyServerHostname: true,
 					CertificateAuthorities: []hcpclient.CertificateMetadata{
-						{
+						{ // manual ca pem
+							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
+							CertName:   "test.internal",
+							CertSerial: "191297809789001034260919865367524695178070761520",
+						},
+						{ // certificate intermediate
 							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
 							CertName:   "test.internal",
 							CertSerial: "191297809789001034260919865367524695178070761520",
