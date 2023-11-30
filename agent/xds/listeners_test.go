@@ -1026,7 +1026,7 @@ func TestListenersFromSnapshot(t *testing.T) {
 		{
 			name: "transparent-proxy-http-upstream",
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil)
 			},
 		},
 		{

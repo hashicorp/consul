@@ -8,6 +8,18 @@ import (
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, false, false, nil)
+}
+
+func TestConfigSnapshotPeeringWithEscapeOverrides(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, true, false, nil)
+}
+
+func TestConfigSnapshotPeeringWithHTTP2(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
+	return testConfigSnapshot(t, false, true, nsFn)
+}
+
+func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -30,6 +42,9 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 		ns.Proxy.Upstreams = structs.Upstreams{
 			paymentsUpstream,
 			refundsUpstream,
+		}
+		if nsFn != nil {
+			nsFn(ns)
 		}
 	}, []UpdateEvent{
 		{

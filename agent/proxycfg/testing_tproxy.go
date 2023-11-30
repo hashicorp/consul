@@ -116,7 +116,7 @@ func TestConfigSnapshotTransparentProxy(t testing.T) *ConfigSnapshot {
 	})
 }
 
-func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
+func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, nsFn func(ns *structs.NodeService), additionalEntries ...structs.ConfigEntry) *ConfigSnapshot {
 	// Set default service protocol to HTTP
 	entries := append(additionalEntries, &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
@@ -161,6 +161,9 @@ func TestConfigSnapshotTransparentProxyHTTPUpstream(t testing.T, additionalEntri
 
 	return TestConfigSnapshot(t, func(ns *structs.NodeService) {
 		ns.Proxy.Mode = structs.ProxyModeTransparent
+		if nsFn != nil {
+			nsFn(ns)
+		}
 	}, []UpdateEvent{
 		{
 			CorrelationID: meshConfigEntryID,
