@@ -2125,26 +2125,28 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 				},
 			},
 			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
-				require.NotEmpty(t, s.ServerTLSMetadata.InternalRPC)
-				tlsInfo := s.ServerTLSMetadata.InternalRPC
-				require.True(t, tlsInfo.Enabled)
-				require.Equal(t, "test.internal", tlsInfo.CertIssuer)
-				require.Equal(t, "testco.internal", tlsInfo.CertName)
-				require.Equal(t, "40", tlsInfo.CertSerial)
-				require.NotEmpty(t, tlsInfo.CertExpiry)
-				require.True(t, tlsInfo.VerifyIncoming)
-				require.True(t, tlsInfo.VerifyOutgoing)
-				require.True(t, tlsInfo.VerifyServerHostname)
+				expected := hcpclient.ServerTLSInfo{
+					Enabled:              true,
+					CertIssuer:           "test.internal",
+					CertName:             "testco.internal",
+					CertSerial:           "40",
+					CertExpiry:           time.Date(2123, time.October, 9, 17, 20, 16, 0, time.UTC),
+					VerifyIncoming:       true,
+					VerifyOutgoing:       true,
+					VerifyServerHostname: true,
+					CertificateAuthorities: []hcpclient.CertificateMetadata{
+						{
+							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
+							CertName:   "test.internal",
+							CertSerial: "191297809789001034260919865367524695178070761520",
+						},
+					},
+				}
 
-				require.Len(t, tlsInfo.CertificateAuthorities, 1)
-				manualCAPem := tlsInfo.CertificateAuthorities[0]
-				require.NotEmpty(t, manualCAPem.CertExpiry)
-				require.Equal(t, manualCAPem.CertName, "test.internal")
-				require.NotEmpty(t, manualCAPem.CertSerial)
+				require.Equal(t, expected, s.ServerTLSMetadata.InternalRPC)
 
-				// TODO: remove checks for status.TLS once deprecation is ready
-				require.NotEmpty(t, s.TLS)
-				require.EqualValues(t, s.TLS, s.ServerTLSMetadata.InternalRPC)
+				// TODO: remove check for status.TLS once deprecation is ready
+				require.Equal(t, expected, s.TLS)
 			},
 		},
 		"Nil Cert": {
