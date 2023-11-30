@@ -67,7 +67,7 @@ func (g *Generator) generateNodeContainers(
 			}{
 				terraformPod:      pod,
 				ImageResource:     DockerImageResourceName(node.Images.Consul),
-				HCL:               g.generateAgentHCL(node, cluster.EnableV2 && node.IsServer()),
+				HCL:               g.generateAgentHCL(node, cluster.EnableV2 && node.IsServer(), cluster.EnableV2Tenancy && node.IsServer()),
 				EnterpriseLicense: g.license,
 			}))
 		}

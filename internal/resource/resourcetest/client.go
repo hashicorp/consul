@@ -324,6 +324,17 @@ func (client *Client) WaitForResourceState(t T, id *pbresource.ID, verify func(T
 	return res
 }
 
+func (client *Client) WaitForResourceExists(t T, id *pbresource.ID) *pbresource.Resource {
+	t.Helper()
+
+	var res *pbresource.Resource
+	client.retry(t, func(r *retry.R) {
+		res = client.RequireResourceExists(r, id)
+	})
+
+	return res
+}
+
 func (client *Client) WaitForDeletion(t T, id *pbresource.ID) {
 	t.Helper()
 
