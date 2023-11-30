@@ -2,7 +2,7 @@
 # Copyright (c) HashiCorp, Inc.
 # SPDX-License-Identifier: BUSL-1.1
 
-if [[ ${GITHUB_BASE_REF} == release/1.14.* ]] || [[ ${GITHUB_BASE_REF} == release/1.15.* ]] || [[ ${GITHUB_BASE_REF} == release/1.16.* ]]; then
+if [[ ${GITHUB_BASE_REF} == release/1.14.* ]]; then
     busl_files=$(grep -r 'SPDX-License-Identifier: BUSL' . --exclude-dir .github)
 
     if [ -n "$busl_files" ]; then
