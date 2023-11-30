@@ -8,18 +8,14 @@ import (
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, false, nil)
-}
-
-func TestConfigSnapshotPeeringWithEscapeOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, true, false, nil)
+	return testConfigSnapshot(t, false, nil)
 }
 
 func TestConfigSnapshotPeeringWithHTTP2(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, true, nsFn)
+	return testConfigSnapshot(t, true, nsFn)
 }
 
-func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
+func testConfigSnapshot(t testing.T, useHTTP2 bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
