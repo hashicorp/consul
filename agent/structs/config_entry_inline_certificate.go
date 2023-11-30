@@ -31,8 +31,9 @@ type InlineCertificateConfigEntry struct {
 	PrivateKey string
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }

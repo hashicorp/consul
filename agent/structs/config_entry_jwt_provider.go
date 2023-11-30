@@ -68,8 +68,9 @@ type JWTProviderConfigEntry struct {
 	CacheConfig *JWTCacheConfig `json:",omitempty" alias:"cache_config"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 // JWTLocation is a location where the JWT could be present in requests.
@@ -545,6 +546,12 @@ func (e *JWTProviderConfigEntry) Normalize() error {
 	if e.ClockSkewSeconds == 0 {
 		e.ClockSkewSeconds = DefaultClockSkewSeconds
 	}
+
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return nil
 }

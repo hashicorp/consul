@@ -6,6 +6,8 @@ package consul
 import (
 	"context"
 	"fmt"
+	"github.com/oklog/ulid/v2"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 
@@ -267,4 +269,63 @@ func TestReplication_ConfigEntries_GraphValidationErrorDuringReplication(t *test
 	retry.Run(t, func(r *retry.R) {
 		checkSame(r)
 	})
+}
+
+func createConfigEntries(num int, indexStart int) []structs.ConfigEntry {
+	entries := make([]structs.ConfigEntry, num)
+	for i := range entries {
+		entries[i] = &structs.ServiceConfigEntry{Name: ulid.Make().String(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
+	}
+	return entries
+}
+
+func mutateIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
+	entries := make([]structs.ConfigEntry, len(e))
+	for i := range entries {
+		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
+	}
+	return entries
+}
+
+func clearIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
+	entries := make([]structs.ConfigEntry, len(e))
+	for i := range entries {
+		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
+	}
+	return entries
+}
+
+func Test_diffConfigEntries(t *testing.T) {
+	type args struct {
+		local           []structs.ConfigEntry
+		remote          []structs.ConfigEntry
+		lastRemoteIndex uint64
+	}
+
+	entries1 := createConfigEntries(10, 10)
+	entries2 := createConfigEntries(10, 20)
+	entries3 := append(entries1, entries2...)
+	entries4 := mutateIDs(entries1, 20)
+	entries5 := clearIDs(entries1, 20)
+	tests := []struct {
+		name    string
+		args    args
+		updated []structs.ConfigEntry
+		deleted []structs.ConfigEntry
+	}{
+		{"empty", args{local: make([]structs.ConfigEntry, 0), remote: make([]structs.ConfigEntry, 0), lastRemoteIndex: 0}, nil, nil},
+		{"same", args{local: entries1, remote: entries1, lastRemoteIndex: 0}, nil, nil},
+		{"new remote", args{local: nil, remote: entries1, lastRemoteIndex: 0}, entries1, nil},
+		{"extra remote", args{local: entries1, remote: entries3, lastRemoteIndex: 0}, entries2, nil},
+		{"extra local", args{local: entries3, remote: entries1, lastRemoteIndex: 0}, nil, entries2},
+		{"same size different ID", args{local: entries1, remote: entries4, lastRemoteIndex: 0}, entries4, nil},
+		{"empty ID", args{local: entries5, remote: entries1, lastRemoteIndex: 0}, entries1, nil},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deletions, updates := diffConfigEntries(tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
+			assert.Equalf(t, tt.updated, updates, "updated diffConfigEntries(%v, %v, %v)", tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
+			assert.Equalf(t, tt.deleted, deletions, "deleted diffConfigEntries(%v, %v, %v)", tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
+		})
+	}
 }

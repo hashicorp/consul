@@ -97,6 +97,14 @@ type ConfigEntry interface {
 	GetRaftIndex() *RaftIndex
 }
 
+func hashConfigEntry(conf ConfigEntry) (error, uint64) {
+	hash, err := hashstructure.Hash(conf, nil)
+	if err != nil {
+		return err, hash
+	}
+	return nil, hash
+}
+
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
 // if it is reconciled via a controller and needs to respond with Status values.
 type ControlledConfigEntry interface {
@@ -169,8 +177,9 @@ type ServiceConfigEntry struct {
 	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -225,6 +234,11 @@ func (e *ServiceConfigEntry) Normalize() error {
 			}
 		}
 	}
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return validationErr
 }
@@ -450,8 +464,9 @@ type ProxyConfigEntry struct {
 	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *ProxyConfigEntry) GetKind() string {
@@ -490,7 +505,13 @@ func (e *ProxyConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
+
 }
 
 func (e *ProxyConfigEntry) Validate() error {

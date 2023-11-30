@@ -44,8 +44,9 @@ type HTTPRouteConfigEntry struct {
 	Meta map[string]string `json:",omitempty"`
 	// Status is the asynchronous reconciliation status which an HTTPRoute propagates to the user.
 	Status             Status
+	Hash               uint64 `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *HTTPRouteConfigEntry) GetKind() string                        { return HTTPRoute }
@@ -101,6 +102,12 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 		}
 		e.Rules[i] = rule
 	}
+
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return nil
 }
@@ -545,8 +552,9 @@ type TCPRouteConfigEntry struct {
 	Meta map[string]string `json:",omitempty"`
 	// Status is the asynchronous reconciliation status which a TCPRoute propagates to the user.
 	Status             Status
+	Hash               uint64 `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *TCPRouteConfigEntry) GetKind() string                        { return TCPRoute }
@@ -592,6 +600,11 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 		e.Services[i] = service
 	}
 
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 

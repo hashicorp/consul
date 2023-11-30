@@ -43,8 +43,9 @@ type IngressGatewayConfigEntry struct {
 	Defaults *IngressServiceConfig `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 type IngressServiceConfig struct {
@@ -193,6 +194,12 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 		// pointers to structs
 		e.Listeners[i] = listener
 	}
+
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return nil
 }
@@ -468,8 +475,9 @@ type TerminatingGatewayConfigEntry struct {
 	Services []LinkedService
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 // A LinkedService is a service represented by a terminating gateway
@@ -527,6 +535,11 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 		e.Services[i].EnterpriseMeta.Normalize()
 	}
 
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -713,8 +726,9 @@ type APIGatewayConfigEntry struct {
 	Status Status
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *APIGatewayConfigEntry) GetKind() string                        { return APIGateway }
@@ -765,6 +779,11 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 		}
 	}
 
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -946,8 +965,9 @@ type BoundAPIGatewayConfigEntry struct {
 	Listeners []BoundAPIGatewayListener
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) bool {
@@ -1019,6 +1039,12 @@ func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 
 		e.Listeners[i] = listener
 	}
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
+
 	return nil
 }
 

@@ -16,8 +16,9 @@ type SamenessGroupConfigEntry struct {
 	IncludeLocal       bool `json:",omitempty" alias:"include_local"`
 	Members            []SamenessGroupMember
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 func (s *SamenessGroupConfigEntry) GetKind() string            { return SamenessGroup }
@@ -45,6 +46,12 @@ func (s *SamenessGroupConfigEntry) Normalize() error {
 		return fmt.Errorf("config entry is nil")
 	}
 	s.EnterpriseMeta.Normalize()
+	err, h := hashConfigEntry(s)
+	if err != nil {
+		return err
+	}
+	s.Hash = h
+
 	return nil
 }
 

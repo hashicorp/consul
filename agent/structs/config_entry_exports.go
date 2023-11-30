@@ -20,8 +20,9 @@ type ExportedServicesConfigEntry struct {
 	Services []ExportedService `json:",omitempty"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
 }
 
 // ExportedService manages the exporting of a service in the local partition to
@@ -79,6 +80,11 @@ func (e *ExportedServicesConfigEntry) Normalize() error {
 	for i := range e.Services {
 		e.Services[i].Namespace = acl.NormalizeNamespace(e.Services[i].Namespace)
 	}
+	err, h := hashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return nil
 }
