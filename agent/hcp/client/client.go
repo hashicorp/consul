@@ -173,6 +173,7 @@ type ServerStatus struct {
 
 	// TODO: TLS will be deprecated in favor of ServerTLSInfo in GNM. Handle
 	// removal in a subsequent PR
+	// https://hashicorp.atlassian.net/browse/CC-7015
 	TLS ServerTLSInfo
 
 	ScadaStatus string
@@ -260,6 +261,7 @@ func serverStatusToHCP(s *ServerStatus) *gnmmod.HashicorpCloudGlobalNetworkManag
 		TLS: &gnmmod.HashicorpCloudGlobalNetworkManager20220215TLSInfo{
 			// TODO: remove TLS in preference for ServerTLSMetadata.InternalRPC
 			// when deprecation path is ready
+			// https://hashicorp.atlassian.net/browse/CC-7015
 			CertExpiry:           strfmt.DateTime(s.TLS.CertExpiry),
 			CertName:             s.TLS.CertName,
 			CertSerial:           s.TLS.CertSerial,

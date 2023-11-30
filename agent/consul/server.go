@@ -2398,6 +2398,7 @@ func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator *tlsutil.C
 
 	// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
 	// when deprecation path is ready
+	// https://hashicorp.atlassian.net/browse/CC-7015
 	status.TLS = tlsInfo
 
 	return nil

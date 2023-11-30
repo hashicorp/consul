@@ -2150,6 +2150,7 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 				require.Equal(t, expected, s.ServerTLSMetadata.InternalRPC)
 
 				// TODO: remove check for status.TLS once deprecation is ready
+				// https://hashicorp.atlassian.net/browse/CC-7015
 				require.Equal(t, expected, s.TLS)
 			},
 		},
