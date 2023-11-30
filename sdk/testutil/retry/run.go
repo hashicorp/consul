@@ -17,6 +17,17 @@ func WithFullOutput() Option {
 	}
 }
 
+// WithImmediateCleanup will cause all cleanup operations added
+// by calling the Cleanup method on *R to be performed after
+// the retry attempt completes (regardless of pass/fail status)
+// Use this only if all resources created during the retry loop should
+// not persist after the retry has finished.
+func WithImmediateCleanup() Option {
+	return func(r *R) {
+		r.immediateCleanup = true
+	}
+}
+
 func Run(t TestingTB, f func(r *R), opts ...Option) {
 	t.Helper()
 	r := &R{

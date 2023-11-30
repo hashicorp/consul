@@ -14,15 +14,20 @@ type R struct {
 	wrapped TestingTB
 	retryer Retryer
 
-	done       bool
-	fullOutput bool
+	done             bool
+	fullOutput       bool
+	immediateCleanup bool
 
 	attempts []*attempt
 }
 
 func (r *R) Cleanup(clean func()) {
-	a := r.getCurrentAttempt()
-	a.cleanups = append(a.cleanups, clean)
+	if r.immediateCleanup {
+		a := r.getCurrentAttempt()
+		a.cleanups = append(a.cleanups, clean)
+	} else {
+		r.wrapped.Cleanup(clean)
+	}
 }
 
 func (r *R) Error(args ...any) {
