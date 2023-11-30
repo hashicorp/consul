@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { filters } from 'consul-ui/components/search-bar/utils';
 import { module, test } from 'qunit';
 

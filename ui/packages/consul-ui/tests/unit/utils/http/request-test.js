@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import httpRequest from 'consul-ui/utils/http/request';
 import { module, test } from 'qunit';
 

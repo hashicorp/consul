@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import OAuth2CodeProvider from 'torii/providers/oauth2-code';
 import { runInDebug } from '@ember/debug';
 

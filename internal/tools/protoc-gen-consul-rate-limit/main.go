@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // protoc-gen-consul-rate-limit maintains the mapping of gRPC method names to
 // a specification of how they should be rate-limited. This is used by the gRPC
 // InTapHandle function (see agent/grpc-middleware/rate.go) to enforce relevant

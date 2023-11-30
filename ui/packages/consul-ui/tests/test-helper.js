@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Application from 'consul-ui/app';
 import config from 'consul-ui/config/environment';
 import * as QUnit from 'qunit';
