@@ -39,6 +39,29 @@ var ac1BasicSuites []sharedTopoSuite = []sharedTopoSuite{
 	&ac1BasicSuite{DC: "dc2", Peer: "dc1"},
 }
 
+// # Given
+//
+// A 2-DC, peered Consul deployment with the services:
+//
+//  1. in DC B, an HTTP static server service ("HTTP server") that returns its Consul name, exported to DC A
+//  2. in DC B, a TCP static server service ("TCP server") that returns its Consul name, exported to DC A
+//  3. in DC A, an HTTP service ("HTTP client") with upstreams of both servers in DC B
+//  4. in DC A, a TCP service ("TCP client") with upstreams of both servers in DC B
+//
+// With permutations:
+//
+//  1. DC A is the dialing peer, DC B is the listening peer
+//  2. vice versa of (a)
+//  3. DC A and B are agentful
+//  4. DC A is agentful, DC B is agentless
+//
+// # Expect
+//
+//  1. When: an HTTP GET is made to server via client, then: the result is the HTTP server's name
+//
+// With permutations:
+//
+//  1. For each: (server, client) pair
 func TestAC1Basic(t *testing.T) {
 	runShareableSuites(t, ac1BasicSuites)
 }
