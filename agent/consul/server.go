@@ -2338,6 +2338,9 @@ func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator *tlsutil.C
 	var err error
 	if leaf == nil {
 		// Parse the leaf cert
+		if len(tlsCert.Certificate) == 0 {
+			return fmt.Errorf("expected a leaf certificate but there was none")
+		}
 		leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
 		if err != nil {
 			// Shouldn't be possible

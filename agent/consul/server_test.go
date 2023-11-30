@@ -2109,7 +2109,6 @@ func TestServer_hcpManager(t *testing.T) {
 
 func TestServer_addServerTLSInfo(t *testing.T) {
 	testCases := map[string]struct {
-		expectErr   bool
 		tlsConfig   tlsutil.Config
 		checkStatus func(*testing.T, hcpclient.ServerStatus)
 	}{
