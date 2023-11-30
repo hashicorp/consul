@@ -26,6 +26,7 @@ project {
     "agent/grpc-middleware/rate_limit_mappings.gen.go",
     "agent/uiserver/dist/**",
     "agent/consul/state/catalog_schema.deepcopy.go",
+    "agent/config/config.deepcopy.go",
 
     # licensed under MPL - ignoring for now until the copywrite tool can support
     # multiple licenses per repo.
