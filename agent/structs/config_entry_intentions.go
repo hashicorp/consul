@@ -29,11 +29,11 @@ type ServiceIntentionsConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ServiceIntentionsConfigEntry) ID() string {
+func (e *ServiceIntentionsConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ServiceIntentionsConfigEntry) SetID(id string) {
+func (e *ServiceIntentionsConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

@@ -20,11 +20,11 @@ type SamenessGroupConfigEntry struct {
 	RaftIndex
 }
 
-func (e *SamenessGroupConfigEntry) ID() string {
+func (e *SamenessGroupConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *SamenessGroupConfigEntry) SetID(id string) {
+func (e *SamenessGroupConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

@@ -72,11 +72,11 @@ type JWTProviderConfigEntry struct {
 	RaftIndex
 }
 
-func (e *JWTProviderConfigEntry) ID() string {
+func (e *JWTProviderConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *JWTProviderConfigEntry) SetID(id string) {
+func (e *JWTProviderConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

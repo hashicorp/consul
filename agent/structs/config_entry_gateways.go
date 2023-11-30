@@ -49,11 +49,11 @@ type IngressGatewayConfigEntry struct {
 	RaftIndex
 }
 
-func (e *IngressGatewayConfigEntry) ID() string {
+func (e *IngressGatewayConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *IngressGatewayConfigEntry) SetID(id string) {
+func (e *IngressGatewayConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -485,11 +485,11 @@ type TerminatingGatewayConfigEntry struct {
 	RaftIndex
 }
 
-func (e *TerminatingGatewayConfigEntry) ID() string {
+func (e *TerminatingGatewayConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *TerminatingGatewayConfigEntry) SetID(id string) {
+func (e *TerminatingGatewayConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -741,11 +741,11 @@ type APIGatewayConfigEntry struct {
 	RaftIndex
 }
 
-func (e *APIGatewayConfigEntry) ID() string {
+func (e *APIGatewayConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *APIGatewayConfigEntry) SetID(id string) {
+func (e *APIGatewayConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -1027,11 +1027,11 @@ type BoundAPIGatewayConfigEntry struct {
 	RaftIndex
 }
 
-func (e *BoundAPIGatewayConfigEntry) ID() string {
+func (e *BoundAPIGatewayConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *BoundAPIGatewayConfigEntry) SetID(id string) {
+func (e *BoundAPIGatewayConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

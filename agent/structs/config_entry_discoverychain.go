@@ -83,11 +83,11 @@ type ServiceRouterConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ServiceRouterConfigEntry) ID() string {
+func (e *ServiceRouterConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ServiceRouterConfigEntry) SetID(id string) {
+func (e *ServiceRouterConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -552,11 +552,11 @@ type ServiceSplitterConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ServiceSplitterConfigEntry) ID() string {
+func (e *ServiceSplitterConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ServiceSplitterConfigEntry) SetID(id string) {
+func (e *ServiceSplitterConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -902,11 +902,11 @@ type ServiceResolverConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ServiceResolverConfigEntry) ID() string {
+func (e *ServiceResolverConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ServiceResolverConfigEntry) SetID(id string) {
+func (e *ServiceResolverConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

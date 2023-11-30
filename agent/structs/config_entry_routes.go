@@ -48,22 +48,22 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *HTTPRouteConfigEntry) ID() string {
+func (e *HTTPRouteConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *HTTPRouteConfigEntry) SetID(id string) {
+func (e *HTTPRouteConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
 	e.Meta[ConfigEntryIDKey] = id
 }
 
-func (e *InlineCertificateConfigEntry) ID() string {
+func (e *InlineCertificateConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *InlineCertificateConfigEntry) SetID(id string) {
+func (e *InlineCertificateConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -571,11 +571,11 @@ type TCPRouteConfigEntry struct {
 	RaftIndex
 }
 
-func (e *TCPRouteConfigEntry) ID() string {
+func (e *TCPRouteConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *TCPRouteConfigEntry) SetID(id string) {
+func (e *TCPRouteConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

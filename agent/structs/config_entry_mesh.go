@@ -31,11 +31,11 @@ type MeshConfigEntry struct {
 	RaftIndex
 }
 
-func (e *MeshConfigEntry) ID() string {
+func (e *MeshConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *MeshConfigEntry) SetID(id string) {
+func (e *MeshConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

@@ -24,11 +24,11 @@ type ExportedServicesConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ExportedServicesConfigEntry) ID() string {
+func (e *ExportedServicesConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ExportedServicesConfigEntry) SetID(id string) {
+func (e *ExportedServicesConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}

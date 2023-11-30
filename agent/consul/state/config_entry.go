@@ -103,8 +103,9 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 
 // ConfigEntry is used when restoring from a snapshot.
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
-	if c.ID() == "" {
-		c.SetID(ulid.Make().String())
+	// only set the ModifyID if it's empty, otherwise use the one from the snapshot
+	if c.ModifyID() == "" {
+		c.SetModifyID(ulid.Make().String())
 	}
 	return insertConfigEntryWithTxn(s.tx, c.GetRaftIndex().ModifyIndex, c)
 }

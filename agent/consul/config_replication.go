@@ -31,11 +31,11 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 		if configentry.EqualID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
 			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
-				// if ID is not available in either configs, replicate it
-				if remote[remoteIdx].ID() == "" || local[localIdx].ID() == "" {
+				// if ModifyID is not available in either configs, replicate it
+				if remote[remoteIdx].ModifyID() == "" || local[localIdx].ModifyID() == "" {
 					updates = append(updates, remote[remoteIdx])
-					// if ID is different, replicate it
-				} else if remote[remoteIdx].ID() != local[localIdx].ID() {
+					// if ModifyID is different, replicate it
+				} else if remote[remoteIdx].ModifyID() != local[localIdx].ModifyID() {
 					updates = append(updates, remote[remoteIdx])
 				}
 			}

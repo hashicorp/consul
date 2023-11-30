@@ -96,8 +96,8 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
-	ID() string
-	SetID(s string)
+	ModifyID() string
+	SetModifyID(s string)
 }
 
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
@@ -176,11 +176,11 @@ type ServiceConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ServiceConfigEntry) ID() string {
+func (e *ServiceConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ServiceConfigEntry) SetID(id string) {
+func (e *ServiceConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
@@ -468,11 +468,11 @@ type ProxyConfigEntry struct {
 	RaftIndex
 }
 
-func (e *ProxyConfigEntry) ID() string {
+func (e *ProxyConfigEntry) ModifyID() string {
 	return e.Meta[ConfigEntryIDKey]
 }
 
-func (e *ProxyConfigEntry) SetID(id string) {
+func (e *ProxyConfigEntry) SetModifyID(id string) {
 	if e.Meta == nil {
 		e.Meta = make(map[string]string)
 	}
