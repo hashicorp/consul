@@ -17,13 +17,14 @@ import (
 	"time"
 
 	retry "github.com/avast/retry-go"
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"google.golang.org/grpc"
 
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-multierror"
+
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/secrets"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/tfgen"
@@ -405,8 +406,8 @@ func (s *Sprawl) RelaunchWithPhase(
 	return nil
 }
 
-// SnapshotSave saves a snapshot of a cluster and restore with the snapshot
-func (s *Sprawl) SnapshotSave(clusterName string) error {
+// SnapshotSaveAndRestore saves a snapshot of a cluster and then restores the snapshot
+func (s *Sprawl) SnapshotSaveAndRestore(clusterName string) error {
 	cluster, ok := s.topology.Clusters[clusterName]
 	if !ok {
 		return fmt.Errorf("no such cluster: %s", clusterName)
