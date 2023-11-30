@@ -542,3 +542,11 @@ help:
 .PHONY: all bin dev dist cov test test-internal cover lint ui tools
 .PHONY: docker-images go-build-image ui-build-image consul-docker ui-docker
 .PHONY: version test-envoy-integ
+
+.PHONY: copywrite-headers
+copywrite-headers:
+	copywrite headers
+	# Special case for MPL headers in /api and /sdk
+	cd api && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd sdk && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
+	cd proto-public && $(CURDIR)/build-support/scripts/copywrite-exceptions.sh
