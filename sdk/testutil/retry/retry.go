@@ -54,6 +54,8 @@ type R struct {
 	done   bool
 	output []string
 
+	name string
+
 	cleanups []func()
 }
 
@@ -102,9 +104,23 @@ func (r *R) runCleanup() {
 	}
 }
 
+// Name returns the name field of the retrier.
+// At time of writing it will always return an empty string. This was done to satisfy the Terratest TestingT interface.
+// https://github.com/gruntwork-io/terratest/blob/7d7a7a074d935958f9c9c4474c76897b828a000c/modules/testing/types.go
+// This was required to allow the retries to be passed to Terratest functions which execute Kubernetes API calls
+// as used in the Consul on Kubernetes codebase.
+func (r *R) Name() string {
+	return r.name
+}
+
 // runFailed is a sentinel value to indicate that the func itself
 // didn't panic, rather that `FailNow` was called.
 type runFailed struct{}
+
+// Fail marks the run execution as being in a fail state.
+func (r *R) Fail() {
+	r.fail = true
+}
 
 // FailNow stops run execution. It is roughly equivalent to:
 //
