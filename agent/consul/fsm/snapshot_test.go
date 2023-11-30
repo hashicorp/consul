@@ -815,17 +815,17 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify config entries are restored
 	_, serviceConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceDefaults, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
-	serviceConfig.SetID(serviceConfEntry.ID())
+	serviceConfig.SetModifyID(serviceConfEntry.ModifyID())
 	require.Equal(t, serviceConfig, serviceConfEntry)
 
 	_, proxyConfEntry, err := fsm2.state.ConfigEntry(nil, structs.ProxyDefaults, "global", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
-	proxyConfig.SetID(proxyConfEntry.ID())
+	proxyConfig.SetModifyID(proxyConfEntry.ModifyID())
 	require.Equal(t, proxyConfig, proxyConfEntry)
 
 	_, ingressRestored, err := fsm2.state.ConfigEntry(nil, structs.IngressGateway, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
-	ingress.SetID(ingressRestored.ID())
+	ingress.SetModifyID(ingressRestored.ModifyID())
 	require.Equal(t, ingress, ingressRestored)
 
 	_, restoredGatewayServices, err := fsm2.state.GatewayServices(nil, "ingress", structs.DefaultEnterpriseMetaInDefaultPartition())
@@ -859,13 +859,13 @@ func TestFSM_SnapshotRestore_CE(t *testing.T) {
 	// Verify service-intentions is restored
 	_, serviceIxnEntry, err := fsm2.state.ConfigEntry(nil, structs.ServiceIntentions, "foo", structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
-	serviceIxn.SetID(serviceIxnEntry.ID())
+	serviceIxn.SetModifyID(serviceIxnEntry.ModifyID())
 	require.Equal(t, serviceIxn, serviceIxnEntry)
 
 	// Verify mesh config entry is restored
 	_, meshConfigEntry, err := fsm2.state.ConfigEntry(nil, structs.MeshConfig, structs.MeshConfigMesh, structs.DefaultEnterpriseMetaInDefaultPartition())
 	require.NoError(t, err)
-	meshConfig.SetID(meshConfigEntry.ID())
+	meshConfig.SetModifyID(meshConfigEntry.ModifyID())
 	require.Equal(t, meshConfig, meshConfigEntry)
 
 	_, restoredServiceNames, err := fsm2.state.ServiceNamesOfKind(nil, structs.ServiceKindTypical)

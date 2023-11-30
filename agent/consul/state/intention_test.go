@@ -376,7 +376,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 
 	// Try to create a duplicate intention.
 	{
-		err := s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
+		testutil.RequireErrorContains(t, s.IntentionMutation(lastIndex, structs.IntentionOpCreate, &structs.IntentionMutation{
 			Destination: structs.NewServiceName("api", defaultEntMeta),
 			Value: &structs.SourceIntention{
 				Name:             "web",
@@ -386,8 +386,7 @@ func testStore_IntentionMutation(t *testing.T, s *Store) {
 				LegacyCreateTime: &testTimeB,
 				LegacyUpdateTime: &testTimeB,
 			},
-		})
-		testutil.RequireErrorContains(t, err, `more than once`)
+		}), `more than once`)
 	}
 
 	// Create intention with existing config entry
@@ -1270,8 +1269,6 @@ func TestStore_IntentionExact_ConfigEntries(t *testing.T) {
 	})
 }
 
-const configEntryIDKey = "config_entry_id_key"
-
 func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 	type testcase struct {
 		name          string
@@ -1297,15 +1294,6 @@ func TestStore_IntentionMatch_ConfigEntries(t *testing.T) {
 			for _, ixn := range match {
 				ixn.CreateIndex = 0
 				ixn.ModifyIndex = 0
-				meta := make(map[string]string)
-				for k, v := range ixn.Meta {
-					meta[k] = v
-				}
-				if len(meta) == 0 {
-					ixn.Meta = nil
-				} else {
-					ixn.Meta = meta
-				}
 			}
 		}
 		require.Equal(t, tc.expect, matches)

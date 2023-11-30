@@ -275,7 +275,7 @@ func createConfigEntries(num int, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, num)
 	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: ulid.Make().String(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
-		entries[i].SetID(ulid.Make().String())
+		entries[i].SetModifyID(ulid.Make().String())
 	}
 	return entries
 }
@@ -284,7 +284,7 @@ func mutateIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, len(e))
 	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
-		entries[i].SetID(ulid.Make().String())
+		entries[i].SetModifyID(ulid.Make().String())
 	}
 	return entries
 }
@@ -293,7 +293,7 @@ func clearIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 	entries := make([]structs.ConfigEntry, len(e))
 	for i := range entries {
 		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
-		entries[i].SetID("")
+		entries[i].SetModifyID("")
 	}
 	return entries
 }

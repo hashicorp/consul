@@ -23,7 +23,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 	}{
 		"upsert mesh config": {
 			mutate: func(tx *txn) error {
-				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{})
+				return ensureConfigEntryTxn(tx, 0, false, &structs.MeshConfigEntry{Meta: map[string]string{"foo": "bar"}})
 			},
 			events: []stream.Event{
 				{
@@ -31,7 +31,7 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 					Index: changeIndex,
 					Payload: EventPayloadConfigEntry{
 						Op:    pbsubscribe.ConfigEntryUpdate_Upsert,
-						Value: &structs.MeshConfigEntry{},
+						Value: &structs.MeshConfigEntry{Meta: map[string]string{"foo": "bar"}},
 					},
 				},
 			},
@@ -239,7 +239,6 @@ func TestConfigEntryEventsFromChanges(t *testing.T) {
 			events, err := ConfigEntryEventsFromChanges(tx, Changes{Index: changeIndex, Changes: tx.Changes()})
 			require.NoError(t, err)
 
-			// check id is valid and remove it so we can verify that we got the right events
 			require.Equal(t, tc.events, events)
 		})
 	}

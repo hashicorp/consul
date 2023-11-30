@@ -279,9 +279,6 @@ func (s *Store) intentionMutationLegacyCreate(
 
 		upsertEntry = prevEntry.Clone()
 		upsertEntry.Sources = append(upsertEntry.Sources, value)
-		if len(upsertEntry.GetMeta()) > 0 {
-			delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
-		}
 	}
 
 	if err := upsertEntry.LegacyNormalize(); err != nil {
@@ -319,10 +316,6 @@ func (s *Store) intentionMutationLegacyUpdate(
 	}
 
 	upsertEntry := prevEntry.Clone()
-
-	if len(upsertEntry.GetMeta()) > 0 {
-		delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
-	}
 
 	foundMatch := upsertEntry.UpdateSourceByLegacyID(
 		legacyID,
@@ -424,10 +417,6 @@ func (s *Store) intentionMutationLegacyDelete(
 			prevEntry.Name,
 			&prevEntry.EnterpriseMeta,
 		)
-	}
-
-	if len(upsertEntry.GetMeta()) > 0 {
-		delete(upsertEntry.GetMeta(), structs.ConfigEntryIDKey)
 	}
 
 	if err := upsertEntry.LegacyNormalize(); err != nil {
