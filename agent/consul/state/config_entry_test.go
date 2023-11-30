@@ -264,8 +264,8 @@ func TestStore_ConfigEntry_UpdateOver(t *testing.T) {
 		got, ok = raw.(*structs.ServiceIntentionsConfigEntry)
 		require.True(t, ok)
 		updated.RaftIndex = got.RaftIndex
-		updated.Sources[0].LegacyCreateTime = &timeA
-		// UpdateOver will not replace this
+		updated.Sources[0].LegacyCreateTime = &timeA // UpdateOver will not replace this
+
 		require.Equal(t, updated, got)
 	})
 }
