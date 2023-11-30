@@ -939,7 +939,22 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	hcpctl.RegisterControllers(s.controllerManager)
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	overrideResourceApisEnabledCheckRaw := os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK")
+	overrideResourceApisEnabledCheck := false
+	if overrideResourceApisEnabledCheckRaw != "" {
+		var err error
+		// Allow override of this check for development/testing purposes. Should not be used in production
+		overrideResourceApisEnabledCheck, err = strconv.ParseBool(overrideResourceApisEnabledCheckRaw)
+		if err != nil {
+			s.logger.Warn(fmt.Sprintf("could not parse %s", "CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"), "error", err)
+		}
+	}
+
+	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
+		ResourceApisEnabled:              s.useV2Resources,
+		OverrideResourceApisEnabledCheck: overrideResourceApisEnabledCheck,
+	})
 
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {

@@ -35,10 +35,42 @@ func (suite *controllerSuite) SetupTest() {
 	suite.client = rtest.NewClient(client)
 }
 
-func (suite *controllerSuite) TestController() {
+func TestHCCLinkController(t *testing.T) {
+	suite.Run(t, new(controllerSuite))
+}
+
+func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
+	return func() {
+		suite.client.MustDelete(suite.T(), id)
+	}
+}
+
+func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(HCCLinkController())
+	mgr.Register(HCCLinkController(false, false))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
+
+	hccLinkData := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
+	}
+
+	hccLink := rtest.Resource(pbhcp.HCCLinkType, "global").
+		WithData(suite.T(), hccLinkData).
+		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+
+	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionLinked(hccLinkData.ResourceId))
+}
+
+func (suite *controllerSuite) TestControllerResourceApisEnabled_HCCLinkDisabled() {
+	// Run the controller manager
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr.Register(HCCLinkController(true, false))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -53,14 +85,28 @@ func (suite *controllerSuite) TestController() {
 		Write(suite.T(), suite.client)
 
 	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+
+	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionDisabled)
 }
 
-func TestHCCLinkController(t *testing.T) {
-	suite.Run(t, new(controllerSuite))
-}
+func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_HCCLinkNotDisabled() {
+	// Run the controller manager
+	mgr := controller.NewManager(suite.client, suite.rt.Logger)
+	mgr.Register(HCCLinkController(true, true))
+	mgr.SetRaftLeader(true)
+	go mgr.Run(suite.ctx)
 
-func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
-	return func() {
-		suite.client.MustDelete(suite.T(), id)
+	hccLinkData := &pbhcp.HCCLink{
+		ClientId:     "abc",
+		ClientSecret: "abc",
+		ResourceId:   "abc",
 	}
+	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
+	hccLink := rtest.Resource(pbhcp.HCCLinkType, "global").
+		WithData(suite.T(), hccLinkData).
+		Write(suite.T(), suite.client)
+
+	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+
+	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionLinked(hccLinkData.ResourceId))
 }

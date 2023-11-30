@@ -13,8 +13,10 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
+type ControllerDependencies = controllers.Dependencies
+
 // RegisterControllers registers controllers for the catalog types with
 // the given controller Manager.
-func RegisterControllers(mgr *controller.Manager) {
-	controllers.Register(mgr)
+func RegisterControllers(mgr *controller.Manager, deps ControllerDependencies) {
+	controllers.Register(mgr, deps)
 }

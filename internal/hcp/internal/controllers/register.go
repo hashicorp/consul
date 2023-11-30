@@ -8,6 +8,14 @@ import (
 	"github.com/hashicorp/consul/internal/hcp/internal/controllers/hcclink"
 )
 
-func Register(mgr *controller.Manager) {
-	mgr.Register(hcclink.HCCLinkController())
+type Dependencies struct {
+	ResourceApisEnabled              bool
+	OverrideResourceApisEnabledCheck bool
+}
+
+func Register(mgr *controller.Manager, deps Dependencies) {
+	mgr.Register(hcclink.HCCLinkController(
+		deps.ResourceApisEnabled,
+		deps.OverrideResourceApisEnabledCheck,
+	))
 }
