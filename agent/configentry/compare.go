@@ -40,5 +40,8 @@ func EqualID(e1, e2 structs.ConfigEntry) bool {
 }
 
 func SameHash(e1, e2 structs.ConfigEntry) bool {
+	if e1.GetHash() == 0 || e2.GetHash() == 0 {
+		return false
+	}
 	return e1.GetHash() == e2.GetHash()
 }

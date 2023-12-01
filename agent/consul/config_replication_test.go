@@ -287,42 +287,43 @@ func mutateIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
 	return entries
 }
 
-func clearIDs(e []structs.ConfigEntry, indexStart int) []structs.ConfigEntry {
-	entries := make([]structs.ConfigEntry, len(e))
-	for i := range entries {
-		entries[i] = &structs.ServiceConfigEntry{Name: e[i].GetName(), RaftIndex: structs.RaftIndex{ModifyIndex: uint64(i + indexStart)}}
-	}
-	return entries
-}
-
 func Test_diffConfigEntries(t *testing.T) {
 	type args struct {
 		local           []structs.ConfigEntry
 		remote          []structs.ConfigEntry
 		lastRemoteIndex uint64
+		normalize       bool
 	}
 
 	entries1 := createConfigEntries(10, 10)
 	entries2 := createConfigEntries(10, 20)
 	entries3 := append(entries1, entries2...)
 	entries4 := mutateIDs(entries1, 20)
-	entries5 := clearIDs(entries1, 20)
+	entries5 := mutateIDs(entries1, 0)
 	tests := []struct {
 		name    string
 		args    args
 		updated []structs.ConfigEntry
 		deleted []structs.ConfigEntry
 	}{
-		{"empty", args{local: make([]structs.ConfigEntry, 0), remote: make([]structs.ConfigEntry, 0), lastRemoteIndex: 0}, nil, nil},
-		{"same", args{local: entries1, remote: entries1, lastRemoteIndex: 0}, nil, nil},
-		{"new remote", args{local: nil, remote: entries1, lastRemoteIndex: 0}, entries1, nil},
-		{"extra remote", args{local: entries1, remote: entries3, lastRemoteIndex: 0}, entries2, nil},
-		{"extra local", args{local: entries3, remote: entries1, lastRemoteIndex: 0}, nil, entries2},
-		{"same size different ID", args{local: entries1, remote: entries4, lastRemoteIndex: 0}, entries4, nil},
-		{"empty ID", args{local: entries5, remote: entries1, lastRemoteIndex: 0}, entries1, nil},
+		{"empty", args{local: make([]structs.ConfigEntry, 0), remote: make([]structs.ConfigEntry, 0), lastRemoteIndex: 0, normalize: true}, nil, nil},
+		{"same", args{local: entries1, remote: entries1, lastRemoteIndex: 0, normalize: true}, nil, nil},
+		{"new remote", args{local: nil, remote: entries1, lastRemoteIndex: 0, normalize: true}, entries1, nil},
+		{"extra remote", args{local: entries1, remote: entries3, lastRemoteIndex: 0, normalize: true}, entries2, nil},
+		{"extra local", args{local: entries3, remote: entries1, lastRemoteIndex: 0, normalize: true}, nil, entries2},
+		{"same, same size, different raft ID", args{local: entries1, remote: entries4, lastRemoteIndex: 0, normalize: true}, nil, nil},
+		{"when hash is empty, avoid hash compare", args{local: entries5, remote: entries4, lastRemoteIndex: 0, normalize: false}, entries4, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.args.normalize {
+				for _, l := range tt.args.local {
+					require.NoError(t, l.Normalize())
+				}
+				for _, r := range tt.args.remote {
+					require.NoError(t, r.Normalize())
+				}
+			}
 			deletions, updates := diffConfigEntries(tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
 			assert.Equalf(t, tt.updated, updates, "updated diffConfigEntries(%v, %v, %v)", tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
 			assert.Equalf(t, tt.deleted, deletions, "deleted diffConfigEntries(%v, %v, %v)", tt.args.local, tt.args.remote, tt.args.lastRemoteIndex)
