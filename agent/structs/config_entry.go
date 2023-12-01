@@ -99,7 +99,7 @@ type ConfigEntry interface {
 	SetHash(h uint64)
 }
 
-func hashConfigEntry(conf ConfigEntry) (error, uint64) {
+func HashConfigEntry(conf ConfigEntry) (error, uint64) {
 	hash, err := hashstructure.Hash(conf, nil)
 	if err != nil {
 		return err, hash
@@ -244,7 +244,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 			}
 		}
 	}
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -523,7 +523,7 @@ func (e *ProxyConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

@@ -111,7 +111,7 @@ func (e *HTTPRouteConfigEntry) Normalize() error {
 		e.Rules[i] = rule
 	}
 
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -616,7 +616,7 @@ func (e *TCPRouteConfigEntry) Normalize() error {
 		e.Services[i] = service
 	}
 
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

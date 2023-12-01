@@ -102,7 +102,7 @@ func (e *MeshConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

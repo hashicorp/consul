@@ -555,7 +555,7 @@ func (e *JWTProviderConfigEntry) Normalize() error {
 		e.ClockSkewSeconds = DefaultClockSkewSeconds
 	}
 
-	err, h := hashConfigEntry(e)
+	err, h := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

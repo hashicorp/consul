@@ -54,7 +54,7 @@ func (s *SamenessGroupConfigEntry) Normalize() error {
 		return fmt.Errorf("config entry is nil")
 	}
 	s.EnterpriseMeta.Normalize()
-	err, h := hashConfigEntry(s)
+	err, h := HashConfigEntry(s)
 	if err != nil {
 		return err
 	}
