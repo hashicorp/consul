@@ -38,7 +38,10 @@ TCP: Port 8301 on localhost is open.
 TCP: Port 8500 on localhost is open.
 ```
 
+Check TCP ports status on different host.
+
 ```shell-session
-$ consul troubleshoot ports -host hashicorp.com -ports 80
+$ consul troubleshoot ports -host hashicorp.com -ports 80,8077
 TCP: Port 80 on hashicorp.com is open.
+TCP: Port 8077 on hashicorp.com is closed, unreachable, or the connection timed out.
 ```
