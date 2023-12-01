@@ -21,6 +21,10 @@ type SamenessGroupConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (s *SamenessGroupConfigEntry) SetHash(h uint64) {
+	s.Hash = h
+}
+
 func (s *SamenessGroupConfigEntry) GetHash() uint64 {
 	return s.Hash
 }

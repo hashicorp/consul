@@ -49,6 +49,10 @@ type HTTPRouteConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *HTTPRouteConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *HTTPRouteConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
@@ -559,6 +563,10 @@ type TCPRouteConfigEntry struct {
 	Hash               uint64 `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *TCPRouteConfigEntry) SetHash(h uint64) {
+	e.Hash = h
 }
 
 func (e *TCPRouteConfigEntry) GetHash() uint64 {

@@ -25,6 +25,10 @@ type ExportedServicesConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ExportedServicesConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *ExportedServicesConfigEntry) GetHash() uint64 {
 	return e.Hash
 }

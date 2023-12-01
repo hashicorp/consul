@@ -32,6 +32,11 @@ type MeshConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *MeshConfigEntry) SetHash(h uint64) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (e *MeshConfigEntry) GetHash() uint64 {
 	return e.Hash
 }

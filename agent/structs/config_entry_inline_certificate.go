@@ -36,6 +36,10 @@ type InlineCertificateConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *InlineCertificateConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *InlineCertificateConfigEntry) GetHash() uint64 {
 	return e.Hash
 }

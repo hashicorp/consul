@@ -50,6 +50,10 @@ type IngressGatewayConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *IngressGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *IngressGatewayConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
@@ -486,6 +490,10 @@ type TerminatingGatewayConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *TerminatingGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *TerminatingGatewayConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
@@ -739,6 +747,10 @@ type APIGatewayConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *APIGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
 }
 
 func (e *APIGatewayConfigEntry) GetHash() uint64 {
@@ -1024,6 +1036,10 @@ type BoundAPIGatewayConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *BoundAPIGatewayConfigEntry) SetHash(h uint64) {
+	e.Hash = h
 }
 
 func (e *BoundAPIGatewayConfigEntry) GetHash() uint64 {

@@ -84,6 +84,10 @@ type ServiceRouterConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ServiceRouterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *ServiceRouterConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
@@ -552,6 +556,10 @@ type ServiceSplitterConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ServiceSplitterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *ServiceSplitterConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
@@ -899,6 +907,10 @@ type ServiceResolverConfigEntry struct {
 	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceResolverConfigEntry) SetHash(h uint64) {
+	e.Hash = h
 }
 
 func (e *ServiceResolverConfigEntry) GetHash() uint64 {

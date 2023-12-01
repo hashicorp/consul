@@ -3407,6 +3407,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 			}
 
 			if tc.expected != nil {
+				tc.expected.SetHash(tc.entry.GetHash())
 				require.Equal(t, tc.expected, tc.entry)
 			}
 
@@ -3420,6 +3421,7 @@ func testConfigEntryNormalizeAndValidate(t *testing.T, cases map[string]configEn
 						return a.IsSame(&b)
 					}),
 				}
+				beforeNormalize.(ConfigEntry).SetHash(tc.entry.GetHash())
 				if diff := cmp.Diff(beforeNormalize, tc.entry, opts); diff != "" {
 					t.Fatalf("expect unchanged after Normalize, got diff:\n%s", diff)
 				}

@@ -30,6 +30,10 @@ type ServiceIntentionsConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *ServiceIntentionsConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *ServiceIntentionsConfigEntry) GetHash() uint64 {
 	return e.Hash
 }

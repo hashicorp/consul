@@ -73,6 +73,10 @@ type JWTProviderConfigEntry struct {
 	RaftIndex          `hash:"ignore"`
 }
 
+func (e *JWTProviderConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
 func (e *JWTProviderConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
