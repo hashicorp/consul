@@ -75,7 +75,9 @@ type nodeHealthControllerTestSuite struct {
 func (suite *nodeHealthControllerTestSuite) writeNode(name string, tenancy *pbresource.Tenancy) *pbresource.ID {
 	return resourcetest.Resource(pbcatalog.NodeType, name).
 		WithData(suite.T(), nodeData).
-		WithTenancy(tenancy).
+		WithTenancy(&pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}).
 		Write(suite.T(), suite.resourceClient).Id
 }
 
@@ -122,7 +124,9 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 		// no error is returned but also no data is. The default passing
 		// status should then be returned in the same manner as the node
 		// existing but with no associated HealthStatus resources.
-		ref := resourceID(pbcatalog.NodeType, "foo", tenancy)
+		ref := resourceID(pbcatalog.NodeType, "foo", &pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		})
 		ref.Uid = ulid.Make().String()
 		health, err := getNodeHealth(context.Background(), suite.runtime, ref)
 
@@ -181,7 +185,9 @@ func (suite *nodeHealthControllerTestSuite) TestReconcileNodeNotFound() {
 		// This test ensures that removed nodes are ignored. In particular we don't
 		// want to propagate the error and indefinitely keep re-reconciling in this case.
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-			ID: resourceID(pbcatalog.NodeType, "not-found", tenancy),
+			ID: resourceID(pbcatalog.NodeType, "not-found", &pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}),
 		})
 		require.NoError(suite.T(), err)
 	})
@@ -349,7 +355,9 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 					},
 				},
 			}).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.resourceClient)
 
 		// wait for rereconciliation to happen
