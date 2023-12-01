@@ -119,7 +119,9 @@ func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog
 
 	return resourcetest.Resource(pbcatalog.NodeType, name).
 		WithData(suite.T(), nodeData).
-		WithTenancy(tenancy).
+		WithTenancy(&pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}).
 		WithStatus(nodehealth.StatusKey, &pbresource.Status{
 			Conditions: []*pbresource.Condition{
 				{
@@ -422,7 +424,9 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 
 		node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			// Whether this gets written or not doesn't matter
 			Build()
 
@@ -468,7 +472,9 @@ func (suite *workloadHealthControllerTestSuite) TestGetNodeHealthError() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.client)
 
 		workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
@@ -712,7 +718,9 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 	// could occur when a linked node gets removed without the workloads being modified/removed.
 	// When that occurs we want to steer traffic away from the linked node as soon as possible.
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", tenancy))
+		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", &pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}))
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
@@ -736,7 +744,9 @@ func (suite *getNodeHealthTestSuite) TestUnreconciled() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "unreconciled").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.client).
 			GetId()
 
@@ -757,7 +767,9 @@ func (suite *getNodeHealthTestSuite) TestNoConditions() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "no-conditions").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			WithStatus(nodehealth.StatusKey, &pbresource.Status{}).
 			Write(suite.T(), suite.client).
 			GetId()
@@ -780,7 +792,9 @@ func (suite *getNodeHealthTestSuite) TestInvalidReason() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "invalid-reason").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			WithStatus(nodehealth.StatusKey, &pbresource.Status{
 				Conditions: []*pbresource.Condition{
 					{

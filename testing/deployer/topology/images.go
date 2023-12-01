@@ -122,7 +122,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulCE:         DefaultConsulImage,
+		ConsulCE:         DefaultConsulCEImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

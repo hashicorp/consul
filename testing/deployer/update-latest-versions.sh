@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 
 ###
 # This script will update the default image names to the latest released versions of
-# Consul, Consul Enterprise, and Consul Dataplane.
+# Consul CE, Consul Enterprise, and Consul Dataplane.
 #
 # For Envoy, it will interrogate the latest version of Consul for it's maximum supported
 # Envoy version and use that.
@@ -50,7 +50,7 @@ cat > topology/default_versions.go <<EOF
 package topology
 
 const (
-    DefaultConsulImage           = "hashicorp/consul:${consul_version}"
+    DefaultConsulCEImage         = "hashicorp/consul:${consul_version}"
     DefaultConsulEnterpriseImage = "hashicorp/consul-enterprise:${consul_version}-ent"
     DefaultEnvoyImage            = "envoyproxy/envoy:v${envoy_version}"
     DefaultDataplaneImage        = "hashicorp/consul-dataplane:${dataplane_version}"

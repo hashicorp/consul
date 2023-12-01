@@ -148,6 +148,7 @@ func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConf
 			}
 		}
 	}
+	t.Services = serviceRefsToStructs(s.Services)
 	t.Meta = s.Meta
 	t.Hash = s.Hash
 }
@@ -165,6 +166,7 @@ func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundA
 			}
 		}
 	}
+	s.Services = serviceRefFromStructs(t.Services)
 	s.Meta = t.Meta
 	s.Hash = t.Hash
 }
