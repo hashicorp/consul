@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -49,6 +50,7 @@ func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresour
 
 	// initial node creation
 	node := rtest.Resource(pbcatalog.NodeType, nodeName).
+		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{
 				{Host: "172.16.2.3"},
@@ -246,11 +248,13 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 
 	// Insert a some nodes to link the workloads to at various points throughout the test
 	node1 := rtest.Resource(pbcatalog.NodeType, nodeName1).
+		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.10"}},
 		}).
 		Write(t, c)
 	node2 := rtest.Resource(pbcatalog.NodeType, nodeName2).
+		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, &pbcatalog.Node{
 			Addresses: []*pbcatalog.NodeAddress{{Host: "172.17.9.11"}},
 		}).
