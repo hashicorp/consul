@@ -597,8 +597,7 @@ These metrics are used to monitor the health of the Consul servers.
 
 The following label-based RPC metrics provide insight about the workload on a Consul server and the source of the workload.
 
-All RPC metric method calls are by default blocked via the [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter) telemetry configuration setting. You can enable all RPC metric server
-calls and/or explicity deny RPC calls using the same configuration setting.
+The [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter) telemetry configuration setting blocks or enables all RPC metric method calls. Specify the RPC metrics you want to allow in the `prefix_filter`:
 
 <CodeTabs heading="Example prefix_filter allowing all RPC metrics">
 
