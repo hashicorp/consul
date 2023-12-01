@@ -72,9 +72,11 @@ func TestValidateHealthStatus_Ok(t *testing.T) {
 		},
 		"node-owned": {
 			owner: &pbresource.ID{
-				Type:    pbcatalog.NodeType,
-				Tenancy: defaultHealthStatusOwnerTenancy,
-				Name:    "bar-node",
+				Type: pbcatalog.NodeType,
+				Tenancy: &pbresource.Tenancy{
+					Partition: defaultHealthStatusOwnerTenancy.Partition,
+				},
+				Name: "bar-node",
 			},
 		},
 	}

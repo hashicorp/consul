@@ -5,6 +5,7 @@ package controllers
 
 import (
 	"context"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshconfiguration"
 
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/internal/controller"
@@ -51,4 +52,5 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(explicitdestinations.Controller(mapper.New()))
 
 	mgr.Register(meshgateways.Controller())
+	mgr.Register(meshconfiguration.Controller())
 }
