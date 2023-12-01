@@ -6227,6 +6227,9 @@ func (tc testCase) run(format string, dataDir string) func(t *testing.T) {
 		expected.ACLResolverSettings.NodeName = expected.NodeName
 		expected.ACLResolverSettings.EnterpriseMeta = *structs.NodeEnterpriseMetaInPartition(expected.PartitionOrDefault())
 
+		for i, e := range expected.ConfigEntryBootstrap {
+			e.SetHash(actual.ConfigEntryBootstrap[i].GetHash())
+		}
 		prototest.AssertDeepEqual(t, expected, actual, cmpopts.EquateEmpty())
 		if tc.cleanup != nil {
 			tc.cleanup()

@@ -33,8 +33,7 @@ type MeshConfigEntry struct {
 }
 
 func (e *MeshConfigEntry) SetHash(h uint64) {
-	//TODO implement me
-	panic("implement me")
+	e.Hash = h
 }
 
 func (e *MeshConfigEntry) GetHash() uint64 {
