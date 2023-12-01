@@ -2328,7 +2328,7 @@ func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 }
 
 // addServerTLSInfo adds the server's TLS information if available to the status
-func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator *tlsutil.Configurator) error {
+func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator tlsutil.ConfiguratorIface) error {
 	tlsCert := tlsConfigurator.Cert()
 	if tlsCert == nil {
 		return nil
