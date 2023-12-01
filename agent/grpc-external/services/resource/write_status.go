@@ -34,9 +34,9 @@ func (s *Server) WriteStatus(ctx context.Context, req *pbresource.WriteStatusReq
 	// Apply defaults when tenancy units empty.
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
-	// Check V1 tenancy exists for the V2 resource. Ignore "marked for deletion" since status updates
+	// Check tenancy exists for the V2 resource. Ignore "marked for deletion" since status updates
 	// should still work regardless.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
+	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.InvalidArgument); err != nil {
 		return nil, err
 	}
 
@@ -173,13 +173,22 @@ func (s *Server) validateWriteStatusRequest(req *pbresource.WriteStatusRequest) 
 		req.Id.Tenancy = &pbresource.Tenancy{
 			Partition: "",
 			Namespace: "",
-			// TODO(spatel): Remove when peerTenancy introduced.
+			// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 			PeerName: "local",
 		}
 	}
 
-	// Lowercase
-	resource.Normalize(req.Id.Tenancy)
+	if err := validateId(req.Id, "id"); err != nil {
+		return nil, err
+	}
+
+	for i, condition := range req.Status.Conditions {
+		if condition.Resource != nil {
+			if err := validateRef(condition.Resource, fmt.Sprintf("status.conditions[%d].resource", i)); err != nil {
+				return nil, err
+			}
+		}
+	}
 
 	// Check type exists.
 	reg, err := s.resolveType(req.Id.Type)

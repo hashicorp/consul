@@ -6,15 +6,16 @@ package proxytracker
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/lib/channels"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/agent/grpc-external/limiter"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/resource"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -179,8 +180,8 @@ func (pt *ProxyTracker) validateWatchArgs(proxyID *pbresource.ID,
 	nodeName string) error {
 	if proxyID == nil {
 		return errors.New("proxyID is required")
-	} else if proxyID.GetType().GetKind() != types.ProxyStateTemplateType.Kind {
-		return fmt.Errorf("proxyID must be a %s", types.ProxyStateTemplateType.GetKind())
+	} else if proxyID.GetType().GetKind() != pbmesh.ProxyStateTemplateType.Kind {
+		return fmt.Errorf("proxyID must be a %s", pbmesh.ProxyStateTemplateType.GetKind())
 	} else if nodeName == "" {
 		return errors.New("nodeName is required")
 	}
@@ -207,32 +208,8 @@ func (pt *ProxyTracker) PushChange(proxyID *pbresource.ID, proxyState proxysnaps
 
 func (pt *ProxyTracker) deliverLatest(proxyID *pbresource.ID, proxyState proxysnapshot.ProxySnapshot, ch chan proxysnapshot.ProxySnapshot) {
 	pt.config.Logger.Trace("delivering latest proxy snapshot to proxy", "proxyID", proxyID)
-	// Send if chan is empty
-	select {
-	case ch <- proxyState:
-		return
-	default:
-	}
-
-	// Not empty, drain the chan of older snapshots and redeliver. For now we only
-	// use 1-buffered chans but this will still work if we change that later.
-OUTER:
-	for {
-		select {
-		case <-ch:
-			continue
-		default:
-			break OUTER
-		}
-	}
-
-	// Now send again
-	select {
-	case ch <- proxyState:
-		return
-	default:
-		// This should not be possible since we should be the only sender, enforced
-		// by m.mu but error and drop the update rather than panic.
+	err := channels.DeliverLatest(proxyState, ch)
+	if err != nil {
 		pt.config.Logger.Error("failed to deliver proxyState to proxy",
 			"proxy", proxyID.String(),
 		)
@@ -251,12 +228,15 @@ func (pt *ProxyTracker) ShutdownChannel() chan struct{} {
 }
 
 // ProxyConnectedToServer returns whether this id is connected to this server.
-func (pt *ProxyTracker) ProxyConnectedToServer(proxyID *pbresource.ID) bool {
+func (pt *ProxyTracker) ProxyConnectedToServer(proxyID *pbresource.ID) (string, bool) {
 	pt.mu.Lock()
 	defer pt.mu.Unlock()
 	proxyReferenceKey := resource.NewReferenceKey(proxyID)
-	_, ok := pt.proxies[proxyReferenceKey]
-	return ok
+	proxyData, ok := pt.proxies[proxyReferenceKey]
+	if ok {
+		return proxyData.token, ok
+	}
+	return "", ok
 }
 
 // Shutdown removes all state and close all channels.

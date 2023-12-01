@@ -6,7 +6,7 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"sort"
 	"strings"
 	"time"
@@ -50,6 +50,11 @@ func (s *Converter) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) error {
 func (s *Converter) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) error {
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		if chain.Default {
+			continue
+		}
+
+		// route already exists, don't clobber it.
+		if _, ok := s.proxyState.Routes[uid.EnvoyID()]; ok {
 			continue
 		}
 

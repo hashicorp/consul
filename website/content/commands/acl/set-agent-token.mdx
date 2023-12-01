@@ -32,21 +32,14 @@ Usage: `consul acl set-agent-token [options] token_type token_secret_id`
 
 The token types are:
 
-- `default` - The default token is the token that the agent will use for
-  both internal agent operations and operations initiated by the HTTP
-  and DNS interfaces when no specific token is provided. If not set the
-  agent will use the anonymous token.
-
 - `agent` - The token that the agent will use for internal agent operations.
   If not given then the default token is used for these operations.
 
-- `recovery` - This sets the token that can be used to access the Agent APIs
-  in the event that the ACL datacenter cannot be reached. In Consul versions
-  prior to 1.11, this token type was called `agent_master`.
-
-- `replication` - This is the token that the agent will use for replication
-  operations. This token will need to be configured with read access to
-  whatever data is being replicated.
+- `dns` - Specifies the token that agents use to request information needed to respond to DNS queries.
+  If the `dns` token is not set, Consul uses the `default` token by default.
+  Because the `default` token allows unauthenticated HTTP API access to list nodes and services, we
+  strongly recommend using the `dns` token. Create DNS tokens using the [templated policy](/consul/docs/security/acl/tokens/create/create-a-dns-token#create_a_dns_token) option
+  to ensure that the token has the permissions needed to respond to all DNS queries.
 
 - `config_file_service_registration` - This is the token that the agent uses to
   register services and checks defined in config files. This token needs to be
@@ -54,6 +47,17 @@ The token types are:
   If not set, the `default` token is used. If a service or check definition
   contains a `token` field, then that token is used to register that service or
   check instead of the `config_file_service_registration` token.
+
+- `replication` - This is the token that the agent uses for replication
+  operations. This token must be configured with read access to
+  all data that the agent replicates.
+
+- `recovery` - This sets the token that allows access to the agent APIs when the ACL datacenter is unreachable.
+
+- `default` - The default token is the token that the agent uses for
+  both internal agent operations and operations initiated by the HTTP
+  and DNS interfaces when no specific token is provided. If not set the
+  agent uses the anonymous token.
 
 ### API Options
 

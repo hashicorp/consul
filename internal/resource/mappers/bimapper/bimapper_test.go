@@ -32,30 +32,35 @@ var (
 		GroupVersion: fakeVersion,
 		Kind:         "Bar",
 	}
+	fakeBazType = &pbresource.Type{
+		Group:        fakeGroupName,
+		GroupVersion: fakeVersion,
+		Kind:         "Baz",
+	}
 )
 
 func TestMapper(t *testing.T) {
 	// Create an advance pointer to some services.
 
-	randoSvc := rtest.Resource(fakeBarType, "rando").Build()
-	apiSvc := rtest.Resource(fakeBarType, "api").Build()
-	fooSvc := rtest.Resource(fakeBarType, "foo").Build()
-	barSvc := rtest.Resource(fakeBarType, "bar").Build()
-	wwwSvc := rtest.Resource(fakeBarType, "www").Build()
+	randoSvc := rtest.Resource(fakeBarType, "rando").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	apiSvc := rtest.Resource(fakeBarType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	fooSvc := rtest.Resource(fakeBarType, "foo").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	barSvc := rtest.Resource(fakeBarType, "bar").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
+	wwwSvc := rtest.Resource(fakeBarType, "www").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 
 	apiRef := newRef(fakeBarType, "api")
 	fooRef := newRef(fakeBarType, "foo")
 	barRef := newRef(fakeBarType, "bar")
 	wwwRef := newRef(fakeBarType, "www")
 
-	fail1 := rtest.Resource(fakeFooType, "api").Build()
+	fail1 := rtest.Resource(fakeFooType, "api").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	fail1Refs := []resource.ReferenceOrID{
 		apiRef,
 		fooRef,
 		barRef,
 	}
 
-	fail2 := rtest.Resource(fakeFooType, "www").Build()
+	fail2 := rtest.Resource(fakeFooType, "www").WithTenancy(resource.DefaultNamespacedTenancy()).Build()
 	fail2Refs := []resource.ReferenceOrID{
 		wwwRef,
 		fooRef,
@@ -211,6 +216,134 @@ func TestMapper(t *testing.T) {
 	require.True(t, m.IsEmpty())
 }
 
+func TestMapper_Wildcard(t *testing.T) {
+	bar1Ref := newRef(fakeBarType, "uno")
+	bar2Ref := newRef(fakeBarType, "dos")
+
+	baz1Ref := newRef(fakeBazType, "uno")
+	baz2Ref := newRef(fakeBazType, "dos")
+
+	m := NewWithWildcardLinkType(fakeFooType)
+
+	foo1 := rtest.Resource(fakeFooType, "foo1").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+	foo1Refs := []resource.ReferenceOrID{
+		bar1Ref,
+		baz1Ref,
+	}
+
+	foo2 := rtest.Resource(fakeFooType, "foo2").
+		WithTenancy(resource.DefaultNamespacedTenancy()).
+		Build()
+	foo2Refs := []resource.ReferenceOrID{
+		bar1Ref,
+		bar2Ref,
+		baz2Ref,
+	}
+	foo2UpdatedRefs := []resource.ReferenceOrID{
+		bar2Ref,
+		baz2Ref,
+	}
+
+	// Nothing tracked yet so we assume nothing.
+	requireLinksForItem(t, m, foo1.Id)
+	requireLinksForItem(t, m, foo2.Id)
+	requireItemsForLink(t, m, bar1Ref)
+	requireItemsForLink(t, m, bar2Ref)
+	requireItemsForLink(t, m, baz1Ref)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// no-ops
+	m.UntrackItem(foo1.Id)
+
+	// still nothing
+	requireLinksForItem(t, m, foo1.Id)
+	requireLinksForItem(t, m, foo2.Id)
+	requireItemsForLink(t, m, bar1Ref)
+	requireItemsForLink(t, m, bar2Ref)
+	requireItemsForLink(t, m, baz1Ref)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// Actually insert some data.
+	m.TrackItem(foo1.Id, foo1Refs)
+
+	// Check links mapping
+	requireLinksForItem(t, m, foo1.Id, foo1Refs...)
+	requireItemsForLink(t, m, bar1Ref, foo1.Id)
+	requireItemsForLink(t, m, bar2Ref)
+	requireItemsForLink(t, m, baz1Ref, foo1.Id)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// track it again, no change
+	m.TrackItem(foo1.Id, foo1Refs)
+
+	requireLinksForItem(t, m, foo1.Id, foo1Refs...)
+	requireItemsForLink(t, m, bar1Ref, foo1.Id)
+	requireItemsForLink(t, m, bar2Ref)
+	requireItemsForLink(t, m, baz1Ref, foo1.Id)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// track new one that overlaps slightly
+	m.TrackItem(foo2.Id, foo2Refs)
+
+	// Check links mapping for the new one
+	requireLinksForItem(t, m, foo1.Id, foo1Refs...)
+	requireLinksForItem(t, m, foo2.Id, foo2Refs...)
+	requireItemsForLink(t, m, bar1Ref, foo1.Id, foo2.Id)
+	requireItemsForLink(t, m, bar2Ref, foo2.Id)
+	requireItemsForLink(t, m, baz1Ref, foo1.Id)
+	requireItemsForLink(t, m, baz2Ref, foo2.Id)
+
+	// update the original to change it
+	m.TrackItem(foo2.Id, foo2UpdatedRefs)
+
+	requireLinksForItem(t, m, foo1.Id, foo1Refs...)
+	requireLinksForItem(t, m, foo2.Id, foo2UpdatedRefs...)
+	requireItemsForLink(t, m, bar1Ref, foo1.Id)
+	requireItemsForLink(t, m, bar2Ref, foo2.Id)
+	requireItemsForLink(t, m, baz1Ref, foo1.Id)
+	requireItemsForLink(t, m, baz2Ref, foo2.Id)
+
+	// delete the original
+	m.UntrackItem(foo1.Id)
+
+	requireLinksForItem(t, m, foo1.Id)
+	requireLinksForItem(t, m, foo2.Id, foo2UpdatedRefs...)
+	requireItemsForLink(t, m, bar1Ref)
+	requireItemsForLink(t, m, bar2Ref, foo2.Id)
+	requireItemsForLink(t, m, baz1Ref)
+	requireItemsForLink(t, m, baz2Ref, foo2.Id)
+
+	// delete the link
+	m.UntrackLink(baz2Ref)
+
+	foo2DoubleUpdatedRefs := []resource.ReferenceOrID{
+		bar2Ref,
+	}
+
+	requireLinksForItem(t, m, foo1.Id)
+	requireLinksForItem(t, m, foo2.Id, foo2DoubleUpdatedRefs...)
+	requireItemsForLink(t, m, bar1Ref)
+	requireItemsForLink(t, m, bar2Ref, foo2.Id)
+	requireItemsForLink(t, m, baz1Ref)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// delete another item
+	m.UntrackItem(foo2.Id)
+
+	requireLinksForItem(t, m, foo1.Id)
+	requireLinksForItem(t, m, foo2.Id)
+	requireItemsForLink(t, m, bar1Ref)
+	requireItemsForLink(t, m, bar2Ref)
+	requireItemsForLink(t, m, baz1Ref)
+	requireItemsForLink(t, m, baz2Ref)
+
+	// Reset the mapper and check that its internal maps are empty.
+	m.Reset()
+	require.True(t, m.IsEmpty())
+}
+
 func TestPanics(t *testing.T) {
 	t.Run("new mapper without types", func(t *testing.T) {
 		require.PanicsWithValue(t, "itemType is required", func() {
@@ -352,5 +485,5 @@ func requireLinksForItem(t *testing.T, mapper *Mapper, item *pbresource.ID, link
 }
 
 func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
-	return rtest.Resource(typ, name).Reference("")
+	return rtest.Resource(typ, name).WithTenancy(resource.DefaultNamespacedTenancy()).Reference("")
 }

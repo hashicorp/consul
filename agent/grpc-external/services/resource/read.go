@@ -18,7 +18,7 @@ import (
 
 func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbresource.ReadResponse, error) {
 	// Light first pass validation based on what user passed in and not much more.
-	reg, err := s.validateReadRequest(req)
+	reg, err := s.ensureReadRequestValid(req)
 	if err != nil {
 		return nil, err
 	}
@@ -44,34 +44,50 @@ func (s *Server) Read(ctx context.Context, req *pbresource.ReadRequest) (*pbreso
 
 	v1EntMetaToV2Tenancy(reg, entMeta, req.Id.Tenancy)
 
-	// ACL check comes before tenancy existence checks to not leak tenancy "existence".
-	err = reg.ACLs.Read(authz, authzContext, req.Id)
+	// ACL check usually comes before tenancy existence checks to not leak
+	// tenancy "existence", unless the ACL check requires the data payload
+	// to function.
+	authzNeedsData := false
+	err = reg.ACLs.Read(authz, authzContext, req.Id, nil)
 	switch {
+	case errors.Is(err, resource.ErrNeedResource):
+		authzNeedsData = true
+		err = nil
 	case acl.IsErrPermissionDenied(err):
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
 	}
 
-	// Check V1 tenancy exists for the V2 resource.
-	if err = v1TenancyExists(reg, s.V1TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
+	// Check tenancy exists for the V2 resource.
+	if err = tenancyExists(reg, s.TenancyBridge, req.Id.Tenancy, codes.NotFound); err != nil {
 		return nil, err
 	}
 
 	resource, err := s.Backend.Read(ctx, readConsistencyFrom(ctx), req.Id)
 	switch {
-	case err == nil:
-		return &pbresource.ReadResponse{Resource: resource}, nil
 	case errors.Is(err, storage.ErrNotFound):
 		return nil, status.Error(codes.NotFound, err.Error())
 	case errors.As(err, &storage.GroupVersionMismatchError{}):
 		return nil, status.Error(codes.InvalidArgument, err.Error())
-	default:
+	case err != nil:
 		return nil, status.Errorf(codes.Internal, "failed read: %v", err)
 	}
+
+	if authzNeedsData {
+		err = reg.ACLs.Read(authz, authzContext, req.Id, resource)
+		switch {
+		case acl.IsErrPermissionDenied(err):
+			return nil, status.Error(codes.PermissionDenied, err.Error())
+		case err != nil:
+			return nil, status.Errorf(codes.Internal, "failed read acl: %v", err)
+		}
+	}
+
+	return &pbresource.ReadResponse{Resource: resource}, nil
 }
 
-func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Registration, error) {
+func (s *Server) ensureReadRequestValid(req *pbresource.ReadRequest) (*resource.Registration, error) {
 	if req.Id == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "id is required")
 	}
@@ -86,14 +102,13 @@ func (s *Server) validateReadRequest(req *pbresource.ReadRequest) (*resource.Reg
 		return nil, err
 	}
 
+	if err = checkV2Tenancy(s.UseV2Tenancy, req.Id.Type); err != nil {
+		return nil, err
+	}
+
 	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped resource %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Id.Type),
-			req.Id.Tenancy.Namespace,
-		)
+	if err = validateScopedTenancy(reg.Scope, req.Id.Type, req.Id.Tenancy); err != nil {
+		return nil, err
 	}
 
 	return reg, nil

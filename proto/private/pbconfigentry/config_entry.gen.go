@@ -146,6 +146,7 @@ func BoundAPIGatewayToStructs(s *BoundAPIGateway, t *structs.BoundAPIGatewayConf
 			}
 		}
 	}
+	t.Services = serviceRefsToStructs(s.Services)
 	t.Meta = s.Meta
 }
 func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundAPIGateway) {
@@ -162,6 +163,7 @@ func BoundAPIGatewayFromStructs(t *structs.BoundAPIGatewayConfigEntry, s *BoundA
 			}
 		}
 	}
+	s.Services = serviceRefFromStructs(t.Services)
 	s.Meta = t.Meta
 }
 func BoundAPIGatewayListenerToStructs(s *BoundAPIGatewayListener, t *structs.BoundAPIGatewayListener) {
@@ -578,6 +580,34 @@ func HTTPQueryMatchFromStructs(t *structs.HTTPQueryMatch, s *HTTPQueryMatch) {
 	s.Name = t.Name
 	s.Value = t.Value
 }
+func HTTPResponseFiltersToStructs(s *HTTPResponseFilters, t *structs.HTTPResponseFilters) {
+	if s == nil {
+		return
+	}
+	{
+		t.Headers = make([]structs.HTTPHeaderFilter, len(s.Headers))
+		for i := range s.Headers {
+			if s.Headers[i] != nil {
+				HTTPHeaderFilterToStructs(s.Headers[i], &t.Headers[i])
+			}
+		}
+	}
+}
+func HTTPResponseFiltersFromStructs(t *structs.HTTPResponseFilters, s *HTTPResponseFilters) {
+	if s == nil {
+		return
+	}
+	{
+		s.Headers = make([]*HTTPHeaderFilter, len(t.Headers))
+		for i := range t.Headers {
+			{
+				var x HTTPHeaderFilter
+				HTTPHeaderFilterFromStructs(&t.Headers[i], &x)
+				s.Headers[i] = &x
+			}
+		}
+	}
+}
 func HTTPRouteToStructs(s *HTTPRoute, t *structs.HTTPRouteConfigEntry) {
 	if s == nil {
 		return
@@ -643,6 +673,9 @@ func HTTPRouteRuleToStructs(s *HTTPRouteRule, t *structs.HTTPRouteRule) {
 	if s.Filters != nil {
 		HTTPFiltersToStructs(s.Filters, &t.Filters)
 	}
+	if s.ResponseFilters != nil {
+		HTTPResponseFiltersToStructs(s.ResponseFilters, &t.ResponseFilters)
+	}
 	{
 		t.Matches = make([]structs.HTTPMatch, len(s.Matches))
 		for i := range s.Matches {
@@ -668,6 +701,11 @@ func HTTPRouteRuleFromStructs(t *structs.HTTPRouteRule, s *HTTPRouteRule) {
 		var x HTTPFilters
 		HTTPFiltersFromStructs(&t.Filters, &x)
 		s.Filters = &x
+	}
+	{
+		var x HTTPResponseFilters
+		HTTPResponseFiltersFromStructs(&t.ResponseFilters, &x)
+		s.ResponseFilters = &x
 	}
 	{
 		s.Matches = make([]*HTTPMatch, len(t.Matches))
@@ -699,6 +737,9 @@ func HTTPServiceToStructs(s *HTTPService, t *structs.HTTPService) {
 	if s.Filters != nil {
 		HTTPFiltersToStructs(s.Filters, &t.Filters)
 	}
+	if s.ResponseFilters != nil {
+		HTTPResponseFiltersToStructs(s.ResponseFilters, &t.ResponseFilters)
+	}
 	t.EnterpriseMeta = enterpriseMetaToStructs(s.EnterpriseMeta)
 }
 func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
@@ -711,6 +752,11 @@ func HTTPServiceFromStructs(t *structs.HTTPService, s *HTTPService) {
 		var x HTTPFilters
 		HTTPFiltersFromStructs(&t.Filters, &x)
 		s.Filters = &x
+	}
+	{
+		var x HTTPResponseFilters
+		HTTPResponseFiltersFromStructs(&t.ResponseFilters, &x)
+		s.ResponseFilters = &x
 	}
 	s.EnterpriseMeta = enterpriseMetaFromStructs(t.EnterpriseMeta)
 }
@@ -1778,19 +1824,19 @@ func RetryFilterToStructs(s *RetryFilter, t *structs.RetryFilter) {
 	if s == nil {
 		return
 	}
-	t.NumRetries = &s.NumRetries
+	t.NumRetries = s.NumRetries
 	t.RetryOn = s.RetryOn
 	t.RetryOnStatusCodes = s.RetryOnStatusCodes
-	t.RetryOnConnectFailure = &s.RetryOnConnectFailure
+	t.RetryOnConnectFailure = s.RetryOnConnectFailure
 }
 func RetryFilterFromStructs(t *structs.RetryFilter, s *RetryFilter) {
 	if s == nil {
 		return
 	}
-	s.NumRetries = *t.NumRetries
+	s.NumRetries = t.NumRetries
 	s.RetryOn = t.RetryOn
 	s.RetryOnStatusCodes = t.RetryOnStatusCodes
-	s.RetryOnConnectFailure = *t.RetryOnConnectFailure
+	s.RetryOnConnectFailure = t.RetryOnConnectFailure
 }
 func RetryPolicyBackOffToStructs(s *RetryPolicyBackOff, t *structs.RetryPolicyBackOff) {
 	if s == nil {

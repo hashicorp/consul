@@ -9,50 +9,39 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	DestinationPolicyKind = "DestinationPolicy"
-)
-
-var (
-	DestinationPolicyV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         DestinationPolicyKind,
-	}
-
-	DestinationPolicyType = DestinationPolicyV1Alpha1Type
 )
 
 func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     DestinationPolicyV1Alpha1Type,
+		Type:     pbmesh.DestinationPolicyType,
 		Proto:    &pbmesh.DestinationPolicy{},
+		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDestinationPolicy,
+		ACLs: &resource.ACLHooks{
+			Read:  aclReadHookDestinationPolicy,
+			Write: aclWriteHookDestinationPolicy,
+			List:  resource.NoOpACLListHook,
+		},
 	})
 }
 
-func ValidateDestinationPolicy(res *pbresource.Resource) error {
-	var policy pbmesh.DestinationPolicy
+var ValidateDestinationPolicy = resource.DecodeAndValidate(validateDestinationPolicy)
 
-	if err := res.Data.UnmarshalTo(&policy); err != nil {
-		return resource.NewErrDataParse(&policy, err)
-	}
-
+func validateDestinationPolicy(res *DecodedDestinationPolicy) error {
 	var merr error
 
-	if len(policy.PortConfigs) == 0 {
+	if len(res.Data.PortConfigs) == 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "port_configs",
 			Wrapped: resource.ErrEmpty,
 		})
 	}
 
-	for port, pc := range policy.PortConfigs {
+	for port, pc := range res.Data.PortConfigs {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidMapValue{
 				Map:     "port_configs",
@@ -223,4 +212,20 @@ func ValidateDestinationPolicy(res *pbresource.Resource) error {
 	}
 
 	return merr
+}
+
+func aclReadHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
+	// DestinationPolicy is name-aligned with Service
+	serviceName := id.Name
+
+	// Check service:read permissions.
+	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(serviceName, authzContext)
+}
+
+func aclWriteHookDestinationPolicy(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	// DestinationPolicy is name-aligned with Service
+	serviceName := res.Id.Name
+
+	// Check service:write permissions on the service this is controlling.
+	return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(serviceName, authzContext)
 }

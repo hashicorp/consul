@@ -26,6 +26,7 @@ type Config struct {
 	ACLAgentRecoveryToken          string
 	ACLReplicationToken            string
 	ACLConfigFileRegistrationToken string
+	ACLDNSToken                    string
 
 	EnterpriseConfig
 }
@@ -77,6 +78,7 @@ type persistedTokens struct {
 	Default                string `json:"default,omitempty"`
 	Agent                  string `json:"agent,omitempty"`
 	ConfigFileRegistration string `json:"config_file_service_registration,omitempty"`
+	DNS                    string `json:"dns,omitempty"`
 }
 
 type fileStore struct {
@@ -144,6 +146,16 @@ func loadTokens(s *Store, cfg Config, tokens persistedTokens, logger Logger) {
 		s.UpdateConfigFileRegistrationToken(cfg.ACLConfigFileRegistrationToken, TokenSourceConfig)
 	}
 
+	if tokens.DNS != "" {
+		s.UpdateDNSToken(tokens.DNS, TokenSourceAPI)
+
+		if cfg.ACLDNSToken != "" {
+			logger.Warn("\"dns\" token present in both the configuration and persisted token store, using the persisted token")
+		}
+	} else {
+		s.UpdateDNSToken(cfg.ACLDNSToken, TokenSourceConfig)
+	}
+
 	loadEnterpriseTokens(s, cfg)
 }
 
@@ -204,6 +216,10 @@ func (p *fileStore) saveToFile(s *Store) error {
 
 	if tok, source := s.ConfigFileRegistrationTokenAndSource(); tok != "" && source == TokenSourceAPI {
 		tokens.ConfigFileRegistration = tok
+	}
+
+	if tok, source := s.DNSTokenAndSource(); tok != "" && source == TokenSourceAPI {
+		tokens.DNS = tok
 	}
 
 	data, err := json.Marshal(tokens)

@@ -34,6 +34,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -71,7 +72,6 @@ import (
 	"github.com/hashicorp/consul/lib/file"
 	"github.com/hashicorp/consul/lib/mutex"
 	"github.com/hashicorp/consul/lib/routine"
-	"github.com/hashicorp/consul/lib/stringslice"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/pboperator"
@@ -622,6 +622,9 @@ func (a *Agent) Start(ctx context.Context) error {
 	// create the state synchronization manager which performs
 	// regular and on-demand state synchronizations (anti-entropy).
 	a.sync = ae.NewStateSyncer(a.State, c.AEInterval, a.shutdownCh, a.logger)
+	if a.baseDeps.UseV2Resources() {
+		a.sync.HardDisableSync()
+	}
 
 	err = validateFIPSConfig(a.config)
 	if err != nil {
@@ -653,48 +656,12 @@ func (a *Agent) Start(ctx context.Context) error {
 		return fmt.Errorf("failed to start Consul enterprise component: %v", err)
 	}
 
-	// Create proxy config manager now because it is a dependency of creating the proxyWatcher
-	// which will be passed to consul.NewServer so that it is then passed to the
-	// controller registration for the XDS controller in v2 mode, and the xds server in v1 and v2 mode.
-	var intentionDefaultAllow bool
-	switch a.config.ACLResolverSettings.ACLDefaultPolicy {
-	case "allow":
-		intentionDefaultAllow = true
-	case "deny":
-		intentionDefaultAllow = false
-	default:
-		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
-	}
-
-	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
-
-	// Start the proxy config manager.
-	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
-		DataSources: a.proxyDataSources(),
-		Logger:      a.logger.Named(logging.ProxyConfig),
-		Source: &structs.QuerySource{
-			Datacenter:    a.config.Datacenter,
-			Segment:       a.config.SegmentName,
-			Node:          a.config.NodeName,
-			NodePartition: a.config.PartitionOrEmpty(),
-		},
-		DNSConfig: proxycfg.DNSConfig{
-			Domain:    a.config.DNSDomain,
-			AltDomain: a.config.DNSAltDomain,
-		},
-		TLSConfigurator:       a.tlsConfigurator,
-		IntentionDefaultAllow: intentionDefaultAllow,
-		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
-	})
-	if err != nil {
-		return err
-	}
-
-	// proxyWatcher will be used in the creation of the XDS server and also
-	// in the registration of the xds controller.
-	proxyWatcher := a.getProxyWatcher()
+	// proxyTracker will be used in the creation of the XDS server and also
+	// in the registration of the v2 xds controller
+	var proxyTracker *proxytracker.ProxyTracker
 
 	// Setup either the client or the server.
+	var consulServer *consul.Server
 	if c.ServerMode {
 		serverLogger := a.baseDeps.Logger.NamedIntercept(logging.ConsulServer)
 
@@ -725,18 +692,24 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			incomingRPCLimiter,
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
-		var pt *proxytracker.ProxyTracker
-		if a.useV2Resources() {
-			pt = proxyWatcher.(*proxytracker.ProxyTracker)
+		if a.baseDeps.UseV2Resources() {
+			proxyTracker = proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
+				Logger:         a.logger.Named("proxy-tracker"),
+				SessionLimiter: a.baseDeps.XDSStreamLimiter,
+			})
 		}
-		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, pt)
+		consulServer, err = consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger, proxyTracker)
 		if err != nil {
 			return fmt.Errorf("Failed to start Consul server: %v", err)
 		}
-		incomingRPCLimiter.Register(server)
-		a.delegate = server
+		incomingRPCLimiter.Register(consulServer)
+		a.delegate = consulServer
 
 		if a.config.PeeringEnabled && a.config.ConnectEnabled {
 			d := servercert.Deps{
@@ -746,7 +719,7 @@ func (a *Agent) Start(ctx context.Context) error {
 					ACLsEnabled: a.config.ACLsEnabled,
 				},
 				LeafCertManager: a.leafCertManager,
-				GetStore:        func() servercert.Store { return server.FSM().State() },
+				GetStore:        func() servercert.Store { return consulServer.FSM().State() },
 				TLSConfigurator: a.tlsConfigurator,
 			}
 			a.certManager = servercert.NewCertManager(d)
@@ -760,6 +733,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			rpcRate.NullRequestLimitsHandler(),
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -798,6 +775,35 @@ func (a *Agent) Start(ctx context.Context) error {
 		return err
 	}
 
+	intentionDefaultAllow, err := a.config.ACLResolverSettings.IsDefaultAllow()
+	if err != nil {
+		return fmt.Errorf("unexpected ACL default policy value of %q", a.config.ACLResolverSettings.ACLDefaultPolicy)
+	}
+
+	go a.baseDeps.ViewStore.Run(&lib.StopChannelContext{StopCh: a.shutdownCh})
+
+	// Start the proxy config manager.
+	a.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{
+		DataSources: a.proxyDataSources(consulServer),
+		Logger:      a.logger.Named(logging.ProxyConfig),
+		Source: &structs.QuerySource{
+			Datacenter:    a.config.Datacenter,
+			Segment:       a.config.SegmentName,
+			Node:          a.config.NodeName,
+			NodePartition: a.config.PartitionOrEmpty(),
+		},
+		DNSConfig: proxycfg.DNSConfig{
+			Domain:    a.config.DNSDomain,
+			AltDomain: a.config.DNSAltDomain,
+		},
+		TLSConfigurator:       a.tlsConfigurator,
+		IntentionDefaultAllow: intentionDefaultAllow,
+		UpdateRateLimit:       a.config.XDSUpdateRateLimit,
+	})
+	if err != nil {
+		return err
+	}
+
 	go localproxycfg.Sync(
 		&lib.StopChannelContext{StopCh: a.shutdownCh},
 		localproxycfg.SyncConfig{
@@ -806,6 +812,7 @@ func (a *Agent) Start(ctx context.Context) error {
 			Logger:          a.proxyConfig.Logger.Named("agent-state"),
 			Tokens:          a.baseDeps.Tokens,
 			NodeName:        a.config.NodeName,
+			NodeLocality:    a.config.StructLocality(),
 			ResyncFrequency: a.config.LocalProxyConfigResyncInterval,
 		},
 	)
@@ -850,7 +857,7 @@ func (a *Agent) Start(ctx context.Context) error {
 	}
 
 	// Start grpc and grpc_tls servers.
-	if err := a.listenAndServeGRPC(proxyWatcher); err != nil {
+	if err := a.listenAndServeGRPC(proxyTracker, consulServer); err != nil {
 		return err
 	}
 
@@ -872,12 +879,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
-
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
 
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
@@ -921,52 +922,35 @@ func (a *Agent) Failed() <-chan struct{} {
 	return a.apiServers.failed
 }
 
-// useV2Resources returns true if "resource-apis" is present in the Experiments
-// array of the agent config.
-func (a *Agent) useV2Resources() bool {
-	if stringslice.Contains(a.baseDeps.Experiments, consul.CatalogResourceExperimentName) {
-		return true
-	}
-	return false
-}
-
-// getProxyWatcher returns the proper implementation of the ProxyWatcher interface.
-// It will return a ProxyTracker if "resource-apis" experiment is active.  Otherwise,
-// it will return a ConfigSource.
-func (a *Agent) getProxyWatcher() xds.ProxyWatcher {
-	if a.useV2Resources() {
-		a.logger.Trace("returning proxyTracker for getProxyWatcher")
-		return proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{
-			Logger:         a.logger.Named("proxy-tracker"),
-			SessionLimiter: a.baseDeps.XDSStreamLimiter,
-		})
-	} else {
-		a.logger.Trace("returning configSource for getProxyWatcher")
-		return localproxycfg.NewConfigSource(a.proxyConfig)
-	}
-}
-
 // configureXDSServer configures an XDS server with the proper implementation of
 // the PRoxyWatcher interface and registers the XDS server with Consul's
 // external facing GRPC server.
-func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher) {
+func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher, server *consul.Server) {
 	// TODO(agentless): rather than asserting the concrete type of delegate, we
 	// should add a method to the Delegate interface to build a ConfigSource.
-	if server, ok := a.delegate.(*consul.Server); ok {
-		catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
-			NodeName:          a.config.NodeName,
-			LocalState:        a.State,
-			LocalConfigSource: proxyWatcher,
-			Manager:           a.proxyConfig,
-			GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
-			Logger:            a.proxyConfig.Logger.Named("server-catalog"),
-			SessionLimiter:    a.baseDeps.XDSStreamLimiter,
-		})
-		go func() {
-			<-a.shutdownCh
-			catalogCfg.Shutdown()
-		}()
-		proxyWatcher = catalogCfg
+	if server != nil {
+		switch proxyWatcher.(type) {
+		case *proxytracker.ProxyTracker:
+			go func() {
+				<-a.shutdownCh
+				proxyWatcher.(*proxytracker.ProxyTracker).Shutdown()
+			}()
+		default:
+			catalogCfg := catalogproxycfg.NewConfigSource(catalogproxycfg.Config{
+				NodeName:          a.config.NodeName,
+				LocalState:        a.State,
+				LocalConfigSource: proxyWatcher,
+				Manager:           a.proxyConfig,
+				GetStore:          func() catalogproxycfg.Store { return server.FSM().State() },
+				Logger:            a.proxyConfig.Logger.Named("server-catalog"),
+				SessionLimiter:    a.baseDeps.XDSStreamLimiter,
+			})
+			go func() {
+				<-a.shutdownCh
+				catalogCfg.Shutdown()
+			}()
+			proxyWatcher = catalogCfg
+		}
 	}
 	a.xdsServer = xds.NewServer(
 		a.config.NodeName,
@@ -980,12 +964,18 @@ func (a *Agent) configureXDSServer(proxyWatcher xds.ProxyWatcher) {
 	a.xdsServer.Register(a.externalGRPCServer)
 }
 
-func (a *Agent) listenAndServeGRPC(proxyWatcher xds.ProxyWatcher) error {
+func (a *Agent) listenAndServeGRPC(proxyTracker *proxytracker.ProxyTracker, server *consul.Server) error {
 	if len(a.config.GRPCAddrs) < 1 && len(a.config.GRPCTLSAddrs) < 1 {
 		return nil
 	}
+	var proxyWatcher xds.ProxyWatcher
+	if a.baseDeps.UseV2Resources() {
+		proxyWatcher = proxyTracker
+	} else {
+		proxyWatcher = localproxycfg.NewConfigSource(a.proxyConfig)
+	}
 
-	a.configureXDSServer(proxyWatcher)
+	a.configureXDSServer(proxyWatcher, server)
 
 	// Attempt to spawn listeners
 	var listeners []net.Listener
@@ -3066,14 +3056,20 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
+			var tlsClientConfig *tls.Config
+			if chkType.TCPUseTLS {
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
+			}
+
 			tcp := &checks.CheckTCP{
-				CheckID:       cid,
-				ServiceID:     sid,
-				TCP:           chkType.TCP,
-				Interval:      chkType.Interval,
-				Timeout:       chkType.Timeout,
-				Logger:        a.logger,
-				StatusHandler: statusHandler,
+				CheckID:         cid,
+				ServiceID:       sid,
+				TCP:             chkType.TCP,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 			tcp.Start()
 			a.checkTCPs[cid] = tcp
@@ -3691,6 +3687,13 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		ns := service.NodeService()
+
+		// We currently do not persist locality inherited from the node service
+		// (it is inherited at runtime). See agent/proxycfg-sources/local/sync.go.
+		// To support locality-aware service discovery in the future, persisting
+		// this data may be necessary. This does not impact agent-less deployments
+		// because locality is explicitly set on service registration there.
+
 		chkTypes, err := service.CheckTypes()
 		if err != nil {
 			return fmt.Errorf("Failed to validate checks for service %q: %v", service.Name, err)
@@ -4348,6 +4351,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 	a.enableDebug.Store(newCfg.EnableDebug)
 	a.config.EnableDebug = newCfg.EnableDebug
 
+	// update Agent config with new config
+	a.config = newCfg.DeepCopy()
+
 	return nil
 }
 
@@ -4571,7 +4577,7 @@ func (a *Agent) listenerPortLocked(svcID structs.ServiceID, checkID structs.Chec
 	return port, nil
 }
 
-func (a *Agent) proxyDataSources() proxycfg.DataSources {
+func (a *Agent) proxyDataSources(server *consul.Server) proxycfg.DataSources {
 	sources := proxycfg.DataSources{
 		CARoots:                         proxycfgglue.CacheCARoots(a.cache),
 		CompiledDiscoveryChain:          proxycfgglue.CacheCompiledDiscoveryChain(a.cache),
@@ -4598,7 +4604,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		ExportedPeeredServices:          proxycfgglue.CacheExportedPeeredServices(a.cache),
 	}
 
-	if server, ok := a.delegate.(*consul.Server); ok {
+	if server != nil {
 		deps := proxycfgglue.ServerDataSourceDeps{
 			Datacenter:     a.config.Datacenter,
 			EventPublisher: a.baseDeps.EventPublisher,
@@ -4617,7 +4623,7 @@ func (a *Agent) proxyDataSources() proxycfg.DataSources {
 		// interact with ACLs and the streaming backend. See comments in `proxycfgglue.ServerHealthBlocking`
 		// for more details.
 		// sources.Health = proxycfgglue.ServerHealth(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
-		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth), server.FSM().State())
+		sources.Health = proxycfgglue.ServerHealthBlocking(deps, proxycfgglue.ClientHealth(a.rpcClientHealth))
 		sources.HTTPChecks = proxycfgglue.ServerHTTPChecks(deps, a.config.NodeName, proxycfgglue.CacheHTTPChecks(a.cache), a.State)
 		sources.Intentions = proxycfgglue.ServerIntentions(deps)
 		sources.IntentionUpstreams = proxycfgglue.ServerIntentionUpstreams(deps)

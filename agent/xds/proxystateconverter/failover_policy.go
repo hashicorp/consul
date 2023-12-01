@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 )
 
 type discoChainTargets struct {
@@ -124,22 +124,6 @@ func (s *Converter) mapDiscoChainTargets(cfgSnap *proxycfg.ConfigSnapshot, chain
 				Service:    target.Service,
 			}.URI().String()}
 		}
-		//commonTLSContext := makeCommonTLSContext(
-		//	cfgSnap.Leaf(),
-		//	rootPEMs,
-		//	makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing()),
-		//)
-		//
-		//err := injectSANMatcher(commonTLSContext, spiffeIDs...)
-		//if err != nil {
-		//	return failoverTargets, fmt.Errorf("failed to inject SAN matcher rules for cluster %q: %v", sni, err)
-		//}
-
-		//tlsContext := &envoy_tls_v3.UpstreamTlsContext{
-		//	CommonTlsContext: commonTLSContext,
-		//	Sni:              sni,
-		//}
-		//ti.TLSContext = tlsContext
 		failoverTargets.targets = append(failoverTargets.targets, ti)
 	}
 

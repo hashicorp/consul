@@ -12,43 +12,30 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
-)
-
-const (
-	HTTPRouteKind = "HTTPRoute"
-)
-
-var (
-	HTTPRouteV1Alpha1Type = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: VersionV1Alpha1,
-		Kind:         HTTPRouteKind,
-	}
-
-	HTTPRouteType = HTTPRouteV1Alpha1Type
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
 func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     HTTPRouteV1Alpha1Type,
+		Type:     pbmesh.HTTPRouteType,
 		Proto:    &pbmesh.HTTPRoute{},
+		Scope:    resource.ScopeNamespace,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
+		ACLs:     xRouteACLHooks[*pbmesh.HTTPRoute](),
 	})
 }
 
-func MutateHTTPRoute(res *pbresource.Resource) error {
-	var route pbmesh.HTTPRoute
+var MutateHTTPRoute = resource.DecodeAndMutate(mutateHTTPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func mutateHTTPRoute(res *DecodedHTTPRoute) (bool, error) {
 	changed := false
 
-	for _, rule := range route.Rules {
+	if mutateParentRefs(res.Id.Tenancy, res.Data.ParentRefs) {
+		changed = true
+	}
+
+	for _, rule := range res.Data.Rules {
 		for _, match := range rule.Matches {
 			if match.Method != "" {
 				norm := strings.ToUpper(match.Method)
@@ -58,37 +45,35 @@ func MutateHTTPRoute(res *pbresource.Resource) error {
 				}
 			}
 		}
+		for _, backend := range rule.BackendRefs {
+			if backend.BackendRef == nil || backend.BackendRef.Ref == nil {
+				continue
+			}
+			if mutateXRouteRef(res.Id.Tenancy, backend.BackendRef.Ref) {
+				changed = true
+			}
+		}
 	}
 
-	// TODO(rb): normalize parent/backend ref tenancies
-
-	if !changed {
-		return nil
-	}
-
-	return res.Data.MarshalFrom(&route)
+	return changed, nil
 }
 
-func ValidateHTTPRoute(res *pbresource.Resource) error {
-	var route pbmesh.HTTPRoute
+var ValidateHTTPRoute = resource.DecodeAndValidate(validateHTTPRoute)
 
-	if err := res.Data.UnmarshalTo(&route); err != nil {
-		return resource.NewErrDataParse(&route, err)
-	}
-
+func validateHTTPRoute(res *DecodedHTTPRoute) error {
 	var merr error
-	if err := validateParentRefs(route.ParentRefs); err != nil {
+	if err := validateParentRefs(res.Id, res.Data.ParentRefs); err != nil {
 		merr = multierror.Append(merr, err)
 	}
 
-	if len(route.Hostnames) > 0 {
+	if len(res.Data.Hostnames) > 0 {
 		merr = multierror.Append(merr, resource.ErrInvalidField{
 			Name:    "hostnames",
 			Wrapped: errors.New("should not populate hostnames"),
 		})
 	}
 
-	for i, rule := range route.Rules {
+	for i, rule := range res.Data.Rules {
 		wrapRuleErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "rules",
@@ -113,6 +98,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 						Wrapped: err,
 					})
 				}
+				// enumcover:pbmesh.PathMatchType
 				switch match.Path.Type {
 				case pbmesh.PathMatchType_PATH_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchPathErr(
@@ -136,6 +122,15 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 							resource.ErrInvalidField{
 								Name:    "value",
 								Wrapped: fmt.Errorf("prefix patch value does not start with '/': %q", match.Path.Value),
+							},
+						))
+					}
+				case pbmesh.PathMatchType_PATH_MATCH_TYPE_REGEX:
+					if match.Path.Value == "" {
+						merr = multierror.Append(merr, wrapMatchPathErr(
+							resource.ErrInvalidField{
+								Name:    "value",
+								Wrapped: resource.ErrEmpty,
 							},
 						))
 					}
@@ -186,6 +181,7 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 					})
 				}
 
+				// enumcover:pbmesh.QueryParamMatchType
 				switch qm.Type {
 				case pbmesh.QueryParamMatchType_QUERY_PARAM_MATCH_TYPE_UNSPECIFIED:
 					merr = multierror.Append(merr, wrapMatchParamErr(
@@ -226,6 +222,10 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			}
 		}
 
+		var (
+			hasReqMod     bool
+			hasUrlRewrite bool
+		)
 		for j, filter := range rule.Filters {
 			wrapFilterErr := func(err error) error {
 				return wrapRuleErr(resource.ErrInvalidListElement{
@@ -237,12 +237,14 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			set := 0
 			if filter.RequestHeaderModifier != nil {
 				set++
+				hasReqMod = true
 			}
 			if filter.ResponseHeaderModifier != nil {
 				set++
 			}
 			if filter.UrlRewrite != nil {
 				set++
+				hasUrlRewrite = true
 				if filter.UrlRewrite.PathPrefix == "" {
 					merr = multierror.Append(merr, wrapFilterErr(
 						resource.ErrInvalidField{
@@ -262,15 +264,13 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 			}
 		}
 
-		if len(rule.BackendRefs) == 0 {
-			/*
-				BackendRefs (optional)¶
+		if hasReqMod && hasUrlRewrite {
+			merr = multierror.Append(merr, wrapRuleErr(
+				errors.New("exactly one of request_header_modifier or url_rewrite can be set at a time"),
+			))
+		}
 
-				BackendRefs defines API objects where matching requests should be
-				sent. If unspecified, the rule performs no forwarding. If
-				unspecified and no filters are specified that would result in a
-				response being sent, a 404 error code is returned.
-			*/
+		if len(rule.BackendRefs) == 0 {
 			merr = multierror.Append(merr, wrapRuleErr(
 				resource.ErrInvalidField{
 					Name:    "backend_refs",
@@ -287,13 +287,14 @@ func ValidateHTTPRoute(res *pbresource.Resource) error {
 				})
 			}
 
-			for _, err := range validateBackendRef(hbref.BackendRef) {
-				merr = multierror.Append(merr, wrapBackendRefErr(
-					resource.ErrInvalidField{
-						Name:    "backend_ref",
-						Wrapped: err,
-					},
-				))
+			wrapBackendRefFieldErr := func(err error) error {
+				return wrapBackendRefErr(resource.ErrInvalidField{
+					Name:    "backend_ref",
+					Wrapped: err,
+				})
+			}
+			if err := validateBackendRef(hbref.BackendRef, wrapBackendRefFieldErr); err != nil {
+				merr = multierror.Append(merr, err)
 			}
 
 			if len(hbref.Filters) > 0 {

@@ -88,21 +88,34 @@ func TestSnapshotSaveCommandWithAppendFileNameFlag(t *testing.T) {
 	dir := testutil.TempDir(t, "snapshot")
 	file := filepath.Join(dir, "backup.tgz")
 	args := []string{
-		"-append-filename=version,dc,node,status",
+		"-append-filename=version,dc",
 		"-http-addr=" + a.HTTPAddr(),
 		file,
 	}
 
-	stats := a.Stats()
+	// We need to use the self endpoint here for ENT, which returns the product suffix (+ent)
+	self, err := client.Agent().Self()
+	require.NoError(t, err)
 
-	status := "follower"
+	cfg, ok := self["Config"]
+	require.True(t, ok)
 
-	if stats["consul"]["leader"] == "true" {
-		status = "leader"
+	dc, ok := cfg["Datacenter"]
+	require.True(t, ok)
+
+	datacenter := dc.(string)
+
+	operatorHealth, error := client.Operator().AutopilotServerHealth(nil)
+	require.NoError(t, error)
+
+	var version string
+	for _, server := range operatorHealth.Servers {
+		if server.Leader {
+			version = server.Version
+		}
 	}
 
-	newFilePath := filepath.Join(dir, "backup"+"-"+a.Config.Version+"-"+a.Config.Datacenter+
-		"-"+a.Config.NodeName+"-"+status+".tgz")
+	newFilePath := filepath.Join(dir, "backup"+"-"+version+"-"+datacenter+".tgz")
 
 	code := c.Run(args)
 	if code != 0 {

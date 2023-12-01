@@ -118,6 +118,8 @@ func DefaultSource() Source {
 			leave_drain_time = "5s"
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
 			rpc_hold_timeout = "7s"
+			grpc_keepalive_interval = "30s"
+			grpc_keepalive_timeout = "20s"
 		}
 		ports = {
 			dns = 8600
@@ -145,7 +147,6 @@ func DefaultSource() Source {
 		raft_snapshot_interval =  "` + cfg.RaftConfig.SnapshotInterval.String() + `"
 		raft_trailing_logs = ` + strconv.Itoa(int(cfg.RaftConfig.TrailingLogs)) + `
 		raft_logstore {
-			backend = "boltdb"
 			wal {
 				segment_size_mb = 64
 			}

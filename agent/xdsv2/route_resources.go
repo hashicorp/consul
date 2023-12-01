@@ -5,29 +5,18 @@ package xdsv2
 
 import (
 	"fmt"
-	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"github.com/hashicorp/consul/agent/xds/response"
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1/pbproxystate"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"strings"
 
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"github.com/hashicorp/consul/agent/xds/response"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
+
 	envoy_route_v3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	"google.golang.org/protobuf/proto"
 )
-
-func (pr *ProxyResources) makeXDSRoutes() ([]proto.Message, error) {
-	routes := make([]proto.Message, 0)
-
-	for name, r := range pr.proxyState.Routes {
-		protoRoute := pr.makeEnvoyRouteConfigFromProxystateRoute(name, r)
-		// TODO: aggregate errors for routes and still return any properly formed routes.
-		routes = append(routes, protoRoute)
-	}
-
-	return routes, nil
-}
 
 func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConfiguration, error) {
 	var route *envoy_route_v3.RouteConfiguration
@@ -37,7 +26,6 @@ func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConf
 	if !ok {
 		// This should not happen with a valid proxy state.
 		return nil, fmt.Errorf("could not find route in ProxyState: %s", name)
-
 	}
 	return route, nil
 }
@@ -45,7 +33,6 @@ func (pr *ProxyResources) makeEnvoyRoute(name string) (*envoy_route_v3.RouteConf
 // makeEnvoyRouteConfigFromProxystateRoute converts the proxystate representation of a Route into Envoy proto message
 // form. We don't throw any errors here, since the proxystate has already been validated.
 func (pr *ProxyResources) makeEnvoyRouteConfigFromProxystateRoute(name string, psRoute *pbproxystate.Route) *envoy_route_v3.RouteConfiguration {
-
 	envoyRouteConfig := &envoy_route_v3.RouteConfiguration{
 		Name: name,
 		// ValidateClusters defaults to true when defined statically and false
@@ -158,21 +145,44 @@ func makeEnvoyHeaderMatcherFromProxystateHeaderMatch(psMatch *pbproxystate.Heade
 
 	switch psMatch.Match.(type) {
 	case *pbproxystate.HeaderMatch_Exact:
-		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_ExactMatch{
-			ExactMatch: psMatch.GetExact(),
+		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+			StringMatch: &envoy_matcher_v3.StringMatcher{
+				MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+					Exact: psMatch.GetExact(),
+				},
+				IgnoreCase: false,
+			},
 		}
+
 	case *pbproxystate.HeaderMatch_Regex:
-		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-			SafeRegexMatch: makeEnvoyRegexMatch(psMatch.GetRegex()),
+		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+			StringMatch: &envoy_matcher_v3.StringMatcher{
+				MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+					SafeRegex: response.MakeEnvoyRegexMatch(psMatch.GetRegex()),
+				},
+				IgnoreCase: false,
+			},
 		}
+
 	case *pbproxystate.HeaderMatch_Prefix:
-		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PrefixMatch{
-			PrefixMatch: psMatch.GetPrefix(),
+		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+			StringMatch: &envoy_matcher_v3.StringMatcher{
+				MatchPattern: &envoy_matcher_v3.StringMatcher_Prefix{
+					Prefix: psMatch.GetPrefix(),
+				},
+				IgnoreCase: false,
+			},
 		}
 	case *pbproxystate.HeaderMatch_Suffix:
-		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_SuffixMatch{
-			SuffixMatch: psMatch.GetSuffix(),
+		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_StringMatch{
+			StringMatch: &envoy_matcher_v3.StringMatcher{
+				MatchPattern: &envoy_matcher_v3.StringMatcher_Suffix{
+					Suffix: psMatch.GetSuffix(),
+				},
+				IgnoreCase: false,
+			},
 		}
+
 	case *pbproxystate.HeaderMatch_Present:
 		envoyHeaderMatcher.HeaderMatchSpecifier = &envoy_route_v3.HeaderMatcher_PresentMatch{
 			PresentMatch: true,
@@ -224,6 +234,18 @@ func makeEnvoyQueryParamFromProxystateQueryMatch(psMatch *pbproxystate.QueryPara
 	return envoyQueryParamMatcher
 }
 
+func (pr *ProxyResources) addEnvoyClustersAndEndpointsToEnvoyResources(clusterName string) {
+	clusters, endpoints, _ := pr.makeClustersAndEndpoints(clusterName)
+
+	for name, cluster := range clusters {
+		pr.envoyResources[xdscommon.ClusterType][name] = cluster
+	}
+
+	for name, ep := range endpoints {
+		pr.envoyResources[xdscommon.EndpointType][name] = ep
+	}
+}
+
 // TODO (dans): Will this always be envoy_route_v3.Route_Route?
 // Definitely for connect proxies this is the only option.
 func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psRouteDestination *pbproxystate.RouteDestination) *envoy_route_v3.Route_Route {
@@ -237,16 +259,15 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 		envoyRouteRoute.Route.ClusterSpecifier = &envoy_route_v3.RouteAction_Cluster{
 			Cluster: psCluster.GetName(),
 		}
-		clusters, _ := pr.makeClusters(psCluster.Name)
-		pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
+		pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
 
 	case *pbproxystate.RouteDestination_WeightedClusters:
 		psWeightedClusters := psRouteDestination.GetWeightedClusters()
 		envoyClusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(psWeightedClusters.GetClusters()))
 		totalWeight := 0
 		for _, psCluster := range psWeightedClusters.GetClusters() {
-			clusters, _ := pr.makeClusters(psCluster.Name)
-			pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
+			pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
+
 			totalWeight += int(psCluster.Weight.GetValue())
 			envoyClusters = append(envoyClusters, makeEnvoyClusterWeightFromProxystateWeightedCluster(psCluster))
 		}
@@ -295,10 +316,7 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 }
 
 func makeEnvoyClusterWeightFromProxystateWeightedCluster(cluster *pbproxystate.L7WeightedDestinationCluster) *envoy_route_v3.WeightedCluster_ClusterWeight {
-	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
-		Name:   cluster.GetName(),
-		Weight: cluster.GetWeight(),
-	}
+	envoyClusterWeight := makeEnvoyClusterWeightFromNameAndWeight(cluster.GetName(), cluster.GetWeight())
 
 	for _, hm := range cluster.GetHeaderMutations() {
 		injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight, hm)
@@ -307,8 +325,16 @@ func makeEnvoyClusterWeightFromProxystateWeightedCluster(cluster *pbproxystate.L
 	return envoyClusterWeight
 }
 
-func injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight *envoy_route_v3.WeightedCluster_ClusterWeight, mutation *pbproxystate.HeaderMutation) {
+func makeEnvoyClusterWeightFromNameAndWeight(name string, weight *wrapperspb.UInt32Value) *envoy_route_v3.WeightedCluster_ClusterWeight {
+	envoyClusterWeight := &envoy_route_v3.WeightedCluster_ClusterWeight{
+		Name:   name,
+		Weight: weight,
+	}
 
+	return envoyClusterWeight
+}
+
+func injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight *envoy_route_v3.WeightedCluster_ClusterWeight, mutation *pbproxystate.HeaderMutation) {
 	mutation.GetAction()
 	switch mutation.GetAction().(type) {
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:
@@ -374,7 +400,6 @@ func injectEnvoyRouteActionWithProxystateDestinationConfig(envoyAction *envoy_ro
 }
 
 func makeEnvoyHashPolicyFromProxystateLBHashPolicy(psPolicy *pbproxystate.LoadBalancerHashPolicy) *envoy_route_v3.RouteAction_HashPolicy {
-
 	switch psPolicy.GetPolicy().(type) {
 	case *pbproxystate.LoadBalancerHashPolicy_ConnectionProperties:
 		return &envoy_route_v3.RouteAction_HashPolicy{
@@ -433,7 +458,6 @@ func makeEnvoyRetryPolicyFromProxystateRetryPolicy(psRetryPolicy *pbproxystate.R
 }
 
 func injectEnvoyRouteRuleWithProxystateHeaderMutation(envoyRouteRule *envoy_route_v3.Route, mutation *pbproxystate.HeaderMutation) {
-
 	mutation.GetAction()
 	switch mutation.GetAction().(type) {
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:
@@ -479,7 +503,6 @@ func injectEnvoyRouteRuleWithProxystateHeaderMutation(envoyRouteRule *envoy_rout
 }
 
 func injectEnvoyVirtualHostWithProxystateHeaderMutation(envoyVirtualHost *envoy_route_v3.VirtualHost, mutation *pbproxystate.HeaderMutation) {
-
 	mutation.GetAction()
 	switch mutation.GetAction().(type) {
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:

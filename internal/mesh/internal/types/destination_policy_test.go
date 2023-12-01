@@ -4,16 +4,20 @@
 package types
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v1alpha1"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestValidateDestinationPolicy(t *testing.T) {
@@ -24,7 +28,7 @@ func TestValidateDestinationPolicy(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testcase) {
-		res := resourcetest.Resource(DestinationPolicyType, "api").
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
 			WithData(t, tc.policy).
 			Build()
 
@@ -505,6 +509,101 @@ func TestValidateDestinationPolicy(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			run(t, tc)
+		})
+	}
+}
+
+func TestDestinationPolicyACLs(t *testing.T) {
+	// Wire up a registry to generically invoke hooks
+	registry := resource.NewRegistry()
+	Register(registry)
+
+	newPolicy := func(t *testing.T, tenancyStr string) *pbresource.Resource {
+		res := resourcetest.Resource(pbmesh.DestinationPolicyType, "api").
+			WithTenancy(resourcetest.Tenancy(tenancyStr)).
+			WithData(t, &pbmesh.DestinationPolicy{
+				PortConfigs: map[string]*pbmesh.DestinationConfig{
+					"http": {
+						ConnectTimeout: durationpb.New(55 * time.Second),
+					},
+				},
+			}).
+			Build()
+		resourcetest.ValidateAndNormalize(t, registry, res)
+		return res
+	}
+
+	const (
+		DENY    = resourcetest.DENY
+		ALLOW   = resourcetest.ALLOW
+		DEFAULT = resourcetest.DEFAULT
+	)
+
+	run := func(t *testing.T, name string, tc resourcetest.ACLTestCase) {
+		t.Run(name, func(t *testing.T) {
+			resourcetest.RunACLTestCase(t, tc, registry)
+		})
+	}
+
+	isEnterprise := versiontest.IsEnterprise()
+
+	serviceRead := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "read" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "read" } `, name)
+	}
+	serviceWrite := func(partition, namespace, name string) string {
+		if isEnterprise {
+			return fmt.Sprintf(` partition %q { namespace %q { service %q { policy = "write" } } }`, partition, namespace, name)
+		}
+		return fmt.Sprintf(` service %q { policy = "write" } `, name)
+	}
+
+	assert := func(t *testing.T, name string, rules string, res *pbresource.Resource, readOK, writeOK string) {
+		tc := resourcetest.ACLTestCase{
+			AuthCtx: resource.AuthorizerContext(res.Id.Tenancy),
+			Rules:   rules,
+			Res:     res,
+			ReadOK:  readOK,
+			WriteOK: writeOK,
+			ListOK:  DEFAULT,
+		}
+		run(t, name, tc)
+	}
+
+	tenancies := []string{"default.default"}
+	if isEnterprise {
+		tenancies = append(tenancies, "default.foo", "alpha.default", "alpha.foo")
+	}
+
+	for _, policyTenancyStr := range tenancies {
+		t.Run("policy tenancy: "+policyTenancyStr, func(t *testing.T) {
+			for _, aclTenancyStr := range tenancies {
+				t.Run("acl tenancy: "+aclTenancyStr, func(t *testing.T) {
+					aclTenancy := resourcetest.Tenancy(aclTenancyStr)
+
+					maybe := func(match string) string {
+						if policyTenancyStr != aclTenancyStr {
+							return DENY
+						}
+						return match
+					}
+
+					t.Run("no rules", func(t *testing.T) {
+						rules := ``
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), DENY, DENY)
+					})
+					t.Run("api:read", func(t *testing.T) {
+						rules := serviceRead(aclTenancy.Partition, aclTenancy.Namespace, "api")
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), maybe(ALLOW), DENY)
+					})
+					t.Run("api:write", func(t *testing.T) {
+						rules := serviceWrite(aclTenancy.Partition, aclTenancy.Namespace, "api")
+						assert(t, "any", rules, newPolicy(t, policyTenancyStr), maybe(ALLOW), maybe(ALLOW))
+					})
+				})
+			}
 		})
 	}
 }

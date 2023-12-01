@@ -9,26 +9,17 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/hashicorp/consul/lib"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/consul/agent/cacheshim"
+	"github.com/hashicorp/consul/lib"
 )
 
 // UpdateEvent is a struct summarizing an update to a cache entry
-type UpdateEvent struct {
-	// CorrelationID is used by the Notify API to allow correlation of updates
-	// with specific requests. We could return the full request object and
-	// cachetype for consumers to match against the calls they made but in
-	// practice it's cleaner for them to choose the minimal necessary unique
-	// identifier given the set of things they are watching. They might even
-	// choose to assign random IDs for example.
-	CorrelationID string
-	Result        interface{}
-	Meta          ResultMeta
-	Err           error
-}
+type UpdateEvent = cacheshim.UpdateEvent
 
 // Callback is the function type accepted by NotifyCallback.
-type Callback func(ctx context.Context, event UpdateEvent)
+type Callback = cacheshim.Callback
 
 // Notify registers a desire to be updated about changes to a cache result.
 //
@@ -126,7 +117,7 @@ func (c *Cache) notifyBlockingQuery(ctx context.Context, r getOptions, correlati
 		// Check the index of the value returned in the cache entry to be sure it
 		// changed
 		if index == 0 || index < meta.Index {
-			cb(ctx, UpdateEvent{correlationID, res, meta, err})
+			cb(ctx, UpdateEvent{CorrelationID: correlationID, Result: res, Meta: meta, Err: err})
 
 			// Update index for next request
 			index = meta.Index
@@ -186,7 +177,7 @@ func (c *Cache) notifyPollingQuery(ctx context.Context, r getOptions, correlatio
 
 		// Check for a change in the value or an index change
 		if index < meta.Index || !isEqual(lastValue, res) {
-			cb(ctx, UpdateEvent{correlationID, res, meta, err})
+			cb(ctx, UpdateEvent{CorrelationID: correlationID, Result: res, Meta: meta, Err: err})
 
 			// Update index and lastValue
 			lastValue = res

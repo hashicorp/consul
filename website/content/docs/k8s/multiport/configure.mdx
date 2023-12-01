@@ -1,0 +1,470 @@
+---
+layout: docs
+page_title: Configure multi-port services 
+description: Learn how to enable the v2 catalog and configure services to support multiple ports in Consul on Kubernetes. You can configure multiple ports on a single service or multiple services and ports in a single container.
+---
+
+# Configure multi-port services
+
+<Warning>
+
+Multi-port services are part of a beta release. This documentation supports testing and development scenarios. Do not use multi-port services or the v2 catalog API in secure production environments.
+
+</Warning>
+
+This page describes the process for integrating a service that uses multiple ports in a single container when running Consul on Kubernetes deployments. It includes example configurations to demonstrate an end-to-end deployment test of Consul's multi-port features.
+
+## Prerequisites
+
+Registering multi-port services with Consul requires Kubernetes. Multi-port services are not supported on VM deployments.
+
+The following minimum versions are required:
+
+- Consul v1.17.0
+- `consul-k8s` CLI v1.3.0 or `hashicorp/consul` Helm chart release v1.3.0
+- `consul-dataplanes` v1.3.0
+
+To install or update the `consul-k8s CLI`, refer to [install the latest version](/consul/docs/k8s/installation/install-cli#install-the-latest-version) or [upgrade the CLI](/consul/docs/k8s/upgrade/upgrade-cli#upgrade-the-cli). 
+
+The required version of Consul dataplanes deploy automatically when using the latest version of `consul-k8s`. Dataplane version is configured manually when you [modify `imageConsulDataplane`](/consul/docs/k8s/helm#v-global-imageconsuldataplane) in the Helm chart.
+
+For more information about upgrading Helm charts, refer to [Upgrade Helm chart version](/consul/docs/k8s/upgrade#upgrade-helm-chart-version).
+
+There are additional requirements for service mesh proxies in transparent proxy mode. This mode enables queries through Kube DNS instead of Consul DNS over permissive mTLS settings. For more information about the steps to configure global settings and enable permissive mTLS mode before registering a service, refer to the [onboard services in transparent mode workflow](/consul/docs/k8s/connect/onboarding-tproxy-mode#workflow).
+
+## Enable the v2 catalog
+
+To enable the v2 catalog and its support for multi-port services, set `global.experiments: ["resource-apis"]` and `ui.enabled: false`. The following example includes these parameters in a Helm chart with additional configurations for the Consul installation:
+
+<CodeBlockConfig name="values.yaml">
+
+```yaml
+global:
+  enabled: true
+  name: consul
+  image: hashicorp/consul:1.17.0
+  datacenter: dc1
+  tls:
+    enabled: true
+  acls:
+    manageSystemACLs: true
+  experiments: ["resource-apis"]
+server:
+  enabled: true
+  replicas: 1
+connectInject:
+  enabled: true
+ui:
+  enabled: false
+```
+
+</CodeBlockConfig>
+
+Then install Consul to your Kubernetes cluster using either the `consul-k8s` CLI or Helm.
+
+<Tabs>
+
+<Tab heading="consul-k8s CLI" group="consul-k8s">
+
+```shell-session
+$ consul-k8s install -config-file=values.yaml
+```
+
+</Tab>
+
+<Tab heading="Helm" group="helm">
+
+```shell-session
+$ helm install consul hashicorp/consul --create-namespace --namespace consul --version 1.3.0 --values values.yaml
+```
+
+</Tab>
+</Tabs>
+
+## Define the multi-port service
+
+Consul's v2 catalog supports two methods for defining multi-port services in Kubernetes:
+
+- **Method 1**: Define a single Kubernetes Service that exposes multiple ports
+- **Method 2**: Define multiple Kubernetes Services that expose individual ports
+
+These methods affect how the Services are addressed in Kubernetes.
+
+Each tab in the following example contains a configuration that defines an `api` service using one of these methods. Both definitions schedule a Pod running two containers that each support traffic to one of the ports exposed by the Service. In `Method 1`, both services are addressed using `api` because both services are exposed by a single service. In `Method 2`, `api` and `api-admin` are defined as separate services and can be addressed using distinct names.
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+<CodeBlockConfig filename="api.yaml">
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: api
+      port: 80
+      targetPort: api
+    - name: admin
+      port: 90
+      targetPort: admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
+    spec:
+      containers:
+        - name: api
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: api
+        - name: api-admin
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          args:
+            - -text="hello world from 9090 admin"
+            - -listen=:9090
+          ports:
+            - containerPort: 9090
+              name: admin
+      serviceAccountName: api
+```
+
+</CodeBlockConfig>
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+<CodeBlockConfig filename="api.yaml">
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: api
+  ports:
+    - name: api
+      port: 80
+      targetPort: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-admin
+spec:
+  selector:
+    app: api
+  ports:
+    - name: admin
+      port: 90
+      targetPort: admin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
+    spec:
+      containers:
+        - name: api
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          args:
+            - -text="hello world"
+            - -listen=:8080
+          ports:
+            - containerPort: 8080
+              name: api
+        - name: api-admin
+          image: docker.mirror.hashicorp.services/hashicorp/http-echo:latest
+          args:
+            - -text="hello world from 9090 admin"
+            - -listen=:9090
+          ports:
+            - containerPort: 9090
+              name: admin
+      serviceAccountName: api
+```
+
+</CodeBlockConfig>
+</Tab>
+</Tabs>
+
+For testing purposes, the following example defines a Service to function as a static client that you can use to verify that the multi-port services function correctly.
+
+<CodeBlockConfig filename="web.yaml">
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: web
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector:
+    app: web
+  ports:
+    - port: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+      annotations:
+        "consul.hashicorp.com/mesh-inject": "true"
+        "consul.hashicorp.com/transparent-proxy": "true"
+    spec:
+      containers:
+        - name: web
+          image: curlimages/curl:latest
+          # Just spin & wait forever, we'll use `kubectl exec` to demo
+          command: ['/bin/sh', '-c', '--']
+          args: ['while true; do sleep 30; done;']
+      serviceAccountName: web
+```
+
+</CodeBlockConfig>
+
+To apply these services to your Kubernetes deployment and register them with Consul, run the following command:
+
+```shell-session
+$ kubectl apply -f api.yaml -f web.yaml
+```
+
+## Configure traffic permissions
+
+Consul uses traffic permissions to validate communication between services based on L4 identity. When ACLs are enabled for the service mesh, traffic permissions deny all services by default. In order to allow traffic between the static client and the multi-port service, create CRDs that allow traffic to each port.
+
+The following examples create Consul CRDs that allow traffic to only one port of the multi-port service. Each resource separately denies `web` permission when it is a source of traffic to one of the services. These traffic permissions work with either method for defining a multi-port service. When following the instructions on this page, apply these permissions individually when you validate the ports.
+
+<CodeTabs tabs={[ "Allow port 80", "Allow port 90" ]}>
+
+<CodeBlockConfig filename="allow-80.yaml">
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: web-to-api
+spec:
+  destination:
+    identityName: api
+  action: ACTION_ALLOW
+  permissions:
+    - sources:
+        - identityName: web
+      destinationRules:
+        - portNames: ["api"]
+```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig filename="allow-90.yaml">
+
+```yaml
+apiVersion: auth.consul.hashicorp.com/v2beta1
+kind: TrafficPermissions
+metadata:
+  name: web-to-admin
+spec:
+  destination:
+    identityName: api
+  action: ACTION_ALLOW
+  permissions:
+    - sources:
+        - identityName: web
+      destinationRules:
+        - portNames: ["admin"] 
+```
+
+</CodeBlockConfig>
+</CodeTabs>
+
+## Validate multi-port connection
+
+To open a shell to the `web` container, you need the name of the Pod it currently runs on. Run the following command to return a list of Pods:
+
+```shell-session
+$ kubectl get pods 
+NAME                                           READY   STATUS    RESTARTS   AGE
+api-5784b54bcc-tp98l                           3/3     Running   0          6m55s
+web-6dcbd684bc-gk8n5                           2/2     Running   0          6m55s
+```
+
+Set environment variables to remember the pod name for the web workload for use in future commands.
+
+<CodeBlockConfig hideClipboard>
+
+```shell-session
+$ export WEB_POD=web-6dcbd684bc-gk8n5
+```
+
+</CodeBlockConfig>
+
+### Apply traffic permissions
+
+Use the `web` Pod's name to open a shell session and test the `api` service on both ports. When ACLs are enabled, these commands fail until you apply a traffic permissions resource.
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+Test the `api` service on port 80.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:80
+```
+
+Then test the `api` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:90
+```
+
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+Test the `api` service on port 80.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:80
+```
+
+Then test the `api-admin` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api-admin:90
+```
+
+</Tab>
+</Tabs>
+
+Apply the CRD to allow traffic to port 80:
+
+```shell-session
+$ kubectl apply -f allow-80.yaml 
+```
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+Then, open a shell session in the `web` container and test the `api` service on port 80.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:80
+hello world
+```
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+Then, open a shell session in the `web` container and test the `api` service on port 80.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:80
+hello world
+```
+
+</Tab>
+</Tabs>
+
+Apply the CRD to allow traffic to port 90:
+
+```shell-session
+$ kubectl apply -f allow-90.yaml 
+```
+
+<Tabs>
+
+<Tab heading="Method 1" group="method1">
+
+Then, open a shell session in the `web` container and test the `api` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api:90
+hello world from 9090 admin
+```
+
+</Tab>
+
+<Tab heading="Method 2" group="method2">
+
+Then, open a shell session in the `web` container and test the `api-admin` service on port 90.
+
+```shell-session
+$ kubectl exec -it ${WEB_POD} -c web -- curl api-admin:90
+hello world from 9090 admin
+```
+
+</Tab>
+</Tabs>
+
+## Next steps
+
+After applying traffic permissions and validating service-to-service communication within your service mesh, you can manage traffic between multi-port services, filter traffic between ports based on L7 header information, or direct match HTTP query parameters to a specific port.
+
+Refer to the following pages for more information:
+
+- [Split traffic between services](/consul/docs/k8s/multiport/traffic-split)
+- [gRPC route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header)
+- [HTTP route example: route traffic by matching header and query parameter](/consul/docs/k8s/multiport/reference/httproute#route-traffic-by-matching-header-and-query-parameter)

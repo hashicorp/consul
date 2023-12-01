@@ -400,10 +400,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 			if o.Rules[i2].Filters.RetryFilter != nil {
 				cp.Rules[i2].Filters.RetryFilter = new(RetryFilter)
 				*cp.Rules[i2].Filters.RetryFilter = *o.Rules[i2].Filters.RetryFilter
-				if o.Rules[i2].Filters.RetryFilter.NumRetries != nil {
-					cp.Rules[i2].Filters.RetryFilter.NumRetries = new(uint32)
-					*cp.Rules[i2].Filters.RetryFilter.NumRetries = *o.Rules[i2].Filters.RetryFilter.NumRetries
-				}
 				if o.Rules[i2].Filters.RetryFilter.RetryOn != nil {
 					cp.Rules[i2].Filters.RetryFilter.RetryOn = make([]string, len(o.Rules[i2].Filters.RetryFilter.RetryOn))
 					copy(cp.Rules[i2].Filters.RetryFilter.RetryOn, o.Rules[i2].Filters.RetryFilter.RetryOn)
@@ -412,10 +408,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					cp.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes = make([]uint32, len(o.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes))
 					copy(cp.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes, o.Rules[i2].Filters.RetryFilter.RetryOnStatusCodes)
 				}
-				if o.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure != nil {
-					cp.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure = new(bool)
-					*cp.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure = *o.Rules[i2].Filters.RetryFilter.RetryOnConnectFailure
-				}
 			}
 			if o.Rules[i2].Filters.TimeoutFilter != nil {
 				cp.Rules[i2].Filters.TimeoutFilter = new(TimeoutFilter)
@@ -423,6 +415,28 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 			}
 			if o.Rules[i2].Filters.JWT != nil {
 				cp.Rules[i2].Filters.JWT = o.Rules[i2].Filters.JWT.DeepCopy()
+			}
+			if o.Rules[i2].ResponseFilters.Headers != nil {
+				cp.Rules[i2].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].ResponseFilters.Headers))
+				copy(cp.Rules[i2].ResponseFilters.Headers, o.Rules[i2].ResponseFilters.Headers)
+				for i5 := range o.Rules[i2].ResponseFilters.Headers {
+					if o.Rules[i2].ResponseFilters.Headers[i5].Add != nil {
+						cp.Rules[i2].ResponseFilters.Headers[i5].Add = make(map[string]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Add))
+						for k7, v7 := range o.Rules[i2].ResponseFilters.Headers[i5].Add {
+							cp.Rules[i2].ResponseFilters.Headers[i5].Add[k7] = v7
+						}
+					}
+					if o.Rules[i2].ResponseFilters.Headers[i5].Remove != nil {
+						cp.Rules[i2].ResponseFilters.Headers[i5].Remove = make([]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Remove))
+						copy(cp.Rules[i2].ResponseFilters.Headers[i5].Remove, o.Rules[i2].ResponseFilters.Headers[i5].Remove)
+					}
+					if o.Rules[i2].ResponseFilters.Headers[i5].Set != nil {
+						cp.Rules[i2].ResponseFilters.Headers[i5].Set = make(map[string]string, len(o.Rules[i2].ResponseFilters.Headers[i5].Set))
+						for k7, v7 := range o.Rules[i2].ResponseFilters.Headers[i5].Set {
+							cp.Rules[i2].ResponseFilters.Headers[i5].Set[k7] = v7
+						}
+					}
+				}
 			}
 			if o.Rules[i2].Matches != nil {
 				cp.Rules[i2].Matches = make([]HTTPMatch, len(o.Rules[i2].Matches))
@@ -471,10 +485,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					if o.Rules[i2].Services[i4].Filters.RetryFilter != nil {
 						cp.Rules[i2].Services[i4].Filters.RetryFilter = new(RetryFilter)
 						*cp.Rules[i2].Services[i4].Filters.RetryFilter = *o.Rules[i2].Services[i4].Filters.RetryFilter
-						if o.Rules[i2].Services[i4].Filters.RetryFilter.NumRetries != nil {
-							cp.Rules[i2].Services[i4].Filters.RetryFilter.NumRetries = new(uint32)
-							*cp.Rules[i2].Services[i4].Filters.RetryFilter.NumRetries = *o.Rules[i2].Services[i4].Filters.RetryFilter.NumRetries
-						}
 						if o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOn != nil {
 							cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOn = make([]string, len(o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOn))
 							copy(cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOn, o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOn)
@@ -483,10 +493,6 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 							cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes = make([]uint32, len(o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes))
 							copy(cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes, o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnStatusCodes)
 						}
-						if o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure != nil {
-							cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure = new(bool)
-							*cp.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure = *o.Rules[i2].Services[i4].Filters.RetryFilter.RetryOnConnectFailure
-						}
 					}
 					if o.Rules[i2].Services[i4].Filters.TimeoutFilter != nil {
 						cp.Rules[i2].Services[i4].Filters.TimeoutFilter = new(TimeoutFilter)
@@ -494,6 +500,28 @@ func (o *HTTPRouteConfigEntry) DeepCopy() *HTTPRouteConfigEntry {
 					}
 					if o.Rules[i2].Services[i4].Filters.JWT != nil {
 						cp.Rules[i2].Services[i4].Filters.JWT = o.Rules[i2].Services[i4].Filters.JWT.DeepCopy()
+					}
+					if o.Rules[i2].Services[i4].ResponseFilters.Headers != nil {
+						cp.Rules[i2].Services[i4].ResponseFilters.Headers = make([]HTTPHeaderFilter, len(o.Rules[i2].Services[i4].ResponseFilters.Headers))
+						copy(cp.Rules[i2].Services[i4].ResponseFilters.Headers, o.Rules[i2].Services[i4].ResponseFilters.Headers)
+						for i7 := range o.Rules[i2].Services[i4].ResponseFilters.Headers {
+							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add != nil {
+								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add = make(map[string]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add))
+								for k9, v9 := range o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add {
+									cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Add[k9] = v9
+								}
+							}
+							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove != nil {
+								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove = make([]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove))
+								copy(cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove, o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Remove)
+							}
+							if o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set != nil {
+								cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set = make(map[string]string, len(o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set))
+								for k9, v9 := range o.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set {
+									cp.Rules[i2].Services[i4].ResponseFilters.Headers[i7].Set[k9] = v9
+								}
+							}
+						}
 					}
 				}
 			}
@@ -1312,6 +1340,17 @@ func (o *BoundAPIGatewayConfigEntry) DeepCopy() *BoundAPIGatewayConfigEntry {
 				retV := o.Listeners[i2].DeepCopy()
 				cp.Listeners[i2] = *retV
 			}
+		}
+	}
+	if o.Services != nil {
+		cp.Services = make(map[ServiceName][]ResourceReference, len(o.Services))
+		for k2, v2 := range o.Services {
+			var cp_Services_v2 []ResourceReference
+			if v2 != nil {
+				cp_Services_v2 = make([]ResourceReference, len(v2))
+				copy(cp_Services_v2, v2)
+			}
+			cp.Services[k2] = cp_Services_v2
 		}
 	}
 	if o.Meta != nil {

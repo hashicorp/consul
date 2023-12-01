@@ -14,7 +14,7 @@ env:
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
-  GOTESTSUM_VERSION: "1.10.1"
+  GOTESTSUM_VERSION: "1.11.0"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
@@ -68,7 +68,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.22.11", "1.23.12", "1.24.10", "1.25.9"]
+          # envoy-version: ["1.22.11", "1.23.12", "1.24.12", "1.25.11"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -102,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.22.11", "1.23.12", "1.24.10", "1.25.9"]
+        envoy-version: ["1.22.11", "1.23.12", "1.24.12", "1.25.11"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -234,9 +234,8 @@ jobs:
           docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
             --raw-command \
-            --format=short-verbose \
-            --debug \
-            --rerun-fails=2 \
+            --format=github-actions \
+            --rerun-fails \
             --packages="./..." \
             -- \
             go test \

@@ -30,7 +30,7 @@ Usage: `consul acl binding-rule create [options] [args]`
 - `-bind-name=<string>` - Name to bind on match. Can use `${var}`
   interpolation. This flag is required.
 
-- `-bind-type=<string>` - Type of binding to perform (`"service"` or `"role"`).
+- `-bind-type=<string>` - Type of binding to perform (`"service"`, `"node"`, `"templated-policy"`, `"policy"` or `"role"`).
 
 - `-description=<string>` - A description of the binding rule.
 
@@ -89,4 +89,36 @@ Description:  just vault role
 BindType:     role
 BindName:     vault
 Selector:     serviceaccount.namespace==default and serviceaccount.name==vault
+```
+
+Create a new binding rule that binds to a policy:
+
+```shell-session
+$ consul acl binding-rule create -method 'nomad' \
+    -description 'gets policy for nomad job' \
+    -bind-type 'policy' \
+    -bind-name 'nomad-${nomad.jobname}' \
+    -selector 'nomad.jobname==billing-app'
+ID:           e21ae868-7b13-a230-0235-f8e83510642c
+AuthMethod:   nomad
+Description:  gets policy for nomad job
+BindType:     policy
+BindName:     nomad-billing-app
+Selector:     nomad.jobname==billing-app
+```
+
+Create a new binding rule that binds to a templated policy:
+
+```shell-session
+$ consul acl binding-rule create -method 'remote-jwks' \
+    -description 'gets templated policy for dns tokens' \
+    -bind-type 'templated-policy' \
+    -bind-name 'builtin/dns' \
+    -selector 'serviceaccount.namespace==default'
+ID:           eaca9aa4-8913-c8ef-ba39-bfae64f66d99
+AuthMethod:   remote-jwks
+Description:  gets templated policy for dns tokens
+BindType:     templated-policy
+BindName:     builtin/dns
+Selector:     serviceaccount.namespace==default
 ```

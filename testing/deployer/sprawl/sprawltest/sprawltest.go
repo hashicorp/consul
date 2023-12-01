@@ -13,10 +13,13 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/testing/deployer/sprawl"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/internal/runner"
@@ -92,8 +95,11 @@ func init() {
 //     environment variable SKIP_TEARDOWN=1.
 func Launch(t *testing.T, cfg *topology.Config) *sprawl.Sprawl {
 	SkipIfTerraformNotPresent(t)
+	logger := testutil.Logger(t)
+	// IMO default level for tests should be info, not warn
+	logger.SetLevel(testutil.TestLogLevelWithDefault(hclog.Info))
 	sp, err := sprawl.Launch(
-		testutil.Logger(t),
+		logger,
 		initWorkingDirectory(t),
 		cfg,
 	)
@@ -202,4 +208,11 @@ func SkipIfTerraformNotPresent(t *testing.T) {
 	if err != nil || path == "" {
 		t.Skipf("%q not found on $PATH - download and install to run this test", terraformBinaryName)
 	}
+}
+
+func MustSetResourceData(t *testing.T, res *pbresource.Resource, data proto.Message) *pbresource.Resource {
+	anyData, err := anypb.New(data)
+	require.NoError(t, err)
+	res.Data = anyData
+	return res
 }
