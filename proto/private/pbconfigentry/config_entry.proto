@@ -276,7 +276,7 @@ message IngressGateway {
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
   IngressServiceConfig Defaults = 4;
-  uint64 Hash =5;
+  uint64 Hash = 5;
 }
 
 // mog annotation:
@@ -380,7 +380,7 @@ message ServiceIntentions {
   repeated SourceIntention Sources = 1;
   map<string, string> Meta = 2;
   IntentionJWTRequirement JWT = 3;
-  uint64 Hash =4;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
