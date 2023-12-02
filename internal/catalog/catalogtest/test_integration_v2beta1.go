@@ -71,7 +71,7 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
 			c.RequireResourceExists(t, nodeId)
 
-			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
+			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
 			rtest.RequireOwner(t, res, nodeId, true)
 		}
 
