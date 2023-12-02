@@ -88,7 +88,7 @@ func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresour
 	// reconciliation at each point
 	for _, health := range healthChanges {
 		// update the health check
-		nodeHealth = setHealthStatus(t, c, node.Id, nodeHealthName, health)
+		nodeHealth = setNodeHealthStatus(t, c, node.Id, nodeHealthName, health)
 
 		// wait for reconciliation to kick in and put the node into the right
 		// health status.
@@ -108,7 +108,7 @@ func RunCatalogV2Beta1NodeLifecycleIntegrationTest(t *testing.T, client pbresour
 	// Add the health status back once more, the actual status doesn't matter.
 	// It just must be owned by the node so that we can show cascading
 	// deletions of owned health statuses working.
-	healthStatus := setHealthStatus(t, c, node.Id, nodeHealthName, pbcatalog.Health_HEALTH_CRITICAL)
+	healthStatus := setNodeHealthStatus(t, c, node.Id, nodeHealthName, pbcatalog.Health_HEALTH_CRITICAL)
 
 	// Delete the node and wait for the health status to be deleted.
 	c.MustDelete(t, node.Id)
@@ -263,8 +263,8 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 	// Set some non-passing health statuses for those nodes. Using non-passing will make
 	// it easy to see that changing a passing workloads node association appropriately
 	// impacts the overall workload health.
-	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_CRITICAL)
-	setHealthStatus(t, c, node2.Id, nodeHealthName2, pbcatalog.Health_HEALTH_WARNING)
+	setNodeHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_CRITICAL)
+	setNodeHealthStatus(t, c, node2.Id, nodeHealthName2, pbcatalog.Health_HEALTH_WARNING)
 
 	// Add the workload but don't immediately associate with any node.
 	workload := rtest.Resource(pbcatalog.WorkloadType, workloadName).
@@ -337,7 +337,7 @@ func runV2Beta1NodeAssociatedWorkloadLifecycleIntegrationTest(t *testing.T, c *r
 		Write(t, c)
 
 	// Also set node 1 health down to WARNING
-	setHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_WARNING)
+	setNodeHealthStatus(t, c, node1.Id, nodeHealthName1, pbcatalog.Health_HEALTH_WARNING)
 
 	// Wait for the workload health controller to mark the workload as warning (due to node 1 having warning health now)
 	c.WaitForStatusCondition(t, workload.Id,
@@ -712,6 +712,16 @@ func RunCatalogV2Beta1EndpointsLifecycleIntegrationTest(t *testing.T, client pbr
 func setHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health) *pbresource.Resource {
 	return rtest.Resource(pbcatalog.HealthStatusType, name).
 		WithData(t, &pbcatalog.HealthStatus{
+			Type:   "synthetic",
+			Status: health,
+		}).
+		WithOwner(owner).
+		Write(t, client)
+}
+
+func setNodeHealthStatus(t *testing.T, client *rtest.Client, owner *pbresource.ID, name string, health pbcatalog.Health) *pbresource.Resource {
+	return rtest.Resource(pbcatalog.NodeHealthStatusType, name).
+		WithData(t, &pbcatalog.NodeHealthStatus{
 			Type:   "synthetic",
 			Status: health,
 		}).

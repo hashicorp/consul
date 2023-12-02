@@ -96,3 +96,13 @@ func (msg *CheckTLSConfig) MarshalBinary() ([]byte, error) {
 func (msg *CheckTLSConfig) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *NodeHealthStatus) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *NodeHealthStatus) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
