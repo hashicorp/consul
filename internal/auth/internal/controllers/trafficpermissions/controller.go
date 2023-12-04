@@ -5,6 +5,7 @@ package trafficpermissions
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -92,9 +93,10 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// Part 2: Recompute a CTP from TP create / modify / delete, or create a new CTP from existing TPs:
-	latestTrafficPermissions, err := computeNewTrafficPermissions(ctx, rt, r.mapper, ctpID, oldResource)
+	latestTrafficPermissions, err := computeNewTrafficPermissions(ctx, rt, r.mapper, ctpID)
 	if err != nil {
 		rt.Logger.Error("error calculating computed permissions", "error", err)
+		writeFailedStatus(ctx, rt, oldResource, err.Error())
 		return err
 	}
 
@@ -106,7 +108,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	newCTPData, err := anypb.New(latestTrafficPermissions)
 	if err != nil {
 		rt.Logger.Error("error marshalling latest traffic permissions", "error", err)
-		writeFailedStatus(ctx, rt, oldResource, nil, err.Error())
+		writeFailedStatus(ctx, rt, oldResource, err.Error())
 		return err
 	}
 	rt.Logger.Trace("writing computed traffic permissions")
@@ -119,7 +121,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	})
 	if err != nil || rsp.Resource == nil {
 		rt.Logger.Error("error writing new computed traffic permissions", "error", err)
-		writeFailedStatus(ctx, rt, oldResource, nil, err.Error())
+		writeFailedStatus(ctx, rt, oldResource, err.Error())
 		return err
 	} else {
 		rt.Logger.Trace("new computed traffic permissions were successfully written")
@@ -138,14 +140,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	return err
 }
 
-func writeFailedStatus(ctx context.Context, rt controller.Runtime, ctp *pbresource.Resource, tp *pbresource.ID, errDetail string) error {
+func writeFailedStatus(ctx context.Context, rt controller.Runtime, ctp *pbresource.Resource, errDetail string) {
 	if ctp == nil {
-		return nil
+		return
 	}
 	newStatus := &pbresource.Status{
 		ObservedGeneration: ctp.Generation,
 		Conditions: []*pbresource.Condition{
-			ConditionFailedToCompute(ctp.Id.Name, tp.Name, errDetail),
+			ConditionFailedToCompute(ctp.Id.Name, errDetail),
 		},
 	}
 	_, err := rt.Client.WriteStatus(ctx, &pbresource.WriteStatusRequest{
@@ -153,11 +155,13 @@ func writeFailedStatus(ctx context.Context, rt controller.Runtime, ctp *pbresour
 		Key:    StatusKey,
 		Status: newStatus,
 	})
-	return err
+	if err != nil {
+		rt.Logger.Error("error writing failed status", "error", err)
+	}
 }
 
 // computeNewTrafficPermissions will use all associated Traffic Permissions to create new ComputedTrafficPermissions data
-func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm TrafficPermissionsMapper, ctpID *pbresource.ID, ctp *pbresource.Resource) (*pbauth.ComputedTrafficPermissions, error) {
+func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm TrafficPermissionsMapper, ctpID *pbresource.ID) (*pbauth.ComputedTrafficPermissions, error) {
 	// Part 1: Get all TPs that apply to workload identity
 	// Get already associated WorkloadIdentities/CTPs for reconcile requests:
 	trackedTPs := wm.GetTrafficPermissionsForCTP(ctpID)
@@ -169,11 +173,30 @@ func computeNewTrafficPermissions(ctx context.Context, rt controller.Runtime, wm
 	ap := make([]*pbauth.Permission, 0)
 	dp := make([]*pbauth.Permission, 0)
 	isDefault := true
+
+	// Fetch namespace traffic permissions for ctp(workload identity)'s tenancy
+	ntps, err := resource.ListDecodedResource[*pbauth.NamespaceTrafficPermissions](ctx, rt.Client, &pbresource.ListRequest{
+		Type:    pbauth.NamespaceTrafficPermissionsType,
+		Tenancy: ctpID.GetTenancy(),
+	})
+	if err != nil {
+		rt.Logger.Error("error reading namespaced traffic permissions resource for computation", "error", err)
+		return nil, err
+	}
+	for _, ntp := range ntps {
+		isDefault = false
+		if ntp.Data.Action == pbauth.Action_ACTION_ALLOW {
+			ap = append(ap, ntp.Data.Permissions...)
+		} else {
+			dp = append(dp, ntp.Data.Permissions...)
+		}
+	}
+
 	for _, t := range trackedTPs {
 		rsp, err := resource.GetDecodedResource[*pbauth.TrafficPermissions](ctx, rt.Client, resource.IDFromReference(t))
 		if err != nil {
+			err = fmt.Errorf("could not fetch traffic permission %q: %w", resource.IDFromReference(t), err)
 			rt.Logger.Error("error reading traffic permissions resource for computation", "error", err)
-			writeFailedStatus(ctx, rt, ctp, resource.IDFromReference(t), err.Error())
 			return nil, err
 		}
 		if rsp == nil {
