@@ -561,6 +561,8 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
+  ~> **Warning:** Both `kv_max_value_size` and `txn_max_req_len` values need to be declared in bytes, e.g. for `512KB` the value would be `524288`.
+
 - `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/docs/agent/config/cli-flags#_default_query_time).
 
 - `max_query_time` Equivalent to the [`-max-query-time` command-line flag](/consul/docs/agent/config/cli-flags#_max_query_time).
