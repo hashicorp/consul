@@ -18,7 +18,7 @@ import (
 
 func NodeHealthController() controller.Controller {
 	return controller.ForType(pbcatalog.NodeType).
-		WithWatch(pbcatalog.NodeHealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
+		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 
@@ -89,8 +89,8 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 	health := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, pbcatalog.NodeHealthStatusType) {
-			var hs pbcatalog.NodeHealthStatus
+		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
+			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible as the resource service + type validations the
 				// catalog is performing will ensure that no data gets written where unmarshalling

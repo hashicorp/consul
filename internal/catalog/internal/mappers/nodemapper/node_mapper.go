@@ -5,7 +5,6 @@ package nodemapper
 
 import (
 	"context"
-
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/mappers/bimapper"
@@ -27,11 +26,9 @@ func New() *NodeMapper {
 // the workload and with the name populated from the workloads NodeName field.
 func (m *NodeMapper) NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID {
 	return &pbresource.ID{
-		Type: pbcatalog.NodeType,
-		Tenancy: &pbresource.Tenancy{
-			Partition: workload.Id.Tenancy.GetPartition(),
-		},
-		Name: workloadData.NodeName,
+		Type:    pbcatalog.NodeType,
+		Tenancy: workload.Id.Tenancy,
+		Name:    workloadData.NodeName,
 	}
 }
 

@@ -288,17 +288,28 @@ func isValidRetryCondition(retryOn string) bool {
 
 func xRouteACLHooks[R XRouteData]() *resource.ACLHooks {
 	hooks := &resource.ACLHooks{
-		Read:  resource.DecodeAndAuthorizeRead(aclReadHookXRoute[R]),
-		Write: resource.DecodeAndAuthorizeWrite(aclWriteHookXRoute[R]),
+		Read:  aclReadHookXRoute[R],
+		Write: aclWriteHookXRoute[R],
 		List:  resource.NoOpACLListHook,
 	}
 
 	return hooks
 }
 
-func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *resource.DecodedResource[R]) error {
+func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, _ *pbresource.ID, res *pbresource.Resource) error {
+	if res == nil {
+		return resource.ErrNeedResource
+	}
+
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
 	// Need service:read on ALL of the services this is controlling traffic for.
-	for _, parentRef := range res.Data.GetParentRefs() {
+	for _, parentRef := range route.GetParentRefs() {
 		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
 		parentServiceName := parentRef.Ref.GetName()
 
@@ -310,9 +321,16 @@ func aclReadHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.Authorize
 	return nil
 }
 
-func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *resource.DecodedResource[R]) error {
+func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.AuthorizerContext, res *pbresource.Resource) error {
+	dec, err := resource.Decode[R](res)
+	if err != nil {
+		return err
+	}
+
+	route := dec.Data
+
 	// Need service:write on ALL of the services this is controlling traffic for.
-	for _, parentRef := range res.Data.GetParentRefs() {
+	for _, parentRef := range route.GetParentRefs() {
 		parentAuthzContext := resource.AuthorizerContext(parentRef.Ref.GetTenancy())
 		parentServiceName := parentRef.Ref.GetName()
 
@@ -322,7 +340,7 @@ func aclWriteHookXRoute[R XRouteData](authorizer acl.Authorizer, _ *acl.Authoriz
 	}
 
 	// Need service:read on ALL of the services this directs traffic at.
-	for _, backendRef := range res.Data.GetUnderlyingBackendRefs() {
+	for _, backendRef := range route.GetUnderlyingBackendRefs() {
 		backendAuthzContext := resource.AuthorizerContext(backendRef.Ref.GetTenancy())
 		backendServiceName := backendRef.Ref.GetName()
 

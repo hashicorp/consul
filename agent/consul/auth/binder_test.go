@@ -15,7 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 )
 
 func TestBindings_None(t *testing.T) {
@@ -28,79 +27,11 @@ func TestBindings_None(t *testing.T) {
 	b = &Bindings{Roles: []structs.ACLTokenRoleLink{{ID: generateID(t)}}}
 	require.False(t, b.None())
 
-	b = &Bindings{Policies: []structs.ACLTokenPolicyLink{{ID: generateID(t)}}}
-	require.False(t, b.None())
-
 	b = &Bindings{ServiceIdentities: []*structs.ACLServiceIdentity{{ServiceName: "web"}}}
 	require.False(t, b.None())
 
 	b = &Bindings{NodeIdentities: []*structs.ACLNodeIdentity{{NodeName: "node-123"}}}
 	require.False(t, b.None())
-
-	b = &Bindings{TemplatedPolicies: []*structs.ACLTemplatedPolicy{{TemplateName: api.ACLTemplatedPolicyDNSName}}}
-	require.False(t, b.None())
-}
-
-func TestBinder_Policy_Success(t *testing.T) {
-	store := testStateStore(t)
-	binder := &Binder{store: store}
-
-	authMethod := &structs.ACLAuthMethod{
-		Name: "test-auth-method",
-		Type: "testing",
-	}
-	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
-
-	targetPolicy := &structs.ACLPolicy{
-		ID:   generateID(t),
-		Name: "foo-policy",
-	}
-	require.NoError(t, store.ACLPolicySet(0, targetPolicy))
-
-	otherPolicy := &structs.ACLPolicy{
-		ID:   generateID(t),
-		Name: "not-my-policy",
-	}
-	require.NoError(t, store.ACLPolicySet(0, otherPolicy))
-
-	bindingRules := structs.ACLBindingRules{
-		{
-			ID:         generateID(t),
-			Selector:   "role==engineer",
-			BindType:   structs.BindingRuleBindTypePolicy,
-			BindName:   "${editor}-policy",
-			AuthMethod: authMethod.Name,
-		},
-		{
-			ID:         generateID(t),
-			Selector:   "role==engineer",
-			BindType:   structs.BindingRuleBindTypePolicy,
-			BindName:   "this-policy-does-not-exist",
-			AuthMethod: authMethod.Name,
-		},
-		{
-			ID:         generateID(t),
-			Selector:   "language==js",
-			BindType:   structs.BindingRuleBindTypePolicy,
-			BindName:   otherPolicy.Name,
-			AuthMethod: authMethod.Name,
-		},
-	}
-	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
-
-	result, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{
-		SelectableFields: map[string]string{
-			"role":     "engineer",
-			"language": "go",
-		},
-		ProjectedVars: map[string]string{
-			"editor": "foo",
-		},
-	})
-	require.NoError(t, err)
-	require.Equal(t, []structs.ACLTokenPolicyLink{
-		{ID: targetPolicy.ID, Name: targetPolicy.Name},
-	}, result.Policies)
 }
 
 func TestBinder_Roles_Success(t *testing.T) {
@@ -180,32 +111,6 @@ func TestBinder_Roles_NameValidation(t *testing.T) {
 			ID:         generateID(t),
 			Selector:   "",
 			BindType:   structs.BindingRuleBindTypeRole,
-			BindName:   "INVALID!",
-			AuthMethod: authMethod.Name,
-		},
-	}
-	require.NoError(t, store.ACLBindingRuleBatchSet(0, bindingRules))
-
-	_, err := binder.Bind(&structs.ACLAuthMethod{}, &authmethod.Identity{})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid bind name")
-}
-
-func TestBinder_Policy_NameValidation(t *testing.T) {
-	store := testStateStore(t)
-	binder := &Binder{store: store}
-
-	authMethod := &structs.ACLAuthMethod{
-		Name: "test-auth-method",
-		Type: "testing",
-	}
-	require.NoError(t, store.ACLAuthMethodSet(0, authMethod))
-
-	bindingRules := structs.ACLBindingRules{
-		{
-			ID:         generateID(t),
-			Selector:   "",
-			BindType:   structs.BindingRuleBindTypePolicy,
 			BindName:   "INVALID!",
 			AuthMethod: authMethod.Name,
 		},
@@ -370,60 +275,54 @@ func Test_IsValidBindingRule(t *testing.T) {
 			"invalid", "blah", nil, "", true},
 		// valid HIL, invalid name
 		{"empty",
-			"all", "", nil, "", true},
+			"both", "", nil, "", true},
 		{"just end",
-			"all", "}", nil, "", true},
+			"both", "}", nil, "", true},
 		{"var without start",
-			"all", " item }", nil, "item", true},
+			"both", " item }", nil, "item", true},
 		{"two vars missing second start",
-			"all", "before-${ item }after--more }", nil, "item,more", true},
+			"both", "before-${ item }after--more }", nil, "item,more", true},
 		// names for the two types are validated differently
 		{"@ is disallowed",
-			"all", "bad@name", nil, "", true},
+			"both", "bad@name", nil, "", true},
 		{"leading dash",
 			"role", "-name", nil, "", false},
-		{"leading dash",
-			"policy", "-name", nil, "", false},
 		{"leading dash",
 			"service", "-name", nil, "", true},
 		{"trailing dash",
 			"role", "name-", nil, "", false},
 		{"trailing dash",
-			"policy", "name-", nil, "", false},
-		{"trailing dash",
 			"service", "name-", nil, "", true},
 		{"inner dash",
-			"all", "name-end", nil, "", false},
+			"both", "name-end", nil, "", false},
 		{"upper case",
 			"role", "NAME", nil, "", false},
-		{"upper case",
-			"policy", "NAME", nil, "", false},
 		{"upper case",
 			"service", "NAME", nil, "", true},
 		// valid HIL, valid name
 		{"no vars",
-			"all", "nothing", nil, "", false},
+			"both", "nothing", nil, "", false},
 		{"just var",
-			"all", "${item}", nil, "item", false},
+			"both", "${item}", nil, "item", false},
 		{"var in middle",
-			"all", "before-${item}after", nil, "item", false},
+			"both", "before-${item}after", nil, "item", false},
 		{"two vars",
-			"all", "before-${item}after-${more}", nil, "item,more", false},
+			"both", "before-${item}after-${more}", nil, "item,more", false},
 		// bad
 		{"no bind name",
-			"all", "", nil, "", true},
+			"both", "", nil, "", true},
 		{"just start",
-			"all", "${", nil, "", true},
+			"both", "${", nil, "", true},
 		{"backwards",
-			"all", "}${", nil, "", true},
+			"both", "}${", nil, "", true},
 		{"no varname",
-			"all", "${}", nil, "", true},
+			"both", "${}", nil, "", true},
 		{"missing map key",
-			"all", "${item}", nil, "", true},
+			"both", "${item}", nil, "", true},
 		{"var without end",
-			"all", "${ item ", nil, "item", true},
+			"both", "${ item ", nil, "item", true},
 		{"two vars missing first end",
-			"all", "before-${ item after-${ more }", nil, "item,more", true},
+			"both", "before-${ item after-${ more }", nil, "item,more", true},
 
 		// bind type: templated policy - bad input
 		{"templated-policy missing bindvars", "templated-policy", "builtin/service", nil, "", true},
@@ -439,16 +338,12 @@ func Test_IsValidBindingRule(t *testing.T) {
 			"templated-policy", "builtin/service", &structs.ACLTemplatedPolicyVariables{Name: "before-${item}after-${more}"}, "item,more", false},
 	} {
 		var cases []testcase
-		if test.bindType == "all" {
+		if test.bindType == "both" {
 			test1 := test
 			test1.bindType = "role"
 			test2 := test
 			test2.bindType = "service"
-			test3 := test
-			test3.bindType = "policy"
-			test4 := test
-			test4.bindType = "node"
-			cases = []testcase{test1, test2, test3, test4}
+			cases = []testcase{test1, test2}
 		} else {
 			cases = []testcase{test}
 		}

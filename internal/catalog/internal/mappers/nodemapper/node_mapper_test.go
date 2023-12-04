@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -30,11 +29,9 @@ func TestNodeMapper_NodeIDFromWorkload(t *testing.T) {
 
 	actual := mapper.NodeIDFromWorkload(workload, data)
 	expected := &pbresource.ID{
-		Type: pbcatalog.NodeType,
-		Tenancy: &pbresource.Tenancy{
-			Partition: workload.Id.Tenancy.GetPartition(),
-		},
-		Name: "test-node",
+		Type:    pbcatalog.NodeType,
+		Tenancy: workload.Id.Tenancy,
+		Name:    "test-node",
 	}
 
 	prototest.AssertDeepEqual(t, expected, actual)
@@ -58,12 +55,10 @@ func TestNodeMapper_WorkloadTracking(t *testing.T) {
 	mapper := New()
 
 	node1 := resourcetest.Resource(pbcatalog.NodeType, "node1").
-		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.1"}}}).
 		Build()
 
 	node2 := resourcetest.Resource(pbcatalog.NodeType, "node2").
-		WithTenancy(resource.DefaultPartitionedTenancy()).
 		WithData(t, &pbcatalog.Node{Addresses: []*pbcatalog.NodeAddress{{Host: "198.18.0.2"}}}).
 		Build()
 

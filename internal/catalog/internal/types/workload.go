@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-type DecodedWorkload = resource.DecodedResource[*pbcatalog.Workload]
-
 func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.WorkloadType,
@@ -25,19 +23,23 @@ func RegisterWorkload(r resource.Registry) {
 		Validate: ValidateWorkload,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkload,
-			Write: resource.DecodeAndAuthorizeWrite(aclWriteHookWorkload),
+			Write: aclWriteHookWorkload,
 			List:  resource.NoOpACLListHook,
 		},
 	})
 }
 
-var ValidateWorkload = resource.DecodeAndValidate(validateWorkload)
+func ValidateWorkload(res *pbresource.Resource) error {
+	var workload pbcatalog.Workload
 
-func validateWorkload(res *DecodedWorkload) error {
+	if err := res.Data.UnmarshalTo(&workload); err != nil {
+		return resource.NewErrDataParse(&workload, err)
+	}
+
 	var err error
 
 	// Validate that the workload has at least one port
-	if len(res.Data.Ports) < 1 {
+	if len(workload.Ports) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "ports",
 			Wrapped: resource.ErrEmpty,
@@ -47,7 +49,7 @@ func validateWorkload(res *DecodedWorkload) error {
 	var meshPorts []string
 
 	// Validate the Workload Ports
-	for portName, port := range res.Data.Ports {
+	for portName, port := range workload.Ports {
 		if portNameErr := ValidatePortName(portName); portNameErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidMapKey{
 				Map:     "ports",
@@ -98,12 +100,12 @@ func validateWorkload(res *DecodedWorkload) error {
 	// If the workload is mesh enabled then a valid identity must be provided.
 	// If not mesh enabled but a non-empty identity is provided then we still
 	// validate that its valid.
-	if len(meshPorts) > 0 && res.Data.Identity == "" {
+	if len(meshPorts) > 0 && workload.Identity == "" {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "identity",
 			Wrapped: resource.ErrMissing,
 		})
-	} else if res.Data.Identity != "" && !isValidDNSLabel(res.Data.Identity) {
+	} else if workload.Identity != "" && !isValidDNSLabel(workload.Identity) {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "identity",
 			Wrapped: errNotDNSLabel,
@@ -111,7 +113,7 @@ func validateWorkload(res *DecodedWorkload) error {
 	}
 
 	// Validate workload locality
-	if res.Data.Locality != nil && res.Data.Locality.Region == "" && res.Data.Locality.Zone != "" {
+	if workload.Locality != nil && workload.Locality.Region == "" && workload.Locality.Zone != "" {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "locality",
 			Wrapped: errLocalityZoneNoRegion,
@@ -120,8 +122,8 @@ func validateWorkload(res *DecodedWorkload) error {
 
 	// Node associations are optional but if present the name should
 	// be a valid DNS label.
-	if res.Data.NodeName != "" {
-		if !isValidDNSLabel(res.Data.NodeName) {
+	if workload.NodeName != "" {
+		if !isValidDNSLabel(workload.NodeName) {
 			err = multierror.Append(err, resource.ErrInvalidField{
 				Name:    "node_name",
 				Wrapped: errNotDNSLabel,
@@ -129,7 +131,7 @@ func validateWorkload(res *DecodedWorkload) error {
 		}
 	}
 
-	if len(res.Data.Addresses) < 1 {
+	if len(workload.Addresses) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "addresses",
 			Wrapped: resource.ErrEmpty,
@@ -137,8 +139,8 @@ func validateWorkload(res *DecodedWorkload) error {
 	}
 
 	// Validate Workload Addresses
-	for idx, addr := range res.Data.Addresses {
-		if addrErr := validateWorkloadAddress(addr, res.Data.Ports); addrErr != nil {
+	for idx, addr := range workload.Addresses {
+		if addrErr := validateWorkloadAddress(addr, workload.Ports); addrErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "addresses",
 				Index:   idx,
@@ -154,21 +156,26 @@ func aclReadHookWorkload(authorizer acl.Authorizer, authzContext *acl.Authorizer
 	return authorizer.ToAllowAuthorizer().ServiceReadAllowed(id.GetName(), authzContext)
 }
 
-func aclWriteHookWorkload(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedWorkload) error {
+func aclWriteHookWorkload(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
+	decodedWorkload, err := resource.Decode[*pbcatalog.Workload](res)
+	if err != nil {
+		return resource.ErrNeedResource
+	}
+
 	// First check service:write on the workload name.
-	err := authorizer.ToAllowAuthorizer().ServiceWriteAllowed(res.GetId().GetName(), authzContext)
+	err = authorizer.ToAllowAuthorizer().ServiceWriteAllowed(res.GetId().GetName(), authzContext)
 	if err != nil {
 		return err
 	}
 
 	// Check node:read permissions if node is specified.
-	if res.Data.GetNodeName() != "" {
-		return authorizer.ToAllowAuthorizer().NodeReadAllowed(res.Data.GetNodeName(), authzContext)
+	if decodedWorkload.GetData().GetNodeName() != "" {
+		return authorizer.ToAllowAuthorizer().NodeReadAllowed(decodedWorkload.GetData().GetNodeName(), authzContext)
 	}
 
 	// Check identity:read permissions if identity is specified.
-	if res.Data.GetIdentity() != "" {
-		return authorizer.ToAllowAuthorizer().IdentityReadAllowed(res.Data.GetIdentity(), authzContext)
+	if decodedWorkload.GetData().GetIdentity() != "" {
+		return authorizer.ToAllowAuthorizer().IdentityReadAllowed(decodedWorkload.GetData().GetIdentity(), authzContext)
 	}
 
 	return nil
