@@ -11,4 +11,6 @@ func Register(r resource.Registry) {
 	RegisterWorkloadIdentity(r)
 	RegisterTrafficPermissions(r)
 	RegisterComputedTrafficPermission(r)
+
+	RegisterEnterpriseTypes(r)
 }

@@ -109,8 +109,23 @@ var ValidateTrafficPermissions = resource.DecodeAndValidate(validateTrafficPermi
 func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 	var merr error
 
+	merr = validateAction(merr, res.Data)
+
+	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
+		merr = multierror.Append(merr, resource.ErrInvalidField{
+			Name:    "data.destination",
+			Wrapped: resource.ErrEmpty,
+		})
+	}
+
+	merr = validatePermissions(merr, res.Data)
+
+	return merr
+}
+
+func validateAction(merr error, data interface{ GetAction() pbauth.Action }) error {
 	// enumcover:pbauth.Action
-	switch res.Data.Action {
+	switch data.GetAction() {
 	case pbauth.Action_ACTION_ALLOW:
 	case pbauth.Action_ACTION_DENY:
 	case pbauth.Action_ACTION_UNSPECIFIED:
@@ -121,15 +136,12 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 			Wrapped: errInvalidAction,
 		})
 	}
+	return merr
+}
 
-	if res.Data.Destination == nil || (len(res.Data.Destination.IdentityName) == 0) {
-		merr = multierror.Append(merr, resource.ErrInvalidField{
-			Name:    "data.destination",
-			Wrapped: resource.ErrEmpty,
-		})
-	}
+func validatePermissions(merr error, data interface{ GetPermissions() []*pbauth.Permission }) error {
 	// Validate permissions
-	for i, permission := range res.Data.Permissions {
+	for i, permission := range data.GetPermissions() {
 		wrapErr := func(err error) error {
 			return resource.ErrInvalidListElement{
 				Name:    "permissions",
@@ -141,7 +153,6 @@ func validateTrafficPermissions(res *DecodedTrafficPermissions) error {
 			merr = multierror.Append(merr, err)
 		}
 	}
-
 	return merr
 }
 

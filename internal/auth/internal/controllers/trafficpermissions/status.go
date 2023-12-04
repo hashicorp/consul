@@ -30,11 +30,8 @@ func ConditionComputed(workloadIdentity string, isDefault bool) *pbresource.Cond
 	}
 }
 
-func ConditionFailedToCompute(workloadIdentity string, trafficPermissions string, errDetail string) *pbresource.Condition {
+func ConditionFailedToCompute(workloadIdentity string, errDetail string) *pbresource.Condition {
 	message := fmt.Sprintf(ConditionPermissionsFailedMsg, workloadIdentity)
-	if len(trafficPermissions) > 0 {
-		message = message + fmt.Sprintf(", traffic permission %s cannot be computed", trafficPermissions)
-	}
 	if len(errDetail) > 0 {
 		message = message + fmt.Sprintf(", error details: %s", errDetail)
 	}
