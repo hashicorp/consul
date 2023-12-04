@@ -81,7 +81,7 @@ require (
 	github.com/hashicorp/yamux v0.0.0-20211028200310-0bc27b27de87
 	github.com/imdario/mergo v0.3.15
 	github.com/kr/text v0.2.0
-	github.com/miekg/dns v1.1.50
+	github.com/miekg/dns v1.1.57
 	github.com/mitchellh/cli v1.1.4
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-testing-interface v1.14.0
@@ -114,7 +114,7 @@ require (
 	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63
 	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.13.0
-	golang.org/x/sync v0.3.0
+	golang.org/x/sync v0.4.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc
@@ -265,7 +265,7 @@ require (
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
+	golang.org/x/tools v0.13.0 // indirect
 	google.golang.org/api v0.126.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230530153820-e85fd2cbaebc // indirect
