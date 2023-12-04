@@ -26,8 +26,8 @@ The following list outlines field hierarchy, language-specific data types, and r
   - [`permissions`](#spec-permissions): list of maps
     - [`sources`](#spec-permissions-sources): map
       - [`identityName`](#spec-permissions-sources-identityname): string
-    - [`destinationRules`](#spec-permissions-destinationrules):
-      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
+    - [`destinationRules`](#spec-permissions-destinationrules): list of maps
+      - [`portNames`](#spec-permissions-destinationrules-portnames): array of strings
 
 ## Complete configuration
 
@@ -185,7 +185,7 @@ When [`spec.action`](#spec-action) _denies traffic_, Consul denies authorization
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: List of maps
 
 ### `spec.permissions.destinationRules.portNames`
 
