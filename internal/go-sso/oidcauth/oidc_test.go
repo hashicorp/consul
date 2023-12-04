@@ -387,7 +387,7 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "wrong_code",
 		)
-		requireErrorContains(t, err, "cannot fetch token")
+		requireErrorContains(t, err, "Error exchanging oidc code")
 		requireProviderError(t, err)
 	})
 
