@@ -10,5 +10,6 @@ import (
 func Register(r resource.Registry) {
 	RegisterWorkloadIdentity(r)
 	RegisterTrafficPermissions(r)
+	RegisterNamespaceTrafficPermissions(r)
 	RegisterComputedTrafficPermission(r)
 }
