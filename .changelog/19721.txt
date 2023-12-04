@@ -1,0 +1,6 @@
+```release-note:improvement
+metrics: modify consul.client.rpc metric to exclude internal retries for consistency with consul.client.rpc.exceeded and consul.client.rpc.failed
+```
+```release-note:improvement
+metrics: increment consul.client.rpc.failed if RPC fails because no servers are accessible
+```
