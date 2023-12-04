@@ -70,7 +70,7 @@ func parseExpectItem(li *comment.ListItem) (Expect, error) {
 
 	matches := whenThenRE.FindStringSubmatch(string(contentPlain))
 	if len(matches) != 3 {
-		return Expect{}, fmt.Errorf(`Expect item must be of the form "When: <...>, then": <...>; is: %q`, contentPlain)
+		return Expect{}, fmt.Errorf(`Expect item must be of the form "When: <...>, then: <...>"; is: %q`, contentPlain)
 	}
 
 	return Expect{
