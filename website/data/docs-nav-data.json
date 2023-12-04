@@ -36,7 +36,7 @@
         "path": "why/dns"
       },
       {
-        "title": "Configuration management tool",
+        "title": "Configuration management",
         "path": "why/config-management"
       },
       {
@@ -54,15 +54,15 @@
     "routes": [
       {
         "title": "Consul on VMs",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-vms"
+        "href": "/consul/tutorials/get-started-vms"
       },
       {
         "title": "Consul on Kubernetes",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-kubernetes"
+        "href": "/consul/tutorials/get-started-kubernetes"
       },
       {
         "title": "HCP Consul",
-        "href": "https://developer.hashicorp.com/consul/tutorials/get-started-hcp"
+        "href": "/consul/tutorials/get-started-hcp"
       }
     ]
   },
@@ -327,6 +327,102 @@
                     "path": "deploy/server/k8s/platform-guides/self-hosted"
                   }
                 ]
+              },
+              {
+                "title": "Advanced examples",
+                "routes": [
+                  {
+                    "title": "Servers outside Kubernetes",
+                    "path": "deploy/server/k8s/examples/server-outside-k8s"
+                  },
+                  {
+                    "title": "Consul in multiple Kubernetes clusters",
+                    "path": "deploy/server/k8s/examples/multiple-k8s-cluster"
+                  },
+                  {
+                    "title": "Consul Enterprise",
+                    "path": "deploy/server/k8s/examples/enterprise"
+                  },
+                  {
+                    "title": "Multi-cluster federation",
+                    "routes": [
+                      {
+                        "title": "Overview",
+                        "path": "deploy/server/k8s/examples/federation"
+                      },
+                      {
+                        "title": "Federate Kubernetes clusters",
+                        "path": "deploy/server/k8s/examples/federation/k8s-k8s"
+                      },
+                      {
+                        "title": "Federate VM and Kubernetes clusters",
+                        "path": "deploy/server/k8s/examples/federation/vm-k8s"
+                      }
+                    ]
+                  },
+                  {
+                    "title": "Vault as a secrets backend",
+                    "routes": [
+                      {
+                        "title": "Overview",
+                        "path": "deploy/server/k8s/examples/vault"
+                      },
+                      {
+                        "title": "System integration",
+                        "path": "deploy/server/k8s/examples/vault/system-integration"
+                      },
+                      {
+                        "title": "Data integration",
+                        "routes": [
+                          {
+                            "title": "Overview",
+                            "path": "deploy/server/k8s/examples/vault/data-integration"
+                          },
+                          {
+                            "title": "Bootstrap token",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/bootstrap-token"
+                          },
+                          {
+                            "title": "Enterprise license",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/enterprise-license"
+                          },
+                          {
+                            "title": "Gossip encryption key",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/gossip-encryption-key"
+                          },
+                          {
+                            "title": "Partition token",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/partition-token"
+                          },
+                          {
+                            "title": "Replication token",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/replication-token"
+                          },
+                          {
+                            "title": "Server TLS",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/server-tls"
+                          },
+                          {
+                            "title": "Service mesh certificates",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/service-mesh-certificate"
+                          },
+                          {
+                            "title": "Snapshot agent config",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/snapshot-agent-config"
+                          },
+                          {
+                            "title": "Webhook certificates",
+                            "path": "deploy/server/k8s/examples/vault/data-integration/webhook-certificates"
+                          }
+                        ]
+                      },
+                      {
+                        "title": "WAN federation",
+                        "path": "deploy/server/k8s/examples/vault/wan-federation"
+                      }
+                    ]
+                  }
+                ]
               }
             ]
           }
@@ -351,154 +447,61 @@
                 "path": "deploy/workload/k8s"
               },
               {
-                "title": "Examples",
-                "routes": [
-                  {
-                    "title": "Clients outside Kubernetes",
-                    "path": "deploy/workload/k8s/examples/client-outside-k8s"
-                  },
-                  {
-                    "title": "Servers outside Kubernetes",
-                    "path": "deploy/workload/k8s/examples/server-outside-k8s"
-                  },
-                  {
-                    "title": "Consul in multiple Kubernetes clusters",
-                    "path": "deploy/workload/k8s/examples/multiple-k8s-cluster"
-                  },
-                  {
-                    "title": "Consul Enterprise",
-                    "path": "deploy/workload/k8s/examples/enterprise"
-                  },
-                  {
-                    "title": "Multi-cluster federation",
-                    "routes": [
-                      {
-                        "title": "Overview",
-                        "path": "deploy/workload/k8s/examples/federation"
-                      },
-                      {
-                        "title": "Federate Kubernetes clusters",
-                        "path": "deploy/workload/k8s/examples/federation/k8s-k8s"
-                      },
-                      {
-                        "title": "Federate VM and Kubernetes clusters",
-                        "path": "deploy/workload/k8s/examples/federation/vm-k8s"
-                      }
-                    ]
-                  },
-                  {
-                    "title": "Vault as a secrets backend",
-                    "routes": [
-                      {
-                        "title": "Overview",
-                        "path": "deploy/workload/k8s/examples/vault"
-                      },
-                      {
-                        "title": "System integration",
-                        "path": "deploy/workload/k8s/examples/vault/system-integration"
-                      },
-                      {
-                        "title": "Data integration",
-                        "routes": [
-                          {
-                            "title": "Overview",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration"
-                          },
-                          {
-                            "title": "Bootstrap token",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/bootstrap-token"
-                          },
-                          {
-                            "title": "Enterprise license",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/enterprise-license"
-                          },
-                          {
-                            "title": "Gossip encryption key",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/gossip-encryption-key"
-                          },
-                          {
-                            "title": "Partition token",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/partition-token"
-                          },
-                          {
-                            "title": "Replication token",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/replication-token"
-                          },
-                          {
-                            "title": "Server TLS",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/server-tls"
-                          },
-                          {
-                            "title": "Service mesh certificates",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/service-mesh-certificate"
-                          },
-                          {
-                            "title": "Snapshot agent config",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/snapshot-agent-config"
-                          },
-                          {
-                            "title": "Webhook certificates",
-                            "path": "deploy/workload/k8s/examples/vault/data-integration/webhook-certificates"
-                          }
-                        ]
-                      },
-                      {
-                        "title": "WAN federation",
-                        "path": "deploy/workload/k8s/examples/vault/wan-federation"
-                      }
-                    ]
-                  }
-                ]
+                "title": "Clients outside Kubernetes",
+                "path": "deploy/workload/k8s/client-outside-k8s"
               }
             ]
           },
           {
             "title": "Nomad",
-            "path": "deploy/workload/nomad"
+            "href": "register/service/nomad"
           },
           {
             "title": "ECS",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "deploy/workload/ecs"
-              },
-              {
-                "title": "Deploy automatically with Terraform",
-                "path": "deploy/workload/ecs/automate-terraform"
-              },
-              {
-                "title": "Deploy manually",
-                "path": "deploy/workload/ecs/manual"
-              },
-              {
-                "title": "Reference",
-                "routes": [
-                  {
-                    "title": "Compatibility matrix",
-                    "href": "reference/ecs/compatibility-matrix"
-                  },
-                  {
-                    "title": "Consul server configuration",
-                    "href": "reference/ecs/server-configuration"
-                  }
-                ]
-              }
-            ]
+            "href": "register/service/ecs"
           },
           {
             "title": "Lambda",
-            "path": "deploy/workload/lambda"
+            "href": "register/service/lambda"
           }
         ]
       },
       {
         "title": "Configure service mesh",
-        "path": "deploy/configure-service-mesh"
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "deploy/service-mesh"
+          },
+          {
+            "title": "Enable service mesh",
+            "path": "deploy/service-mesh/enable"
+          },
+          {
+            "title": "Configure and deploy proxies in the service mesh",
+            "path": "deploy/service-mesh/deploy-proxy"
+          },
+          {
+            "title": "Configure and deploy sidecar proxies",
+            "path": "deploy/service-mesh/deploy-sidecar"
+          }
+        ]
+      },
+      {
+        "title": "Consul at Scale",
+        "path": "deploy/scale"
       },
       {
         "title": "Consul Enterprise",
         "path": "deploy/enterprise"
+      },
+      {
+        "title": "Virtual machine (VM)",
+        "path": "deploy/vm"
+      },
+      {
+        "title": "Kubernetes",
+        "path": "deploy/k8s"
       }
     ]
   },
@@ -582,6 +585,10 @@
             "path": "secure/acl/rule"
           },
           {
+            "title": "Enable ACLs in federated datacenters",
+            "path": "secure/acl/enable-federated-datacenters"
+          },
+          {
             "title": "Auth methods",
             "routes": [
               {
@@ -605,10 +612,6 @@
                 "path": "secure/acl/auth-method/aws-iam"
               }
             ]
-          },
-          {
-            "title": "Enable ACLs in federated datacenters",
-            "path": "secure/acl/enable-federated-datacenters"
           }
         ]
       }
@@ -654,7 +657,12 @@
             "path": "monitor/log/agent-behavior"
           },
           {
-            "title": "Log HTTP API request (Audit log - Ent)",
+            "title": "Log HTTP API request (Audit log)",
+            "badge": {
+              "text": "ENTERPRISE",
+              "type": "outlined",
+              "color": "neutral"
+            },
             "path": "monitor/log/audit-log"
           }
         ]
@@ -868,16 +876,25 @@
         "title": "Services and health checks",
         "routes": [
           {
-            "title": "Define services",
-            "path": "register/service/define" 
+            "title": "Overview",
+            "path": "register/service"
           },
           {
-            "title": "Define health checks",
-            "path": "register/service/health-check"
-          },
-          {
-            "title": "Register services and health checks",
-            "path": "register/service" 
+            "title": "Virtual machine (VM)",
+            "routes": [
+              {
+                "title": "Define services",
+                "path": "register/service/vm/define" 
+              },
+              {
+                "title": "Define health checks",
+                "path": "register/service/vm/health-check"
+              },
+              {
+                "title": "Register services and health checks",
+                "path": "register/service/vm" 
+              }
+            ]
           },
           {
             "title": "Kubernetes",
@@ -922,10 +939,6 @@
               {
                 "title": "Consul Enterprise",
                 "path": "register/service/ecs/enterprise"
-              },
-              {
-                "title": "Task definition reference",
-                "href": "reference/ecs/task-definition"
               }
             ]
           },
@@ -949,23 +962,6 @@
           {
             "title": "Register Nomad jobs",
             "path": "register/service/nomad"
-          },
-          {
-            "title": "Reference",
-            "routes": [
-              {
-                "title": "Service",
-                "href": "reference/service" 
-              },
-              {
-                "title": "Service defaults",
-                "href": "reference/config-entry/service-defaults" 
-              },
-              {
-                "title": "Health check",
-                "href": "reference/health-check" 
-              }
-            ]
           }
         ]
       },
@@ -994,12 +990,12 @@
               {
                 "title": "Kubernetes",
                 "path": "register/external/terminating-gateway/k8s"
-              },
-              {
-                "title": "Reference",
-                "href": "reference/terminating-gateway"
               }
             ]
+          },
+          {
+            "title": "Onboarding services in transparent proxy mode",
+            "path": "register/external/permissive-mtls"
           }
         ]
       },
@@ -1059,6 +1055,10 @@
         ]
       },
       {
+        "title": "Virtual machine (VM)",
+        "path": "discover/vm"
+      },
+      {
         "title": "Kubernetes",
         "path": "discover/k8s"
       }
@@ -1072,8 +1072,47 @@
         "path": "connect"
       },
       {
+        "title": "How service mesh works",
+        "href": "concept/service-mesh"
+      },
+      {
         "title": "Configuration entries",
         "path": "connect/config-entries"
+      },
+      {
+        "title": "Multi-port services",
+        "badge": {
+          "text": "v2 API",
+          "type": "outlined",
+          "color": "neutral"
+        },
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/multi-port"
+          },
+          {
+            "title": "Configure multi-port services",
+            "path": "connect/multi-port/configure"
+          }
+        ]
+      },
+      {
+        "title": "Lambda",
+        "routes": [
+          {
+            "title": "-",
+            "path": "connect/lambda"
+          },
+          {
+            "title": "Invoke Lambda functions from services",
+            "path": "connect/lambda/invoke-function"
+          },
+          {
+            "title": "Invoke services from Lambda functions",
+            "path": "connect/lambda/invoke-service"
+          }
+        ]
       },
       {
         "title": "Proxy",
@@ -1098,6 +1137,10 @@
                 "path": "connect/proxy/transparent-proxy"
               },
               {
+                "title": "Enable transparent proxy",
+                "path": "connect/proxy/transparent-proxy/enable"
+              },
+              {
                 "title": "Kubernetes",
                 "path": "connect/proxy/transparent-proxy/k8s"
               },
@@ -1118,12 +1161,41 @@
         ]
       },
       {
+        "title": "Troubleshoot",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "connect/troubleshoot"
+          },
+          {
+            "title": "Develop and debug",
+            "path": "connect/troubleshoot/develop-debug"
+          },
+          {
+            "title": "Service-to-service troubleshooting",
+            "path": "connect/troubleshoot/service-to-service"
+          }
+        ]
+      },
+      {
+        "title": "Virtual machine (VM)",
+        "path": "connect/vm"
+      },
+      {
         "title": "Kubernetes",
         "path": "connect/k8s"
       },
       {
         "title": "ECS",
         "path": "connect/ecs"
+      },
+      {
+        "title": "Lambda",
+        "href": "connect/lambda"
+      },
+      {
+        "title": "Nomad",
+        "path": "connect/nomad"
       }
     ]
   },
@@ -1264,11 +1336,7 @@
           },
           {
             "title": "Serve TLS certificate from external service",
-            "path": "access/ingress-gateway/external-service"
-          },
-          {
-            "title": "Reference",
-            "href": "reference/config-entry/ingress-gateway"
+            "path": "access/ingress-gateway/tls-external-service"
           }
         ]
       },
@@ -1329,18 +1397,22 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "link/peering"
+            "path": "link/cluster-peering"
+          },
+          {
+            "title": "Technical specifications",
+            "path": "link/cluster-peering/tech-specs"
           },
           {
             "title": "Establish connections",
             "routes": [
               {
                 "title": "Virtual machine (VM)",
-                "path": "link/peering/establish/vm"
+                "path": "link/cluster-peering/establish/vm"
               },
               {
                 "title": "Kubernetes",
-                "path": "link/peering/establish/k8s"
+                "path": "link/cluster-peering/establish/k8s"
               }
             ]
           },
@@ -1349,13 +1421,17 @@
             "routes": [
               {
                 "title": "Virtual machine (VM)",
-                "path": "link/peering/manage/vm"
+                "path": "link/cluster-peering/manage/vm"
               },
               {
                 "title": "Kubernetes",
-                "path": "link/peering/manage/k8s"
+                "path": "link/cluster-peering/manage/k8s"
               }
             ]
+          },
+          {
+            "title": "HCP Consul",
+            "href": "/hcp/docs/consul/extend/cluster-peering"
           }
         ]
       },
@@ -1367,12 +1443,20 @@
         "title": "WAN federation",
         "routes": [
           {
-            "title": "Establish federation connections",
-            "path": "link/wan-fed/establish"
+            "title": "Overview",
+            "path": "link/wan-federation"
           },
           {
-            "title": "Manage federation connections",
-            "path": "link/wan-fed/manage"
+            "title": "Create and manage federation connections",
+            "path": "link/wan-federation/create"
+          },
+          {
+            "title": "Federate Kubernetes clusters",
+            "path": "link/wan-federation/k8s"
+          },
+          {
+            "title": "Federate Kubernetes and VM",
+            "path": "link/wan-federation/k8s-vm"
           }
         ]
       },
@@ -1389,14 +1473,14 @@
           },
           {
             "title": "Enable traffic across WAN federated datacenters",
-            "path": "link/mesh-gateway/wan-datacenter"
-          },
-          {
-            "title": "Enable traffic across admin partition",
-            "path": "link/mesh-gateway/peered-datacenter"
+            "path": "link/mesh-gateway/wan-federated-datacenter"
           },
           {
             "title": "Enable peering control plane traffic",
+            "path": "link/mesh-gateway/peered-datacenter"
+          },
+          {
+            "title": "Enable traffic across admin partition",
             "path": "link/mesh-gateway/admin-partition"
           }
         ]
@@ -1432,10 +1516,6 @@
           {
             "title": "JWT authorization",
             "path": "secure-mesh/intention/jwt"
-          },
-          {
-            "title": "Reference",
-            "href": "reference/config-entry/intention"
           }
         ]
       },
@@ -1448,11 +1528,33 @@
           },
           {
             "title": "Bootstrap certificate authority (CA)",
-            "path": "secure-mesh/certificate/bootstrap"
+            "routes": [
+              {
+                "title": "Virtual machine (VM)",
+                "path": "secure-mesh/certificate/bootstrap/vm"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "secure-mesh/certificate/bootstrap/k8s"
+              }              
+            ]
           },
           {
             "title": "Rotate certificate",
-            "path": "secure-mesh/certificate/rotate"
+            "routes": [
+              {
+                "title": "Rotate TLS keys",
+                "path": "secure-mesh/certificate/rotate/tls"
+              },
+              {
+                "title": "Rotate gossip keys",
+                "path": "secure-mesh/certificate/rotate/gossip"
+              }              
+            ]
+          },
+          {
+            "title": "Configure TLS on an existing cluster",
+            "path": "secure-mesh/certificate/configure-tls-existing"
           },
           {
             "title": "Use built-in CA",
@@ -1469,29 +1571,8 @@
           {
             "title": "Enable permissive mTLS",
             "path": "secure-mesh/certificate/permissive-mtls"
-          },
-          {
-            "title": "Kubernetes",
-            "routes": [
-              {
-                "title": "Rotate TLS certificate",
-                "path": "secure-mesh/certificate/k8s/rotate-tls"
-              },
-              {
-                "title": "Confiugre TLS on an existing cluster",
-                "path": "secure-mesh/certificate/k8s/configure-tls"
-              },
-              {
-                "title": "Rotate gossip encryption keys",
-                "path": "secure-mesh/certificate/k8s/rotate-gossip"
-              }
-            ]
           }
         ]
-      },
-      {
-        "title": "Encryption",
-        "path": "secure-mesh/encryption"
       },
       {
         "title": "Security model",
@@ -1505,8 +1586,8 @@
             "path": "secure-mesh/security-model/core"
           },
           {
-            "title": "Network infrastructure automation",
-            "path": "secure-mesh/security-model/nia"
+            "title": "Consul-Terraform-Sync (CTS)",
+            "path": "secure-mesh/security-model/cts"
           }
         ]
       },
@@ -1534,6 +1615,19 @@
       {
         "title": "Rate limit service mesh traffic",
         "path": "manage-traffic/rate-limit"
+      },
+      {
+        "title": "Manage traffic for peered clusters",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "manage-traffic/cluster-peering"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "manage-traffic/cluster-peering/k8s"
+          }
+        ]
       },
       {
         "title": "Failover",
@@ -1620,11 +1714,48 @@
     "divider": true
   },
   {
+    "title": "HCP Consul",
+    "href": "/hcp/docs/consul"
+  },
+  {
+    "title": "Consul Enterprise",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "enterprise"
+      },
+      {
+        "title": "License",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "enterprise/license"
+          },
+          {
+            "title": "OverAutomated enttitlement utilizationview",
+            "path": "enterprise/license/automated-entitlement-utilization"
+          },
+          {
+            "title": "FAQ",
+            "path": "enterprise/license/faq"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "divider": true
+  },
+  {
     "title": "Virtual machine (VM)",
     "routes": [
       {
         "title": "Overview",
         "path": "vm"
+      },
+      {
+        "title": "Deploy Consul",
+        "href": "deploy/vm"
       },
       {
         "title": "Register services",
@@ -1641,6 +1772,26 @@
       {
         "title": "Access services",
         "href": "access/vm"
+      },
+      {
+        "title": "Segment network",
+        "href": "segment/vm"
+      },
+      {
+        "title": "Link network segments",
+        "href": "link/vm"
+      },
+      {
+        "title": "Secure services",
+        "href": "secure-mesh/vm"
+      },
+      {
+        "title": "Manage service traffic",
+        "href": "manage-traffic/vm"
+      },
+      {
+        "title": "Access services",
+        "href": "access/vm"
       }
     ]
   },
@@ -1650,6 +1801,10 @@
       {
         "title": "Overview",
         "path": "k8s"
+      },
+      {
+        "title": "Deploy Consul",
+        "href": "deploy/k8s"
       },
       {
         "title": "Register services",
@@ -1666,6 +1821,22 @@
       {
         "title": "Access services",
         "href": "access/k8s"
+      },
+      {
+        "title": "Segment network",
+        "href": "segment/k8s"
+      },
+      {
+        "title": "Link network segments",
+        "href": "link/k8s"
+      },
+      {
+        "title": "Secure services",
+        "href": "secure-mesh/k8s"
+      },
+      {
+        "title": "Manage service traffic",
+        "href": "manage-traffic/k8s"
       }
     ]
   },
@@ -1782,23 +1953,6 @@
       {
         "title": "Run WebAssembly plug-ins",
         "path": "envoy-extension/wasm"
-      },
-      {
-        "title": "Reference",
-        "routes": [
-          {
-            "title": "External authorization",
-            "href": "envoy-extension/wasm"
-          },
-          {
-            "title": "Property override",
-            "href": "envoy-extension/wasm"
-          },
-          {
-            "title": "WebAssembly",
-            "href": "envoy-extension/wasm"
-          }      
-        ]
       }
     ]
   },
@@ -1819,7 +1973,7 @@
       },
       {
         "title": "Security model",
-        "path": "cts/security-model"
+        "href": "secure/security-model/cts"
       },
       {
         "title": "Install CTS",
@@ -1881,124 +2035,69 @@
     "divider": true
   },
   {
-    "title": "Glossary",
-    "path": "glossary"
+    "title": "API Reference",
+    "href": "/consul/api-docs"
   },
   {
-    "title": "Concepts",
+    "title": "CLI Reference",
     "routes": [
       {
-        "title": "Consensus",
-        "path": "concepts/consensus"
+        "title": "Overview",
+        "path": "reference-cli"
       },
       {
-        "title": "Consul clusters",
-        "path": "concepts/cluster"
+        "title": "Consul",
+        "href": "/consul/commands"
       },
       {
-        "title": "Consul datacenters",
-        "path": "concepts/datacenter"
+        "title": "consul-k8s",
+        "path": "reference-cli/consul-k8s"
       },
       {
-        "title": "Discovery chain",
-        "path": "concepts/discovery-chain"
-      },
-      {
-        "title": "Gossip",
-        "path": "concepts/gossip"
-      },
-      {
-        "title": "Health checks",
-        "path": "concepts/health-check"
-      },
-      {
-        "title": "Services",
-        "path": "concepts/service"
-      },
-      {
-        "title": "Upstreams",
-        "path": "concepts/upstream"
-      },
-      {
-        "title": "Addresses",
-        "path": "concepts/address"
-      },
-      {
-        "title": "Admin partitions",
-        "path": "concepts/partition"
-      },
-      {
-        "title": "Application Layer (L7)",
-        "path": "concepts/l7"
-      },
-      {
-        "title": "Control plane",
-        "path": "concepts/control-plane"
-      },
-      {
-        "title": "Data plane",
-        "path": "concepts/data-plane"
-      },
-      {
-        "title": "Namespaces",
-        "path": "concepts/namespace"
-      },
-      {
-        "title": "Ports",
-        "path": "concepts/port"
-      },
-      {
-        "title": "Proxies",
-        "path": "concepts/proxy"
-      },
-      {
-        "title": "Transport Layer (L4)",
-        "path": "concepts/l4"
+        "title": "consul-dataplane",
+        "path": "reference-cli/consul-dataplane"
       }
     ]
   },
   {
-    "title": "Features",
+    "title": "Common error messages",
     "routes": [
       {
-        "title": "Access and platform logging",
-        "path": "feature/logging"
+        "title": "Consul",
+        "path": "common-error-messages/consul"
       },
       {
-        "title": "Automated failover",
-        "path": "feature/failover"
+        "title": "Consul on Kubernetes",
+        "path": "common-error-messages/k8s"
       },
       {
-        "title": "Certificate authority",
-        "path": "feature/certificate-authority"
+        "title": "Consul-Terraform-Sync (CTS)",
+        "path": "common-error-messages/cts"
+      }
+    ]
+  },
+  {
+    "title": "Glossary",
+    "path": "glossary"
+  },
+  {
+    "title": "Concepts (Deep dives)",
+    "routes": [
+      {
+        "title": "Admin partition",
+        "path": "concepts/admin-partition"
       },
       {
-        "title": "Cluster peering",
-        "path": "feature/peering"
+        "title": "Proxy",
+        "path": "concepts/proxy"
       },
       {
-        "title": "Consul Enterprise",
-        "path": "feature/enterprise"
+        "title": "Service",
+        "path": "concepts/service"
       },
       {
-        "title": "Disaster recovery",
-        "path": "feature/recovery"
-      },
-      {
-        "title": "Hybrid cloud and on-prem service mesh",
-        "path": "feature/hybrid-cloud"
-      },
-      {
-        "title": "Multi-cloud service mesh",
-        "path": "feature/multi-cloud"
-      },
-      {
-        "title": "Telemetry",
-        "path": "feature/telemetry"
-      },
-      {
-        "title": "WAN federation",
-        "path": "feature/federation"
+        "title": "Service mesh",
+        "path": "concepts/service-mesh"
       }
     ]
   },
@@ -2008,6 +2107,10 @@
       {
         "title": "Access Control Lists (ACLs)",
         "path": "reference/acl"
+      },
+      {
+        "title": "Agent",
+        "path": "reference/agent"
       },
       {
         "title": "API gateway",
@@ -2128,15 +2231,11 @@
         ]
       },
       {
-        "title": "Consul agents",
-        "path": "reference/agent"
-      },
-      {
-        "title": "Consul dataplanes",
+        "title": "Dataplanes",
         "path": "reference/dataplane"
       },
       {
-        "title": "Consul DNS",
+        "title": "DNS",
         "path": "reference/dns"
       },
       {
@@ -2274,7 +2373,7 @@
         ]
       },
       {
-        "title": "Service definitions",
+        "title": "Services",
         "path": "reference/service"
       },
       {
