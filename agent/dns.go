@@ -383,6 +383,7 @@ func (d *DNSServer) getResponseDomain(questionName string) string {
 // handlePtr is used to handle "reverse" DNS queries
 func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
+	m := new(dns.Msg)
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "ptr_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
@@ -391,13 +392,13 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 			"latency", time.Since(s).String(),
 			"client", resp.RemoteAddr().String(),
 			"client_network", resp.RemoteAddr().Network(),
+			"rcode", dns.RcodeToString[m.Rcode],
 		)
 	}(time.Now())
 
 	cfg := d.config.Load().(*dnsConfig)
 
 	// Setup the message response
-	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
@@ -492,9 +493,11 @@ func (d *DNSServer) handlePtr(resp dns.ResponseWriter, req *dns.Msg) {
 // handleQuery is used to handle DNS queries in the configured domain
 func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	q := req.Question[0]
+	m := new(dns.Msg)
 	defer func(s time.Time) {
 		metrics.MeasureSinceWithLabels([]string{"dns", "domain_query"}, s,
 			[]metrics.Label{{Name: "node", Value: d.agent.config.NodeName}})
+		//metrics.IncrCounterWithLabels([]string{"dns","" })
 		d.logger.Debug("request served from client",
 			"name", q.Name,
 			"type", dns.Type(q.Qtype),
@@ -502,6 +505,7 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 			"latency", time.Since(s).String(),
 			"client", resp.RemoteAddr().String(),
 			"client_network", resp.RemoteAddr().Network(),
+			"rcode", dns.RcodeToString[m.Rcode],
 		)
 	}(time.Now())
 
@@ -514,7 +518,6 @@ func (d *DNSServer) handleQuery(resp dns.ResponseWriter, req *dns.Msg) {
 	cfg := d.config.Load().(*dnsConfig)
 
 	// Set up the message response
-	m := new(dns.Msg)
 	m.SetReply(req)
 	m.Compress = !cfg.DisableCompression
 	m.Authoritative = true
@@ -2048,6 +2051,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 
 	q := req.Question[0]
 	network := "udp"
+	rcode := 0
 	defer func(s time.Time) {
 		d.logger.Debug("request served from client",
 			"question", q,
@@ -2055,6 +2059,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			"latency", time.Since(s).String(),
 			"client", resp.RemoteAddr().String(),
 			"client_network", resp.RemoteAddr().Network(),
+			"rcode", dns.RcodeToString[rcode],
 		)
 	}(time.Now())
 
@@ -2079,6 +2084,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 				"recursor", recursor,
 				"rcode", dns.RcodeToString[r.Rcode],
 			)
+			rcode = r.Rcode //record the rcode from the latest recursor
 			// If we still have recursors to forward the query to,
 			// we move forward onto the next one else the loop ends
 			continue
@@ -2097,6 +2103,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 			if err := resp.WriteMsg(r); err != nil {
 				d.logger.Warn("failed to respond", "error", err)
 			}
+			rcode = r.Rcode
 			return
 		}
 		d.logger.Error("recurse failed", "error", err)
@@ -2113,6 +2120,7 @@ func (d *DNSServer) handleRecurse(resp dns.ResponseWriter, req *dns.Msg) {
 	m.Compress = !cfg.DisableCompression
 	m.RecursionAvailable = true
 	m.SetRcode(req, dns.RcodeServerFailure)
+	rcode = m.Rcode
 	if edns := req.IsEdns0(); edns != nil {
 		setEDNS(req, m, true)
 	}
