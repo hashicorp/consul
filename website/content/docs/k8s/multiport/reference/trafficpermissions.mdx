@@ -24,7 +24,7 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`identityName`](#spec-destination-identityname): string
   - [`action`](#spec-action): string
   - [`permissions`](#spec-permissions): list of maps
-    - [`sources`](#spec-permissions-sources): map
+    - [`sources`](#spec-permissions-sources): list of maps
       - [`identityName`](#spec-permissions-sources-identityname): string
     - [`destinationRules`](#spec-permissions-destinationrules): list of maps
       - [`portNames`](#spec-permissions-destinationrules-portnames): array of strings
@@ -45,10 +45,10 @@ spec:
   action: allow
   permissions:
     - sources:
-      identityName: <sourceWorkloadIdentity> 
-    destinationRules:
-      portNames: 
-        - <servicePortName>
+        - identityName: <sourceWorkloadIdentity> 
+      destinationRules:
+        - portNames:
+            - <servicePortName>
 ```
 
 ## Specification
@@ -163,7 +163,7 @@ To specify wildcard references in this block using `*`, omit all other fields. F
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: List of maps
 
 ### `spec.permissions.sources.identityName`
 
@@ -172,7 +172,7 @@ Specifies the Workload identity for the service that originates the request.
 #### Values
 
 - Default: None
-- Data type: Map
+- Data type: String
 
 ### `spec.permissions.destinationRules`
 
