@@ -481,6 +481,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: em,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -541,6 +542,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -596,6 +598,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -651,6 +654,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "grpc",
 				Config: map[string]interface{}{
 					"protocol": "grpc",
 				},
@@ -686,6 +690,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -937,6 +942,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -992,6 +998,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
@@ -1028,6 +1035,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ProxyDefaults,
 				Name:           structs.ProxyConfigGlobal,
 				EnterpriseMeta: entMeta,
+				Protocol:       "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},
