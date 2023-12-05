@@ -68,7 +68,7 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Troubleshoots ports of consul server"
+	synopsis = "Prints open and closed ports on the Consul server"
 	help     = `
 Usage: consul troubleshoot ports [options]
 	Checks for TCP connectivity of default ports of consul in case -ports is not passed as arguments
