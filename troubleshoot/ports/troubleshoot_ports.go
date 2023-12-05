@@ -31,7 +31,14 @@ func troubleshootRun(ports []string, host string) []string {
 		tcpTroubleShoot := troubleShootTcp{}
 		port := port
 		go func() {
-			res := tcpTroubleShoot.dailPort(&hostPort{host: host, port: port})
+			err := tcpTroubleShoot.dialPort(&hostPort{host: host, port: port})
+			var res string
+			if err != nil {
+				res = fmt.Sprintf("TCP: Port %s on %s is closed, unreachable, or the connection timed out.\n", port, host)
+			} else {
+				// If no error occurs, the connection was successful, and the port is open.
+				res = fmt.Sprintf("TCP: Port %s on %s is open.\n", port, host)
+			}
 			resultsChannel <- res
 		}()
 	}

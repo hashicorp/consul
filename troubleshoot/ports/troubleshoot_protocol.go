@@ -4,5 +4,5 @@
 package ports
 
 type troubleShootProtocol interface {
-	dailPort(hostPort *hostPort) string
+	dialPort(hostPort *hostPort) error
 }
