@@ -80,7 +80,7 @@ Usage: consul troubleshoot ports [options]
 	export CONSUL_HTTP_ADDR=localhost
 	consul troubleshoot ports 
 	
-	If you want to check for other ports use -ports flag
+	Use the -ports flag to check non-default ports, for example:
 	consul troubleshoot ports -host localhost -ports 1023,1024
 	or 
 	export CONSUL_HTTP_ADDR=localhost
