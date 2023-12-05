@@ -6,37 +6,34 @@ package types
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 var (
-	defaultHealthStatusOwnerTenancy = &pbresource.Tenancy{
+	defaultNodeHealthStatusOwnerTenancy = &pbresource.Tenancy{
 		Partition: "default",
-		Namespace: "default",
 		PeerName:  "local",
 	}
 
-	defaultHealthStatusOwner = &pbresource.ID{
-		Type:    pbcatalog.WorkloadType,
-		Tenancy: defaultHealthStatusOwnerTenancy,
+	defaultNodeHealthStatusOwner = &pbresource.ID{
+		Type:    pbcatalog.NodeType,
+		Tenancy: defaultNodeHealthStatusOwnerTenancy,
 		Name:    "foo",
 	}
 )
 
-func createHealthStatusResource(t *testing.T, data protoreflect.ProtoMessage, owner *pbresource.ID) *pbresource.Resource {
+func createNodeHealthStatusResource(t *testing.T, data protoreflect.ProtoMessage, owner *pbresource.ID) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: pbcatalog.HealthStatusType,
+			Type: pbcatalog.NodeHealthStatusType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
-				Namespace: "default",
 				PeerName:  "local",
 			},
 			Name: "test-status",
@@ -50,8 +47,8 @@ func createHealthStatusResource(t *testing.T, data protoreflect.ProtoMessage, ow
 	return res
 }
 
-func TestValidateHealthStatus_Ok(t *testing.T) {
-	data := &pbcatalog.HealthStatus{
+func TestValidateNodeHealthStatus_Ok(t *testing.T) {
+	data := &pbcatalog.NodeHealthStatus{
 		Type:        "tcp",
 		Status:      pbcatalog.Health_HEALTH_PASSING,
 		Description: "Doesn't matter as this is user settable",
@@ -63,47 +60,47 @@ func TestValidateHealthStatus_Ok(t *testing.T) {
 	}
 
 	cases := map[string]testCase{
-		"workload-owned": {
+		"node-owned": {
 			owner: &pbresource.ID{
-				Type:    pbcatalog.WorkloadType,
-				Tenancy: defaultHealthStatusOwnerTenancy,
-				Name:    "foo-workload",
+				Type:    pbcatalog.NodeType,
+				Tenancy: defaultNodeHealthStatusOwnerTenancy,
+				Name:    "bar-node",
 			},
 		},
 	}
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			res := createHealthStatusResource(t, data, tcase.owner)
-			err := ValidateHealthStatus(res)
+			res := createNodeHealthStatusResource(t, data, tcase.owner)
+			err := ValidateNodeHealthStatus(res)
 			require.NoError(t, err)
 		})
 	}
 }
 
-func TestValidateHealthStatus_ParseError(t *testing.T) {
-	// Any type other than the HealthStatus type would work
+func TestValidateNodeHealthStatus_ParseError(t *testing.T) {
+	// Any type other than the NodeHealthStatus type would work
 	// to cause the error we are expecting
 	data := &pbcatalog.IP{Address: "198.18.0.1"}
 
-	res := createHealthStatusResource(t, data, defaultHealthStatusOwner)
+	res := createNodeHealthStatusResource(t, data, defaultNodeHealthStatusOwner)
 
-	err := ValidateHealthStatus(res)
+	err := ValidateNodeHealthStatus(res)
 	require.Error(t, err)
 	require.ErrorAs(t, err, &resource.ErrDataParse{})
 }
 
-func TestValidateHealthStatus_InvalidHealth(t *testing.T) {
+func TestValidateNodeHealthStatus_InvalidHealth(t *testing.T) {
 	// while this is a valid enum value it is not allowed to be used
 	// as the Status field.
-	data := &pbcatalog.HealthStatus{
+	data := &pbcatalog.NodeHealthStatus{
 		Type:   "tcp",
 		Status: pbcatalog.Health_HEALTH_ANY,
 	}
 
-	res := createHealthStatusResource(t, data, defaultHealthStatusOwner)
+	res := createNodeHealthStatusResource(t, data, defaultNodeHealthStatusOwner)
 
-	err := ValidateHealthStatus(res)
+	err := ValidateNodeHealthStatus(res)
 	require.Error(t, err)
 	expected := resource.ErrInvalidField{
 		Name:    "status",
@@ -114,14 +111,14 @@ func TestValidateHealthStatus_InvalidHealth(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestValidateHealthStatus_MissingType(t *testing.T) {
-	data := &pbcatalog.HealthStatus{
+func TestValidateNodeHealthStatus_MissingType(t *testing.T) {
+	data := &pbcatalog.NodeHealthStatus{
 		Status: pbcatalog.Health_HEALTH_PASSING,
 	}
 
-	res := createHealthStatusResource(t, data, defaultHealthStatusOwner)
+	res := createNodeHealthStatusResource(t, data, defaultNodeHealthStatusOwner)
 
-	err := ValidateHealthStatus(res)
+	err := ValidateNodeHealthStatus(res)
 	require.Error(t, err)
 	expected := resource.ErrInvalidField{
 		Name:    "type",
@@ -132,15 +129,15 @@ func TestValidateHealthStatus_MissingType(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestValidateHealthStatus_MissingOwner(t *testing.T) {
-	data := &pbcatalog.HealthStatus{
+func TestValidateNodeHealthStatus_MissingOwner(t *testing.T) {
+	data := &pbcatalog.NodeHealthStatus{
 		Type:   "tcp",
 		Status: pbcatalog.Health_HEALTH_PASSING,
 	}
 
-	res := createHealthStatusResource(t, data, nil)
+	res := createNodeHealthStatusResource(t, data, nil)
 
-	err := ValidateHealthStatus(res)
+	err := ValidateNodeHealthStatus(res)
 	require.Error(t, err)
 	expected := resource.ErrInvalidField{
 		Name:    "owner",
@@ -151,8 +148,8 @@ func TestValidateHealthStatus_MissingOwner(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
-	data := &pbcatalog.HealthStatus{
+func TestValidateNodeHealthStatus_InvalidOwner(t *testing.T) {
+	data := &pbcatalog.NodeHealthStatus{
 		Type:   "tcp",
 		Status: pbcatalog.Health_HEALTH_PASSING,
 	}
@@ -167,9 +164,9 @@ func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
 				Type: &pbresource.Type{
 					Group:        "fake",
 					GroupVersion: pbcatalog.Version,
-					Kind:         pbcatalog.WorkloadKind,
+					Kind:         pbcatalog.NodeKind,
 				},
-				Tenancy: defaultHealthStatusOwnerTenancy,
+				Tenancy: defaultNodeHealthStatusOwnerTenancy,
 				Name:    "baz",
 			},
 		},
@@ -178,16 +175,16 @@ func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
 				Type: &pbresource.Type{
 					Group:        pbcatalog.GroupName,
 					GroupVersion: "v99",
-					Kind:         pbcatalog.WorkloadKind,
+					Kind:         pbcatalog.NodeKind,
 				},
-				Tenancy: defaultHealthStatusOwnerTenancy,
+				Tenancy: defaultNodeHealthStatusOwnerTenancy,
 				Name:    "baz",
 			},
 		},
 		"kind-mismatch": {
 			owner: &pbresource.ID{
 				Type:    pbcatalog.ServiceType,
-				Tenancy: defaultHealthStatusOwnerTenancy,
+				Tenancy: defaultNodeHealthStatusOwnerTenancy,
 				Name:    "baz",
 			},
 		},
@@ -195,11 +192,11 @@ func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
 
 	for name, tcase := range cases {
 		t.Run(name, func(t *testing.T) {
-			res := createHealthStatusResource(t, data, tcase.owner)
-			err := ValidateHealthStatus(res)
+			res := createNodeHealthStatusResource(t, data, tcase.owner)
+			err := ValidateNodeHealthStatus(res)
 			require.Error(t, err)
 			expected := resource.ErrOwnerTypeInvalid{
-				ResourceType: pbcatalog.HealthStatusType,
+				ResourceType: pbcatalog.NodeHealthStatusType,
 				OwnerType:    tcase.owner.Type,
 			}
 			var actual resource.ErrOwnerTypeInvalid
@@ -209,13 +206,13 @@ func TestValidateHealthStatus_InvalidOwner(t *testing.T) {
 	}
 }
 
-func TestHealthStatusACLs(t *testing.T) {
+func TestNodeHealthStatusACLs(t *testing.T) {
 	registry := resource.NewRegistry()
 	Register(registry)
 
-	workload := resourcetest.Resource(pbcatalog.WorkloadType, "test").ID()
+	node := resourcetest.Resource(pbcatalog.NodeType, "test").ID()
 
-	healthStatusData := &pbcatalog.HealthStatus{
+	nodehealthStatusData := &pbcatalog.NodeHealthStatus{
 		Type:   "tcp",
 		Status: pbcatalog.Health_HEALTH_PASSING,
 	}
@@ -223,47 +220,47 @@ func TestHealthStatusACLs(t *testing.T) {
 	cases := map[string]resourcetest.ACLTestCase{
 		"no rules": {
 			Rules:   ``,
-			Data:    healthStatusData,
-			Owner:   workload,
-			Typ:     pbcatalog.HealthStatusType,
+			Data:    nodehealthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.NodeHealthStatusType,
 			ReadOK:  resourcetest.DENY,
 			WriteOK: resourcetest.DENY,
 			ListOK:  resourcetest.DEFAULT,
 		},
-		"service test read": {
+		"service test read with node owner": {
 			Rules:   `service "test" { policy = "read" }`,
-			Data:    healthStatusData,
-			Owner:   workload,
-			Typ:     pbcatalog.HealthStatusType,
+			Data:    nodehealthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.NodeHealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"service test write with node owner": {
+			Rules:   `service "test" { policy = "write" }`,
+			Data:    nodehealthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.NodeHealthStatusType,
+			ReadOK:  resourcetest.DENY,
+			WriteOK: resourcetest.DENY,
+			ListOK:  resourcetest.DEFAULT,
+		},
+		"node test read with node owner": {
+			Rules:   `node "test" { policy = "read" }`,
+			Data:    nodehealthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.NodeHealthStatusType,
 			ReadOK:  resourcetest.ALLOW,
 			WriteOK: resourcetest.DENY,
 			ListOK:  resourcetest.DEFAULT,
 		},
-		"service test write": {
-			Rules:   `service "test" { policy = "write" }`,
-			Data:    healthStatusData,
-			Owner:   workload,
-			Typ:     pbcatalog.HealthStatusType,
+		"node test write with node owner": {
+			Rules:   `node "test" { policy = "write" }`,
+			Data:    nodehealthStatusData,
+			Owner:   node,
+			Typ:     pbcatalog.NodeHealthStatusType,
 			ReadOK:  resourcetest.ALLOW,
 			WriteOK: resourcetest.ALLOW,
-			ListOK:  resourcetest.DEFAULT,
-		},
-		"node test read with workload owner": {
-			Rules:   `node "test" { policy = "read" }`,
-			Data:    healthStatusData,
-			Owner:   workload,
-			Typ:     pbcatalog.HealthStatusType,
-			ReadOK:  resourcetest.DENY,
-			WriteOK: resourcetest.DENY,
-			ListOK:  resourcetest.DEFAULT,
-		},
-		"node test write with workload owner": {
-			Rules:   `node "test" { policy = "write" }`,
-			Data:    healthStatusData,
-			Owner:   workload,
-			Typ:     pbcatalog.HealthStatusType,
-			ReadOK:  resourcetest.DENY,
-			WriteOK: resourcetest.DENY,
 			ListOK:  resourcetest.DEFAULT,
 		},
 	}

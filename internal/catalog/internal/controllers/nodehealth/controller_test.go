@@ -363,10 +363,12 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 		// wait for rereconciliation to happen
 		suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
-		resourcetest.Resource(pbcatalog.HealthStatusType, "failure").
-			WithData(suite.T(), &pbcatalog.HealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
+		resourcetest.Resource(pbcatalog.NodeHealthStatusType, "failure").
+			WithData(suite.T(), &pbcatalog.NodeHealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 			WithOwner(suite.nodePassing).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.resourceClient)
 
 		suite.waitForReconciliation(suite.nodePassing, "HEALTH_CRITICAL")
@@ -415,8 +417,8 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 	for _, node := range []*pbresource.ID{suite.nodePassing, suite.nodeWarning, suite.nodeCritical, suite.nodeMaintenance} {
 		for idx, health := range precedenceHealth {
 			if nodeHealthDesiredStatus[node.Name] >= health {
-				resourcetest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("test-check-%s-%d-%s-%s", node.Name, idx, tenancy.Partition, tenancy.Namespace)).
-					WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
+				resourcetest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("test-check-%s-%d-%s", node.Name, idx, tenancy.Partition)).
+					WithData(suite.T(), &pbcatalog.NodeHealthStatus{Type: "tcp", Status: health}).
 					WithOwner(node).
 					Write(suite.T(), suite.resourceClient)
 			}
@@ -425,7 +427,7 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 
 	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
 	// to be something that doesn't care about its owner. All we want to prove is that we are
-	// filtering out non-HealthStatus types appropriately.
+	// filtering out non-NodeHealthStatus types appropriately.
 	resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
 		WithData(suite.T(), dnsPolicyData).
 		WithOwner(suite.nodeNoHealth).
