@@ -122,6 +122,11 @@ func (r *R) Fail() {
 	r.fail = true
 }
 
+// Failed returns the state of `fail` for the retry.
+func (r *R) Failed() bool {
+	return r.fail
+}
+
 // FailNow stops run execution. It is roughly equivalent to:
 //
 //	r.Error("")
