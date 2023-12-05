@@ -1,5 +1,8 @@
 [
   {
+    "heading": "Get Started"
+  },
+  {
     "title": "What is Consul?",
     "path": "intro"
   },
@@ -50,7 +53,7 @@
     "path": "personas"
   },
   {
-    "title": "Get started",
+    "title": "Quickstart",
     "routes": [
       {
         "title": "Consul on VMs",
@@ -236,6 +239,9 @@
   },
   {
     "divider": true
+  },
+  {
+    "heading": "Consul Operations"
   },
   {
     "title": "Deploy Consul",
@@ -598,7 +604,7 @@
               {
                 "title": "Kubernetes",
                 "path": "secure/acl/auth-method/k8s"
-              },     
+              },
               {
                 "title": "JWT",
                 "path": "secure/acl/auth-method/jwt"
@@ -866,6 +872,9 @@
     "divider": true
   },
   {
+    "heading": "Service Networking"
+  },
+  {
     "title": "Register services",
     "routes": [
       {
@@ -884,7 +893,7 @@
             "routes": [
               {
                 "title": "Define services",
-                "path": "register/service/vm/define" 
+                "path": "register/service/vm/define"
               },
               {
                 "title": "Define health checks",
@@ -892,7 +901,7 @@
               },
               {
                 "title": "Register services and health checks",
-                "path": "register/service/vm" 
+                "path": "register/service/vm"
               }
             ]
           },
@@ -901,7 +910,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "register/service/k8s" 
+                "path": "register/service/k8s"
               },
               {
                 "title": "Register services with service sync",
@@ -922,7 +931,7 @@
               },
               {
                 "title": "Register tasks with Terraform",
-                "path": "register/service/ecs/automate-terraform" 
+                "path": "register/service/ecs/automate-terraform"
               },
               {
                 "title": "Register tasks manually",
@@ -934,7 +943,7 @@
               },
               {
                 "title": "Configure ECS task bind address",
-                "path": "register/service/ecs/configure-task-bind-address" 
+                "path": "register/service/ecs/configure-task-bind-address"
               },
               {
                 "title": "Consul Enterprise",
@@ -947,7 +956,7 @@
             "routes": [
               {
                 "title": "Overview",
-                "path": "register/service/lambda" 
+                "path": "register/service/lambda"
               },
               {
                 "title": "Register functions with Terraform",
@@ -970,18 +979,18 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "register/external" 
+            "path": "register/external"
           },
           {
             "title": "External service monitoring (ESM)",
-            "path": "register/external/esm" 
+            "path": "register/external/esm"
           },
           {
             "title": "Terminating gateways",
             "routes": [
               {
                 "title": "Overview",
-                "path": "register/external/terminating-gateway" 
+                "path": "register/external/terminating-gateway"
               },
               {
                 "title": "Deploy terminating gateway",
@@ -1030,8 +1039,7 @@
       },
       {
         "title": "DNS",
-        "routes":
-        [
+        "routes": [
           {
             "title": "Configure DNS behavior",
             "path": "discover/dns/configure"
@@ -1536,7 +1544,7 @@
               {
                 "title": "Kubernetes",
                 "path": "secure-mesh/certificate/bootstrap/k8s"
-              }              
+              }
             ]
           },
           {
@@ -1549,7 +1557,7 @@
               {
                 "title": "Rotate gossip keys",
                 "path": "secure-mesh/certificate/rotate/gossip"
-              }              
+              }
             ]
           },
           {
@@ -1714,6 +1722,9 @@
     "divider": true
   },
   {
+    "heading": "Enterprise Solutions"
+  },
+  {
     "title": "HCP Consul",
     "href": "/hcp/docs/consul"
   },
@@ -1745,6 +1756,9 @@
   },
   {
     "divider": true
+  },
+  {
+    "heading": "Runtimes and Platforms"
   },
   {
     "title": "Virtual machine (VM)",
@@ -1895,6 +1909,9 @@
     "divider": true
   },
   {
+    "heading": "Integrations and Extensions"
+  },
+  {
     "title": "Integrations",
     "routes": [
       {
@@ -2033,6 +2050,9 @@
   },
   {
     "divider": true
+  },
+  {
+    "heading": "Reference Docs"
   },
   {
     "title": "API Reference",
