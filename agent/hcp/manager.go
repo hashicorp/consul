@@ -26,9 +26,12 @@ type ManagerConfig struct {
 	SCADAProvider     scada.Provider
 	TelemetryProvider *hcpProviderImpl
 
-	StatusFn    StatusCallback
-	MinInterval time.Duration
-	MaxInterval time.Duration
+	StatusFn StatusCallback
+	// Idempotent function to initialize the management token. This will be called periodically in
+	// the manager's main loop.
+	InitializeManagementTokenFn InitializeManagementToken
+	MinInterval                 time.Duration
+	MaxInterval                 time.Duration
 
 	Logger hclog.Logger
 }
@@ -54,6 +57,7 @@ func (cfg *ManagerConfig) nextHeartbeat() time.Duration {
 }
 
 type StatusCallback func(context.Context) (hcpclient.ServerStatus, error)
+type InitializeManagementToken func(name, secretId string) error
 
 type Manager struct {
 	logger hclog.Logger
@@ -111,6 +115,12 @@ func (m *Manager) Run(ctx context.Context) error {
 
 	// main loop
 	for {
+		// Check for configured management token from HCP. It MUST NOT override the user-provided initial management token.
+		if hcpManagement := m.cfg.CloudConfig.ManagementToken; len(hcpManagement) > 0 {
+			initTokenErr := m.cfg.InitializeManagementTokenFn("HCP Management Token", hcpManagement)
+			m.logger.Error("failed to initialize HCP management token", "err", initTokenErr)
+		}
+
 		m.cfgMu.RLock()
 		cfg := m.cfg
 		m.cfgMu.RUnlock()

@@ -588,6 +588,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		Logger:            logger.Named("hcp_manager"),
 		SCADAProvider:     flat.HCP.Provider,
 		TelemetryProvider: flat.HCP.TelemetryProvider,
+		InitializeManagementTokenFn: func(name, secretId string) error {
+			if s.IsLeader() {
+				return s.initializeManagementToken(name, secretId)
+			}
+			return nil
+		},
 	})
 
 	var recorder *middleware.RequestRecorder
