@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/auth"
@@ -85,17 +84,11 @@ type apiData struct {
 
 func (suite *controllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	mockTenancyBridge := &mockres.MockTenancyBridge{}
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-	cfg := mockres.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	resourceClient := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, catalog.RegisterTypes, auth.RegisterTypes)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes, auth.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())

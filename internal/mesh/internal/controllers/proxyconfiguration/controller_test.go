@@ -53,7 +53,10 @@ type controllerTestSuite struct {
 
 func (suite *controllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())

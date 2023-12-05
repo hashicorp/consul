@@ -23,7 +23,9 @@ func TestController_API(t *testing.T) {
 	t.Parallel()
 
 	rec := newTestReconciler()
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	concertsChan := make(chan controller.Event)
 	defer close(concertsChan)
@@ -164,7 +166,9 @@ func TestController_Placement(t *testing.T) {
 
 	t.Run("singleton", func(t *testing.T) {
 		rec := newTestReconciler()
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(demo.RegisterTypes).
+			Run(t)
 
 		ctrl := controller.
 			ForType(demo.TypeV2Artist).
@@ -197,7 +201,9 @@ func TestController_Placement(t *testing.T) {
 
 	t.Run("each server", func(t *testing.T) {
 		rec := newTestReconciler()
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(demo.RegisterTypes).
+			Run(t)
 
 		ctrl := controller.
 			ForType(demo.TypeV2Artist).
@@ -233,7 +239,10 @@ func TestController_String(t *testing.T) {
 }
 
 func TestController_NoReconciler(t *testing.T) {
-	client := svctest.RunResourceService(t, demo.RegisterTypes)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
+
 	mgr := controller.NewManager(client, testutil.Logger(t))
 
 	ctrl := controller.ForType(demo.TypeV2Artist)
@@ -248,7 +257,9 @@ func TestController_Watch(t *testing.T) {
 	t.Run("partitioned scoped resources", func(t *testing.T) {
 		rec := newTestReconciler()
 
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(demo.RegisterTypes).
+			Run(t)
 
 		ctrl := controller.
 			ForType(demo.TypeV1RecordLabel).
@@ -274,7 +285,9 @@ func TestController_Watch(t *testing.T) {
 	t.Run("cluster scoped resources", func(t *testing.T) {
 		rec := newTestReconciler()
 
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(demo.RegisterTypes).
+			Run(t)
 
 		ctrl := controller.
 			ForType(demo.TypeV1Executive).
@@ -299,7 +312,9 @@ func TestController_Watch(t *testing.T) {
 	t.Run("namespace scoped resources", func(t *testing.T) {
 		rec := newTestReconciler()
 
-		client := svctest.RunResourceService(t, demo.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(demo.RegisterTypes).
+			Run(t)
 
 		ctrl := controller.
 			ForType(demo.TypeV2Artist).

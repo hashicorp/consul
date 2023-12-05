@@ -15,7 +15,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
@@ -93,15 +92,10 @@ type controllerSuite struct {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	mockTenancyBridge := &svc.MockTenancyBridge{}
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-
-	suite.client = svctest.RunResourceServiceWithConfig(suite.T(), svc.Config{TenancyBridge: mockTenancyBridge}, types.Register)
+	suite.client = svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
 	suite.isEnterprise = versiontest.IsEnterprise()
 }

@@ -53,8 +53,10 @@ type dataFetcherSuite struct {
 func (suite *dataFetcherSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = resourcetest.TestTenancies()
-	suite.tenancies = resourcetest.TestTenancies()
-	suite.client = svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
+	suite.client = svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.resourceClient = resourcetest.NewClient(suite.client)
 	suite.rt = controller.Runtime{
 		Client: suite.client,
