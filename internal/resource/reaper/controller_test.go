@@ -4,7 +4,6 @@
 package reaper
 
 import (
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"testing"
 	"time"
 
@@ -16,13 +15,14 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
 func TestReconcile_ResourceWithNoChildren(t *testing.T) {
-	client := svctest.RunResourceServiceWithTenancies(t, demo.RegisterTypes)
-
+	client := setupResourceService(t)
 	runReaperTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// Seed the database with an artist.
 		res, err := demo.GenerateV2Artist()
@@ -79,8 +79,7 @@ func TestReconcile_ResourceWithNoChildren(t *testing.T) {
 }
 
 func TestReconcile_ResourceWithChildren(t *testing.T) {
-	client := svctest.RunResourceServiceWithTenancies(t, demo.RegisterTypes)
-
+	client := setupResourceService(t)
 	runReaperTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// Seed the database with an artist
 		res, err := demo.GenerateV2Artist()
@@ -162,8 +161,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 }
 
 func TestReconcile_RequeueWithDelayWhenSecondPassDelayNotElapsed(t *testing.T) {
-	client := svctest.RunResourceServiceWithTenancies(t, demo.RegisterTypes)
-
+	client := setupResourceService(t)
 	runReaperTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// Seed the database with an artist.
 		res, err := demo.GenerateV2Artist()
@@ -215,4 +213,11 @@ func runReaperTestCaseWithTenancies(testCase func(tenancy *pbresource.Tenancy)) 
 	for _, tenancy := range resourcetest.TestTenancies() {
 		testCase(tenancy)
 	}
+}
+
+func setupResourceService(t *testing.T) pbresource.ResourceServiceClient {
+	return svctest.NewResourceServiceBuilder().
+		WithTenancies(rtest.TestTenancies()...).
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 }

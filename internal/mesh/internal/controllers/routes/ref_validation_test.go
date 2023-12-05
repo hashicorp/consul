@@ -52,11 +52,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		t.Run("with no service", func(t *testing.T) {
 			sg := newTestServiceGetter()
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), ""),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionMissingParentRef(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 			))
 		})
 
@@ -65,11 +65,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), ""),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionParentRefOutsideMesh(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 			))
 		})
 
@@ -79,11 +79,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), "mesh"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "mesh"),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionParentRefUsingMeshPort(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 				"mesh",
 			))
 		})
@@ -94,11 +94,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), "web"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "web"),
 			}, nil)
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionUnknownParentRefPort(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 				"web",
 			))
 		})
@@ -109,7 +109,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), ""),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), ""),
 			}, nil)
 			require.Empty(t, got)
 		})
@@ -120,7 +120,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, []*pbmesh.ParentReference{
-				newParentRef(newRef(pbcatalog.ServiceType, "api"), "http"),
+				newParentRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http"),
 			}, nil)
 			require.Empty(t, got)
 		})
@@ -130,11 +130,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 		t.Run("with no service", func(t *testing.T) {
 			sg := newTestServiceGetter()
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionMissingBackendRef(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 			))
 		})
 
@@ -143,11 +143,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"http": pbcatalog.Protocol_PROTOCOL_HTTP,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionBackendRefOutsideMesh(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 			))
 		})
 
@@ -157,11 +157,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "mesh", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "mesh", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionBackendRefUsingMeshPort(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 				"mesh",
 			))
 		})
@@ -172,11 +172,11 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "web", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "web", ""),
 			})
 			require.Len(t, got, 1)
 			prototest.AssertContainsElement(t, got, ConditionUnknownBackendRefPort(
-				newRef(pbcatalog.ServiceType, "api"),
+				newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()),
 				"web",
 			))
 		})
@@ -187,7 +187,7 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "", ""),
 			})
 			require.Empty(t, got)
 		})
@@ -198,16 +198,20 @@ func TestComputeNewRouteRefConditions(t *testing.T) {
 				"mesh": pbcatalog.Protocol_PROTOCOL_MESH,
 			}))
 			got := computeNewRouteRefConditions(sg, nil, []*pbmesh.BackendReference{
-				newBackendRef(newRef(pbcatalog.ServiceType, "api"), "http", ""),
+				newBackendRef(newRef(pbcatalog.ServiceType, "api", resource.DefaultNamespacedTenancy()), "http", ""),
 			})
 			require.Empty(t, got)
 		})
 	})
 }
 
-func newRef(typ *pbresource.Type, name string) *pbresource.Reference {
+func newRef(typ *pbresource.Type, name string, tenancy *pbresource.Tenancy) *pbresource.Reference {
+	if tenancy == nil {
+		tenancy = resource.DefaultNamespacedTenancy()
+	}
+
 	return rtest.Resource(typ, name).
-		WithTenancy(resource.DefaultNamespacedTenancy()).
+		WithTenancy(tenancy).
 		Reference("")
 }
 

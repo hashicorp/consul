@@ -6,7 +6,7 @@ These should use the [testing/deployer framework](../testing/deployer) to bring
 up some local testing infrastructure and fixtures to run test assertions against.
 
 Where reasonably possible, try to bring up infrastructure interesting enough to
-be able to run many related sorts of test against it, rather than waiting for
+be able to run many related sorts of tests against it, rather than waiting for
 many similar clusters to be provisioned and torn down. This will help ensure
 that the integration tests do not consume CPU cycles needlessly.
 
@@ -65,12 +65,11 @@ These are comprised of 4 main parts:
   - **Nodes**: A "box with ip address(es)". This should feel a bit like a VM or
                a Kubernetes Pod as an enclosing entity.
 
-    - **Services/Workloads**: The list of service instances (v1) or workloads
-                              (v2) that will execute on the given node. v2
-                              Services will be implied by similarly named
-                              workloads here unless opted out. This helps
-                              define a v1-compatible topology and repurpose it
-                              for v2 without reworking it.
+    - **Workloads**: The list of service instances (v1) or workloads
+                     (v2) that will execute on the given node. v2 Services will
+                     be implied by similarly named workloads here unless opted
+                     out. This helps define a v1-compatible topology and
+                     repurpose it for v2 without reworking it.
 
   - **Services** (v2): v2 Service definitions to define explicitly, in addition
                        to the inferred ones.
@@ -90,7 +89,7 @@ These are comprised of 4 main parts:
 - **Peerings**: The peering relationships between Clusters to establish.
 
 In the [topoutil](./topoutil) package there are some helpers for defining
-common sets of nodes or services like Consul Servers, Mesh Gateways, or [fortio
+common sets of nodes or workloads like Consul Servers, Mesh Gateways, or [fortio
 servers](https://github.com/fortio/fortio)
 
 #### Useful topology concepts
@@ -137,6 +136,14 @@ authoring test code.
 This helper will rig up a `t.Cleanup` handler that will destroy all resources
 created during the test. This can be opted-out of by setting the
 `SPRAWL_KEEP_RUNNING=1` environment variable before running the tests.
+
+### Upgrade test
+We are migrating upgrade tests from consul-container(`/test/integration`) to
+this directory using the [testing/deployer framework](../testing/deployer).
+
+The current implementation supports two upgrade strategies: [standard upgrade](https://developer.hashicorp.com/consul/docs/upgrading/instructions/general-process)
+and [autopilot upgrade](https://developer.hashicorp.com/consul/tutorials/datacenter-operations/upgrade-automation). The basic test scenario can be found in `./test-integ/upgrade/basic`.
+
 
 ### Test assertions
 

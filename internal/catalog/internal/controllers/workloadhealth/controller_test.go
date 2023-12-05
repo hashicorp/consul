@@ -9,27 +9,25 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/internal/resource"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
-
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/catalog/internal/mappers/nodemapper"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 var (
@@ -94,17 +92,12 @@ type controllerSuite struct {
 
 func (suite *controllerSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	mockTenancyBridge := &svc.MockTenancyBridge{}
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-
-	suite.client = svctest.RunResourceServiceWithConfig(suite.T(), svc.Config{TenancyBridge: mockTenancyBridge}, types.Register)
+	suite.client = svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.runtime = controller.Runtime{Client: suite.client, Logger: testutil.Logger(suite.T())}
-	suite.isEnterprise = (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	suite.isEnterprise = versiontest.IsEnterprise()
 }
 
 // injectNodeWithStatus is a helper method to write a Node resource and synthesize its status
@@ -120,7 +113,9 @@ func (suite *controllerSuite) injectNodeWithStatus(name string, health pbcatalog
 
 	return resourcetest.Resource(pbcatalog.NodeType, name).
 		WithData(suite.T(), nodeData).
-		WithTenancy(tenancy).
+		WithTenancy(&pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}).
 		WithStatus(nodehealth.StatusKey, &pbresource.Status{
 			Conditions: []*pbresource.Condition{
 				{
@@ -423,7 +418,9 @@ func (suite *workloadHealthControllerTestSuite) TestReconcileNotFound() {
 
 		node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			// Whether this gets written or not doesn't matter
 			Build()
 
@@ -469,7 +466,9 @@ func (suite *workloadHealthControllerTestSuite) TestGetNodeHealthError() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "test-node").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.client)
 
 		workload := resourcetest.Resource(pbcatalog.WorkloadType, "test-workload").
@@ -713,7 +712,9 @@ func (suite *getNodeHealthTestSuite) TestNotfound() {
 	// could occur when a linked node gets removed without the workloads being modified/removed.
 	// When that occurs we want to steer traffic away from the linked node as soon as possible.
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", tenancy))
+		health, err := getNodeHealth(context.Background(), suite.runtime, resourceID(pbcatalog.NodeType, "not-found", &pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}))
 		require.NoError(suite.T(), err)
 		require.Equal(suite.T(), pbcatalog.Health_HEALTH_CRITICAL, health)
 	})
@@ -737,7 +738,9 @@ func (suite *getNodeHealthTestSuite) TestUnreconciled() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "unreconciled").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.client).
 			GetId()
 
@@ -758,7 +761,9 @@ func (suite *getNodeHealthTestSuite) TestNoConditions() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "no-conditions").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			WithStatus(nodehealth.StatusKey, &pbresource.Status{}).
 			Write(suite.T(), suite.client).
 			GetId()
@@ -781,7 +786,9 @@ func (suite *getNodeHealthTestSuite) TestInvalidReason() {
 	suite.controllerSuite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		node := resourcetest.Resource(pbcatalog.NodeType, "invalid-reason").
 			WithData(suite.T(), nodeData).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			WithStatus(nodehealth.StatusKey, &pbresource.Status{
 				Conditions: []*pbresource.Condition{
 					{

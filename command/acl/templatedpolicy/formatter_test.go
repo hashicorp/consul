@@ -37,6 +37,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 				TemplateName: api.ACLTemplatedPolicyNodeName,
 				Schema:       structs.ACLTemplatedPolicyNodeSchema,
 				Template:     structs.ACLTemplatedPolicyNode,
+				Description:  structs.ACLTemplatedPolicyNodeDescription,
 			},
 		},
 		"dns-templated-policy": {
@@ -44,6 +45,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 				TemplateName: api.ACLTemplatedPolicyDNSName,
 				Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
 				Template:     structs.ACLTemplatedPolicyDNS,
+				Description:  structs.ACLTemplatedPolicyDNSDescription,
 			},
 		},
 		"service-templated-policy": {
@@ -51,6 +53,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 				TemplateName: api.ACLTemplatedPolicyServiceName,
 				Schema:       structs.ACLTemplatedPolicyServiceSchema,
 				Template:     structs.ACLTemplatedPolicyService,
+				Description:  structs.ACLTemplatedPolicyServiceDescription,
 			},
 		},
 		"nomad-server-templated-policy": {
@@ -58,6 +61,7 @@ func testFormatTemplatedPolicy(t *testing.T, dirPath string) {
 				TemplateName: api.ACLTemplatedPolicyNomadServerName,
 				Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
 				Template:     structs.ACLTemplatedPolicyNomadServer,
+				Description:  structs.ACLTemplatedPolicyNomadServerDescription,
 			},
 		},
 	}
@@ -98,16 +102,19 @@ func testFormatTemplatedPolicyList(t *testing.T, dirPath string) {
 			TemplateName: api.ACLTemplatedPolicyNodeName,
 			Schema:       structs.ACLTemplatedPolicyNodeSchema,
 			Template:     structs.ACLTemplatedPolicyNode,
+			Description:  structs.ACLTemplatedPolicyNodeDescription,
 		},
 		"builtin/dns": {
 			TemplateName: api.ACLTemplatedPolicyDNSName,
 			Schema:       structs.ACLTemplatedPolicyNoRequiredVariablesSchema,
 			Template:     structs.ACLTemplatedPolicyDNS,
+			Description:  structs.ACLTemplatedPolicyDNSDescription,
 		},
 		"builtin/service": {
 			TemplateName: api.ACLTemplatedPolicyServiceName,
 			Schema:       structs.ACLTemplatedPolicyServiceSchema,
 			Template:     structs.ACLTemplatedPolicyService,
+			Description:  structs.ACLTemplatedPolicyServiceDescription,
 		},
 	}
 

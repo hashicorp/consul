@@ -809,6 +809,12 @@ message ResourceReference {
 message BoundAPIGateway {
   map<string, string> Meta = 1;
   repeated BoundAPIGatewayListener Listeners = 2;
+  // mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
+  map<string, ListOfResourceReference> Services = 3;
+}
+
+message ListOfResourceReference {
+  repeated ResourceReference Ref = 1;
 }
 
 // mog annotation:

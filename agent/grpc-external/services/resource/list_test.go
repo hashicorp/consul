@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package resource
+package resource_test
 
 import (
 	"context"
@@ -10,25 +10,29 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/acl"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 )
 
+// TODO: Update all tests to use true/false table test for v2tenancy
+
 func TestList_InputValidation(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	type testCase struct {
 		modReqFn    func(req *pbresource.ListRequest)
@@ -93,8 +97,7 @@ func TestList_InputValidation(t *testing.T) {
 }
 
 func TestList_TypeNotFound(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	_, err := client.List(context.Background(), &pbresource.ListRequest{
 		Type:       demo.TypeV2Artist,
@@ -109,9 +112,9 @@ func TestList_TypeNotFound(t *testing.T) {
 func TestList_Empty(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
 				Type:       demo.TypeV1Artist,
@@ -127,9 +130,9 @@ func TestList_Empty(t *testing.T) {
 func TestList_Many(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			resources := make([]*pbresource.Resource, 10)
 			for i := 0; i < len(resources); i++ {
@@ -159,9 +162,9 @@ func TestList_Many(t *testing.T) {
 func TestList_NamePrefix(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			expectedResources := []*pbresource.Resource{}
 
@@ -201,9 +204,9 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 	ctx := context.Background()
 	for desc, tc := range wildcardTenancyCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			// Write partition scoped record label
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
@@ -236,14 +239,14 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 func TestList_GroupVersionMismatch(t *testing.T) {
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			artist, err := demo.GenerateV2Artist()
 			require.NoError(t, err)
 
-			_, err = server.Backend.WriteCAS(tc.ctx, artist)
+			_, err = client.Write(tc.ctx, &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
@@ -261,7 +264,7 @@ func TestList_VerifyReadConsistencyArg(t *testing.T) {
 	// Uses a mockBackend instead of the inmem Backend to verify the ReadConsistency argument is set correctly.
 	for desc, tc := range listTestCases() {
 		t.Run(desc, func(t *testing.T) {
-			mockBackend := NewMockBackend(t)
+			mockBackend := svc.NewMockBackend(t)
 			server := testServer(t)
 			server.Backend = mockBackend
 			demo.RegisterTypes(server.Registry)
@@ -322,25 +325,24 @@ func TestList_ACL_ListAllowed_ReadAllowed(t *testing.T) {
 	prototest.AssertDeepEqual(t, artist, rsp.Resources[0])
 }
 
-// roundtrip a List which attempts to return a single resource
 func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *pbresource.ListResponse, error) {
-	server := testServer(t)
-	client := testClient(t, server)
 	ctx := testContext(t)
-
-	mockACLResolver := &MockACLResolver{}
-	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
-		Return(authz, nil)
-	server.ACLResolver = mockACLResolver
-	demo.RegisterTypes(server.Registry)
+	builder := svctest.NewResourceServiceBuilder().WithRegisterFns(demo.RegisterTypes)
+	client := builder.Run(t)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
-	artist, err = server.Backend.WriteCAS(ctx, artist)
+	rsp1, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 	require.NoError(t, err)
 
-	rsp, err := client.List(
+	// Put ACLResolver in place after above writes so writes not subject to ACLs
+	mockACLResolver := &svc.MockACLResolver{}
+	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
+		Return(authz, nil)
+	builder.ServiceImpl().Config.ACLResolver = mockACLResolver
+
+	rsp2, err := client.List(
 		ctx,
 		&pbresource.ListRequest{
 			Type:       artist.Id.Type,
@@ -348,8 +350,7 @@ func roundTripList(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *p
 			NamePrefix: "",
 		},
 	)
-
-	return artist, rsp, err
+	return rsp1.Resource, rsp2, err
 }
 
 type listTestCase struct {

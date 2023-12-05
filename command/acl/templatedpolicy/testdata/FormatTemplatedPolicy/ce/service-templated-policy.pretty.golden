@@ -1,4 +1,5 @@
 Name:            builtin/service
+Description:     Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services.
 Input variables:
 	Name: String - Required - The name of the service.
 Example usage:

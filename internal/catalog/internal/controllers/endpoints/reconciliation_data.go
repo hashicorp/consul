@@ -34,7 +34,7 @@ type workloadData struct {
 
 // getServiceData will read the service with the given ID and unmarshal the
 // Data field. The return value is a struct that contains the retrieved
-// resource as well as the unmsashalled form. If the resource doesn't
+// resource as well as the unmarshalled form. If the resource doesn't
 // exist, nil will be returned. Any other error either with retrieving
 // the resource or unmarshalling it will cause the error to be returned
 // to the caller

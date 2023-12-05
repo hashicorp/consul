@@ -54,6 +54,3 @@ jobs:
         with:
           name: ${{inputs.uploaded-binary-name}}
           path: ./bin/consul
-      - name: Notify Slack
-        if: ${{ failure() }}
-        run: .github/scripts/notify_slack.sh

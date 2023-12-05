@@ -17,6 +17,9 @@ import (
 )
 
 func TestLessReference(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
 	parseTenancy := func(s string) *pbresource.Tenancy {
 		// format is: <partition>.<peerName>.<namespace>
 		parts := strings.Split(s, ".")

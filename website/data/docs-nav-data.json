@@ -1586,7 +1586,7 @@
         "routes": [
           {
             "title": "Overview",
-            "href": "/docs/connect/l7-traffic"
+            "href": "/docs/connect/manage-traffic"
           },
           {
             "title": "Configure failover services",
@@ -1890,6 +1890,10 @@
             "path": "enterprise/license/faq"
           }
         ]
+      },
+      {
+        "title": "Enterprise to CE downgrade",
+        "path": "enterprise/ent-to-ce-downgrades"
       }
     ]
   },

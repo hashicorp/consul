@@ -13,8 +13,8 @@ func RegisterMeshGateway(r resource.Registry) {
 		Type:     pbmesh.MeshGatewayType,
 		Proto:    &pbmesh.MeshGateway{},
 		Scope:    resource.ScopePartition,
-		ACLs:     nil, // TODO NET-6423
-		Mutate:   nil, // TODO NET-6425
-		Validate: nil, // TODO NET-6424
+		ACLs:     nil, // TODO NET-6416
+		Mutate:   nil, // TODO NET-6418
+		Validate: nil, // TODO NET-6417
 	})
 }

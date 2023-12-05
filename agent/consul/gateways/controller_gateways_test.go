@@ -217,6 +217,7 @@ func TestBoundAPIGatewayBindRoute(t *testing.T) {
 				Kind:      structs.TerminatingGateway,
 				Name:      "Gateway",
 				Listeners: []structs.BoundAPIGatewayListener{},
+				Services:  make(structs.ServiceRouteReferences),
 			},
 			expectedDidBind: false,
 		},
@@ -484,6 +485,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -533,6 +535,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							Routes: []structs.ResourceReference{},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -628,6 +631,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				{
 					Name: "Gateway 2",
@@ -643,6 +647,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -720,6 +725,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -803,6 +809,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -892,6 +899,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -1007,6 +1015,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				{
 					Name: "Gateway 2",
@@ -1026,6 +1035,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -1109,6 +1119,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -1215,6 +1226,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				{
 					Name: "Gateway 2",
@@ -1230,6 +1242,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -1362,6 +1375,7 @@ func TestBindRoutesToGateways(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 			expectedReferenceErrors: map[structs.ResourceReference]error{},
@@ -1999,6 +2013,11 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{{
+						Kind: "tcp-route",
+						Name: "tcp-route",
+					}}},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2226,6 +2245,16 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{
+						{
+							Kind: "tcp-route",
+							Name: "tcp-route-one",
+						},
+						{
+							Kind: "tcp-route",
+							Name: "tcp-route-two",
+						},
+					}},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2375,6 +2404,16 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
+						{
+							Kind: "http-route",
+							Name: "http-route-one",
+						},
+						{
+							Kind: "http-route",
+							Name: "http-route-two",
+						},
+					}},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2522,6 +2561,10 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: structs.ServiceRouteReferences{structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{{
+						Kind: "http-route",
+						Name: "http-route",
+					}}},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2682,6 +2725,20 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: structs.ServiceRouteReferences{
+						structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
+							{
+								Kind: "http-route",
+								Name: "http-route",
+							},
+						},
+						structs.NewServiceName("tcp-upstream", nil): []structs.ResourceReference{
+							{
+								Kind: "tcp-route",
+								Name: "tcp-route",
+							},
+						},
+					},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2809,6 +2866,7 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:   "tcp-listener",
 						Routes: []structs.ResourceReference{},
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -2898,6 +2956,7 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:   "tcp-listener",
 						Routes: []structs.ResourceReference{},
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -3041,6 +3100,14 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: structs.ServiceRouteReferences{
+						structs.NewServiceName("http-upstream", nil): []structs.ResourceReference{
+							{
+								Kind: "http-route",
+								Name: "http-route",
+							},
+						},
+					},
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -3214,6 +3281,7 @@ func TestAPIGatewayController(t *testing.T) {
 						Name:   "tcp-listener",
 						Routes: []structs.ResourceReference{},
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 				&structs.APIGatewayConfigEntry{
 					Kind:           structs.APIGateway,
@@ -3353,6 +3421,7 @@ func TestAPIGatewayController(t *testing.T) {
 					Listeners: []structs.BoundAPIGatewayListener{{
 						Name: "http-listener",
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},
@@ -3427,6 +3496,7 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},
@@ -3552,6 +3622,7 @@ func TestAPIGatewayController(t *testing.T) {
 							},
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},
@@ -3651,6 +3722,7 @@ func TestAPIGatewayController(t *testing.T) {
 						{Name: "listener-1"},
 						{Name: "listener-2"},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},
@@ -3766,6 +3838,7 @@ func TestAPIGatewayController(t *testing.T) {
 							Name: "invalid-listener",
 						},
 					},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},
@@ -3854,6 +3927,7 @@ func TestAPIGatewayController(t *testing.T) {
 							EnterpriseMeta: *defaultMeta,
 						}},
 					}},
+					Services: make(structs.ServiceRouteReferences),
 				},
 			},
 		},

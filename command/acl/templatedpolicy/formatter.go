@@ -65,17 +65,18 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 	var buffer bytes.Buffer
 
 	buffer.WriteString(fmt.Sprintf("Name:            %s\n", templatedPolicy.TemplateName))
+	buffer.WriteString(fmt.Sprintf("Description:     %s\n", templatedPolicy.Description))
 
 	buffer.WriteString("Input variables:")
 	switch templatedPolicy.TemplateName {
 	case api.ACLTemplatedPolicyServiceName:
-		buffer.WriteString(fmt.Sprintf("\n%sName: String - Required - The name of the service.\n", WhitespaceIndent))
-		buffer.WriteString("Example usage:\n")
-		buffer.WriteString(WhitespaceIndent + "consul acl token create -templated-policy builtin/service -var name:api\n")
+		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The name of the service", "api")
 	case api.ACLTemplatedPolicyNodeName:
-		buffer.WriteString(fmt.Sprintf("\n%sName: String - Required - The node name.\n", WhitespaceIndent))
-		buffer.WriteString("Example usage:\n")
-		buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy builtin/node -var name:node-1\n", WhitespaceIndent))
+		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The node name", "node-1")
+	case api.ACLTemplatedPolicyWorkloadIdentityName:
+		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The workload name", "api")
+	case api.ACLTemplatedPolicyAPIGatewayName:
+		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The api gateway service name", "api-gateway")
 	case api.ACLTemplatedPolicyDNSName, api.ACLTemplatedPolicyNomadServerName:
 		noRequiredVariablesOutput(&buffer, templatedPolicy.TemplateName)
 	default:
@@ -96,6 +97,12 @@ func noRequiredVariablesOutput(buffer *bytes.Buffer, templateName string) {
 	buffer.WriteString(" None\n")
 	buffer.WriteString("Example usage:\n")
 	buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy %s\n", WhitespaceIndent, templateName))
+}
+
+func nameRequiredVariableOutput(buffer *bytes.Buffer, templateName, description, exampleName string) {
+	buffer.WriteString(fmt.Sprintf("\n%sName: String - Required - %s.\n", WhitespaceIndent, description))
+	buffer.WriteString("Example usage:\n")
+	buffer.WriteString(fmt.Sprintf("%sconsul acl token create -templated-policy %s -var name:%s\n", WhitespaceIndent, templateName, exampleName))
 }
 
 func (f *prettyFormatter) FormatTemplatedPolicyList(policies map[string]api.ACLTemplatedPolicyResponse) (string, error) {
