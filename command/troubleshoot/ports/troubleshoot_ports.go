@@ -68,11 +68,11 @@ func (c *cmd) Help() string {
 }
 
 const (
-	synopsis = "Troubleshoots ports of consul server"
+	synopsis = "Prints open and closed ports on the Consul server"
 	help     = `
 Usage: consul troubleshoot ports [options]
-	Checks for TCP connectivity of default ports of consul in case -ports is not passed as arguments
-	Default ports are listed here - https://developer.hashicorp.com/consul/docs/install/ports
+	Checks ports for TCP connectivity. Add the -ports flag to check specific ports or omit the -ports flag to check default ports. 
+	Refer to the following reference for default ports: https://developer.hashicorp.com/consul/docs/install/ports
 
 	consul troubleshoot ports -host localhost
 
@@ -80,7 +80,7 @@ Usage: consul troubleshoot ports [options]
 	export CONSUL_HTTP_ADDR=localhost
 	consul troubleshoot ports 
 	
-	If you want to check for other ports use -ports flag
+	Use the -ports flag to check non-default ports, for example:
 	consul troubleshoot ports -host localhost -ports 1023,1024
 	or 
 	export CONSUL_HTTP_ADDR=localhost
