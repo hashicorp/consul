@@ -1,0 +1,50 @@
+---
+layout: commands
+page_title: 'Commands: Peering Exported Services'
+description: |
+  The `consul peering exported-services` command outputs the exported services to a given peer.
+---
+
+# Consul Peering Exported Services
+
+Command: `consul peering exported-services`
+
+Corresponding HTTP API Endpoint: [\[GET\] /v1/peering/:name](/consul/api-docs/peering#read-a-peering-connection)
+
+The `peering exported-services` displays all the exported services to the peer.
+
+The table below shows this command's [required ACLs](/consul/api-docs/api-structure#authentication).
+
+| ACL Required |
+| ------------ |
+| `peering:read`  |
+
+## Usage
+
+Usage: `consul peering exported-services [options] -name <peer name>`
+
+#### Command Options
+
+- `-name=<string>` - (Required) The name of the peer associated with a connection that you want to read.
+
+- `-format={pretty|json}` - Command output format. The default value is `pretty`.
+
+#### Enterprise Options
+
+@include 'http_api_partition_options.mdx'
+
+#### API Options
+
+@include 'http_api_options_client.mdx'
+
+## Examples
+
+The following example outputs the exported services to a peering connection locally referred to as "cluster-02":
+
+```shell-session hideClipboard
+$ consul peering exported-services -name cluster-02
+backend
+frontend
+web
+```
+
