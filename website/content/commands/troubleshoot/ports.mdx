@@ -22,7 +22,7 @@ Usage: `consul troubleshoot ports [options]`
 
 ## Examples
 
-Checks for TCP connectivity of default ports of consul in case -ports is not passed as arguments.
+The following example checks the default ports Consul server uses for TCP connectivity. Note that the `CONSUL_HTTP_ADDR` environment variable is set to `localhost`. As a result, the `-host` flag is not required.
 Refer to [Required Ports](/consul/docs/install/ports) for additional information.
 
 ```shell-session
