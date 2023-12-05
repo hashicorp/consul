@@ -1,7 +1,7 @@
 // // Copyright (c) HashiCorp, Inc.
 // // SPDX-License-Identifier: BUSL-1.1
 
-package resource
+package resource_test
 
 import (
 	"context"
@@ -17,6 +17,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -25,10 +27,12 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
+// TODO: Update all tests to use true/false table test for v2tenancy
+
 func TestListByOwner_InputValidation(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	type testCase struct {
 		modFn       func(artistId, recordlabelId, executiveId *pbresource.ID) *pbresource.ID
@@ -152,8 +156,7 @@ func TestListByOwner_InputValidation(t *testing.T) {
 }
 
 func TestListByOwner_TypeNotRegistered(t *testing.T) {
-	server := testServer(t)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	_, err := client.ListByOwner(context.Background(), &pbresource.ListByOwnerRequest{
 		Owner: &pbresource.ID{
@@ -169,9 +172,9 @@ func TestListByOwner_TypeNotRegistered(t *testing.T) {
 }
 
 func TestListByOwner_Empty(t *testing.T) {
-	server := testServer(t)
-	demo.RegisterTypes(server.Registry)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -185,9 +188,9 @@ func TestListByOwner_Empty(t *testing.T) {
 }
 
 func TestListByOwner_Many(t *testing.T) {
-	server := testServer(t)
-	demo.RegisterTypes(server.Registry)
-	client := testClient(t, server)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes).
+		Run(t)
 
 	res, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -245,9 +248,9 @@ func TestListByOwner_OwnerTenancyDoesNotExist(t *testing.T) {
 	}
 	for desc, tc := range tenancyCases {
 		t.Run(desc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			recordLabel := resourcetest.Resource(demo.TypeV1RecordLabel, "looney-tunes").
 				WithTenancy(resource.DefaultPartitionedTenancy()).
@@ -271,9 +274,9 @@ func TestListByOwner_OwnerTenancyDoesNotExist(t *testing.T) {
 func TestListByOwner_Tenancy_Defaults_And_Normalization(t *testing.T) {
 	for tenancyDesc, modFn := range tenancyCases() {
 		t.Run(tenancyDesc, func(t *testing.T) {
-			server := testServer(t)
-			demo.RegisterTypes(server.Registry)
-			client := testClient(t, server)
+			client := svctest.NewResourceServiceBuilder().
+				WithRegisterFns(demo.RegisterTypes).
+				Run(t)
 
 			// Create partition scoped recordLabel.
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
@@ -343,9 +346,9 @@ func TestListByOwner_ACL_PerTypeAllowed(t *testing.T) {
 
 // roundtrip a ListByOwner which attempts to return a single resource
 func roundTripListByOwner(t *testing.T, authz acl.Authorizer) (*pbresource.Resource, *pbresource.ListByOwnerResponse, error) {
-	server := testServer(t)
-	client := testClient(t, server)
-	demo.RegisterTypes(server.Registry)
+	builder := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(demo.RegisterTypes)
+	client := builder.Run(t)
 
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -361,10 +364,11 @@ func roundTripListByOwner(t *testing.T, authz acl.Authorizer) (*pbresource.Resou
 	album = rsp2.Resource
 	require.NoError(t, err)
 
-	mockACLResolver := &MockACLResolver{}
+	// Mock has to be put in place after the above writes so writes will succeed.
+	mockACLResolver := &svc.MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(authz, nil)
-	server.ACLResolver = mockACLResolver
+	builder.ServiceImpl().ACLResolver = mockACLResolver
 
 	rsp3, err := client.ListByOwner(testContext(t), &pbresource.ListByOwnerRequest{Owner: artist.Id})
 	return album, rsp3, err

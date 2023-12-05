@@ -41,7 +41,11 @@ func (suite *controllerSuite) SetupTest() {
 	suite.isEnterprise = versiontest.IsEnterprise()
 	suite.tenancies = resourcetest.TestTenancies()
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.client = rtest.NewClient(client)
 	suite.rt = controller.Runtime{
 		Client: suite.client,

@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -82,18 +81,12 @@ func (suite *nodeHealthControllerTestSuite) writeNode(name string, tenancy *pbre
 }
 
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
-	mockTenancyBridge := &mockres.MockTenancyBridge{}
 	suite.tenancies = resourcetest.TestTenancies()
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-	cfg := mockres.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	client := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, types.RegisterDNSPolicy)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, types.RegisterDNSPolicy).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.resourceClient = resourcetest.NewClient(client)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.isEnterprise = versiontest.IsEnterprise()
