@@ -483,6 +483,10 @@
       {
         "title": "read",
         "path": "peering/read"
+      },
+      {
+        "title": "exported-services",
+        "path": "peering/exported-services"
       }
     ]
   },
