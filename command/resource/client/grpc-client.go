@@ -36,7 +36,7 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	var dialOpts = []grpc.DialOption{}
+	var dialOpts []grpc.DialOption
 	if c.GRPCTLS {
 		tlsConfig, err := SetupTLSConfig(c)
 		if err != nil {
@@ -52,11 +52,11 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 
 func checkCertificates(c *GRPCConfig) error {
 	if c.GRPCTLS {
-		if (c.CAFile != "" || c.CAPath != "") && (c.CertFile != "" && c.KeyFile != "") {
+		if (c.CertFile != "" && c.KeyFile == "") || (c.CertFile == "" && c.KeyFile != "") {
 			return nil
 		} else {
-			return fmt.Errorf("you have to provide CA certificate file or path and client certificate and key files " +
-				"if you use https or unix schema to communicate")
+			return fmt.Errorf("you have to provide client certificate file and key file at the same time " +
+				"if you intend to communicate in TLS/SSL mode")
 		}
 	}
 	return nil

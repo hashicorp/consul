@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/go-rootcerts"
 )
 
-// tls.Config is used to establish communication in TLS mode
+// SetupTLSConfig tls.Config is used to establish communication in TLS mode
 func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: false, // Set to true only if you want to skip server verification
@@ -24,18 +24,18 @@ func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
 			return nil, err
 		}
 		tlsConfig.Certificates = []tls.Certificate{tlsCert}
-	} else {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
 	}
 
+	var caConfig *rootcerts.Config
 	if c.CAFile != "" || c.CAPath != "" {
-		rootConfig := &rootcerts.Config{
+		caConfig = &rootcerts.Config{
 			CAFile: c.CAFile,
 			CAPath: c.CAPath,
 		}
-		if err := rootcerts.ConfigureTLS(tlsConfig, rootConfig); err != nil {
-			return nil, err
-		}
+	}
+	// load system CA certs if user doesn't provide any
+	if err := rootcerts.ConfigureTLS(tlsConfig, caConfig); err != nil {
+		return nil, err
 	}
 
 	return tlsConfig, nil
