@@ -1116,6 +1116,17 @@ func (o *BoundAPIGatewayConfigEntry) DeepCopy() *BoundAPIGatewayConfigEntry {
 			}
 		}
 	}
+	if o.Services != nil {
+		cp.Services = make(map[ServiceName][]ResourceReference, len(o.Services))
+		for k2, v2 := range o.Services {
+			var cp_Services_v2 []ResourceReference
+			if v2 != nil {
+				cp_Services_v2 = make([]ResourceReference, len(v2))
+				copy(cp_Services_v2, v2)
+			}
+			cp.Services[k2] = cp_Services_v2
+		}
+	}
 	if o.Meta != nil {
 		cp.Meta = make(map[string]string, len(o.Meta))
 		for k2, v2 := range o.Meta {

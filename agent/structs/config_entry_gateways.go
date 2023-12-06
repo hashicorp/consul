@@ -1,12 +1,14 @@
 package structs
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/miekg/dns"
+	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -909,6 +911,45 @@ type APIGatewayTLSConfiguration struct {
 	CipherSuites []types.TLSCipherSuite
 }
 
+// ServiceRouteReferences is a map with a key of ServiceName type for a routed to service from a
+// bound gateway listener with a value being a slice of resource references of the routes that reference the service
+type ServiceRouteReferences map[ServiceName][]ResourceReference
+
+func (s ServiceRouteReferences) AddService(key ServiceName, routeRef ResourceReference) {
+	if s[key] == nil {
+		s[key] = make([]ResourceReference, 0)
+	}
+
+	if slices.Contains(s[key], routeRef) {
+		return
+	}
+
+	s[key] = append(s[key], routeRef)
+}
+
+func (s ServiceRouteReferences) RemoveRouteRef(routeRef ResourceReference) {
+	for key := range s {
+		for idx, ref := range s[key] {
+			if ref.IsSame(&routeRef) {
+				s[key] = append(s[key][0:idx], s[key][idx+1:]...)
+				if len(s[key]) == 0 {
+					delete(s, key)
+				}
+			}
+		}
+	}
+}
+
+// this is to make the map value serializable for tests that compare the json output of the
+// boundAPIGateway
+func (s ServiceRouteReferences) MarshalJSON() ([]byte, error) {
+	m := make(map[string][]ResourceReference, len(s))
+	for key, val := range s {
+		m[key.String()] = val
+	}
+	return json.Marshal(m)
+}
+
 // BoundAPIGatewayConfigEntry manages the configuration for a bound API
 // gateway with the given name. This type is never written from the client.
 // It is only written by the controller in order to represent an API gateway
@@ -925,6 +966,9 @@ type BoundAPIGatewayConfigEntry struct {
 	// Listeners are the valid listeners of an APIGateway with information about
 	// what certificates and routes have successfully bound to it.
 	Listeners []BoundAPIGatewayListener
+
+	// Services are all the services that are routed to from an APIGateway
+	Services ServiceRouteReferences
 
 	Meta               map[string]string `json:",omitempty"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
@@ -953,6 +997,26 @@ func (e *BoundAPIGatewayConfigEntry) IsSame(other *BoundAPIGatewayConfigEntry) b
 		}
 		if !listener.IsSame(otherListener) {
 			return false
+		}
+	}
+
+	if len(e.Services) != len(other.Services) {
+		return false
+	}
+
+	for key, refs := range e.Services {
+		if _, ok := other.Services[key]; !ok {
+			return false
+		}
+
+		if len(refs) != len(other.Services[key]) {
+			return false
+		}
+
+		for idx, ref := range refs {
+			if !ref.IsSame(&other.Services[key][idx]) {
+				return false
+			}
 		}
 	}
 
@@ -1058,6 +1122,18 @@ func (e *BoundAPIGatewayConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 		return nil
 	}
 	return &e.EnterpriseMeta
+}
+
+func (e *BoundAPIGatewayConfigEntry) ListRelatedServices() []ServiceID {
+	if len(e.Services) == 0 {
+		return nil
+	}
+
+	ids := make([]ServiceID, 0, len(e.Services))
+	for key := range e.Services {
+		ids = append(ids, key.ToServiceID())
+	}
+	return ids
 }
 
 // BoundAPIGatewayListener is an API gateway listener with information
