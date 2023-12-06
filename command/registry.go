@@ -118,12 +118,8 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
-<<<<<<< HEAD
 	troubleshoot "github.com/hashicorp/consul/command/troubleshoot"
-=======
-	"github.com/hashicorp/consul/command/troubleshoot"
 	troubleshootports "github.com/hashicorp/consul/command/troubleshoot/ports"
->>>>>>> 6c88122fdb (NET-3860 - [Supportability] consul troubleshoot CLI for verifying ports (#18329))
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
