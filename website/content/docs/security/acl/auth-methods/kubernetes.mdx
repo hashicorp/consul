@@ -1,6 +1,6 @@
 ---
 layout: docs
-page_title: Kubernetes Auth Method 
+page_title: Kubernetes Auth Method
 description: >-
   Use the Kubernetes auth method type to authenticate to Consul with a Kubernetes service account token and receive an ACL token with privileges based on JWT identity attributes. Learn how to configure auth method parameters using this reference page and example configuration.
 ---
@@ -61,7 +61,9 @@ parameters are required to properly configure an auth method of type
 
 ```json
 {
-    ...other fields...
+    "Name": "example-k8s-auth",
+    "Type": "kubernetes",
+    "Description": "Example JWT auth method",
     "Config": {
         "Host": "https://192.0.2.42:8443",
         "CACert": "-----BEGIN CERTIFICATE-----\n...-----END CERTIFICATE-----\n",

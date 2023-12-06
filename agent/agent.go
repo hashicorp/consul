@@ -34,6 +34,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -678,6 +679,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			incomingRPCLimiter,
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		server, err := consul.NewServer(consulCfg, a.baseDeps.Deps, a.externalGRPCServer, incomingRPCLimiter, serverLogger)
@@ -709,6 +714,10 @@ func (a *Agent) Start(ctx context.Context) error {
 			metrics.Default(),
 			a.tlsConfigurator,
 			rpcRate.NullRequestLimitsHandler(),
+			keepalive.ServerParameters{
+				Time:    a.config.GRPCKeepaliveInterval,
+				Timeout: a.config.GRPCKeepaliveTimeout,
+			},
 		)
 
 		client, err := consul.NewClient(consulCfg, a.baseDeps.Deps)
@@ -855,12 +864,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
-
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
 
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
@@ -3017,14 +3020,20 @@ func (a *Agent) addCheck(check *structs.HealthCheck, chkType *structs.CheckType,
 				chkType.Interval = checks.MinInterval
 			}
 
+			var tlsClientConfig *tls.Config
+			if chkType.TCPUseTLS {
+				tlsClientConfig = a.tlsConfigurator.OutgoingTLSConfigForCheck(chkType.TLSSkipVerify, chkType.TLSServerName)
+			}
+
 			tcp := &checks.CheckTCP{
-				CheckID:       cid,
-				ServiceID:     sid,
-				TCP:           chkType.TCP,
-				Interval:      chkType.Interval,
-				Timeout:       chkType.Timeout,
-				Logger:        a.logger,
-				StatusHandler: statusHandler,
+				CheckID:         cid,
+				ServiceID:       sid,
+				TCP:             chkType.TCP,
+				Interval:        chkType.Interval,
+				Timeout:         chkType.Timeout,
+				Logger:          a.logger,
+				TLSClientConfig: tlsClientConfig,
+				StatusHandler:   statusHandler,
 			}
 			tcp.Start()
 			a.checkTCPs[cid] = tcp
@@ -4298,6 +4307,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.enableDebug.Store(newCfg.EnableDebug)
 	a.config.EnableDebug = newCfg.EnableDebug
+
+	// update Agent config with new config
+	a.config = newCfg.DeepCopy()
 
 	return nil
 }

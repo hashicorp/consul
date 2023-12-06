@@ -282,6 +282,15 @@ type configSnapshotTerminatingGateway struct {
 	// HostnameServices is a map of service name to service instances with a hostname as the address.
 	// If hostnames are configured they must be provided to Envoy via CDS not EDS.
 	HostnameServices map[structs.ServiceName]structs.CheckServiceNodes
+
+	// WatchedInboundPeerTrustBundles is a map of service name to a cancel function. This cancel
+	// function is tied to the watch of the inbound peer trust bundles for the gateway.
+	WatchedInboundPeerTrustBundles map[structs.ServiceName]context.CancelFunc
+
+	// InboundPeerTrustBundles is a map of service name to a list of peering trust bundles.
+	// These bundles are used to configure RBAC policies for inbound filter chains on the gateway
+	// from services that are in a cluster-peered datacenter.
+	InboundPeerTrustBundles map[structs.ServiceName][]*pbpeering.PeeringTrustBundle
 }
 
 // ValidServices returns the list of service keys that have enough data to be emitted.

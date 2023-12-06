@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-bexpr"
+	"github.com/hashicorp/go-multierror"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/hashstructure"
 
@@ -929,21 +930,22 @@ func (e *ServiceResolverConfigEntry) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(e),
 	}
-	if err := lib.UnmarshalJSON(data, &aux); err != nil {
+	var err error
+	if err = lib.UnmarshalJSON(data, &aux); err != nil {
 		return err
 	}
-	var err error
+	var merr *multierror.Error
 	if aux.ConnectTimeout != "" {
 		if e.ConnectTimeout, err = time.ParseDuration(aux.ConnectTimeout); err != nil {
-			return err
+			merr = multierror.Append(merr, err)
 		}
 	}
 	if aux.RequestTimeout != "" {
 		if e.RequestTimeout, err = time.ParseDuration(aux.RequestTimeout); err != nil {
-			return err
+			merr = multierror.Append(merr, err)
 		}
 	}
-	return nil
+	return merr.ErrorOrNil()
 }
 
 func (e *ServiceResolverConfigEntry) SubsetExists(name string) bool {

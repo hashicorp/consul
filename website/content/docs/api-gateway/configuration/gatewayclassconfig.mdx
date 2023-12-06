@@ -28,8 +28,8 @@ The following outline shows how to format the configurations in the `GatewayClas
     * [`grpc`](#consul-ports-grpc): integer | optional
     * [`http`](#consul-ports-http): integer | optional
   * [`scheme`](#consul-scheme): string  | optional
-* [`copyAnnotations`](#copyAnnotations): object | optional
-  * [`service`](#copyAnnotations-service): array of strings | optional
+* [`copyAnnotations`](#copyannotations): object | optional
+  * [`service`](#copyannotations-service): array of strings | optional
 * [`deployment`](#deployment): object | optional
   * [`defaultInstances`](#deployment-defaultinstances): integer | optional
   * [`maxInstances`](#deployment-maxinstances): integer | optional
@@ -38,7 +38,9 @@ The following outline shows how to format the configurations in the `GatewayClas
   * [`consulAPIGateway`](#image-consulapigateway): string | optional
   * [`envoy`](#image-envoy): string | optional
 * [`logLevel`](#loglevel): string | optional
+* [`mapPrivilegedContainerPorts`](#mapprivilegedcontainerports): integer | optional
 * [`nodeSelector`](#nodeselector): string | optional
+* [`openshiftSCCName`](#openshiftsccname): string | optional
 * [`serviceType`](#servicetype): string | optional
 * [`useHostPorts`](#usehostports): boolean | optional
 
@@ -152,11 +154,25 @@ You can specify the following strings:
 * `debug`
 * `trace`
 
+### mapPrivilegedContainerPorts
+Specifies a value that Consul adds to privileged ports defined in the gateway. Privileged ports are port numbers less than 1024 and some platforms, such as Red Hat OpenShift, explicitly configure Kubernetes to avoid running containers on privileged ports. The total value of the configured port number and the `mapPriviledgedContainerPorts` value must not exceed 65535, which is the highest possible TCP port number allowed.
+for gateway containers
+* Type: Integer
+* Required: optional
+
+You can specify an integer between `0` and `64512`
+
 ### nodeSelector
 Pods normally run on multiple nodes. You can specify a set of parameters in the `nodeSelector` that constrain the nodes on which the pod can run, enabling the pod to fit on a node. The selector must match a node's labels for the pod to be scheduled on that node. Refer to the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/) for additional information.
 
 * Type: string
 * Required: optional
+
+### openshiftSCCName
+Specifies the OpenShift security context constraint (SCC) for the `GatewayClassConfig` to use. Refer to the [OpenShift SCC documentation](https://docs.openshift.com/container-platform/4.13/authentication/managing-security-context-constraints.html#default-sccs_configuring-internal-oauth) for additional information about the available default SCCs.
+* Type: string
+* Required: optional
+* Default: `restricted-v2`
 
 ### serviceType
 Specifies the ingress methods for the gateway's Kubernetes service.

@@ -17,7 +17,7 @@ Settings in this config entry apply across all namespaces and federated datacent
 Enforce that service mesh mTLS traffic uses TLS v1.2 or newer.
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -108,7 +108,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
 Only allow transparent proxies to dial addresses in the mesh.
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -189,7 +189,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
 Set the `PeerThroughMeshGateways` parameter to `true` to route peering control plane traffic through mesh gateways.
 
 <Tabs>
-<Tab heading="Consul OSS">
+<Tab heading="Consul CE">
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -315,7 +315,7 @@ Note that the Kubernetes example does not include a `partition` field. Configura
           name: 'namespace',
           enterprise: true,
           description:
-            'Must be set to `default`. If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
+            'Must be set to `default`. If running Consul Community Edition, the namespace is ignored (see [Kubernetes Namespaces in Consul CE](/consul/docs/k8s/crds#consul-ce)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for additional information.',
         },
       ],
       hcl: false,

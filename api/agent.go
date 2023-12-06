@@ -345,6 +345,7 @@ type AgentServiceCheck struct {
 	Method                 string              `json:",omitempty"`
 	Body                   string              `json:",omitempty"`
 	TCP                    string              `json:",omitempty"`
+	TCPUseTLS              bool                `json:",omitempty"`
 	UDP                    string              `json:",omitempty"`
 	Status                 string              `json:",omitempty"`
 	Notes                  string              `json:",omitempty"`

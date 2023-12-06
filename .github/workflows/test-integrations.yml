@@ -24,13 +24,18 @@ env:
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+  SKIP_CHECK_BRANCH: ${{ github.head_ref || github.ref_name }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   conditional-skip:
     runs-on: ubuntu-latest 
     name: Get files changed and conditionally skip CI
     outputs:
-      trigger-ci: ${{ steps.read-files.outputs.trigger-ci }}
+      skip-ci: ${{ steps.read-files.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
@@ -43,7 +48,7 @@ jobs:
     needs: [conditional-skip]
     runs-on: ubuntu-latest
     name: Setup
-    if: needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: needs.conditional-skip.outputs.skip-ci != 'true'
     outputs:
       compute-small: ${{ steps.runners.outputs.compute-small }}
       compute-medium: ${{ steps.runners.outputs.compute-medium }}
@@ -59,7 +64,7 @@ jobs:
     needs: [setup]
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
-      runs-on: ${{ needs.setup.outputs.compute-xl }}
+      runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
     secrets:
@@ -255,7 +260,7 @@ jobs:
           # this is further going to multiplied in envoy-integration tests by the 
           # other dimensions in the matrix.  Currently TOTAL_RUNNERS would be
           # multiplied by 8 based on these values:
-          # envoy-version: ["1.23.12", "1.24.10", "1.25.9", "1.26.4"]
+          # envoy-version: ["1.23.12", "1.24.12", "1.25.11", "1.26.6"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4 
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
@@ -278,7 +283,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
   
   envoy-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - generate-envoy-job-matrices
@@ -289,7 +294,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: ["1.26.4"]
+        envoy-version: ["1.26.6"]
         xds-target: ["server", "client"]
         test-cases: ${{ fromJSON(needs.generate-envoy-job-matrices.outputs.envoy-matrix) }}
     env:
@@ -370,7 +375,7 @@ jobs:
         run: datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
 
   compatibility-integration-test:
-    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
       - dev-build
@@ -486,7 +491,7 @@ jobs:
     - envoy-integration-test
     - compatibility-integration-test
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
-    if: always() && needs.conditional-skip.outputs.trigger-ci == 'true'
+    if: always() && needs.conditional-skip.outputs.skip-ci != 'true'
     steps:
       - name: evaluate upstream job results
         run: |
