@@ -64,7 +64,7 @@ Usage: consul peering <subcommand> [options] [args]
 
     $ consul peering read -name west-dc
 
-  Lists exported services to a peering connection:
+  Lists services exported to a peering connection:
 
     $ consul peering exported-services -name west-dc
 
