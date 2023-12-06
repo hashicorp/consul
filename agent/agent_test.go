@@ -90,7 +90,7 @@ func requireServiceMissing(t *testing.T, a *TestAgent, id string) {
 	require.Nil(t, getService(a, id), "have service %q (expected missing)", id)
 }
 
-func requireCheckExists(t *testing.T, a *TestAgent, id types.CheckID) *structs.HealthCheck {
+func requireCheckExists(t testutil.TestingTB, a *TestAgent, id types.CheckID) *structs.HealthCheck {
 	t.Helper()
 	chk := getCheck(a, id)
 	require.NotNil(t, chk, "missing check %q", id)
@@ -853,7 +853,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	assert.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		t.Helper()
+		r.Helper()
 		var args structs.NodeSpecificRequest
 		args.Datacenter = "dc1"
 		args.Node = "node1"
@@ -1888,7 +1888,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
-	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
+	logf := func(a *TestAgent, format string, args ...interface{}) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
@@ -1947,12 +1947,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
 		t.Helper()
 		retry.Run(t, func(r *retry.R) {
-			chk := requireCheckExists(t, a, types.CheckID(checkID))
+			chk := requireCheckExists(r, a, types.CheckID(checkID))
 			if chk.Status != expectedStatus {
-				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
+				logf(a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 			}
-			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
+			logf(a, "check %q has reached desired status %q", checkID, expectedStatus)
 		})
 	}
 
@@ -1963,7 +1963,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
 	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
 
-	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
+	logf(a, "==== POWERING DOWN ORIGINAL ====")
 
 	require.NoError(t, a.Shutdown())
 
@@ -1985,7 +1985,7 @@ node_name = "` + a.Config.NodeName + `"
 		// reregister during standup; we use an adjustable timing to try and force a race
 		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
 		time.Sleep(sleepDur)
-		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
+		logf(a2, "re-registering checks and services after a delay of %v", sleepDur)
 		for i := 0; i < 20; i++ { // RACE RACE RACE!
 			registerServicesAndChecks(t, a2)
 			time.Sleep(50 * time.Millisecond)
@@ -1995,7 +1995,7 @@ node_name = "` + a.Config.NodeName + `"
 
 		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
 
-		logf(t, a2, "giving the alias check a chance to notice...")
+		logf(a2, "giving the alias check a chance to notice...")
 		time.Sleep(5 * time.Second)
 
 		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)

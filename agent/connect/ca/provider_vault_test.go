@@ -295,7 +295,7 @@ func TestVaultCAProvider_ConfigureFailureGoroutineLeakCheck(t *testing.T) {
 			profile := pprof.Lookup("goroutine")
 			sb := strings.Builder{}
 			require.NoError(r, profile.WriteTo(&sb, 2))
-			t.Log(sb.String())
+			r.Log(sb.String())
 			require.Contains(r, sb.String(),
 				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
 				"expected renewal goroutine, got none")

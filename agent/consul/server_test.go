@@ -121,7 +121,7 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 	})
 }
 
-func testServerConfig(t *testing.T) (string, *Config) {
+func testServerConfig(t testutil.TestingTB) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
@@ -237,7 +237,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		dir, config = testServerConfig(t)
+		dir, config = testServerConfig(r)
 		for _, fn := range configOpts {
 			fn(config)
 		}
@@ -250,8 +250,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		deps = newDefaultDeps(t, config)
-		srv, err = newServerWithDeps(t, config, deps)
+		deps = newDefaultDeps(r, config)
+		srv, err = newServerWithDeps(r, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -331,7 +331,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	return newServerWithDeps(t, c, newDefaultDeps(t, c))
 }
 
-func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
+func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})

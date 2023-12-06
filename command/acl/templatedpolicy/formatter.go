@@ -77,7 +77,7 @@ func (f *prettyFormatter) FormatTemplatedPolicy(templatedPolicy api.ACLTemplated
 		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The workload name", "api")
 	case api.ACLTemplatedPolicyAPIGatewayName:
 		nameRequiredVariableOutput(&buffer, templatedPolicy.TemplateName, "The api gateway service name", "api-gateway")
-	case api.ACLTemplatedPolicyDNSName, api.ACLTemplatedPolicyNomadServerName:
+	case api.ACLTemplatedPolicyDNSName, api.ACLTemplatedPolicyNomadServerName, api.ACLTemplatedPolicyNomadClientName:
 		noRequiredVariablesOutput(&buffer, templatedPolicy.TemplateName)
 	default:
 		buffer.WriteString("   None\n")
