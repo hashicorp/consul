@@ -438,7 +438,7 @@ func (s *HTTPHandlers) UIServiceTopology(resp http.ResponseWriter, req *http.Req
 	args.ServiceKind = structs.ServiceKind(kind[0])
 
 	switch args.ServiceKind {
-	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway:
+	case structs.ServiceKindTypical, structs.ServiceKindIngressGateway, structs.ServiceKindAPIGateway:
 		// allowed
 	default:
 		return nil, HTTPError{StatusCode: http.StatusBadRequest, Reason: fmt.Sprintf("Unsupported service kind %q", args.ServiceKind)}
@@ -669,7 +669,7 @@ func prepSummaryOutput(summaries map[structs.PeeredServiceName]*ServiceSummary, 
 				sum.ChecksCritical++
 			}
 		}
-		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway {
+		if excludeSidecars && sum.Kind != structs.ServiceKindTypical && sum.Kind != structs.ServiceKindIngressGateway && sum.Kind != structs.ServiceKindAPIGateway {
 			continue
 		}
 		resp = append(resp, sum)

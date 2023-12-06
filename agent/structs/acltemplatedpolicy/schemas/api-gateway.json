@@ -1,0 +1,13 @@
+{
+	"type": "object",
+	"properties": {
+		"name": { "type": "string", "$ref": "#/definitions/min-length-one" }
+	},
+	"required": ["name"],
+	"definitions": {
+		"min-length-one": {
+				"type": "string",
+				"minLength": 1
+		}
+	}
+}

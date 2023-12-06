@@ -217,7 +217,7 @@
             @size='100'
             @color='disabled'
           >
-            {{t "components.hashicorp-consul.side-nav.footer" version=(env 'CONSUL_VERSION')}}
+            {{t "components.hashicorp-consul.side-nav.footer" version=this.consulVersion}}
           </Hds::Text::Display>
           {{{concat '<!-- ' (env 'CONSUL_GIT_SHA') '-->'}}}
         </footer>

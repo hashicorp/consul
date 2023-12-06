@@ -521,13 +521,11 @@ func (suite *controllerTestSuite) TestController() {
 		webComputedDestinations *pbresource.Resource
 	)
 
-	testutil.RunStep(suite.T(), "proxy state template generation", func(t *testing.T) {
-		// Check that proxy state template resource is generated for both the api and web workloads.
-		retry.Run(t, func(r *retry.R) {
-			suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-			webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-			apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-		})
+	// Check that proxy state template resource is generated for both the api and web workloads.
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+		webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+		apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 	})
 
 	// Write a default ComputedRoutes for api.
@@ -555,7 +553,9 @@ func (suite *controllerTestSuite) TestController() {
 	testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireExplicitDestinationsFound(rt, "api", tmpl)
+		})
 	})
 
 	testutil.RunStep(suite.T(), "update api's ports to be non-mesh", func(t *testing.T) {
@@ -615,7 +615,9 @@ func (suite *controllerTestSuite) TestController() {
 		// We should get a new web proxy template resource because this destination should be removed.
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-		requireExplicitDestinationsNotFound(t, "api", webProxyStateTemplate)
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireExplicitDestinationsNotFound(rt, "api", tmpl)
+		})
 	})
 
 	testutil.RunStep(suite.T(), "update ports to be mesh again", func(t *testing.T) {
@@ -643,7 +645,9 @@ func (suite *controllerTestSuite) TestController() {
 		// We should also get a new web proxy template resource as this destination should be added again.
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireExplicitDestinationsFound(rt, "api", tmpl)
+		})
 	})
 
 	testutil.RunStep(suite.T(), "delete the proxy state template and check re-generation", func(t *testing.T) {
@@ -653,7 +657,10 @@ func (suite *controllerTestSuite) TestController() {
 		require.NoError(suite.T(), err)
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
-		requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireExplicitDestinationsFound(rt, "api", tmpl)
+		})
 	})
 
 	testutil.RunStep(suite.T(), "add implicit upstream and enable tproxy", func(t *testing.T) {
@@ -684,8 +691,10 @@ func (suite *controllerTestSuite) TestController() {
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 		apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
-		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
-		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireImplicitDestinationsFound(rt, "api", tmpl)
+			requireImplicitDestinationsFound(rt, "db", tmpl)
+		})
 	})
 
 	testutil.RunStep(suite.T(), "traffic permissions", func(t *testing.T) {
@@ -756,8 +765,10 @@ func (suite *controllerTestSuite) TestController() {
 
 		webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-		requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
-		requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
+		suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+			requireImplicitDestinationsFound(rt, "api", tmpl)
+			requireImplicitDestinationsFound(rt, "db", tmpl)
+		})
 	})
 }
 
@@ -793,20 +804,16 @@ func TestMeshController(t *testing.T) {
 	suite.Run(t, new(controllerTestSuite))
 }
 
-func requireExplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
-	requireExplicitDestinations(t, name, tmplResource, true)
+func requireExplicitDestinationsFound(t resourcetest.T, name string, tmpl *pbmesh.ProxyStateTemplate) {
+	requireExplicitDestinations(t, name, tmpl, true)
 }
 
-func requireExplicitDestinationsNotFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
-	requireExplicitDestinations(t, name, tmplResource, false)
+func requireExplicitDestinationsNotFound(t resourcetest.T, name string, tmpl *pbmesh.ProxyStateTemplate) {
+	requireExplicitDestinations(t, name, tmpl, false)
 }
 
-func requireExplicitDestinations(t *testing.T, name string, tmplResource *pbresource.Resource, found bool) {
+func requireExplicitDestinations(t resourcetest.T, name string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
 	t.Helper()
-
-	var tmpl pbmesh.ProxyStateTemplate
-	err := tmplResource.Data.UnmarshalTo(&tmpl)
-	require.NoError(t, err)
 
 	// Check outbound listener.
 	var foundListener bool
@@ -819,15 +826,11 @@ func requireExplicitDestinations(t *testing.T, name string, tmplResource *pbreso
 
 	require.Equal(t, found, foundListener)
 
-	requireClustersAndEndpoints(t, name, &tmpl, found)
+	requireClustersAndEndpoints(t, name, tmpl, found)
 }
 
-func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
+func requireImplicitDestinationsFound(t resourcetest.T, name string, tmpl *pbmesh.ProxyStateTemplate) {
 	t.Helper()
-
-	var tmpl pbmesh.ProxyStateTemplate
-	err := tmplResource.Data.UnmarshalTo(&tmpl)
-	require.NoError(t, err)
 
 	// Check outbound listener.
 	var foundListener bool
@@ -866,10 +869,10 @@ func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *p
 	}
 	require.True(t, foundListener)
 
-	requireClustersAndEndpoints(t, name, &tmpl, true)
+	requireClustersAndEndpoints(t, name, tmpl, true)
 }
 
-func requireClustersAndEndpoints(t *testing.T, name string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
+func requireClustersAndEndpoints(t resourcetest.T, name string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
 	t.Helper()
 
 	var foundCluster bool
@@ -891,6 +894,16 @@ func requireClustersAndEndpoints(t *testing.T, name string, tmpl *pbmesh.ProxySt
 	}
 
 	require.Equal(t, found, foundEndpoints)
+}
+
+func (suite *controllerTestSuite) waitForProxyStateTemplateState(t *testing.T, id *pbresource.ID, verify func(resourcetest.T, *pbmesh.ProxyStateTemplate)) {
+	suite.client.WaitForResourceState(t, id, func(rt resourcetest.T, res *pbresource.Resource) {
+		var tmpl pbmesh.ProxyStateTemplate
+		err := res.Data.UnmarshalTo(&tmpl)
+		require.NoError(rt, err)
+
+		verify(rt, &tmpl)
+	})
 }
 
 func resourceID(rtype *pbresource.Type, name string) *pbresource.ID {
