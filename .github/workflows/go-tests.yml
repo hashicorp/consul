@@ -513,7 +513,7 @@ jobs:
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
             printf "Tests failed, notifying Slack"
             echo "FAILED_TESTS=true" >> $GITHUB_ENV
-            echo "COMMIT_MESSAGE_SUMMARY=$(echo ${{ github.event.head_commit.message }} | head -n 1)" >> $GITHUB_ENV
+            echo "COMMIT_MESSAGE_SUMMARY=$(echo '${{ github.event.head_commit.message }}' | head -n 1)" >> $GITHUB_ENV
           fi
       - name: Notify Slack
         # failure() ensures this runs even if the test eval step exits 1
