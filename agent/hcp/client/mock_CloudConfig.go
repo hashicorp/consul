@@ -29,6 +29,7 @@ func (m *mockHCPCfg) SCADATLSConfig() *tls.Config   { return &tls.Config{} }
 func (m *mockHCPCfg) APIAddress() string            { return "" }
 func (m *mockHCPCfg) PortalURL() *url.URL           { return &url.URL{} }
 func (m *mockHCPCfg) Profile() *profile.UserProfile { return nil }
+func (m *mockHCPCfg) Logout() error                 { return nil }
 
 type MockCloudCfg struct {
 	ConfigErr   error

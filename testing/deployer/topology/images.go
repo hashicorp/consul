@@ -5,6 +5,14 @@ package topology
 
 import (
 	"strings"
+
+	goversion "github.com/hashicorp/go-version"
+)
+
+var (
+	MinVersionAgentTokenPartition = goversion.Must(goversion.NewVersion("v1.11.0"))
+	MinVersionPeering             = goversion.Must(goversion.NewVersion("v1.13.0"))
+	MinVersionTLS                 = goversion.Must(goversion.NewVersion("v1.12.0"))
 )
 
 type Images struct {
@@ -13,6 +21,10 @@ type Images struct {
 	Consul string `json:",omitempty"`
 	// ConsulCE sets the CE image
 	ConsulCE string `json:",omitempty"`
+	// consulVersion is the version part of Consul image,
+	// e.g., if Consul image is hashicorp/consul-enterprise:1.15.0-ent,
+	// consulVersion is 1.15.0-ent
+	consulVersion string
 	// ConsulEnterprise sets the ent image
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
@@ -93,7 +105,19 @@ func (i Images) ChooseConsul(enterprise bool) Images {
 	}
 	i.ConsulEnterprise = ""
 	i.ConsulCE = ""
+
+	// extract the version part of Consul
+	i.consulVersion = i.Consul[strings.Index(i.Consul, ":")+1:]
 	return i
+}
+
+// GreaterThanVersion compares the image version to a specified version
+func (i Images) GreaterThanVersion(version *goversion.Version) bool {
+	if i.consulVersion == "local" {
+		return true
+	}
+	iVer := goversion.Must(goversion.NewVersion(i.consulVersion))
+	return iVer.GreaterThanOrEqual(version)
 }
 
 func (i Images) OverrideWith(i2 Images) Images {
@@ -122,7 +146,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulCE:         DefaultConsulImage,
+		ConsulCE:         DefaultConsulCEImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

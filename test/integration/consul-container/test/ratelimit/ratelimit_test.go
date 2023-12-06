@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 
@@ -282,7 +283,7 @@ func setupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isSe
 	return cluster, client
 }
 
-func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
+func checkForMetric(t testutil.TestingTB, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
 	// validate metrics
 	server, err := cluster.GetClient(nil, true)
 	require.NoError(t, err)
@@ -320,7 +321,7 @@ func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationNa
 	}
 }
 
-func checkLogsForMessage(t require.TestingT, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+func checkLogsForMessage(t testutil.TestingTB, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	if logShouldExist {
 		found := false
 		for _, log := range logs {

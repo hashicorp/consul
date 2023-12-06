@@ -173,12 +173,12 @@ func assertHTTPRequestToServiceAddress(t *testing.T, client *libservice.ConnectC
 	upstreamURL := fmt.Sprintf("http://localhost:%d/debug?env=dump", port)
 	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
 		out, err := client.Exec(context.Background(), []string{"curl", "-s", upstreamURL})
-		t.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
+		r.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
 
 		if expSuccess {
 			require.NoError(r, err)
 			require.Contains(r, out, fmt.Sprintf("FORTIO_NAME=%s", serviceName))
-			t.Logf("successfuly messaged %s", serviceName)
+			r.Logf("successfuly messaged %s", serviceName)
 		} else {
 			require.Error(r, err)
 			require.Contains(r, err.Error(), "exit code 52")

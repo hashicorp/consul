@@ -13,10 +13,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
-func createTestLock(t *testing.T, c *Client, key string) (*Lock, *Session) {
+func createTestLock(t testutil.TestingTB, c *Client, key string) (*Lock, *Session) {
 	t.Helper()
 	session := c.Session()
 
@@ -106,7 +107,7 @@ func TestAPI_LockForceInvalidate(t *testing.T) {
 	defer s.Stop()
 
 	retry.Run(t, func(r *retry.R) {
-		lock, session := createTestLock(t, c, "test/lock")
+		lock, session := createTestLock(r, c, "test/lock")
 		defer session.Destroy(lock.opts.Session, nil)
 
 		// Should work

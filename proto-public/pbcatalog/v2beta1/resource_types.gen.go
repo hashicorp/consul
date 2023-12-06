@@ -15,6 +15,7 @@ const (
 	HealthChecksKind     = "HealthChecks"
 	HealthStatusKind     = "HealthStatus"
 	NodeKind             = "Node"
+	NodeHealthStatusKind = "NodeHealthStatus"
 	ServiceKind          = "Service"
 	ServiceEndpointsKind = "ServiceEndpoints"
 	VirtualIPsKind       = "VirtualIPs"
@@ -50,6 +51,12 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         NodeKind,
+	}
+
+	NodeHealthStatusType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         NodeHealthStatusKind,
 	}
 
 	ServiceType = &pbresource.Type{

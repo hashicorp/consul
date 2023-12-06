@@ -5,7 +5,6 @@ package cache
 
 import (
 	"context"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +12,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -82,7 +82,10 @@ func TestIdentities(t *testing.T) {
 
 func TestMapComputedTrafficPermissions(t *testing.T) {
 	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
-		client := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
+		client := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(types.Register, catalog.RegisterTypes).
+			Run(t)
+
 		ctp := resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, "workload-identity-1").
 			WithTenancy(tenancy).
 			WithData(t, &pbauth.ComputedTrafficPermissions{}).
@@ -137,7 +140,9 @@ func TestUnified_AllMappingsToProxyStateTemplate(t *testing.T) {
 	resourcetest.RunWithTenancies(func(tenancy *pbresource.Tenancy) {
 		var (
 			cache  = New()
-			client = svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
+			client = svctest.NewResourceServiceBuilder().
+				WithRegisterFns(types.Register, catalog.RegisterTypes).
+				Run(t)
 		)
 
 		anyServiceData := &pbcatalog.Service{
