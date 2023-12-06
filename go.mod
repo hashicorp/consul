@@ -25,7 +25,6 @@ require (
 	github.com/coredns/coredns v1.10.1
 	github.com/coreos/go-oidc v2.1.0+incompatible
 	github.com/docker/go-connections v0.4.0
-	github.com/envoyproxy/go-control-plane v0.11.1-0.20230524094728-9239064ad72f
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
 	github.com/fatih/color v1.14.1
@@ -109,10 +108,6 @@ require (
 	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.3.0
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
-	golang.org/x/net v0.17.0
-	golang.org/x/oauth2 v0.7.0
-	golang.org/x/sync v0.2.0
 	golang.org/x/sys v0.13.0
 	golang.org/x/time v0.3.0
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230526203410-71b5a4ffd15e
@@ -167,7 +162,6 @@ require (
 	github.com/digitalocean/godo v1.10.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
-	github.com/envoyproxy/protoc-gen-validate v0.10.1 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.0.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -266,10 +260,6 @@ require (
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/term v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.9.1 // indirect
 	google.golang.org/api v0.114.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230526203410-71b5a4ffd15e // indirect
