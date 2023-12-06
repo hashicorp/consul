@@ -473,6 +473,10 @@
         "path": "peering/establish"
       },
       {
+        "title": "exported-services",
+        "path": "peering/exported-services"
+      },
+      {
         "title": "generate-token",
         "path": "peering/generate-token"
       },
@@ -483,10 +487,6 @@
       {
         "title": "read",
         "path": "peering/read"
-      },
-      {
-        "title": "exported-services",
-        "path": "peering/exported-services"
       }
     ]
   },

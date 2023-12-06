@@ -143,8 +143,8 @@ const (
 	help     = `
 Usage: consul peering exported-services [options] -name <peer name>
 
-  Lists exported services to the provided peer name. If peer is not found,
-  the command will exit with a non-zero code. The result will be filtered according
+  Lists services exported to the peer with the provided name. If the peer is not found,
+  the command exits with a non-zero code. The result is filtered according
   to ACL policy configuration.
 
   Example:
