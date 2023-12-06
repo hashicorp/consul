@@ -10,7 +10,7 @@ import (
 )
 
 func TestTroubleShootCustom_Ports(t *testing.T) {
-	// Create a test Consul server
+	// Create a test Consul server.
 	srv1, err := testutil.NewTestServerConfigT(t, nil)
 	if err != nil {
 		t.Fatal(err)
