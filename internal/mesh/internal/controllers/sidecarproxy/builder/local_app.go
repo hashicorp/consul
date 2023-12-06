@@ -6,8 +6,9 @@ package builder
 import (
 	"fmt"
 
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -90,9 +91,11 @@ func buildTrafficPermissions(globalDefaultAllow bool, trustDomain string, worklo
 	for _, p := range computed.DenyPermissions {
 		drsByPort := destinationRulesByPort(allPorts, p.DestinationRules)
 		principals := makePrincipals(trustDomain, p)
+		destRules := makeDestinationRules(p)
 		for port := range drsByPort {
 			out[port].DenyPermissions = append(out[port].DenyPermissions, &pbproxystate.Permission{
-				Principals: principals,
+				Principals:       principals,
+				DestinationRules: destRules,
 			})
 		}
 	}
@@ -184,6 +187,34 @@ func makePrincipal(trustDomain string, s *pbauth.Source) *pbproxystate.Principal
 		Spiffe:         sourceToSpiffe(trustDomain, s),
 		ExcludeSpiffes: excludes,
 	}
+}
+
+func makeDestinationRules(perm *pbauth.Permission) []*pbproxystate.DestinationRule {
+	var drs []*pbproxystate.DestinationRule
+	for _, s := range perm.DestinationRules {
+		dr := &pbproxystate.DestinationRule{
+			PathExact:  s.PathExact,
+			PathPrefix: s.PathPrefix,
+			PathRegex:  s.PathRegex,
+			Methods:    s.Methods,
+		}
+		var hrs []*pbproxystate.DestinationRuleHeader
+		for _, hr := range s.Headers {
+			hrs = append(hrs, &pbproxystate.DestinationRuleHeader{
+				Name:    hr.Name,
+				Present: hr.Present,
+				Exact:   hr.Exact,
+				Prefix:  hr.Prefix,
+				Suffix:  hr.Suffix,
+				Regex:   hr.Regex,
+				Invert:  hr.Invert,
+			})
+		}
+		dr.DestinationRuleHeader = hrs
+		drs = append(drs, dr)
+	}
+
+	return drs
 }
 
 const (

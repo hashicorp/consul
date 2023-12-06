@@ -9,8 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/internal/testing/golden"
@@ -94,7 +95,13 @@ func TestBuildLocalApp(t *testing.T) {
 									Partition:    "default",
 								},
 							},
-						},
+							DestinationRules: []*pbauth.DestinationRule{
+								{
+									PathExact: "/",
+									Methods:   []string{"PUT"},
+									Headers:   []*pbauth.DestinationRuleHeader{{Name: "blah", Present: false}},
+								},
+							}},
 					},
 				},
 				defaultAllow: true,
