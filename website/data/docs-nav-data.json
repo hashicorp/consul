@@ -1769,43 +1769,43 @@
       },
       {
         "title": "Deploy Consul",
-        "href": "https://developer.hashicorp.com/consul/docs/deploy/vm"
+        "href": "deploy/vm"
       },
       {
         "title": "Register services",
-        "href": "https://developer.hashicorp.com/consul/docs/register/vm"
+        "href": "register/vm"
       },
       {
         "title": "Discover services",
-        "href": "https://developer.hashicorp.com/consul/docs/discover/vm"
+        "href": "discover/vm"
       },
       {
         "title": "Connect services",
-        "href": "https://developer.hashicorp.com/consul/docs/connect/vm"
+        "href": "connect/vm"
       },
       {
         "title": "Access services",
-        "href": "https://developer.hashicorp.com/consul/docs/access/vm"
+        "href": "access/vm"
       },
       {
         "title": "Segment network",
-        "href": "https://developer.hashicorp.com/consul/docs/segment/vm"
+        "href": "segment/vm"
       },
       {
         "title": "Link network segments",
-        "href": "https://developer.hashicorp.com/consul/docs/link/vm"
+        "href": "link/vm"
       },
       {
         "title": "Secure services",
-        "href": "https://developer.hashicorp.com/consul/docs/secure-mesh/vm"
+        "href": "secure-mesh/vm"
       },
       {
         "title": "Manage service traffic",
-        "href": "https://developer.hashicorp.com/consul/docs/manage-traffic/vm"
+        "href": "manage-traffic/vm"
       },
       {
         "title": "Access services",
-        "href": "https://developer.hashicorp.com/consul/docs/access/vm"
+        "href": "access/vm"
       }
     ]
   },
@@ -1818,39 +1818,39 @@
       },
       {
         "title": "Deploy Consul",
-        "href": "https://developer.hashicorp.com/consul/docs/deploy/k8s"
+        "href": "deploy/k8s"
       },
       {
         "title": "Register services",
-        "href": "https://developer.hashicorp.com/consul/docs/register/k8s"
+        "href": "register/k8s"
       },
       {
         "title": "Discover services",
-        "href": "https://developer.hashicorp.com/consul/docs/discover/k8s"
+        "href": "discover/k8s"
       },
       {
         "title": "Connect services",
-        "href": "https://developer.hashicorp.com/consul/docs/connect/k8s"
+        "href": "connect/k8s"
       },
       {
         "title": "Access services",
-        "href": "https://developer.hashicorp.com/consul/docs/access/k8s"
+        "href": "access/k8s"
       },
       {
         "title": "Segment network",
-        "href": "https://developer.hashicorp.com/consul/docs/segment/k8s"
+        "href": "segment/k8s"
       },
       {
         "title": "Link network segments",
-        "href": "https://developer.hashicorp.com/consul/docs/link/k8s"
+        "href": "link/k8s"
       },
       {
         "title": "Secure services",
-        "href": "https://developer.hashicorp.com/consul/docs/secure-mesh/k8s"
+        "href": "secure-mesh/k8s"
       },
       {
         "title": "Manage service traffic",
-        "href": "https://developer.hashicorp.com/consul/docs/manage-traffic/k8s"
+        "href": "manage-traffic/k8s"
       }
     ]
   },
@@ -1863,11 +1863,11 @@
       },
       {
         "title": "Register services",
-        "href": "https://developer.hashicorp.com/consul/docs/register/ecs"
+        "href": "register/ecs"
       },
       {
-        "title": "Connect services",
-        "href": "https://developer.hashicorp.com/consul/docs/connect/ecs"
+        "title": "Discover services",
+        "href": "discover/ecs"
       }
     ]
   },
@@ -1880,11 +1880,11 @@
       },
       {
         "title": "Register services",
-        "href": "https://developer.hashicorp.com/consul/docs/register/lambda"
+        "href": "register/lambda"
       },
       {
         "title": "Connect services",
-        "href": "https://developer.hashicorp.com/consul/docs/connect/lambda"
+        "href": "connect/lambda"
       }
     ]
   },
@@ -1897,11 +1897,11 @@
       },
       {
         "title": "Register services",
-        "href": "https://developer.hashicorp.com/consul/docs/register/nomad"
+        "href": "register/nomad"
       },
       {
         "title": "Connect services",
-        "href": "https://developer.hashicorp.com/consul/docs/connect/nomad"
+        "href": "connect/nomad"
       }
     ]
   },
