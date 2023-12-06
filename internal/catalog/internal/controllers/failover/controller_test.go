@@ -36,17 +36,19 @@ type controllerSuite struct {
 }
 
 func (suite *controllerSuite) SetupTest() {
-	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, types.RegisterDNSPolicy)
+	suite.tenancies = rtest.TestTenancies()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, types.RegisterDNSPolicy).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.rt = controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(suite.T()),
 	}
 	suite.client = rtest.NewClient(client)
-
 	suite.failoverMapper = failovermapper.New()
-
-	suite.tenancies = rtest.TestTenancies()
+	suite.ctx = testutil.TestContext(suite.T())
 }
 
 func (suite *controllerSuite) TestController() {

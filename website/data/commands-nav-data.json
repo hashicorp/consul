@@ -571,6 +571,10 @@
       {
         "title": "proxy",
         "path": "troubleshoot/proxy"
+      },
+      {
+        "title": "ports",
+        "path": "troubleshoot/ports"
       }
     ]
   },

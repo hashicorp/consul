@@ -10,13 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/internal/tenancy/internal/controllers/common"
 	"github.com/hashicorp/consul/internal/tenancy/internal/controllers/namespace"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -31,24 +29,21 @@ import (
 type nsTestSuite struct {
 	suite.Suite
 
-	client   *rtest.Client
-	runtime  controller.Runtime
-	ctx      context.Context
-	registry resource.Registry
+	client  *rtest.Client
+	runtime controller.Runtime
+	ctx     context.Context
 }
 
 func (ts *nsTestSuite) SetupTest() {
-	ts.registry = resource.NewRegistry()
-	tenancyBridge := tenancy.NewV2TenancyBridge()
-	config := svc.Config{TenancyBridge: tenancyBridge, Registry: ts.registry, UseV2Tenancy: true}
-	resourceClient := svctest.RunResourceServiceWithConfig(ts.T(), config, tenancy.RegisterTypes, demo.RegisterTypes)
-	tenancyBridge.WithClient(resourceClient)
-	ts.client = rtest.NewClient(resourceClient)
-	ts.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(ts.T())}
+	builder := svctest.NewResourceServiceBuilder().
+		WithV2Tenancy(true).
+		WithRegisterFns(demo.RegisterTypes)
+	ts.client = rtest.NewClient(builder.Run(ts.T()))
+	ts.runtime = controller.Runtime{Client: ts.client, Logger: testutil.Logger(ts.T())}
 	ts.ctx = testutil.TestContext(ts.T())
 
 	mgr := controller.NewManager(ts.client, testutil.Logger(ts.T()))
-	mgr.Register(namespace.Controller(ts.registry))
+	mgr.Register(namespace.Controller(builder.Registry()))
 	mgr.SetRaftLeader(true)
 	ctx, cancel := context.WithCancel(context.Background())
 	ts.T().Cleanup(cancel)

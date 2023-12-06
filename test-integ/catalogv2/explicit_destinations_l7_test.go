@@ -20,7 +20,29 @@ import (
 )
 
 func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
-	cfg := testSplitterFeaturesL7ExplicitDestinationsCreator{}.NewConfig(t)
+	tenancies := []*pbresource.Tenancy{
+		{
+			Partition: "default",
+			Namespace: "default",
+		},
+	}
+	if utils.IsEnterprise() {
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "part1",
+			Namespace: "default",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "part1",
+			Namespace: "nsa",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "nsa",
+		})
+	}
+	cfg := testSplitterFeaturesL7ExplicitDestinationsCreator{
+		tenancies: tenancies,
+	}.NewConfig(t)
 
 	sp := sprawltest.Launch(t, cfg)
 
@@ -37,11 +59,13 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 
 	t.Log(topology.RenderRelationships(ships))
 
-	// Make sure things are in v2.
-	libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-client", nil, 1)
-	libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server-v1", nil, 1)
-	libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server-v2", nil, 1)
-	libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server", nil, 0)
+	for _, tenancy := range tenancies {
+		// Make sure things are in v2.
+		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-client", tenancy, 1)
+		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server-v1", tenancy, 1)
+		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server-v2", tenancy, 1)
+		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, "static-server", tenancy, 0)
+	}
 
 	// Check relationships
 	for _, ship := range ships {
@@ -87,7 +111,9 @@ func TestSplitterFeaturesL7ExplicitDestinations(t *testing.T) {
 	}
 }
 
-type testSplitterFeaturesL7ExplicitDestinationsCreator struct{}
+type testSplitterFeaturesL7ExplicitDestinationsCreator struct {
+	tenancies []*pbresource.Tenancy
+}
 
 func (c testSplitterFeaturesL7ExplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
 	const clusterName = "dc1"
@@ -106,11 +132,8 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) NewConfig(t *testing.
 		return fmt.Sprintf("%s-box%d", clusterName, lastNode)
 	}
 
-	c.topologyConfigAddNodes(t, cluster, nodeName, "default", "default")
-	if cluster.Enterprise {
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "default")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "nsa")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "default", "nsa")
+	for _, ten := range c.tenancies {
+		c.topologyConfigAddNodes(t, cluster, nodeName, ten)
 	}
 
 	return &topology.Config{
@@ -129,34 +152,33 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	t *testing.T,
 	cluster *topology.Cluster,
 	nodeName func() string,
-	partition,
-	namespace string,
+	currentTenancy *pbresource.Tenancy,
 ) {
 	clusterName := cluster.Name
 
-	newID := func(name string) topology.ID {
+	newID := func(name string, tenancy *pbresource.Tenancy) topology.ID {
 		return topology.ID{
-			Partition: partition,
-			Namespace: namespace,
+			Partition: tenancy.Partition,
+			Namespace: tenancy.Namespace,
 			Name:      name,
 		}
 	}
 
 	tenancy := &pbresource.Tenancy{
-		Partition: partition,
-		Namespace: namespace,
+		Partition: currentTenancy.Partition,
+		Namespace: currentTenancy.Namespace,
 		PeerName:  "local",
 	}
 
 	v1ServerNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: currentTenancy.Partition,
 		Name:      nodeName(),
 		Workloads: []*topology.Workload{
 			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newID("static-server-v1"),
+				newID("static-server-v1", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
 					wrk.Meta = map[string]string{
@@ -170,12 +192,12 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	v2ServerNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: currentTenancy.Partition,
 		Name:      nodeName(),
 		Workloads: []*topology.Workload{
 			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newID("static-server-v2"),
+				newID("static-server-v2", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
 					wrk.Meta = map[string]string{
@@ -189,43 +211,57 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 	clientNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: currentTenancy.Partition,
 		Name:      nodeName(),
 		Workloads: []*topology.Workload{
 			topoutil.NewBlankspaceWorkloadWithDefaults(
 				clusterName,
-				newID("static-client"),
+				newID("static-client", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
-					wrk.Destinations = []*topology.Destination{
-						{
-							ID:           newID("static-server"),
+					for i, tenancy := range c.tenancies {
+						wrk.Destinations = append(wrk.Destinations, &topology.Destination{
+
+							ID:           newID("static-server", tenancy),
 							PortName:     "http",
 							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5000,
+							LocalPort:    5000 + (i * 4),
 						},
-						{
-							ID:           newID("static-server"),
-							PortName:     "http2",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5001,
-						},
-						{
-							ID:           newID("static-server"),
-							PortName:     "grpc",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5002,
-						},
-						{
-							ID:           newID("static-server"),
-							PortName:     "tcp",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5003,
-						},
+							&topology.Destination{
+
+								ID:           newID("static-server", tenancy),
+								PortName:     "http2",
+								LocalAddress: "0.0.0.0", // needed for an assertion
+								LocalPort:    5001 + (i * 4),
+							},
+							&topology.Destination{
+
+								ID:           newID("static-server", tenancy),
+								PortName:     "grpc",
+								LocalAddress: "0.0.0.0", // needed for an assertion
+								LocalPort:    5002 + (i * 4),
+							},
+							&topology.Destination{
+
+								ID:           newID("static-server", tenancy),
+								PortName:     "tcp",
+								LocalAddress: "0.0.0.0", // needed for an assertion
+								LocalPort:    5003 + (i * 4),
+							},
+						)
 					}
 				},
 			),
 		},
+	}
+
+	var sources []*pbauth.Source
+	for _, ten := range c.tenancies {
+		sources = append(sources, &pbauth.Source{
+			IdentityName: "static-client",
+			Namespace:    ten.Namespace,
+			Partition:    ten.Partition,
+		})
 	}
 
 	v1TrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
@@ -240,12 +276,10 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "static-client",
-				Namespace:    namespace,
-			}},
+			Sources: sources,
 		}},
 	})
+
 	v2TrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
@@ -258,10 +292,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "static-client",
-				Namespace:    namespace,
-			}},
+			Sources: sources,
 		}},
 	})
 
@@ -350,6 +381,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			},
 		}},
 	})
+
 	grpcServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbmesh.GRPCRouteType,
@@ -390,6 +422,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 			},
 		}},
 	})
+
 	tcpServerRoute := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbmesh.TCPRouteType,
@@ -442,7 +475,7 @@ func (c testSplitterFeaturesL7ExplicitDestinationsCreator) topologyConfigAddNode
 		v1TrafficPerms,
 		v2TrafficPerms,
 		httpServerRoute,
-		tcpServerRoute,
 		grpcServerRoute,
+		tcpServerRoute,
 	)
 }

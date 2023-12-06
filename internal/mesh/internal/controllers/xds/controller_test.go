@@ -70,7 +70,12 @@ type xdsControllerTestSuite struct {
 
 func (suite *xdsControllerTestSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
+	suite.tenancies = resourcetest.TestTenancies()
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.fetcher = mockFetcher
@@ -100,8 +105,6 @@ func (suite *xdsControllerTestSuite) SetupTest() {
 		leafCertEvents:   suite.leafCertEvents,
 		datacenter:       "dc1",
 	}
-
-	suite.tenancies = resourcetest.TestTenancies()
 }
 
 func mockFetcher() (*pbproxystate.TrustBundle, error) {
