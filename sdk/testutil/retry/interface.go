@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package testutil
+package retry
 
 import (
 	"github.com/stretchr/testify/assert"

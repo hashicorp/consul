@@ -23,18 +23,6 @@ import (
 //
 // TODO: Move to a general package if used more widely.
 
-// T represents the subset of testing.T methods that will be used
-// by the various functionality in this package
-type T interface {
-	Helper()
-	Log(args ...interface{})
-	Logf(format string, args ...interface{})
-	Errorf(format string, args ...interface{})
-	Fatalf(format string, args ...interface{})
-	FailNow()
-	Cleanup(func())
-}
-
 type ClientOption func(*Client)
 
 func WithACLToken(token string) ClientOption {
@@ -76,13 +64,13 @@ func (client *Client) SetRetryerConfig(timeout time.Duration, wait time.Duration
 	client.wait = wait
 }
 
-func (client *Client) retry(t T, fn func(r *retry.R)) {
+func (client *Client) retry(t testutil.TestingTB, fn func(r *retry.R)) {
 	t.Helper()
 	retryer := &retry.Timer{Timeout: client.timeout, Wait: client.wait}
 	retry.RunWith(retryer, t, fn)
 }
 
-func (client *Client) Context(t T) context.Context {
+func (client *Client) Context(t testutil.TestingTB) context.Context {
 	ctx := testutil.TestContext(t)
 
 	if client.token != "" {
@@ -95,7 +83,7 @@ func (client *Client) Context(t T) context.Context {
 	return ctx
 }
 
-func (client *Client) RequireResourceNotFound(t T, id *pbresource.ID) {
+func (client *Client) RequireResourceNotFound(t testutil.TestingTB, id *pbresource.ID) {
 	t.Helper()
 
 	rsp, err := client.Read(client.Context(t), &pbresource.ReadRequest{Id: id})
@@ -104,7 +92,7 @@ func (client *Client) RequireResourceNotFound(t T, id *pbresource.ID) {
 	require.Nil(t, rsp)
 }
 
-func (client *Client) RequireResourceExists(t T, id *pbresource.ID) *pbresource.Resource {
+func (client *Client) RequireResourceExists(t testutil.TestingTB, id *pbresource.ID) *pbresource.Resource {
 	t.Helper()
 
 	rsp, err := client.Read(client.Context(t), &pbresource.ReadRequest{Id: id})
@@ -117,7 +105,7 @@ func ToGVK(resourceType *pbresource.Type) string {
 	return fmt.Sprintf("%s.%s.%s", resourceType.Group, resourceType.GroupVersion, resourceType.Kind)
 }
 
-func (client *Client) WaitForResourceExists(t T, id *pbresource.ID) *pbresource.Resource {
+func (client *Client) WaitForResourceExists(t testutil.TestingTB, id *pbresource.ID) *pbresource.Resource {
 	t.Helper()
 
 	var res *pbresource.Resource
@@ -128,7 +116,7 @@ func (client *Client) WaitForResourceExists(t T, id *pbresource.ID) *pbresource.
 	return res
 }
 
-func (client *Client) WaitForDeletion(t T, id *pbresource.ID) {
+func (client *Client) WaitForDeletion(t testutil.TestingTB, id *pbresource.ID) {
 	t.Helper()
 
 	client.retry(t, func(r *retry.R) {
@@ -139,12 +127,12 @@ func (client *Client) WaitForDeletion(t T, id *pbresource.ID) {
 // MustDelete will delete a resource by its id, retrying if necessary and fail the test
 // if it cannot delete it within the timeout. The clients request delay settings are
 // taken into account with this operation.
-func (client *Client) MustDelete(t T, id *pbresource.ID) {
+func (client *Client) MustDelete(t testutil.TestingTB, id *pbresource.ID) {
 	t.Helper()
 	client.retryDelete(t, id)
 }
 
-func (client *Client) retryDelete(t T, id *pbresource.ID) {
+func (client *Client) retryDelete(t testutil.TestingTB, id *pbresource.ID) {
 	t.Helper()
 	ctx := client.Context(t)
 

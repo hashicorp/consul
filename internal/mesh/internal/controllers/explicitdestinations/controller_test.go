@@ -911,7 +911,7 @@ func (suite *controllerTestSuite) TestController() {
 				expDest := &pbmesh.ComputedExplicitDestinations{
 					Destinations: suite.dest1.Destinations,
 				}
-				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, res)
+				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, res)
 				prototest.AssertDeepEqual(r, expDest.GetDestinations(), dec.GetData().GetDestinations())
 
 				matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)
