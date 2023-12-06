@@ -19,6 +19,10 @@ const (
 	// communication mode. Default is false in plaintext mode.
 	GRPCTLSEnvName = "CONSUL_GRPC_TLS"
 
+	// GRPCSSLVerifyEnvName defines an environment variable name which sets
+	// whether to disable certificate checking.
+	GRPCSSLVerifyEnvName = "CONSUL_GRPC_SSL_VERIFY"
+
 	// GRPCCAFileEnvName defines an environment variable name which sets the
 	// CA file to use for talking to Consul gRPC over TLS.
 	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
@@ -35,6 +39,10 @@ type GRPCConfig struct {
 
 	// GRPCTLS is the optional boolean flag to determine the communication protocol
 	GRPCTLS bool
+
+	// GRPCSSLVerifyEnvName is the optional boolean flag to disable certificate checking.
+	// Set to false only if you want to skip server verification
+	GRPCSSLVerifyEnvName bool
 
 	// CertFile is the optional path to the certificate for Consul
 	// communication. If this is set then you need to also set KeyFile.
@@ -63,6 +71,7 @@ func LoadGRPCConfig(defaultConfig *GRPCConfig) (*GRPCConfig, error) {
 	if defaultConfig == nil {
 		defaultConfig = GetDefaultGRPCConfig()
 	}
+	defaultConfig.GRPCSSLVerifyEnvName = true
 
 	overwrittenConfig, err := loadEnvToDefaultConfig(defaultConfig)
 	if err != nil {
@@ -87,6 +96,16 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 		}
 		if doTLS {
 			config.GRPCTLS = true
+		}
+	}
+
+	if v := os.Getenv(GRPCSSLVerifyEnvName); v != "" {
+		doVerify, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", GRPCSSLVerifyEnvName, err)
+		}
+		if !doVerify {
+			config.GRPCSSLVerifyEnvName = false
 		}
 	}
 

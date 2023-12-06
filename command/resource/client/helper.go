@@ -12,10 +12,10 @@ import (
 	"github.com/hashicorp/go-rootcerts"
 )
 
-// SetupTLSConfig tls.Config is used to establish communication in TLS mode
+// tls.Config is used to establish communication in TLS mode
 func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: false, // Set to true only if you want to skip server verification
+		InsecureSkipVerify: !c.GRPCSSLVerifyEnvName,
 	}
 
 	if c.CertFile != "" && c.KeyFile != "" {
