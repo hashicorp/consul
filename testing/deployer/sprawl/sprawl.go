@@ -298,6 +298,18 @@ func (s *Sprawl) standardUpgrade(cluster *topology.Cluster,
 			return fmt.Errorf("error upgrading node %s: %w", node.Name, err)
 		}
 	}
+
+	// upgrade client agents one at a time
+	for _, node := range cluster.Nodes {
+		if node.Kind != topology.NodeKindClient {
+			s.logger.Info("Skip non-client node", "node", node.Name)
+			continue
+		}
+		if err := upgradeFn(node.ID()); err != nil {
+			return fmt.Errorf("error upgrading node %s: %w", node.Name, err)
+		}
+	}
+
 	return nil
 }
 
