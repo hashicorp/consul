@@ -118,7 +118,7 @@ import (
 	tlscacreate "github.com/hashicorp/consul/command/tls/ca/create"
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
-	troubleshoot "github.com/hashicorp/consul/command/troubleshoot"
+	"github.com/hashicorp/consul/command/troubleshoot"
 	troubleshootports "github.com/hashicorp/consul/command/troubleshoot/ports"
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
