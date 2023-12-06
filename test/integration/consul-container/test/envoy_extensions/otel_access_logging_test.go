@@ -40,8 +40,6 @@ import (
 //   - Make sure a call to the client sidecar local bind port results in Envoy access logs being sent to the
 //     otel-collector.
 func TestOTELAccessLogging(t *testing.T) {
-	t.Parallel()
-
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers:                1,
 		NumClients:                1,
@@ -85,12 +83,11 @@ func TestOTELAccessLogging(t *testing.T) {
 	}
 	consul.ConfigEntries().Set(&defaults, nil)
 
-	// doRequest does its own retrying and doesn't need to be within the next retry.RunWith block
-	doRequest(t, fmt.Sprintf("http://localhost:%d", port), http.StatusOK)
-
 	// Make requests from the static-client to the static-server and look for the access logs
 	// to show up in the `otel-collector` container logs.
-	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Second}, t, func(r *retry.R) {
+	retry.Run(t, func(r *retry.R) {
+		doRequest(r, fmt.Sprintf("http://localhost:%d", port), http.StatusOK)
+
 		reader, err := launchInfo.Container.Logs(context.Background())
 		require.NoError(r, err)
 		log, err := io.ReadAll(reader)
@@ -98,7 +95,10 @@ func TestOTELAccessLogging(t *testing.T) {
 		require.Contains(r, string(log), `log_name: Str(otel-integration-test)`)
 		require.Contains(r, string(log), `cluster_name: Str(static-server)`)
 		require.Contains(r, string(log), `node_name: Str(static-server-sidecar-proxy)`)
-	})
+	},
+		retry.WithFullOutput(),
+		retry.WithRetryer(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Second}),
+	)
 }
 
 func createLocalOTELService(t *testing.T, cluster *libcluster.Cluster) *libcluster.LaunchInfo {
