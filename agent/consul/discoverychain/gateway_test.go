@@ -778,8 +778,9 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 					}},
 				},
 				&structs.ProxyConfigEntry{
-					Kind: structs.ProxyConfigGlobal,
-					Name: "global",
+					Kind:     structs.ProxyConfigGlobal,
+					Name:     "global",
+					Protocol: "http",
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},
