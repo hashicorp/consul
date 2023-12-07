@@ -6,7 +6,6 @@ package exportedservices
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strings"
 	"testing"
 
@@ -90,7 +89,7 @@ func TestExportedServicesCommand(t *testing.T) {
 		require.Contains(t, ui.ErrorWriter.String(), "No peering with name")
 	})
 
-	t.Run("read with pretty print", func(t *testing.T) {
+	t.Run("peering exist but no exported services", func(t *testing.T) {
 		// Generate token
 		generateReq := api.PeeringGenerateTokenRequest{
 			PeerName: "foo",
@@ -114,9 +113,42 @@ func TestExportedServicesCommand(t *testing.T) {
 		_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})
 		require.NoError(t, err, "Could not establish peering for \"bar\"")
 
-		resp, _, err := dialingClient.Peerings().Read(context.Background(), "bar", &api.QueryOptions{})
-		require.NoError(t, err)
-		fmt.Println(resp)
+		ui := cli.NewMockUi()
+		cmd := New(ui)
+
+		args := []string{
+			"-http-addr=" + acceptor.HTTPAddr(),
+			"-name=foo",
+		}
+
+		code := cmd.Run(args)
+		require.Equal(t, 0, code)
+		require.Equal(t, ui.ErrorWriter.String(), "")
+	})
+
+	t.Run("exported-services with pretty print", func(t *testing.T) {
+		// Generate token
+		generateReq := api.PeeringGenerateTokenRequest{
+			PeerName: "foo",
+			Meta: map[string]string{
+				"env": "production",
+			},
+		}
+
+		res, _, err := acceptingClient.Peerings().GenerateToken(context.Background(), generateReq, &api.WriteOptions{})
+		require.NoError(t, err, "Could not generate peering token at acceptor for \"foo\"")
+
+		// Establish peering
+		establishReq := api.PeeringEstablishRequest{
+			PeerName:     "bar",
+			PeeringToken: res.PeeringToken,
+			Meta: map[string]string{
+				"env": "production",
+			},
+		}
+
+		_, _, err = dialingClient.Peerings().Establish(context.Background(), establishReq, &api.WriteOptions{})
+		require.NoError(t, err, "Could not establish peering for \"bar\"")
 
 		_, _, err = acceptingClient.ConfigEntries().Set(&api.ExportedServicesConfigEntry{
 			Name: "default",
@@ -153,7 +185,6 @@ func TestExportedServicesCommand(t *testing.T) {
 			code := cmd.Run(args)
 			require.Equal(r, 0, code)
 			output := ui.OutputWriter.String()
-			fmt.Println(output)
 
 			// Spot check some fields and values
 			require.Contains(r, output, "web")
@@ -161,7 +192,7 @@ func TestExportedServicesCommand(t *testing.T) {
 		})
 	})
 
-	t.Run("read with json", func(t *testing.T) {
+	t.Run("exported-services with json", func(t *testing.T) {
 
 		ui := cli.NewMockUi()
 		cmd := New(ui)
