@@ -15,7 +15,7 @@ import (
 // tls.Config is used to establish communication in TLS mode
 func SetupTLSConfig(c *GRPCConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: !c.GRPCSSLVerifyEnvName,
+		InsecureSkipVerify: !c.GRPCTLSVerify,
 	}
 
 	if c.CertFile != "" && c.KeyFile != "" {
