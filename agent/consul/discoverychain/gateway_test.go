@@ -615,6 +615,7 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 			chain: &structs.CompiledDiscoveryChain{
 				ServiceName: "foo",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				StartNode:   "resolver:foo-2.default.default.dc2",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
