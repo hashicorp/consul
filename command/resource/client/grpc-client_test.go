@@ -17,17 +17,19 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
 )
 
 func TestResourceRead(t *testing.T) {
-	t.Parallel()
-
-	a := agent.NewTestAgent(t, "ports { grpc = 8502 }")
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	grpcConfig := GetDefaultGRPCConfig()
+	grpcConfig, err := LoadGRPCConfig(&GRPCConfig{Address: fmt.Sprintf("127.0.0.1:%d", availablePort)})
+	require.NoError(t, err)
 	gRPCClient, err := NewGRPCClient(grpcConfig)
+	require.NoError(t, err)
 
 	t.Cleanup(func() {
 		a.Shutdown()
@@ -53,11 +55,10 @@ func TestResourceRead(t *testing.T) {
 }
 
 func TestResourceReadInTLS(t *testing.T) {
-	t.Parallel()
-
+	availablePort := freeport.GetOne(t)
 	a := agent.StartTestAgent(t, agent.TestAgent{
-		HCL: `
-			ports { grpc_tls = 8503 }
+		HCL: fmt.Sprintf(`
+			ports { grpc_tls = %d }
 			enable_agent_tls_for_checks = true
 			tls {
 				defaults {
@@ -66,17 +67,18 @@ func TestResourceReadInTLS(t *testing.T) {
 					cert_file = "../../../test/client_certs/server.crt"
 					ca_file = "../../../test/client_certs/rootca.crt"
 				}
-			}`,
+			}`, availablePort),
 		UseGRPCTLS: true,
 	})
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
-	grpcConfig := &GRPCConfig{
-		Address:  "127.0.0.1:8503",
+	grpcConfig, err := LoadGRPCConfig(&GRPCConfig{
+		Address:  fmt.Sprintf("127.0.0.1:%d", availablePort),
 		GRPCTLS:  true,
 		CertFile: "../../../test/client_certs/client.crt",
 		KeyFile:  "../../../test/client_certs/client.key",
 		CAFile:   "../../../test/client_certs/rootca.crt",
-	}
+	})
+	require.NoError(t, err)
 	gRPCClient, err := NewGRPCClient(grpcConfig)
 	require.NoError(t, err)
 

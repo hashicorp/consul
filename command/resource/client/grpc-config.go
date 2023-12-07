@@ -71,7 +71,8 @@ type GRPCConfig struct {
 
 func GetDefaultGRPCConfig() *GRPCConfig {
 	return &GRPCConfig{
-		Address: "127.0.0.1:8502",
+		Address:       "127.0.0.1:8502",
+		GRPCTLSVerify: true,
 	}
 }
 
@@ -79,7 +80,6 @@ func LoadGRPCConfig(defaultConfig *GRPCConfig) (*GRPCConfig, error) {
 	if defaultConfig == nil {
 		defaultConfig = GetDefaultGRPCConfig()
 	}
-	defaultConfig.GRPCTLSVerify = true
 
 	overwrittenConfig, err := loadEnvToDefaultConfig(defaultConfig)
 	if err != nil {
