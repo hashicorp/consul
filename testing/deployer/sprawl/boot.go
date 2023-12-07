@@ -316,7 +316,7 @@ func (s *Sprawl) createFirstTime() error {
 	}
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
@@ -447,7 +447,7 @@ func (s *Sprawl) postRegenTasks(firstTime bool) error {
 
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("post regenerate waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
