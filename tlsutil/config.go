@@ -183,6 +183,18 @@ type protocolConfig struct {
 	useAutoCert bool
 }
 
+// ConfiguratorIface is the interface for the Configurator
+type ConfiguratorIface interface {
+	Base() Config
+	Cert() *tls.Certificate
+	ManualCAPems() []string
+
+	VerifyIncomingRPC() bool
+	VerifyServerHostname() bool
+}
+
+var _ ConfiguratorIface = (*Configurator)(nil)
+
 // Configurator provides tls.Config and net.Dial wrappers to enable TLS for
 // clients and servers, for internal RPC, and external gRPC and HTTPS connections.
 //
