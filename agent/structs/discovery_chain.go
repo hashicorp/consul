@@ -116,7 +116,7 @@ func (s *DiscoveryGraphNode) IsResolver() bool {
 }
 
 func (s *DiscoveryGraphNode) MapKey() string {
-	return fmt.Sprintf("%s:%s", s.Type, s.Name)
+	return s.Type + ":" + s.Name
 }
 
 // compiled form of ServiceResolverConfigEntry
