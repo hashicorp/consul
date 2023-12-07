@@ -23,6 +23,14 @@ const (
 	// whether to disable certificate checking.
 	GRPCTLSVerifyEnvName = "CONSUL_GRPC_TLS_VERIFY"
 
+	// GRPCClientCertEnvName defines an environment variable name which sets the
+	// client cert file to use for talking to Consul over TLS.
+	GRPCClientCertEnvName = "CONSUL_GRPC_CLIENT_CERT"
+
+	// GRPCClientKeyEnvName defines an environment variable name which sets the
+	// client key file to use for talking to Consul over TLS.
+	GRPCClientKeyEnvName = "CONSUL_GRPC_CLIENT_KEY"
+
 	// GRPCCAFileEnvName defines an environment variable name which sets the
 	// CA file to use for talking to Consul gRPC over TLS.
 	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
@@ -107,6 +115,14 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 		if !doVerify {
 			config.GRPCTLSVerify = false
 		}
+	}
+
+	if v := os.Getenv(GRPCClientCertEnvName); v != "" {
+		config.CertFile = v
+	}
+
+	if v := os.Getenv(GRPCClientKeyEnvName); v != "" {
+		config.KeyFile = v
 	}
 
 	if caFile := os.Getenv(GRPCCAFileEnvName); caFile != "" {

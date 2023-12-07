@@ -9,10 +9,12 @@ import (
 )
 
 type GRPCFlags struct {
-	address StringValue
-	grpcTLS BoolValue
-	caFile  StringValue
-	caPath  StringValue
+	address  StringValue
+	grpcTLS  BoolValue
+	certFile StringValue
+	keyFile  StringValue
+	caFile   StringValue
+	caPath   StringValue
 }
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config
@@ -44,6 +46,12 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 			"CONSUL_GRPC_TLS = true, otherwise it uses plaintext mode")
 	fs.Var(&f.caFile, "grpc-tls",
 		"Set to true if you aim to communicate in TLS mode in the GRPC call.")
+	fs.Var(&f.certFile, "client-cert",
+		"Path to a client cert file to use for TLS when 'verify_incoming' is enabled. This "+
+			"can also be specified via the CONSUL_GRPC_CLIENT_CERT environment variable.")
+	fs.Var(&f.keyFile, "client-key",
+		"Path to a client key file to use for TLS when 'verify_incoming' is enabled. This "+
+			"can also be specified via the CONSUL_GRPC_CLIENT_KEY environment variable.")
 	fs.Var(&f.caFile, "ca-file",
 		"Path to a CA file to use for TLS when communicating with Consul. This "+
 			"can also be specified via the CONSUL_CACERT environment variable.")
