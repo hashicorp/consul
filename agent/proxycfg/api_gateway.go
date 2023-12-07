@@ -477,6 +477,7 @@ func (h *handlerAPIGateway) recompileDiscoveryChains(snap *ConfigSnapshot) error
 
 	// Merge in additional discovery chains
 	for id, chain := range synthesizedChains {
+		chain := chain // Capture the loop variable.
 		snap.APIGateway.DiscoveryChain[id] = chain
 	}
 
