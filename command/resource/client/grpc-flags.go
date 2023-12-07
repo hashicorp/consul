@@ -30,6 +30,8 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	if *f.grpcTLS.v {
 		f.grpcTLS.Merge(&c.GRPCTLS)
 	}
+	f.certFile.Merge(&c.CertFile)
+	f.keyFile.Merge(&c.KeyFile)
 	f.caFile.Merge(&c.CAFile)
 	f.caPath.Merge(&c.CAPath)
 }
