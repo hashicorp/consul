@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -257,7 +258,7 @@ func targetForResolverNode(nodeName string, chains []*structs.CompiledDiscoveryC
 	splitterName := splitterPrefix + strings.TrimPrefix(nodeName, resolverPrefix)
 
 	for _, c := range chains {
-		targetChainPrefix := resolverPrefix + c.ServiceName + "." + entTargetNamespace(c.Namespace) + entTargetPartition(c.Partition)
+		targetChainPrefix := resolverPrefix + c.ServiceName + "." + acl.NamespaceOrDefault(c.Namespace) + "." + acl.PartitionOrDefault(c.Partition) + "."
 		if strings.HasPrefix(nodeName, targetChainPrefix) && len(c.Nodes) == 1 {
 			// we have a virtual resolver that just maps to another resolver, return
 			// the given node name
