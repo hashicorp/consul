@@ -53,8 +53,6 @@ func dial(c *GRPCConfig) (*grpc.ClientConn, error) {
 func checkCertificates(c *GRPCConfig) error {
 	if c.GRPCTLS {
 		if (c.CertFile != "" && c.KeyFile == "") || (c.CertFile == "" && c.KeyFile != "") {
-			return nil
-		} else {
 			return fmt.Errorf("you have to provide client certificate file and key file at the same time " +
 				"if you intend to communicate in TLS/SSL mode")
 		}
