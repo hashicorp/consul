@@ -1,0 +1,117 @@
+---
+layout: docs
+page_title: Upgrading to Latest 1.8.x
+description: >-
+  Specific versions of Consul may have additional information about the upgrade
+  process beyond the standard flow.
+---
+
+# Upgrading to Latest 1.8.x
+
+## Introduction
+
+This guide explains how to best upgrade a multi-datacenter Consul deployment that is using
+a version of Consul >= 1.6.9 and < 1.8.19 while maintaining replication. If you are on a version
+older than 1.6.9, please follow the link for the version you are on from [here](/consul/docs/upgrading/instructions).
+
+In this guide, we will be using an example with two datacenters (DCs) and will be
+referring to them as DC1 and DC2. DC1 will be the primary datacenter.
+
+## Requirements
+
+- All Consul servers should be on a version of Consul >= 1.6.9 and < 1.8.19.
+
+## Assumptions
+
+This guides makes the following assumptions:
+
+- You have at least two datacenters configured and have ACL replication enabled. If you are
+  not using multiple datacenters, you can follow along and simply skip the instructions related
+  to replication.
+
+## Considerations
+
+There are not too many major changes that might cause issues upgrading from 1.6.9, but notable changes
+are called out in our [Specific Version Details](/consul/docs/upgrading/upgrade-specific#consul-1-8-0)
+page. You can find more granular details in the full [changelog](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#183-august-12-2020).
+Looking through these changes prior to upgrading is highly recommended.
+
+## Procedure
+
+**1.** Check replication status in DC1 by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": false,
+  "Running": false,
+  "SourceDatacenter": "",
+  "ReplicationType": "",
+  "ReplicatedIndex": 0,
+  "ReplicatedRoleIndex": 0,
+  "ReplicatedTokenIndex": 0,
+  "LastSuccess": "0001-01-01T00:00:00Z",
+  "LastError": "0001-01-01T00:00:00Z"
+}
+```
+
+-> The primary datacenter (indicated by `primary_datacenter`) will always show as having replication
+disabled, so this is normal even if replication is happening.
+
+**2.** Check replication status in DC2 by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": true,
+  "Running": true,
+  "SourceDatacenter": "dc1",
+  "ReplicationType": "tokens",
+  "ReplicatedIndex": 672,
+  "ReplicatedRoleIndex": 1,
+  "ReplicatedTokenIndex": 677,
+  "LastSuccess": "2020-09-14T17:06:07Z",
+  "LastError": "2020-09-14T16:53:22Z"
+}
+```
+
+**3.** Upgrade the Consul agents in all DCs to version 1.8.19 by following our [General Upgrade Process](/consul/docs/upgrading/instructions/general-process).
+
+**4.** Confirm that replication is still working in DC2 by issuing the following curl command from a
+consul server in that DC:
+
+```shell-session
+$ curl --silent --header "X-Consul-Token: $MASTER_TOKEN" "localhost:8500/v1/acl/replication?pretty"
+```
+
+You should receive output similar to this:
+
+```json
+{
+  "Enabled": true,
+  "Running": true,
+  "SourceDatacenter": "dc1",
+  "ReplicationType": "tokens",
+  "ReplicatedIndex": 672,
+  "ReplicatedRoleIndex": 1,
+  "ReplicatedTokenIndex": 677,
+  "LastSuccess": "2020-09-14T17:15:16Z",
+  "LastError": "0001-01-01T00:00:00Z"
+}
+```
+
+## Post-Upgrade Configuration Changes
+
+No configuration changes are required for this upgrade.

@@ -1,0 +1,177 @@
+---
+layout: docs
+page_title: JSON Web Token (JWT) Auth Method
+description: >-
+  Use the JWT auth method to authenticate to Consul with a JSON web token and receive an ACL token with privileges based on JWT identity attributes. Learn how to configure the auth method parameters using this reference page and example configuration.
+---
+
+# JSON Web Token (JWT) Auth Method
+
+-> **1.8.0+:** This feature is available in Consul versions 1.8.0 and newer.
+
+The `jwt` auth method can be used to authenticate with Consul by providing a
+[JWT](https://en.wikipedia.org/wiki/JSON_Web_Token) directly. The JWT is
+cryptographically verified using locally-provided keys, or, if configured, an
+OIDC Discovery service can be used to fetch the appropriate keys.
+
+This page assumes general knowledge of JWTs and the concepts described in the
+main [auth method documentation](/consul/docs/security/acl/auth-methods).
+
+Both the [`jwt`](/consul/docs/security/acl/auth-methods/jwt) and the
+[`oidc`](/consul/docs/security/acl/auth-methods/oidc) auth method types allow additional
+processing of the claims data in the JWT.
+
+@include 'jwt_or_oidc.mdx'
+
+## Config Parameters
+
+The following auth method [`Config`](/consul/api-docs/acl/auth-methods#config)
+parameters are required to properly configure an auth method of type
+`jwt`:
+
+- `JWTValidationPubKeys` `(array<string>)` - A list of PEM-encoded public keys
+  to use to authenticate signatures locally.
+
+  Exactly one of `JWKSURL` `JWTValidationPubKeys`, or `OIDCDiscoveryURL` is required.
+
+- `OIDCDiscoveryURL` `(string: "")` - The OIDC Discovery URL, without any
+  .well-known component (base path).
+
+  Exactly one of `JWKSURL` `JWTValidationPubKeys`, or `OIDCDiscoveryURL` is required.
+
+- `OIDCDiscoveryCACert` `(string: "")` - PEM encoded CA cert for use by the TLS
+  client used to talk with the OIDC Discovery URL. NOTE: Every line must end
+  with a newline (`\n`). If not set, system certificates are used.
+
+- `JWKSURL` `(string: "")` - The JWKS URL to use to authenticate signatures.
+
+  Exactly one of `JWKSURL` `JWTValidationPubKeys`, or `OIDCDiscoveryURL` is required.
+
+- `JWKSCACert` `(string: "")` - PEM encoded CA cert for use by the TLS client
+  used to talk with the JWKS URL. NOTE: Every line must end with a newline
+  (`\n`). If not set, system certificates are used.
+
+- `ClaimMappings` `(map[string]string)` - Mappings of claims (key) that
+  [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
+  (value). Use this if the claim you are capturing is singular (such as an attribute).
+
+  When mapped, the values can be any of a number, string, or boolean and will
+  all be stringified when returned.
+
+- `ListClaimMappings` `(map[string]string)` - Mappings of claims (key)
+  [will be copied to a metadata field](#trusted-identity-attributes-via-claim-mappings)
+  (value). Use this if the claim you are capturing is list-like (such as groups).
+
+  When mapped, the values in each list can be any of a number, string, or
+  boolean and will all be stringified when returned.
+
+- `JWTSupportedAlgs` `(array<string>)` - JWTSupportedAlgs is a list of
+  supported signing algorithms. Defaults to `RS256`.
+
+- `BoundAudiences` `(array<string>)` - List of `aud` claims that are valid for
+  login; any match is sufficient.
+
+- `BoundIssuer` `(string: "")` - The value against which to match the `iss`
+  claim in a JWT.
+
+- `ExpirationLeeway` `(duration: 0s)` - Duration in seconds of leeway when
+  validating expiration of a token to account for clock skew. Defaults to 150
+  (2.5 minutes) if set to 0 and can be disabled if set to -1.
+
+- `NotBeforeLeeway` `(duration: 0s)` - Duration in seconds of leeway when
+  validating not before values of a token to account for clock skew. Defaults
+  to 150 (2.5 minutes) if set to 0 and can be disabled if set to -1.
+
+- `ClockSkewLeeway` `(duration: 0s)` - Duration in seconds of leeway when
+  validating all claims to account for clock skew. Defaults to 60 (1 minute)
+  if set to 0 and can be disabled if set to -1.
+
+### Sample Configs
+
+#### Static Keys
+
+```json
+{
+    "Name": "example-jwt-auth-static-keys",
+    "Type": "jwt",
+    "Description": "Example JWT auth method with static keys",
+    "Config": {
+        "BoundIssuer": "corp-issuer",
+        "JWTValidationPubKeys": [
+            "<public key PEM>"
+        ],
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://example.com/groups": "groups"
+        }
+    }
+}
+```
+
+#### JWKS
+
+```json
+{
+    "Name": "example-jwt-auth-jwks",
+    "Type": "jwt",
+    "Description": "Example JWT auth method with JWKS",
+    "Config": {
+        "JWKSURL": "https://my-corp-jwks-url.example.com/",
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://example.com/groups": "groups"
+        }
+    }
+}
+```
+
+#### OIDC Discovery
+
+```json
+{
+    "Name": "example-oidc-auth",
+    "Type": "oidc",
+    "Description": "Example OIDC auth method",
+    "Config": {
+        "BoundAudiences": [
+            "V1RPi2MYptMV1RPi2MYptMV1RPi2MYpt"
+        ],
+        "OIDCDiscoveryURL": "https://my-corp-app-name.auth0.com/",
+        "ClaimMappings": {
+            "http://example.com/first_name": "first_name",
+            "http://example.com/last_name": "last_name"
+        },
+        "ListClaimMappings": {
+            "http://example.com/groups": "groups"
+        }
+    }
+}
+```
+
+## JWT Verification
+
+JWT signatures will be verified against public keys from the issuer. This
+process can be done one of three ways:
+
+- **Static Keys** - A set of public keys is stored directly in the
+  configuration.
+
+- **JWKS** - A JSON Web Key Set ([JWKS](https://tools.ietf.org/html/rfc7517))
+  URL (and optional certificate chain) is configured. Keys will be fetched from
+  this endpoint during authentication.
+
+- **OIDC Discovery** - An OIDC Discovery URL (and optional certificate chain)
+  is configured. Keys will be fetched from this URL during authentication. When
+  OIDC Discovery is used, OIDC validation criteria (e.g. `iss`, `aud`, etc.)
+  will be applied.
+
+If multiple methods are needed, another auth method of this type may be created
+with a different name.
+
+@include 'jwt_claim_mapping_details.mdx'

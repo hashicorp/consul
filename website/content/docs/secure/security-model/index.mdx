@@ -1,0 +1,26 @@
+---
+layout: docs
+page_title: Security Models - Overview
+description: >-
+  Security models are the set of requirements and recommendations for securely operating a Consul deployment. Learn about security models and how they differ between environments.
+---
+
+## Overview
+
+Requirements and recommendations for operating a secure Consul deployment may vary drastically depending on your
+intended workloads, operating system, and environment. Consul is not secure by default, but can be configured to satisfy
+the security requirements for a wide-range of use cases from local developer environments without any configuration to
+container orchestrators in-production with ACL authorization, and mTLS authentication.
+
+### Core
+
+The core Consul product provides several options for enabling encryption, authentication, and authorization
+controls for a cluster. You can read more about the various personas, recommendations, requirements, and threats
+[here](/consul/docs/security/security-models/core).
+
+### NIA
+
+[Network Infrastructure Automation](/consul/docs/nia) (NIA) enables dynamic updates to network infrastructure devices triggered
+by service changes. Both the core Consul product's configuration and the configuration for the `consul-terraform-sync`
+daemon used by NIA can affect the security of your deployment. You can read more about the various personas,
+recommendations, requirements, and threats [here](/consul/docs/security/security-models/nia).

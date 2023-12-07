@@ -302,6 +302,10 @@
                 "path": "deploy/server/k8s"
               },
               {
+                "title": "Kubernetes requirements",
+                "path": "deploy/server/k8s/requirements"
+              },
+              {
                 "title": "Platform guides",
                 "routes": [
                   {
@@ -337,6 +341,10 @@
               {
                 "title": "Advanced examples",
                 "routes": [
+                  {
+                    "title": "Clients outside Kubernetes",
+                    "path": "deploy/server/k8s/examples/client-outside-k8s"
+                  },
                   {
                     "title": "Servers outside Kubernetes",
                     "path": "deploy/server/k8s/examples/server-outside-k8s"
@@ -620,6 +628,27 @@
             ]
           }
         ]
+      },
+      {
+        "title": "Encryption",
+        "path": "secure/encryption"
+      },
+      {
+        "title": "Security model",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "secure/security-model"
+          },
+          {
+            "title": "Consul core",
+            "path": "secure/security-model/core"
+          },
+          {
+            "title": "Consul-Terraform-Sync (CTS)",
+            "path": "secure/security-model/cts"
+          }
+        ]
       }
     ]
   },
@@ -691,11 +720,11 @@
           },
           {
             "title": "Monitor Raft metrics and logs",
-            "path": "monitor/wal/raft-metrics-logs"
+            "path": "monitor/wal/monitor-raft-metrics-logs"
           },
           {
             "title": "Revert to BoltDB",
-            "path": "monitor/wal/revert-boltdb"
+            "path": "monitor/wal/revert-to-boltdb"
           }
         ]
       }
@@ -789,24 +818,7 @@
       },
       {
         "title": "Compatibility promise",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "upgrade/compatibility-promise"
-          },
-          {
-            "title": "Consul on Kubernetes",
-            "path": "upgrade/compatibility-promise/consul-k8s"
-          },
-          {
-            "title": "ECS",
-            "path": "upgrade/compatibility-promise/ecs"
-          },
-          {
-            "title": "Consul-Terraform-Sync (CTS)",
-            "path": "upgrade/compatibility-promise/cts"
-          }
-        ]
+        "path": "upgrade/compatibility-promise"
       },
       {
         "title": "Specific version details",
@@ -865,8 +877,150 @@
     ]
   },
   {
-    "title": "Release notes",
-    "path": "release-notes"
+    "title": "Release Notes",
+    "routes": [
+      {
+        "title": "Overview",
+        "path": "release-notes"
+      },
+      {
+        "title": "Consul",
+        "routes": [
+          {
+            "title": "v1.17.x",
+            "path": "release-notes/consul/v1_17_x"
+          },
+          {
+            "title": "v1.16.x",
+            "path": "release-notes/consul/v1_16_x"
+          },
+          {
+            "title": "v1.15.x",
+            "path": "release-notes/consul/v1_15_x"
+          },
+          {
+            "title": "v1.14.x",
+            "path": "release-notes/consul/v1_14_x"
+          },
+          {
+            "title": "v1.13.x",
+            "path": "release-notes/consul/v1_13_x"
+          },
+          {
+            "title": "v1.12.x",
+            "path": "release-notes/consul/v1_12_x"
+          },
+          {
+            "title": "v1.11.x",
+            "path": "release-notes/consul/v1_11_x"
+          },
+          {
+            "title": "v1.10.x",
+            "path": "release-notes/consul/v1_10_x"
+          },
+          {
+            "title": "v1.9.x",
+            "path": "release-notes/consul/v1_9_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul K8s",
+        "routes": [
+          {
+            "title": "v1.3.x",
+            "path": "release-notes/consul-k8s/v1_3_x"
+          },
+          {
+            "title": "v1.2.x",
+            "path": "release-notes/consul-k8s/v1_2_x"
+          },
+          {
+            "title": "v1.1.x",
+            "path": "release-notes/consul-k8s/v1_1_x"
+          },
+          {
+            "title": "v1.0.x",
+            "path": "release-notes/consul-k8s/v1_0_x"
+          },
+          {
+            "title": "v0.49.x",
+            "path": "release-notes/consul-k8s/v0_49_x"
+          },
+          {
+            "title": "v0.48.x",
+            "path": "release-notes/consul-k8s/v0_48_x"
+          },
+          {
+            "title": "v0.47.x",
+            "path": "release-notes/consul-k8s/v0_47_x"
+          }
+        ]
+      },
+      {
+        "title": "API Gateway for Kubernetes",
+        "routes": [
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-api-gateway/v0_5_x"
+          },
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-api-gateway/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-api-gateway/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-api-gateway/v0_2_x"
+          },
+          {
+            "title": "v0.1.x",
+            "path": "release-notes/consul-api-gateway/v0_1_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul ECS",
+        "routes": [
+          {
+            "title": "v0.7.x",
+            "path": "release-notes/consul-ecs/v0_7_x"
+          },
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-ecs/v0_5_x"
+          },
+          {
+            "title": "v0.4.x",
+            "path": "release-notes/consul-ecs/v0_4_x"
+          },
+          {
+            "title": "v0.3.x",
+            "path": "release-notes/consul-ecs/v0_3_x"
+          },
+          {
+            "title": "v0.2.x",
+            "path": "release-notes/consul-ecs/v0_2_x"
+          }
+        ]
+      },
+      {
+        "title": "Consul Terraform Sync",
+        "routes": [
+          {
+            "title": "v0.6.x",
+            "path": "release-notes/consul-terraform-sync/v0_6_x"
+          },
+          {
+            "title": "v0.5.x",
+            "path": "release-notes/consul-terraform-sync/v0_5_x"
+          }
+        ]
+      }
+    ]
   },
   {
     "divider": true
@@ -928,6 +1082,10 @@
               {
                 "title": "Overview",
                 "path": "register/service/ecs"
+              },
+              {
+                "title": "Requirements",
+                "path": "register/service/ecs/requirements"
               },
               {
                 "title": "Register tasks with Terraform",
@@ -1579,23 +1737,6 @@
           {
             "title": "Enable permissive mTLS",
             "path": "secure-mesh/certificate/permissive-mtls"
-          }
-        ]
-      },
-      {
-        "title": "Security model",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "secure-mesh/security-model"
-          },
-          {
-            "title": "Consul core",
-            "path": "secure-mesh/security-model/core"
-          },
-          {
-            "title": "Consul-Terraform-Sync (CTS)",
-            "path": "secure-mesh/security-model/cts"
           }
         ]
       },
