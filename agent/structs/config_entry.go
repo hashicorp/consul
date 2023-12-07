@@ -397,6 +397,7 @@ type ProxyConfigEntry struct {
 	Kind                 string
 	Name                 string
 	Config               map[string]interface{}
+	Protocol             string                               `json:"-"`
 	Mode                 ProxyMode                            `json:",omitempty"`
 	TransparentProxy     TransparentProxyConfig               `json:",omitempty" alias:"transparent_proxy"`
 	MutualTLSMode        MutualTLSMode                        `json:",omitempty" alias:"mutual_tls_mode"`
