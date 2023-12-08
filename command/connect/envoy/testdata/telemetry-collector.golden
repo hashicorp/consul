@@ -219,6 +219,7 @@
     ],
     "use_all_default_tags": true
   },
+  "stats_flush_interval": "60s",
   "dynamic_resources": {
     "lds_config": {
       "ads": {},
