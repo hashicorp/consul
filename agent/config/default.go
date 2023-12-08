@@ -109,6 +109,8 @@ func DefaultSource() Source {
 			leave_drain_time = "5s"
 			raft_multiplier = ` + strconv.Itoa(int(consul.DefaultRaftMultiplier)) + `
 			rpc_hold_timeout = "7s"
+			grpc_keepalive_interval = "30s"
+			grpc_keepalive_timeout = "20s"
 		}
 		ports = {
 			dns = 8600

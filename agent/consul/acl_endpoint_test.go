@@ -2122,7 +2122,7 @@ func TestACLEndpoint_PolicySet_CustomID(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
+func TestACLEndpoint_PolicySet_builtins(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2134,47 +2134,50 @@ func TestACLEndpoint_PolicySet_globalManagement(t *testing.T) {
 
 	acl := ACL{srv: srv}
 
-	// Can't change the rules
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:    structs.ACLPolicyGlobalManagementID,
-				Name:  "foobar", // This is required to get past validation
-				Rules: "service \"\" { policy = \"write\" }",
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+	for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+		name := fmt.Sprintf("foobar-%s", builtinPolicy.Name) // This is required to get past validation
+
+		// Can't change the rules
+		{
+			req := structs.ACLPolicySetRequest{
+				Datacenter: "dc1",
+				Policy: structs.ACLPolicy{
+					ID:    builtinPolicy.ID,
+					Name:  name,
+					Rules: "service \"\" { policy = \"write\" }",
+				},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			}
+			resp := structs.ACLPolicy{}
+
+			err := acl.PolicySet(&req, &resp)
+			require.EqualError(t, err, fmt.Sprintf("Changing the Rules for the builtin %s policy is not permitted", builtinPolicy.Name))
 		}
-		resp := structs.ACLPolicy{}
 
-		err := acl.PolicySet(&req, &resp)
-		require.EqualError(t, err, "Changing the Rules for the builtin global-management policy is not permitted")
-	}
+		// Can rename it
+		{
+			req := structs.ACLPolicySetRequest{
+				Datacenter: "dc1",
+				Policy: structs.ACLPolicy{
+					ID:    builtinPolicy.ID,
+					Name:  name,
+					Rules: builtinPolicy.Rules,
+				},
+				WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			}
+			resp := structs.ACLPolicy{}
 
-	// Can rename it
-	{
-		req := structs.ACLPolicySetRequest{
-			Datacenter: "dc1",
-			Policy: structs.ACLPolicy{
-				ID:    structs.ACLPolicyGlobalManagementID,
-				Name:  "foobar",
-				Rules: structs.ACLPolicyGlobalManagement,
-			},
-			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+			err := acl.PolicySet(&req, &resp)
+			require.NoError(t, err)
+
+			// Get the policy again
+			policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", builtinPolicy.ID)
+			require.NoError(t, err)
+			policy := policyResp.Policy
+
+			require.Equal(t, policy.ID, builtinPolicy.ID)
+			require.Equal(t, policy.Name, name)
 		}
-		resp := structs.ACLPolicy{}
-
-		err := acl.PolicySet(&req, &resp)
-		require.NoError(t, err)
-
-		// Get the policy again
-		policyResp, err := retrieveTestPolicy(codec, TestDefaultInitialManagementToken, "dc1", structs.ACLPolicyGlobalManagementID)
-		require.NoError(t, err)
-		policy := policyResp.Policy
-
-		require.Equal(t, policy.ID, structs.ACLPolicyGlobalManagementID)
-		require.Equal(t, policy.Name, "foobar")
-
 	}
 }
 
@@ -2210,7 +2213,7 @@ func TestACLEndpoint_PolicyDelete(t *testing.T) {
 	require.Nil(t, tokenResp.Policy)
 }
 
-func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
+func TestACLEndpoint_PolicyDelete_builtins(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -2221,16 +2224,17 @@ func TestACLEndpoint_PolicyDelete_globalManagement(t *testing.T) {
 	waitForLeaderEstablishment(t, srv)
 	acl := ACL{srv: srv}
 
-	req := structs.ACLPolicyDeleteRequest{
-		Datacenter:   "dc1",
-		PolicyID:     structs.ACLPolicyGlobalManagementID,
-		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+	for _, builtinPolicy := range structs.ACLBuiltinPolicies {
+		req := structs.ACLPolicyDeleteRequest{
+			Datacenter:   "dc1",
+			PolicyID:     builtinPolicy.ID,
+			WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
+		}
+		var resp string
+
+		err := acl.PolicyDelete(&req, &resp)
+		require.EqualError(t, err, fmt.Sprintf("Delete operation not permitted on the builtin %s policy", builtinPolicy.Name))
 	}
-	var resp string
-
-	err := acl.PolicyDelete(&req, &resp)
-
-	require.EqualError(t, err, "Delete operation not permitted on the builtin global-management policy")
 }
 
 func TestACLEndpoint_PolicyList(t *testing.T) {
@@ -2263,6 +2267,7 @@ func TestACLEndpoint_PolicyList(t *testing.T) {
 
 	policies := []string{
 		structs.ACLPolicyGlobalManagementID,
+		structs.ACLPolicyGlobalReadOnlyID,
 		p1.ID,
 		p2.ID,
 	}

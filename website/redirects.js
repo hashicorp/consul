@@ -21,4 +21,11 @@ module.exports = [
     destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
     permanent: true,
   },
+  {
+    source:
+      '/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-datacenters',
+    destination:
+      '/consul/docs/k8s/deployment-configurations/multi-cluster',
+    permanent: true,
+  }
 ]

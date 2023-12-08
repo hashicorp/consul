@@ -31,6 +31,7 @@ import (
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -570,6 +571,10 @@ func (a *Agent) Start(ctx context.Context) error {
 		a.logger.Named("grpc.external"),
 		metrics.Default(),
 		a.tlsConfigurator,
+		keepalive.ServerParameters{
+			Time:    a.config.GRPCKeepaliveInterval,
+			Timeout: a.config.GRPCKeepaliveTimeout,
+		},
 	)
 
 	if err := a.startLicenseManager(ctx); err != nil {
@@ -777,12 +782,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		m := tlsCertExpirationMonitor(a.tlsConfigurator, a.logger)
 		go m.Monitor(&lib.StopChannelContext{StopCh: a.shutdownCh})
 	}
-
-	// consul version metric with labels
-	metrics.SetGaugeWithLabels([]string{"version"}, 1, []metrics.Label{
-		{Name: "version", Value: a.config.VersionWithMetadata()},
-		{Name: "pre_release", Value: a.config.VersionPrerelease},
-	})
 
 	// start a go routine to reload config based on file watcher events
 	if a.configFileWatcher != nil {
@@ -3660,7 +3659,7 @@ func (a *Agent) loadServices(conf *config.RuntimeConfig, snap map[structs.CheckI
 		}
 
 		if acl.EqualPartitions("", p.Service.PartitionOrEmpty()) {
-			// NOTE: in case loading a service with empty partition (e.g., OSS -> ENT),
+			// NOTE: in case loading a service with empty partition (e.g., CE -> ENT),
 			// we always default the service partition to the agent's partition.
 			p.Service.OverridePartition(a.AgentEnterpriseMeta().PartitionOrDefault())
 		} else if !acl.EqualPartitions(a.AgentEnterpriseMeta().PartitionOrDefault(), p.Service.PartitionOrDefault()) {
@@ -4200,6 +4199,9 @@ func (a *Agent) reloadConfigInternal(newCfg *config.RuntimeConfig) error {
 
 	a.enableDebug.Store(newCfg.EnableDebug)
 	a.config.EnableDebug = newCfg.EnableDebug
+
+	// update Agent config with new config
+	a.config = newCfg.DeepCopy()
 
 	return nil
 }
