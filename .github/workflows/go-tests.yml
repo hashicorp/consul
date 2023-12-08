@@ -508,12 +508,29 @@ jobs:
       - name: Set failure Slack commit message summary
         # failure() ensures this runs even if the test eval step exits 1
         if: failure()
+        env:
+          # Capturing in an env var makes this safe against GHA shell injection via commit message.
+          # See https://securitylab.github.com/research/github-actions-untrusted-input/
+          COMMIT_MESSAGE_FULL: ${{ github.event.head_commit.message }}
         run: |
           # if failure (not cancelled), notify Slack
           if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure)\"'; then
             printf "Tests failed, notifying Slack"
             echo "FAILED_TESTS=true" >> $GITHUB_ENV
-            echo "COMMIT_MESSAGE_SUMMARY=$(echo '${{ github.event.head_commit.message }}' | head -n 1)" >> $GITHUB_ENV
+          
+            # 'echo ... | head -n 1' does not work reliably, so use bash-ism to get first line.
+            COMMIT_MESSAGE_SUMMARY=${COMMIT_MESSAGE_FULL%%$'\n'*}
+  
+            # Send multi-line env var to GITHUB_ENV.
+            # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
+            echo "SLACK_MESSAGE_RAW<<EOF" >> $GITHUB_ENV
+            echo "❌ ${{ github.workflow }} workflow failed:
+            
+            - Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            - Branch: ${{ github.ref_name }}
+            - Message: ${COMMIT_MESSAGE_SUMMARY}
+            - Author: ${{ github.event.sender.login }}" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
           fi
       - name: Notify Slack
         # failure() ensures this runs even if the test eval step exits 1
@@ -522,10 +539,10 @@ jobs:
         id: slack
         uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
         with:
-          # github.event.head_commit.message and github.ref_name both rely on this event occurring on a push / merge
+          # Escape entire message string to ensure valid JSON. If invalid, the notification will fail silently in CI.
           payload: |
             {
-              "message": "❌ ${{ github.workflow }} workflow failed: \n\n- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }} \n- Branch: ${{ github.ref_name }} \n- Message: ${{ env.COMMIT_MESSAGE_SUMMARY }} \n- Author: ${{ github.event.sender.login }}"
+              "message": ${{ toJSON(env.SLACK_MESSAGE_RAW) }}
             }
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_PROTECTED_BRANCH_TEST_SLACK_WEBHOOK }}
