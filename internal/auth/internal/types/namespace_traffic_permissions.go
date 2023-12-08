@@ -4,6 +4,7 @@
 package types
 
 import (
+	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 )
@@ -15,14 +16,38 @@ func RegisterNamespaceTrafficPermissions(r resource.Registry) {
 		Type:  pbauth.NamespaceTrafficPermissionsType,
 		Proto: &pbauth.NamespaceTrafficPermissions{},
 		ACLs: &resource.ACLHooks{
-			Read:  resource.DecodeAndAuthorizeRead(aclReadHookTrafficPermissions),
-			Write: resource.DecodeAndAuthorizeWrite(aclWriteHookTrafficPermissions), // TODO(chrisk): Should this require higher privilege?
+			Read:  resource.DecodeAndAuthorizeRead(aclReadHookNamespaceTrafficPermissions),
+			Write: resource.DecodeAndAuthorizeWrite(aclWriteHookNamespaceTrafficPermissions),
 			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateNamespaceTrafficPermissions,
 		Mutate:   MutateNamespaceTrafficPermissions,
 		Scope:    resource.ScopeNamespace,
 	})
+}
+
+func aclReadHookNamespaceTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedNamespaceTrafficPermissions) error {
+	// TODO: Once namespaces are supported in CE, we can simplify this
+	allowAuthz := authorizer.ToAllowAuthorizer()
+	if nsAuthz, ok := any(allowAuthz).(interface {
+		NamespaceReadAllowed(string, *acl.AuthorizerContext) error
+	}); ok {
+		return nsAuthz.NamespaceReadAllowed(res.Id.Tenancy.Namespace, authzContext)
+	}
+	// Fall back to operator:read in CE
+	return allowAuthz.OperatorReadAllowed(authzContext)
+}
+
+func aclWriteHookNamespaceTrafficPermissions(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *DecodedNamespaceTrafficPermissions) error {
+	// TODO: Once namespaces are supported in CE, we can simplify this
+	allowAuthz := authorizer.ToAllowAuthorizer()
+	if nsAuthz, ok := any(allowAuthz).(interface {
+		NamespaceWriteAllowed(string, *acl.AuthorizerContext) error
+	}); ok {
+		return nsAuthz.NamespaceWriteAllowed(res.Id.Tenancy.Namespace, authzContext)
+	}
+	// Fall back to operator:write in CE
+	return allowAuthz.OperatorWriteAllowed(authzContext)
 }
 
 var ValidateNamespaceTrafficPermissions = resource.DecodeAndValidate(validateNamespaceTrafficPermissions)
