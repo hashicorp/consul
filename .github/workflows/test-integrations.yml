@@ -22,7 +22,7 @@ env:
   GOTESTSUM_VERSION: "1.9.0"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
-  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'consul' }}
+  CONSUL_LATEST_IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   setup:

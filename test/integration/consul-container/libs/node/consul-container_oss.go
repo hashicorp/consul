@@ -3,4 +3,4 @@
 
 package node
 
-const consulImage = "consul"
+const consulImage = "hashicorp/consul"
