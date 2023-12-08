@@ -487,6 +487,10 @@
       {
         "title": "deregister",
         "path": "services/deregister"
+      },
+      {
+        "title": "export",
+        "path": "services/export"
       }
     ]
   },
@@ -546,6 +550,10 @@
       {
         "title": "proxy",
         "path": "troubleshoot/proxy"
+      },
+      {
+        "title": "ports",
+        "path": "troubleshoot/ports"
       }
     ]
   },

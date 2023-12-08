@@ -17,6 +17,11 @@ if [ -z "$current_branch" ]; then
   exit 1
 fi
 
+if [[ "$SKIP_VERIFY_ENVOY_VERSION" = "true" ]]; then
+  echo -e "*************** VERIFY ENVOY VERSION IS DISABLED. To enable, update environment variable in Github settings *****************"
+  exit 0
+fi
+
 # Get Consul and Envoy version 
 SCRIPT_DIR="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 pushd $SCRIPT_DIR/../.. # repository root

@@ -139,6 +139,20 @@ module.exports = [
   {
     source: '/consul/docs/v1.8.x/connect/config-entries/:slug',
     destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
+  },
+  {
+    source: '/consul/docs/connect/registration/service-registration',
+    destination: '/consul/docs/connect/proxies/proxy-config-reference',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration',
+    destination: '/consul/docs/connect/proxies/',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration/sidecar-service',
+    destination: '/consul/docs/connect/proxies/deploy-sidecar-services',
     permanent: true,
   },
 ]

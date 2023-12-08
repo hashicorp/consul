@@ -423,6 +423,7 @@ type CheckDefinition struct {
 	DisableRedirects               *bool               `mapstructure:"disable_redirects"`
 	OutputMaxSize                  *int                `mapstructure:"output_max_size"`
 	TCP                            *string             `mapstructure:"tcp"`
+	TCPUseTLS                      *bool               `mapstructure:"tcp_use_tls"`
 	UDP                            *string             `mapstructure:"udp"`
 	Interval                       *string             `mapstructure:"interval"`
 	DockerContainerID              *string             `mapstructure:"docker_container_id" alias:"dockercontainerid"`
@@ -672,9 +673,11 @@ type HTTPConfig struct {
 }
 
 type Performance struct {
-	LeaveDrainTime *string `mapstructure:"leave_drain_time"`
-	RaftMultiplier *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
-	RPCHoldTimeout *string `mapstructure:"rpc_hold_timeout"`
+	LeaveDrainTime        *string `mapstructure:"leave_drain_time"`
+	RaftMultiplier        *int    `mapstructure:"raft_multiplier"` // todo(fs): validate as uint
+	RPCHoldTimeout        *string `mapstructure:"rpc_hold_timeout"`
+	GRPCKeepaliveInterval *string `mapstructure:"grpc_keepalive_interval"`
+	GRPCKeepaliveTimeout  *string `mapstructure:"grpc_keepalive_timeout"`
 }
 
 type Telemetry struct {

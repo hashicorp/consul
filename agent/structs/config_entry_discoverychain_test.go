@@ -1571,6 +1571,15 @@ func TestServiceResolverConfigEntry(t *testing.T) {
 			},
 			validateErr: "Bad ConnectTimeout",
 		},
+		{
+			name: "bad request timeout",
+			entry: &ServiceResolverConfigEntry{
+				Kind:           ServiceResolver,
+				Name:           "test",
+				RequestTimeout: -1 * time.Second,
+			},
+			validateErr: "Bad RequestTimeout",
+		},
 	}
 
 	// Bulk add a bunch of similar validation cases.

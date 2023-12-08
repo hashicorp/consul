@@ -51,6 +51,22 @@ func TestLogFile_openNew(t *testing.T) {
 	require.Contains(t, string(content), msg)
 }
 
+func TestLogFile_renameCurrentFile(t *testing.T) {
+	logFile := LogFile{
+		fileName: "consul.log",
+		logPath:  testutil.TempDir(t, ""),
+		duration: defaultRotateDuration,
+	}
+	err := logFile.openNew()
+	require.NoError(t, err)
+
+	err = logFile.renameCurrentFile()
+	require.NoError(t, err)
+
+	_, err = os.ReadFile(logFile.FileInfo.Name())
+	require.Contains(t, err.Error(), "no such file or directory")
+}
+
 func TestLogFile_Rotation_MaxBytes(t *testing.T) {
 	tempDir := testutil.TempDir(t, "LogWriterBytes")
 	logFile := LogFile{

@@ -586,6 +586,7 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 		)
 	case "default-services-http":
 		proxyDefaults := &structs.ProxyConfigEntry{
+			Protocol: "http",
 			Config: map[string]interface{}{
 				"protocol": "http",
 			},
@@ -687,8 +688,9 @@ func TestConfigSnapshotPeeredMeshGateway(t testing.T, variant string, nsFn func(
 	case "chain-and-l7-stuff":
 		entries = []structs.ConfigEntry{
 			&structs.ProxyConfigEntry{
-				Kind: structs.ProxyDefaults,
-				Name: structs.ProxyConfigGlobal,
+				Kind:     structs.ProxyDefaults,
+				Name:     structs.ProxyConfigGlobal,
+				Protocol: "http",
 				Config: map[string]interface{}{
 					"protocol": "http",
 				},

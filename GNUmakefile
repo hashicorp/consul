@@ -18,6 +18,7 @@ MOG_VERSION='v0.4.0'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
 PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
+LINT_CONSUL_RETRY_VERSION='v1.3.0'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -392,6 +393,7 @@ deep-copy: codegen-tools
 	@$(SHELL) $(CURDIR)/agent/structs/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/proxycfg/deep-copy.sh
 	@$(SHELL) $(CURDIR)/agent/consul/state/deep-copy.sh
+	@$(SHELL) $(CURDIR)/agent/config/deep-copy.sh
 
 version:
 	@echo -n "Version:                    "
