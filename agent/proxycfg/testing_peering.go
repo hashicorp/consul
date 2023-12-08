@@ -11,6 +11,10 @@ import (
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
+	return testConfigSnapshot(t, nil)
+}
+
+func testConfigSnapshot(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -33,6 +37,9 @@ func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
 		ns.Proxy.Upstreams = structs.Upstreams{
 			paymentsUpstream,
 			refundsUpstream,
+		}
+		if nsFn != nil {
+			nsFn(ns)
 		}
 	}, []UpdateEvent{
 		{
