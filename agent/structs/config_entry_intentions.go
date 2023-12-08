@@ -586,7 +586,7 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		return e.Sources[i].Precedence > e.Sources[j].Precedence
 	})
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

@@ -205,7 +205,7 @@ func (e *IngressGatewayConfigEntry) Normalize() error {
 		e.Listeners[i] = listener
 	}
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -553,7 +553,7 @@ func (e *TerminatingGatewayConfigEntry) Normalize() error {
 		e.Services[i].EnterpriseMeta.Normalize()
 	}
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -805,7 +805,7 @@ func (e *APIGatewayConfigEntry) Normalize() error {
 		}
 	}
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -1135,7 +1135,7 @@ func (e *BoundAPIGatewayConfigEntry) Normalize() error {
 
 		e.Listeners[i] = listener
 	}
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

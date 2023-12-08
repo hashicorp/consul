@@ -815,9 +815,9 @@ message ResourceReference {
 message BoundAPIGateway {
   map<string, string> Meta = 1;
   repeated BoundAPIGatewayListener Listeners = 2;
-  uint64 Hash = 3;
   // mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
-  map<string, ListOfResourceReference> Services = 4;
+  map<string, ListOfResourceReference> Services = 3;
+  uint64 Hash = 4;
 }
 
 message ListOfResourceReference {

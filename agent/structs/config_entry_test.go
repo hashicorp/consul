@@ -24,6 +24,20 @@ import (
 	"github.com/hashicorp/consul/types"
 )
 
+func TestNormalizeGenerateHash(t *testing.T) {
+	for _, cType := range AllConfigEntryKinds {
+		//this is an enterprise only config entry
+		if cType == RateLimitIPConfig {
+			continue
+		}
+		entry, err := MakeConfigEntry(cType, "global")
+		require.NoError(t, err)
+		require.NoError(t, entry.Normalize())
+		require.NotEmpty(t, entry.GetHash(), entry.GetKind())
+	}
+
+}
+
 func TestConfigEntries_ACLs(t *testing.T) {
 	type testACL = configEntryTestACL
 	type testcase = configEntryACLTestCase

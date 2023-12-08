@@ -88,7 +88,7 @@ func (e *ExportedServicesConfigEntry) Normalize() error {
 	for i := range e.Services {
 		e.Services[i].Namespace = acl.NormalizeNamespace(e.Services[i].Namespace)
 	}
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

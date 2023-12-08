@@ -104,7 +104,7 @@ func (s *Snapshot) ConfigEntries() ([]structs.ConfigEntry, error) {
 func (s *Restore) ConfigEntry(c structs.ConfigEntry) error {
 	// the hash is recalculated when restoring config entries
 	// in case a new field is added in a newer version.
-	err, h := structs.HashConfigEntry(c)
+	h, err := structs.HashConfigEntry(c)
 	if err != nil {
 		return err
 	}

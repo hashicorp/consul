@@ -44,9 +44,16 @@ func (e *InlineCertificateConfigEntry) GetHash() uint64 {
 	return e.Hash
 }
 
-func (e *InlineCertificateConfigEntry) GetKind() string            { return InlineCertificate }
-func (e *InlineCertificateConfigEntry) GetName() string            { return e.Name }
-func (e *InlineCertificateConfigEntry) Normalize() error           { return nil }
+func (e *InlineCertificateConfigEntry) GetKind() string { return InlineCertificate }
+func (e *InlineCertificateConfigEntry) GetName() string { return e.Name }
+func (e *InlineCertificateConfigEntry) Normalize() error {
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
+	return nil
+}
 func (e *InlineCertificateConfigEntry) GetMeta() map[string]string { return e.Meta }
 func (e *InlineCertificateConfigEntry) GetEnterpriseMeta() *acl.EnterpriseMeta {
 	return &e.EnterpriseMeta

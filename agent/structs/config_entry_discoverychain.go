@@ -138,7 +138,7 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 	}
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -604,7 +604,7 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 		}
 	}
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -1035,7 +1035,7 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}

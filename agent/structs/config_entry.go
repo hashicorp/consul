@@ -99,12 +99,12 @@ type ConfigEntry interface {
 	SetHash(h uint64)
 }
 
-func HashConfigEntry(conf ConfigEntry) (error, uint64) {
+func HashConfigEntry(conf ConfigEntry) (uint64, error) {
 	hash, err := hashstructure.Hash(conf, nil)
 	if err != nil {
-		return err, hash
+		return hash, err
 	}
-	return nil, hash
+	return hash, nil
 }
 
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
@@ -244,7 +244,7 @@ func (e *ServiceConfigEntry) Normalize() error {
 			}
 		}
 	}
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
@@ -523,7 +523,7 @@ func (e *ProxyConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
-	err, h := HashConfigEntry(e)
+	h, err := HashConfigEntry(e)
 	if err != nil {
 		return err
 	}
