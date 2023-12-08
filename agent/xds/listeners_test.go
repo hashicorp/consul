@@ -84,8 +84,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "http",
 						Config: map[string]interface{}{
 							"protocol": "http",
 						},
@@ -99,8 +100,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "http2",
 						Config: map[string]interface{}{
 							"protocol": "http2",
 						},
@@ -114,8 +116,9 @@ func makeListenerDiscoChainTests(enterprise bool) []listenerTestCase {
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				return proxycfg.TestConfigSnapshotDiscoveryChain(t, "simple", enterprise, nil, nil,
 					&structs.ProxyConfigEntry{
-						Kind: structs.ProxyDefaults,
-						Name: structs.ProxyConfigGlobal,
+						Kind:     structs.ProxyDefaults,
+						Name:     structs.ProxyConfigGlobal,
+						Protocol: "grpc",
 						Config: map[string]interface{}{
 							"protocol": "grpc",
 						},

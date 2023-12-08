@@ -440,6 +440,8 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 	readyListeners := getReadyListeners(cfgSnap)
 	listenerNames := maps.Keys(readyListeners)
 	sort.Strings(listenerNames)
+
+	// Iterate over all listeners that are ready and configure their routes.
 	for _, listenerName := range listenerNames {
 		readyListener, ok := readyListeners[listenerName]
 		if !ok {
@@ -481,6 +483,7 @@ func (s *ResourceGenerator) routesForAPIGateway(cfgSnap *proxycfg.ConfigSnapshot
 				continue
 			}
 
+			consolidatedRoute := consolidatedRoute // Reassignment to avoid closure issues with the loop variable.
 			domains := generateUpstreamAPIsDomains(readyListener.listenerKey, upstream, consolidatedRoute.Hostnames)
 
 			filterBuilder := perRouteFilterBuilder{providerMap: cfgSnap.JWTProviders, listener: &readyListener.listenerCfg, route: &consolidatedRoute}

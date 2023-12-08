@@ -139,7 +139,7 @@ func TestResourceRead(t *testing.T) {
 			name:         "read resource that doesn't exist",
 			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
 			expectedCode: 1,
-			errMsg:       "Error reading resource &{demo v2 Artist}/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
 		},
 	}
 
