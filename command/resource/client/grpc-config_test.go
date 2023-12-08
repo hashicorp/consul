@@ -4,7 +4,6 @@
 package client
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -18,22 +17,16 @@ func TestLoadGRPCConfig(t *testing.T) {
 		assert.Equal(t, GetDefaultGRPCConfig(), config)
 	})
 
+	// Test when environment variables are set
 	t.Run("Env Overwritten", func(t *testing.T) {
-		// Test when environment variables are set
-
 		// Mock environment variables
-		os.Setenv(GRPCAddrEnvName, "localhost:8500")
-		os.Setenv(GRPCTLSEnvName, "true")
-		os.Setenv(GRPCTLSVerifyEnvName, "false")
-		os.Setenv(GRPCClientCertEnvName, "/path/to/client.crt")
-		os.Setenv(GRPCClientKeyEnvName, "/path/to/client.key")
-		os.Setenv(GRPCCAFileEnvName, "/path/to/ca.crt")
-		os.Setenv(GRPCCAPathEnvName, "/path/to/cacerts")
-
-		defer func() {
-			// Clean up environment variables after the test
-			os.Clearenv()
-		}()
+		t.Setenv(GRPCAddrEnvName, "localhost:8500")
+		t.Setenv(GRPCTLSEnvName, "true")
+		t.Setenv(GRPCTLSVerifyEnvName, "false")
+		t.Setenv(GRPCClientCertEnvName, "/path/to/client.crt")
+		t.Setenv(GRPCClientKeyEnvName, "/path/to/client.key")
+		t.Setenv(GRPCCAFileEnvName, "/path/to/ca.crt")
+		t.Setenv(GRPCCAPathEnvName, "/path/to/cacerts")
 
 		// Load and validate the configuration
 		config, err := LoadGRPCConfig(nil)
@@ -50,16 +43,10 @@ func TestLoadGRPCConfig(t *testing.T) {
 		assert.Equal(t, expectedConfig, config)
 	})
 
+	// Test when there's an error parsing a boolean value from an environment variable
 	t.Run("Error Parsing Bool", func(t *testing.T) {
-		// Test when there's an error parsing a boolean value from an environment variable
-
 		// Mock environment variable with an invalid boolean value
-		os.Setenv(GRPCTLSEnvName, "invalid_boolean_value")
-
-		defer func() {
-			// Clean up environment variables after the test
-			os.Clearenv()
-		}()
+		t.Setenv(GRPCTLSEnvName, "invalid_boolean_value")
 
 		// Load and expect an error
 		config, err := LoadGRPCConfig(nil)
