@@ -5,6 +5,7 @@ package proxycfg
 import (
 	"context"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
 	"time"
@@ -146,6 +147,36 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	{
 		retV := o.APIGateway.DeepCopy()
 		cp.APIGateway = *retV
+	}
+	if o.computedFields.xdsCommonConfig != nil {
+		cp.computedFields.xdsCommonConfig = new(config.XDSCommonConfig)
+		*cp.computedFields.xdsCommonConfig = *o.computedFields.xdsCommonConfig
+		if o.computedFields.xdsCommonConfig.XDSFetchTimeoutMs != nil {
+			cp.computedFields.xdsCommonConfig.XDSFetchTimeoutMs = new(int)
+			*cp.computedFields.xdsCommonConfig.XDSFetchTimeoutMs = *o.computedFields.xdsCommonConfig.XDSFetchTimeoutMs
+		}
+	}
+	if o.computedFields.proxyConfig != nil {
+		cp.computedFields.proxyConfig = new(config.ProxyConfig)
+		*cp.computedFields.proxyConfig = *o.computedFields.proxyConfig
+		if o.computedFields.proxyConfig.LocalRequestTimeoutMs != nil {
+			cp.computedFields.proxyConfig.LocalRequestTimeoutMs = new(int)
+			*cp.computedFields.proxyConfig.LocalRequestTimeoutMs = *o.computedFields.proxyConfig.LocalRequestTimeoutMs
+		}
+		if o.computedFields.proxyConfig.LocalIdleTimeoutMs != nil {
+			cp.computedFields.proxyConfig.LocalIdleTimeoutMs = new(int)
+			*cp.computedFields.proxyConfig.LocalIdleTimeoutMs = *o.computedFields.proxyConfig.LocalIdleTimeoutMs
+		}
+	}
+	if o.computedFields.gatewayConfig != nil {
+		cp.computedFields.gatewayConfig = new(config.GatewayConfig)
+		*cp.computedFields.gatewayConfig = *o.computedFields.gatewayConfig
+		if o.computedFields.gatewayConfig.BindAddresses != nil {
+			cp.computedFields.gatewayConfig.BindAddresses = make(map[string]structs.ServiceAddress, len(o.computedFields.gatewayConfig.BindAddresses))
+			for k5, v5 := range o.computedFields.gatewayConfig.BindAddresses {
+				cp.computedFields.gatewayConfig.BindAddresses[k5] = v5
+			}
+		}
 	}
 	return &cp
 }
