@@ -5,6 +5,7 @@ package config
 
 import (
 	"strings"
+	"time"
 
 	envoy_cluster_v3 "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -15,6 +16,47 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/decode"
 )
+
+func parseConfig[T any](m map[string]any, cfg *T) error {
+	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		DecodeHook: mapstructure.ComposeDecodeHookFunc(
+			decode.HookWeakDecodeFromSlice,
+			decode.HookTranslateKeys,
+		),
+		Result:           cfg,
+		WeaklyTypedInput: true,
+	})
+	if err != nil {
+		return err
+	}
+	return d.Decode(m)
+}
+
+// XDSCommonConfig contains the configuration from the opaque map that is common to both gateways and sidecar proxies.
+type XDSCommonConfig struct {
+	// XDSFetchTimeoutMs specifies the amount of milliseconds to wait for dynamically configured Envoy data (EDS, RDS).
+	// Uses the Envoy default value if not specified or negative. A value of zero disables the timeout.
+	XDSFetchTimeoutMs *int `mapstructure:"xds_fetch_timeout_ms"`
+}
+
+// ParseXDSCommonConfig returns the XDSCommonConfig parsed from an opaque map. If an
+// error occurs during parsing, it is returned along with the default config. This
+// allows the caller to choose whether and how to report the error
+func ParseXDSCommonConfig(m map[string]interface{}) (XDSCommonConfig, error) {
+	var cfg XDSCommonConfig
+	err := parseConfig(m, &cfg)
+	return cfg, err
+}
+
+func (c *XDSCommonConfig) GetXDSFetchTimeout() *durationpb.Duration {
+	if c == nil || c.XDSFetchTimeoutMs == nil {
+		return nil
+	}
+	if *c.XDSFetchTimeoutMs >= 0 {
+		return durationpb.New(time.Duration(*c.XDSFetchTimeoutMs) * time.Millisecond)
+	}
+	return nil
+}
 
 // ProxyConfig describes the keys we understand from Connect.Proxy.Config. Note
 // that this only includes config keys that affects runtime config delivered by
@@ -87,23 +129,10 @@ type ProxyConfig struct {
 // allows caller to choose whether and how to report the error.
 func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 	var cfg ProxyConfig
-	decodeConf := &mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			decode.HookWeakDecodeFromSlice,
-			decode.HookTranslateKeys,
-		),
-		Result:           &cfg,
-		WeaklyTypedInput: true,
-	}
-	decoder, err := mapstructure.NewDecoder(decodeConf)
-	if err != nil {
-		return cfg, err
-	}
-	if err := decoder.Decode(m); err != nil {
+	if err := parseConfig(m, &cfg); err != nil {
 		return cfg, err
 	}
 
-	// Set defaults (even if error is returned)
 	if cfg.Protocol == "" {
 		cfg.Protocol = "tcp"
 	} else {
@@ -113,7 +142,7 @@ func ParseProxyConfig(m map[string]interface{}) (ProxyConfig, error) {
 		cfg.LocalConnectTimeoutMs = 5000
 	}
 
-	return cfg, err
+	return cfg, nil
 }
 
 type GatewayConfig struct {
@@ -154,28 +183,14 @@ type GatewayConfig struct {
 // allows the caller to choose whether and how to report the error
 func ParseGatewayConfig(m map[string]interface{}) (GatewayConfig, error) {
 	var cfg GatewayConfig
-	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		DecodeHook: mapstructure.ComposeDecodeHookFunc(
-			decode.HookWeakDecodeFromSlice,
-			decode.HookTranslateKeys,
-		),
-		Result:           &cfg,
-		WeaklyTypedInput: true,
-	})
-	if err != nil {
+	if err := parseConfig(m, &cfg); err != nil {
 		return cfg, err
 	}
-	if err := d.Decode(m); err != nil {
-		return cfg, err
-	}
-
 	if cfg.ConnectTimeoutMs < 1 {
 		cfg.ConnectTimeoutMs = 5000
 	}
-
 	cfg.DNSDiscoveryType = strings.ToLower(cfg.DNSDiscoveryType)
-
-	return cfg, err
+	return cfg, nil
 }
 
 // Return an envoy.OutlierDetection populated by the values from structs.PassiveHealthCheck.
