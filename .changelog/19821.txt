@@ -1,0 +1,3 @@
+```release-note:feature
+cli: Adds new subcommand `peering exported-services` to list services exported to a peer . Refer to the [CLI docs](https://developer.hashicorp.com/consul/commands/peering) for more information.
+```

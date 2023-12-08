@@ -108,6 +108,7 @@ import (
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
+	peerexported "github.com/hashicorp/consul/command/peering/exportedservices"
 	peergenerate "github.com/hashicorp/consul/command/peering/generate"
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
@@ -132,6 +133,7 @@ import (
 	tlscert "github.com/hashicorp/consul/command/tls/cert"
 	tlscertcreate "github.com/hashicorp/consul/command/tls/cert/create"
 	"github.com/hashicorp/consul/command/troubleshoot"
+	troubleshootports "github.com/hashicorp/consul/command/troubleshoot/ports"
 	troubleshootproxy "github.com/hashicorp/consul/command/troubleshoot/proxy"
 	troubleshootupstreams "github.com/hashicorp/consul/command/troubleshoot/upstreams"
 	"github.com/hashicorp/consul/command/validate"
@@ -246,6 +248,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator usage instances", func(ui cli.Ui) (cli.Command, error) { return instances.New(ui), nil }},
 		entry{"peering", func(cli.Ui) (cli.Command, error) { return peering.New(), nil }},
 		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
+		entry{"peering exported-services", func(ui cli.Ui) (cli.Command, error) { return peerexported.New(ui), nil }},
 		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
 		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
@@ -273,6 +276,7 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"troubleshoot", func(ui cli.Ui) (cli.Command, error) { return troubleshoot.New(), nil }},
 		entry{"troubleshoot proxy", func(ui cli.Ui) (cli.Command, error) { return troubleshootproxy.New(ui), nil }},
 		entry{"troubleshoot upstreams", func(ui cli.Ui) (cli.Command, error) { return troubleshootupstreams.New(ui), nil }},
+		entry{"troubleshoot ports", func(ui cli.Ui) (cli.Command, error) { return troubleshootports.New(ui), nil }},
 		entry{"validate", func(ui cli.Ui) (cli.Command, error) { return validate.New(ui), nil }},
 		entry{"version", func(ui cli.Ui) (cli.Command, error) { return version.New(ui), nil }},
 		entry{"watch", func(ui cli.Ui) (cli.Command, error) { return watch.New(ui, MakeShutdownCh()), nil }},

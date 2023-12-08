@@ -6,7 +6,7 @@ These should use the [testing/deployer framework](../testing/deployer) to bring
 up some local testing infrastructure and fixtures to run test assertions against.
 
 Where reasonably possible, try to bring up infrastructure interesting enough to
-be able to run many related sorts of test against it, rather than waiting for
+be able to run many related sorts of tests against it, rather than waiting for
 many similar clusters to be provisioned and torn down. This will help ensure
 that the integration tests do not consume CPU cycles needlessly.
 
@@ -136,6 +136,14 @@ authoring test code.
 This helper will rig up a `t.Cleanup` handler that will destroy all resources
 created during the test. This can be opted-out of by setting the
 `SPRAWL_KEEP_RUNNING=1` environment variable before running the tests.
+
+### Upgrade test
+We are migrating upgrade tests from consul-container(`/test/integration`) to
+this directory using the [testing/deployer framework](../testing/deployer).
+
+The current implementation supports two upgrade strategies: [standard upgrade](https://developer.hashicorp.com/consul/docs/upgrading/instructions/general-process)
+and [autopilot upgrade](https://developer.hashicorp.com/consul/tutorials/datacenter-operations/upgrade-automation). The basic test scenario can be found in `./test-integ/upgrade/basic`.
+
 
 ### Test assertions
 

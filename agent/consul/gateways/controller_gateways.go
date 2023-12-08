@@ -624,6 +624,7 @@ func getAllGatewayMeta(store *state.Store) ([]*gatewayMeta, error) {
 	meta := make([]*gatewayMeta, 0, len(boundGateways))
 	for _, b := range boundGateways {
 		bound := b.(*structs.BoundAPIGatewayConfigEntry)
+		bound = bound.DeepCopy()
 		for _, g := range gateways {
 			gateway := g.(*structs.APIGatewayConfigEntry)
 			if bound.IsInitializedForGateway(gateway) {
@@ -667,6 +668,10 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		return nil
 	})
 
+	if g.BoundGateway.Services == nil {
+		g.BoundGateway.Services = make(structs.ServiceRouteReferences)
+	}
+
 	// now try and bind all of the route's current refs
 	for _, ref := range route.GetParents() {
 		if !g.shouldBindRoute(ref) {
@@ -708,6 +713,9 @@ func (g *gatewayMeta) updateRouteBinding(route structs.BoundRoute) (bool, []stru
 		}
 
 		if refDidBind {
+			for _, serviceName := range route.GetServiceNames() {
+				g.BoundGateway.Services.AddService(structs.NewServiceName(serviceName.Name, &serviceName.EnterpriseMeta), routeRef)
+			}
 			boundRefs = append(boundRefs, ref)
 		}
 	}
@@ -1138,6 +1146,7 @@ func removeRoute(route structs.ResourceReference, entries ...*gatewayMeta) []*ga
 	for _, entry := range entries {
 		if entry.unbindRoute(route) {
 			modified = append(modified, entry)
+			entry.BoundGateway.Services.RemoveRouteRef(route)
 		}
 	}
 

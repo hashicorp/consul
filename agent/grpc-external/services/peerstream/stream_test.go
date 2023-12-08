@@ -690,7 +690,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			req := msg.GetRequest()
 			require.NotNil(r, req)
 			require.Equal(r, pbpeerstream.TypeURLExportedService, req.ResourceURL)
-			prototest.AssertDeepEqual(t, expectAck, msg)
+			prototest.AssertDeepEqual(r, expectAck, msg)
 		})
 
 		expect := Status{

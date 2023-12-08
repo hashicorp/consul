@@ -6,17 +6,17 @@ package connect
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/test-integ/topoutil"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 	"github.com/hashicorp/consul/testing/deployer/sprawl/sprawltest"
 	"github.com/hashicorp/consul/testing/deployer/topology"
-	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/test-integ/topoutil"
 )
 
 // Test_Snapshot_Restore_Agentless verifies consul agent can continue
-// to push envoy confgi after restoring from a snapshot.
+// to push envoy config after restoring from a snapshot.
 //
 //   - This test is to detect server agent frozen after restoring from a snapshot
 //     (https://github.com/hashicorp/consul/pull/18636)
@@ -55,6 +55,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 							{Network: "dc1"},
 						},
 					},
+					// Static-server
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client1",
@@ -163,7 +164,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	asserter.HTTPStatus(t, staticServer, staticServer.Port, 200)
 
 	t.Log("Take a snapshot of the cluster and restore ...")
-	err := sp.SnapshotSave("dc1")
+	err := sp.SnapshotSaveAndRestore("dc1")
 	require.NoError(t, err)
 
 	// Shutdown existing static-server
@@ -181,5 +182,8 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	require.NoError(t, sp.Relaunch(cfg))
 
 	// Ensure the static-client connected to the new static-server
-	asserter.HTTPServiceEchoes(t, staticClient, staticClient.Port, "")
+	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Destination{
+		ID:        staticServerSID,
+		LocalPort: 5000,
+	})
 }

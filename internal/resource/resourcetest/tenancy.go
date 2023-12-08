@@ -4,6 +4,7 @@
 package resourcetest
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -62,5 +63,21 @@ func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.
 	default:
 		t.Fatalf("unsupported resource scope: %v", reg.Scope)
 		return nil
+	}
+}
+
+func AppendTenancyInfoSubtest(name string, subtestName string, tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("%s_%s_Namespace_%s_Partition/%s", name, tenancy.Namespace, tenancy.Partition, subtestName)
+}
+
+func AppendTenancyInfo(name string, tenancy *pbresource.Tenancy) string {
+	return fmt.Sprintf("%s_%s_Namespace_%s_Partition", name, tenancy.Namespace, tenancy.Partition)
+}
+
+func RunWithTenancies(testFunc func(tenancy *pbresource.Tenancy), t *testing.T) {
+	for _, tenancy := range TestTenancies() {
+		t.Run(AppendTenancyInfo(t.Name(), tenancy), func(t *testing.T) {
+			testFunc(tenancy)
+		})
 	}
 }

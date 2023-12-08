@@ -19,7 +19,7 @@ env:
   TEST_RESULTS_ARTIFACT_NAME: test-results
   CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
   GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
-  GOTESTSUM_VERSION: "1.10.1"
+  GOTESTSUM_VERSION: "1.11.0"
   CONSUL_BINARY_UPLOAD_NAME: consul-bin
   # strip the hashicorp/ off the front of github.repository for consul
   CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
@@ -110,7 +110,7 @@ jobs:
         run: |
           go install gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} && \
           gotestsum \
-            --format=short-verbose \
+            --format=github-actions \
             --rerun-fails \
             --rerun-fails-report=/tmp/gotestsum-rerun-fails \
             --packages="./command/agent/consul" \
@@ -184,17 +184,17 @@ jobs:
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --format=short-verbose \
+            --format=github-actions \
             --junitfile "${{ env.TEST_RESULTS_DIR }}/gotestsum-report.xml" \
             -- -tags "${{ env.GOTAGS }}" -cover -coverprofile=coverage.txt ./agent/connect/ca
           # Run leader tests that require Vault
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --format=short-verbose \
+            --format=github-actions \
             --junitfile "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-leader.xml" \
             -- -tags "${{ env.GOTAGS }}" -cover -coverprofile=coverage-leader.txt -run Vault ./agent/consul
           # Run agent tests that require Vault
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
-            --format=short-verbose \
+            --format=github-actions \
             --junitfile "${{ env.TEST_RESULTS_DIR }}/gotestsum-report-agent.xml" \
             -- -tags "${{ env.GOTAGS }}" -cover -coverprofile=coverage-agent.txt -run Vault ./agent
 
@@ -431,9 +431,8 @@ jobs:
             docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
             go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
               --raw-command \
-              --format=pkgname-and-test-fails \
-              --debug \
-              --rerun-fails=3 \
+              --format=github-actions \
+              --rerun-fails \
               -- \
               go test \
               -p=6 \
@@ -514,19 +513,18 @@ jobs:
       - name: Integration Tests
         run: |
           mkdir -p "${{ env.TEST_RESULTS_DIR }}"
-          export NOLOGBUFFER=1
+          #export NOLOGBUFFER=1
           cd ./test-integ
           go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
             --raw-command \
-            --format=standard-verbose \
-            --debug \
+            --format=github-actions \
             -- \
             go test \
             -tags "${{ env.GOTAGS }}" \
             -timeout=20m \
             -parallel=2 \
             -json \
-            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo` \
+            `go list -tags "${{ env.GOTAGS }}" ./... | grep -v peering_commontopo | grep -v upgrade ` \
             --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
             --target-version local \
             --latest-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \

@@ -286,6 +286,10 @@ type Cluster struct {
 	// EnableV2 activates V2 on the servers. If any node in the cluster needs
 	// V2 this will be turned on automatically.
 	EnableV2 bool `json:",omitempty"`
+
+	// EnableV2Tenancy activates V2 tenancy on the servers. If not enabled,
+	// V2 resources are bridged to V1 tenancy counterparts.
+	EnableV2Tenancy bool `json:",omitempty"`
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {
@@ -321,7 +325,7 @@ func (c *Cluster) PartitionQueryOptionsList() []*api.QueryOptions {
 func (c *Cluster) ServerNodes() []*Node {
 	var out []*Node
 	for _, node := range c.SortedNodes() {
-		if node.Kind != NodeKindServer || node.Disabled {
+		if node.Kind != NodeKindServer || node.Disabled || node.IsNewServer {
 			continue
 		}
 		out = append(out, node)
@@ -507,6 +511,9 @@ type Node struct {
 	// computed at topology compile
 	Index int
 
+	// IsNewServer is true if the server joins existing cluster
+	IsNewServer bool
+
 	// generated during network-and-tls
 	TLSCertPrefix string `json:",omitempty"`
 
@@ -517,6 +524,12 @@ type Node struct {
 	// ports) and values initialized to zero until terraform creates the pods
 	// and extracts the exposed port values from output variables.
 	usedPorts map[int]int // keys are from compile / values are from terraform output vars
+
+	// Meta is the node meta added to the node
+	Meta map[string]string
+
+	// AutopilotConfig of the server agent
+	AutopilotConfig map[string]string
 }
 
 func (n *Node) DockerName() string {

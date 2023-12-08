@@ -1,5 +1,6 @@
 {
     "TemplateName": "builtin/service",
     "Schema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n\t},\n\t\"required\": [\"name\"],\n\t\"definitions\": {\n\t\t\"min-length-one\": {\n\t\t\t\t\"type\": \"string\",\n\t\t\t\t\"minLength\": 1\n\t\t}\n\t}\n}",
-    "Template": "\nservice \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice \"{{.Name}}-sidecar-proxy\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}"
+    "Template": "\nservice \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice \"{{.Name}}-sidecar-proxy\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}",
+    "Description": "Gives the token or role permissions to register a service and discover services in the Consul catalog. It also gives the specified service's sidecar proxy the permission to discover and route traffic to other services."
 }

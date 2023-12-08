@@ -67,10 +67,21 @@ func AddFinalizer(res *pbresource.Resource, finalizer string) {
 func RemoveFinalizer(res *pbresource.Resource, finalizer string) {
 	finalizerSet := GetFinalizers(res)
 	finalizerSet.Remove(finalizer)
-	if res.Metadata == nil {
-		res.Metadata = map[string]string{}
+
+	if finalizerSet.Cardinality() == 0 {
+		// Remove key if no finalizers to prevent dual representations of
+		// the same state.
+		_, keyExists := res.Metadata[FinalizerKey]
+		if keyExists {
+			delete(res.Metadata, FinalizerKey)
+		}
+	} else {
+		// Add/update key
+		if res.Metadata == nil {
+			res.Metadata = map[string]string{}
+		}
+		res.Metadata[FinalizerKey] = strings.Join(finalizerSet.ToSlice(), " ")
 	}
-	res.Metadata[FinalizerKey] = strings.Join(finalizerSet.ToSlice(), " ")
 }
 
 // GetFinalizers returns the set of finalizers for the given resource.
