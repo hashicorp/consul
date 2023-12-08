@@ -15,16 +15,27 @@ import (
 func TestStore_ConfigEntry(t *testing.T) {
 	s := testConfigStateStore(t)
 
+	cfg := &structs.ProxyConfigEntry{
+		Kind: structs.ProxyDefaults,
+		Name: "global",
+		Config: map[string]interface{}{
+			"DestinationServiceName": "foo",
+			"protocol":               "udp",
+		},
+	}
+
 	expected := &structs.ProxyConfigEntry{
 		Kind: structs.ProxyDefaults,
 		Name: "global",
 		Config: map[string]interface{}{
 			"DestinationServiceName": "foo",
+			"protocol":               "udp",
 		},
+		Protocol: "udp",
 	}
 
 	// Create
-	require.NoError(t, s.EnsureConfigEntry(0, expected))
+	require.NoError(t, s.EnsureConfigEntry(0, cfg))
 
 	idx, config, err := s.ConfigEntry(nil, structs.ProxyDefaults, "global", nil)
 	require.NoError(t, err)
