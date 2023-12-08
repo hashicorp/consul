@@ -29,6 +29,7 @@ import (
 	envoy_tcp_proxy_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	envoy_type_v3 "github.com/envoyproxy/go-control-plane/envoy/type/v3"
+
 	"github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/agent/xds/naming"
 	"github.com/hashicorp/consul/agent/xds/platform"
@@ -1752,10 +1753,23 @@ type terminatingGatewayFilterChainOpts struct {
 }
 
 func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.ConfigSnapshot, tgtwyOpts terminatingGatewayFilterChainOpts) (*envoy_listener_v3.FilterChain, error) {
+	// We need to at least match the SNI and use the root PEMs from the local cluster; however, requests coming
+	// from peered clusters where the external service is exported to will have their own SNI and root PEMs.
+	sniMatches := []string{tgtwyOpts.cluster}
+	rootPEMs := cfgSnap.RootPEMs()
+	for _, bundle := range tgtwyOpts.peerTrustBundles {
+		svc := tgtwyOpts.service
+		sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
+		sniMatches = append(sniMatches, sourceSNI)
+		for _, rootPEM := range bundle.RootPEMs {
+			rootPEMs += lib.EnsureTrailingNewline(rootPEM)
+		}
+	}
+
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
-			cfgSnap.RootPEMs(),
+			rootPEMs,
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		),
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
@@ -1766,7 +1780,7 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	}
 
 	filterChain := &envoy_listener_v3.FilterChain{
-		FilterChainMatch: makeSNIFilterChainMatch(tgtwyOpts.cluster),
+		FilterChainMatch: makeSNIFilterChainMatch(sniMatches...),
 		Filters:          make([]*envoy_listener_v3.Filter, 0, 3),
 		TransportSocket:  transportSocket,
 	}
