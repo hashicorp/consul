@@ -1,0 +1,22 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
+syntax = "proto3";
+
+package hashicorp.consul.multicluster.v2beta1;
+
+import "pbresource/annotations.proto";
+
+message SamenessGroup {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
+  bool default_for_failover = 1;
+  repeated SamenessGroupMember members = 2;
+}
+
+message SamenessGroupMember {
+  oneof member {
+    string peer = 1;
+    string partition = 2;
+  }
+}
