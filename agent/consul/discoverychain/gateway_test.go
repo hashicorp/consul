@@ -712,6 +712,7 @@ func TestGatewayChainSynthesizer_Synthesize(t *testing.T) {
 			chain: &structs.CompiledDiscoveryChain{
 				ServiceName: "foo",
 				Namespace:   "default",
+				Partition:   "default",
 				Datacenter:  "dc1",
 				StartNode:   "resolver:foo-2.default.default.dc2",
 				Nodes: map[string]*structs.DiscoveryGraphNode{
@@ -879,8 +880,9 @@ func TestGatewayChainSynthesizer_ComplexChain(t *testing.T) {
 					}},
 				},
 				&structs.ProxyConfigEntry{
-					Kind: structs.ProxyConfigGlobal,
-					Name: "global",
+					Kind:     structs.ProxyConfigGlobal,
+					Name:     "global",
+					Protocol: "http",
 					Config: map[string]interface{}{
 						"protocol": "http",
 					},

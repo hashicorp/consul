@@ -286,6 +286,13 @@ type Cluster struct {
 	// EnableV2 activates V2 on the servers. If any node in the cluster needs
 	// V2 this will be turned on automatically.
 	EnableV2 bool `json:",omitempty"`
+
+	// EnableV2Tenancy activates V2 tenancy on the servers. If not enabled,
+	// V2 resources are bridged to V1 tenancy counterparts.
+	EnableV2Tenancy bool `json:",omitempty"`
+
+	// Segments is a map of network segment name and the ports
+	Segments map[string]int
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {
@@ -481,6 +488,11 @@ const (
 	NodeVersionV2      NodeVersion = "v2"
 )
 
+type NetworkSegment struct {
+	Name string
+	Port int
+}
+
 // TODO: rename pod
 type Node struct {
 	Kind      NodeKind
@@ -526,6 +538,9 @@ type Node struct {
 
 	// AutopilotConfig of the server agent
 	AutopilotConfig map[string]string
+
+	// Network segment of the agent - applicable to client agent only
+	Segment *NetworkSegment
 }
 
 func (n *Node) DockerName() string {

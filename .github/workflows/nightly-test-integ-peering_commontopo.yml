@@ -106,12 +106,12 @@ jobs:
           TERM: ansi
 
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ endsWith(github.repository, '-enterprise') && !cancelled() }}
         id: vault-auth
         run: vault-auth
 
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ endsWith(github.repository, '-enterprise') && !cancelled() }}
         id: secrets
         uses: hashicorp/vault-action@v2.5.0
         with:
@@ -122,6 +122,7 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: upload test results
+        if: ${{ !cancelled() }}
         continue-on-error: true
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"

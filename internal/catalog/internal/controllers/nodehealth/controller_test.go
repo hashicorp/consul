@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
@@ -75,23 +74,19 @@ type nodeHealthControllerTestSuite struct {
 func (suite *nodeHealthControllerTestSuite) writeNode(name string, tenancy *pbresource.Tenancy) *pbresource.ID {
 	return resourcetest.Resource(pbcatalog.NodeType, name).
 		WithData(suite.T(), nodeData).
-		WithTenancy(tenancy).
+		WithTenancy(&pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		}).
 		Write(suite.T(), suite.resourceClient).Id
 }
 
 func (suite *nodeHealthControllerTestSuite) SetupTest() {
-	mockTenancyBridge := &mockres.MockTenancyBridge{}
 	suite.tenancies = resourcetest.TestTenancies()
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-	cfg := mockres.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	client := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, types.RegisterDNSPolicy)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, types.RegisterDNSPolicy).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.resourceClient = resourcetest.NewClient(client)
 	suite.runtime = controller.Runtime{Client: suite.resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.isEnterprise = versiontest.IsEnterprise()
@@ -122,7 +117,9 @@ func (suite *nodeHealthControllerTestSuite) TestGetNodeHealthNoNode() {
 		// no error is returned but also no data is. The default passing
 		// status should then be returned in the same manner as the node
 		// existing but with no associated HealthStatus resources.
-		ref := resourceID(pbcatalog.NodeType, "foo", tenancy)
+		ref := resourceID(pbcatalog.NodeType, "foo", &pbresource.Tenancy{
+			Partition: tenancy.Partition,
+		})
 		ref.Uid = ulid.Make().String()
 		health, err := getNodeHealth(context.Background(), suite.runtime, ref)
 
@@ -181,7 +178,9 @@ func (suite *nodeHealthControllerTestSuite) TestReconcileNodeNotFound() {
 		// This test ensures that removed nodes are ignored. In particular we don't
 		// want to propagate the error and indefinitely keep re-reconciling in this case.
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-			ID: resourceID(pbcatalog.NodeType, "not-found", tenancy),
+			ID: resourceID(pbcatalog.NodeType, "not-found", &pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}),
 		})
 		require.NoError(suite.T(), err)
 	})
@@ -349,16 +348,20 @@ func (suite *nodeHealthControllerTestSuite) TestController() {
 					},
 				},
 			}).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.resourceClient)
 
 		// wait for rereconciliation to happen
 		suite.waitForReconciliation(suite.nodePassing, "HEALTH_PASSING")
 
-		resourcetest.Resource(pbcatalog.HealthStatusType, "failure").
-			WithData(suite.T(), &pbcatalog.HealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
+		resourcetest.Resource(pbcatalog.NodeHealthStatusType, "failure").
+			WithData(suite.T(), &pbcatalog.NodeHealthStatus{Type: "fake", Status: pbcatalog.Health_HEALTH_CRITICAL}).
 			WithOwner(suite.nodePassing).
-			WithTenancy(tenancy).
+			WithTenancy(&pbresource.Tenancy{
+				Partition: tenancy.Partition,
+			}).
 			Write(suite.T(), suite.resourceClient)
 
 		suite.waitForReconciliation(suite.nodePassing, "HEALTH_CRITICAL")
@@ -407,8 +410,8 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 	for _, node := range []*pbresource.ID{suite.nodePassing, suite.nodeWarning, suite.nodeCritical, suite.nodeMaintenance} {
 		for idx, health := range precedenceHealth {
 			if nodeHealthDesiredStatus[node.Name] >= health {
-				resourcetest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("test-check-%s-%d-%s-%s", node.Name, idx, tenancy.Partition, tenancy.Namespace)).
-					WithData(suite.T(), &pbcatalog.HealthStatus{Type: "tcp", Status: health}).
+				resourcetest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("test-check-%s-%d-%s", node.Name, idx, tenancy.Partition)).
+					WithData(suite.T(), &pbcatalog.NodeHealthStatus{Type: "tcp", Status: health}).
 					WithOwner(node).
 					Write(suite.T(), suite.resourceClient)
 			}
@@ -417,7 +420,7 @@ func (suite *nodeHealthControllerTestSuite) setupNodesWithTenancy(tenancy *pbres
 
 	// create a DNSPolicy to be owned by the node. The type doesn't really matter it just needs
 	// to be something that doesn't care about its owner. All we want to prove is that we are
-	// filtering out non-HealthStatus types appropriately.
+	// filtering out non-NodeHealthStatus types appropriately.
 	resourcetest.Resource(pbcatalog.DNSPolicyType, "test-policy-"+tenancy.Partition+"-"+tenancy.Namespace).
 		WithData(suite.T(), dnsPolicyData).
 		WithOwner(suite.nodeNoHealth).

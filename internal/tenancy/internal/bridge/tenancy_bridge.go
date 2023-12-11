@@ -33,6 +33,13 @@ func NewV2TenancyBridge() *V2TenancyBridge {
 }
 
 func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
+	if namespace == resource.DefaultNamespaceName {
+		// The default namespace implicitly exists in all partitions regardless of whether
+		// the resource has actually been created yet. Therefore all we need to do is check
+		// if the partition exists to know whether the namespace exists.
+		return b.PartitionExists(partition)
+	}
+
 	_, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,

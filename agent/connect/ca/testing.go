@@ -126,7 +126,7 @@ func SkipIfVaultNotPresent(t testing.T, reqs ...vaultRequirements) {
 	}
 }
 
-func NewTestVaultServer(t testing.T) *TestVaultServer {
+func NewTestVaultServer(t retry.TestingTB) *TestVaultServer {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -204,7 +204,7 @@ func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
 }
 
-func (v *TestVaultServer) WaitUntilReady(t testing.T) {
+func (v *TestVaultServer) WaitUntilReady(t retry.TestingTB) {
 	var version string
 	retry.Run(t, func(r *retry.R) {
 		resp, err := v.client.Sys().Health()

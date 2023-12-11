@@ -266,7 +266,7 @@ func (s *Sprawl) initConsulServers() error {
 		s.waitForLocalWrites(cluster, mgmtToken)
 
 		// Create tenancies so that the ACL tokens and clients have somewhere to go.
-		if cluster.Enterprise {
+		if cluster.Enterprise && node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
 			if err := s.initTenancies(cluster); err != nil {
 				return fmt.Errorf("initTenancies[%s]: %w", cluster.Name, err)
 			}
@@ -287,12 +287,19 @@ func (s *Sprawl) initConsulServers() error {
 			return fmt.Errorf("createAnonymousToken[%s]: %w", cluster.Name, err)
 		}
 
-		// Create tokens for all of the agents to use for anti-entropy.
-		//
-		// NOTE: this will cause the servers to roll to pick up the change to
-		// the acl{tokens{agent=XXX}}} section.
-		if err := s.createAgentTokens(cluster); err != nil {
-			return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+		if node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
+			// Create tokens for all of the agents to use for anti-entropy.
+			//
+			// NOTE: this will cause the servers to roll to pick up the change to
+			// the acl{tokens{agent=XXX}}} section.
+			if err := s.createAgentTokens(cluster); err != nil {
+				return fmt.Errorf("createAgentTokens[%s]: %w", cluster.Name, err)
+			}
+		} else {
+			// Assign agent join policy to the anonymous token
+			if err := s.assignAgentJoinPolicyToAnonymousToken(cluster); err != nil {
+				return fmt.Errorf("assignAgentJoinPolicyToAnonymousToken[%s]: %w", cluster.Name, err)
+			}
 		}
 	}
 
@@ -309,7 +316,7 @@ func (s *Sprawl) createFirstTime() error {
 	}
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
@@ -440,7 +447,7 @@ func (s *Sprawl) postRegenTasks(firstTime bool) error {
 
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("post regenerate waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
@@ -487,7 +494,8 @@ func (s *Sprawl) waitForLocalWrites(cluster *topology.Cluster, token string) {
 		break
 	}
 
-	if cluster.Enterprise {
+	serverNodes := cluster.ServerNodes()
+	if cluster.Enterprise && serverNodes[0].Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
 		start = time.Now()
 		for attempts := 0; ; attempts++ {
 			if err := tryAP(); err != nil {
@@ -543,7 +551,7 @@ func (s *Sprawl) waitForClientAntiEntropyOnce(cluster *topology.Cluster) error {
 			nid := node.CatalogID()
 
 			got, ok := current[nid]
-			if ok && len(got.TaggedAddresses) > 0 {
+			if ok && (len(got.TaggedAddresses) > 0 || got.Address != "") {
 				// this is a field that is not updated just due to serf reconcile
 				continue
 			}

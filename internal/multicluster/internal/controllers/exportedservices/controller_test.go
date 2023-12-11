@@ -11,9 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	cat "github.com/hashicorp/consul/internal/catalog"
+	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -39,20 +38,12 @@ type controllerSuite struct {
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = rtest.TestTenancies()
-	mockTenancyBridge := &svc.MockTenancyBridge{}
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, "app").Return(true, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, "app").Return(false, nil)
-	}
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		WithTenancies(rtest.Tenancy("default.app"), rtest.Tenancy("foo.app")).
+		Run(suite.T())
 
-	config := svc.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	client := svctest.RunResourceServiceWithConfig(suite.T(), config, types.Register, cat.RegisterTypes)
 	suite.client = rtest.NewClient(client)
 	suite.rt = controller.Runtime{
 		Client: suite.client,

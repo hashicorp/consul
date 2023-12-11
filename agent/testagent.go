@@ -117,8 +117,8 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		t.Helper()
-		if err := a.Start(t); err != nil {
+		r.Helper()
+		if err := a.Start(r); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -152,7 +152,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t *testing.T) error {
+func (a *TestAgent) Start(t testutil.TestingTB) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -442,10 +442,10 @@ func (r *retryShim) Name() string {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t *testing.T, useHTTPS bool) string {
+func randomPortsSource(t testutil.TestingTB, useHTTPS bool) string {
 	var ports []int
 	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
-		ports = freeport.GetN(&retryShim{r, t.Name()}, 7)
+		ports = freeport.GetN(r, 7)
 	})
 
 	var http, https int

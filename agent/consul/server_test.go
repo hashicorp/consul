@@ -5,6 +5,7 @@ package consul
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"flag"
 	"fmt"
@@ -120,7 +121,7 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 	})
 }
 
-func testServerConfig(t *testing.T) (string, *Config) {
+func testServerConfig(t testutil.TestingTB) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
@@ -236,7 +237,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		dir, config = testServerConfig(t)
+		dir, config = testServerConfig(r)
 		for _, fn := range configOpts {
 			fn(config)
 		}
@@ -249,8 +250,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		deps = newDefaultDeps(t, config)
-		srv, err = newServerWithDeps(t, config, deps)
+		deps = newDefaultDeps(r, config)
+		srv, err = newServerWithDeps(r, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -330,7 +331,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	return newServerWithDeps(t, c, newDefaultDeps(t, c))
 }
 
-func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
+func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -2105,6 +2106,150 @@ func TestServer_hcpManager(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 	hcp1.AssertExpectations(t)
 
+}
+
+func TestServer_addServerTLSInfo(t *testing.T) {
+	testCases := map[string]struct {
+		errMsg            string
+		setupConfigurator func(*testing.T) tlsutil.ConfiguratorIface
+		checkStatus       func(*testing.T, hcpclient.ServerStatus)
+	}{
+		"Success": {
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				tlsConfig := tlsutil.Config{
+					InternalRPC: tlsutil.ProtocolConfig{
+						CAFile:               "../../test/ca/root.cer",
+						CertFile:             "../../test/key/ourdomain_with_intermediate.cer",
+						KeyFile:              "../../test/key/ourdomain.key",
+						VerifyIncoming:       true,
+						VerifyOutgoing:       true,
+						VerifyServerHostname: true,
+					},
+				}
+
+				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
+				require.NoError(t, err)
+				return tlsConfigurator
+			},
+			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
+				expected := hcpclient.ServerTLSInfo{
+					Enabled:              true,
+					CertIssuer:           "test.internal",
+					CertName:             "testco.internal",
+					CertSerial:           "40",
+					CertExpiry:           time.Date(2123, time.October, 9, 17, 20, 16, 0, time.UTC),
+					VerifyIncoming:       true,
+					VerifyOutgoing:       true,
+					VerifyServerHostname: true,
+					CertificateAuthorities: []hcpclient.CertificateMetadata{
+						{ // manual ca pem
+							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
+							CertName:   "test.internal",
+							CertSerial: "191297809789001034260919865367524695178070761520",
+						},
+						{ // certificate intermediate
+							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
+							CertName:   "test.internal",
+							CertSerial: "191297809789001034260919865367524695178070761520",
+						},
+					},
+				}
+
+				require.Equal(t, expected, s.ServerTLSMetadata.InternalRPC)
+
+				// TODO: remove check for status.TLS once deprecation is ready
+				// https://hashicorp.atlassian.net/browse/CC-7015
+				require.Equal(t, expected, s.TLS)
+			},
+		},
+		"Nil Cert": {
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				tlsConfigurator, err := tlsutil.NewConfigurator(tlsutil.Config{},
+					hclog.NewNullLogger())
+				require.NoError(t, err)
+				return tlsConfigurator
+			},
+			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
+				require.Empty(t, s.TLS)
+				require.Empty(t, s.ServerTLSMetadata.InternalRPC)
+			},
+		},
+		"Fail: No leaf": {
+			errMsg: "expected a leaf certificate",
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				return tlsutil.MockConfigurator{
+					TlsCert: &tls.Certificate{},
+				}
+			},
+		},
+		"Fail: Parse leaf cert": {
+			errMsg: "error parsing leaf cert",
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				return tlsutil.MockConfigurator{
+					TlsCert: &tls.Certificate{
+						Certificate: [][]byte{{}},
+					},
+				}
+			},
+		},
+		"Fail: Parse manual ca pems": {
+			errMsg: "error parsing manual ca pem",
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				tlsConfig := tlsutil.Config{
+					InternalRPC: tlsutil.ProtocolConfig{
+						CertFile: "../../test/key/ourdomain.cer",
+						KeyFile:  "../../test/key/ourdomain.key",
+					},
+				}
+				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
+				require.NoError(t, err)
+
+				return tlsutil.MockConfigurator{
+					TlsCert:         tlsConfigurator.Cert(),
+					ManualCAPemsArr: []string{"invalid-format"},
+				}
+			},
+		},
+		"Fail: Parse tls cert intermediate": {
+			errMsg: "error parsing tls cert",
+			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
+				tlsConfig := tlsutil.Config{
+					InternalRPC: tlsutil.ProtocolConfig{
+						CertFile: "../../test/key/ourdomain.cer",
+						KeyFile:  "../../test/key/ourdomain.key",
+					},
+				}
+				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
+				require.NoError(t, err)
+				cert := tlsConfigurator.Cert().Certificate
+				cert = append(cert, []byte{})
+				return tlsutil.MockConfigurator{
+					TlsCert: &tls.Certificate{
+						Certificate: cert,
+					},
+				}
+			},
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			require.NotNil(t, tc.setupConfigurator)
+			tlsConfigurator := tc.setupConfigurator(t)
+
+			status := hcpclient.ServerStatus{}
+			err := addServerTLSInfo(&status, tlsConfigurator)
+
+			if len(tc.errMsg) > 0 {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), tc.errMsg)
+				require.Empty(t, status)
+			} else {
+				require.NoError(t, err)
+				require.NotNil(t, tc.checkStatus)
+				tc.checkStatus(t, status)
+			}
+		})
+	}
 }
 
 // goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,

@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -42,6 +43,11 @@ import (
 )
 
 var errOverwhelmed = status.Error(codes.ResourceExhausted, "this server has too many xDS streams open, please try another")
+
+// xdsProtocolLegacyChildResend enables the legacy behavior for the `ensureChildResend` function.
+// This environment variable exists as an escape hatch so that users can disable the behavior, if needed.
+// Ideally, this is a flag we can remove in 1.19+
+var xdsProtocolLegacyChildResend = (os.Getenv("XDS_PROTOCOL_LEGACY_CHILD_RESEND") != "")
 
 type deltaRecvResponse int
 
@@ -1080,13 +1086,9 @@ func (t *xDSDeltaType) createDeltaResponse(
 }
 
 func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
-	if _, exist := t.deltaChild.childType.resourceVersions[childName]; !exist {
-		return
-	}
 	if !t.subscribed(childName) {
 		return
 	}
-
 	t.logger.Trace(
 		"triggering implicit update of resource",
 		"typeUrl", t.typeURL,
@@ -1094,11 +1096,41 @@ func (t *xDSDeltaType) ensureChildResend(parentName, childName string) {
 		"childTypeUrl", t.deltaChild.childType.typeURL,
 		"childResource", childName,
 	)
-
 	// resourceVersions tracks the last known version for this childName that Envoy
 	// has ACKed. By setting this to empty it effectively tells us that Envoy does
 	// not have any data for that child, and we need to re-send.
-	t.deltaChild.childType.resourceVersions[childName] = ""
+	if _, exist := t.deltaChild.childType.resourceVersions[childName]; exist {
+		t.deltaChild.childType.resourceVersions[childName] = ""
+	}
+
+	if xdsProtocolLegacyChildResend {
+		return
+		// TODO: This legacy behavior can be removed in 1.19, provided there are no outstanding issues.
+		//
+		// In this legacy mode, there is a confirmed race condition:
+		// - Send update endpoints
+		// - Send update cluster
+		// - Recv ACK endpoints
+		// - Recv ACK cluster
+		//
+		// When this situation happens, Envoy wipes the child endpoints when the cluster is updated,
+		// but it would never receive new ones. The endpoints would not be resent, because their hash
+		// never changed since the previous ACK.
+		//
+		// Due to ambiguity with the Envoy protocol [https://github.com/envoyproxy/envoy/issues/13009],
+		// it's difficult to state with certainty that no other unexpected side-effects are possible.
+		// This legacy escape hatch is left in-place in case some other complex race condition crops up.
+		//
+		// Longer-term, we should modify the hash of children to include the parent hash so that this
+		// behavior is implicitly handled, rather than being an edge case.
+	}
+
+	// pendingUpdates can contain newer versions that have been sent to Envoy but
+	// that we haven't processed an ACK for yet. These need to be cleared out, too,
+	// so that they aren't moved to resourceVersions by ack()
+	for nonce := range t.deltaChild.childType.pendingUpdates {
+		delete(t.deltaChild.childType.pendingUpdates[nonce], childName)
+	}
 }
 
 func computeResourceVersions(resourceMap *xdscommon.IndexedResources) (map[string]map[string]string, error) {
