@@ -12,24 +12,15 @@ You can change or disable Consul's default ports in the [agent configuration fil
 
 ## Overview
 
-Consul requires up to six ports in order to function:
-
-1. DNS port
-1. HTTP or HTTPS port
-1. gRPC or gRPC TLS port
-1. Server RPC port
-1. LAN serf port
-1. WAN serf port
+The exact ports that Consul requires depend on your network's specific configuration. For example, the port for WAN serf communication is only required when using WAN federation.
 
 There are slight differences between the port requirements for Consul servers and clients. When a Consul server has services, proxies, or gateways registered to it, then it acts as both a server and client.
 
-The exact ports that Consul requires depend on your network's specific configuration. For example, the port for WAN serf communication is only required when using WAN federation.
-
-Clusters have additional port requirements to enable functionality when linked to [HCP Consul](/hcp/docs/consul).
+HashiCorp-managed servers deployed using [HCP Consul](/hcp/docs/consul) have distinct port assignments. For more information, refer to [cluster management in the HCP documentation](https://developer.hashicorp.com/hcp/docs/consul/concepts/cluster-management#hashicorp-managed-clusters).
 
 ## Consul servers
 
-The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, the port used to interact with HCP Consul, and the direction of traffic from the Consul server's perspective.
+The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HashiCorp-managed server clusters, and the direction of traffic from the Consul server's perspective.
 
 | Port name                 | Use                                        | Protocol    | Default port | Default status | HCP-managed port | Direction             |
 | :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :--------------- | :-------------------- |
@@ -78,9 +69,9 @@ HCP Consul does not support the HTTP port.
 
 The following table lists information about the Consul server API's HTTPS port defaults:
 
-| Default port | Protocol | Default status      | HCP port |
-| :----------- | :------- | :------------------ | :------- |
-| `8501`       | TCP      | Disabled by default | `443`    |
+| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| :----------- | :------- | :------------------ | :---------------------------- |
+| `8501`       | TCP      | Disabled by default | `443`                         |
 
 This port receives incoming traffic from workloads that make HTTPS API calls.
 
@@ -88,7 +79,7 @@ The server HTTPS port does not need to be open when Consul clients service all H
 
 This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
 
-HCP Consul uses port `443` to interact with clusters. As a result, self-managed clusters linked to HCP Consul require HTTPS communication on both port `8501` and port `443`.
+HCP Consul assigns port `443` to HashiCorp-managed clusters, instead of the default `8501`.
 
 ### gRPC
 
@@ -108,9 +99,9 @@ HCP Consul does not support the gRPC port.
 
 The following table lists information about the Consul API's gRPC with TLS port defaults:
 
-| Default port | Protocol | Default status      | HCP port |
-| :----------- | :------- | :------------------ | :------- |
-| `8503`       | TCP      | Enabled by default  | `8502`   |
+| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| :----------- | :------- | :------------------ | :---------------------------- |
+| `8503`       | TCP      | Enabled by default  | `8502`                        |
 
 This port receives incoming traffic from the dataplanes when using [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. We recommend using `8503` as your conventional gRPC port number because it allows some tools to work automatically.
 
@@ -122,29 +113,31 @@ In deployments with [cluster peering connections](/consul/docs/connect/cluster-p
 
 In both local and remote cases, incoming traffic comes from the mesh gateways.
 
+HCP Consul assigns port `8502` to HashiCorp-managed clusters, instead of the default `8503`.
+
 When the [v2 catalog](/consul/docs/architecture/catalog/v2) is enabled, all API calls from external systems, such as the Consul CLI and Terraform provider, use this port.
 
 ### Server RPC
 
 The following table lists information about the Server RPC port defaults:
 
-| Default port | Protocol | Default status     | HCP port |
-| :----------- | :------- | :----------------- | :------- |
-| `8300`       | TCP      | Enabled by default | `8300`   |
+| Default port | Protocol | Default status     | Hashicorp-managed server port |
+| :----------- | :------- | :----------------- | :---------------------------- |
+| `8300`       | TCP      | Enabled by default | `8300`                        |
 
 This port sends and receives traffic between Consul servers in the same datacenter. It also receives incoming traffic from Consul clients in the same datacenter.
 
 When using WAN federation without mesh gateways, incoming and outgoing traffic on this port is required between all federated servers.
 
-When using WAN federation with mesh gateways, Consul servers must accept server RPC requests from mesh gateways in the local datacenter, regardless of which mesh gateway mode is used. As a result, traffic always comes from a local mesh gateway.
+When using WAN federation with mesh gateways, Consul servers must accept server RPC requests from mesh gateways in the local datacenter. The mesh gateway mode determines the path that _outgoing_ traffic takes, either direct to `remote` gateways or first to `local` gateways, but _incoming_ traffic always comes through the local mesh gateways.
 
 ### LAN serf
 
 The following table lists information about the LAN serf port defaults:
 
-| Default port | Protocol    | Default status     | HCP port |
-| :----------- | :-----------| :----------------- | :------- |
-| `8301`       | TCP and UDP | Enabled by default | `8301`   |
+| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| :----------- | :-----------| :----------------- | :---------------------------- |
+| `8301`       | TCP and UDP | Enabled by default | `8301`                        |
 
 This port sends and receives traffic from Consul clients and other Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
 
@@ -154,9 +147,9 @@ When running Enterprise deployments that use multiple admin partitions, all Cons
 
 The following table lists information about the WAN serf port defaults:
 
-| Default port | Protocol    | Default status     | HCP port |
-| :----------- | :---------- | :----------------- | :------- |
-| `8302`       | TCP and UDP | Enabled by default | `8302`   |
+| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| :----------- | :---------- | :----------------- | :---------------------------- |
+| `8302`       | TCP and UDP | Enabled by default | `8302`                        |
 
 This port sends and receives traffic between Consul servers in a federated network. WAN-federated networks require one cluster to serve as the primary datacenter while the others function as secondary datacenters. Refer to [Enabling WAN Federation Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
 
@@ -249,4 +242,4 @@ The following table lists information about the Consul client's LAN serf port de
 
 This port sends and receives traffic from Consul clients and Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
 
-When running Enterprise deployments that use network segments or multiple admin partitions, all Consul clients across still require access to this port across all segments or partitions.
+When running Enterprise deployments that use network segments or admin partitions, Consul clients _within_ a segment or partition require access to each other's ports. Clients do not require port access _across_ segments or partitions.
