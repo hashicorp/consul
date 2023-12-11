@@ -1179,35 +1179,41 @@ func createDownstreamTransportSocketForConnectTLS(cfgSnap *proxycfg.ConfigSnapsh
 	}
 
 	// Inject peering trust bundles if this service is exported to peered clusters.
-	if len(peerBundles) > 0 {
-		spiffeConfig, err := makeSpiffeValidatorConfig(
-			cfgSnap.Roots.TrustDomain,
-			cfgSnap.RootPEMs(),
-			peerBundles,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
-		if !ok {
-			return nil, fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
-		}
-
-		// makeCommonTLSFromLead injects the local trust domain's CA root certs as the TrustedCA.
-		// We nil it out here since the local roots are included in the SPIFFE validator config.
-		typ.ValidationContext.TrustedCa = nil
-		typ.ValidationContext.CustomValidatorConfig = &envoy_core_v3.TypedExtensionConfig{
-			// The typed config name is hard-coded because it is not available as a wellknown var in the control plane lib.
-			Name:        "envoy.tls.cert_validator.spiffe",
-			TypedConfig: spiffeConfig,
-		}
+	err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext, peerBundles)
+	if err != nil {
+		return nil, err
 	}
 
 	return makeDownstreamTLSTransportSocket(&envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext:         tlsContext,
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	})
+}
+
+func injectSpiffeValidatorConfigForPeers(cfgSnap *proxycfg.ConfigSnapshot, tlsContext *envoy_tls_v3.CommonTlsContext, peerBundles []*pbpeering.PeeringTrustBundle) error {
+	if len(peerBundles) == 0 {
+		return nil
+	}
+
+	spiffeConfig, err := makeSpiffeValidatorConfig(cfgSnap.Roots.TrustDomain, cfgSnap.RootPEMs(), peerBundles)
+	if err != nil {
+		return err
+	}
+
+	typ, ok := tlsContext.ValidationContextType.(*envoy_tls_v3.CommonTlsContext_ValidationContext)
+	if !ok {
+		return fmt.Errorf("unexpected type for TLS context validation: %T", tlsContext.ValidationContextType)
+	}
+
+	// makeCommonTLSFromLead injects the local trust domain's CA root certs as the TrustedCA.
+	// We nil it out here since the local roots are included in the SPIFFE validator config.
+	typ.ValidationContext.TrustedCa = nil
+	typ.ValidationContext.CustomValidatorConfig = &envoy_core_v3.TypedExtensionConfig{
+		// The typed config name is hard-coded because it is not available as a wellknown var in the control plane lib.
+		Name:        "envoy.tls.cert_validator.spiffe",
+		TypedConfig: spiffeConfig,
+	}
+	return nil
 }
 
 // SPIFFECertValidatorConfig is used to validate certificates from trust domains other than our own.
@@ -1756,24 +1762,26 @@ func (s *ResourceGenerator) makeFilterChainTerminatingGateway(cfgSnap *proxycfg.
 	// We need to at least match the SNI and use the root PEMs from the local cluster; however, requests coming
 	// from peered clusters where the external service is exported to will have their own SNI and root PEMs.
 	sniMatches := []string{tgtwyOpts.cluster}
-	rootPEMs := cfgSnap.RootPEMs()
 	for _, bundle := range tgtwyOpts.peerTrustBundles {
 		svc := tgtwyOpts.service
 		sourceSNI := connect.PeeredServiceSNI(svc.Name, svc.NamespaceOrDefault(), svc.PartitionOrDefault(), bundle.PeerName, cfgSnap.Roots.TrustDomain)
 		sniMatches = append(sniMatches, sourceSNI)
-		for _, rootPEM := range bundle.RootPEMs {
-			rootPEMs += lib.EnsureTrailingNewline(rootPEM)
-		}
 	}
 
 	tlsContext := &envoy_tls_v3.DownstreamTlsContext{
 		CommonTlsContext: makeCommonTLSContext(
 			cfgSnap.TerminatingGateway.ServiceLeaves[tgtwyOpts.service],
-			rootPEMs,
+			cfgSnap.RootPEMs(),
 			makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSIncoming()),
 		),
 		RequireClientCertificate: &wrapperspb.BoolValue{Value: true},
 	}
+
+	err := injectSpiffeValidatorConfigForPeers(cfgSnap, tlsContext.CommonTlsContext, tgtwyOpts.peerTrustBundles)
+	if err != nil {
+		return nil, err
+	}
+
 	transportSocket, err := makeDownstreamTLSTransportSocket(tlsContext)
 	if err != nil {
 		return nil, err
