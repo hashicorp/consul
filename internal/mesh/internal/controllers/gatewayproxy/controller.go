@@ -64,6 +64,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	dataFetcher := fetcher.New(rt.Client, r.cache)
 
 	// Check if the gateway exists.
+	// TODO Switch fetch method based on gatewayType
 	gatewayID := resource.ReplaceType(gatewayType, req.ID)
 	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
 	if err != nil {
