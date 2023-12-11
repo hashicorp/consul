@@ -3,6 +3,7 @@ module github.com/hashicorp/consul/testing/deployer
 go 1.20
 
 require (
+	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/google/go-cmp v0.5.9
 	github.com/hashicorp/consul-server-connection-manager v0.1.4
 	github.com/hashicorp/consul/api v1.24.0

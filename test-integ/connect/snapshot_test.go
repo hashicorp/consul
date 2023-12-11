@@ -55,6 +55,7 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 							{Network: "dc1"},
 						},
 					},
+					// Static-server
 					{
 						Kind: topology.NodeKindDataplane,
 						Name: "dc1-client1",
@@ -181,5 +182,8 @@ func Test_Snapshot_Restore_Agentless(t *testing.T) {
 	require.NoError(t, sp.Relaunch(cfg))
 
 	// Ensure the static-client connected to the new static-server
-	asserter.HTTPServiceEchoes(t, staticClient, staticClient.Port, "")
+	asserter.FortioFetch2HeaderEcho(t, staticClient, &topology.Destination{
+		ID:        staticServerSID,
+		LocalPort: 5000,
+	})
 }

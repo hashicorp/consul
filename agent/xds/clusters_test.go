@@ -1008,8 +1008,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			alsoRunTestForV2: false,
 		},
 		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
+			name: "terminating-gateway-service-subsets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t, nil)
+			},
 			// TODO(proxystate): terminating gateway will come at a later time
 			alsoRunTestForV2: false,
 		},

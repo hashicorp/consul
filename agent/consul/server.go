@@ -40,6 +40,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -2215,24 +2216,9 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		status.RPCPort = s.config.RPCAddr.Port
 		status.Datacenter = s.config.Datacenter
 
-		tlsCert := s.tlsConfigurator.Cert()
-		if tlsCert != nil {
-			status.TLS.Enabled = true
-			leaf := tlsCert.Leaf
-			if leaf == nil {
-				// Parse the leaf cert
-				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
-				if err != nil {
-					// Shouldn't be possible
-					return
-				}
-			}
-			status.TLS.CertName = leaf.Subject.CommonName
-			status.TLS.CertSerial = leaf.SerialNumber.String()
-			status.TLS.CertExpiry = leaf.NotAfter
-			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
-			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
-			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		err = addServerTLSInfo(&status, s.tlsConfigurator)
+		if err != nil {
+			return status, fmt.Errorf("error adding server tls info: %w", err)
 		}
 
 		status.Raft.IsLeader = s.raft.State() == raft.Leader
@@ -2319,6 +2305,83 @@ func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 	}
 
 	return hc
+}
+
+// addServerTLSInfo adds the server's TLS information if available to the status
+func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator tlsutil.ConfiguratorIface) error {
+	tlsCert := tlsConfigurator.Cert()
+	if tlsCert == nil {
+		return nil
+	}
+
+	leaf := tlsCert.Leaf
+	var err error
+	if leaf == nil {
+		// Parse the leaf cert
+		if len(tlsCert.Certificate) == 0 {
+			return fmt.Errorf("expected a leaf certificate but there was none")
+		}
+		leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+		if err != nil {
+			// Shouldn't be possible
+			return fmt.Errorf("error parsing leaf cert: %w", err)
+		}
+	}
+
+	tlsInfo := hcpclient.ServerTLSInfo{
+		Enabled:              true,
+		CertIssuer:           leaf.Issuer.CommonName,
+		CertName:             leaf.Subject.CommonName,
+		CertSerial:           leaf.SerialNumber.String(),
+		CertExpiry:           leaf.NotAfter,
+		VerifyIncoming:       tlsConfigurator.VerifyIncomingRPC(),
+		VerifyOutgoing:       tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
+		VerifyServerHostname: tlsConfigurator.VerifyServerHostname(),
+	}
+
+	// Collect metadata for all CA certs used for internal RPC
+	metadata := make([]hcpclient.CertificateMetadata, 0)
+	for _, pemStr := range tlsConfigurator.ManualCAPems() {
+		cert, err := connect.ParseCert(pemStr)
+		if err != nil {
+			return fmt.Errorf("error parsing manual ca pem: %w", err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	for ix, certBytes := range tlsCert.Certificate {
+		if ix == 0 {
+			// Skip the leaf cert at index 0. Only collect intermediates
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return fmt.Errorf("error parsing tls cert index %d: %w", ix, err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	tlsInfo.CertificateAuthorities = metadata
+
+	status.ServerTLSMetadata.InternalRPC = tlsInfo
+
+	// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
+	// when deprecation path is ready
+	// https://hashicorp.atlassian.net/browse/CC-7015
+	status.TLS = tlsInfo
+
+	return nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the
