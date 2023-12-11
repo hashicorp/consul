@@ -1,58 +1,245 @@
 ---
 layout: docs
-page_title: Required Ports
-description: >-
-  Consul requires multiple ports for directing DNS, HTTP, gRPC, gossip, and sidecar proxy requests. Learn about required and optional ports, and how Consul uses them for specific communication functions.
+page_title: Consul ports reference
+description: Find information about the ports that Consul requires for its networking functions, including required ports for HCP Consul. Required ports differ for Consul servers and clients.
 ---
 
-# Required Ports
+# Consul ports reference
 
-Consul requires up to 6 different ports to work properly, some on
-TCP, UDP, or both protocols. Below we document the requirements for each
-port.
+This page provides reference information about the required ports that Consul exposes for its operations.
 
-## Ports Table
+You can change or disable Consul's default ports in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
 
-Before running Consul, you should ensure the following bind ports are accessible:
+## Overview
 
-| Use                                                                                                           | Default Ports     |
-| ------------------------------------------------------------------------------------------------------------- | ----------------- |
-| DNS: The DNS server (TCP and UDP)                                                                             | 8600              |
-| HTTP: The HTTP API (TCP Only)                                                                                 | 8500              |
-| HTTPS: The HTTPS API                                                                                          | disabled (8501)\* |
-| gRPC: The gRPC API                                                                                            | disabled (8502)\* |
-| gRPC TLS: The gRPC API with TLS connections                                                                   | disabled (8503)\* |
-| LAN Serf: The Serf LAN port (TCP and UDP)                                                                     | 8301              |
-| Wan Serf: The Serf WAN port (TCP and UDP)                                                                     | 8302              |
-| server: Server RPC address (TCP Only)                                                                         | 8300              |
-| Sidecar Proxy Min: Inclusive min port number to use for automatically assigned sidecar service registrations. | 21000             |
-| Sidecar Proxy Max: Inclusive max port number to use for automatically assigned sidecar service registrations. | 21255             |
+The exact ports that Consul requires depend on your network's specific configuration. For example, the port for WAN serf communication is only required when using WAN federation.
 
-\*For `HTTPS` and `gRPC` the ports specified in the table
-are recommendations.
+There are slight differences between the port requirements for Consul servers and clients. When a Consul server has services, proxies, or gateways registered to it, then it acts as both a server and client.
 
-## Port Information
+HashiCorp-managed servers deployed using [HCP Consul](/hcp/docs/consul) have distinct port assignments. For more information, refer to [cluster management in the HCP documentation](https://developer.hashicorp.com/hcp/docs/consul/concepts/cluster-management#hashicorp-managed-clusters).
 
-**DNS Interface** Used to resolve DNS queries.
+## Consul servers
 
-**HTTP API** This is used by clients to talk to the HTTP
-API.
+The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, port assignments for HashiCorp-managed server clusters, and the direction of traffic from the Consul server's perspective.
 
-**HTTPS API** (Optional) Is off by default, but port 8501 is a convention
-used by various tools as the default.
+| Port name                 | Use                                        | Protocol    | Default port | Default status | HCP-managed port | Direction             |
+| :------------------------ | :----------------------------------------- | :---------- | :----------- | :------------- | :--------------- | :-------------------- |
+| [DNS](#dns)               | The DNS server                             | TCP and UDP | `8600`       | Enabled        | Unsupported      | Incoming              |
+| [HTTP](#http)             | The HTTP API                               | TCP         | `8500`       | Enabled        | Unsupported      | Incoming              |
+| [HTTPS](#https)           | The HTTPS API                              | TCP         | `8501`       | Disabled       | `443`            | Incoming              |
+| [gRPC](#grpc)             | The gRPC API                               | TCP         | `8502`       | Disabled       | Unsupported      | Incoming              |
+| [gRPC TLS](#grpc-tls)     | The gRPC API with TLS connections          | TCP         | `8503`       | Enabled        | `8502`           | Incoming              |
+| [Server RPC](#server-rpc) | Consul internal communication with servers | TCP         | `8300`       | Enabled        | `8300`           | Incoming and outgoing |
+| [LAN Serf](#lan-serf)     | The Serf local area network port           | TCP and UDP | `8301`       | Enabled        | `8301`           | Incoming and outgoing |
+| [WAN Serf](#wan-serf)     | The Serf wide area network port            | TCP and UDP | `8302`       | Enabled        | `8302`           | Incoming and outgoing |
 
-**gRPC API** (Optional). Currently gRPC is
-only used to expose the xDS API to Envoy proxies. It is off by default, but port 8502 is a convention used by various tools as the default. Defaults to 8502 in `-dev` mode.
+### DNS
 
-**Serf LAN** This is used to handle gossip in the LAN.
-Required by all agents.
+The following table lists information about the server agent's DNS port defaults:
 
-**Serf WAN** This is used by servers to gossip over the WAN, to
-other servers. As of Consul 0.8 the WAN join flooding feature requires
-the Serf WAN port (TCP/UDP) to be listening on both WAN and LAN interfaces. See also:
-[Consul 0.8.0 CHANGELOG](https://github.com/hashicorp/consul/blob/main/CHANGELOG.md#080-april-5-2017) and [GH-3058](https://github.com/hashicorp/consul/issues/3058)
+| Default port | Protocol    | Default status     |
+| :----------- | :---------- | :----------------- |
+| `8600`       | TCP and UDP | Enabled by default |
 
-**Server RPC** This is used by servers to handle incoming
-requests from other agents.
+This port receives incoming traffic from workloads to resolve Consul DNS requests.
 
-Note, the default ports can be changed in the [agent configuration](/consul/docs/agent/config/config-files#ports).
+The server's DNS port does not need to be open when DNS queries are sent to Consul clients. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
+
+To resolve Consul DNS requests when using HashiCorp-managed servers on HCP Consul, we recommend running Consul clients and resolving DNS against the clients. If your use case cannot accomodate this recommendation, open a support ticket.
+
+### HTTP
+
+The following table lists information about the Consul server API's HTTP port defaults:
+
+| Default port | Protocol | Default status     |
+| :----------- | :------- | :----------------- |
+| `8500`       | TCP      | Enabled by default |
+
+This port receives incoming traffic from workloads that make HTTP API calls.
+
+The server's HTTP port does not need to be open when Consul clients service all HTTP API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+The Consul CLI uses the HTTP port to interact with Consul by default.
+
+HCP Consul does not support the HTTP port.
+
+### HTTPS
+
+The following table lists information about the Consul server API's HTTPS port defaults:
+
+| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| :----------- | :------- | :------------------ | :---------------------------- |
+| `8501`       | TCP      | Disabled by default | `443`                         |
+
+This port receives incoming traffic from workloads that make HTTPS API calls.
+
+The server HTTPS port does not need to be open when Consul clients service all HTTPS API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
+
+HCP Consul assigns port `443` to HashiCorp-managed clusters, instead of the default `8501`.
+
+### gRPC
+
+The following table lists information about the Consul API's gRPC port defaults:
+
+| Default port | Protocol | Default status      |
+| :----------- | :------- | :------------------ |
+| `8502`       | TCP      | Disabled by default |
+
+When using [Consul Dataplane](/consul/docs/connect/dataplane), this port receives incoming traffic from the dataplanes.
+
+We recommend using gRPC TLS instead, so this port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
+
+HCP Consul does not support the gRPC port.
+
+### gRPC TLS
+
+The following table lists information about the Consul API's gRPC with TLS port defaults:
+
+| Default port | Protocol | Default status      | Hashicorp-managed server port |
+| :----------- | :------- | :------------------ | :---------------------------- |
+| `8503`       | TCP      | Enabled by default  | `8502`                        |
+
+This port receives incoming traffic from the dataplanes when using [Consul Dataplane](/consul/docs/connect/dataplane) instead of client agents. We recommend using `8503` as your conventional gRPC port number because it allows some tools to work automatically.
+
+In deployments with [cluster peering connections](/consul/docs/connect/cluster-peering), this port provides incoming and outgoing access between remote server peers. Specifically, the dialing peer needs outgoing access and the accepting peer needs incoming access. The address dialed depends on whether or not the cluster peering connection uses mesh gateways and whether the mesh gateway is in remote or local mode:
+
+- When not using mesh gateways, servers dial the remote server addresses directly.
+- When using mesh gateways in local mode, servers dial the local mesh gateway.
+- When using mesh gateways in remote mode, servers dial the remote mesh gateway.
+
+In both local and remote cases, incoming traffic comes from the mesh gateways.
+
+HCP Consul assigns port `8502` to HashiCorp-managed clusters, instead of the default `8503`.
+
+When the [v2 catalog](/consul/docs/architecture/catalog/v2) is enabled, all API calls from external systems, such as the Consul CLI and Terraform provider, use this port.
+
+### Server RPC
+
+The following table lists information about the Server RPC port defaults:
+
+| Default port | Protocol | Default status     | Hashicorp-managed server port |
+| :----------- | :------- | :----------------- | :---------------------------- |
+| `8300`       | TCP      | Enabled by default | `8300`                        |
+
+This port sends and receives traffic between Consul servers in the same datacenter. It also receives incoming traffic from Consul clients in the same datacenter.
+
+When using WAN federation without mesh gateways, incoming and outgoing traffic on this port is required between all federated servers.
+
+When using WAN federation with mesh gateways, Consul servers must accept server RPC requests from mesh gateways in the local datacenter. The mesh gateway mode determines the path that _outgoing_ traffic takes, either direct to `remote` gateways or first to `local` gateways, but _incoming_ traffic always comes through the local mesh gateways.
+
+### LAN serf
+
+The following table lists information about the LAN serf port defaults:
+
+| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| :----------- | :-----------| :----------------- | :---------------------------- |
+| `8301`       | TCP and UDP | Enabled by default | `8301`                        |
+
+This port sends and receives traffic from Consul clients and other Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
+
+When running Enterprise deployments that use multiple admin partitions, all Consul clients across all partitions still require access to this port on all servers. Servers also require access to this port on all clients.
+
+### WAN serf
+
+The following table lists information about the WAN serf port defaults:
+
+| Default port | Protocol    | Default status     | Hashicorp-managed server port |
+| :----------- | :---------- | :----------------- | :---------------------------- |
+| `8302`       | TCP and UDP | Enabled by default | `8302`                        |
+
+This port sends and receives traffic between Consul servers in a federated network. WAN-federated networks require one cluster to serve as the primary datacenter while the others function as secondary datacenters. Refer to [Enabling WAN Federation Control Plane Traffic](/consul/docs/connect/gateways/mesh-gateway/wan-federation-via-mesh-gateways) for additional information.
+
+When using WAN federation without mesh gateways, incoming and outgoing traffic on this port is required between all federated servers.
+
+When using WAN federation with mesh gateways, Consul servers must accept WAN Serf requests from mesh gateways in the local datacenter, regardless of which mesh gateway mode is used. As a result, traffic always comes from a local mesh gateway.
+
+## Consul clients
+
+The following table lists port names, their function, their network protocols, their default port numbers, whether they are enabled or disabled by default, and the direction of traffic from the Consul client's perspective.
+
+| Port name                    | Use                                        | Protocol    | Default port | Default status | Direction             |
+| :--------------------------- | :----------------------------------------- | :---------- | :----------- | :------------- | :-------------------- |
+| [DNS](#client-dns)           | The DNS server                             | TCP and UDP | `8600`       | Enabled        | Incoming              |
+| [HTTP](#client-http)         | The HTTP API                               | TCP         | `8500`       | Enabled        | Incoming              |
+| [HTTPS](#client-https)       | The HTTPS API                              | TCP         | `8501`       | Disabled       | Incoming              |
+| [gRPC](#client-grpc)         | The gRPC API                               | TCP         | `8502`       | Disabled       | Incoming              |
+| [gRPC TLS](#client-grpc-tls) | The gRPC API with TLS connections          | TCP         | `8503`       | Disabled       | Incoming              |
+| [LAN Serf](#client-lan-serf) | The Serf local area network port           | TCP and UDP | `8301`       | Enabled        | Incoming and outgoing |
+
+### Client DNS
+
+The following table lists information about the client agent's DNS port defaults:
+
+| Default port | Protocol    | Default status     |
+| :----------- | :---------- | :----------------- |
+| `8600`       | TCP and UDP | Enabled by default |
+
+This port receives incoming traffic from workloads to resolve Consul DNS requests. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+If you configure recursors in Consul to upstream DNS servers, then you need outbound access to those servers on port `53`.
+
+### Client HTTP
+
+The following table lists information about the Consul client's HTTP port defaults:
+
+| Default port | Protocol | Default status     |
+| :----------- | :------- | :----------------- |
+| `8500`       | TCP      | Enabled by default |
+
+This port receives incoming traffic from workloads that make HTTP API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+The Consul CLI uses the HTTP port to interact with Consul by default.
+
+### Client HTTPS
+
+The following table lists information about the Consul client's HTTPS port defaults:
+
+| Default port | Protocol | Default status      |
+| :----------- | :------- | :------------------ |
+| `8501`       | TCP      | Disabled by default |
+
+This port receives incoming traffic from workloads that make HTTPS API calls. Consul does not use this port for internal communication between servers, clients, dataplanes, gateways, and Envoy proxies.
+
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
+
+When this port is enabled, the Consul CLI uses it to interact with Consul.
+
+### Client gRPC
+
+The following table lists information about the Consul client's gRPC port defaults:
+
+| Default port | Protocol | Default status      |
+| :----------- | :------- | :------------------ |
+| `8502`       | TCP      | Disabled by default |
+
+This port receives incoming traffic from the gateways and Envoy proxies registered to this client.
+
+We recommend using gRPC TLS instead.
+
+### Client gRPC TLS
+
+The following table lists information about the Consul client's gRPC with TLS port defaults:
+
+| Default port | Protocol | Default status       |
+| :----------- | :------- | :------------------- |
+| `8503`       | TCP      | Disabled by default  |
+
+This port receives incoming traffic from the gateways and Envoy proxies registered to this client. We recommend using `8503` as your conventional gRPC port number, as it allows some tools to work automatically.
+
+This port is disabled by default. You can enable it in the [agent configuration file](/consul/docs/agent/config/config-files#ports) or using the [`consul agent` CLI command](/consul/docs/agent/config/cli-flags).
+
+### Client LAN serf
+
+The following table lists information about the Consul client's LAN serf port defaults:
+
+| Default port | Protocol    | Default status     |
+| :----------- | :---------- | :----------------- |
+| `8301`       | TCP and UDP | Enabled by default |
+
+This port sends and receives traffic from Consul clients and Consul servers in the same datacenter. Refer to [gossip protocol](/consul/docs/architecture/gossip) for more information.
+
+When running Enterprise deployments that use network segments or admin partitions, Consul clients _within_ a segment or partition require access to each other's ports. Clients do not require port access _across_ segments or partitions.
