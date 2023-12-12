@@ -72,22 +72,14 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoExportedServices() {
 						Name:    "svc0",
 					},
 					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-						{
-							ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-								Peer: "test-peer",
-							},
-						},
+						suite.constructConsumer("test-peer", "peer"),
 					},
 				},
 			},
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-					Partition: "part-n",
-				},
-			})
+			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("peer-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -118,22 +110,14 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoMatchingServices() {
 						Name:    "svc0",
 					},
 					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-						{
-							ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-								Peer: "test-peer",
-							},
-						},
+						suite.constructConsumer("test-peer", "peer"),
 					},
 				},
 			},
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-					Partition: "part-n",
-				},
-			})
+			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -189,22 +173,14 @@ func (suite *controllerSuite) TestReconcile_SkipWritingNewCES() {
 						Name:    "svc-0",
 					},
 					Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-						{
-							ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-								Peer: "peer-1",
-							},
-						},
+						suite.constructConsumer("peer-1", "peer"),
 					},
 				},
 			},
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-					Partition: "part-n",
-				},
-			})
+			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -312,26 +288,10 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Name:    "svc-0",
 						},
 						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-1",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-2",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-1",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-n",
-								},
-							},
+							suite.constructConsumer("peer-1", "peer"),
+							suite.constructConsumer("peer-2", "peer"),
+							suite.constructConsumer("part-1", "partition"),
+							suite.constructConsumer("part-n", "partition"),
 						},
 					},
 					{
@@ -341,21 +301,9 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Name:    "svc-1",
 						},
 						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-2",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-1",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-n",
-								},
-							},
+							suite.constructConsumer("peer-2", "peer"),
+							suite.constructConsumer("part-1", "partition"),
+							suite.constructConsumer("part-n", "partition"),
 						},
 					},
 					{
@@ -365,21 +313,9 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Name:    "svc-2",
 						},
 						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-2",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-1",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-									Partition: "part-n",
-								},
-							},
+							suite.constructConsumer("peer-2", "peer"),
+							suite.constructConsumer("part-1", "partition"),
+							suite.constructConsumer("part-n", "partition"),
 						},
 					},
 				},
@@ -394,16 +330,8 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 							Name:    "svc-0",
 						},
 						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-1",
-								},
-							},
-							{
-								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-									Peer: "peer-2",
-								},
-							},
+							suite.constructConsumer("peer-1", "peer"),
+							suite.constructConsumer("peer-2", "peer"),
 						},
 					},
 				},
