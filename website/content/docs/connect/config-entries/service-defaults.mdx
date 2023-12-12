@@ -1737,7 +1737,6 @@ Proxy services must be in transparent proxy mode to configure destinations. Refe
 
 </CodeTabs>
 
-
 ### Enable request rate limit for a service on all paths <EnterpriseAlert inline />
 
 The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests.
@@ -1756,6 +1755,7 @@ RateLimit {
   }
 }
 ```
+
 ```yaml
 kind: ServiceDefaults
 name: service-foo
@@ -1764,9 +1764,8 @@ rateLimit:
   instanceLevel:
     requestsPerSecond: 1000
     requestsMaxBurst: 1500
-  }
-}
 ```
+
 ```json
 {
   "Kind": "service-defaults",
@@ -1780,6 +1779,7 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
 ### Enable request rate limit on a prefixed path <EnterpriseAlert inline />
@@ -1840,6 +1840,7 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
 ### Enable request rate limits on multiple paths <EnterpriseAlert inline />
@@ -1883,6 +1884,7 @@ rateLimit:
         requestsPerSecond: 100
         requestsMaxBurst: 500
 ```
+
 ```json
 {
   "Kind": "service-defaults",
@@ -1905,4 +1907,5 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
