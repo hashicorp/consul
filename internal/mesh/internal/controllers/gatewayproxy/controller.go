@@ -43,19 +43,15 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	var gatewayType *pbresource.Type
 
-	// If the resource is not owned by a xGateway, let the sidecarproxy reconciler handle it
-	res, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
+	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
+	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
+	res, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: workloadID})
 	if err != nil || res.Resource == nil || res.Resource.Id == nil {
-		rt.Logger.Error("error reading the resource", "error", err)
+		rt.Logger.Error("error reading the associated workload", "error", err)
 		return err
 	} else {
-		switch res.Resource.Id.Type {
-		// FUTURE Add API and terminating gateway types once they exist
-		case pbmesh.MeshGatewayType:
-			gatewayType = res.Resource.Id.Type
-			rt.Logger = rt.Logger.With("gateway-type", gatewayType.String())
-		default:
-			// This reconciler only reconciles ProxyStateTemplates that are owned by a xGateway
+		if gatewayKind := res.Resource.Metadata["gateway-kind"]; gatewayKind == "" {
+			rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
 			return nil
 		}
 	}
