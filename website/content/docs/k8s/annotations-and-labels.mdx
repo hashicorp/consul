@@ -276,6 +276,11 @@ The following Kubernetes resource annotations could be used on a pod to control 
   annotations:
     "consul.hashicorp.com/consul-sidecar-user-volume-mount": "[{\"name\": \"secrets-store-mount\", \"mountPath\": \"/mnt/secrets-store\"}]"
   ```
+- `consul.hashicorp.com/proxy-config-map` - JSON object specifying [Proxy Config Options](/consul/docs/connect/proxies/envoy#proxy-config-options). The proxy config map provides a low-level interface for setting configuration fields on a per-proxy basis during service registration. This configuration field is intended to be used in situations where a field does not exist in [service defaults configuration entries](/consul/docs/connect/config-entries/service-defaults) and another annotation does not provide explicit access to one of the Envoy configuration options.
+  ```yaml
+  annotations:
+    "consul.hashicorp.com/proxy-config-map": "{ \"xds_fetch_timeout_ms\": 30000 }"
+  ```
 
 ### Labels
 
