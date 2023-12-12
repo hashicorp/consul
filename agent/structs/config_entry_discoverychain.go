@@ -75,8 +75,17 @@ type ServiceRouterConfigEntry struct {
 	Routes []ServiceRoute
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceRouterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceRouterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceRouterConfigEntry) GetKind() string {
@@ -125,6 +134,11 @@ func (e *ServiceRouterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -533,8 +547,17 @@ type ServiceSplitterConfigEntry struct {
 	Splits []ServiceSplit
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceSplitterConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceSplitterConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceSplitterConfigEntry) GetKind() string {
@@ -577,6 +600,11 @@ func (e *ServiceSplitterConfigEntry) Normalize() error {
 		}
 	}
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
@@ -868,8 +896,17 @@ type ServiceResolverConfigEntry struct {
 	LoadBalancer *LoadBalancer `json:",omitempty" alias:"load_balancer"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceResolverConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceResolverConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceResolverConfigEntry) MarshalJSON() ([]byte, error) {
@@ -969,6 +1006,11 @@ func (e *ServiceResolverConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 
