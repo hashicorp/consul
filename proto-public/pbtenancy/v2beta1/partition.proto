@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package hashicorp.consul.tenancy.v2beta1;
+
+import "pbresource/annotations.proto";
+
+// The name of the partition (enterprise only) is in the outer Resource.ID.Name.
+// It must be unique within a cluster and must be a DNS hostname.
+// There are also other reserved names that may not be used.
+message Partition {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
+  // Optional user provided description. It is not used internally.
+  string description = 1;
+}
