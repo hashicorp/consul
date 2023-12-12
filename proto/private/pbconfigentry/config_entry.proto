@@ -61,6 +61,7 @@ message MeshConfig {
   map<string, string> Meta = 4;
   PeeringMeshConfig Peering = 5;
   bool AllowEnablingPermissiveMutualTLS = 6;
+  uint64 Hash = 7;
 }
 
 // mog annotation:
@@ -132,6 +133,7 @@ message ServiceResolver {
   // mog: func-to=structs.DurationFromProto func-from=structs.DurationToProto
   google.protobuf.Duration RequestTimeout = 8;
   ServiceResolverPrioritizeByLocality PrioritizeByLocality = 9;
+  uint64 Hash = 10;
 }
 
 // mog annotation:
@@ -274,6 +276,7 @@ message IngressGateway {
   repeated IngressListener Listeners = 2;
   map<string, string> Meta = 3;
   IngressServiceConfig Defaults = 4;
+  uint64 Hash = 5;
 }
 
 // mog annotation:
@@ -377,6 +380,7 @@ message ServiceIntentions {
   repeated SourceIntention Sources = 1;
   map<string, string> Meta = 2;
   IntentionJWTRequirement JWT = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -513,6 +517,7 @@ message ServiceDefaults {
   repeated hashicorp.consul.internal.common.EnvoyExtension EnvoyExtensions = 14;
   // mog: func-to=mutualTLSModeToStructs func-from=mutualTLSModeFromStructs
   MutualTLSMode MutualTLSMode = 15;
+  uint64 Hash = 17;
 }
 
 enum ProxyMode {
@@ -700,6 +705,7 @@ message APIGateway {
   map<string, string> Meta = 1;
   repeated APIGatewayListener Listeners = 2;
   Status Status = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -811,6 +817,7 @@ message BoundAPIGateway {
   repeated BoundAPIGatewayListener Listeners = 2;
   // mog: func-to=serviceRefsToStructs func-from=serviceRefFromStructs
   map<string, ListOfResourceReference> Services = 3;
+  uint64 Hash = 4;
 }
 
 message ListOfResourceReference {
@@ -838,6 +845,7 @@ message InlineCertificate {
   map<string, string> Meta = 1;
   string Certificate = 2;
   string PrivateKey = 3;
+  uint64 Hash = 4;
 }
 
 // mog annotation:
@@ -852,6 +860,7 @@ message HTTPRoute {
   repeated HTTPRouteRule Rules = 3;
   repeated string Hostnames = 4;
   Status Status = 5;
+  uint64 Hash = 6;
 }
 
 // mog annotation:
@@ -1044,6 +1053,7 @@ message TCPRoute {
   repeated ResourceReference Parents = 2;
   repeated TCPService Services = 3;
   Status Status = 4;
+  uint64 Hash = 5;
 }
 
 // mog annotation:
@@ -1071,6 +1081,7 @@ message SamenessGroup {
   map<string, string> Meta = 5;
   // mog: func-to=enterpriseMetaToStructs func-from=enterpriseMetaFromStructs
   common.EnterpriseMeta EnterpriseMeta = 6;
+  uint64 Hash = 7;
 }
 
 // mog annotation:
@@ -1099,6 +1110,7 @@ message JWTProvider {
   map<string, string> Meta = 7;
   // mog: func-to=int func-from=int32
   int32 ClockSkewSeconds = 8;
+  uint64 Hash = 9;
 }
 
 // mog annotation:
