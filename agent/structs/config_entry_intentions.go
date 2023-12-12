@@ -26,7 +26,16 @@ type ServiceIntentionsConfigEntry struct {
 	Meta map[string]string `json:",omitempty"` // formerly Intention.Meta
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"` // formerly DestinationNS
-	RaftIndex
+	Hash               uint64                                 `json:",omitempty" hash:"ignore"`
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceIntentionsConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceIntentionsConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 var _ UpdatableConfigEntry = (*ServiceIntentionsConfigEntry)(nil)
@@ -577,6 +586,11 @@ func (e *ServiceIntentionsConfigEntry) normalize(legacyWrite bool) error {
 		return e.Sources[i].Precedence > e.Sources[j].Precedence
 	})
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
 }
 

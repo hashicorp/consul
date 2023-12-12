@@ -2084,8 +2084,8 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 					LegacyUpdateTime: got.Sources[0].LegacyUpdateTime,
 				},
 			},
-
 			RaftIndex: got.RaftIndex,
+			Hash:      got.GetHash(),
 		}
 
 		require.Equal(t, expect, got)
