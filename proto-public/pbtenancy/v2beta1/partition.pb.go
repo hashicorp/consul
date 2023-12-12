@@ -21,7 +21,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// The name of the partition is in the outer Resource.ID.Name.
+// The name of the partition (enterprise only) is in the outer Resource.ID.Name.
 // It must be unique within a cluster and must be a DNS hostname.
 // There are also other reserved names that may not be used.
 type Partition struct {
