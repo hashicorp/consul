@@ -542,8 +542,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
 
 - `license_path` <EnterpriseAlert inline /> This specifies the path to a file that contains the Consul Enterprise license. Alternatively the license may also be specified in either the `CONSUL_LICENSE` or `CONSUL_LICENSE_PATH` environment variables. See the [licensing documentation](/consul/docs/enterprise/license/overview) for more information about Consul Enterprise license management. Added in versions 1.10.0, 1.9.7 and 1.8.13. Prior to version 1.10.0 the value may be set for all agents to facilitate forwards compatibility with 1.10 but will only actually be used by client agents.
 
-- `limits`: This block specifies various types of limits that the Consul server agent enforces. Declaration differs between Consul Agent Server and Consul Agent Client. For Server, use `limits { ... }` and for Client, use `limits = { ... }`. Not adding the `=` sign for the stanza in the Client config could show the error `expected a map, got slice` upon reloading or restarting the service.
-
+- `limits`: This block specifies various types of limits that the Consul server agent enforces. Configuring limits does not affect the behavior of Consul agents in client mode.
   - `http_max_conns_per_client` - Configures a limit of how many concurrent TCP connections a single client IP address is allowed to open to the agent's HTTP(S) server. This affects the HTTP(S) servers in both client and server agents. Default value is `200`.
   - `https_handshake_timeout` - Configures the limit for how long the HTTPS server in both client and server agents will wait for a client to complete a TLS handshake. This should be kept conservative as it limits how many connections an unauthenticated attacker can open if `verify_incoming` is being using to authenticate clients (strongly recommended in production). Default value is `5s`.
   - `request_limits` - This object specifies configurations that limit the rate of RPC and gRPC requests on the Consul server. Limiting the rate of gRPC and RPC requests also limits HTTP requests to the Consul server.
@@ -561,7 +560,7 @@ Refer to the [formatting specification](https://golang.org/pkg/time/#ParseDurati
   - `kv_max_value_size` - **(Advanced)** Configures the maximum number of bytes for a kv request body to the [`/v1/kv`](/consul/api-docs/kv) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration. This option affects the txn endpoint too, but Consul 1.7.2 introduced `txn_max_req_len` which is the preferred way to set the limit for the txn endpoint. If both limits are set, the higher one takes precedence.
   - `txn_max_req_len` - **(Advanced)** Configures the maximum number of bytes for a transaction request body to the [`/v1/txn`](/consul/api-docs/txn) endpoint. This limit defaults to [raft's](https://github.com/hashicorp/raft) suggested max size (512KB). **Note that tuning these improperly can cause Consul to fail in unexpected ways**, it may potentially affect leadership stability and prevent timely heartbeat signals by increasing RPC IO duration.
 
-  ~> **Warning:** Both `kv_max_value_size` and `txn_max_req_len` values need to be declared in bytes, e.g. for `512KB` the value would be `524288`.
+  The `kv_max_value_size` and `txn_max_req_len` fields parse values as bytes. For example, specify `524288` to configure a limit of `512KB`.
 
 - `default_query_time` Equivalent to the [`-default-query-time` command-line flag](/consul/docs/agent/config/cli-flags#_default_query_time).
 
