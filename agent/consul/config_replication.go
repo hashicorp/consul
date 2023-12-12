@@ -18,6 +18,12 @@ func configSort(configs []structs.ConfigEntry) {
 		return cmpConfigLess(configs[i], configs[j])
 	})
 }
+func sameHash(e1, e2 structs.ConfigEntry) bool {
+	if e1.GetHash() == 0 || e2.GetHash() == 0 {
+		return false
+	}
+	return e1.GetHash() == e2.GetHash()
+}
 
 func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry, lastRemoteIndex uint64) ([]structs.ConfigEntry, []structs.ConfigEntry) {
 	configSort(local)
@@ -33,7 +39,9 @@ func diffConfigEntries(local []structs.ConfigEntry, remote []structs.ConfigEntry
 		if configSameID(local[localIdx], remote[remoteIdx]) {
 			// config is in both the local and remote state - need to check raft indices
 			if remote[remoteIdx].GetRaftIndex().ModifyIndex > lastRemoteIndex {
-				updates = append(updates, remote[remoteIdx])
+				if !sameHash(local[localIdx], remote[remoteIdx]) {
+					updates = append(updates, remote[remoteIdx])
+				}
 			}
 			// increment both indices when equal
 			localIdx += 1
