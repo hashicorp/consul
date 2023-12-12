@@ -1,6 +1,6 @@
 [
   {
-    "heading": "Get Started"
+    "heading": "Get started"
   },
   {
     "title": "What is Consul?",
@@ -75,10 +75,6 @@
       {
         "title": "Overview",
         "path": "architecture"
-      },
-      {
-        "title": "Transparent proxy",
-        "path": "architecture/transparent-proxy"
       },
       {
         "title": "v1 APIs",
@@ -238,10 +234,35 @@
     ]
   },
   {
+    "title": "Concepts (Deep dives)",
+    "routes": [
+      {
+        "title": "Admin partition",
+        "path": "concepts/admin-partition"
+      },
+      {
+        "title": "Proxy",
+        "path": "concepts/proxy"
+      },
+      {
+        "title": "Service",
+        "path": "concepts/service"
+      },
+      {
+        "title": "Service mesh",
+        "path": "concepts/service-mesh"
+      },
+      {
+        "title": "Transparent proxy",
+        "path": "concepts/transparent-proxy"
+      }
+    ]
+  },
+  {
     "divider": true
   },
   {
-    "heading": "Consul Operations"
+    "heading": "Consul operations"
   },
   {
     "title": "Deploy Consul",
@@ -264,6 +285,32 @@
           {
             "title": "FIPS 140-2 compliance",
             "path": "deploy/server/fips"
+          },
+          {
+            "title": "WAL LogStore",
+            "badge": {
+              "text": "EXPERIMENTAL",
+              "type": "outlined",
+              "color": "neutral"
+            },
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "deploy/server/wal"
+              },
+              {
+                "title": "Enable WAL LogStore backend",
+                "path": "deploy/server/wal/enable"
+              },
+              {
+                "title": "Monitor Raft metrics and logs",
+                "path": "deploy/server/wal/monitor-raft-metrics-logs"
+              },
+              {
+                "title": "Revert to BoltDB",
+                "path": "deploy/server/wal/revert-to-boltdb"
+              }
+            ]
           },
           {
             "title": "HashiCorp-managed clusters",
@@ -443,26 +490,30 @@
         ]
       },
       {
-        "title": "Connect workloads",
+        "title": "Connect control plane components",
         "routes": [
           {
             "title": "Overview",
-            "path": "deploy/workload"
+            "path": "deploy/control-plane"
           },
           {
-            "title": "Virtual machine (VM)",
-            "path": "deploy/workload/vm"
+            "title": "Virtual machine - Client (VM)",
+            "path": "deploy/control-plane/vm"
           },
           {
             "title": "Kubernetes",
             "routes": [
               {
                 "title": "Overview",
-                "path": "deploy/workload/k8s"
+                "path": "deploy/control-plane/k8s"
+              },
+              {
+                "title": "Consul Dataplane",
+                "path": "deploy/control-plane/k8s/dataplane"
               },
               {
                 "title": "Clients outside Kubernetes",
-                "path": "deploy/workload/k8s/client-outside-k8s"
+                "path": "deploy/control-plane/k8s/client-outside-k8s"
               }
             ]
           },
@@ -699,32 +750,6 @@
               "color": "neutral"
             },
             "path": "monitor/log/audit-log"
-          }
-        ]
-      },
-      {
-        "title": "WAL LogStore",
-        "badge": {
-          "text": "EXPERIMENTAL",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "monitor/wal"
-          },
-          {
-            "title": "Enable WAL LogStore backend",
-            "path": "monitor/wal/enable"
-          },
-          {
-            "title": "Monitor Raft metrics and logs",
-            "path": "monitor/wal/monitor-raft-metrics-logs"
-          },
-          {
-            "title": "Revert to BoltDB",
-            "path": "monitor/wal/revert-to-boltdb"
           }
         ]
       }
@@ -1026,7 +1051,7 @@
     "divider": true
   },
   {
-    "heading": "Service Networking"
+    "heading": "Service networking"
   },
   {
     "title": "Register services",
@@ -1189,339 +1214,348 @@
     ]
   },
   {
-    "title": "Discover services",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "discover"
-      },
-      {
-        "title": "DNS",
-        "routes": [
-          {
-            "title": "Configure DNS behavior",
-            "path": "discover/dns/configure"
-          },
-          {
-            "title": "Perform static lookups",
-            "path": "discover/dns/static-lookup"
-          },
-          {
-            "title": "Perform dynamic lookups",
-            "path": "discover/dns/dynamic-lookup"
-          },
-          {
-            "title": "Issue prepared queries",
-            "path": "discover/dns/prepared-query"
-          },
-          {
-            "title": "Resolve Consul DNS in Kubernetes",
-            "path": "discover/dns/k8s"
-          }
-        ]
-      },
-      {
-        "title": "Virtual machine (VM)",
-        "path": "discover/vm"
-      },
-      {
-        "title": "Kubernetes",
-        "path": "discover/k8s"
-      }
-    ]
-  },
-  {
-    "title": "Connect services",
-    "routes": [
-      {
-        "title": "Overview",
-        "path": "connect"
-      },
-      {
-        "title": "How service mesh works",
-        "href": "concept/service-mesh"
-      },
-      {
-        "title": "Configuration entries",
-        "path": "connect/config-entries"
-      },
-      {
-        "title": "Multi-port services",
-        "badge": {
-          "text": "v2 API",
-          "type": "outlined",
-          "color": "neutral"
-        },
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/multi-port"
-          },
-          {
-            "title": "Configure multi-port services",
-            "path": "connect/multi-port/configure"
-          }
-        ]
-      },
-      {
-        "title": "Lambda",
-        "routes": [
-          {
-            "title": "-",
-            "path": "connect/lambda"
-          },
-          {
-            "title": "Invoke Lambda functions from services",
-            "path": "connect/lambda/invoke-function"
-          },
-          {
-            "title": "Invoke services from Lambda functions",
-            "path": "connect/lambda/invoke-service"
-          }
-        ]
-      },
-      {
-        "title": "Proxy",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/proxy"
-          },
-          {
-            "title": "Deploy service mesh proxy",
-            "path": "connect/proxy/deploy-service-mesh"
-          },
-          {
-            "title": "Deploy sidecar proxy",
-            "path": "connect/proxy/deploy-sidecar"
-          },
-          {
-            "title": "Enable transparent proxy",
-            "routes": [
-              {
-                "title": "Overview",
-                "path": "connect/proxy/transparent-proxy"
-              },
-              {
-                "title": "Enable transparent proxy",
-                "path": "connect/proxy/transparent-proxy/enable"
-              },
-              {
-                "title": "Kubernetes",
-                "path": "connect/proxy/transparent-proxy/k8s"
-              },
-              {
-                "title": "ECS",
-                "path": "connect/proxy/transparent-proxy/ecs"
-              }
-            ]
-          },
-          {
-            "title": "Envoy extension",
-            "href": "envoy-extension"
-          },
-          {
-            "title": "Proxy integration",
-            "href": "integration/proxy"
-          }
-        ]
-      },
-      {
-        "title": "Troubleshoot",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "connect/troubleshoot"
-          },
-          {
-            "title": "Develop and debug",
-            "path": "connect/troubleshoot/develop-debug"
-          },
-          {
-            "title": "Service-to-service troubleshooting",
-            "path": "connect/troubleshoot/service-to-service"
-          }
-        ]
-      },
-      {
-        "title": "Virtual machine (VM)",
-        "path": "connect/vm"
-      },
-      {
-        "title": "Kubernetes",
-        "path": "connect/k8s"
-      },
-      {
-        "title": "ECS",
-        "path": "connect/ecs"
-      },
-      {
-        "title": "Lambda",
-        "href": "connect/lambda"
-      },
-      {
-        "title": "Nomad",
-        "path": "connect/nomad"
-      }
-    ]
-  },
-  {
     "title": "Access services",
     "routes": [
       {
         "title": "Overview",
-        "path": "access"
+        "path": "service"
       },
       {
-        "title": "API gateway",
+        "title": "Service discovery",
         "routes": [
           {
             "title": "Overview",
-            "path": "access/api-gateway"
+            "path": "service/discovery"
           },
           {
-            "title": "Technical specifications (Kubernetes)",
-            "path": "access/api-gateway/k8s-tech-specs"
-          },
-          {
-            "title": "Install on Kubernetes",
-            "path": "access/api-gateway/k8s-install"
-          },
-          {
-            "title": "Upgrade on Kubernetes",
-            "path": "access/api-gateway/k8s-upgrade"
-          },
-          {
-            "title": "Deploy listener",
+            "title": "DNS",
             "routes": [
               {
-                "title": "Deploy listener to VMs",
-                "path": "access/api-gateway/deploy-listener/vm"
+                "title": "Configure DNS behavior",
+                "path": "service/discovery/dns/configure"
               },
               {
-                "title": "Deploy listener to Kubernetes",
-                "path": "access/api-gateway/deploy-listener/k8s"
+                "title": "Perform static lookups",
+                "path": "service/discovery/dns/static-lookup"
+              },
+              {
+                "title": "Perform dynamic lookups",
+                "path": "service/discovery/dns/dynamic-lookup"
+              },
+              {
+                "title": "Issue prepared queries",
+                "path": "service/discovery/dns/prepared-query"
+              },
+              {
+                "title": "Resolve Consul DNS in Kubernetes",
+                "path": "service/discovery/dns/k8s"
               }
             ]
           },
           {
-            "title": "Define route",
-            "routes": [
-              {
-                "title": "Define route on VMs",
-                "path": "access/api-gateway/define-route/vm"
-              },
-              {
-                "title": "Define route on Kubernetes",
-                "path": "access/api-gateway/define-route/k8s"
-              },
-              {
-                "title": "Reroute traffic in Kubernetes",
-                "path": "access/api-gateway/define-route/k8s-reroute-traffic"
-              },
-              {
-                "title": "Route to peered services in Kubernetes",
-                "path": "access/api-gateway/define-route/k8s-route-peered"
-              }
-            ]
+            "title": "Virtual machine (VM)",
+            "path": "service/discovery/vm"
           },
           {
-            "title": "Secure traffic",
-            "routes": [
-              {
-                "title": "Encrypt traffic on VMs",
-                "path": "access/api-gateway/secure-traffic/vm"
-              },
-              {
-                "title": "Verify requests with JWTS on VMs",
-                "path": "access/api-gateway/secure-traffic/vm-jwt"
-              },
-              {
-                "title": "Verify requests with JWTS on Kubernetes",
-                "path": "access/api-gateway/secure-traffic/k8s-jwt"
-              }
-            ]
+            "title": "Kubernetes",
+            "path": "service/discovery/k8s"
+          }
+        ]
+      },
+      {
+        "title": "Service mesh",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "service/mesh"
           },
           {
-            "title": "Reference",
+            "title": "How service mesh works",
+            "href": "concept/service-mesh"
+          },
+          {
+            "title": "Configuration entries",
+            "path": "service/mesh/config-entries"
+          },
+          {
+            "title": "Multi-port services",
+            "badge": {
+              "text": "v2 API",
+              "type": "outlined",
+              "color": "neutral"
+            },
             "routes": [
               {
                 "title": "Overview",
-                "href": "reference/api-gateway"
+                "path": "service/mesh/multi-port"
               },
               {
-                "title": "Gateway",
-                "href": "reference/api-gateway/gateway"
-              },
-              {
-                "title": "GatewayClass",
-                "href": "reference/api-gateway/gatewayclass"
-              },
-              {
-                "title": "GatewayClassConfig",
-                "href": "reference/api-gateway/gatewayclassconfig"
-              },
-              {
-                "title": "GatewayPolicy",
-                "href": "reference/api-gateway/gatewaypolicy"
-              },
-              {
-                "title": "RouteAuthFilter",
-                "href": "reference/api-gateway/routeauthfilter"
-              },
-              {
-                "title": "Routes",
-                "href": "reference/api-gateway/routes"
-              },
-              {
-                "title": "RouteRetryFilter",
-                "href": "reference/api-gateway/routeretryfilter"
-              },
-              {
-                "title": "RouteTimeoutFilter",
-                "href": "reference/api-gateway/routetimeoutfilter"
-              },
-              {
-                "title": "MeshService",
-                "href": "reference/api-gateway/meshservice"
+                "title": "Configure multi-port services",
+                "path": "service/mesh/multi-port/configure"
               }
             ]
+          },
+          {
+            "title": "Lambda",
+            "routes": [
+              {
+                "title": "-",
+                "path": "service/mesh/lambda"
+              },
+              {
+                "title": "Invoke Lambda functions from services",
+                "path": "service/mesh/lambda/invoke-function"
+              },
+              {
+                "title": "Invoke services from Lambda functions",
+                "path": "service/mesh/lambda/invoke-service"
+              }
+            ]
+          },
+          {
+            "title": "Proxy",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "service/mesh/proxy"
+              },
+              {
+                "title": "Deploy service mesh proxy",
+                "path": "service/mesh/proxy/deploy-service-mesh"
+              },
+              {
+                "title": "Deploy sidecar proxy",
+                "path": "service/mesh/proxy/deploy-sidecar"
+              },
+              {
+                "title": "Enable transparent proxy",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "path": "service/mesh/proxy/transparent-proxy"
+                  },
+                  {
+                    "title": "Enable transparent proxy",
+                    "path": "service/mesh/proxy/transparent-proxy/enable"
+                  },
+                  {
+                    "title": "Kubernetes",
+                    "path": "service/mesh/proxy/transparent-proxy/k8s"
+                  },
+                  {
+                    "title": "ECS",
+                    "path": "service/mesh/proxy/transparent-proxy/ecs"
+                  }
+                ]
+              },
+              {
+                "title": "Envoy extension",
+                "href": "envoy-extension"
+              },
+              {
+                "title": "Proxy integration",
+                "href": "integration/proxy"
+              }
+            ]
+          },
+          {
+            "title": "Troubleshoot",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "service/mesh/troubleshoot"
+              },
+              {
+                "title": "Develop and debug",
+                "path": "service/mesh/troubleshoot/develop-debug"
+              },
+              {
+                "title": "Service-to-service troubleshooting",
+                "path": "service/mesh/troubleshoot/service-to-service"
+              }
+            ]
+          },
+          {
+            "title": "Virtual machine (VM)",
+            "path": "service/mesh/vm"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "service/mesh/k8s"
+          },
+          {
+            "title": "ECS",
+            "path": "service/mesh/ecs"
+          },
+          {
+            "title": "Lambda",
+            "href": "service/mesh/lambda"
+          },
+          {
+            "title": "Nomad",
+            "path": "service/mesh/nomad"
           }
         ]
       },
       {
-        "title": "Ingress gateway",
+        "title": "Gateways",
         "routes": [
           {
             "title": "Overview",
-            "path": "access/ingress-gateway"
+            "path": "service/gateway"
           },
           {
-            "title": "Create and manage ingress gateway",
-            "path": "access/ingress-gateway/create"
+            "title": "API gateway",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "service/gateway/api-gateway"
+              },
+              {
+                "title": "Technical specifications (Kubernetes)",
+                "path": "service/gateway/api-gateway/k8s-tech-specs"
+              },
+              {
+                "title": "Install on Kubernetes",
+                "path": "service/gateway/api-gateway/k8s-install"
+              },
+              {
+                "title": "Upgrade on Kubernetes",
+                "path": "service/gateway/api-gateway/k8s-upgrade"
+              },
+              {
+                "title": "Deploy listener",
+                "routes": [
+                  {
+                    "title": "Deploy listener to VMs",
+                    "path": "service/gateway/api-gateway/deploy-listener/vm"
+                  },
+                  {
+                    "title": "Deploy listener to Kubernetes",
+                    "path": "service/gateway/api-gateway/deploy-listener/k8s"
+                  }
+                ]
+              },
+              {
+                "title": "Define route",
+                "routes": [
+                  {
+                    "title": "Define route on VMs",
+                    "path": "service/gateway/api-gateway/define-route/vm"
+                  },
+                  {
+                    "title": "Define route on Kubernetes",
+                    "path": "service/gateway/api-gateway/define-route/k8s"
+                  },
+                  {
+                    "title": "Reroute traffic in Kubernetes",
+                    "path": "service/gateway/api-gateway/define-route/k8s-reroute-traffic"
+                  },
+                  {
+                    "title": "Route to peered services in Kubernetes",
+                    "path": "service/gateway/api-gateway/define-route/k8s-route-peered"
+                  }
+                ]
+              },
+              {
+                "title": "Secure traffic",
+                "routes": [
+                  {
+                    "title": "Encrypt traffic on VMs",
+                    "path": "service/gateway/api-gateway/secure-traffic/vm"
+                  },
+                  {
+                    "title": "Verify requests with JWTS on VMs",
+                    "path": "service/gateway/api-gateway/secure-traffic/vm-jwt"
+                  },
+                  {
+                    "title": "Verify requests with JWTS on Kubernetes",
+                    "path": "service/gateway/api-gateway/secure-traffic/k8s-jwt"
+                  }
+                ]
+              },
+              {
+                "title": "Reference",
+                "routes": [
+                  {
+                    "title": "Overview",
+                    "href": "reference/api-gateway"
+                  },
+                  {
+                    "title": "Gateway",
+                    "href": "reference/api-gateway/gateway"
+                  },
+                  {
+                    "title": "GatewayClass",
+                    "href": "reference/api-gateway/gatewayclass"
+                  },
+                  {
+                    "title": "GatewayClassConfig",
+                    "href": "reference/api-gateway/gatewayclassconfig"
+                  },
+                  {
+                    "title": "GatewayPolicy",
+                    "href": "reference/api-gateway/gatewaypolicy"
+                  },
+                  {
+                    "title": "RouteAuthFilter",
+                    "href": "reference/api-gateway/routeauthfilter"
+                  },
+                  {
+                    "title": "Routes",
+                    "href": "reference/api-gateway/routes"
+                  },
+                  {
+                    "title": "RouteRetryFilter",
+                    "href": "reference/api-gateway/routeretryfilter"
+                  },
+                  {
+                    "title": "RouteTimeoutFilter",
+                    "href": "reference/api-gateway/routetimeoutfilter"
+                  },
+                  {
+                    "title": "MeshService",
+                    "href": "reference/api-gateway/meshservice"
+                  }
+                ]
+              }
+            ]
           },
           {
-            "title": "Serve TLS certificate from external service",
-            "path": "access/ingress-gateway/tls-external-service"
+            "title": "Ingress gateway",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "service/gateway/ingress-gateway"
+              },
+              {
+                "title": "Create and manage ingress gateway",
+                "path": "service/gateway/ingress-gateway/create"
+              },
+              {
+                "title": "Serve TLS certificate from external service",
+                "path": "service/gateway/ingress-gateway/tls-external-service"
+              }
+            ]
+          },
+          {
+            "title": "Virtual machine (VM)",
+            "path": "service/gateway/vm"
+          },
+          {
+            "title": "Kubernetes",
+            "path": "service/gateway/k8s"
           }
         ]
-      },
-      {
-        "title": "Virtual machine (VM)",
-        "path": "access/vm"
-      },
-      {
-        "title": "Kubernetes",
-        "path": "access/k8s"
       }
     ]
   },
   {
-    "title": "Segment network",
+    "title": "Partition services",
     "routes": [
       {
         "title": "Overview",
-        "path": "segment"
+        "path": "partition"
       },
       {
         "title": "Admin partition",
@@ -1530,7 +1564,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "segment/admin-partition"
+        "path": "partition/admin-partition"
       },
       {
         "title": "Namespace",
@@ -1539,20 +1573,20 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "segment/namespace"
+        "path": "partition/namespace"
       },
       {
-        "title": "Network area",
-        "path": "segment/network-area"
+        "title": "Sameness groups",
+        "path": "partition/sameness-group"
       },
       {
         "title": "Network segment",
-        "path": "segment/network-segment"
+        "path": "partition/network-segment"
       }
     ]
   },
   {
-    "title": "Link network segments",
+    "title": "Link partitions",
     "routes": [
       {
         "title": "Overview",
@@ -1602,8 +1636,8 @@
         ]
       },
       {
-        "title": "Sameness groups",
-        "path": "link/sameness-group"
+        "title": "Network area",
+        "path": "link/network-area"
       },
       {
         "title": "WAN federation",
@@ -1863,7 +1897,7 @@
     "divider": true
   },
   {
-    "heading": "Enterprise Solutions"
+    "heading": "Enterprise solutions"
   },
   {
     "title": "HCP Consul",
@@ -1899,7 +1933,7 @@
     "divider": true
   },
   {
-    "heading": "Runtimes and Platforms"
+    "heading": "Runtimes and platforms"
   },
   {
     "title": "Virtual machine (VM)",
@@ -1917,23 +1951,23 @@
         "href": "register/vm"
       },
       {
-        "title": "Discover services",
-        "href": "discover/vm"
+        "title": "Service discovery",
+        "href": "service/discovery/vm"
       },
       {
-        "title": "Connect services",
-        "href": "connect/vm"
+        "title": "Service mesh",
+        "href": "service/mesh/vm"
       },
       {
         "title": "Access services",
-        "href": "access/vm"
+        "href": "service/gateway/vm"
       },
       {
-        "title": "Segment network",
-        "href": "segment/vm"
+        "title": "Partition services",
+        "href": "partition/vm"
       },
       {
-        "title": "Link network segments",
+        "title": "Link partitions",
         "href": "link/vm"
       },
       {
@@ -1946,7 +1980,7 @@
       },
       {
         "title": "Access services",
-        "href": "access/vm"
+        "href": "service/gateway/vm"
       }
     ]
   },
@@ -1967,22 +2001,22 @@
       },
       {
         "title": "Discover services",
-        "href": "discover/k8s"
+        "href": "service/discovery/k8s"
       },
       {
         "title": "Connect services",
-        "href": "connect/k8s"
+        "href": "service/mesh/k8s"
       },
       {
         "title": "Access services",
-        "href": "access/k8s"
+        "href": "service/gateway/k8s"
       },
       {
-        "title": "Segment network",
-        "href": "segment/k8s"
+        "title": "Partition services",
+        "href": "partition/k8s"
       },
       {
-        "title": "Link network segments",
+        "title": "Link partitions",
         "href": "link/k8s"
       },
       {
@@ -2008,7 +2042,7 @@
       },
       {
         "title": "Discover services",
-        "href": "discover/ecs"
+        "href": "service/discovery/ecs"
       }
     ]
   },
@@ -2025,7 +2059,7 @@
       },
       {
         "title": "Connect services",
-        "href": "connect/lambda"
+        "href": "service/mesh/lambda"
       }
     ]
   },
@@ -2042,7 +2076,7 @@
       },
       {
         "title": "Connect services",
-        "href": "connect/nomad"
+        "href": "service/mesh/nomad"
       }
     ]
   },
@@ -2050,7 +2084,7 @@
     "divider": true
   },
   {
-    "heading": "Integrations and Extensions"
+    "heading": "Integrations and extensions"
   },
   {
     "title": "Integrations",
@@ -2193,7 +2227,7 @@
     "divider": true
   },
   {
-    "heading": "Reference Docs"
+    "heading": "Reference docs"
   },
   {
     "title": "API Reference",
@@ -2240,27 +2274,6 @@
   {
     "title": "Glossary",
     "path": "glossary"
-  },
-  {
-    "title": "Concepts (Deep dives)",
-    "routes": [
-      {
-        "title": "Admin partition",
-        "path": "concepts/admin-partition"
-      },
-      {
-        "title": "Proxy",
-        "path": "concepts/proxy"
-      },
-      {
-        "title": "Service",
-        "path": "concepts/service"
-      },
-      {
-        "title": "Service mesh",
-        "path": "concepts/service-mesh"
-      }
-    ]
   },
   {
     "title": "References",
