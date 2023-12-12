@@ -18,5 +18,5 @@ func Register(r resource.Registry) {
 	RegisterNamespaceExportedServices(r)
 	RegisterPartitionExportedServices(r)
 	RegisterComputedExportedServices(r)
-	RegisterEnterprise(r)
+	RegisterEnterpriseTypes(r)
 }

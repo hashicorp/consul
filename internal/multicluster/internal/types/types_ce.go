@@ -7,5 +7,6 @@ package types
 
 import "github.com/hashicorp/consul/internal/resource"
 
-func RegisterEnterprise(r resource.Registry) {
+func RegisterEnterpriseTypes(r resource.Registry) {
+	// no-op in CE
 }
