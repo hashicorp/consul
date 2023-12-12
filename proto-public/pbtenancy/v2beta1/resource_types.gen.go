@@ -11,6 +11,7 @@ const (
 	Version   = "v2beta1"
 
 	NamespaceKind = "Namespace"
+	PartitionKind = "Partition"
 )
 
 var (
@@ -18,5 +19,11 @@ var (
 		Group:        GroupName,
 		GroupVersion: Version,
 		Kind:         NamespaceKind,
+	}
+
+	PartitionType = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: Version,
+		Kind:         PartitionKind,
 	}
 )
