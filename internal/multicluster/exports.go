@@ -21,6 +21,7 @@ var (
 // to the given type registry
 func RegisterTypes(r resource.Registry) {
 	types.Register(r)
+	types.RegisterEnterprise(r)
 }
 
 // RegisterControllers registers controllers for the multicluster types with
