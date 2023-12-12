@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        envoy-version: [ "1.27.2" ]
+        envoy-version: [ "1.28.0" ]
         xds-target: [ "server", "client" ]
     env:
       ENVOY_VERSION: ${{ matrix.envoy-version }}
