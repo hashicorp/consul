@@ -1737,16 +1737,15 @@ Proxy services must be in transparent proxy mode to configure destinations. Refe
 
 </CodeTabs>
 
-
 ### Enable request rate limit for a service on all paths <EnterpriseAlert inline />
 
-The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests.
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service to an average of 1000 requests per second, but allows the service to accept up to 1500 concurrent requests.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
-Name = "service-foo"
+Name = "billing"
 Protocol = "http"
 
 RateLimit {
@@ -1756,21 +1755,21 @@ RateLimit {
   }
 }
 ```
+
 ```yaml
 kind: ServiceDefaults
-name: service-foo
+name: billing
 protocol: http
 rateLimit:
   instanceLevel:
     requestsPerSecond: 1000
     requestsMaxBurst: 1500
-  }
-}
 ```
+
 ```json
 {
   "Kind": "service-defaults",
-  "Name": "service-foo",
+  "Name": "billing",
   "Protocol": "http",
   "RateLimit": {
     "InstanceLevel": {
@@ -1780,6 +1779,7 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
 ### Enable request rate limit on a prefixed path <EnterpriseAlert inline />
@@ -1840,11 +1840,12 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
 ### Enable request rate limits on multiple paths <EnterpriseAlert inline />
 
-The following example limits the request rate to the `billing` service when requests begin with `/api` and `/login`.
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service depending on the path it received the request on. The service is limited to an average of 500 requests when the request is made on an HTTP path with the `/api` prefix. When an instance of the billing service receives a request from the `/login` path, it is limited to an average of 100 requests per second and 500 concurrent connections.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1883,6 +1884,7 @@ rateLimit:
         requestsPerSecond: 100
         requestsMaxBurst: 500
 ```
+
 ```json
 {
   "Kind": "service-defaults",
@@ -1905,4 +1907,5 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>

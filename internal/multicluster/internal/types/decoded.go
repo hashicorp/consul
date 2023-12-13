@@ -12,4 +12,6 @@ type (
 	DecodedExportedServices          = resource.DecodedResource[*pbmulticluster.ExportedServices]
 	DecodedNamespaceExportedServices = resource.DecodedResource[*pbmulticluster.NamespaceExportedServices]
 	DecodedPartitionExportedServices = resource.DecodedResource[*pbmulticluster.PartitionExportedServices]
+
+	DecodedSamenessGroup = resource.DecodedResource[*pbmulticluster.SamenessGroup]
 )
