@@ -1134,7 +1134,7 @@
     ]
   },
   {
-    "title": "Connect services",
+    "title": "Connect service mesh",
     "routes": [
       {
         "title": "Overview",
@@ -1269,7 +1269,7 @@
     ]
   },
   {
-    "title": "Access services",
+    "title": "Secure mesh ingress",
     "routes": [
       {
         "title": "Overview",
@@ -1424,7 +1424,7 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "partition"
+        "path": "segment"
       },
       {
         "title": "Admin partition",
@@ -1433,7 +1433,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "partition/admin-partition"
+        "path": "segment/admin-partition"
       },
       {
         "title": "Namespace",
@@ -1442,15 +1442,15 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "partition/namespace"
+        "path": "segment/namespace"
       },
       {
         "title": "Network segment",
-        "path": "partition/network-segment"
+        "path": "segment/network-segment"
       },
       {
         "title": "Sameness group",
-        "path": "partition/sameness-group"
+        "path": "segment/sameness-group"
       }
     ]
   },
@@ -1833,7 +1833,7 @@
       },
       {
         "title": "Segment network",
-        "href": "partition/vm"
+        "href": "segment/vm"
       },
       {
         "title": "Link network segments",
@@ -1882,7 +1882,7 @@
       },
       {
         "title": "Segment network",
-        "href": "partition/k8s"
+        "href": "segment/k8s"
       },
       {
         "title": "Link network segments",
