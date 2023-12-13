@@ -14,7 +14,7 @@ Consul prints a log line for each rate limit request. The log provides the neces
 
 The following example log shows that RPC request from `127.0.0.1:53562` to `KVS.Apply` exceeded the limit:
 
-```text
+```text hideClipboard
 2023-02-17T10:01:15.565-0500 [DEBUG] agent.server.rpc-rate-limit: RPC 
 exceeded allowed rate limit: rpc=KVS.Apply source_addr=127.0.0.1:53562 
 limit_type=global/write limit_enforced=false
