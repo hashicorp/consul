@@ -1167,7 +1167,7 @@ func TestCatalogServiceNodes_DistanceSort(t *testing.T) {
 			r.Fatalf("err: %v", err)
 		}
 
-		assertIndex(t, resp)
+		assertIndex(r, resp)
 		nodes = obj.(structs.ServiceNodes)
 		if len(nodes) != 2 {
 			r.Fatalf("bad: %v", obj)

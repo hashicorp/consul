@@ -108,6 +108,7 @@ func WaitForTestAgent(t *testing.T, rpc rpcFn, dc string, options ...waitOption)
 	var checks structs.IndexedHealthChecks
 
 	retry.Run(t, func(r *retry.R) {
+		r.Helper()
 		dcReq := &structs.DCSpecificRequest{
 			Datacenter:   dc,
 			QueryOptions: structs.QueryOptions{Token: flat.Token},

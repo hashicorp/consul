@@ -15,7 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/acl"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
@@ -187,10 +186,12 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			require.NoError(t, err)
 			rspCh := handleResourceStream(t, stream)
 
-			// Testcase will pick one of recordLabel or artist based on scope of type.
+			// Testcase will pick one of executive, recordLabel or artist based on scope of type.
 			recordLabel, err := demo.GenerateV1RecordLabel("looney-tunes")
 			require.NoError(t, err)
 			artist, err := demo.GenerateV2Artist()
+			require.NoError(t, err)
+			executive, err := demo.GenerateV1Executive("king-arthur", "CEO")
 			require.NoError(t, err)
 
 			// Create and verify upsert event received.
@@ -198,13 +199,17 @@ func TestWatchList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			require.NoError(t, err)
 			artistRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
+			executiveRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: executive})
+			require.NoError(t, err)
 
 			var expected *pbresource.Resource
 			switch {
-			case proto.Equal(tc.typ, demo.TypeV1RecordLabel):
+			case resource.EqualType(tc.typ, demo.TypeV1RecordLabel):
 				expected = rlRsp.Resource
-			case proto.Equal(tc.typ, demo.TypeV2Artist):
+			case resource.EqualType(tc.typ, demo.TypeV2Artist):
 				expected = artistRsp.Resource
+			case resource.EqualType(tc.typ, demo.TypeV1Executive):
+				expected = executiveRsp.Resource
 			default:
 				require.Fail(t, "unsupported type", tc.typ)
 			}

@@ -220,6 +220,12 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			artistRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: artist})
 			require.NoError(t, err)
 
+			// Write a cluster scoped Executive
+			executive, err := demo.GenerateV1Executive("king-arthur", "CEO")
+			require.NoError(t, err)
+			executiveRsp, err := client.Write(ctx, &pbresource.WriteRequest{Resource: executive})
+			require.NoError(t, err)
+
 			// List and verify correct resource returned for empty tenancy units.
 			listRsp, err := client.List(ctx, &pbresource.ListRequest{
 				Type:    tc.typ,
@@ -227,10 +233,13 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			})
 			require.NoError(t, err)
 			require.Len(t, listRsp.Resources, 1)
-			if tc.typ == demo.TypeV1RecordLabel {
+			switch tc.typ {
+			case demo.TypeV1RecordLabel:
 				prototest.AssertDeepEqual(t, recordLabelRsp.Resource, listRsp.Resources[0])
-			} else {
+			case demo.TypeV1Artist:
 				prototest.AssertDeepEqual(t, artistRsp.Resource, listRsp.Resources[0])
+			case demo.TypeV1Executive:
+				prototest.AssertDeepEqual(t, executiveRsp.Resource, listRsp.Resources[0])
 			}
 		})
 	}

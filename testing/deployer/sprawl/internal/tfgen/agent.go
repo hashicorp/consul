@@ -60,10 +60,19 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 	b.add("retry_interval", "1s")
 	// }
 
-	if node.IsServer() {
-		b.addBlock("peering", func() {
-			b.add("enabled", true)
+	if node.Segment != nil {
+		b.add("segment", node.Segment.Name)
+		b.addSlice("retry_join", []string{
+			fmt.Sprintf("server.%s-consulcluster.lan:%d", node.Cluster, node.Segment.Port),
 		})
+	}
+
+	if node.Images.GreaterThanVersion(topology.MinVersionPeering) {
+		if node.IsServer() {
+			b.addBlock("peering", func() {
+				b.add("enabled", true)
+			})
+		}
 	}
 
 	b.addBlock("ui_config", func() {
@@ -85,41 +94,45 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 			certKey  = root + "/" + node.TLSCertPrefix + "-key.pem"
 		)
 
-		b.addBlock("tls", func() {
-			b.addBlock("internal_rpc", func() {
-				b.add("ca_file", caFile)
-				b.add("cert_file", certFile)
-				b.add("key_file", certKey)
-				b.add("verify_incoming", true)
-				b.add("verify_server_hostname", true)
-				b.add("verify_outgoing", true)
-			})
-			// if cfg.EncryptionTLSAPI {
-			// 	b.addBlock("https", func() {
-			// 		b.add("ca_file", caFile)
-			// 		b.add("cert_file", certFile)
-			// 		b.add("key_file", certKey)
-			// 		// b.add("verify_incoming", true)
-			// 	})
-			// }
-			if node.IsServer() {
-				b.addBlock("grpc", func() {
+		if node.Images.GreaterThanVersion(topology.MinVersionTLS) {
+			b.addBlock("tls", func() {
+				b.addBlock("internal_rpc", func() {
 					b.add("ca_file", caFile)
 					b.add("cert_file", certFile)
 					b.add("key_file", certKey)
-					// b.add("verify_incoming", true)
+					b.add("verify_incoming", true)
+					b.add("verify_server_hostname", true)
+					b.add("verify_outgoing", true)
 				})
-			}
-		})
+				// if cfg.EncryptionTLSAPI {
+				// 	b.addBlock("https", func() {
+				// 		b.add("ca_file", caFile)
+				// 		b.add("cert_file", certFile)
+				// 		b.add("key_file", certKey)
+				// 		// b.add("verify_incoming", true)
+				// 	})
+				// }
+				if node.IsServer() {
+					b.addBlock("grpc", func() {
+						b.add("ca_file", caFile)
+						b.add("cert_file", certFile)
+						b.add("key_file", certKey)
+						// b.add("verify_incoming", true)
+					})
+				}
+			})
+		}
 	}
 
 	b.addBlock("ports", func() {
-		if node.IsServer() {
-			b.add("grpc_tls", 8503)
-			b.add("grpc", -1)
-		} else {
-			b.add("grpc", 8502)
-			b.add("grpc_tls", -1)
+		if node.Images.GreaterThanVersion(topology.MinVersionPeering) {
+			if node.IsServer() {
+				b.add("grpc_tls", 8503)
+				b.add("grpc", -1)
+			} else {
+				b.add("grpc", 8502)
+				b.add("grpc_tls", -1)
+			}
 		}
 		b.add("http", 8500)
 		b.add("dns", 8600)
@@ -132,13 +145,22 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 		b.add("default_policy", "deny")
 		b.add("down_policy", "extend-cache")
 		b.add("enable_token_persistence", true)
-		b.addBlock("tokens", func() {
-			if node.IsServer() {
-				b.add("initial_management", g.sec.ReadGeneric(node.Cluster, secrets.BootstrapToken))
-			}
-			b.add("agent_recovery", g.sec.ReadGeneric(node.Cluster, secrets.AgentRecovery))
-			b.add("agent", g.sec.ReadAgentToken(node.Cluster, node.ID()))
-		})
+
+		if node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
+			b.addBlock("tokens", func() {
+				if node.IsServer() {
+					b.add("initial_management", g.sec.ReadGeneric(node.Cluster, secrets.BootstrapToken))
+				}
+				b.add("agent_recovery", g.sec.ReadGeneric(node.Cluster, secrets.AgentRecovery))
+				b.add("agent", g.sec.ReadAgentToken(node.Cluster, node.ID()))
+			})
+		} else {
+			b.addBlock("tokens", func() {
+				if node.IsServer() {
+					b.add("master", g.sec.ReadGeneric(node.Cluster, secrets.BootstrapToken))
+				}
+			})
+		}
 	})
 
 	if node.IsServer() {
@@ -194,8 +216,19 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 				}
 			})
 		}
+
+		if cluster.Segments != nil {
+			b.format("segments = [")
+			for name, port := range cluster.Segments {
+				b.format("{")
+				b.add("name", name)
+				b.add("port", port)
+				b.format("},")
+			}
+			b.format("]")
+		}
 	} else {
-		if cluster.Enterprise {
+		if cluster.Enterprise && node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
 			b.add("partition", node.Partition)
 		}
 	}

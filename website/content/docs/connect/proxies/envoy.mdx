@@ -39,9 +39,9 @@ Consul supports **four major Envoy releases** at the beginning of each major Con
 
 | Consul Version      | Compatible Envoy Versions                                                          |
 | ------------------- | -----------------------------------------------------------------------------------|
+| 1.18.x              | 1.28.0, 1.27.2, 1.26.6, 1.25.11                                                    |
 | 1.17.x              | 1.27.2, 1.26.6, 1.25.11, 1.24.12                                                   |
 | 1.16.x              | 1.26.6, 1.25.11, 1.24.12, 1.23.12                                                  |
-| 1.15.x              | 1.25.11, 1.24.12, 1.23.12, 1.22.11                                                 |
 
 ### Envoy and Consul Dataplane
 
@@ -193,7 +193,7 @@ the [`sidecar_service`](/consul/docs/connect/proxies/deploy-sidecar-services) bl
 
 - `envoy_telemetry_collector_bind_socket_dir` - Specifies the directory where Envoy creates a Unix socket.
   Envoy sends metrics to the socket where a Consul telemetry collector can collect them.
-  The socket is not configured by default. 
+  The socket is not configured by default.
   Enabling this sets Envoy's [`stats_flush_interval`](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-stats-flush-interval) to one minute if `envoy_stats_flush_interval` is unset and if no other stats sinks are configured, like `envoy_dogstats_url`, for instance.
 
 The [Advanced Configuration](#advanced-configuration) section describes additional configurations that allow incremental or complete control over the bootstrap configuration generated.
@@ -356,6 +356,8 @@ defaults that are inherited by all services.
   - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections.
   - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
+- `xds_fetch_timeout_ms` - In milliseconds, the amount of time for Envoy to wait for EDS and RDS configuration before timing out. If not specified, this field uses Envoy's default value of `15000`, or 15 seconds. When an Envoy instance is configured with a large number of upstreams that take a significant amount of time to populate with data, setting this field to a higher value may prevent temporary disruption caused by unexpected timeouts.
 
 ### Proxy Upstream Config Options
 

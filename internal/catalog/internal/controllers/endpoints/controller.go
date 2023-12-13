@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -38,13 +39,13 @@ type WorkloadMapper interface {
 
 // ServiceEndpointsController creates a controller to perform automatic endpoint management for
 // services.
-func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controller {
+func ServiceEndpointsController(workloadMap WorkloadMapper) *controller.Controller {
 	if workloadMap == nil {
 		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
 	}
 
-	return controller.ForType(pbcatalog.ServiceEndpointsType).
-		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbcatalog.ServiceEndpointsType)).
+	return controller.NewController(StatusKey, pbcatalog.ServiceEndpointsType).
+		WithWatch(pbcatalog.ServiceType, dependency.ReplaceType(pbcatalog.ServiceEndpointsType)).
 		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
 		WithReconciler(newServiceEndpointsReconciler(workloadMap))
 }

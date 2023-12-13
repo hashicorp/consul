@@ -1,0 +1,20 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
+with-expecter: true
+all: true
+recursive: true
+# We don't want the mocks within proto-public to prevent forcing a dependency
+# of the testify library on the modules usage. The mocks are only for
+# internal testing purposes. Other consumers can generated the mocks into
+# their own code base.
+dir: "grpcmocks/{{.InterfaceDirRelative}}"
+outpkg: "mock{{.PackageName}}"
+mockname: "{{.InterfaceName}}"
+packages:
+  github.com/hashicorp/consul/proto-public/pbacl:
+  github.com/hashicorp/consul/proto-public/pbconnectca:
+  github.com/hashicorp/consul/proto-public/pbdataplane:
+  github.com/hashicorp/consul/proto-public/pbserverdiscovery:
+  github.com/hashicorp/consul/proto-public/pbresource:
+  github.com/hashicorp/consul/proto-public/pbdns:
