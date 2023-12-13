@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func TestValidateNamespaceTrafficPermissions_ParseError(t *testing.T) {
@@ -526,7 +527,6 @@ func TestNamespaceTrafficPermissionsACLs(t *testing.T) {
 
 	type testcase struct {
 		rules   string
-		check   func(t *testing.T, authz acl.Authorizer, res *pbresource.Resource)
 		readOK  string
 		writeOK string
 		listOK  string
@@ -589,6 +589,14 @@ func TestNamespaceTrafficPermissionsACLs(t *testing.T) {
 		})
 	}
 
+	// TODO: remove once namespaces are available in CE
+	enterpriseAllow := func() string {
+		if versiontest.IsEnterprise() {
+			return ALLOW
+		}
+		return DENY
+	}
+
 	cases := map[string]testcase{
 		"no rules": {
 			rules:   ``,
@@ -608,7 +616,18 @@ func TestNamespaceTrafficPermissionsACLs(t *testing.T) {
 			writeOK: ALLOW,
 			listOK:  DEFAULT,
 		},
-		// TODO: once namespaces are available in CE, modify these tests to namespace rules
+		"namespace read": {
+			rules:   `namespace "default" { policy = "read" }`,
+			readOK:  enterpriseAllow(),
+			writeOK: DENY,
+			listOK:  DEFAULT,
+		},
+		"namespace write": {
+			rules:   `namespace "default" { policy = "write" }`,
+			readOK:  enterpriseAllow(),
+			writeOK: enterpriseAllow(),
+			listOK:  DEFAULT,
+		},
 	}
 
 	for name, tc := range cases {
