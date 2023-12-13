@@ -243,8 +243,8 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 	return nil
 }
 
-func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy) error {
-	if scope == resource.ScopePartition && tenancy.Namespace != "" {
+func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy, allowWildcards bool) error {
+	if scope == resource.ScopePartition && tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
 		return status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped resource %s cannot have a namespace. got: %s",
@@ -252,8 +252,9 @@ func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, 
 			tenancy.Namespace,
 		)
 	}
+
 	if scope == resource.ScopeCluster {
-		if tenancy.Partition != "" {
+		if tenancy.Partition != "" && (!allowWildcards || tenancy.Partition != storage.Wildcard) {
 			return status.Errorf(
 				codes.InvalidArgument,
 				"cluster scoped resource %s cannot have a partition: %s",
@@ -261,7 +262,7 @@ func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, 
 				tenancy.Partition,
 			)
 		}
-		if tenancy.Namespace != "" {
+		if tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
 			return status.Errorf(
 				codes.InvalidArgument,
 				"cluster scoped resource %s cannot have a namespace: %s",

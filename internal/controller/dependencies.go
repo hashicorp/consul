@@ -71,7 +71,7 @@ func (m *Manager) CalculateDependencies(registrations []resource.Registration) D
 			watches = append(watches, typeToString(w.watchedType))
 		}
 
-		out[typeToString(c.managedType)] = watches
+		out[typeToString(c.managedTypeWatch.watchedType)] = watches
 	}
 
 	return out

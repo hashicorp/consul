@@ -24,8 +24,8 @@ const (
 	// common.go for the full list.
 )
 
-func Controller(registry resource.Registry) controller.Controller {
-	return controller.ForType(pbtenancy.NamespaceType).
+func Controller(registry resource.Registry) *controller.Controller {
+	return controller.NewController(StatusKey, pbtenancy.NamespaceType).
 		WithReconciler(&Reconciler{Registry: registry})
 }
 
