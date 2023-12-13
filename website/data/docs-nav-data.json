@@ -2033,6 +2033,10 @@
         "path": "cts/requirements"
       },
       {
+        "title": "Compatibility",
+        "path": "cts/compatibility"
+      },
+      {
         "title": "Security model",
         "href": "secure/security-model/cts"
       },
@@ -2043,6 +2047,10 @@
       {
         "title": "Configure CTS",
         "path": "cts/configure"
+      },
+      {
+        "title": "Run CTS",
+        "path": "cts/run"
       },
       {
         "title": "Configure CTS task",
@@ -2092,7 +2100,7 @@
         ]
       },
       {
-        "title": "Reference",
+        "title": "Configuration reference",
         "href": "reference/cts"
       },
       {
@@ -2100,19 +2108,19 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "reference/cts/api"
+            "href": "reference/cts/api"
           },
           {
             "title": "Status",
-            "path": "reference/cts/api/status"
+            "href": "reference/cts/api/status"
           },
           {
             "title": "Tasks",
-            "path": "reference/cts/api/tasks"
+            "href": "reference/cts/api/tasks"
           },
           {
             "title": "Health",
-            "path": "reference/cts/api/health"
+            "href": "reference/cts/api/health"
           }
         ]
       },
@@ -2121,15 +2129,15 @@
         "routes": [
           {
             "title": "Overview",
-            "path": "reference/cts/cli"
+            "href": "reference/cts/cli"
           },
           {
             "title": "task",
-            "path": "reference/cts/cli/task"
+            "href": "reference/cts/cli/task"
           },
           {
             "title": "start",
-            "path": "reference/cts/cli/start"
+            "href": "reference/cts/cli/start"
           }
         ]
       }
@@ -2313,6 +2321,53 @@
           {
             "title": "Terminating gateways",
             "path": "reference/config-entry/terminating-gateway"
+          }
+        ]
+      },
+      {
+        "title": "Consul-Terraform-Sync (CTS)",
+        "routes": [
+          {
+            "title": "Configuration reference",
+            "path": "reference/cts"
+          },
+          {
+            "title": "API",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/cts/api"
+              },
+              {
+                "title": "Status",
+                "path": "reference/cts/api/status"
+              },
+              {
+                "title": "Tasks",
+                "path": "reference/cts/api/tasks"
+              },
+              {
+                "title": "Health",
+                "path": "reference/cts/api/health"
+              }
+            ]
+          },
+          {
+            "title": "CLI",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/cts/cli"
+              },
+              {
+                "title": "task",
+                "path": "reference/cts/cli/task"
+              },
+              {
+                "title": "start",
+                "path": "reference/cts/cli/start"
+              }
+            ]
           }
         ]
       },
