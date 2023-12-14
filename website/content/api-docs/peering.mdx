@@ -184,8 +184,25 @@ $ curl --header "X-Consul-Token: b23b3cad-5ea1-4413-919e-c76884b9ad60" \
     "PeerServerAddresses": [
         "10.0.0.1:8300"
     ],
+    "StreamStatus": {
+        "ImportedServices": [
+                  "db",
+            ],
+        "ExportedServices": [
+              "backend",
+              "frontend",
+              "web"
+        ],
+        "LastHeartbeat": "2023-12-13T06:31:28.227392Z",
+        "LastReceive": "2023-12-13T06:31:28.227392Z",
+        "LastSend": "2023-12-05T11:02:57.528676Z"
+    },
     "CreateIndex": 89,
-    "ModifyIndex": 89
+    "ModifyIndex": 89,
+    "Remote": {
+        "Partition": "",
+        "Datacenter": "east"
+    }
 }
 ```
 
@@ -293,8 +310,25 @@ $ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
         "PeerServerAddresses": [
             "10.0.0.1:8300"
         ],
+        "StreamStatus": {
+            "ImportedServices": [
+                  "db",
+            ],
+            "ExportedServices": [
+                  "backend",
+                  "frontend",
+                  "web"
+            ],
+            "LastHeartbeat": "2023-12-13T06:31:28.227392Z",
+            "LastReceive": "2023-12-13T06:31:28.227392Z",
+            "LastSend": "2023-12-05T11:02:57.528676Z"
+        },
         "CreateIndex": 89,
-        "ModifyIndex": 89
+        "ModifyIndex": 89,
+        "Remote": {
+            "Partition": "",
+            "Datacenter": "east"
+        }
     },
     {
         "ID": "1460ada9-26d2-f30d-3359-2968aa7dc47d",
@@ -304,8 +338,22 @@ $ curl --header "X-Consul-Token: 0137db51-5895-4c25-b6cd-d9ed992f4a52" \
         "Meta": {
             "env": "production"
         },
+        "StreamStatus": {
+            "ImportedServices": null,
+            "ExportedServices": [
+                  "backend",
+                  "frontend",
+            ],
+            "LastHeartbeat": "2023-12-13T06:31:28.227392Z",
+            "LastReceive": "2023-12-13T06:31:28.227392Z",
+            "LastSend": "2023-12-05T11:02:57.528676Z"
+        },
         "CreateIndex": 109,
-        "ModifyIndex": 119
+        "ModifyIndex": 119,
+        "Remote": {
+            "Partition": "",
+            "Datacenter": "east"
+        }
     }
 ]
 ```
