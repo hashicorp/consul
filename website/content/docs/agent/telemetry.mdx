@@ -595,7 +595,29 @@ These metrics are used to monitor the health of the Consul servers.
 ** Requirements: **
 * Consul 1.12.0+
 
-Label based RPC metrics were added in Consul 1.12.0 as a Beta feature to better understand the workload on a Consul server and, where that workload is coming from. The following metric(s) provide that insight
+The following label-based RPC metrics provide insight about the workload on a Consul server and the source of the workload.
+
+The [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter) telemetry configuration setting blocks or enables all RPC metric method calls. Specify the RPC metrics you want to allow in the `prefix_filter`:
+
+<CodeTabs heading="Example prefix_filter allowing all RPC metrics">
+
+```hcl
+telemetry {
+  prefix_filter = ["+consul.rpc.server.call"]
+}
+```
+
+```json
+{
+  "telemetry": {
+    "prefix_filter": [
+      "+consul.rpc.server.call"
+    ]
+  }
+}
+```
+
+</CodeTabs>
 
 | Metric                                | Description                                               | Unit   | Type      |
 | ------------------------------------- | --------------------------------------------------------- | ------ | --------- |
@@ -644,7 +666,6 @@ Here is a Prometheus style example of an RPC metric and its labels:
 
 </CodeBlockConfig>
 
-Any metric in this section can be turned off with the [`prefix_filter`](/consul/docs/agent/config/config-files#telemetry-prefix_filter).
 
 ## Cluster Health
 
