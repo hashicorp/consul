@@ -863,7 +863,14 @@ func appendTelemetryCollectorConfig(args *BootstrapTplArgs, telemetryCollectorBi
 	args.StaticClustersJSON += fmt.Sprintf(`{
 		"name": "consul_telemetry_collector_loopback",
 		"type": "STATIC",
-		"http2_protocol_options": {},
+		"typed_extension_protocol_options": {
+		  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+			"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+			"explicit_http_config": {
+			  "http2_protocol_options": {}
+			}
+		  }
+		},
 		"loadAssignment": {
 		  "clusterName": "consul_telemetry_collector_loopback",
 		  "endpoints": [
