@@ -5,6 +5,10 @@ BREAKING CHANGES:
 * api: RaftLeaderTransfer now requires an id string. An empty string can be specified to keep the old behavior. [[GH-17107](https://github.com/hashicorp/consul/issues/17107)]
 * audit-logging: **(Enterprise only)** allowing timestamp based filename only on rotation. initially the filename will be just file.json [[GH-18668](https://github.com/hashicorp/consul/issues/18668)]
 
+DEPRECATIONS:
+
+* cli: Deprecate the `-admin-access-log-path` flag from `consul connect envoy` command in favor of: `-admin-access-log-config`. [[GH-15946](https://github.com/hashicorp/consul/issues/15946)]
+
 SECURITY:
 
 * Update `golang.org/x/net` to v0.17.0 to address [CVE-2023-39325](https://nvd.nist.gov/vuln/detail/CVE-2023-39325)
