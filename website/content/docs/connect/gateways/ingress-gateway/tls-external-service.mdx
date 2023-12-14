@@ -6,7 +6,7 @@ description: Learn how to configure ingress gateways to serve TLS certificates f
 
 # Serve custom TLS certificates from an external service
 
-This is an advanced topic that describes how to configure ingress gateways to serve TLS certificates sourced from an external service to inbound traffic using secret discovery service (SDS). SDS is a low-level feature designed for developers building integrations with custom TLS management solutions. For instructions on more common ingress gateway implementations, refer to [Implement an ingress gateway](/consul/docs/connect/gateways/ingress-gateway/usage). 
+This is an advanced topic that describes how to configure ingress gateways to serve TLS certificates sourced from an external service to inbound traffic using secret discovery service (SDS). SDS is a low-level feature designed for developers building integrations with custom TLS management solutions. For instructions on more common ingress gateway implementations, refer to [Implement an ingress gateway](/consul/docs/connect/gateways/ingress-gateway/usage).
 
 ## Overview
 
@@ -17,7 +17,7 @@ The following process describes the general procedure for configuring ingress ga
 1. Configure TLS client authentication
 1. Start Envoy.
 1. Configure SDS settings in an ingress gateway configuration entry.
-1. Register the ingress gateway configuration entry with Consul.  
+1. Register the ingress gateway configuration entry with Consul.
 
 ## Requirements
 
@@ -30,7 +30,7 @@ The following process describes the general procedure for configuring ingress ga
 
 If ACLs are enabled, you must present a token when registering ingress gateways that grant the following permissions:
 
-- `service:write` for the ingress gateway's service name 
+- `service:write` for the ingress gateway's service name
 - `service:read` for all services in the ingress gateway's configuration entry
 - `node:read` for all nodes of the services in the ingress gateway's configuration entry.
 
@@ -40,11 +40,11 @@ These privileges authorize the token to route communications to other services i
 
 You must define one or more additional static clusters in the ingress gateway service definition for each Envoy proxy associated with the gateway. The additional clusters define how Envoy should connect to the required SDS services.
 
-Configure the static clusters in the [`Proxy.Config.envoy_envoy_extra_static_clusters_json`](/consul/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) parameter in the service definition. 
+Configure the static clusters in the [`Proxy.Config.envoy_envoy_extra_static_clusters_json`](/consul/docs/connect/proxies/envoy#envoy_extra_static_clusters_json) parameter in the service definition.
 
 The clusters must provide connection information and any necessary authentication information, such as mTLS credentials.
 
-You must manually register the ingress gateway with Consul proxy to define extra clusters in Envoy's bootstrap configuration. You can not use the `-register` flag with `consul connect envoy -gateway=ingress` to automatically register the proxy to define static clusters. 
+You must manually register the ingress gateway with Consul proxy to define extra clusters in Envoy's bootstrap configuration. You can not use the `-register` flag with `consul connect envoy -gateway=ingress` to automatically register the proxy to define static clusters.
 
 In the following example, the `public-ingress` gateway includes a static cluster named `sds-cluster` that specifies paths to the SDS certificate and SDS certification validation files:
 
@@ -62,7 +62,14 @@ Services {
 {
   "name": "sds-cluster",
   "connect_timeout": "5s",
-  "http2_protocol_options": {},
+  "typed_extension_protocol_options": {
+    "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+      "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+      "explicit_http_config": {
+        "http2_protocol_options": {}
+      }
+    }
+  },
   "type": "LOGICAL_DNS",
   "transport_socket": {
     "name":"tls",
@@ -114,9 +121,9 @@ EOF
 
 </CodeBlockConfig>
 
-Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) for details about configuration parameters for SDS clusters. 
+Refer to the [Envoy documentation](https://www.envoyproxy.io/docs/envoy/v1.17.2/api-v3/config/bootstrap/v3/bootstrap.proto#envoy-v3-api-field-config-bootstrap-v3-bootstrap-staticresources-clusters) for details about configuration parameters for SDS clusters.
 
-## Register the ingress gateway service definition 
+## Register the ingress gateway service definition
 
 Issue the `consul services register` command on the Consul agent on the Envoy proxy's node to register the service. The following example command registers an ingress gateway proxy from a `public-ingress.hcl` file:
 
@@ -193,19 +200,19 @@ Refer to [Consul Connect Envoy](/consul/commands/connect/envoy) for additional i
 Create an ingress gateway configuration entry that enables the gateway to use certificates from SDS. The configuration entry also maps downstream ingress listeners to upstream services. Configure the following fields:
 
 - [`Kind`](/consul/docs/connect/config-entries/ingress-gateway#kind): Set the value to `ingress-gateway`.
-- [`Name`](/consul/docs/connect/config-entries/ingress-gateway#name): Consul applies the configuration entry settings to ingress gateway proxies with names that match the `Name` field.  
-- [`TLS`](/consul/docs/connect/config-entries/ingress-gateway#tls): The main `TLS` parameter for the configuration entry holds the SDS configuration. You can also specify TLS configurations per listener and per service. 
+- [`Name`](/consul/docs/connect/config-entries/ingress-gateway#name): Consul applies the configuration entry settings to ingress gateway proxies with names that match the `Name` field.
+- [`TLS`](/consul/docs/connect/config-entries/ingress-gateway#tls): The main `TLS` parameter for the configuration entry holds the SDS configuration. You can also specify TLS configurations per listener and per service.
   - [`TLS.SDS`](/consul/docs/connect/config-entries/ingress-gateway#tls-sds): The `SDS` map includes the following configuration settings:
-    - [`ClusterName`](/consul/docs/connect/config-entries/ingress-gateway#tls-sds-clustername): Specifies the name of the cluster you specified when [configuring the SDS cluster](#configure-static-SDS-clusters). 
-    - [`CertResource`](/consul/docs/connect/config-entries/ingress-gateway#tls-sds-certresource): Specifies the name of the certificate resource to load.   
+    - [`ClusterName`](/consul/docs/connect/config-entries/ingress-gateway#tls-sds-clustername): Specifies the name of the cluster you specified when [configuring the SDS cluster](#configure-static-SDS-clusters).
+    - [`CertResource`](/consul/docs/connect/config-entries/ingress-gateway#tls-sds-certresource): Specifies the name of the certificate resource to load.
 - [`Listeners`](/consul/docs/connect/config-entries/ingress-gateway#listeners): Specify one or more listeners.
    - [`Listeners.Port`](/consul/docs/connect/config-entries/ingress-gateway#listeners-port): Specify a port for the listener. Each listener is uniquely identified by its port number.
    - [`Listeners.Protocol`](/consul/docs/connect/config-entries/ingress-gateway#listeners-protocol): The default protocol is `tcp`, but you must specify the protocol used by the services you want to allow traffic from.
-   - [`Listeners.Services`](/consul/docs/connect/config-entries/ingress-gateway#listeners-services): The `Services` field contains the services that you want to expose to upstream services. The field contains several options and sub-configurations that enable granular control over ingress traffic, such as health check and TLS configurations.  
+   - [`Listeners.Services`](/consul/docs/connect/config-entries/ingress-gateway#listeners-services): The `Services` field contains the services that you want to expose to upstream services. The field contains several options and sub-configurations that enable granular control over ingress traffic, such as health check and TLS configurations.
 
-For Consul Enterprise service meshes, you may also need to configure the [`Partition`](/consul/docs/connect/config-entries/ingress-gateway#partition) and [`Namespace`](/consul/docs/connect/config-entries/ingress-gateway#namespace) fields for the gateway and for each exposed service. 
+For Consul Enterprise service meshes, you may also need to configure the [`Partition`](/consul/docs/connect/config-entries/ingress-gateway#partition) and [`Namespace`](/consul/docs/connect/config-entries/ingress-gateway#namespace) fields for the gateway and for each exposed service.
 
-Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/config-entries/ingress-gateway) for details about the supported parameters. 
+Refer to [Ingress gateway configuration entry reference](/consul/docs/connect/config-entries/ingress-gateway) for details about the supported parameters.
 
 The following example directs Consul to retrieve `example.com-public-cert` certificates from an SDS cluster named `sds-cluster` and serve them to all listeners:
 
