@@ -1,0 +1,3 @@
+```release-note:deprecation
+cli: Deprecate the `-admin-access-log-path` flag from `consul connect envoy` command in favor of: `-admin-access-log-config`.
+```
