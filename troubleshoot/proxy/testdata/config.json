@@ -1711,7 +1711,14 @@
        "name": "consul-dataplane",
        "type": "STATIC",
        "connect_timeout": "1s",
-       "http2_protocol_options": {},
+       "typed_extension_protocol_options": {
+        "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+         "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+         "explicit_http_config": {
+          "http2_protocol_options": {}
+         }
+        }
+       },
        "load_assignment": {
         "cluster_name": "consul-dataplane",
         "endpoints": [
@@ -1761,7 +1768,15 @@
      }
     },
     "admin": {
-     "access_log_path": "/dev/null",
+     "access_log": [
+      {
+       "name": "envoy.access_loggers.file",
+       "typed_config": {
+        "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+        "path": "/dev/null"
+       }
+      }
+     ],
      "address": {
       "socket_address": {
        "address": "127.0.0.1",
@@ -1880,7 +1895,14 @@
       "name": "consul-dataplane",
       "type": "STATIC",
       "connect_timeout": "1s",
-      "http2_protocol_options": {},
+      "typed_extension_protocol_options": {
+       "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+        "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+        "explicit_http_config": {
+         "http2_protocol_options": {}
+        }
+       }
+      },
       "load_assignment": {
        "cluster_name": "consul-dataplane",
        "endpoints": [
