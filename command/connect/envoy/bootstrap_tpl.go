@@ -175,7 +175,13 @@ const bootstrapTemplate = `{
     "access_log": [
 	{{- range $index, $element := .AdminAccessLogConfig}}
         {{if $index}},{{end}}
-        {{$element}}
+	  {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "{{$element}}"
+        }
+      }
     {{end}}],
 	{{- end}}
     "address": {
