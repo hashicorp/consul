@@ -13,12 +13,12 @@ func TestMergeFlagsIntoGRPCConfig(t *testing.T) {
 	t.Run("MergeFlagsIntoGRPCConfig", func(t *testing.T) {
 		// Setup GRPCFlags with some flag values
 		flags := &GRPCFlags{
-			address:  StringValue{v: stringPointer("https://example.com:8502")},
-			grpcTLS:  BoolValue{v: boolPointer(true)},
-			certFile: StringValue{v: stringPointer("/path/to/client.crt")},
-			keyFile:  StringValue{v: stringPointer("/path/to/client.key")},
-			caFile:   StringValue{v: stringPointer("/path/to/ca.crt")},
-			caPath:   StringValue{v: stringPointer("/path/to/cacerts")},
+			address:  TValue[string]{v: stringPointer("https://example.com:8502")},
+			grpcTLS:  TValue[bool]{v: boolPointer(true)},
+			certFile: TValue[string]{v: stringPointer("/path/to/client.crt")},
+			keyFile:  TValue[string]{v: stringPointer("/path/to/client.key")},
+			caFile:   TValue[string]{v: stringPointer("/path/to/ca.crt")},
+			caPath:   TValue[string]{v: stringPointer("/path/to/cacerts")},
 		}
 
 		// Setup GRPCConfig with some initial values

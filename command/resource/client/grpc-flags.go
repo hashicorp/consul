@@ -9,12 +9,12 @@ import (
 )
 
 type GRPCFlags struct {
-	address  StringValue
-	grpcTLS  BoolValue
-	certFile StringValue
-	keyFile  StringValue
-	caFile   StringValue
-	caPath   StringValue
+	address  TValue[string]
+	grpcTLS  TValue[bool]
+	certFile TValue[string]
+	keyFile  TValue[string]
+	caFile   TValue[string]
+	caPath   TValue[string]
 }
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config

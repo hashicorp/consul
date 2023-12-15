@@ -48,62 +48,42 @@ func removeSchemaFromGRPCAddress(addr string) string {
 	return grpcAddr
 }
 
-type StringValue struct {
-	v *string
+type TValue[T string | bool] struct {
+	v *T
 }
 
 // Set implements the flag.Value interface.
-func (s *StringValue) Set(v string) error {
-	if s.v == nil {
-		s.v = new(string)
-	}
-	*(s.v) = v
-	return nil
-}
-
-// String implements the flag.Value interface.
-func (s *StringValue) String() string {
-	var current string
-	if s.v != nil {
-		current = *(s.v)
-	}
-	return current
-}
-
-// Merge will overlay this value if it has been set.
-func (s *StringValue) Merge(onto *string) {
-	if s.v != nil {
-		*onto = *(s.v)
-	}
-}
-
-// BoolValue provides a flag value that's aware if it has been set.
-type BoolValue struct {
-	v *bool
-}
-
-// Set implements the flag.Value interface.
-func (b *BoolValue) Set(v string) error {
-	if b.v == nil {
-		b.v = new(bool)
+func (t *TValue[T]) Set(v string) error {
+	if t.v == nil {
+		t.v = new(T)
 	}
 	var err error
-	*(b.v), err = strconv.ParseBool(v)
+	// have to use interface{}(t.v) to do type assertion
+	switch interface{}(t.v).(type) {
+	case *string:
+		// have to use interface{}(t.v).(*string) to assert t.v as *string
+		*(interface{}(t.v).(*string)) = v
+	case *bool:
+		// have to use interface{}(t.v).(*bool) to assert t.v as *bool
+		*(interface{}(t.v).(*bool)), err = strconv.ParseBool(v)
+	default:
+		err = fmt.Errorf("unsupported type %T", t.v)
+	}
 	return err
 }
 
 // String implements the flag.Value interface.
-func (b *BoolValue) String() string {
-	var current bool
-	if b.v != nil {
-		current = *(b.v)
+func (t *TValue[T]) String() string {
+	var current T
+	if t.v != nil {
+		current = *(t.v)
 	}
 	return fmt.Sprintf("%v", current)
 }
 
 // Merge will overlay this value if it has been set.
-func (b *BoolValue) Merge(onto *bool) {
-	if b.v != nil {
-		*onto = *(b.v)
+func (t *TValue[T]) Merge(onto *T) {
+	if t.v != nil && onto != nil {
+		*onto = *(t.v)
 	}
 }
