@@ -1,5 +1,4 @@
 ## 1.16.4 (December 12, 2023)
-
 SECURITY:
 
 * Update `github.com/golang-jwt/jwt/v4` to v4.5.0 to address [PRISMA-2022-0270](https://github.com/golang-jwt/jwt/issues/258). [[GH-19705](https://github.com/hashicorp/consul/issues/19705)]
