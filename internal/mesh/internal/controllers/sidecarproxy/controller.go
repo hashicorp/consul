@@ -11,6 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
@@ -32,7 +33,7 @@ func Controller(
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
 	defaultAllow bool,
-) controller.Controller {
+) *controller.Controller {
 	if cache == nil || trustDomainFetcher == nil {
 		panic("cache and trust domain fetcher are required")
 	}
@@ -84,11 +85,11 @@ func Controller(
 		    ComputedTrafficPermissions: find workloads in cache stored for this CTP=Workload, workloads=>PST reconcile requests
 	*/
 
-	return controller.ForType(pbmesh.ProxyStateTemplateType).
+	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.ServiceType, cache.MapService).
-		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
-		WithWatch(pbmesh.ComputedExplicitDestinationsType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
-		WithWatch(pbmesh.ComputedProxyConfigurationType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedExplicitDestinationsType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedRoutesType, cache.MapComputedRoutes).
 		WithWatch(pbauth.ComputedTrafficPermissionsType, cache.MapComputedTrafficPermissions).
 		WithReconciler(&reconciler{

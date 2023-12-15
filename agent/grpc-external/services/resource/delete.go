@@ -189,7 +189,7 @@ func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resou
 		return nil, err
 	}
 
-	if err := validateScopedTenancy(reg.Scope, reg.Type, req.Id.Tenancy); err != nil {
+	if err := validateScopedTenancy(reg.Scope, reg.Type, req.Id.Tenancy, false); err != nil {
 		return nil, err
 	}
 

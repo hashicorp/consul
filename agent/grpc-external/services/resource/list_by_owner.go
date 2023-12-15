@@ -104,7 +104,7 @@ func (s *Server) ensureListByOwnerRequestValid(req *pbresource.ListByOwnerReques
 		return nil, err
 	}
 
-	if err = validateScopedTenancy(reg.Scope, reg.Type, req.Owner.Tenancy); err != nil {
+	if err = validateScopedTenancy(reg.Scope, reg.Type, req.Owner.Tenancy, true); err != nil {
 		return nil, err
 	}
 
