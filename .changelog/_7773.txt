@@ -1,0 +1,3 @@
+```release-note:bug
+prepared-query: (Enterprise-only) Fix issue where sameness-group failover targets to peers would attempt to query data from the default partition, rather than the sameness-group's partition always.
+```
