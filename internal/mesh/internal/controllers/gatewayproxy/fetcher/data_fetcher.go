@@ -81,3 +81,18 @@ func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.D
 
 	return dec, nil
 }
+
+func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		// We also need to make sure to delete the associated proxy from cache.
+		// TODO f.cache.UntrackWorkload(id)
+		return nil, nil
+	}
+
+	// TODO f.cache.TrackWorkload(dec)
+
+	return dec, err
+}
