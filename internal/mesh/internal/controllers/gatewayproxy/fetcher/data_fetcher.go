@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
@@ -51,6 +52,21 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	}
 
 	// TODO f.cache.TrackProxyStateTemplate(dec)
+
+	return dec, err
+}
+
+func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
+	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		// We also need to make sure to delete the associated proxy from cache.
+		// TODO f.cache.UntrackWorkload(id)
+		return nil, nil
+	}
+
+	// TODO f.cache.TrackWorkload(dec)
 
 	return dec, err
 }
