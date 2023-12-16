@@ -6,6 +6,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/resource"
@@ -41,27 +42,24 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", ControllerName)
 	rt.Logger.Trace("reconciling proxy state template")
 
-	var gatewayType *pbresource.Type
-
-	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
-	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
-	res, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: workloadID})
-	if err != nil || res.Resource == nil || res.Resource.Id == nil {
-		rt.Logger.Error("error reading the associated workload", "error", err)
-		return err
-	} else {
-		if gatewayKind := res.Resource.Metadata["gateway-kind"]; gatewayKind == "" {
-			rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
-			return nil
-		}
-	}
-
 	// Instantiate a data fetcher to fetch all reconciliation data.
 	dataFetcher := fetcher.New(rt.Client, r.cache)
 
+	workloadID := resource.ReplaceType(pbcatalog.WorkloadType, req.ID)
+	workload, err := dataFetcher.FetchWorkload(ctx, workloadID)
+	if err != nil {
+		rt.Logger.Error("error reading the associated workload", "error", err)
+		return err
+	}
+
+	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
+	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind == "" {
+		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
+		return nil
+	}
+
 	// Check if the gateway exists.
-	// TODO Switch fetch method based on gatewayType
-	gatewayID := resource.ReplaceType(gatewayType, req.ID)
+	gatewayID := resource.ReplaceType(pbmesh.MeshGatewayType, req.ID)
 	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated gateway", "error", err)
@@ -81,14 +79,13 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	if proxyStateTemplate == nil {
+		req.ID.Uid = ""
 		rt.Logger.Trace("proxy state template for this gateway doesn't yet exist; generating a new one")
 	}
 
-	if proxyStateTemplate == nil {
-		req.ID.Uid = ""
-	}
+	newPST := builder.NewProxyStateTemplateBuilder(workload).Build()
 
-	proxyTemplateData, err := anypb.New(proxyStateTemplate)
+	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {
 		rt.Logger.Error("error creating proxy state template data", "error", err)
 		return err
@@ -98,9 +95,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	// Write the created/updated ProxyStateTemplate with MeshGateway owner
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
-			Id:    req.ID,
-			Owner: resource.ReplaceType(gatewayType, req.ID),
-			Data:  proxyTemplateData,
+			Id:       req.ID,
+			Metadata: map[string]string{"gateway-kind": workload.Metadata["gateway-kind"]},
+			Data:     proxyTemplateData,
 		},
 	})
 	if err != nil {
