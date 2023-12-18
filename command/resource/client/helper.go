@@ -82,8 +82,12 @@ func (t *TValue[T]) String() string {
 }
 
 // Merge will overlay this value if it has been set.
-func (t *TValue[T]) Merge(onto *T) {
-	if t.v != nil && onto != nil {
+func (t *TValue[T]) Merge(onto *T) error {
+	if onto == nil {
+		return fmt.Errorf("onto is nil")
+	}
+	if t.v != nil {
 		*onto = *(t.v)
 	}
+	return nil
 }

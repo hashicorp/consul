@@ -19,7 +19,7 @@ type GRPCFlags struct {
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config
 // caller has to parse the CLI args before loading them into flag values
-// flag values take precedence over the environment values
+// The flags take precedence over the environment values
 func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	if strings.HasPrefix(strings.ToLower(f.address.String()), "https://") {
 		c.GRPCTLS = true
@@ -27,7 +27,7 @@ func (f *GRPCFlags) MergeFlagsIntoGRPCConfig(c *GRPCConfig) {
 	f.address.Set(removeSchemaFromGRPCAddress(f.address.String()))
 	f.address.Merge(&c.Address)
 	// won't overwrite the value if it's false
-	if *f.grpcTLS.v {
+	if f.grpcTLS.v != nil && *f.grpcTLS.v {
 		f.grpcTLS.Merge(&c.GRPCTLS)
 	}
 	f.certFile.Merge(&c.CertFile)
