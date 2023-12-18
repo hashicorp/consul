@@ -40,6 +40,17 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			// TODO(nathancoleman) Fetch the MeshGateway and use WorkloadSelector from there
 			Prefixes: []string{req.ID.Name},
 		},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
+				TargetPort:  "wan",
+				VirtualPort: 8443,
+			},
+			{
+				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
+				TargetPort: "mesh",
+			},
+		},
 	}
 
 	serviceData, err := anypb.New(service)
