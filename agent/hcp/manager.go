@@ -10,6 +10,7 @@ import (
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/agent/hcp/scada"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-hclog"
 )
@@ -20,8 +21,9 @@ var (
 )
 
 type ManagerConfig struct {
-	Client      hcpclient.Client
-	CloudConfig config.CloudConfig
+	Client        hcpclient.Client
+	CloudConfig   config.CloudConfig
+	SCADAProvider scada.Provider
 
 	StatusFn    StatusCallback
 	MinInterval time.Duration
@@ -85,6 +87,15 @@ func (m *Manager) Run(ctx context.Context) {
 	var err error
 	m.logger.Debug("HCP manager starting")
 
+	// Update and start the SCADA provider
+	err = m.startSCADAProvider()
+	if err != nil {
+		// Log the error but continue starting the manager. The SCADA provider
+		// could potentially be updated later with a working configuration.
+		m.logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
+			"error", err)
+	}
+
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
@@ -116,6 +127,34 @@ func (m *Manager) Run(ctx context.Context) {
 			err = m.sendUpdate()
 		}
 	}
+}
+
+func (m *Manager) startSCADAProvider() error {
+	provider := m.cfg.SCADAProvider
+	if provider == nil {
+		return nil
+	}
+
+	// Update the SCADA provider configuration with HCP configurations
+	m.logger.Debug("updating scada provider with HCP configuration")
+	err := provider.UpdateHCPConfig(m.cfg.CloudConfig)
+	if err != nil {
+		m.logger.Error("failed to update scada provider with HCP configuration", "err", err)
+		return err
+	}
+
+	// Update the SCADA provider metadata
+	provider.UpdateMeta(map[string]string{
+		"consul_server_id": string(m.cfg.CloudConfig.NodeID),
+	})
+
+	// Start the SCADA provider
+	err = provider.Start()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (m *Manager) UpdateConfig(cfg ManagerConfig) {
