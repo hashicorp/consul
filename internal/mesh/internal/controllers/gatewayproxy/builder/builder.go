@@ -23,7 +23,7 @@ func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload) *proxyStateTe
 
 func (b *proxyStateTemplateBuilder) identity() *pbresource.Reference {
 	return &pbresource.Reference{
-		Name:    b.workload.Id.Name,
+		Name:    b.workload.Data.Identity,
 		Tenancy: b.workload.Id.Tenancy,
 		Type:    pbauth.WorkloadIdentityType,
 	}
