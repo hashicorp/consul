@@ -130,7 +130,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	// If the workload is for a xGateway, then do nothing + let the gatewayproxy controller reconcile it
-	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind != "" {
+	if gatewayKind, ok := workload.Metadata["gateway-kind"]; ok && gatewayKind != "" {
 		rt.Logger.Trace("workload is a gateway; skipping reconciliation", "workload", workloadID, "gateway-kind", gatewayKind)
 		return nil
 	}
