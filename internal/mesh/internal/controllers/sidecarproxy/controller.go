@@ -122,7 +122,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error reading the associated workload", "error", err)
 		return err
 	}
-	
+
 	if workload == nil {
 		// If workload has been deleted, then return as ProxyStateTemplate should be cleaned up
 		// by the garbage collector because of the owner reference.
