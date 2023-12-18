@@ -32,7 +32,11 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to init client: %w", err)
 	}
 
-	provider, err := scada.New(cfg, logger.Named("scada"))
+	provider, err := scada.New(logger.Named("scada"))
+	if err != nil {
+		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
+	}
+	err = provider.UpdateHCPConfig(cfg)
 	if err != nil {
 		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
 	}

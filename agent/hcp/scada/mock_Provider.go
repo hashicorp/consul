@@ -3,9 +3,10 @@
 package scada
 
 import (
-	net "net"
-
+	config "github.com/hashicorp/consul/agent/hcp/config"
 	mock "github.com/stretchr/testify/mock"
+
+	net "net"
 
 	provider "github.com/hashicorp/hcp-scada-provider"
 
@@ -412,9 +413,9 @@ func (_c *MockProvider_Stop_Call) RunAndReturn(run func() error) *MockProvider_S
 	return _c
 }
 
-// UpdateConfig provides a mock function with given fields: config
-func (_m *MockProvider) UpdateConfig(config *provider.Config) error {
-	ret := _m.Called(config)
+// UpdateConfig provides a mock function with given fields: _a0
+func (_m *MockProvider) UpdateConfig(_a0 *provider.Config) error {
+	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpdateConfig")
@@ -422,7 +423,7 @@ func (_m *MockProvider) UpdateConfig(config *provider.Config) error {
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(*provider.Config) error); ok {
-		r0 = rf(config)
+		r0 = rf(_a0)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -436,12 +437,12 @@ type MockProvider_UpdateConfig_Call struct {
 }
 
 // UpdateConfig is a helper method to define mock.On call
-//   - config *provider.Config
-func (_e *MockProvider_Expecter) UpdateConfig(config interface{}) *MockProvider_UpdateConfig_Call {
-	return &MockProvider_UpdateConfig_Call{Call: _e.mock.On("UpdateConfig", config)}
+//   - _a0 *provider.Config
+func (_e *MockProvider_Expecter) UpdateConfig(_a0 interface{}) *MockProvider_UpdateConfig_Call {
+	return &MockProvider_UpdateConfig_Call{Call: _e.mock.On("UpdateConfig", _a0)}
 }
 
-func (_c *MockProvider_UpdateConfig_Call) Run(run func(config *provider.Config)) *MockProvider_UpdateConfig_Call {
+func (_c *MockProvider_UpdateConfig_Call) Run(run func(_a0 *provider.Config)) *MockProvider_UpdateConfig_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(*provider.Config))
 	})
@@ -454,6 +455,52 @@ func (_c *MockProvider_UpdateConfig_Call) Return(_a0 error) *MockProvider_Update
 }
 
 func (_c *MockProvider_UpdateConfig_Call) RunAndReturn(run func(*provider.Config) error) *MockProvider_UpdateConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateHCPConfig provides a mock function with given fields: cfg
+func (_m *MockProvider) UpdateHCPConfig(cfg config.CloudConfig) error {
+	ret := _m.Called(cfg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateHCPConfig")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(config.CloudConfig) error); ok {
+		r0 = rf(cfg)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockProvider_UpdateHCPConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateHCPConfig'
+type MockProvider_UpdateHCPConfig_Call struct {
+	*mock.Call
+}
+
+// UpdateHCPConfig is a helper method to define mock.On call
+//   - cfg config.CloudConfig
+func (_e *MockProvider_Expecter) UpdateHCPConfig(cfg interface{}) *MockProvider_UpdateHCPConfig_Call {
+	return &MockProvider_UpdateHCPConfig_Call{Call: _e.mock.On("UpdateHCPConfig", cfg)}
+}
+
+func (_c *MockProvider_UpdateHCPConfig_Call) Run(run func(cfg config.CloudConfig)) *MockProvider_UpdateHCPConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(config.CloudConfig))
+	})
+	return _c
+}
+
+func (_c *MockProvider_UpdateHCPConfig_Call) Return(_a0 error) *MockProvider_UpdateHCPConfig_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockProvider_UpdateHCPConfig_Call) RunAndReturn(run func(config.CloudConfig) error) *MockProvider_UpdateHCPConfig_Call {
 	_c.Call.Return(run)
 	return _c
 }
