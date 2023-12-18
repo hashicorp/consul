@@ -11,7 +11,7 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # or the string @DEV to imply use what is currently installed locally.
 ###
 GOLANGCI_LINT_VERSION='v1.51.1'
-MOCKERY_VERSION='v2.20.0'
+MOCKERY_VERSION='v2.37.1'
 BUF_VERSION='v1.26.0'
 
 PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
@@ -562,11 +562,8 @@ proto-gen: proto-tools ## Regenerates all Go files from protobuf definitions
 
 .PHONY: proto-mocks
 proto-mocks: ## Proto mocks
-	for dir in $(MOCKED_PB_DIRS) ; do \
-		cd proto-public && \
-		rm -f $$dir/mock*.go && \
-		mockery --dir $$dir --inpackage --all --recursive --log-level trace ; \
-	done
+	@rm -rf grpcmocks/*
+	@mockery --config .grpcmocks.yaml
 
 .PHONY: proto-format
 proto-format: proto-tools ## Proto format

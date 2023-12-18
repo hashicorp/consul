@@ -11,11 +11,15 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
+const (
+	ControllerName = "consul.io/mesh-configuration"
+)
+
 // Controller instantiates a new Controller for managing MeshConfiguration resources.
-func Controller() controller.Controller {
+func Controller() *controller.Controller {
 	r := &reconciler{}
 
-	return controller.ForType(pbmesh.MeshConfigurationType).WithReconciler(r)
+	return controller.NewController(ControllerName, pbmesh.MeshConfigurationType).WithReconciler(r)
 }
 
 // reconciler implements the Reconciler interface to modify runtime state based

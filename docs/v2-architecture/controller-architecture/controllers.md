@@ -17,7 +17,7 @@ A basic controller setup could look like this:
 
 ```go
 func barController() controller.Controller {
-    return controller.ForType(pbexample.BarType).
+    return controller.NewController("bar", pbexample.BarType).
         WithReconciler(barReconciler{})
 }
 ```
@@ -64,7 +64,7 @@ If our resources only have a name-aligned relationship, we can map them with a b
 
 ```go
 func barController() controller.Controller {
-    return controller.ForType(pbexample.BarType).
+    return controller.NewController("bar", pbexample.BarType).
         WithWatch(pbexample.FooType, controller.ReplaceType(pbexample.BarType)). 
         WithReconciler(barReconciler{})
 }
@@ -94,7 +94,7 @@ func MapOwned(ctx context.Context, rt controller.Runtime, res *pbresource.Resour
 }
 
 func barController() controller.Controller {
-    return controller.ForType(pbexample.BarType).
+    return controller.NewController("bar", pbexample.BarType).
         WithWatch(pbexample.FooType, MapOwned). 
         WithReconciler(barReconciler{})
 }
@@ -135,67 +135,60 @@ func MapFoo(ctx context.Context, rt controller.Runtime, res *pbresource.Resource
 This approach is fine for cases when the number of `Bar` resources in a cluster is relatively small. If it's not,
 then we'd be doing a large `O(N)` search on each `Bar` event which could be too expensive. 
 
-#### Caching mappers
+#### Caching Mappers
 
 For cases when `N` is too large, we'd want to use a caching layer to help us make lookups more efficient so that they
 don't require an `O(N)` search of potentially all cluster resources.
 
-Caching mappers need to be kept up-to-date by individual controllers and because of their added complexity, it's important
-to carefully consider whether these mappers are strictly necessary for any given controller implementation.
+The controller runtime contains a controller cache and the facilities to keep the cache up to date in response to watches. Additionally there are dependency mappers provided for querying the cache. 
 
-For reference-relationships, we recommend using the `bimapper` to track relationships, while for the workload selector relationships,
-we recommend using the `workloadselectionmapper.Mapper` or the underlying `selectiontracker.WorkloadSelectionTracker`.
-These two mappers types can be combined into more complex mappers such as the ones used by the `routes-controller`
-or the `sidecar-proxy-controller`.
+_While it is possible to not use the builtin cache and manage state in dependency mappers yourself, this can get quite complex and reasoning about the correct times to track and untrack relationships is tricky to get right. Usage of the cache is therefore the advised approach._
 
-In our example, because we `Foo` and `Bar` are using name-reference relationship, we'll use a `bimapper`.
+At a high level, the controller author provides the indexes to track for each watchedtype and can then query thosfunc fooFromArgs(args ...any) ([]byte, error)e indexes in the  {
+    
+}future. The querying can occur during both dependency mapping and during resource reconciliation.
+
+The following example shows how to configure the "bar" controller to rereconcile a Bar resource whenever a Foo resource is changed that references the Bar
 
 ```go
+func fooReferenceFromBar(r *resource.DecodedResource[*pbexample.Bar]) (bool, []byte, error) {
+    idx := index.IndexFromRefOrID(&pbresource.ID{
+        Type: pbexample.FooType,
+        Tenancy: r.Id.Tenancy,
+        Name: r.Data.GetFooName(),
+    })
+    
+    return true, idx, nil
+}
+
 func barController() controller.Controller {
-    mapper := bimapper.New(pbexample.Bar, pbexample.Foo)
+    fooIndex := indexers.DecodedSingleIndexer(
+        "foo", 
+        index.ReferenceOrIDFromArgs,
+        fooReferenceFromBar,
+    )
 	
-    return controller.ForType(pbexample.BarType).
-        WithWatch(pbexample.FooType, mapper.MapLink).
-        WithReconciler(barReconciler{mapper: mapper})
+    return controller.NewController("bar", pbexample.BarType, fooIndex).
+        WithWatch(
+            pbexample.FooType, 
+            dependency.CacheListMapper(pbexample.BarType, fooIndex.Name()),
+        ).
+        WithReconciler(barReconciler{})
 }
 ```
 
-Now we need to make sure that we populate and clear the mapper as necessary. Generally, this should happen when the data
-is fetched in the reconcile.
+The controller will now reconcile Bar type resources whenever the Foo type resources they reference are updated. No further tracking is necessary as changes to all Bar types will automatically update the cache.
 
-```go
-func (b *barReconciler) Reconcile(ctx context.Context, rt Runtime, req Request) error {
-	// Fetch the `Bar` resource we're reconciling.
-    barResource, err := resource.GetDecodedResource[*pbexample.Bar](ctx, rt.Client, req.ID)
-    if err != nil {
-        return err
-    }
-	
-	//  If the resource is not found, we should make sure to untrack it from mapper.
-    if barResource == nil {
-        b.mapper.UntrackItem(req.ID)
-    }
-	
-	// Fetch our referenced `Foo` resource.
-    fooID := &pbresource.ID{
-        Type:    pbexample.FooType,
-        Name:    barResource.GetData().GetFooName(),
-        Tenancy: req.Id.Tenancy,
-    }
-    res, err := resource.GetDecodedResource[*pbexample.Foo](ctx, rt.Client, fooID)
-    if err != nil {
-        return err
-    }
-    // If the referenced Foo resource is not found, we should not untrack it in case it comes back.
-    if res == nil {
-        // no-op	
-    }
-    // Otherwise, we need to track it.
-    b.mapper.TrackItem(req.ID, []resource.ReferenceOrID{fooID})
-}
-```
+One limitation of the cache is that it only has knowledge about the current state of resources. That specifically means that the previous state is forgotten once the cache observes a write. This can be problematic when you want to reconcile a resource to no longer take into account something that previously reference it. 
 
-TODO: bound ref problem
+Lets say there are two types: `Baz` and `ComputedBaz` and a controller that will aggregate all `Baz` resource with some value into a single `ComputedBaz` object. When
+a `Baz` resource gets updated to no longer have a value, it should not be represented in the `ComputedBaz` resource. The typical way to work around this is to:
+
+1. Store references to the resources that were used during reconciliation within the computed/reconciled resource. For types computed by controllers and not expected to be written directly by users a `bound_references` field should be added to the top level resource types message. For other user manageable types the references may need to be stored within the Status field.
+
+2. Add a cache index to the watch of the computed type (usually the controllers main managed type). This index can use one of the indexers specified within the  [`internal/controller/cache/indexers`](../../../internal/controller/cache/indexers/) package. That package contains some builtin functionality around reference indexing.
+
+3. Update the dependency mappers to query the cache index *in addition to* looking at the current state of the dependent resource. In our example above the `Baz` dependency mapper could use the [`MultiMapper`] to combine querying the cache for `Baz` types that currently should be associated with a `ComputedBaz` and querying the index added in step 2 for previous references.
 
 ### Custom Watches
 

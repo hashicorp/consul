@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	retry "github.com/avast/retry-go"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-multierror"
 
@@ -146,6 +147,10 @@ func (s *Sprawl) launchType(firstTime bool, launchPhase LaunchPhase) (launchErr 
 		return fmt.Errorf("waitForPeeringEstablishment: %w", err)
 	}
 
+	if err := s.waitForNetworkAreaEstablishment(); err != nil {
+		return fmt.Errorf("waitForNetworkAreaEstablishment: %w", err)
+	}
+
 	cleanupFuncs = nil // reset
 
 	return nil
@@ -198,7 +203,7 @@ func (s *Sprawl) assignIPAddresses() error {
 					return fmt.Errorf("unknown network %q", addr.Network)
 				}
 				addr.IPAddress = net.IPByIndex(node.Index)
-				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress, "enabled", !node.Disabled)
+				s.logger.Info("assign addr", "node", node.Name, "addr", addr.IPAddress, "type", addr.Type, "enabled", !node.Disabled)
 			}
 		}
 	}
@@ -315,8 +320,18 @@ func (s *Sprawl) createFirstTime() error {
 		return fmt.Errorf("generator[agents]: %w", err)
 	}
 	for _, cluster := range s.topology.Clusters {
-		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+		err := retry.Do(
+			func() error {
+				if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
+					return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+				}
+				return nil
+			},
+			retry.MaxDelay(5*time.Second),
+			retry.Attempts(15),
+		)
+		if err != nil {
+			return fmt.Errorf("create first time - waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 
@@ -343,6 +358,10 @@ func (s *Sprawl) createFirstTime() error {
 
 	if err := s.initPeerings(); err != nil {
 		return fmt.Errorf("initPeerings: %w", err)
+	}
+
+	if err := s.initNetworkAreas(); err != nil {
+		return fmt.Errorf("initNetworkAreas: %w", err)
 	}
 	return nil
 }
@@ -447,7 +466,7 @@ func (s *Sprawl) postRegenTasks(firstTime bool) error {
 
 	for _, cluster := range s.topology.Clusters {
 		if err := s.waitForClientAntiEntropyOnce(cluster); err != nil {
-			return fmt.Errorf("waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
+			return fmt.Errorf("post regenerate waitForClientAntiEntropyOnce[%s]: %w", cluster.Name, err)
 		}
 	}
 

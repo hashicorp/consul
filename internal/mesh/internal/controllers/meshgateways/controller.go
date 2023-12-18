@@ -11,10 +11,14 @@ import (
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 )
 
-func Controller() controller.Controller {
+const (
+	ControllerName = "consul.io/mesh-gateway"
+)
+
+func Controller() *controller.Controller {
 	r := &reconciler{}
 
-	return controller.ForType(pbmesh.MeshGatewayType).
+	return controller.NewController(ControllerName, pbmesh.MeshGatewayType).
 		WithReconciler(r)
 }
 

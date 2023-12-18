@@ -60,6 +60,13 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 	b.add("retry_interval", "1s")
 	// }
 
+	if node.Segment != nil {
+		b.add("segment", node.Segment.Name)
+		b.addSlice("retry_join", []string{
+			fmt.Sprintf("server.%s-consulcluster.lan:%d", node.Cluster, node.Segment.Port),
+		})
+	}
+
 	if node.Images.GreaterThanVersion(topology.MinVersionPeering) {
 		if node.IsServer() {
 			b.addBlock("peering", func() {
@@ -77,7 +84,9 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 		b.add("prometheus_retention_time", "168h")
 	})
 
-	b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	if !cluster.DisableGossipEncryption {
+		b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	}
 
 	{
 		var (
@@ -208,6 +217,17 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 					b.add(k, v)
 				}
 			})
+		}
+
+		if cluster.Segments != nil {
+			b.format("segments = [")
+			for name, port := range cluster.Segments {
+				b.format("{")
+				b.add("name", name)
+				b.add("port", port)
+				b.format("},")
+			}
+			b.format("]")
 		}
 	} else {
 		if cluster.Enterprise && node.Images.GreaterThanVersion(topology.MinVersionAgentTokenPartition) {
