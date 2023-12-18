@@ -122,16 +122,16 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
-	// If the workload is for a xGateway, then do nothing + let the gatewayproxy controller reconcile it
-	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind != "" {
-		rt.Logger.Trace("workload is a gateway; skipping reconciliation", "workload", workloadID, "gateway-kind", gatewayKind)
-		return nil
-	}
-
 	if workload == nil {
 		// If workload has been deleted, then return as ProxyStateTemplate should be cleaned up
 		// by the garbage collector because of the owner reference.
 		rt.Logger.Trace("workload doesn't exist; skipping reconciliation", "workload", workloadID)
+		return nil
+	}
+
+	// If the workload is for a xGateway, then do nothing + let the gatewayproxy controller reconcile it
+	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind != "" {
+		rt.Logger.Trace("workload is a gateway; skipping reconciliation", "workload", workloadID, "gateway-kind", gatewayKind)
 		return nil
 	}
 
