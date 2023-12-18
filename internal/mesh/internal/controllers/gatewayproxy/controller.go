@@ -6,6 +6,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
@@ -19,10 +20,10 @@ import (
 const ControllerName = "consul.io/gateway-proxy-controller"
 
 // Controller is responsible for triggering reconciler for watched resources
-func Controller(cache *cache.Cache) controller.Controller {
+func Controller(cache *cache.Cache) *controller.Controller {
 	// TODO Add the host of other types we should watch
-	return controller.ForType(pbmesh.ProxyStateTemplateType).
-		WithWatch(pbcatalog.ServiceType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
+		WithWatch(pbcatalog.ServiceType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithReconciler(&reconciler{
 			cache: cache,
 		})
@@ -39,7 +40,7 @@ type reconciler struct {
 // an owner reference pointing to the corresponding pbmesh.MeshGateway, deletion is
 // left to the garbage collector.
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
-	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", ControllerName)
+	rt.Logger = rt.Logger.With("resource-id", req.ID)
 	rt.Logger.Trace("reconciling proxy state template")
 
 	// Instantiate a data fetcher to fetch all reconciliation data.
