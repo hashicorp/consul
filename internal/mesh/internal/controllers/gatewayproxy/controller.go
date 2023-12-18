@@ -6,6 +6,7 @@ package gatewayproxy
 import (
 	"context"
 
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
@@ -26,7 +27,8 @@ const ControllerName = "consul.io/gateway-proxy-controller"
 func Controller(cache *cache.Cache) *controller.Controller {
 	// TODO Add the host of other types we should watch
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
-		WithWatch(pbcatalog.ServiceType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithReconciler(&reconciler{
 			cache: cache,
 		})
@@ -56,14 +58,26 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 
+	if workload == nil {
+		// Workload no longer exists, let garbage collector clean up
+		return nil
+	}
+
 	// If the workload is not for a xGateway, let the sidecarproxy reconciler handle it
 	if gatewayKind := workload.Metadata["gateway-kind"]; gatewayKind == "" {
 		rt.Logger.Trace("workload is not a gateway; skipping reconciliation", "workload", workloadID)
 		return nil
 	}
 
+	// TODO (nathancoleman) Determine what gateway controls this workload
+	// For now, we cheat by knowing the MeshGateway's name, type + tenancy ahead of time
+	gatewayID := &pbresource.ID{
+		Name:    "mesh-gateway",
+		Type:    pbmesh.MeshGatewayType,
+		Tenancy: resource.DefaultPartitionedTenancy(),
+	}
+
 	// Check if the gateway exists.
-	gatewayID := resource.ReplaceType(pbmesh.MeshGatewayType, req.ID)
 	gateway, err := dataFetcher.FetchMeshGateway(ctx, gatewayID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated gateway", "error", err)
@@ -95,6 +109,11 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return err
 	}
 	rt.Logger.Trace("updating proxy state template")
+
+	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
+	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
+		return nil
+	}
 
 	// Write the created/updated ProxyStateTemplate with MeshGateway owner
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
