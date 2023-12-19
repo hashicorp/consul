@@ -4,6 +4,7 @@
 package builder
 
 import (
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -30,8 +31,26 @@ func (b *proxyStateTemplateBuilder) identity() *pbresource.Reference {
 }
 
 func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
+	var address string
+	if len(b.workload.Data.Addresses) > 0 {
+		address = b.workload.Data.Addresses[0].Host
+	}
+
+	listener := &pbproxystate.Listener{
+		Name:      xdscommon.PublicListenerName,
+		Direction: pbproxystate.Direction_DIRECTION_INBOUND,
+		BindAddress: &pbproxystate.Listener_HostPort{
+			HostPort: &pbproxystate.HostPortAddress{
+				Host: address,
+				Port: b.workload.Data.Ports["wan"].Port,
+			},
+		},
+		Capabilities:       nil, // TODO
+		BalanceConnections: 0,   // TODO
+	}
+
 	// TODO NET-6429
-	return nil
+	return []*pbproxystate.Listener{listener}
 }
 
 func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
