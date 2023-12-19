@@ -161,6 +161,7 @@ $ consul-k8s proxy list <OPTIONS>
 | ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-all-namespaces`, `-A`</nobr> | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-output-format`, `-o`</nobr>  | `String` If set to json, outputs the result in json format, else table format | `table`
 
 Refer to the [Global Options](#global-options) for additional options that you can use
 when installing Consul on Kubernetes.
@@ -227,6 +228,46 @@ default  	client-767ccfc8f9-6f6gx                	Sidecar
 default  	client-767ccfc8f9-f8nsn                	Sidecar
 default  	client-767ccfc8f9-ggrtx                	Sidecar
 default  	frontend-676564547c-v2mfq              	Sidecar
+```
+
+Display all Pods across all namespaces that run proxies managed by Consul in JSON format
+
+```shell-session
+$ consul-k8s proxy list -A -o json
+Namespace: All namespaces
+
+[
+    {
+        "Name": "frontend-6fd97b8fb5-spqb8",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "nginx-6d7469694f-p5wrz",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "payments-667d87bf95-ktb8n",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "product-api-7c4d77c7c9-g4g2b",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "product-api-db-685c844cb-k5l8f",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "public-api-567d949866-cgksl",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    }
+]
 ```
 
 ### `proxy read`
