@@ -14,14 +14,16 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 // ControllerName is the name for this controller. It's used for logging or status keys.
-const ControllerName = "consul.io/gateway-proxy-controller"
+const ControllerName = "consul.io/gateway-proxy"
 
 // Controller is responsible for triggering reconciler for watched resources
 func Controller(cache *cache.Cache) *controller.Controller {
@@ -101,7 +103,21 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template for this gateway doesn't yet exist; generating a new one")
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload).Build()
+	exportedServicesID := &pbresource.ID{
+		Name: "global",
+		Tenancy: &pbresource.Tenancy{
+			Partition: req.ID.Tenancy.Partition,
+		},
+		Type: pbmulticluster.ComputedExportedServicesType,
+	}
+	exportedServices, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
+	if err != nil || exportedServices == nil {
+		exportedServices = &types.DecodedComputedExportedServices{
+			Data: &pbmulticluster.ComputedExportedServices{},
+		}
+	}
+
+	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {

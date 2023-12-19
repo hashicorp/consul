@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -26,12 +27,25 @@ func New(client pbresource.ResourceServiceClient, cache *cache.Cache) *Fetcher {
 	}
 }
 
+func (f *Fetcher) FetchComputedExportedServices(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedExportedServices, error) {
+	dec, err := resource.GetDecodedResource[*pbmulticluster.ComputedExportedServices](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		// TODO f.cache.UntrackComputedExportedServices(id)
+		return nil, nil
+	}
+
+	// TODO f.cache.TrackComputedExportedServices(dec)
+
+	return dec, err
+}
+
 func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*types.DecodedMeshGateway, error) {
 	dec, err := resource.GetDecodedResource[*pbmesh.MeshGateway](ctx, f.client, id)
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated gateway from cache.
 		// TODO f.cache.UntrackMeshGateway(id)
 		return nil, nil
 	}
@@ -46,7 +60,6 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated proxy from cache.
 		// TODO f.cache.UntrackProxyStateTemplate(id)
 		return nil, nil
 	}
@@ -61,7 +74,6 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated proxy from cache.
 		// TODO f.cache.UntrackWorkload(id)
 		return nil, nil
 	}

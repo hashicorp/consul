@@ -4,21 +4,27 @@
 package builder
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type proxyStateTemplateBuilder struct {
-	workload *types.DecodedWorkload
+	exportedServices *types.DecodedComputedExportedServices
+	workload         *types.DecodedWorkload
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload) *proxyStateTemplateBuilder {
+func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices) *proxyStateTemplateBuilder {
 	return &proxyStateTemplateBuilder{
-		workload: workload,
+		exportedServices: exportedServices,
+		workload:         workload,
 	}
 }
 
@@ -45,17 +51,72 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 				Port: b.workload.Data.Ports["wan"].Port,
 			},
 		},
-		Capabilities:       nil, // TODO
-		BalanceConnections: 0,   // TODO
+		Capabilities: []pbproxystate.Capability{
+			pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION,
+		},
+		Routers: b.routers(),
 	}
 
 	// TODO NET-6429
 	return []*pbproxystate.Listener{listener}
 }
 
+// routers loops through the consumers for each exported service and generates a
+// pbproxystate.Router matching the SNI to the cluster name, which matches the SNI
+func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
+	var routers []*pbproxystate.Router
+
+	for _, service := range b.exportedServices.Data.Consumers {
+		for _, consumer := range service.Consumers {
+			sni := clusterName(service.TargetRef, consumer)
+			routers = append(routers, &pbproxystate.Router{
+				Match:       &pbproxystate.Match{ServerNames: []string{sni}},
+				Destination: &pbproxystate.Router_Sni{},
+			})
+		}
+	}
+
+	return routers
+}
+
+// clusters loops through the consumers for each exported service
+// and generates a pbproxystate.Cluster per service-consumer pairing.
 func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
-	// TODO NET-6430
-	return nil
+	clusters := map[string]*pbproxystate.Cluster{}
+
+	for _, service := range b.exportedServices.Data.Consumers {
+		for _, consumer := range service.Consumers {
+			clusterName := clusterName(service.TargetRef, consumer)
+			clusters[clusterName] = &pbproxystate.Cluster{
+				Name:     clusterName,
+				Protocol: pbproxystate.Protocol_PROTOCOL_UNSPECIFIED, // TODO
+			}
+		}
+	}
+
+	return clusters
+}
+
+// requiredEndpoints loops through the consumers for each exported service
+// and adds a pbproxystate.EndpointRef to be hydrated for each cluster.
+func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
+	requiredEndpoints := map[string]*pbproxystate.EndpointRef{}
+
+	for _, service := range b.exportedServices.Data.Consumers {
+		for _, consumer := range service.Consumers {
+			clusterName := clusterName(service.TargetRef, consumer)
+			requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
+				Id: &pbresource.ID{
+					Name:    service.TargetRef.Name,
+					Type:    pbcatalog.ServiceEndpointsType,
+					Tenancy: service.TargetRef.Tenancy,
+				},
+				Port: service.TargetRef.Section,
+			}
+		}
+	}
+
+	return requiredEndpoints
 }
 
 func (b *proxyStateTemplateBuilder) endpoints() map[string]*pbproxystate.Endpoints {
@@ -77,8 +138,19 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 			Endpoints: b.endpoints(),
 			Routes:    b.routes(),
 		},
-		RequiredEndpoints:        make(map[string]*pbproxystate.EndpointRef),
+		RequiredEndpoints:        b.requiredEndpoints(),
 		RequiredLeafCertificates: make(map[string]*pbproxystate.LeafCertificateRef),
 		RequiredTrustBundles:     make(map[string]*pbproxystate.TrustBundleRef),
+	}
+}
+
+func clusterName(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServicesConsumer) string {
+	switch tConsumer := consumer.ConsumerTenancy.(type) {
+	case *pbmulticluster.ComputedExportedServicesConsumer_Partition:
+		return fmt.Sprintf("%s-%d", serviceRef.Name, tConsumer.Partition)
+	case *pbmulticluster.ComputedExportedServicesConsumer_Peer:
+		return fmt.Sprintf("%s-%d", serviceRef.Name, tConsumer.Peer)
+	default:
+		return ""
 	}
 }
