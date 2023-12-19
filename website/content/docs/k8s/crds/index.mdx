@@ -19,7 +19,6 @@ You can specify the following values in the `kind` field. Click on a configurati
 - [`PeeringAcceptor`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringacceptor)
 - [`PeeringDialer`](/consul/docs/k8s/connect/cluster-peering/tech-specs#peeringdialer)
 - [`ProxyDefaults`](/consul/docs/connect/config-entries/proxy-defaults)
-- [`SamenessGroup`](/consul/docs/connect/config-entries/sameness-group)
 - [`ServiceDefaults`](/consul/docs/connect/config-entries/service-defaults)
 - [`ServiceSplitter`](/consul/docs/connect/config-entries/service-splitter)
 - [`ServiceRouter`](/consul/docs/connect/config-entries/service-router)
@@ -159,9 +158,9 @@ the `ServiceSplitter`.
 
 ## Kubernetes Namespaces
 
-### Consul CE ((#consul_oss))
+### Consul OSS
 
-Consul Community Edition (Consul CE) ignores Kubernetes namespaces and registers all services into the same
+Consul Open Source (Consul OSS) ignores Kubernetes namespaces and registers all services into the same
 global Consul registry based on their names. For example, service `web` in Kubernetes namespace
 `web-ns` and service `admin` in Kubernetes namespace `admin-ns` are registered into
 Consul as `web` and `admin` with the Kubernetes source namespace ignored.

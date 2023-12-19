@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package state
 
 import (
@@ -740,8 +737,7 @@ type IntentionDecisionOpts struct {
 	Target           string
 	Namespace        string
 	Partition        string
-	Peer             string
-	Intentions       structs.SimplifiedIntentions
+	Intentions       structs.Intentions
 	MatchType        structs.IntentionMatchType
 	DefaultDecision  acl.EnforcementDecision
 	AllowPermissions bool
@@ -756,7 +752,7 @@ func (s *Store) IntentionDecision(opts IntentionDecisionOpts) (structs.Intention
 	// Figure out which source matches this request.
 	var ixnMatch *structs.Intention
 	for _, ixn := range opts.Intentions {
-		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, opts.Peer, ixn, opts.MatchType); ok {
+		if _, ok := connect.AuthorizeIntentionTarget(opts.Target, opts.Namespace, opts.Partition, ixn, opts.MatchType); ok {
 			ixnMatch = ixn
 			break
 		}
@@ -806,58 +802,10 @@ func (s *Store) IntentionMatch(ws memdb.WatchSet, args *structs.IntentionQueryMa
 	if err != nil {
 		return 0, nil, err
 	}
-
 	if !usingConfigEntries {
-		idx, ixnsList, err := s.legacyIntentionMatchTxn(tx, ws, args)
-		if err != nil {
-			return 0, nil, err
-		}
-
-		return idx, ixnsList, nil
+		return s.legacyIntentionMatchTxn(tx, ws, args)
 	}
-
-	maxIdx, ixnsList, err := s.configIntentionMatchTxn(tx, ws, args)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if args.WithSamenessGroups {
-		return maxIdx, ixnsList, err
-	}
-
-	// Non-legacy intentions support sameness groups. We need to simplify them.
-	var out []structs.Intentions
-	for i, ixns := range ixnsList {
-		entry := args.Entries[i]
-		idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns)
-		if err != nil {
-			return 0, nil, err
-		}
-		if idx > maxIdx {
-			maxIdx = idx
-		}
-
-		filteredIxns := filterIntentionsMatching(simplifiedIxns, args.Type, entry.GetEnterpriseMeta().PartitionOrDefault())
-
-		out = append(out, filteredIxns)
-	}
-
-	return maxIdx, out, nil
-}
-
-func filterIntentionsMatching(ixns structs.Intentions, matchType structs.IntentionMatchType, partition string) structs.Intentions {
-	var filteredIxns structs.Intentions
-	if matchType == structs.IntentionMatchSource {
-		for _, ixn := range ixns {
-			if partition == ixn.SourcePartitionOrDefault() {
-				filteredIxns = append(filteredIxns, ixn)
-			}
-		}
-	} else {
-		filteredIxns = ixns
-	}
-
-	return filteredIxns
+	return s.configIntentionMatchTxn(tx, ws, args)
 }
 
 func (s *Store) legacyIntentionMatchTxn(tx ReadTxn, ws memdb.WatchSet, args *structs.IntentionQueryMatch) (uint64, []structs.Intentions, error) {
@@ -896,7 +844,7 @@ func (s *Store) IntentionMatchOne(
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
 	destinationType structs.IntentionTargetType,
-) (uint64, structs.SimplifiedIntentions, error) {
+) (uint64, structs.Intentions, error) {
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 
@@ -909,37 +857,16 @@ func compatIntentionMatchOneTxn(
 	entry structs.IntentionMatchEntry,
 	matchType structs.IntentionMatchType,
 	destinationType structs.IntentionTargetType,
-) (uint64, structs.SimplifiedIntentions, error) {
+) (uint64, structs.Intentions, error) {
 
 	usingConfigEntries, err := areIntentionsInConfigEntries(tx, ws)
 	if err != nil {
 		return 0, nil, err
 	}
 	if !usingConfigEntries {
-		idx, ixns, err := legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
-		if err != nil {
-			return 0, nil, err
-		}
-		return idx, structs.SimplifiedIntentions(ixns), err
+		return legacyIntentionMatchOneTxn(tx, ws, entry, matchType)
 	}
-
-	maxIdx, ixns, err := configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	idx, simplifiedIxns, err := getSimplifiedIntentions(tx, ws, ixns)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	if idx > maxIdx {
-		maxIdx = idx
-	}
-
-	filteredIxns := filterIntentionsMatching(simplifiedIxns, matchType, entry.GetEnterpriseMeta().PartitionOrDefault())
-
-	return maxIdx, structs.SimplifiedIntentions(filteredIxns), nil
+	return configIntentionMatchOneTxn(tx, ws, entry, matchType, destinationType)
 }
 
 func legacyIntentionMatchOneTxn(
@@ -1085,45 +1012,12 @@ func (s *Store) intentionTopologyTxn(
 	//				 Ideally those should be excluded as well, since they can't be upstreams/downstreams without a proxy.
 	//				 Maybe narrow serviceNamesOfKindTxn to services represented by proxies? (ingress, sidecar-
 	wildcardMeta := structs.WildcardEnterpriseMetaInPartition(structs.WildcardSpecifier)
-
-	services := make(map[structs.ServiceName]struct{})
-	addSvcs := func(svcs []*KindServiceName) {
-		for _, s := range svcs {
-			services[s.Service] = struct{}{}
-		}
-	}
-
-	var tempServices []*KindServiceName
+	var services []*KindServiceName
 	if intentionTarget == structs.IntentionTargetService {
-		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
-		if err != nil {
-			return index, nil, fmt.Errorf("failed to list service names: %v", err)
-		}
-		addSvcs(tempServices)
-
-		if !downstreams {
-			// Query the virtual ip table as well to include virtual services that don't have a registered instance yet.
-			// We only need to do this for upstreams currently, so that tproxy can find which discovery chains should be
-			// contacted for failover scenarios. Virtual services technically don't need to be considered as downstreams,
-			// because they will take on the identity of the calling service, rather than the chain itself.
-			vipIndex, vipServices, err := servicesVirtualIPsTxn(tx, ws)
-			if err != nil {
-				return index, nil, fmt.Errorf("failed to list service virtual IPs: %v", err)
-			}
-			for _, svc := range vipServices {
-				services[svc.Service.ServiceName] = struct{}{}
-			}
-			if vipIndex > index {
-				index = vipIndex
-			}
-		}
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, *wildcardMeta)
 	} else {
 		// destinations can only ever be upstream, since they are only allowed as intention destination.
-		index, tempServices, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
-		if err != nil {
-			return index, nil, fmt.Errorf("failed to list destination service names: %v", err)
-		}
-		addSvcs(tempServices)
+		index, services, err = serviceNamesOfKindTxn(tx, ws, structs.ServiceKindDestination, *wildcardMeta)
 	}
 	if err != nil {
 		return index, nil, fmt.Errorf("failed to list ingress service names: %v", err)
@@ -1141,7 +1035,7 @@ func (s *Store) intentionTopologyTxn(
 		if index > maxIdx {
 			maxIdx = index
 		}
-		addSvcs(ingress)
+		services = append(services, ingress...)
 	}
 
 	// When checking authorization to upstreams, the match type for the decision is `destination` because we are deciding
@@ -1152,7 +1046,8 @@ func (s *Store) intentionTopologyTxn(
 		decisionMatchType = structs.IntentionMatchSource
 	}
 	result := make([]ServiceWithDecision, 0, len(services))
-	for candidate := range services {
+	for _, svc := range services {
+		candidate := svc.Service
 		if candidate.Name == structs.ConsulServiceName {
 			continue
 		}

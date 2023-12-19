@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package oidcauth
 
 import (
@@ -390,7 +387,7 @@ func TestOIDC_ClaimsFromAuthCode(t *testing.T) {
 			context.Background(),
 			state, "wrong_code",
 		)
-		requireErrorContains(t, err, "Error exchanging oidc code")
+		requireErrorContains(t, err, "cannot fetch token")
 		requireProviderError(t, err)
 	})
 

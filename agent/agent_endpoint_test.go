@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -21,6 +18,7 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-uuid"
 	"github.com/hashicorp/serf/serf"
@@ -40,14 +38,12 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
 	tokenStore "github.com/hashicorp/consul/agent/token"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/consul/types"
-	"github.com/hashicorp/consul/version"
 )
 
 func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
@@ -77,46 +73,6 @@ func createACLTokenWithAgentReadPolicy(t *testing.T, srv *HTTPHandlers) string {
 	err := dec.Decode(svcToken)
 	require.NoError(t, err)
 	return svcToken.SecretID
-}
-
-func TestAgentEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{}`)
-		})
-	}
-
-	t.Run("agent-self-with-params", func(t *testing.T) {
-		req, err := http.NewRequest("GET", "/v1/agent/self?dc=dc1", nil)
-		require.NoError(t, err)
-
-		resp := httptest.NewRecorder()
-		a.srv.h.ServeHTTP(resp, req)
-		require.Equal(t, http.StatusOK, resp.Code)
-
-		_, err = io.ReadAll(resp.Body)
-		require.NoError(t, err)
-	})
-
-	checkRequest("PUT", "/v1/agent/maintenance")
-	checkRequest("GET", "/v1/agent/services")
-	checkRequest("GET", "/v1/agent/service/web")
-	checkRequest("GET", "/v1/agent/checks")
-	checkRequest("GET", "/v1/agent/health/service/id/web")
-	checkRequest("GET", "/v1/agent/health/service/name/web")
-	checkRequest("PUT", "/v1/agent/check/register")
-	checkRequest("PUT", "/v1/agent/check/deregister/web")
-	checkRequest("PUT", "/v1/agent/check/pass/web")
-	checkRequest("PUT", "/v1/agent/check/warn/web")
-	checkRequest("PUT", "/v1/agent/check/fail/web")
-	checkRequest("PUT", "/v1/agent/check/update/web")
-	checkRequest("PUT", "/v1/agent/service/register")
-	checkRequest("PUT", "/v1/agent/service/deregister/web")
-	checkRequest("PUT", "/v1/agent/service/maintenance/web")
 }
 
 func TestAgent_Services(t *testing.T) {
@@ -777,6 +733,9 @@ func TestAgent_Service(t *testing.T) {
 			if tt.wantWait != 0 {
 				assert.True(t, elapsed >= tt.wantWait, "should have waited at least %s, "+
 					"took %s", tt.wantWait, elapsed)
+			} else {
+				assert.True(t, elapsed < 10*time.Millisecond, "should not have waited, "+
+					"took %s", elapsed)
 			}
 
 			if tt.wantResp != nil {
@@ -1543,8 +1502,7 @@ func TestAgent_Self(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, cs[a.config.SegmentName], val.Coord)
 
-			delete(val.Meta, structs.MetaSegmentKey)    // Added later, not in config.
-			delete(val.Meta, structs.MetaConsulVersion) // Added later, not in config.
+			delete(val.Meta, structs.MetaSegmentKey) // Added later, not in config.
 			require.Equal(t, a.config.NodeMeta, val.Meta)
 
 			if tc.expectXDS {
@@ -1638,37 +1596,14 @@ func TestAgent_Metrics_ACLDeny(t *testing.T) {
 	})
 }
 
-func newDefaultBaseDeps(t *testing.T) BaseDeps {
-	dataDir := testutil.TempDir(t, "acl-agent")
-	logBuffer := testutil.NewLogBuffer(t)
-	logger := hclog.NewInterceptLogger(nil)
-	loader := func(source config.Source) (config.LoadResult, error) {
-		dataDir := fmt.Sprintf(`data_dir = "%s"`, dataDir)
-		opts := config.LoadOpts{
-			HCL:           []string{TestConfigHCL(NodeID()), "", dataDir},
-			DefaultConfig: source,
-		}
-		result, err := config.Load(opts)
-		if result.RuntimeConfig != nil {
-			result.RuntimeConfig.Telemetry.Disable = true
-		}
-		return result, err
-	}
-	bd, err := NewBaseDeps(loader, logBuffer, logger)
-	require.NoError(t, err)
-	return bd
-}
-
 func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
-	bd := newDefaultBaseDeps(t)
+	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(30*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.DenyAll()}
+	d := fakeResolveTokenDelegate{authorizer: acl.DenyAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1691,15 +1626,13 @@ func TestHTTPHandlers_AgentMetricsStream_ACLDeny(t *testing.T) {
 }
 
 func TestHTTPHandlers_AgentMetricsStream(t *testing.T) {
-	bd := newDefaultBaseDeps(t)
+	bd := BaseDeps{}
 	bd.Tokens = new(tokenStore.Store)
 	sink := metrics.NewInmemSink(20*time.Millisecond, time.Second)
 	bd.MetricsConfig = &lib.MetricsConfig{
 		Handler: sink,
 	}
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	d := fakeResolveTokenDelegate{delegate: &mockDelegate, authorizer: acl.ManageAll()}
+	d := fakeResolveTokenDelegate{authorizer: acl.ManageAll()}
 	agent := &Agent{
 		baseDeps: bd,
 		delegate: d,
@@ -1877,7 +1810,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	require.NoError(t, a.updateTTLCheck(checkID, api.HealthPassing, "testing-agent-reload-001"))
 
 	checkStr := func(r *retry.R, evaluator func(string) error) {
-		r.Helper()
+		t.Helper()
 		contentsStr := ""
 		// Wait for watch to be populated
 		for i := 1; i < 7; i++ {
@@ -1890,14 +1823,14 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 				break
 			}
 			time.Sleep(time.Duration(i) * time.Second)
-			testutil.Logger(r).Info("Watch not yet populated, retrying")
+			testutil.Logger(t).Info("Watch not yet populated, retrying")
 		}
 		if err := evaluator(contentsStr); err != nil {
 			r.Errorf("ERROR: Test failing: %s", err)
 		}
 	}
 	ensureNothingCritical := func(r *retry.R, mustContain string) {
-		r.Helper()
+		t.Helper()
 		eval := func(contentsStr string) error {
 			if strings.Contains(contentsStr, "critical") {
 				return fmt.Errorf("MUST NOT contain critical:= %s", contentsStr)
@@ -1915,7 +1848,7 @@ func TestAgent_ReloadDoesNotTriggerWatch(t *testing.T) {
 	}
 
 	retry.RunWith(retriesWithDelay(), t, func(r *retry.R) {
-		testutil.Logger(r).Info("Consul is now ready")
+		testutil.Logger(t).Info("Consul is now ready")
 		// it should contain the output
 		checkStr(r, func(contentStr string) error {
 			if contentStr == "[]" {
@@ -4340,7 +4273,7 @@ func testDefaultSidecar(svc string, port int, fns ...func(*structs.NodeService))
 }
 
 // testCreateToken creates a Policy for the provided rules and a Token linked to that Policy.
-func testCreateToken(t testutil.TestingTB, a *TestAgent, rules string) string {
+func testCreateToken(t *testing.T, a *TestAgent, rules string) string {
 	policyName, err := uuid.GenerateUUID() // we just need a unique name for the test and UUIDs are definitely unique
 	require.NoError(t, err)
 
@@ -4369,7 +4302,7 @@ func testCreateToken(t testutil.TestingTB, a *TestAgent, rules string) string {
 	return aclResp.SecretID
 }
 
-func testCreatePolicy(t testutil.TestingTB, a *TestAgent, name, rules string) string {
+func testCreatePolicy(t *testing.T, a *TestAgent, name, rules string) string {
 	args := map[string]interface{}{
 		"Name":  name,
 		"Rules": rules,
@@ -4485,7 +4418,7 @@ func testAgent_RegisterServiceDeregisterService_Sidecar(t *testing.T, extraHCL s
 			}
 			`,
 			enableACL: true,
-			policies:  ``, // No policies means no valid token
+			policies:  ``, // No policy means no valid token
 			wantNS:    nil,
 			wantErr:   "Permission denied",
 		},
@@ -6977,27 +6910,14 @@ func TestAgentConnectCALeafCert_good(t *testing.T) {
 		require.Equal(t, issued, issued2)
 	}
 
-	replyCh := make(chan *httptest.ResponseRecorder, 1)
-
-	go func(index string) {
-		resp := httptest.NewRecorder()
-		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
-		a.srv.h.ServeHTTP(resp, req)
-
-		replyCh <- resp
-	}(index)
-
 	// Set a new CA
 	ca2 := connect.TestCAConfigSet(t, a, nil)
 
 	// Issue a blocking query to ensure that the cert gets updated appropriately
 	t.Run("test blocking queries update leaf cert", func(t *testing.T) {
-		var resp *httptest.ResponseRecorder
-		select {
-		case resp = <-replyCh:
-		case <-time.After(500 * time.Millisecond):
-			t.Fatal("blocking query did not wake up during rotation")
-		}
+		resp := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/v1/agent/connect/ca/leaf/test?index="+index, nil)
+		a.srv.h.ServeHTTP(resp, req)
 		dec := json.NewDecoder(resp.Body)
 		issued2 := &structs.IssuedCert{}
 		require.NoError(t, dec.Decode(issued2))
@@ -8158,32 +8078,6 @@ func TestAgent_HostBadACL(t *testing.T) {
 	_, err := a.srv.AgentHost(resp, req)
 	assert.EqualError(t, err, "ACL not found")
 	assert.Equal(t, http.StatusOK, resp.Code)
-}
-
-func TestAgent_Version(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
-
-	t.Parallel()
-
-	dc1 := "dc1"
-	a := NewTestAgent(t, `
-		primary_datacenter = "`+dc1+`"
-	`)
-	defer a.Shutdown()
-
-	testrpc.WaitForLeader(t, a.RPC, "dc1")
-	req, _ := http.NewRequest("GET", "/v1/agent/version", nil)
-	// req.Header.Add("X-Consul-Token", "initial-management")
-	resp := httptest.NewRecorder()
-	respRaw, err := a.srv.AgentVersion(resp, req)
-	assert.Nil(t, err)
-	assert.Equal(t, http.StatusOK, resp.Code)
-	assert.NotNil(t, respRaw)
-
-	obj := respRaw.(*version.BuildInfo)
-	assert.NotNil(t, obj.HumanVersion)
 }
 
 // Thie tests that a proxy with an ExposeConfig is returned as expected.

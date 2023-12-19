@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { computed } from '@ember/object';
 import { titleize } from 'ember-cli-string-helpers/helpers/titleize';

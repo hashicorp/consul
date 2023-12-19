@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package main
 
 import (
@@ -19,7 +16,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/cache/types"
 	cache "github.com/envoyproxy/go-control-plane/pkg/cache/v3"
 	xds "github.com/envoyproxy/go-control-plane/pkg/server/v3"
-	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
@@ -68,7 +64,7 @@ func run(log hclog.Logger) error {
 
 	xdsServer := xds.NewServer(ctx, cache, callbacks)
 	grpcServer := grpc.NewServer()
-	grpclog.SetLoggerV2(logging.NewGRPCLogger("DEBUG", log))
+	grpclog.SetLogger(log.StandardLogger(nil))
 
 	secretservice.RegisterSecretDiscoveryServiceServer(grpcServer, xdsServer)
 

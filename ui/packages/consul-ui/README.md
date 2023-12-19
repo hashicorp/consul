@@ -112,7 +112,7 @@ See [./docs/index.mdx](./docs/index.mdx#environment-variables)
 We follow a `ui/**/**` branch naming pattern. This branch naming pattern allows
 front-end focused builds, such as FE tests, to run automatically in Pull
 Requests. Please note this only works if you are a member of the HashiCorp
-GitHub Org. If you are an external contributor, these tests won't run and will
+GitHub Org. If you are an external contributor these tests won't run and will
 instead be run by a member of our team during review.
 
 Examples:
@@ -159,13 +159,6 @@ OSS only tests can also be run using:
 `make lint` currently runs linting on the majority of js files and hbs files (using `ember-template-lint`).
 
 See `.eslintrc.js` and `.eslintignore` for specific configuration.
-
-### Testing local changes to `@hashicorp/consul-ui-toolkit`
-
-| Command                | Description                                                          |
-|------------------------|----------------------------------------------------------------------|
-| `yarn toolkit:link`    | Similar to `npm link` it adds the dependency locally from yalc store |
-| `yarn toolkit:remove"` | It will remove package info from package.json and yarn.lock file     |
 
 ### Building
 

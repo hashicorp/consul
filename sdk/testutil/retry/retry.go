@@ -1,232 +1,230 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
+// Package retry provides support for repeating operations in tests.
+//
+// A sample retry operation looks like this:
+//
+//	func TestX(t *testing.T) {
+//	    retry.Run(t, func(r *retry.R) {
+//	        if err := foo(); err != nil {
+//	            r.Fatal("f: ", err)
+//	        }
+//	    })
+//	}
 package retry
 
 import (
+	"bytes"
 	"fmt"
-	"os"
+	"runtime"
+	"strings"
+	"time"
 )
 
-var _ TestingTB = &R{}
+// Failer is an interface compatible with testing.T.
+type Failer interface {
+	Helper()
 
+	// Log is called for the final test output
+	Log(args ...interface{})
+
+	// FailNow is called when the retrying is abandoned.
+	FailNow()
+}
+
+// R provides context for the retryer.
 type R struct {
-	wrapped TestingTB
-	retryer Retryer
-
-	done             bool
-	fullOutput       bool
-	immediateCleanup bool
-
-	attempts []*attempt
+	fail   bool
+	done   bool
+	output []string
 }
 
-func (r *R) Cleanup(clean func()) {
-	if r.immediateCleanup {
-		a := r.getCurrentAttempt()
-		a.cleanups = append(a.cleanups, clean)
-	} else {
-		r.wrapped.Cleanup(clean)
-	}
-}
-
-func (r *R) Error(args ...any) {
-	r.Log(args...)
-	r.Fail()
-}
-
-func (r *R) Errorf(format string, args ...any) {
-	r.Logf(format, args...)
-	r.Fail()
-}
-
-func (r *R) Fail() {
-	r.getCurrentAttempt().failed = true
-}
-
-func (r *R) FailNow() {
-	r.Fail()
-	panic(attemptFailed{})
-}
-
-func (r *R) Failed() bool {
-	return r.getCurrentAttempt().failed
-}
-
-func (r *R) Fatal(args ...any) {
-	r.Log(args...)
-	r.FailNow()
-}
-
-func (r *R) Fatalf(format string, args ...any) {
-	r.Logf(format, args...)
-	r.FailNow()
-}
-
-func (r *R) Helper() {
-	// *testing.T will just record which functions are helpers by their addresses and
-	// it doesn't much matter where where we record that they are helpers
-	r.wrapped.Helper()
-}
-
-func (r *R) Log(args ...any) {
-	r.log(fmt.Sprintln(args...))
-}
-
-func (r *R) Logf(format string, args ...any) {
+func (r *R) Logf(format string, args ...interface{}) {
 	r.log(fmt.Sprintf(format, args...))
 }
 
-// Name will return the name of the underlying TestingT.
-func (r *R) Name() string {
-	return r.wrapped.Name()
+func (r *R) Helper() {}
+
+var runFailed = struct{}{}
+
+func (r *R) FailNow() {
+	r.fail = true
+	panic(runFailed)
 }
 
-// Setenv will save the current value of the specified env var, set it to the
-// specified value and then restore it to the original value in a cleanup function
-// once the retry attempt has finished.
-func (r *R) Setenv(key, value string) {
-	prevValue, ok := os.LookupEnv(key)
-
-	if err := os.Setenv(key, value); err != nil {
-		r.wrapped.Fatalf("cannot set environment variable: %v", err)
-	}
-
-	if ok {
-		r.Cleanup(func() {
-			os.Setenv(key, prevValue)
-		})
-	} else {
-		r.Cleanup(func() {
-			os.Unsetenv(key)
-		})
-	}
+func (r *R) Fatal(args ...interface{}) {
+	r.log(fmt.Sprint(args...))
+	r.FailNow()
 }
 
-// TempDir will use the wrapped TestingT to create a temporary directory
-// that will be cleaned up when ALL RETRYING has finished.
-func (r *R) TempDir() string {
-	return r.wrapped.TempDir()
+func (r *R) Fatalf(format string, args ...interface{}) {
+	r.log(fmt.Sprintf(format, args...))
+	r.FailNow()
 }
 
-// Check will call r.Fatal(err) if err is not nil
+func (r *R) Error(args ...interface{}) {
+	r.log(fmt.Sprint(args...))
+	r.fail = true
+}
+
+func (r *R) Errorf(format string, args ...interface{}) {
+	r.log(fmt.Sprintf(format, args...))
+	r.fail = true
+}
+
 func (r *R) Check(err error) {
 	if err != nil {
-		r.Fatal(err)
+		r.log(err.Error())
+		r.FailNow()
 	}
 }
 
+func (r *R) log(s string) {
+	r.output = append(r.output, decorate(s))
+}
+
+// Stop retrying, and fail the test with the specified error.
 func (r *R) Stop(err error) {
 	r.log(err.Error())
 	r.done = true
 }
 
-func (r *R) failCurrentAttempt() {
-	r.getCurrentAttempt().failed = true
+func decorate(s string) string {
+	_, file, line, ok := runtime.Caller(3)
+	if ok {
+		n := strings.LastIndex(file, "/")
+		if n >= 0 {
+			file = file[n+1:]
+		}
+	} else {
+		file = "???"
+		line = 1
+	}
+	return fmt.Sprintf("%s:%d: %s", file, line, s)
 }
 
-func (r *R) log(s string) {
-	a := r.getCurrentAttempt()
-	a.output = append(a.output, decorate(s))
+func Run(t Failer, f func(r *R)) {
+	t.Helper()
+	run(DefaultFailer(), t, f)
 }
 
-func (r *R) getCurrentAttempt() *attempt {
-	if len(r.attempts) == 0 {
-		panic("no retry attempts have been started yet")
+func RunWith(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
+	run(r, t, f)
+}
+
+func dedup(a []string) string {
+	if len(a) == 0 {
+		return ""
+	}
+	seen := map[string]struct{}{}
+	var b bytes.Buffer
+	for _, s := range a {
+		if _, ok := seen[s]; ok {
+			continue
+		}
+		seen[s] = struct{}{}
+		b.WriteString(s)
+		b.WriteRune('\n')
+	}
+	return b.String()
+}
+
+func run(r Retryer, t Failer, f func(r *R)) {
+	t.Helper()
+	rr := &R{}
+
+	fail := func() {
+		t.Helper()
+		out := dedup(rr.output)
+		if out != "" {
+			t.Log(out)
+		}
+		t.FailNow()
 	}
 
-	return r.attempts[len(r.attempts)-1]
-}
-
-// cleanupAttempt will perform all the register cleanup operations recorded
-// during execution of the single round of the test function.
-func (r *R) cleanupAttempt(a *attempt) {
-	// Make sure that if a cleanup function panics,
-	// we still run the remaining cleanup functions.
-	defer func() {
-		err := recover()
-		if err != nil {
-			r.Stop(fmt.Errorf("error when performing test cleanup: %v", err))
-		}
-		if len(a.cleanups) > 0 {
-			r.cleanupAttempt(a)
-		}
-	}()
-
-	for len(a.cleanups) > 0 {
-		var cleanup func()
-		if len(a.cleanups) > 0 {
-			last := len(a.cleanups) - 1
-			cleanup = a.cleanups[last]
-			a.cleanups = a.cleanups[:last]
-		}
-		if cleanup != nil {
-			cleanup()
-		}
-	}
-}
-
-// runAttempt will execute one round of the test function and handle cleanups and panic recovery
-// of a failed attempt that should not stop retrying.
-func (r *R) runAttempt(f func(r *R)) {
-	r.Helper()
-
-	a := &attempt{}
-	r.attempts = append(r.attempts, a)
-
-	defer r.cleanupAttempt(a)
-	defer func() {
-		if p := recover(); p != nil && p != (attemptFailed{}) {
-			panic(p)
-		}
-	}()
-	f(r)
-}
-
-func (r *R) run(f func(r *R)) {
-	r.Helper()
-
-	for r.retryer.Continue() {
-		r.runAttempt(f)
+	for r.Continue() {
+		func() {
+			defer func() {
+				if p := recover(); p != nil && p != runFailed {
+					panic(p)
+				}
+			}()
+			f(rr)
+		}()
 
 		switch {
-		case r.done:
-			r.recordRetryFailure()
+		case rr.done:
+			fail()
 			return
-		case !r.Failed():
-			// the current attempt did not fail so we can go ahead and return
+		case !rr.fail:
 			return
 		}
+		rr.fail = false
 	}
-
-	// We cannot retry any more and no attempt has succeeded yet.
-	r.recordRetryFailure()
+	fail()
 }
 
-func (r *R) recordRetryFailure() {
-	r.Helper()
-	output := r.getCurrentAttempt().output
-	if r.fullOutput {
-		var combined []string
-		for _, attempt := range r.attempts {
-			combined = append(combined, attempt.output...)
-		}
-		output = combined
-	}
-
-	out := dedup(output)
-	if out != "" {
-		r.wrapped.Log(out)
-	}
-	r.wrapped.FailNow()
+// DefaultFailer provides default retry.Run() behavior for unit tests.
+func DefaultFailer() *Timer {
+	return &Timer{Timeout: 7 * time.Second, Wait: 25 * time.Millisecond}
 }
 
-type attempt struct {
-	failed   bool
-	output   []string
-	cleanups []func()
+// TwoSeconds repeats an operation for two seconds and waits 25ms in between.
+func TwoSeconds() *Timer {
+	return &Timer{Timeout: 2 * time.Second, Wait: 25 * time.Millisecond}
 }
 
-// attemptFailed is a sentinel value to indicate that the func itself
-// didn't panic, rather that `FailNow` was called.
-type attemptFailed struct{}
+// ThreeTimes repeats an operation three times and waits 25ms in between.
+func ThreeTimes() *Counter {
+	return &Counter{Count: 3, Wait: 25 * time.Millisecond}
+}
+
+// Retryer provides an interface for repeating operations
+// until they succeed or an exit condition is met.
+type Retryer interface {
+	// Continue returns true if the operation should be repeated, otherwise it
+	// returns false to indicate retrying should stop.
+	Continue() bool
+}
+
+// Counter repeats an operation a given number of
+// times and waits between subsequent operations.
+type Counter struct {
+	Count int
+	Wait  time.Duration
+
+	count int
+}
+
+func (r *Counter) Continue() bool {
+	if r.count == r.Count {
+		return false
+	}
+	if r.count > 0 {
+		time.Sleep(r.Wait)
+	}
+	r.count++
+	return true
+}
+
+// Timer repeats an operation for a given amount
+// of time and waits between subsequent operations.
+type Timer struct {
+	Timeout time.Duration
+	Wait    time.Duration
+
+	// stop is the timeout deadline.
+	// Set on the first invocation of Next().
+	stop time.Time
+}
+
+func (r *Timer) Continue() bool {
+	if r.stop.IsZero() {
+		r.stop = time.Now().Add(r.Timeout)
+		return true
+	}
+	if time.Now().After(r.stop) {
+		return false
+	}
+	time.Sleep(r.Wait)
+	return true
+}

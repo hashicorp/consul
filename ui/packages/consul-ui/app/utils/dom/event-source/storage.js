@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 export default function (EventTarget, P = Promise) {
   const handler = function (e) {
     // e is undefined on the opening call

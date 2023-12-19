@@ -1,0 +1,331 @@
+---
+layout: docs
+page_title: API Gateway Configuration Entry Reference
+description: Learn how to configure a Consul API Gateway on VMs.
+---
+
+# API gateway configuration entry reference
+
+This topic provides reference information for the API gateway configuration entry that you can deploy to networks in virtual machine (VM) environments. For reference information about configuring Consul API gateways on Kubernetes, refer to [Gateway Resource Configuration](/consul/docs/api-gateway/configuration/gateway).
+
+## Introduction
+
+A gateway is a type of network infrastructure that determines how service traffic should be handled. Gateways contain one or more listeners that bind to a set of hosts and ports. An HTTP Route or TCP Route can then attach to a gateway listener to direct traffic from the gateway to a service.
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in an `api-gateway` configuration entry. Click on a property name to view additional details, including default values.
+
+- [`Kind`](#kind): string | must be `"api-gateway"`
+- [`Name`](#name): string | no default
+- [`Namespace`](#namespace): string | no default <EnterpriseAlert inline />
+- [`Partition`](#partition): string | no default <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
+- [`Listeners`](#listeners): list of objects | no default
+  - [`Name`](#listeners-name): string | no default
+  - [`Port`](#listeners-port): number | no default
+  - [`Hostname`](#listeners-hostname): string | `"*"`
+  - [`Protocol`](#listeners-protocol): string | `"tcp"`
+  - [`TLS`](#listeners-tls): map | none
+    - [`MinVersion`](#listeners-tls-minversion): string | no default
+    - [`MaxVersion`](#listeners-tls-maxversion): string | no default
+    - [`CipherSuites`](#listeners-tls-ciphersuites): list of strings | Envoy default cipher suites
+    - [`Certificates`](#listeners-tls-certificates): list of objects | no default
+      - [`Kind`](#listeners-tls-certificates-kind): string | must be `"inline-certificate"`
+      - [`Name`](#listeners-tls-certificates-name): string | no default
+      - [`Namespace`](#listeners-tls-certificates-namespace): string | no default <EnterpriseAlert inline />
+      - [`Partition`](#listeners-tls-certificates-partition): string | no default <EnterpriseAlert inline />
+
+## Complete configuration
+
+When every field is defined, an `api-gateway` configuration entry has the following form:
+
+<CodeTabs>
+
+```hcl
+Kind = "api-gateway"
+Name = "<name of api gateway>"
+Namespace = "<enterprise: namespace of the gateway>"
+Partition = "<enterprise: partition of the gateway>"
+
+Meta = {
+  <any key> = "<any value>"
+}
+
+Listeners = [
+  {
+    Port = <external service port>
+    Name = "<unique name for this listener>"
+    Protocol = "<protocol used by external service>"
+    TLS = {
+      MaxVersion = "<version of TLS>"
+      MinVersion = "<version of TLS>"
+      CipherSuites = [
+        "<cipher suite>"
+      ]
+      Certificates = [
+        {
+          Kind = "inline-certificate"
+          Name = "<name of inline-certificate>"
+          Namespace = "<enterprise: namespace of the certificate>"
+          Partition = "<enterprise: partition of the certificate>"
+        }
+      ]
+    }
+  }
+]
+```
+
+```json
+{
+  "Kind": "api-gateway",
+  "Name": "<name of api gateway>",
+  "Namespace": "<enterprise: namespace of the gateway>",
+  "Partition": "<enterprise: partition of the gateway>",
+  "Meta": {
+    "<any key>": "<any value>"
+  },
+  "Listeners": [
+    {
+      "Name": "<unique name for this listener>",
+      "Port": <external service port>,
+      "Protocol": "<protocol used by external service>",
+      "TLS": {
+        "MaxVersion": "<version of TLS>",
+        "MinVersion": "<version of TLS>",
+        "CipherSuites": [
+          "<cipher suite>"
+        ],
+        "Certificates": [
+          {
+            "Kind": "inline-certificate",
+            "Name": "<name of inline-certificate>",
+            "Namespace": "<enterprise: namespace of the certificate>",
+            "Partition": "<enterprise: partition of the certificate>"
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+</CodeTabs>
+
+## Specification
+
+This section provides details about the fields you can configure in the
+`api-gateway` configuration entry.
+
+### `Kind`
+
+Specifies the type of configuration entry to implement. This must be
+`api-gateway`.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string value that must be set to `"api-gateway"`.
+
+### `Name`
+
+Specifies a name for the configuration entry. The name is metadata that you can
+use to reference the configuration entry when performing Consul operations,
+such as applying a configuration entry to a specific cluster.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) to apply to the configuration entry.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Meta`
+
+Specifies an arbitrary set of key-value pairs to associate with the gateway.
+
+#### Values
+
+- Default: none
+- Data type: map containing one or more keys and string values.
+
+### `Listeners[]`
+
+Specifies a list of listeners that gateway should set up. Listeners are
+uniquely identified by their port number.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: List of maps. Each member of the list contains the following fields:
+  - [`Name`](#listeners-name)
+  - [`Port`](#listeners-port)
+  - [`Hostname`](#listeners-hostname)
+  - [`Protocol`](#listeners-protocol)
+  - [`TLS`](#listeners-tls)
+
+### `Listeners[].Name`
+
+Specifies the unique name for the listener. This field accepts letters, numbers, and hyphens.
+
+#### Values
+
+- Default: none
+- This field is required.
+- Data type: string
+
+### `Listeners[].Port`
+
+Specifies the port number that the listener receives traffic on.
+
+#### Values
+
+- Default: `0`
+- This field is required.
+- Data type: integer
+
+### `Listeners[].Hostname`
+
+Specifies the hostname that the listener receives traffic on.
+
+#### Values
+
+- Default: `"*"`
+- This field is optional.
+- Data type: string
+
+### `Listeners[].Protocol`
+
+Specifies the protocol associated with the listener.
+
+#### Values
+
+- Default: none
+- This field is required.
+- The data type is one of the following string values: `"tcp"` or `"http"`.
+
+### `Listeners[].TLS`
+
+Specifies the TLS configurations for the listener.
+
+#### Values
+
+- Default: none
+- Map that contains the following fields:
+  - [`MaxVersion`](#listeners-tls-maxversion)
+  - [`MinVersion`](#listeners-tls-minversion)
+  - [`CipherSuites`](#listeners-tls-ciphersuites)
+  - [`Certificates`](#listeners-tls-certificates)
+
+### `Listeners[].TLS.MaxVersion`
+
+Specifies the maximum TLS version supported for the listener.
+
+#### Values
+
+- Default depends on the version of Envoy:
+  - Envoy 1.22.0 and later default to `TLSv1_2`
+  - Older versions of Envoy default to `TLSv1_0`
+- Data type is one of the following string values:
+  - `TLS_AUTO`
+  - `TLSv1_0`
+  - `TLSv1_1`
+  - `TLSv1_2`
+  - `TLSv1_3`
+
+### `Listeners[].TLS.MinVersion`
+
+Specifies the minimum TLS version supported for the listener.
+
+#### Values
+
+- Default: none
+- Data type is one of the following string values:
+  - `TLS_AUTO`
+  - `TLSv1_0`
+  - `TLSv1_1`
+  - `TLSv1_2`
+  - `TLSv1_3`
+
+### `Listeners[].TLS.CipherSuites[]`
+
+Specifies a list of cipher suites that the listener supports when negotiating connections using TLS 1.2 or older.
+
+#### Values
+
+- Defaults to the ciphers supported by the version of Envoy in use. Refer to the
+  [Envoy documentation](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/transport_sockets/tls/v3/common.proto#envoy-v3-api-field-extensions-transport-sockets-tls-v3-tlsparameters-cipher-suites)
+  for details.
+- Data type: List of string values. Refer to the
+  [Consul repository](https://github.com/hashicorp/consul/blob/v1.11.2/types/tls.go#L154-L169)
+  for a list of supported ciphers.
+
+### `Listeners[].TLS.Certificates[]`
+
+The list of references to inline certificates that the listener uses for TLS termination.
+
+#### Values
+
+- Default: None
+- Data type: List of maps. Each member of the list has the following fields:
+  - [`Kind`](#listeners-tls-certificates-kind)
+  - [`Name`](#listeners-tls-certificates-name)
+  - [`Namespace`](#listeners-tls-certificates-namespace) <EnterpriseAlert inline />
+  - [`Partition`](#listeners-tls-certificates-partition) <EnterpriseAlert inline />
+
+### `Listeners[].TLS.Certificates[].Kind`
+
+The list of references to inline-certificates that the listener uses for TLS termination.
+
+#### Values
+
+- Default: None
+- This field is required and must be set to `"inline-certificate"`.
+- Data type: string
+
+### `Listeners[].TLS.Certificates[].Name`
+
+The list of references to inline certificates that the listener uses for TLS termination.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: string
+
+### `Listeners[].TLS.Certificates[].Namespace` <EnterpriseAlert inline />
+
+Specifies the Enterprise [namespace](/consul/docs/enterprise/namespaces) where the certificate can be found.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string
+
+### `Listeners[].TLS.Certificates[].Partition` <EnterpriseAlert inline />
+
+Specifies the Enterprise [admin partition](/consul/docs/enterprise/admin-partitions) where the certificate can be found.
+
+#### Values
+
+- Default: `"default"` in Enterprise
+- Data type: string

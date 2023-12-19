@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 %consul-server-list ul {
   display: grid;
   grid-template-columns: repeat(4, minmax(215px, 25%));
@@ -14,6 +9,6 @@
 }
 
 %consul-server-list a:hover div {
-  box-shadow: var(--token-elevation-overlay-box-shadow);
-  --tone-border: var(--token-color-foreground-faint);
+  box-shadow: var(--decor-elevation-800);
+  --tone-border: var(--tone-gray-500);
 }

@@ -1,7 +1,5 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 //go:build !consulent
+// +build !consulent
 
 package structs
 
@@ -57,22 +55,6 @@ func TestExportedServicesConfigEntry_CE(t *testing.T) {
 				Name: "foo",
 			},
 			validateErr: `exported-services Name must be "default"`,
-		},
-		"validate: sameness groups are enterprise only": {
-			entry: &ExportedServicesConfigEntry{
-				Name: "default",
-				Services: []ExportedService{
-					{
-						Name: "web",
-						Consumers: []ServiceConsumer{
-							{
-								SamenessGroup: "sg",
-							},
-						},
-					},
-				},
-			},
-			validateErr: `Services[0].Consumers[0]: sameness-groups are an enterprise-only feature`,
 		},
 	}
 

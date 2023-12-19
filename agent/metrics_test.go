@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -14,6 +11,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -283,7 +281,8 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		defer s2.Shutdown()
 
 		// agent hasn't become a leader
-		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
+
+		retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: time.Second}, t, func(r *testretry.R) {
 			respRec := httptest.NewRecorder()
 			recordPromMetrics(r, s1, respRec)
 			found := strings.Contains(respRec.Body.String(), metricsPrefix1+"_server_isLeader 0")
@@ -296,7 +295,7 @@ func TestHTTPHandlers_AgentMetrics_LeaderShipMetrics(t *testing.T) {
 		testrpc.WaitForLeader(t, s2.RPC, "dc1")
 
 		// Verify agent's isLeader metrics is 1
-		retry.RunWith(retry.ThirtySeconds(), t, func(r *testretry.R) {
+		retry.RunWith(&retry.Timer{Timeout: 30 * time.Second, Wait: time.Second}, t, func(r *testretry.R) {
 			respRec1 := httptest.NewRecorder()
 			recordPromMetrics(r, s1, respRec1)
 			found1 := strings.Contains(respRec1.Body.String(), metricsPrefix1+"_server_isLeader 1")

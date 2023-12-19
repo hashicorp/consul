@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package acl
 
 import (
@@ -66,10 +63,6 @@ func ValidatePolicyName(name string) error {
 // ACLRole Name.
 func IsValidRoleName(name string) bool {
 	return validRoleName.MatchString(name)
-}
-
-func IsValidPolicyName(name string) bool {
-	return ValidatePolicyName(name) == nil
 }
 
 // IsValidRoleName returns true if the provided name can be used as an

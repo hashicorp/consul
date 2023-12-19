@@ -1,3 +1,0 @@
-```release-note:feature
-acl: Adds nomad client templated policy
-```

@@ -1,3 +1,0 @@
-```release-note:improvement
-acl: add templated policy descriptions
-```

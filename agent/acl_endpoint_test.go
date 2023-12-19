@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -21,7 +18,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/authmethod/testauth"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/testrpc"
@@ -1361,123 +1357,6 @@ func TestACL_HTTP(t *testing.T) {
 			require.Len(t, token.ServiceIdentities, 1)
 			require.Equal(t, "sn1", token.ServiceIdentities[0].ServiceName)
 		})
-
-		t.Run("List by ServiceName based on templated policies", func(t *testing.T) {
-			tokenInput := &structs.ACLToken{
-				Description: "token for templated policies service",
-				TemplatedPolicies: []*structs.ACLTemplatedPolicy{
-					{
-						TemplateName: "builtin/service",
-						TemplateVariables: &structs.ACLTemplatedPolicyVariables{
-							Name: "service1",
-						},
-					},
-				},
-			}
-
-			req, _ := http.NewRequest("PUT", "/v1/acl/token", jsonBody(tokenInput))
-			req.Header.Add("X-Consul-Token", "root")
-			resp := httptest.NewRecorder()
-			_, err := a.srv.ACLTokenCreate(resp, req)
-			require.NoError(t, err)
-
-			req, _ = http.NewRequest("GET", "/v1/acl/tokens?servicename=service1", nil)
-			req.Header.Add("X-Consul-Token", "root")
-			resp = httptest.NewRecorder()
-			raw, err := a.srv.ACLTokenList(resp, req)
-			require.NoError(t, err)
-			tokens, ok := raw.(structs.ACLTokenListStubs)
-			require.True(t, ok)
-			require.Len(t, tokens, 1)
-			token := tokens[0]
-			require.Equal(t, "token for templated policies service", token.Description)
-			require.Len(t, token.TemplatedPolicies, 1)
-			require.Equal(t, "service1", token.TemplatedPolicies[0].TemplateVariables.Name)
-		})
-	})
-
-	t.Run("ACLTemplatedPolicy", func(t *testing.T) {
-		t.Run("List", func(t *testing.T) {
-			req, _ := http.NewRequest("GET", "/v1/acl/templated-policies", nil)
-			req.Header.Add("X-Consul-Token", "root")
-			resp := httptest.NewRecorder()
-			a.srv.h.ServeHTTP(resp, req)
-
-			require.Equal(t, http.StatusOK, resp.Code)
-
-			var list map[string]api.ACLTemplatedPolicyResponse
-			require.NoError(t, json.NewDecoder(resp.Body).Decode(&list))
-			require.Len(t, list, 7)
-
-			require.Equal(t, api.ACLTemplatedPolicyResponse{
-				TemplateName: api.ACLTemplatedPolicyServiceName,
-				Schema:       structs.ACLTemplatedPolicyServiceSchema,
-				Template:     structs.ACLTemplatedPolicyService,
-				Description:  structs.ACLTemplatedPolicyServiceDescription,
-			}, list[api.ACLTemplatedPolicyServiceName])
-		})
-		t.Run("Read", func(t *testing.T) {
-			t.Run("With non existing templated policy", func(t *testing.T) {
-				req, _ := http.NewRequest("GET", "/v1/acl/templated-policy/name/fake", nil)
-				req.Header.Add("X-Consul-Token", "root")
-				resp := httptest.NewRecorder()
-				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(t, http.StatusBadRequest, resp.Code)
-			})
-
-			t.Run("With existing templated policy", func(t *testing.T) {
-				req, _ := http.NewRequest("GET", "/v1/acl/templated-policy/name/"+api.ACLTemplatedPolicyDNSName, nil)
-				req.Header.Add("X-Consul-Token", "root")
-				resp := httptest.NewRecorder()
-
-				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(t, http.StatusOK, resp.Code)
-
-				var templatedPolicy api.ACLTemplatedPolicyResponse
-				require.NoError(t, json.NewDecoder(resp.Body).Decode(&templatedPolicy))
-				require.Equal(t, structs.ACLTemplatedPolicyNoRequiredVariablesSchema, templatedPolicy.Schema)
-				require.Equal(t, structs.ACLTemplatedPolicyDNSDescription, templatedPolicy.Description)
-				require.Equal(t, api.ACLTemplatedPolicyDNSName, templatedPolicy.TemplateName)
-				require.Equal(t, structs.ACLTemplatedPolicyDNS, templatedPolicy.Template)
-			})
-		})
-		t.Run("preview", func(t *testing.T) {
-			t.Run("When missing required variables", func(t *testing.T) {
-				previewInput := &structs.ACLTemplatedPolicyVariables{}
-				req, _ := http.NewRequest(
-					"POST",
-					fmt.Sprintf("/v1/acl/templated-policy/preview/%s", api.ACLTemplatedPolicyServiceName),
-					jsonBody(previewInput),
-				)
-				req.Header.Add("X-Consul-Token", "root")
-				resp := httptest.NewRecorder()
-
-				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(t, http.StatusBadRequest, resp.Code)
-			})
-
-			t.Run("Correct input", func(t *testing.T) {
-				previewInput := &structs.ACLTemplatedPolicyVariables{Name: "web"}
-				req, _ := http.NewRequest(
-					"POST",
-					fmt.Sprintf("/v1/acl/templated-policy/preview/%s", api.ACLTemplatedPolicyServiceName),
-					jsonBody(previewInput),
-				)
-				req.Header.Add("X-Consul-Token", "root")
-				resp := httptest.NewRecorder()
-
-				a.srv.h.ServeHTTP(resp, req)
-				require.Equal(t, http.StatusOK, resp.Code)
-
-				var syntheticPolicy *structs.ACLPolicy
-				require.NoError(t, json.NewDecoder(resp.Body).Decode(&syntheticPolicy))
-
-				require.NotEmpty(t, syntheticPolicy.ID)
-				require.NotEmpty(t, syntheticPolicy.Hash)
-				require.Equal(t, "synthetic policy generated from templated policy: builtin/service", syntheticPolicy.Description)
-				require.Contains(t, syntheticPolicy.Name, "synthetic-policy-")
-			})
-		})
 	})
 }
 
@@ -2225,7 +2104,7 @@ func TestACL_Authorize(t *testing.T) {
 	policyReq := structs.ACLPolicySetRequest{
 		Policy: structs.ACLPolicy{
 			Name:  "test",
-			Rules: `acl = "read" operator = "write" identity_prefix "" { policy = "read"} service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
+			Rules: `acl = "read" operator = "write" service_prefix "" { policy = "read"} node_prefix "" { policy= "write" } key_prefix "/foo" { policy = "write" } `,
 		},
 		Datacenter:   "dc1",
 		WriteRequest: structs.WriteRequest{Token: TestDefaultInitialManagementToken},
@@ -2308,16 +2187,6 @@ func TestACL_Authorize(t *testing.T) {
 			},
 			{
 				Resource: "event",
-				Segment:  "foo",
-				Access:   "write",
-			},
-			{
-				Resource: "identity",
-				Segment:  "foo",
-				Access:   "read",
-			},
-			{
-				Resource: "identity",
 				Segment:  "foo",
 				Access:   "write",
 			},
@@ -2472,16 +2341,6 @@ func TestACL_Authorize(t *testing.T) {
 			Access:   "write",
 		},
 		{
-			Resource: "identity",
-			Segment:  "foo",
-			Access:   "read",
-		},
-		{
-			Resource: "identity",
-			Segment:  "foo",
-			Access:   "write",
-		},
-		{
 			Resource: "intention",
 			Segment:  "foo",
 			Access:   "read",
@@ -2587,8 +2446,6 @@ func TestACL_Authorize(t *testing.T) {
 		false, // agent:write
 		false, // event:read
 		false, // event:write
-		true,  // identity:read
-		false, // identity:write
 		true,  // intentions:read
 		false, // intention:write
 		false, // key:read

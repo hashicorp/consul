@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package gateways
 
 import (
@@ -11,13 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/controller"
-	"github.com/hashicorp/consul/agent/consul/controller/queue"
 	"github.com/hashicorp/consul/agent/consul/fsm"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
@@ -2032,7 +2027,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2130,7 +2125,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2269,7 +2264,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2428,7 +2423,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2579,7 +2574,7 @@ func TestAPIGatewayController(t *testing.T) {
 								EnterpriseMeta: *defaultMeta,
 								SectionName:    "listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:           structs.APIGateway,
 								Name:           "gateway",
 								EnterpriseMeta: *defaultMeta,
@@ -2757,12 +2752,12 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "tcp-listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "tcp-listener",
@@ -3121,7 +3116,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3476,7 +3471,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -3574,12 +3569,12 @@ func TestAPIGatewayController(t *testing.T) {
 					},
 					Status: structs.Status{
 						Conditions: []structs.Condition{
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "listener-1",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "listener-2",
@@ -3800,7 +3795,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "invalid-listener",
 							}, errors.New("certificate \"missing certificate\" not found")),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "valid-listener",
@@ -3907,7 +3902,7 @@ func TestAPIGatewayController(t *testing.T) {
 								Name:        "gateway",
 								SectionName: "http-listener",
 							}),
-							resolvedRefs(structs.ResourceReference{
+							validCertificate(structs.ResourceReference{
 								Kind:        structs.APIGateway,
 								Name:        "gateway",
 								SectionName: "http-listener",
@@ -4026,8 +4021,7 @@ func TestAPIGatewayController(t *testing.T) {
 				NewStateStore: func() *state.Store {
 					return state.NewStateStoreWithEventPublisher(nil, publisher)
 				},
-				Publisher:      publisher,
-				StorageBackend: fsm.NullStorageBackend,
+				Publisher: publisher,
 			})
 
 			var index uint64
@@ -4146,8 +4140,7 @@ func TestNewAPIGatewayController(t *testing.T) {
 		NewStateStore: func() *state.Store {
 			return state.NewStateStoreWithEventPublisher(nil, publisher)
 		},
-		Publisher:      publisher,
-		StorageBackend: fsm.NullStorageBackend,
+		Publisher: publisher,
 	})
 
 	updater := &Updater{
@@ -4171,7 +4164,7 @@ func (n *noopController) Subscribe(request *stream.SubscribeRequest, transformer
 func (n *noopController) WithBackoff(base, max time.Duration) controller.Controller { return n }
 func (n *noopController) WithLogger(logger hclog.Logger) controller.Controller      { return n }
 func (n *noopController) WithWorkers(i int) controller.Controller                   { return n }
-func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) queue.WorkQueue[controller.Request]) controller.Controller {
+func (n *noopController) WithQueueFactory(fn func(ctx context.Context, baseBackoff time.Duration, maxBackoff time.Duration) controller.WorkQueue) controller.Controller {
 	return n
 }
 

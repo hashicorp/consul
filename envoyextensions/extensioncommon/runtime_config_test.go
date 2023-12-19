@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package extensioncommon
 
 import (
@@ -20,7 +17,7 @@ func makeTestRuntimeConfig() RuntimeConfig {
 			sn: {
 				EnvoyID:           "eid",
 				OutgoingProxyKind: api.ServiceKindTerminatingGateway,
-				SNIs: map[string]struct{}{
+				SNI: map[string]struct{}{
 					"sni1": {},
 					"sni2": {},
 				},

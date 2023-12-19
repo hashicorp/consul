@@ -1,11 +1,11 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
-      "dnsLookupFamily": "V4_ONLY",
-      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -27,13 +27,19 @@
           }
         ]
       },
-      "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
+            "tlsParams": {
+
+            },
             "tlsCertificates": [
               {
                 "certificateChain": {
@@ -44,28 +50,26 @@
                 }
               }
             ],
-            "tlsParams": {},
             "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              },
               "matchSubjectAltNames": [
                 {
                   "exact": "bar.com"
                 }
-              ],
-              "trustedCa": {
-                "filename": "ca.cert.pem"
-              }
+              ]
             }
           },
           "sni": "bar.com"
         }
-      },
-      "type": "LOGICAL_DNS"
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
-      "dnsLookupFamily": "V4_ONLY",
-      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -87,15 +91,17 @@
           }
         ]
       },
-      "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "LOGICAL_DNS"
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
-      "dnsLookupFamily": "V4_ONLY",
-      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -117,44 +123,52 @@
           }
         ]
       },
-      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "LOGICAL_DNS"
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "connectTimeout": "5s",
+      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
+      "connectTimeout": "5s",
+      "outlierDetection": {
+
+      },
       "transportSocket": {
         "name": "tls",
         "typedConfig": {
           "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
           "commonTlsContext": {
-            "tlsParams": {},
+            "tlsParams": {
+
+            },
             "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              },
               "matchSubjectAltNames": [
                 {
                   "exact": "foo.com"
                 }
-              ],
-              "trustedCa": {
-                "filename": "ca.cert.pem"
-              }
+              ]
             }
           },
           "sni": "foo.com"
         }
-      },
-      "type": "EDS"
+      }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

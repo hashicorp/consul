@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package ca
 
 import (
@@ -126,7 +123,7 @@ func SkipIfVaultNotPresent(t testing.T, reqs ...vaultRequirements) {
 	}
 }
 
-func NewTestVaultServer(t retry.TestingTB) *TestVaultServer {
+func NewTestVaultServer(t testing.T) *TestVaultServer {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -198,13 +195,12 @@ type TestVaultServer struct {
 }
 
 var printedVaultVersion sync.Once
-var vaultTestVersion string
 
 func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
 }
 
-func (v *TestVaultServer) WaitUntilReady(t retry.TestingTB) {
+func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 	var version string
 	retry.Run(t, func(r *retry.R) {
 		resp, err := v.client.Sys().Health()
@@ -220,7 +216,6 @@ func (v *TestVaultServer) WaitUntilReady(t retry.TestingTB) {
 		version = resp.Version
 	})
 	printedVaultVersion.Do(func() {
-		vaultTestVersion = version
 		fmt.Fprintf(os.Stderr, "[INFO] agent/connect/ca: testing with vault server version: %s\n", version)
 	})
 }
@@ -253,8 +248,8 @@ func requireTrailingNewline(t testing.T, leafPEM string) {
 	if len(leafPEM) == 0 {
 		t.Fatalf("cert is empty")
 	}
-	if rune(leafPEM[len(leafPEM)-1]) != '\n' {
-		t.Fatalf("cert does not end with a new line")
+	if '\n' != rune(leafPEM[len(leafPEM)-1]) {
+		t.Fatalf("cert do not end with a new line")
 	}
 }
 

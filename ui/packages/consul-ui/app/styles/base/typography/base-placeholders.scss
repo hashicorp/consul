@@ -1,75 +1,78 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
-%display-500-bold {
-  @extend .hds-typography-display-500;
-  @extend .hds-font-weight-bold;
-}
-%display-400-bold {
-  @extend .hds-typography-display-400;
-  @extend .hds-font-weight-bold;
-}
-%display-400-semibold {
-  @extend .hds-typography-display-400;
-  @extend .hds-font-weight-semibold;
-}
-%display-400-medium {
-  @extend .hds-typography-display-400;
-  @extend .hds-font-weight-medium;
-}
-%display-300-bold {
-  @extend .hds-typography-display-300;
-  @extend .hds-font-weight-bold;
-}
-%display-300-semibold {
-  @extend .hds-typography-display-300;
-  @extend .hds-font-weight-semibold;
-}
-%display-300-medium {
-  @extend .hds-typography-display-300;
-  @extend .hds-font-weight-medium;
-}
-%display-200-semibold {
-  @extend .hds-typography-display-200;
-  @extend .hds-font-weight-semibold;
-}
-%display-100-medium {
-  @extend .hds-typography-display-100;
-  @extend .hds-font-weight-medium;
-}
-%display-100-semibold {
-  @extend .hds-typography-display-100;
-  @extend .hds-font-weight-semibold;
-}
-
-$sizes: 100, 200, 300;
-@each $size in $sizes {
-  %body-#{$size}-regular {
-    @extend .hds-typography-body-#{$size};
-    @extend .hds-font-weight-regular;
-  }
-  %body-#{$size}-medium {
-    @extend .hds-typography-body-#{$size};
-    @extend .hds-font-weight-medium;
-  }
-  %body-#{$size}-semibold {
-    @extend .hds-typography-body-#{$size};
-    @extend .hds-font-weight-semibold;
-  }
-
-  %code-#{$size}-regular {
-    font-family: var(--token-typography-font-stack-code);
-    font-size: var(--token-typography-code-#{$size}-font-size);
-    line-height: var(--token-typography-code-#{$size}-line-height);
-    font-weight: var(--token-typography-font-weight-regular);
-  }
-}
-
 %typo-inherit {
   font-size: inherit;
   font-weight: inherit;
   line-height: inherit;
   font-style: inherit;
+}
+%typo-body {
+  font-size: var(--typo-size-600);
+  font-family: var(--typo-family-sans);
+  line-height: var(--typo-lead-700);
+}
+%typo-header {
+  line-height: var(--typo-lead-200);
+}
+%h000,
+%h100,
+%h200,
+%h300,
+%h400,
+%h500,
+%h600,
+%h400,
+%h500,
+%h600 {
+  @extend %typo-header;
+}
+%h100 {
+  font-weight: var(--typo-weight-bold);
+}
+%h200,
+%h300,
+%h400 {
+  font-weight: var(--typo-weight-semibold);
+}
+%h500,
+%h600 {
+  font-weight: var(--typo-weight-medium);
+}
+%h000 {
+  font-size: var(--typo-size-100);
+}
+%h100 {
+  font-size: var(--typo-size-200);
+}
+%h200 {
+  font-size: var(--typo-size-300);
+}
+%h300 {
+  font-size: var(--typo-size-500);
+}
+/*p1 strong, differing weights */
+%h400,
+%h500 {
+  font-size: var(--typo-size-600);
+}
+/*p2 strong */
+%h600 {
+  font-size: var(--typo-size-700);
+}
+%typo-p {
+  line-height: inherit;
+  font-size: inherit;
+}
+%p,
+%p1,
+%p2,
+%p3 {
+  @extend %typo-p;
+}
+%p1 {
+  font-size: var(--typo-size-600);
+}
+%p2 {
+  font-size: var(--typo-size-700);
+}
+%p3 {
+  font-size: var(--typo-size-800);
 }

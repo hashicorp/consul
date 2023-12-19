@@ -1,13 +1,9 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/miekg/dns"
 
@@ -358,38 +354,6 @@ type HTTPMatch struct {
 	Query   []HTTPQueryMatch
 }
 
-func (m HTTPMatch) DeepEqual(other HTTPMatch) bool {
-	if m.Method != other.Method {
-		return false
-	}
-
-	if m.Path != other.Path {
-		return false
-	}
-
-	if len(m.Headers) != len(other.Headers) {
-		return false
-	}
-
-	if len(m.Query) != len(other.Query) {
-		return false
-	}
-
-	for i := 0; i < len(m.Headers); i++ {
-		if m.Headers[i] != other.Headers[i] {
-			return false
-		}
-	}
-
-	for i := 0; i < len(m.Query); i++ {
-		if m.Query[i] != other.Query[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
 // HTTPMatchMethod specifies which type of HTTP verb should
 // be used for matching a given request.
 type HTTPMatchMethod string
@@ -465,17 +429,8 @@ type HTTPQueryMatch struct {
 // HTTPFilters specifies a list of filters used to modify a request
 // before it is routed to an upstream.
 type HTTPFilters struct {
-	Headers       []HTTPHeaderFilter
-	URLRewrite    *URLRewrite
-	RetryFilter   *RetryFilter
-	TimeoutFilter *TimeoutFilter
-	JWT           *JWTFilter
-}
-
-// HTTPResponseFilters specifies a list of filters used to modify the
-// response returned by an upstream
-type HTTPResponseFilters struct {
-	Headers []HTTPHeaderFilter
+	Headers    []HTTPHeaderFilter
+	URLRewrite *URLRewrite
 }
 
 // HTTPHeaderFilter specifies how HTTP headers should be modified.
@@ -489,27 +444,12 @@ type URLRewrite struct {
 	Path string
 }
 
-type RetryFilter struct {
-	NumRetries            uint32
-	RetryOn               []string
-	RetryOnStatusCodes    []uint32
-	RetryOnConnectFailure bool
-}
-
-type TimeoutFilter struct {
-	RequestTimeout time.Duration
-	IdleTimeout    time.Duration
-}
-
 // HTTPRouteRule specifies the routing rules used to determine what upstream
 // service an HTTP request is routed to.
 type HTTPRouteRule struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
-	// ResponseFilters is a list of HTTP-based filters used to modify a response
-	// returned by the upstream service
-	ResponseFilters HTTPResponseFilters
 	// Matches specified the matching criteria used in the routing table. If a
 	// request matches the given HTTPMatch configuration, then traffic is routed
 	// to services specified in the Services field.
@@ -528,10 +468,6 @@ type HTTPService struct {
 	// Filters is a list of HTTP-based filters used to modify a request prior
 	// to routing it to the upstream service
 	Filters HTTPFilters
-
-	// ResponseFilters is a list of HTTP-based filters used to modify the
-	// response returned from the upstream service
-	ResponseFilters HTTPResponseFilters
 
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 }

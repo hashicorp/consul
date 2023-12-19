@@ -44,7 +44,7 @@ There is a syntax error in your configuration file. If the error message doesn't
 ```shell-session
 $ consul agent -server -config-file server.json
 ==> Error parsing server.json: invalid character '`' looking for beginning of value
-$ jq . server.json
+$ cat server.json | jq .
 parse error: Invalid numeric literal at line 3, column 29
 ```
 

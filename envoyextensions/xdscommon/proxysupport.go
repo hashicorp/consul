@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package xdscommon
 
 import "strings"
@@ -12,10 +9,10 @@ import "strings"
 //
 // see: https://www.consul.io/docs/connect/proxies/envoy#supported-versions
 var EnvoyVersions = []string{
-	"1.28.0",
-	"1.27.2",
-	"1.26.6",
 	"1.25.11",
+	"1.24.12",
+	"1.23.12",
+	"1.22.11",
 }
 
 // UnsupportedEnvoyVersions lists any unsupported Envoy versions (mainly minor versions) that fall

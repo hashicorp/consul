@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { set } from '@ember/object';
 import Slotted from 'block-slots';
@@ -18,7 +13,7 @@ export default Component.extend(Slotted, {
   didReceiveAttrs: function () {
     this._super(...arguments);
     if (typeof this.items !== 'undefined') {
-      this.send('change', this.items);
+      this.actions.change.apply(this, [this.items]);
     }
   },
   didInsertElement: function () {

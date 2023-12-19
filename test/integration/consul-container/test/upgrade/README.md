@@ -26,7 +26,7 @@ and envoy sidecars are deployed.
 
 > Note that all consul agents and user workloads such as application services, mesh-gateway are running in docker containers.
 
-In general, each upgrade test has the following steps:
+In general, each upgrade test has following steps:
 1. Create a cluster with a specified number of server and client agents, then enable the feature to be tested. 
 2. Create some workload in the cluster, e.g., registering 2 services: static-server, static-client.
 Static-server is a simple http application and the upstream service of static-client.
@@ -35,7 +35,7 @@ connection between static client and server. Ensure that a connection cannot be 
 4. Upgrade Consul cluster to the `target-version` and restart the Envoy sidecars
 (we restart Envoy sidecar to ensure the upgraded Consul binary can read the state from
 the previous version and generate the correct Envoy configurations)
-5. Re-validate the client, server and sidecars to ensure the persisted data from the previous
+5. Re-validate the client, server and sidecars to ensure the persisted data from the pervious
 version can be accessed in the target version. Verify connection / disconnection
 (e.g., deny Action)  
 
@@ -49,7 +49,6 @@ To run the upgrade test, the following tools are required:
 
 ### Running Upgrade integration tests
 - run `make dev-docker`
-- build a consul-envoy container image `cd test/integration/consul-container docker build -t consul-envoy:latest-version --build-arg CONSUL_IMAGE=docker.mirror.hashicorp.services/consul:1.15  --build-arg ENVOY_VERSION=1.24.6  -f ./assets/Dockerfile-consul-envoy ./assets`
 - run the single test `go test -v -timeout 30m -run ^TestACL_Upgrade_Node_Token$ ./.../upgrade/`
 - run all upgrade tests `go test -v -timeout 30m -run ./.../upgrade`
 
@@ -77,7 +76,9 @@ Below are the supported CLI options
 
 ## Adding a new upgrade integration test
 
-All upgrade tests are defined in [test/integration/consul-container/test/upgrade](/test/integration/consul-container/test/upgrade) subdirectory.
+All upgrade tests are defined in [test/integration/consul-container/test/upgrade](/test/integration/consul-container/test/upgrade) subdirectory. The test framework uses
+[functional table-driven tests in Go](https://yourbasic.org/golang/table-driven-unit-test/) and
+using function types to modify the basic configuration for each test case.
 
 Following is a guide for adding a new upgrade test case.
 1. Create consul cluster(s) with a specified version. Some utility functions are provided to make
@@ -90,65 +91,63 @@ a single cluster or two peered clusters:
 		NumClients: 1,
 		BuildOpts: &libcluster.BuildOptions{
 			Datacenter:           "dc1",
-			ConsulVersion:        utils.LatestVersion,
+			ConsulVersion:        oldVersion,
 		},
 	})
-```
 
-Or
-
-```go
 	// BasicPeeringTwoClustersSetup creates two peered clusters, named accpeting and dialing
-	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, utils.LatestVersion, false)
+	accepting, dialing := libtopology.BasicPeeringTwoClustersSetup(t, oldVersion, false)
 ```
 
-Some workloads may require extra resources. They should be created in this setup section. For example,
-[https://github.com/hashicorp/consul-enterprise/blob/19e515db29541132dbbda73efb7a458cd29d705f/test/integration/consul-container/test/upgrade/peering_http_test.go#L30-L41](this peering test creates a second static-server).
-
-2. Verify the workload
-
+2. For tests with multiple test cases, it should always start by invoking 
 ```go
-	libassert.HTTPServiceEchoes(t, "localhost", port, "")
-	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPort), "static-server-2-v2", "")
+	type testcase struct {
+		name string
+		create func()
+		extraAssertion func()
+	}
 ```
+see example [here](./l7_traffic_management/resolver_default_subset_test.go). For upgrade tests with a single test case, they can be written like
+```go
+	run := func(t *testing.T, oldVersion, targetVersion string) {
+        // insert test
+    }
+	t.Run(fmt.Sprintf("Upgrade from %s to %s", utils.LatestVersion, utils.TargetVersion),
+		func(t *testing.T) {
+			run(t, utils.LatestVersion, utils.TargetVersion)
+		})
+```
+see example [here](./acl_node_test.go)
 
-3. Call the `StandardUpgrade` method and check that the upgrade succeeded.
-We also restart the Envoy proxy to make sure the upgraded agent can generate
-the correct Envoy configurations.
+Addtitional configurations or user-workload can be created with a customized [`create` function](./l7_traffic_management/resolver_default_subset_test.go).
+
+3. Call the upgrade method and assert the upgrading cluster succeeds.
+We also restart the envoy proxy to make sure the upgraded agent can generate
+the correct envoy configurations.
 
 ```go
-	require.NoError(t, 
-		cluster.StandardUpgrade(t, context.Background(), utils.TargetVersion))
+	err = cluster.StandardUpgrade(t, context.Background(), targetVersion)
+	require.NoError(t, err)
 	require.NoError(t, staticServerConnectProxy.Restart())
 	require.NoError(t, staticClientConnectProxy.Restart())
 ```
-4. Verify the workload from step 3 again
+
+4. Verify the user workload after upgrade, e.g.,
 
 ```go
 	libassert.HTTPServiceEchoes(t, "localhost", port, "")
 	libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPort), "static-server-2-v2", "")
-```
-
-For longer verifications, it can be nice to make a local function instead:
-```go
-	tests := func() {
-		libassert.HTTPServiceEchoes(t, "localhost", port, "")
-		libassert.AssertFortioName(t, fmt.Sprintf("http://localhost:%d", appPort), "static-server-2-v2", "")
-	}
-	tests()
-	// ... do upgrade
-	tests()
 ```
 
 ### Errors Test Cases
 There are some caveats for special error handling of versions prior to `1.14`.   
-Upgrade tests for features such as peering had API changes that return an error if an upgrade is attempted, and should be accounted for in upgrade tests. If running upgrade tests for any version before `1.14`, the following lines of code need to be added to skip it or it will not pass.  
+Upgrade tests for features such peering, had API changes that returns an error if attempt to upgrade, and should be accounted for in upgrade tests. If running upgrade tests for any version before `1.14`, the following lines of code needs to be added to skip test or it will not pass.  
 
 ```go
 	fromVersion, err := version.NewVersion(utils.LatestVersion)
 	require.NoError(t, err)
 	if fromVersion.LessThan(utils.Version_1_14) {
-		t.Skip("...")
+		continue
 	}
 ```
 See example [here](https://github.com/hashicorp/consul-enterprise/blob/005a0a92c5f39804cef4ad5c4cd6fd3334b95aa2/test/integration/consul-container/test/upgrade/peering_control_plane_mgw_test.go#L92-L96)
