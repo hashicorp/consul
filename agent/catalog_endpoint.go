@@ -130,15 +130,15 @@ var CatalogCounters = []prometheus.CounterDefinition{
 	},
 	{
 		Name: []string{"client", "api", "catalog_exported_services"},
-		Help: "Increments whenever a Consul agent receives a request to list exported services within a partition.",
+		Help: "Increments whenever a Consul agent receives a request to list exported services.",
 	},
 	{
 		Name: []string{"client", "rpc", "error", "catalog_exported_services"},
-		Help: "Increments whenever a Consul agent receives an RPC error for a request to list exported services within a partition.",
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list exported services.",
 	},
 	{
 		Name: []string{"client", "api", "success", "catalog_exported_services"},
-		Help: "Increments whenever a Consul agent successfully responds to a request to list exported services within a partition.",
+		Help: "Increments whenever a Consul agent successfully responds to a request to list exported services.",
 	},
 }
 
@@ -622,7 +622,6 @@ func (s *HTTPHandlers) CatalogExportedServices(resp http.ResponseWriter, req *ht
 		s.nodeMetricsLabels())
 
 	var args structs.PartitionSpecificRequest
-
 	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
 		return nil, err
 	}
