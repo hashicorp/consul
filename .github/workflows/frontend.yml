@@ -113,7 +113,6 @@ jobs:
 
   ember-build-test-ent:
     needs: setup
-    if: ${{ endsWith(github.repository, '-enterprise') }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     strategy:
       matrix:
