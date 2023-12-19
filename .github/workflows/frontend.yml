@@ -72,6 +72,7 @@ jobs:
 
   ember-build-test:
     needs: setup
+    if: ${{ !endsWith(github.repository, '-enterprise') }}
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     strategy:
       matrix:
@@ -79,7 +80,48 @@ jobs:
     env:
       EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
-      CONSUL_NSPACES_ENABLED: ${{ endsWith(github.repository, '-enterprise') && 1 || 0 }} # NOTE: this should be 1 in ENT.
+      CONSUL_NSPACES_ENABLED: 0 # NOTE: this should be 1 in ENT.
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+
+      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        with:
+          node-version: '18'
+
+      - name: Install Yarn
+        run: corepack enable
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@c485fa3bab6be59dce18dbc18ef6ab7cbc8ff5f1 # v1.2.0
+
+      - name: Install dependencies
+        working-directory: ui
+        run: make deps
+
+      - name: Build CI
+        working-directory: ui/packages/consul-ui
+        run: make build-ci
+
+      - name: Ember exam
+        working-directory: ui/packages/consul-ui
+        run: node_modules/.bin/ember exam --split=4 --partition=${{ matrix.partition }} --path dist --silent -r xunit
+
+      - name: Test Coverage CI
+        working-directory: ui/packages/consul-ui
+        run: make test-coverage-ci
+
+  ember-build-test-ent:
+    needs: setup
+    if: ${{ endsWith(github.repository, '-enterprise') }}
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
+    strategy:
+      matrix:
+        partition: [1, 2, 3, 4]
+    env:
+      EMBER_TEST_REPORT: test-results/report-ce.xml # outputs test report for CI test summary
+      EMBER_TEST_PARALLEL: true # enables test parallelization with ember-exam
+      CONSUL_NSPACES_ENABLED: 1 # NOTE: this should be 1 in ENT.
       JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -109,152 +151,6 @@ jobs:
     - name: Test Coverage CI
       working-directory: ui/packages/consul-ui
       run: make test-coverage-ci
-
-  frontend-build-ce:
-    runs-on: ubuntu-latest
-    env:
-      JOBS: 2
-      CONSUL_NSPACES_ENABLED: 0
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          ref: ${{ env.BRANCH }}
-
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
-
-      - name: Install
-        id: install
-        working-directory: ./ui
-        run: make deps
-
-      - name: Ember Build CE
-        id: build-ce
-        working-directory: ./ui/packages/consul-ui
-        run: make build-ci
-
-      - name: Upload CE Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: frontend-ce-${{ env.BRANCH_NAME }}
-          path: ./ui/packages/consul-ui/dist
-          if-no-files-found: error
-
-  frontend-test-ce:
-    runs-on: ubuntu-latest
-    needs: [ frontend-build-ce ]
-    strategy:
-      matrix:
-        partition: [ 1, 2, 3, 4 ]
-    env:
-      CONSUL_NSPACES_ENABLED: 0
-      EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          ref: ${{ env.BRANCH }}
-
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
-
-      - name: Install
-        id: install
-        working-directory: ./ui
-        run: make deps
-
-      - name: Download CE Frontend
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: frontend-ce-${{ env.BRANCH_NAME }}
-          path: ./ui/packages/consul-ui/dist
-
-      - name: Ember Test CE
-        id: cache
-        working-directory: ./ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
-
-  frontend-build-ent:
-    runs-on: ubuntu-latest
-    env:
-      JOBS: 2
-      CONSUL_NSPACES_ENABLED: 1
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          ref: ${{ env.BRANCH }}
-
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
-
-      - name: Install
-        id: install
-        working-directory: ./ui
-        run: make deps
-
-      - name: Ember Build ENT
-        id: build-ce
-        working-directory: ./ui/packages/consul-ui
-        run: make build-ci
-
-      - name: Upload ENT Frontend
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3.1.2
-        with:
-          name: frontend-ent-${{ env.BRANCH_NAME }}
-          path: ./ui/packages/consul-ui/dist
-          if-no-files-found: error
-
-  frontend-test-ent:
-    runs-on: ubuntu-latest
-    needs: [ frontend-build-ent ]
-    strategy:
-      matrix:
-        partition: [ 1, 2, 3, 4 ]
-    env:
-      CONSUL_NSPACES_ENABLED: 1
-      EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
-      EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
-      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-        with:
-          ref: ${{ env.BRANCH }}
-
-      # Not necessary to use yarn, but enables caching
-      - uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
-        with:
-          node-version: 18
-          cache: 'yarn'
-          cache-dependency-path: ./ui/yarn.lock
-
-      - name: Install
-        id: install
-        working-directory: ./ui
-        run: make deps
-
-      - name: Download ENT Frontend
-        uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
-        with:
-          name: frontend-ent-${{ env.BRANCH_NAME }}
-          path: ./ui/packages/consul-ui/dist
-
-      - name: Ember Test ENT
-        id: cache
-        working-directory: ./ui/packages/consul-ui
-        run: node_modules/.bin/ember exam --split=$EMBER_PARTITION_TOTAL --partition=${{ matrix.partition }} --path dist --silent -r xunit
   # This is job is required for branch protection as a required gihub check
   # because GitHub actions show up as checks at the job level and not the
   # workflow level.  This is currently a feature request:
