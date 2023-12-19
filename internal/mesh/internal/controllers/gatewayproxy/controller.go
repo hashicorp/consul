@@ -112,7 +112,6 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Trace("proxy state template for this gateway doesn't yet exist; generating a new one")
 	}
 
-	exportedServicesID := &pbresource.ID{
 		Name: "global",
 		Tenancy: &pbresource.Tenancy{
 			Partition: req.ID.Tenancy.Partition,
