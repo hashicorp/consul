@@ -128,6 +128,18 @@ var CatalogCounters = []prometheus.CounterDefinition{
 		Name: []string{"client", "api", "success", "catalog_gateway_services"},
 		Help: "Increments whenever a Consul agent successfully responds to a request to list services associated with a gateway.",
 	},
+	{
+		Name: []string{"client", "api", "catalog_exported_services"},
+		Help: "Increments whenever a Consul agent receives a request to list exported services within a partition.",
+	},
+	{
+		Name: []string{"client", "rpc", "error", "catalog_exported_services"},
+		Help: "Increments whenever a Consul agent receives an RPC error for a request to list exported services within a partition.",
+	},
+	{
+		Name: []string{"client", "api", "success", "catalog_exported_services"},
+		Help: "Increments whenever a Consul agent successfully responds to a request to list exported services within a partition.",
+	},
 }
 
 func (s *HTTPHandlers) CatalogRegister(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
@@ -603,4 +615,38 @@ func (s *HTTPHandlers) AssignManualServiceVIPs(resp http.ResponseWriter, req *ht
 	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "service_virtual_ips"}, 1,
 		s.nodeMetricsLabels())
 	return out, nil
+}
+
+func (s *HTTPHandlers) CatalogExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	metrics.IncrCounterWithLabels([]string{"client", "api", "catalog_exported_services"}, 1,
+		s.nodeMetricsLabels())
+
+	var args structs.PartitionSpecificRequest
+
+	if err := s.parseEntMetaNoWildcard(req, &args.EnterpriseMeta); err != nil {
+		return nil, err
+	}
+	if done := s.parse(resp, req, &args.Datacenter, &args.QueryOptions); done {
+		return nil, nil
+	}
+
+	// Make the RPC request
+	var out structs.IndexedSimplifiedExportedServiceList
+	defer setMeta(resp, &out.QueryMeta)
+RETRY_ONCE:
+	if err := s.agent.RPC(req.Context(), "Catalog.ExportedServices", &args, &out); err != nil {
+		metrics.IncrCounterWithLabels([]string{"client", "rpc", "error", "catalog_exported_services"}, 1,
+			s.nodeMetricsLabels())
+		return nil, err
+	}
+	if args.QueryOptions.AllowStale && args.MaxStaleDuration > 0 && args.MaxStaleDuration < out.LastContact {
+		args.AllowStale = false
+		args.MaxStaleDuration = 0
+		goto RETRY_ONCE
+	}
+	out.ConsistencyLevel = args.QueryOptions.ConsistencyLevel()
+
+	metrics.IncrCounterWithLabels([]string{"client", "api", "success", "catalog_exported_services"}, 1,
+		s.nodeMetricsLabels())
+	return out.Services, nil
 }

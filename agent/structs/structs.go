@@ -2343,6 +2343,12 @@ type PeeredServiceName struct {
 	Peer        string
 }
 
+type SimplifiedExportedService struct {
+	Service            ServiceName
+	ConsumerPeers      []string
+	ConsumerPartitions []string `json:",omitempty"`
+}
+
 func (psn PeeredServiceName) String() string {
 	return fmt.Sprintf("%v:%v", psn.ServiceName.String(), psn.Peer)
 }
@@ -2398,6 +2404,11 @@ type IndexedServiceList struct {
 
 type IndexedPeeredServiceList struct {
 	Services []PeeredServiceName
+	QueryMeta
+}
+
+type IndexedSimplifiedExportedServiceList struct {
+	Services []SimplifiedExportedService
 	QueryMeta
 }
 

@@ -1118,3 +1118,38 @@ func (c *Catalog) VirtualIPForService(args *structs.ServiceSpecificRequest, repl
 	*reply, err = state.VirtualIPForService(psn)
 	return err
 }
+
+// ExportedServices returns a list of exported services along with their consumers.
+func (c *Catalog) ExportedServices(args *structs.PartitionSpecificRequest, reply *structs.IndexedSimplifiedExportedServiceList) error {
+	if done, err := c.srv.ForwardRPC("Catalog.ExportedServices", args, reply); done {
+		return err
+	}
+	if err := c.srv.validateEnterpriseRequest(&args.EnterpriseMeta, false); err != nil {
+		return err
+	}
+
+	var authzCtx acl.AuthorizerContext
+	authz, err := c.srv.ResolveTokenAndDefaultMeta(args.Token, &args.EnterpriseMeta, &authzCtx)
+	if err != nil {
+		return err
+	}
+
+	if err := authz.ToAllowAuthorizer().MeshReadAllowed(&authzCtx); err != nil {
+		return err
+	}
+
+	return c.srv.blockingQuery(
+		&args.QueryOptions,
+		&reply.QueryMeta,
+		func(ws memdb.WatchSet, store *state.Store) error {
+			idx, exportedSvcs, err := store.ExportedServices(ws, &args.EnterpriseMeta)
+			if err != nil {
+				return fmt.Errorf("error while listing exported services : %w", err)
+			}
+
+			reply.Index = idx
+			reply.Services = exportedSvcs
+
+			return nil
+		})
+}

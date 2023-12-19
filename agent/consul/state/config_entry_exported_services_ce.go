@@ -6,6 +6,8 @@
 package state
 
 import (
+	"sort"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
@@ -30,4 +32,27 @@ func (s *Store) GetSimplifiedExportedServices(ws memdb.WatchSet, entMeta acl.Ent
 	tx := s.db.Txn(false)
 	defer tx.Abort()
 	return getSimplifiedExportedServices(tx, ws, nil, entMeta)
+}
+
+func prepareExportedServicesResponse(exportedServices map[structs.ServiceName]map[structs.ServiceConsumer]struct{}) []structs.SimplifiedExportedService {
+	var resp []structs.SimplifiedExportedService
+
+	for svc, consumers := range exportedServices {
+		consumerPeers := []string{}
+
+		for consumer := range consumers {
+			if consumer.Peer != "" {
+				consumerPeers = append(consumerPeers, consumer.Peer)
+			}
+		}
+
+		sort.Strings(consumerPeers)
+
+		resp = append(resp, structs.SimplifiedExportedService{
+			Service:       svc,
+			ConsumerPeers: consumerPeers,
+		})
+	}
+
+	return resp
 }

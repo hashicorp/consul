@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/go-memdb"
 )
 
@@ -63,4 +64,76 @@ func getExportedServicesConfigEntryTxn(
 		return 0, nil, fmt.Errorf("invalid service config type %T", entry)
 	}
 	return idx, export, nil
+}
+
+// ExportedServices returns the list of exported services along with consumers.
+// Sameness Groups and wild card entries are expanded.
+func (s *Store) ExportedServices(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []structs.SimplifiedExportedService, error) {
+	tx := s.db.ReadTxn()
+	defer tx.Abort()
+
+	return exportedServicesTxn(tx, ws, entMeta)
+}
+
+func exportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []structs.SimplifiedExportedService, error) {
+	var resp []structs.SimplifiedExportedService
+
+	maxIdx, exports, err := getSimplifiedExportedServices(tx, ws, nil, *entMeta)
+	if err != nil {
+		return 0, nil, err
+	}
+	if exports == nil {
+		return maxIdx, nil, nil
+	}
+
+	// Services -> ServiceConsumers
+	var exportedServices = make(map[structs.ServiceName]map[structs.ServiceConsumer]struct{})
+
+	// Helper function for inserting data and auto-creating maps.
+	insertEntry := func(m map[structs.ServiceName]map[structs.ServiceConsumer]struct{}, service structs.ServiceName, consumers []structs.ServiceConsumer) {
+		for _, c := range consumers {
+			cons, ok := m[service]
+			if !ok {
+				cons = make(map[structs.ServiceConsumer]struct{})
+				m[service] = cons
+			}
+
+			cons[c] = struct{}{}
+		}
+	}
+
+	for _, svc := range exports.Services {
+		// Prevent exporting the "consul" service.
+		if svc.Name == structs.ConsulServiceName {
+			continue
+		}
+
+		svcEntMeta := acl.NewEnterpriseMetaWithPartition(entMeta.PartitionOrDefault(), svc.Namespace)
+		svcName := structs.NewServiceName(svc.Name, &svcEntMeta)
+
+		// If this isn't a wildcard, we can simply add it to the list of services to watch and move to the next entry.
+		if svc.Name != structs.WildcardSpecifier {
+			insertEntry(exportedServices, svcName, svc.Consumers)
+			continue
+		}
+
+		// If all services in the namespace are exported by the wildcard, query those service names.
+		idx, typicalServices, err := serviceNamesOfKindTxn(tx, ws, structs.ServiceKindTypical, svcEntMeta)
+		if err != nil {
+			return 0, nil, fmt.Errorf("failed to get typical service names: %w", err)
+		}
+
+		maxIdx = lib.MaxUint64(maxIdx, idx)
+
+		for _, sn := range typicalServices {
+			// Prevent exporting the "consul" service.
+			if sn.Service.Name != structs.ConsulServiceName {
+				insertEntry(exportedServices, sn.Service, svc.Consumers)
+			}
+		}
+	}
+
+	resp = prepareExportedServicesResponse(exportedServices)
+
+	return maxIdx, resp, nil
 }

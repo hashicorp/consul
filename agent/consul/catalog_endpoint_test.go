@@ -4217,3 +4217,120 @@ func TestCatalog_VirtualIPForService_ACLDeny(t *testing.T) {
 	require.Contains(t, err.Error(), acl.ErrPermissionDenied.Error())
 	require.Equal(t, "", out2)
 }
+
+func TestCatalog_ExportedServices_ACLEnforcement(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+
+	// START SETUP
+	_, srv, codec := testACLServerWithConfig(t, nil, false)
+	waitForLeaderEstablishment(t, srv)
+
+	require.NoError(t, srv.fsm.State().EnsureConfigEntry(1, &structs.ExportedServicesConfigEntry{
+		Name: "default",
+		Services: []structs.ExportedService{
+			{
+				Name: "web",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "east"},
+				},
+			},
+			{
+				Name: "db",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "west"},
+				},
+			},
+			{
+				Name: "api",
+				Consumers: []structs.ServiceConsumer{
+					{Peer: "east"},
+					{Peer: "west"},
+				},
+			},
+		},
+	}))
+
+	type testcase struct {
+		name   string
+		token  string
+		expect []structs.SimplifiedExportedService
+		deny   bool
+	}
+	run := func(t *testing.T, tc testcase) {
+		var out *structs.IndexedSimplifiedExportedServiceList
+		req := structs.PartitionSpecificRequest{
+			Datacenter:   "dc1",
+			QueryOptions: structs.QueryOptions{Token: tc.token},
+		}
+		err := msgpackrpc.CallWithCodec(codec, "Catalog.ExportedServices", &req, &out)
+		if tc.deny {
+			assert.True(t, acl.IsErrPermissionDenied(err))
+			return
+		}
+
+		require.NoError(t, err)
+		require.ElementsMatch(t, tc.expect, out.Services)
+	}
+	tcs := []testcase{
+		{
+			name: "operator:read can read all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				` operator = "read"
+			`),
+			expect: []structs.SimplifiedExportedService{
+				{
+					Service:       structs.NewServiceName("web", nil),
+					ConsumerPeers: []string{"east"},
+				},
+				{
+					Service:       structs.NewServiceName("db", nil),
+					ConsumerPeers: []string{"west"},
+				},
+				{
+					Service:       structs.NewServiceName("api", nil),
+					ConsumerPeers: []string{"east", "west"},
+				},
+			},
+		},
+		{
+			name: "mesh:read can read all",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				` mesh = "read"
+			`),
+			expect: []structs.SimplifiedExportedService{
+				{
+					Service:       structs.NewServiceName("web", nil),
+					ConsumerPeers: []string{"east"},
+				},
+				{
+					Service:       structs.NewServiceName("db", nil),
+					ConsumerPeers: []string{"west"},
+				},
+				{
+					Service:       structs.NewServiceName("api", nil),
+					ConsumerPeers: []string{"east", "west"},
+				},
+			},
+		},
+		{
+			name: "error when other permission",
+			token: tokenWithRules(t, codec, TestDefaultInitialManagementToken,
+				`
+			service_prefix "" {
+				policy = "read"
+			}
+			`),
+			expect: nil,
+			deny:   true,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			run(t, tc)
+		})
+	}
+}
