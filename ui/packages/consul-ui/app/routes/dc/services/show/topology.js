@@ -9,7 +9,7 @@ export default class TopologyRoute extends Route {
 
   @action
   async createIntention(source, destination) {
-    // begin with a create action as it makes more sense if we can't even
+    // begin with a create action as it makes more sense if the we can't even
     // get a list of intentions
     let notification = this.feedback.notification('create', 'intention');
     try {
