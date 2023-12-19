@@ -139,6 +139,7 @@ module.exports = [
   {
     source: '/consul/docs/v1.8.x/connect/config-entries/:slug',
     destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
+    permanent: true,
   },
   {
     source: '/consul/docs/connect/registration/service-registration',
