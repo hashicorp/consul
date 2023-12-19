@@ -1,0 +1,32 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+%main-header-horizontal {
+  display: flex;
+  position: fixed;
+  z-index: 50;
+  left: 0;
+  padding: 0 25px;
+  width: calc(100% - 50px);
+}
+%main-header-horizontal,
+%main-header-horizontal::before {
+  height: var(--chrome-height);
+}
+%main-header-horizontal {
+  align-items: center;
+}
+%main-header-horizontal::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  width: 100vw;
+}
+%main-header-horizontal > a {
+  display: block;
+  line-height: 0;
+  font-size: 0;
+}

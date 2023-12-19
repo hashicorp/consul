@@ -1,0 +1,18 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+import "pbcatalog/v1alpha1/selector.proto";
+
+message DNSPolicy {
+  WorkloadSelector workloads = 1;
+  Weights weights = 2;
+}
+
+message Weights {
+  uint32 passing = 1;
+  uint32 warning = 2;
+}

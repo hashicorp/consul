@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package state
 
@@ -202,9 +202,6 @@ func (s *Store) peeringSecretsWriteTxn(tx WriteTxn, req *pbpeering.SecretsWriteR
 		return fmt.Errorf("failed to read peering by id: %w", err)
 	}
 	if peering == nil {
-		if structs.CEDowngrade {
-			return nil
-		}
 		return fmt.Errorf("unknown peering %q for secret", req.PeerID)
 	}
 

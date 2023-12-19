@@ -1,20 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import Modifier from 'ember-modifier';
 import { action } from '@ember/object';
-import { registerDestructor } from '@ember/destroyable';
 
 class ValidationError extends Error {}
-
-function cleanup(instance) {
-  if (instance && instance?.element) {
-    instance?.element?.removeEventListener('input', instance?.listen);
-    instance?.element?.removeEventListener('blur', instance?.reset);
-  }
-}
 
 export default class ValidateModifier extends Modifier {
   item = null;
@@ -78,24 +70,37 @@ export default class ValidateModifier extends Modifier {
     }
   }
 
+  async connect([value], _hash) {
+    this.element.addEventListener('input', this.listen);
+    this.element.addEventListener('blur', this.reset);
+    if (this.element.value.length > 0) {
+      await Promise.resolve();
+      if (this && this.element) {
+        this.validate(this.element.value, this.hash.validations);
+      }
+    }
+  }
+
   @action
   listen(e) {
     this.validate(e.target.value, this.hash.validations);
   }
 
-  constructor(owner, args) {
-    super(owner, args);
-    registerDestructor(this, cleanup);
+  disconnect() {
+    this.item = null;
+    this.hash = null;
+    this.element.removeEventListener('input', this.listen);
+    this.element.removeEventListener('blur', this.reset);
   }
 
-  async modify(element, positional, named) {
-    cleanup.call(this);
+  didReceiveArguments() {
+    const [value] = this.args.positional;
+    const _hash = this.args.named;
 
-    this.element = element;
-    this.hash = named;
-    this.item = positional[0];
+    this.item = value;
+    this.hash = _hash;
 
-    if (typeof this.hash.chart === 'undefined') {
+    if (typeof _hash.chart === 'undefined') {
       this.hash.chart = {
         state: {
           context: {},
@@ -103,24 +108,22 @@ export default class ValidateModifier extends Modifier {
         dispatch: (state) => {
           switch (state) {
             case 'ERROR':
-              this.hash.onchange(this.hash.chart.state.context.errors);
+              _hash.onchange(this.hash.chart.state.context.errors);
               break;
             case 'RESET':
-              this.hash.onchange();
+              _hash.onchange();
               break;
           }
         },
       };
     }
+  }
 
-    this.element.addEventListener('input', this.listen);
-    this.element.addEventListener('blur', this.reset);
+  didInstall() {
+    this.connect(this.args.positional, this.args.named);
+  }
 
-    if (this.element.value.length > 0) {
-      await Promise.resolve();
-      if (this && this.element) {
-        this.validate(this.element.value, this.hash.validations);
-      }
-    }
+  willRemove() {
+    this.disconnect();
   }
 }

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import Modifier from 'ember-modifier';
@@ -40,17 +40,15 @@ export default class StyleModifier extends Modifier {
     this._oldStyles = new Set(newStyles.map((e) => e[0]));
   }
 
-  modify(element, positional, named) {
-    this.element = element;
-
-    if (typeof named.delay !== 'undefined') {
+  didReceiveArguments() {
+    if (typeof this.args.named.delay !== 'undefined') {
       setTimeout((_) => {
-        if (typeof this !== positional[0]) {
-          this.setStyles(positional[0]);
+        if (typeof this !== this.args.positional[0]) {
+          this.setStyles(this.args.positional[0]);
         }
-      }, named?.delay);
+      }, this.args.named.delay);
     } else {
-      this.setStyles(positional[0]);
+      this.setStyles(this.args.positional[0]);
     }
   }
 }

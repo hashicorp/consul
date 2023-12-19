@@ -42,17 +42,15 @@ The following example configures the Lua Envoy extension on every service by usi
 <CodeBlockConfig filename="lua-envoy-extension-proxy-defaults.hcl">
 
 ```hcl
-Kind = "proxy-defaults"
-Name = "global"
-Config {
-  protocol = "http"
-}
+Kind     = "proxy-defaults"
+Name     = "global"
+Protocol = "http"
 EnvoyExtensions {
   Name = "builtin/lua"
   Arguments = {
     ProxyType = "connect-proxy"
     Listener  = "inbound"
-    Script    = <<-EOF
+    Script    = <<-EOS
 function envoy_on_request(request_handle)
   meta = request_handle:streamInfo():dynamicMetadata()
   m = meta:get("consul")
@@ -61,7 +59,7 @@ function envoy_on_request(request_handle)
   request_handle:headers():add("x-consul-datacenter", m["datacenter"])
   request_handle:headers():add("x-consul-trust-domain", m["trust-domain"])
 end
- EOF
+EOS
   }
 }
 ```

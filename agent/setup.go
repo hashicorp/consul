@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -185,8 +185,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 			TestOverrideCAChangeInitialDelay: cfg.ConnectTestCALeafRootChangeSpread,
 		},
 	})
-	// Set the leaf cert manager in the embedded deps type so it can be used by consul servers.
-	d.Deps.LeafCertManager = d.LeafCertManager
 
 	agentType := "client"
 	if cfg.ServerMode {
@@ -261,8 +259,6 @@ func NewBaseDeps(configLoader ConfigLoader, logOut io.Writer, providedLogger hcl
 	d.EventPublisher = stream.NewEventPublisher(10 * time.Second)
 
 	d.XDSStreamLimiter = limiter.NewSessionLimiter()
-
-	d.Registry = consul.NewTypeRegistry()
 
 	return d, nil
 }
@@ -381,9 +377,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		gauges = append(gauges, verifierGauges)
 	}
 
-	if isServer &&
-		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
-			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
+	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
 
 		walGauges := make([]prometheus.GaugeDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Gauges {
@@ -454,9 +448,7 @@ func getPrometheusDefs(cfg *config.RuntimeConfig, isServer bool) ([]prometheus.G
 		}
 		counters = append(counters, verifierCounters)
 	}
-	if isServer &&
-		(cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL ||
-			cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendDefault) {
+	if isServer && cfg.RaftLogStoreConfig.Backend == consul.LogStoreBackendWAL {
 		walCounters := make([]prometheus.CounterDefinition, 0)
 		for _, d := range wal.MetricDefinitions.Counters {
 			walCounters = append(walCounters, prometheus.CounterDefinition{

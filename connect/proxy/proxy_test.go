@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package proxy
 
@@ -98,7 +98,7 @@ func TestProxy_public(t *testing.T) {
 	retry.Run(t, func(r *retry.R) {
 		conn, err = svc.Dial(context.Background(), &connect.StaticResolver{
 			Addr:    TestLocalAddr(ports[0]),
-			CertURI: agConnect.TestSpiffeIDService(r, "echo"),
+			CertURI: agConnect.TestSpiffeIDService(t, "echo"),
 		})
 		if err != nil {
 			r.Fatalf("err: %s", err)

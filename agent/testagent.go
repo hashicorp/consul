@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -17,9 +17,9 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/armon/go-metrics"
+	metrics "github.com/armon/go-metrics"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-uuid"
+	uuid "github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/config"
@@ -117,8 +117,8 @@ func NewTestAgentWithConfigFile(t *testing.T, hcl string, configFiles []string) 
 func StartTestAgent(t *testing.T, a TestAgent) *TestAgent {
 	t.Helper()
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		r.Helper()
-		if err := a.Start(r); err != nil {
+		t.Helper()
+		if err := a.Start(t); err != nil {
 			r.Fatal(err)
 		}
 	})
@@ -152,7 +152,7 @@ func TestConfigHCL(nodeID string) string {
 
 // Start starts a test agent. It returns an error if the agent could not be started.
 // If no error is returned, the caller must call Shutdown() when finished.
-func (a *TestAgent) Start(t testutil.TestingTB) error {
+func (a *TestAgent) Start(t *testing.T) error {
 	t.Helper()
 	if a.Agent != nil {
 		return fmt.Errorf("TestAgent already started")
@@ -286,22 +286,6 @@ func (a *TestAgent) waitForUp() error {
 			continue // fail, try again
 		}
 		if a.Config.Bootstrap && a.Config.ServerMode {
-			if a.baseDeps.UseV2Resources() {
-				args := structs.DCSpecificRequest{
-					Datacenter: "dc1",
-				}
-				var leader string
-				if err := a.RPC(context.Background(), "Status.Leader", args, &leader); err != nil {
-					retErr = fmt.Errorf("Status.Leader failed: %v", err)
-					continue // fail, try again
-				}
-				if leader == "" {
-					retErr = fmt.Errorf("No leader")
-					continue // fail, try again
-				}
-				return nil // success
-			}
-
 			// Ensure we have a leader and a node registration.
 			args := &structs.DCSpecificRequest{
 				Datacenter: a.Config.Datacenter,
@@ -421,19 +405,6 @@ func (a *TestAgent) consulConfig() *consul.Config {
 	return c
 }
 
-// Using sdk/freeport with *retry.R is not possible without changing
-// function signatures. We use this shim instead to save the headache
-// of syncing sdk submodule updates.
-type retryShim struct {
-	*retry.R
-
-	name string
-}
-
-func (r *retryShim) Name() string {
-	return r.name
-}
-
 // pickRandomPorts selects random ports from fixed size random blocks of
 // ports. This does not eliminate the chance for port conflict but
 // reduces it significantly with little overhead. Furthermore, asking
@@ -442,16 +413,13 @@ func (r *retryShim) Name() string {
 // chance of port conflicts for concurrently executed test binaries.
 // Instead of relying on one set of ports to be sufficient we retry
 // starting the agent with different ports on port conflict.
-func randomPortsSource(t testutil.TestingTB, useHTTPS bool) string {
-	var ports []int
-	retry.RunWith(retry.TwoSeconds(), t, func(r *retry.R) {
-		ports = freeport.GetN(r, 7)
-	})
+func randomPortsSource(t *testing.T, useHTTPS bool) string {
+	ports := freeport.GetN(t, 8)
 
 	var http, https int
 	if useHTTPS {
 		http = -1
-		https = ports[1]
+		https = ports[2]
 	} else {
 		http = ports[1]
 		https = -1
@@ -462,11 +430,11 @@ func randomPortsSource(t testutil.TestingTB, useHTTPS bool) string {
 			dns = ` + strconv.Itoa(ports[0]) + `
 			http = ` + strconv.Itoa(http) + `
 			https = ` + strconv.Itoa(https) + `
-			serf_lan = ` + strconv.Itoa(ports[2]) + `
-			serf_wan = ` + strconv.Itoa(ports[3]) + `
-			server = ` + strconv.Itoa(ports[4]) + `
-			grpc = ` + strconv.Itoa(ports[5]) + `
-			grpc_tls = ` + strconv.Itoa(ports[6]) + `
+			serf_lan = ` + strconv.Itoa(ports[3]) + `
+			serf_wan = ` + strconv.Itoa(ports[4]) + `
+			server = ` + strconv.Itoa(ports[5]) + `
+			grpc = ` + strconv.Itoa(ports[6]) + `
+			grpc_tls = ` + strconv.Itoa(ports[7]) + `
 		}
 	`
 }
@@ -561,7 +529,6 @@ type TestACLConfigParams struct {
 	DefaultToken           string
 	AgentRecoveryToken     string
 	ReplicationToken       string
-	DNSToken               string
 	EnableTokenReplication bool
 }
 
@@ -580,8 +547,7 @@ func (p *TestACLConfigParams) HasConfiguredTokens() bool {
 		p.AgentToken != "" ||
 		p.DefaultToken != "" ||
 		p.AgentRecoveryToken != "" ||
-		p.ReplicationToken != "" ||
-		p.DNSToken != ""
+		p.ReplicationToken != ""
 }
 
 func TestACLConfigNew() string {
@@ -591,7 +557,6 @@ func TestACLConfigNew() string {
 		InitialManagementToken: "root",
 		AgentToken:             "root",
 		AgentRecoveryToken:     "towel",
-		DNSToken:               "dns",
 	})
 }
 

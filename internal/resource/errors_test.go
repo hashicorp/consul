@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
@@ -11,9 +11,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/stretchr/testify/require"
 )
 
 // update allows golden files to be updated based on the current output.
@@ -93,7 +92,7 @@ func TestErrorUnwrap(t *testing.T) {
 
 	cases := map[string]error{
 		"ErrDataParse": ErrDataParse{
-			TypeName: "hashicorp.consul.catalog.v2beta1.Service",
+			TypeName: "hashicorp.consul.catalog.v1alpha1.Service",
 			Wrapped:  fakeWrappedErr,
 		},
 		"ErrInvalidField": ErrInvalidField{

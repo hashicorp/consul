@@ -1,10 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"github.com/hashicorp/consul/internal/resource"
+)
+
+const (
+	GroupName       = "catalog"
+	VersionV1Alpha1 = "v1alpha1"
+	CurrentVersion  = VersionV1Alpha1
 )
 
 func Register(r resource.Registry) {
@@ -13,10 +19,7 @@ func Register(r resource.Registry) {
 	RegisterServiceEndpoints(r)
 	RegisterNode(r)
 	RegisterHealthStatus(r)
-	RegisterFailoverPolicy(r)
-	RegisterNodeHealthStatus(r)
-	// todo (v2): re-register once these resources are implemented.
-	//RegisterHealthChecks(r)
-	//RegisterDNSPolicy(r)
-	//RegisterVirtualIPs(r)
+	RegisterHealthChecks(r)
+	RegisterDNSPolicy(r)
+	RegisterVirtualIPs(r)
 }

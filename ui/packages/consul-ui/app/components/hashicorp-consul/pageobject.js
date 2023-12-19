@@ -42,19 +42,16 @@ export default (collection, clickable, attribute, is, authForm, emptyState) => (
       status: attribute('data-test-status', '[data-test-status]'),
     },
   };
-  page.navigation.authMenu = clickable('[data-test-auth-menu]');
-  page.navigation.login = clickable('[data-test-auth-menu-login]');
+  page.navigation.login = clickable('[data-test-main-nav-auth] button');
   page.navigation.dc = clickable('[data-test-datacenter-menu] button');
   page.navigation.nspace = clickable('[data-test-nspace-menu] button');
-  page.navigation.manageNspaces = clickable(
-    '[data-test-nspace-menu] [data-test-nav-selector-footer-link]'
-  );
+  page.navigation.manageNspaces = clickable('[data-test-main-nav-nspaces] a');
   page.navigation.manageNspacesIsVisible = is(
     ':checked',
     '[data-test-nspace-menu] > input[type="checkbox"]'
   );
   page.navigation.dcs = collection('[data-test-datacenter-menu] [data-test-dc-item]', {
-    name: clickable(),
+    name: clickable('a'),
   });
   return page;
 };

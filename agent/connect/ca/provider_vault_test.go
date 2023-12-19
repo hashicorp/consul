@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ca
 
@@ -62,7 +62,6 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
 		expConfig *structs.VaultCAProviderConfig
-		isPrimary bool
 		expError  string
 	}{
 		"no token and no auth method provided": {
@@ -73,26 +72,15 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"primary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: true,
+		"no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test"},
 			expError:  "must provide a valid path to a root PKI backend",
-		},
-		"secondary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: false,
-			expConfig: &structs.VaultCAProviderConfig{
-				CommonCAProviderConfig: defaultCommonConfig(),
-				Token:                  "test",
-				IntermediatePKIPath:    "test/",
-			},
 		},
 		"no root intermediate path": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
-			isPrimary: true,
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
@@ -105,7 +93,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
+			config, err := ParseVaultCAConfig(c.rawConfig)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
 			} else {
@@ -295,7 +283,7 @@ func TestVaultCAProvider_ConfigureFailureGoroutineLeakCheck(t *testing.T) {
 			profile := pprof.Lookup("goroutine")
 			sb := strings.Builder{}
 			require.NoError(r, profile.WriteTo(&sb, 2))
-			r.Log(sb.String())
+			t.Log(sb.String())
 			require.Contains(r, sb.String(),
 				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
 				"expected renewal goroutine, got none")
@@ -628,9 +616,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	SkipIfVaultNotPresent(t)
 
 	t.Parallel()
@@ -639,6 +624,12 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
+
+		if tc.SigningKeyType != tc.CSRKeyType {
+			// TODO: uncomment since the bug is closed
+			// See https://github.com/hashicorp/vault/issues/7709
+			t.Skip("Vault doesn't support cross-signing different key types yet.")
+		}
 
 		testVault1 := NewTestVaultServer(t)
 
@@ -1273,6 +1264,11 @@ func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 		})
 	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
 	require.NoError(t, err)
+
+	if res == nil {
+		t.Skip("Vault version < 1.11 does not have multi issuers functionality")
+	}
+
 	// Why 2 issuers? There is always an initial issuer that
 	// gets created before we manage the lifecycle of issuers.
 	// Since we're asserting that the number doesn't grow

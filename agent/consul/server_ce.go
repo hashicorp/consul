@@ -1,7 +1,8 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 //go:build !consulent
+// +build !consulent
 
 package consul
 
@@ -11,11 +12,10 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
-	"google.golang.org/grpc"
-
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"google.golang.org/grpc"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/consul/reporting"

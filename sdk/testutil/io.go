@@ -10,13 +10,12 @@ import (
 )
 
 var noCleanup = strings.ToLower(os.Getenv("TEST_NOCLEANUP")) == "true"
-var saveSnapshot = strings.ToLower(os.Getenv("TEST_SAVE_SNAPSHOT")) == "true"
 
 // TempDir creates a temporary directory within tmpdir with the name 'testname-name'.
 // If the directory cannot be created t.Fatal is called.
 // The directory will be removed when the test ends. Set TEST_NOCLEANUP env var
 // to prevent the directory from being removed.
-func TempDir(t TestingTB, name string) string {
+func TempDir(t testing.TB, name string) string {
 	if t == nil {
 		panic("argument t must be non-nil")
 	}

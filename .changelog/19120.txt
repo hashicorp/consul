@@ -1,0 +1,3 @@
+```release-note:bug
+api-gateway: fix matching for different hostnames on the same listener
+```

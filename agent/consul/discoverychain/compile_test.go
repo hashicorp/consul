@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package discoverychain
 
@@ -1772,6 +1772,9 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 		Kind:     structs.ProxyDefaults,
 		Name:     structs.ProxyConfigGlobal,
 		Protocol: "grpc",
+		Config: map[string]interface{}{
+			"protocol": "grpc",
+		},
 		MeshGateway: structs.MeshGatewayConfig{
 			Mode: structs.MeshGatewayModeRemote,
 		},

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import { module, test } from 'qunit';
@@ -35,13 +35,8 @@ module('Integration | Component | consul hcp home', function(hooks) {
       }
     );
 
-    await render(hbs`
-      <Hds::SideNav::List as |SNL|>
-        <Consul::Hcp::Home @list={{SNL}} />
-      </Hds::SideNav::List>
-    `);
+    await render(hbs`<Consul::Hcp::Home />`);
 
-    assert.dom('[data-test-back-to-hcp]').isVisible();
     assert.dom('a').hasAttribute('href', 'http://hcp');
 
   });
@@ -69,9 +64,7 @@ module('Integration | Component | consul hcp home', function(hooks) {
     );
 
     await render(hbs`
-      <Hds::SideNav::List as |SNL|>
-        <Consul::Hcp::Home @list={{SNL}} />
-      </Hds::SideNav::List>
+      <Consul::Hcp::Home />
     `);
 
     assert.dom('[data-test-back-to-hcp]').doesNotExist();

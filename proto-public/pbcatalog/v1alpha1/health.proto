@@ -1,0 +1,81 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v1alpha1;
+
+import "google/protobuf/duration.proto";
+import "pbcatalog/v1alpha1/selector.proto";
+
+// This resource will belong to a workload or a node and will have an ownership relationship.
+message HealthStatus {
+  // Type is the type of this health check, such as http, tcp, or kubernetes-readiness
+  string type = 1;
+  // Health is the status. This maps to existing health check statuses.
+  Health status = 2;
+  // Description is the description for this status.
+  string description = 3;
+  // Output is the output from running the check that resulted in this status
+  string output = 4;
+}
+
+enum Health {
+  // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
+  HEALTH_ANY = 0;
+  HEALTH_PASSING = 1;
+  HEALTH_WARNING = 2;
+  HEALTH_CRITICAL = 3;
+  HEALTH_MAINTENANCE = 4;
+}
+
+message HealthChecks {
+  WorkloadSelector workloads = 1;
+  repeated HealthCheck health_checks = 2;
+}
+
+message HealthCheck {
+  string name = 1;
+  oneof definition {
+    HTTPCheck http = 2;
+    TCPCheck tcp = 3;
+    UDPCheck udp = 4;
+    GRPCCheck grpc = 5;
+    OSServiceCheck os_service = 6;
+  }
+  google.protobuf.Duration interval = 7;
+  google.protobuf.Duration timeout = 8;
+  google.protobuf.Duration deregister_critical_after = 9;
+}
+
+message HTTPCheck {
+  string url = 1;
+  map<string, string> header = 2;
+  string method = 3;
+  string body = 4;
+  bool disable_redirects = 5;
+  CheckTLSConfig tls = 6;
+}
+
+message TCPCheck {
+  string address = 1;
+}
+
+message UDPCheck {
+  string address = 1;
+}
+
+message GRPCCheck {
+  string address = 1;
+  CheckTLSConfig tls = 2;
+}
+
+message OSServiceCheck {
+  string address = 1;
+}
+
+message CheckTLSConfig {
+  string tls_server_name = 1;
+  bool tls_skip_verify = 2;
+  bool use_tls = 3;
+}

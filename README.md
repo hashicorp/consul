@@ -23,9 +23,6 @@ Consul provides several key features:
   can use sidecar proxies in a service mesh configuration to establish TLS
   connections for inbound and outbound connections with Transparent Proxy.
 
-* **API Gateway** - Consul API Gateway manages access to services within Consul Service Mesh, 
-  allow users to define traffic and authorization policies to services deployed within the mesh.  
-
 * **Service Discovery** - Consul makes it simple for services to register
   themselves and to discover other services via a DNS or HTTP interface.
   External services such as SaaS providers can be registered as well.
@@ -35,8 +32,7 @@ Consul provides several key features:
   discovery prevents routing traffic to unhealthy hosts and enables service
   level circuit breakers.
 
-* **Dynamic App Configuration** - An HTTP API that allows users to store indexed objects within Consul,
-  for storing configuration parameters and application metadata.
+* **Dynamic App Configuration** - An HTTP API that allows users to store indexed objects, like configuration parameters and application metadata, within Consul.
 
 Consul runs on Linux, macOS, FreeBSD, Solaris, and Windows and includes an
 optional [browser based UI](https://demo.consul.io). A commercial version

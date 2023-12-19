@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -15,7 +15,6 @@ import (
 
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
 	"github.com/hashicorp/go-uuid"
@@ -359,9 +358,9 @@ func testHandleRemoteExec(t *testing.T, command string, expectedSubstring string
 	retry.Run(t, func(r *retry.R) {
 		event := &remoteExecEvent{
 			Prefix:  "_rexec",
-			Session: makeRexecSession(r, a.Agent, ""),
+			Session: makeRexecSession(t, a.Agent, ""),
 		}
-		defer destroySession(r, a.Agent, event.Session, "")
+		defer destroySession(t, a.Agent, event.Session, "")
 
 		spec := &remoteExecSpec{
 			Command: command,
@@ -430,7 +429,7 @@ func TestHandleRemoteExecFailed(t *testing.T) {
 	testHandleRemoteExec(t, "echo failing;exit 2", "failing", "2")
 }
 
-func makeRexecSession(t testutil.TestingTB, a *Agent, token string) string {
+func makeRexecSession(t *testing.T, a *Agent, token string) string {
 	args := structs.SessionRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         structs.SessionCreate,
@@ -449,7 +448,7 @@ func makeRexecSession(t testutil.TestingTB, a *Agent, token string) string {
 	return out
 }
 
-func destroySession(t testutil.TestingTB, a *Agent, session string, token string) {
+func destroySession(t *testing.T, a *Agent, session string, token string) {
 	args := structs.SessionRequest{
 		Datacenter: a.config.Datacenter,
 		Op:         structs.SessionDestroy,

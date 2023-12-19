@@ -1,7 +1,8 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 //go:build !windows
+// +build !windows
 
 package exec
 

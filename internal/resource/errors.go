@@ -1,46 +1,21 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package resource
 
 import (
+	"errors"
 	"fmt"
-	"strings"
-
-	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 var (
-	ErrMissing                  = NewConstError("missing required field")
-	ErrMissingOneOf             = NewConstError("missing one of the required fields")
-	ErrEmpty                    = NewConstError("cannot be empty")
-	ErrReferenceTenancyNotEqual = NewConstError("resource tenancy and reference tenancy differ")
-	ErrUnsupported              = NewConstError("field is currently not supported")
+	ErrMissing                  = errors.New("missing required field")
+	ErrEmpty                    = errors.New("cannot be empty")
+	ErrReferenceTenancyNotEqual = errors.New("resource tenancy and reference tenancy differ")
 )
-
-// ConstError is more or less equivalent to the stdlib errors.errorstring. However, having
-// our own exported type allows us to more accurately compare error values in tests.
-//
-//   - go-cmp will not compared unexported fields by default.
-//   - cmp.AllowUnexported(<type>) requires a concrete struct type and due to the stdlib not
-//     exporting the errorstring type there doesn't seem to be a way to get at the type.
-//   - cmpopts.EquateErrors has issues with protobuf types within other error structs.
-//
-// Due to these factors the easiest thing to do is to create a custom comparer for
-// the ConstError type and use it where necessary.
-type ConstError struct {
-	message string
-}
-
-func NewConstError(msg string) ConstError {
-	return ConstError{message: msg}
-}
-
-func (e ConstError) Error() string {
-	return e.message
-}
 
 type ErrDataParse struct {
 	TypeName string
@@ -137,20 +112,6 @@ type ErrOwnerTenantInvalid struct {
 }
 
 func (err ErrOwnerTenantInvalid) Error() string {
-	if err.ResourceTenancy == nil && err.OwnerTenancy != nil {
-		return fmt.Sprintf(
-			"empty resource tenancy cannot be owned by a resource in partition %s, namespace %s and peer %s",
-			err.OwnerTenancy.Partition, err.OwnerTenancy.Namespace, err.OwnerTenancy.PeerName,
-		)
-	}
-
-	if err.ResourceTenancy != nil && err.OwnerTenancy == nil {
-		return fmt.Sprintf(
-			"resource in partition %s, namespace %s and peer %s cannot be owned by a resource with empty tenancy",
-			err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
-		)
-	}
-
 	return fmt.Sprintf(
 		"resource in partition %s, namespace %s and peer %s cannot be owned by a resource in partition %s, namespace %s and peer %s",
 		err.ResourceTenancy.Partition, err.ResourceTenancy.Namespace, err.ResourceTenancy.PeerName,
@@ -164,18 +125,4 @@ type ErrInvalidReferenceType struct {
 
 func (err ErrInvalidReferenceType) Error() string {
 	return fmt.Sprintf("reference must have type %s", ToGVK(err.AllowedType))
-}
-
-type ErrInvalidFields struct {
-	Names   []string
-	Wrapped error
-}
-
-func (err ErrInvalidFields) Error() string {
-	allFields := strings.Join(err.Names, ",")
-	return fmt.Sprintf("invalid %q fields: %v", allFields, err.Wrapped)
-}
-
-func (err ErrInvalidFields) Unwrap() error {
-	return err.Wrapped
 }

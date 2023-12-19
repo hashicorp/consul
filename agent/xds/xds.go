@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package xds provides an implementation of a gRPC service that exports Envoy's
 // xDS API for config discovery. Specifically we support the Aggregated

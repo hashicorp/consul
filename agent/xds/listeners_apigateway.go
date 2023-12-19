@@ -1,21 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package xds
 
 import (
 	"fmt"
 
-	"golang.org/x/exp/maps"
-
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
-	envoy_http_jwt_authn_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/jwt_authn/v3"
-	envoy_http_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	envoy_tls_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
-
-	"github.com/hashicorp/consul/agent/consul/discoverychain"
-	"github.com/hashicorp/consul/agent/xds/naming"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -77,7 +70,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				if err != nil {
 					return nil, err
 				}
-				clusterName = naming.CustomizeClusterName(target.Name, chain)
+				clusterName = CustomizeClusterName(target.Name, chain)
 			}
 
 			filterName := fmt.Sprintf("%s.%s.%s.%s", chain.ServiceName, chain.Namespace, chain.Partition, chain.Datacenter)
@@ -111,22 +104,16 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			if isAPIGatewayWithTLS {
 				// construct SNI filter chains
-				l.FilterChains, err = makeInlineOverrideFilterChains(
-					cfgSnap,
-					cfgSnap.APIGateway.TLSConfig,
-					listenerKey.Protocol,
-					listenerFilterOpts{
-						useRDS:          useRDS,
-						fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
-						protocol:        listenerKey.Protocol,
-						routeName:       listenerKey.RouteName(),
-						cluster:         clusterName,
-						statPrefix:      "ingress_upstream_",
-						accessLogs:      &cfgSnap.Proxy.AccessLogs,
-						logger:          s.Logger,
-					},
-					certs,
-				)
+				l.FilterChains, err = makeInlineOverrideFilterChains(cfgSnap, cfgSnap.APIGateway.TLSConfig, listenerKey.Protocol, listenerFilterOpts{
+					useRDS:          useRDS,
+					fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+					protocol:        listenerKey.Protocol,
+					routeName:       listenerKey.RouteName(),
+					cluster:         clusterName,
+					statPrefix:      "ingress_upstream_",
+					accessLogs:      &cfgSnap.Proxy.AccessLogs,
+					logger:          s.Logger,
+				}, certs)
 				if err != nil {
 					return nil, err
 				}
@@ -151,61 +138,6 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				logger:     s.Logger,
 			}
 			listener := makeListener(listenerOpts)
-
-			routes := make([]*structs.HTTPRouteConfigEntry, 0, len(readyListener.routeReferences))
-			for _, routeRef := range maps.Keys(readyListener.routeReferences) {
-				route, ok := cfgSnap.APIGateway.HTTPRoutes.Get(routeRef)
-				if !ok {
-					return nil, fmt.Errorf("missing route for routeRef %s:%s", routeRef.Kind, routeRef.Name)
-				}
-
-				routes = append(routes, route)
-			}
-			consolidatedRoutes := discoverychain.ConsolidateHTTPRoutes(cfgSnap.APIGateway.GatewayConfig, &readyListener.listenerCfg, routes...)
-			routesWithJWT := []*structs.HTTPRouteConfigEntry{}
-			for _, routeCfgEntry := range consolidatedRoutes {
-				routeCfgEntry := routeCfgEntry
-				route := &routeCfgEntry
-
-				if listenerCfg.Override != nil && listenerCfg.Override.JWT != nil {
-					routesWithJWT = append(routesWithJWT, route)
-					continue
-				}
-
-				if listenerCfg.Default != nil && listenerCfg.Default.JWT != nil {
-					routesWithJWT = append(routesWithJWT, route)
-					continue
-				}
-
-				for _, rule := range route.Rules {
-					if rule.Filters.JWT != nil {
-						routesWithJWT = append(routesWithJWT, route)
-						continue
-					}
-					for _, svc := range rule.Services {
-						if svc.Filters.JWT != nil {
-							routesWithJWT = append(routesWithJWT, route)
-							continue
-						}
-					}
-				}
-
-			}
-
-			var authFilters []*envoy_http_v3.HttpFilter
-			if len(routesWithJWT) > 0 {
-				builder := &GatewayAuthFilterBuilder{
-					listener:       listenerCfg,
-					routes:         routesWithJWT,
-					providers:      cfgSnap.JWTProviders,
-					envoyProviders: make(map[string]*envoy_http_jwt_authn_v3.JwtProvider, len(cfgSnap.JWTProviders)),
-				}
-				authFilters, err = builder.makeGatewayAuthFilters()
-				if err != nil {
-					return nil, err
-				}
-			}
-
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
 				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
@@ -215,7 +147,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 				cluster:          "",
 				statPrefix:       "ingress_upstream_",
 				routePath:        "",
-				httpAuthzFilters: authFilters,
+				httpAuthzFilters: nil,
 				accessLogs:       &cfgSnap.Proxy.AccessLogs,
 				logger:           s.Logger,
 			}
@@ -280,6 +212,7 @@ type readyListener struct {
 
 // getReadyListeners returns a map containing the list of upstreams for each listener that is ready
 func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListener {
+
 	ready := map[string]readyListener{}
 	for _, l := range cfgSnap.APIGateway.Listeners {
 		// Only include upstreams for listeners that are ready
@@ -324,10 +257,7 @@ func getReadyListeners(cfgSnap *proxycfg.ConfigSnapshot) map[string]readyListene
 	return ready
 }
 
-func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	listenerCfg structs.APIGatewayListener,
-) (*envoy_tls_v3.DownstreamTlsContext, error) {
+func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.DownstreamTlsContext, error) {
 	var downstreamContext *envoy_tls_v3.DownstreamTlsContext
 
 	tlsContext, err := makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap, listenerCfg)
@@ -348,13 +278,10 @@ func makeDownstreamTLSContextFromSnapshotAPIListenerConfig(
 	return downstreamContext, nil
 }
 
-func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
-	cfgSnap *proxycfg.ConfigSnapshot,
-	listenerCfg structs.APIGatewayListener,
-) (*envoy_tls_v3.CommonTlsContext, error) {
+func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(cfgSnap *proxycfg.ConfigSnapshot, listenerCfg structs.APIGatewayListener) (*envoy_tls_v3.CommonTlsContext, error) {
 	var tlsContext *envoy_tls_v3.CommonTlsContext
 
-	// API Gateway TLS config is per listener
+	//API Gateway TLS config is per listener
 	tlsCfg, err := resolveAPIListenerTLSConfig(listenerCfg.TLS)
 	if err != nil {
 		return nil, err
@@ -362,7 +289,10 @@ func makeCommonTLSContextFromSnapshotAPIGatewayListenerConfig(
 
 	connectTLSEnabled := (!listenerCfg.TLS.IsEmpty())
 
-	if connectTLSEnabled {
+	if tlsCfg.SDS != nil {
+		// Set up listener TLS from SDS
+		tlsContext = makeCommonTLSContextFromGatewayTLSConfig(*tlsCfg)
+	} else if connectTLSEnabled {
 		tlsContext = makeCommonTLSContext(cfgSnap.Leaf(), cfgSnap.RootPEMs(), makeTLSParametersFromGatewayTLSConfig(*tlsCfg))
 	}
 
@@ -391,14 +321,37 @@ func resolveAPIListenerTLSConfig(listenerTLSCfg structs.APIGatewayTLSConfigurati
 	return &mergedCfg, nil
 }
 
+func routeNameForAPIGatewayUpstream(l structs.IngressListener, s structs.IngressService) string {
+	key := proxycfg.IngressListenerKeyFromListener(l)
+
+	// If the upstream service doesn't have any TLS overrides then it can just use
+	// the combined filterchain with all the merged routes.
+	if !ingressServiceHasSDSOverrides(s) {
+		return key.RouteName()
+	}
+
+	// Return a specific route for this service as it needs a custom FilterChain
+	// to serve its custom cert so we should attach its routes to a separate Route
+	// too. We need this to be consistent between OSS and Enterprise to avoid xDS
+	// config golden files in tests conflicting so we can't use ServiceID.String()
+	// which normalizes to included all identifiers in Enterprise.
+	sn := s.ToServiceName()
+	svcIdentifier := sn.Name
+	if !sn.InDefaultPartition() || !sn.InDefaultNamespace() {
+		// Non-default partition/namespace, use a full identifier
+		svcIdentifier = sn.String()
+	}
+	return fmt.Sprintf("%s_%s", key.RouteName(), svcIdentifier)
+}
+
 // when we have multiple certificates on a single listener, we need
 // to duplicate the filter chains with multiple TLS contexts
 func makeInlineOverrideFilterChains(cfgSnap *proxycfg.ConfigSnapshot,
 	tlsCfg structs.GatewayTLSConfig,
 	protocol string,
 	filterOpts listenerFilterOpts,
-	certs []structs.InlineCertificateConfigEntry,
-) ([]*envoy_listener_v3.FilterChain, error) {
+	certs []structs.InlineCertificateConfigEntry) ([]*envoy_listener_v3.FilterChain, error) {
+
 	var chains []*envoy_listener_v3.FilterChain
 
 	constructChain := func(name string, hosts []string, tlsContext *envoy_tls_v3.CommonTlsContext) error {

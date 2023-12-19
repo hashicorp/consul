@@ -1,0 +1,24 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+.auth-profile {
+  padding: 0.9em 1em;
+}
+.auth-profile {
+  @extend %body-100-regular;
+}
+.auth-profile dt span {
+  font-weight: var(--token-typography-font-weight-regular);
+}
+.auth-profile dt {
+  font-weight: var(--token-typography-font-weight-bold);
+}
+.auth-profile dt,
+.auth-profile dd {
+  color: var(--token-color-paletter-neutral-300);
+}
+.auth-profile dt span {
+  color: var(--token-color-foreground-faint);
+}

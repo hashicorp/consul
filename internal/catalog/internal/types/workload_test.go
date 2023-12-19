@@ -1,25 +1,23 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"testing"
 
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/hashicorp/consul/internal/resource"
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func createWorkloadResource(t *testing.T, data protoreflect.ProtoMessage) *pbresource.Resource {
 	res := &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type: pbcatalog.WorkloadType,
+			Type: WorkloadType,
 			Tenancy: &pbresource.Tenancy{
 				Partition: "default",
 				Namespace: "default",
@@ -229,30 +227,6 @@ func TestValidateWorkload_InvalidPortName(t *testing.T) {
 	require.Equal(t, expected, actual)
 }
 
-func TestValidateWorkload_InvalidPortProtocol(t *testing.T) {
-	data := validWorkload()
-	data.Ports["foo"] = &pbcatalog.WorkloadPort{
-		Port:     42,
-		Protocol: 99,
-	}
-
-	res := createWorkloadResource(t, data)
-
-	err := ValidateWorkload(res)
-	require.Error(t, err)
-	expected := resource.ErrInvalidMapValue{
-		Map: "ports",
-		Key: "foo",
-		Wrapped: resource.ErrInvalidField{
-			Name:    "protocol",
-			Wrapped: resource.NewConstError("not a supported enum value: 99"),
-		},
-	}
-	var actual resource.ErrInvalidMapValue
-	require.ErrorAs(t, err, &actual)
-	require.Equal(t, expected, actual)
-}
-
 func TestValidateWorkload_Port0(t *testing.T) {
 	data := validWorkload()
 	data.Ports["bar"] = &pbcatalog.WorkloadPort{Port: 0}
@@ -304,161 +278,4 @@ func TestValidateWorkload_Locality(t *testing.T) {
 	var actual resource.ErrInvalidField
 	require.ErrorAs(t, err, &actual)
 	require.Equal(t, expected, actual)
-}
-
-func TestWorkloadACLs(t *testing.T) {
-	registry := resource.NewRegistry()
-	Register(registry)
-
-	cases := map[string]rtest.ACLTestCase{
-		"no rules": {
-			Rules: ``,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.DENY,
-			WriteOK: rtest.DENY,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test read": {
-			Rules: `service "test" { policy = "read" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.DENY,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write": {
-			Rules: `service "test" { policy = "write" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.ALLOW,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with node": {
-			Rules: `service "test" { policy = "write" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				NodeName: "test-node",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.DENY,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with workload identity": {
-			Rules: `service "test" { policy = "write" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				Identity: "test-identity",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.DENY,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with workload identity and node": {
-			Rules: `service "test" { policy = "write" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				NodeName: "test-node",
-				Identity: "test-identity",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.DENY,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with node and node policy": {
-			Rules: `service "test" { policy = "write" } node "test-node" { policy = "read" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				NodeName: "test-node",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.ALLOW,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with workload identity and identity policy ": {
-			Rules: `service "test" { policy = "write" } identity "test-identity" { policy = "read" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				Identity: "test-identity",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.ALLOW,
-			ListOK:  rtest.DEFAULT,
-		},
-		"service test write with workload identity and node with both node and identity policy": {
-			Rules: `service "test" { policy = "write" } identity "test-identity" { policy = "read" } node "test-node" { policy = "read" }`,
-			Data: &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{
-					{Host: "1.1.1.1"},
-				},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"tcp": {Port: 8080},
-				},
-				NodeName: "test-node",
-				Identity: "test-identity",
-			},
-			Typ:     pbcatalog.WorkloadType,
-			ReadOK:  rtest.ALLOW,
-			WriteOK: rtest.ALLOW,
-			ListOK:  rtest.DEFAULT,
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			rtest.RunACLTestCase(t, tc, registry)
-		})
-	}
 }

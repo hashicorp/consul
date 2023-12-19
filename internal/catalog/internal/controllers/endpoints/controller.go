@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package endpoints
 
@@ -7,15 +7,14 @@ import (
 	"context"
 	"sort"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
-
-	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -39,14 +38,14 @@ type WorkloadMapper interface {
 
 // ServiceEndpointsController creates a controller to perform automatic endpoint management for
 // services.
-func ServiceEndpointsController(workloadMap WorkloadMapper) *controller.Controller {
+func ServiceEndpointsController(workloadMap WorkloadMapper) controller.Controller {
 	if workloadMap == nil {
 		panic("No WorkloadMapper was provided to the ServiceEndpointsController constructor")
 	}
 
-	return controller.NewController(StatusKey, pbcatalog.ServiceEndpointsType).
-		WithWatch(pbcatalog.ServiceType, dependency.ReplaceType(pbcatalog.ServiceEndpointsType)).
-		WithWatch(pbcatalog.WorkloadType, workloadMap.MapWorkload).
+	return controller.ForType(types.ServiceEndpointsType).
+		WithWatch(types.ServiceType, controller.ReplaceType(types.ServiceEndpointsType)).
+		WithWatch(types.WorkloadType, workloadMap.MapWorkload).
 		WithReconciler(newServiceEndpointsReconciler(workloadMap))
 }
 
@@ -70,7 +69,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 	endpointsID := req.ID
 	serviceID := &pbresource.ID{
-		Type:    pbcatalog.ServiceType,
+		Type:    types.ServiceType,
 		Tenancy: endpointsID.Tenancy,
 		Name:    endpointsID.Name,
 	}
@@ -106,19 +105,19 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 		return err
 	}
 
-	var statusConditions []*pbresource.Condition
+	var status *pbresource.Condition
 
 	if serviceUnderManagement(serviceData.service) {
 		rt.Logger.Trace("service is enabled for automatic endpoint management")
 		// This service should have its endpoints automatically managed
-		statusConditions = append(statusConditions, ConditionManaged)
+		status = ConditionManaged
 
 		// Inform the WorkloadMapper to track this service and its selectors. So
 		// future workload updates that would be matched by the services selectors
 		// cause this service to be rereconciled.
 		r.workloadMap.TrackIDForSelector(req.ID, serviceData.service.GetWorkloads())
 
-		// Now read and unmarshal all workloads selected by the service. It is imperative
+		// Now read and umarshal all workloads selected by the service. It is imperative
 		// that this happens after we notify the selection tracker to be tracking that
 		// selection criteria. If the order were reversed we could potentially miss
 		// workload creations that should be selected if they happen after gathering
@@ -133,12 +132,6 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 
 		// Calculate the latest endpoints from the already gathered workloads
 		latestEndpoints := workloadsToEndpoints(serviceData.service, workloadData)
-
-		// Add status
-		if endpointsData != nil {
-			statusConditions = append(statusConditions,
-				workloadIdentityStatusFromEndpoints(latestEndpoints))
-		}
 
 		// Before writing the endpoints actually check to see if they are changed
 		if endpointsData == nil || !proto.Equal(endpointsData.endpoints, latestEndpoints) {
@@ -175,7 +168,7 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	} else {
 		rt.Logger.Trace("endpoints are not being automatically managed")
 		// This service is not having its endpoints automatically managed
-		statusConditions = append(statusConditions, ConditionUnmanaged)
+		status = ConditionUnmanaged
 
 		// Inform the WorkloadMapper that it no longer needs to track this service
 		// as it is no longer under endpoint management
@@ -210,7 +203,9 @@ func (r *serviceEndpointsReconciler) Reconcile(ctx context.Context, rt controlle
 	// for that object existing or not.
 	newStatus := &pbresource.Status{
 		ObservedGeneration: serviceData.resource.Generation,
-		Conditions:         statusConditions,
+		Conditions: []*pbresource.Condition{
+			status,
+		},
 	}
 	// If the status is unchanged then we should return and avoid the unnecessary write
 	if resource.EqualStatus(serviceData.resource.Status[StatusKey], newStatus, false) {
@@ -315,13 +310,8 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 			continue
 		}
 
-		// If workload protocol is not specified, we will default to service's protocol.
-		// This is because on some platforms (kubernetes), workload protocol is not always
-		// known, and so we need to inherit from the service instead.
-		if workloadPort.Protocol == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
-			workloadPort.Protocol = svcPort.Protocol
-		} else if workloadPort.Protocol != svcPort.Protocol {
-			// Otherwise, there's workload port mismatch - ignore it.
+		if workloadPort.Protocol != svcPort.Protocol {
+			// workload port mismatch - ignore it
 			continue
 		}
 
@@ -390,16 +380,5 @@ func workloadToEndpoint(svc *pbcatalog.Service, data *workloadData) *pbcatalog.E
 		HealthStatus: health,
 		Addresses:    workloadAddrs,
 		Ports:        endpointPorts,
-		Identity:     data.workload.Identity,
 	}
-}
-
-func workloadIdentityStatusFromEndpoints(endpoints *pbcatalog.ServiceEndpoints) *pbresource.Condition {
-	identities := endpoints.GetIdentities()
-
-	if len(identities) > 0 {
-		return ConditionIdentitiesFound(identities)
-	}
-
-	return ConditionIdentitiesNotFound
 }

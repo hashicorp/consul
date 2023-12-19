@@ -1,39 +1,47 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
-type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
+const (
+	NodeKind = "Node"
+)
+
+var (
+	NodeV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         NodeKind,
+	}
+
+	NodeType = NodeV1Alpha1Type
+)
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbcatalog.NodeType,
+		Type:     NodeV1Alpha1Type,
 		Proto:    &pbcatalog.Node{},
-		Scope:    resource.ScopePartition,
 		Validate: ValidateNode,
-		ACLs: &resource.ACLHooks{
-			Read:  aclReadHookNode,
-			Write: aclWriteHookNode,
-			List:  resource.NoOpACLListHook,
-		},
 	})
 }
 
-var ValidateNode = resource.DecodeAndValidate(validateNode)
+func ValidateNode(res *pbresource.Resource) error {
+	var node pbcatalog.Node
 
-func validateNode(res *DecodedNode) error {
+	if err := res.Data.UnmarshalTo(&node); err != nil {
+		return resource.NewErrDataParse(&node, err)
+	}
+
 	var err error
 	// Validate that the node has at least 1 address
-	if len(res.Data.Addresses) < 1 {
+	if len(node.Addresses) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "addresses",
 			Wrapped: resource.ErrEmpty,
@@ -41,7 +49,7 @@ func validateNode(res *DecodedNode) error {
 	}
 
 	// Validate each node address
-	for idx, addr := range res.Data.Addresses {
+	for idx, addr := range node.Addresses {
 		if addrErr := validateNodeAddress(addr); addrErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "addresses",
@@ -78,12 +86,4 @@ func validateNodeAddress(addr *pbcatalog.NodeAddress) error {
 	}
 
 	return nil
-}
-
-func aclReadHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().NodeReadAllowed(id.GetName(), authzContext)
-}
-
-func aclWriteHookNode(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, res *pbresource.Resource) error {
-	return authorizer.ToAllowAuthorizer().NodeWriteAllowed(res.GetId().GetName(), authzContext)
 }

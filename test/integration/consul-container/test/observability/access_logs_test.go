@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package observability
 
@@ -72,7 +72,7 @@ func TestAccessLogs(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, set)
 
-	serverService, clientService := topology.CreateServices(t, cluster, "http")
+	serverService, clientService := topology.CreateServices(t, cluster)
 	_, port := clientService.GetAddr()
 
 	// Validate Custom JSON

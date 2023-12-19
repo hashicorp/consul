@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ca
 
@@ -126,7 +126,7 @@ func SkipIfVaultNotPresent(t testing.T, reqs ...vaultRequirements) {
 	}
 }
 
-func NewTestVaultServer(t retry.TestingTB) *TestVaultServer {
+func NewTestVaultServer(t testing.T) *TestVaultServer {
 	vaultBinaryName := os.Getenv("VAULT_BINARY_NAME")
 	if vaultBinaryName == "" {
 		vaultBinaryName = "vault"
@@ -204,7 +204,7 @@ func (v *TestVaultServer) Client() *vaultapi.Client {
 	return v.client
 }
 
-func (v *TestVaultServer) WaitUntilReady(t retry.TestingTB) {
+func (v *TestVaultServer) WaitUntilReady(t testing.T) {
 	var version string
 	retry.Run(t, func(r *retry.R) {
 		resp, err := v.client.Sys().Health()
