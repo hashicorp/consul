@@ -3,10 +3,14 @@
 
 package resourcetest
 
-import "github.com/hashicorp/consul/sdk/testutil"
-
 // T represents the subset of testing.T methods that will be used
 // by the various functionality in this package
 type T interface {
-	testutil.TestingTB
+	Helper()
+	Log(args ...interface{})
+	Logf(format string, args ...interface{})
+	Errorf(format string, args ...interface{})
+	Fatalf(format string, args ...interface{})
+	FailNow()
+	Cleanup(func())
 }

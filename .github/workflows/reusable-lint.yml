@@ -18,7 +18,7 @@ on:
       elevated-github-token:
         required: true
 env:
-  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
+  GOTAGS: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
   GOARCH: ${{inputs.go-arch}}
   GOPRIVATE: github.com/hashicorp # Required for enterprise deps
 
@@ -55,3 +55,6 @@ jobs:
           version: v1.51.1
           args: --build-tags="${{ env.GOTAGS }}" -v
           skip-cache: true
+      - name: Notify Slack
+        if: ${{ failure() }}
+        run: .github/scripts/notify_slack.sh

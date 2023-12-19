@@ -19,11 +19,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-rootcerts"
-
-	"github.com/hashicorp/consul/api"
 )
 
 // NOTE: This client is copied from the api module to temporarily facilitate the resource cli commands
@@ -72,6 +71,12 @@ const (
 	// HTTPSSLVerifyEnvName defines an environment variable name which sets
 	// whether or not to disable certificate checking.
 	HTTPSSLVerifyEnvName = "CONSUL_HTTP_SSL_VERIFY"
+
+	// GRPCAddrEnvName defines an environment variable name which sets the gRPC
+	// address for consul connect envoy. Note this isn't actually used by the api
+	// client in this package but is defined here for consistency with all the
+	// other ENV names we use.
+	GRPCAddrEnvName = "CONSUL_GRPC_ADDR"
 
 	// GRPCCAFileEnvName defines an environment variable name which sets the
 	// CA file to use for talking to Consul gRPC over TLS.

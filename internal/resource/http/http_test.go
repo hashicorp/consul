@@ -12,17 +12,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/go-hclog"
-
-	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
+	resourceSvc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -42,13 +42,9 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 		request              *http.Request
 		response             *httptest.ResponseRecorder
 		expectedResponseCode int
-		responseBodyContains string
+		expectedErrorMessage string
 	}
-
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(demo.RegisterTypes).
-		Run(t)
-
+	client := svctest.RunResourceService(t, demo.RegisterTypes)
 	resourceHandler := resourceHandler{
 		resource.Registration{
 			Type:  demo.TypeV2Artist,
@@ -76,7 +72,7 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "resource.id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = resource.id.name is required",
 		},
 		{
 			description: "wrong schema",
@@ -93,21 +89,21 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			`)),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body didn't follow the resource schema",
+			expectedErrorMessage: "Request body didn't follow the resource schema",
 		},
 		{
 			description:          "invalid request body",
 			request:              httptest.NewRequest("PUT", "/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader("bad-input")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "Request body format is invalid",
+			expectedErrorMessage: "Request body format is invalid",
 		},
 		{
 			description:          "no id",
 			request:              httptest.NewRequest("DELETE", "/?partition=default&peer_name=local&namespace=default", strings.NewReader("")),
 			response:             httptest.NewRecorder(),
 			expectedResponseCode: http.StatusBadRequest,
-			responseBodyContains: "id.name invalid",
+			expectedErrorMessage: "rpc error: code = InvalidArgument desc = id.name is required",
 		},
 	}
 
@@ -123,23 +119,23 @@ func TestResourceHandler_InputValidation(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tc.expectedResponseCode, tc.response.Result().StatusCode)
-			require.Contains(t, string(b), tc.responseBodyContains)
+			require.Equal(t, tc.expectedErrorMessage, string(b))
 		})
 	}
 }
 
 func TestResourceWriteHandler(t *testing.T) {
-	aclResolver := &svc.MockACLResolver{}
+	aclResolver := &resourceSvc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1ReadPolicy, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1WritePolicy, demo.ArtistV2WritePolicy), nil)
 
-	builder := svctest.NewResourceServiceBuilder().
-		WithACLResolver(aclResolver).
-		WithRegisterFns(demo.RegisterTypes)
-	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
+
+	r := resource.NewRegistry()
+	demo.RegisterTypes(r)
+	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should be blocked if the token is not authorized", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
@@ -162,7 +158,6 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.Equal(t, http.StatusForbidden, rsp.Result().StatusCode)
 	})
 
-	var readRsp *pbresource.ReadResponse
 	t.Run("should write to the resource backend", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
 		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default", strings.NewReader(`
@@ -188,8 +183,7 @@ func TestResourceWriteHandler(t *testing.T) {
 		require.Equal(t, "Keith Urban", result["data"].(map[string]any)["name"])
 		require.Equal(t, "keith-urban", result["id"].(map[string]any)["name"])
 
-		var err error
-		readRsp, err = client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
+		readRsp, err := client.Read(testutil.TestContext(t), &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Type:    demo.TypeV2Artist,
 				Tenancy: resource.DefaultNamespacedTenancy(),
@@ -206,7 +200,7 @@ func TestResourceWriteHandler(t *testing.T) {
 
 	t.Run("should update the record with version parameter", func(t *testing.T) {
 		rsp := httptest.NewRecorder()
-		req := httptest.NewRequest("PUT", fmt.Sprintf("/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=%s", readRsp.Resource.Version), strings.NewReader(`
+		req := httptest.NewRequest("PUT", "/demo/v2/artist/keith-urban?partition=default&peer_name=local&namespace=default&version=1", strings.NewReader(`
 			{
 				"metadata": {
 					"foo": "bar"
@@ -357,7 +351,7 @@ func deleteResource(t *testing.T, artistHandler http.Handler, resourceUri *Resou
 }
 
 func TestResourceReadHandler(t *testing.T) {
-	aclResolver := &svc.MockACLResolver{}
+	aclResolver := &resourceSvc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV1ReadPolicy, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
@@ -365,11 +359,11 @@ func TestResourceReadHandler(t *testing.T) {
 	aclResolver.On("ResolveTokenAndDefaultMeta", fakeToken, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, ""), nil)
 
-	builder := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(demo.RegisterTypes).
-		WithACLResolver(aclResolver)
-	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
+
+	r := resource.NewRegistry()
+	demo.RegisterTypes(r)
+	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	createdResource := createResource(t, handler, nil)
 
@@ -412,17 +406,18 @@ func TestResourceReadHandler(t *testing.T) {
 }
 
 func TestResourceDeleteHandler(t *testing.T) {
-	aclResolver := &svc.MockACLResolver{}
+	aclResolver := &resourceSvc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistReadPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ReadPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	builder := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(demo.RegisterTypes).
-		WithACLResolver(aclResolver)
-	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
+
+	r := resource.NewRegistry()
+	demo.RegisterTypes(r)
+
+	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should surface PermissionDenied error from resource service", func(t *testing.T) {
 		createResource(t, handler, nil)
@@ -488,17 +483,18 @@ func TestResourceDeleteHandler(t *testing.T) {
 }
 
 func TestResourceListHandler(t *testing.T) {
-	aclResolver := &svc.MockACLResolver{}
+	aclResolver := &resourceSvc.MockACLResolver{}
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistListPolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2ListPolicy), nil)
 	aclResolver.On("ResolveTokenAndDefaultMeta", testACLTokenArtistWritePolicy, mock.Anything, mock.Anything).
 		Return(svctest.AuthorizerFrom(t, demo.ArtistV2WritePolicy), nil)
 
-	builder := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(demo.RegisterTypes).
-		WithACLResolver(aclResolver)
-	client := builder.Run(t)
-	handler := NewHandler(client, builder.Registry(), parseToken, hclog.NewNullLogger())
+	client := svctest.RunResourceServiceWithConfig(t, resourceSvc.Config{ACLResolver: aclResolver}, demo.RegisterTypes)
+
+	r := resource.NewRegistry()
+	demo.RegisterTypes(r)
+
+	handler := NewHandler(client, r, parseToken, hclog.NewNullLogger())
 
 	t.Run("should return MethodNotAllowed", func(t *testing.T) {
 		rsp := httptest.NewRecorder()

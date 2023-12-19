@@ -78,11 +78,8 @@ type Provider interface {
 	// ApplyRules executes rules that have been added via AddRule.
 	// This operation is currently not atomic, and if there's an error applying rules,
 	// you may be left in a state where partial rules were applied.
-	// ApplyRules should not be called twice on the same instance in order to avoid
-	// duplicate rule application.
 	ApplyRules() error
-	// Rules returns the list of rules that have been added (including those not yet
-	// applied).
+	// Rules returns the list of rules that have been added but not applied yet.
 	Rules() []string
 }
 

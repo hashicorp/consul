@@ -22,7 +22,7 @@ import (
 
 func TestGetDecodedResource(t *testing.T) {
 	var (
-		baseClient = svctest.NewResourceServiceBuilder().WithRegisterFns(demo.RegisterTypes).Run(t)
+		baseClient = svctest.RunResourceService(t, demo.RegisterTypes)
 		client     = rtest.NewClient(baseClient)
 		ctx        = testutil.TestContext(t)
 	)

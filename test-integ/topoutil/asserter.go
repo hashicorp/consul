@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libassert "github.com/hashicorp/consul/test/integration/consul-container/libs/assert"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -53,13 +52,13 @@ func NewAsserter(sp SprawlLite) *Asserter {
 	}
 }
 
-func (a *Asserter) mustGetHTTPClient(t testutil.TestingTB, cluster string) *http.Client {
+func (a *Asserter) mustGetHTTPClient(t *testing.T, cluster string) *http.Client {
 	client, err := a.httpClientFor(cluster)
 	require.NoError(t, err)
 	return client
 }
 
-func (a *Asserter) mustGetAPIClient(t testutil.TestingTB, cluster string) *api.Client {
+func (a *Asserter) mustGetAPIClient(t *testing.T, cluster string) *api.Client {
 	clu := a.sp.Topology().Clusters[cluster]
 	cl, err := a.sp.APIClientForCluster(clu.Name, "")
 	require.NoError(t, err)
@@ -209,7 +208,7 @@ type testingT interface {
 //
 // We treat 400, 503, and 504s as retryable errors
 func (a *Asserter) fortioFetch2Destination(
-	t testutil.TestingTB,
+	t testingT,
 	client *http.Client,
 	addr string,
 	dest *topology.Destination,

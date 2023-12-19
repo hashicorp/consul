@@ -24,10 +24,10 @@ The following list outlines field hierarchy, language-specific data types, and r
     - [`identityName`](#spec-destination-identityname): string
   - [`action`](#spec-action): string
   - [`permissions`](#spec-permissions): list of maps
-    - [`sources`](#spec-permissions-sources): list of maps
+    - [`sources`](#spec-permissions-sources): map
       - [`identityName`](#spec-permissions-sources-identityname): string
-    - [`destinationRules`](#spec-permissions-destinationrules): list of maps
-      - [`portNames`](#spec-permissions-destinationrules-portnames): array of strings
+    - [`destinationRules`](#spec-permissions-destinationrules):
+      - [`portNames`](#spec-permissions-destinationrules-portNames): array of strings
 
 ## Complete configuration
 
@@ -45,10 +45,10 @@ spec:
   action: allow
   permissions:
     - sources:
-        - identityName: <sourceWorkloadIdentity> 
-      destinationRules:
-        - portNames:
-            - <servicePortName>
+      identityName: <sourceWorkloadIdentity> 
+    destinationRules:
+      portNames: 
+        - <servicePortName>
 ```
 
 ## Specification
@@ -163,7 +163,7 @@ To specify wildcard references in this block using `*`, omit all other fields. F
 #### Values
 
 - Default: None
-- Data type: List of maps
+- Data type: Map
 
 ### `spec.permissions.sources.identityName`
 
@@ -172,7 +172,7 @@ Specifies the Workload identity for the service that originates the request.
 #### Values
 
 - Default: None
-- Data type: String
+- Data type: Map
 
 ### `spec.permissions.destinationRules`
 
@@ -185,11 +185,11 @@ When [`spec.action`](#spec-action) _denies traffic_, Consul denies authorization
 #### Values
 
 - Default: None
-- Data type: List of maps
+- Data type: Map
 
 ### `spec.permissions.destinationRules.portNames`
 
-Specifies a port name that the Kubernetes Pod's container exposes at the destination.
+Specifies a port name that the Kubernetes Service exposes at the destination.
 
 #### Values
 

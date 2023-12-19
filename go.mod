@@ -24,7 +24,6 @@ require (
 	github.com/aws/aws-sdk-go v1.44.289
 	github.com/coredns/coredns v1.10.1
 	github.com/coreos/go-oidc v2.1.0+incompatible
-	github.com/deckarep/golang-set/v2 v2.3.1
 	github.com/docker/go-connections v0.4.0
 	github.com/envoyproxy/go-control-plane v0.11.1
 	github.com/envoyproxy/go-control-plane/xdsmatcher v0.0.0-20230524161521-aaaacbfbe53e
@@ -51,7 +50,6 @@ require (
 	github.com/hashicorp/go-discover v0.0.0-20220714221025-1c234a67149a
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
-	github.com/hashicorp/go-immutable-radix/v2 v2.1.0
 	github.com/hashicorp/go-memdb v1.3.4
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-raftchunking v0.7.0
@@ -204,7 +202,6 @@ require (
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.1 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.6 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.0 // indirect
 	github.com/hashicorp/mdns v1.0.4 // indirect
 	github.com/hashicorp/net-rpc-msgpackrpc/v2 v2.0.0 // indirect
 	github.com/hashicorp/vic v1.5.1-0.20190403131502-bbfe86ec9443 // indirect
@@ -278,10 +275,10 @@ require (
 	gopkg.in/resty.v1 v1.12.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/klog/v2 v2.100.1 // indirect
+	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280 // indirect
-	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5 // indirect
+	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )

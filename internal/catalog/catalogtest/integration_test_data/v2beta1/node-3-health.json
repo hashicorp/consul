@@ -3,10 +3,11 @@
       "type": {
          "group": "catalog",
          "group_version": "v2beta1",
-         "kind": "NodeHealthStatus"
+         "kind": "HealthStatus"
       },
       "tenancy": {
          "partition": "default",
+         "namespace": "default",
          "peer_name": "local"
       },
       "name": "node-3-health"
@@ -19,12 +20,13 @@
       },
       "tenancy": {
          "partition": "default",
+         "namespace": "default",
          "peer_name": "local"
       },
       "name": "node-3"
    },
    "data": {
-      "@type": "hashicorp.consul.catalog.v2beta1.NodeHealthStatus",
+      "@type": "hashicorp.consul.catalog.v2beta1.HealthStatus",
       "type": "synthetic",
       "status": "HEALTH_CRITICAL"
    }
