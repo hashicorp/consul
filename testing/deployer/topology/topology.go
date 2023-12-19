@@ -541,6 +541,9 @@ type Node struct {
 
 	// Network segment of the agent - applicable to client agent only
 	Segment *NetworkSegment
+
+	// ExtracConfig is the extra config added to the node
+	ExtracConfig string
 }
 
 func (n *Node) DockerName() string {
