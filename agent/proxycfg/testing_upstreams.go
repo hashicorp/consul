@@ -546,7 +546,7 @@ func setupTestVariationDiscoveryChain(
 					"protocol": "http",
 				},
 			},
-			// Adding a service router to this case allows testing ServiceRoute.Destination timeouts.
+			// Adding a ServiceRouter in this case allows testing ServiceRoute.Destination timeouts.
 			&structs.ServiceRouterConfigEntry{
 				Kind:           structs.ServiceRouter,
 				Name:           "db",
@@ -559,9 +559,24 @@ func setupTestVariationDiscoveryChain(
 							},
 						},
 						Destination: &structs.ServiceRouteDestination{
-							Service:        "big-side",
-							IdleTimeout:    -1 * time.Second,
-							RequestTimeout: -1 * time.Second,
+							Service: "big-side",
+							// Test disabling idle timeout.
+							IdleTimeout: -1 * time.Second,
+							// Test a positive value for request timeout.
+							RequestTimeout: 10 * time.Second,
+						},
+					},
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/lil-bit-side",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "lil-bit-side",
+							// Test zero values for these timeouts.
+							IdleTimeout:    0 * time.Second,
+							RequestTimeout: 0 * time.Second,
 						},
 					},
 				},

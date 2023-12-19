@@ -19,7 +19,15 @@
               "route": {
                 "cluster": "big-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
                 "idleTimeout": "0s",
-                "timeout": "0s"
+                "timeout": "10s"
+              }
+            },
+            {
+              "match": {
+                "prefix": "/lil-bit-side"
+              },
+              "route": {
+                "cluster": "lil-bit-side.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             },
             {
