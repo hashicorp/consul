@@ -120,6 +120,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		Resource: &pbresource.Resource{
 			Id:       req.ID,
 			Metadata: map[string]string{"gateway-kind": workload.Metadata["gateway-kind"]},
+			Owner:    workload.Resource.Id,
 			Data:     proxyTemplateData,
 		},
 	})
