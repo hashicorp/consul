@@ -11,14 +11,15 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func NodeHealthController() controller.Controller {
-	return controller.ForType(pbcatalog.NodeType).
-		WithWatch(pbcatalog.NodeHealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
+func NodeHealthController() *controller.Controller {
+	return controller.NewController(StatusKey, pbcatalog.NodeType).
+		WithWatch(pbcatalog.NodeHealthStatusType, dependency.MapOwnerFiltered(pbcatalog.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 

@@ -106,12 +106,12 @@ jobs:
           TERM: ansi
 
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') && !cancelled() }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') && !cancelled() }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
         uses: hashicorp/vault-action@v2.5.0
         with:

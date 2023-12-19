@@ -20,9 +20,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func Controller() controller.Controller {
+const (
+	ControllerName = "consul.io/exported-services"
+)
 
-	return controller.ForType(pbmulticluster.ComputedExportedServicesType).
+func Controller() *controller.Controller {
+
+	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
 		WithWatch(pbmulticluster.ExportedServicesType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbcatalog.ServiceType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, ReplaceTypeForComputedExportedServices()).

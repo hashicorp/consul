@@ -224,7 +224,15 @@ Then, open `bootstrap.json` and update the following sections with your ACL toke
 ```json
 {
   "admin": {
-    "access_log_path": "/dev/null",
+    "access_log": [
+      {
+        "name": "envoy.access_loggers.file",
+        "typed_config": {
+          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
+          "path": "/dev/null"
+        }
+      }
+    ],
     "address": {
       "socket_address": {
         "address": "127.0.0.1",
@@ -356,6 +364,8 @@ defaults that are inherited by all services.
   - `""` - Empty string (default). No connection balancing strategy is used. Consul does not balance inbound connections.
   - `exact_balance` - Inbound connections to the service use the
   [Envoy Exact Balance Strategy.](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig-exactbalance)
+
+- `xds_fetch_timeout_ms` - In milliseconds, the amount of time for Envoy to wait for EDS and RDS configuration before timing out. If not specified, this field uses Envoy's default value of `15000`, or 15 seconds. When an Envoy instance is configured with a large number of upstreams that take a significant amount of time to populate with data, setting this field to a higher value may prevent temporary disruption caused by unexpected timeouts.
 
 ### Proxy Upstream Config Options
 

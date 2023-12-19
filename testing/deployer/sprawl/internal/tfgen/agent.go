@@ -84,7 +84,9 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 		b.add("prometheus_retention_time", "168h")
 	})
 
-	b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	if !cluster.DisableGossipEncryption {
+		b.add("encrypt", g.sec.ReadGeneric(node.Cluster, secrets.GossipKey))
+	}
 
 	{
 		var (
