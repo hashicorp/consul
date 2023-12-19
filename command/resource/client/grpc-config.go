@@ -72,7 +72,7 @@ type GRPCConfig struct {
 func GetDefaultGRPCConfig() *GRPCConfig {
 	return &GRPCConfig{
 		Address:       "127.0.0.1:8502",
-		GRPCTLSVerify: true,
+		GRPCTLSVerify: false,
 	}
 }
 
@@ -112,9 +112,7 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse %s: %w", GRPCTLSVerifyEnvName, err)
 		}
-		if !doVerify {
-			config.GRPCTLSVerify = false
-		}
+		config.GRPCTLSVerify = doVerify
 	}
 
 	if v := os.Getenv(GRPCClientCertEnvName); v != "" {
