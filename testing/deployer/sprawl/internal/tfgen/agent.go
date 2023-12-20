@@ -25,10 +25,10 @@ func (g *Generator) generateAgentHCL(node *topology.Node, enableV2, enableV2Tena
 
 	var b HCLBuilder
 
-	// We first write ExtracConfig since it could be overwritten by specific
+	// We first write ExtraConfig since it could be overwritten by specific
 	// configurations below
-	if node.ExtracConfig != "" {
-		b.format(node.ExtracConfig)
+	if node.ExtraConfig != "" {
+		b.format(node.ExtraConfig)
 	}
 
 	b.add("server", node.IsServer())
