@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package hcclink
+package link
 
 import (
 	"context"
@@ -15,30 +15,30 @@ import (
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
 )
 
-func HCCLinkController(resourceApisEnabled bool, overrideResourceApisEnabledCheck bool) controller.Controller {
-	return controller.ForType(pbhcp.HCCLinkType).
-		WithReconciler(&hccLinkReconciler{
+func LinkController(resourceApisEnabled bool, overrideResourceApisEnabledCheck bool) *controller.Controller {
+	return controller.NewController("link", pbhcp.LinkType).
+		WithReconciler(&linkReconciler{
 			resourceApisEnabled:              resourceApisEnabled,
 			overrideResourceApisEnabledCheck: overrideResourceApisEnabledCheck,
 		})
 }
 
-type hccLinkReconciler struct {
+type linkReconciler struct {
 	resourceApisEnabled              bool
 	overrideResourceApisEnabledCheck bool
 }
 
-func (r *hccLinkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
+func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
 	// The runtime is passed by value so replacing it here for the remainder of this
 	// reconciliation request processing will not affect future invocations.
 	rt.Logger = rt.Logger.With("resource-id", req.ID, "controller", StatusKey)
 
-	rt.Logger.Trace("reconciling hcc link")
+	rt.Logger.Trace("reconciling link")
 
 	rsp, err := rt.Client.Read(ctx, &pbresource.ReadRequest{Id: req.ID})
 	switch {
 	case status.Code(err) == codes.NotFound:
-		rt.Logger.Trace("hcc link has been deleted")
+		rt.Logger.Trace("link has been deleted")
 		return nil
 	case err != nil:
 		rt.Logger.Error("the resource service has returned an unexpected error", "error", err)
@@ -46,9 +46,9 @@ func (r *hccLinkReconciler) Reconcile(ctx context.Context, rt controller.Runtime
 	}
 
 	res := rsp.Resource
-	var link pbhcp.HCCLink
+	var link pbhcp.Link
 	if err := res.Data.UnmarshalTo(&link); err != nil {
-		rt.Logger.Error("error unmarshalling hcc link data", "error", err)
+		rt.Logger.Error("error unmarshalling link data", "error", err)
 		return err
 	}
 

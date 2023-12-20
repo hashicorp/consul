@@ -10,13 +10,13 @@ const (
 	GroupName = "hcp"
 	Version   = "v1"
 
-	HCCLinkKind = "HCCLink"
+	LinkKind = "Link"
 )
 
 var (
-	HCCLinkType = &pbresource.Type{
+	LinkType = &pbresource.Type{
 		Group:        GroupName,
 		GroupVersion: Version,
-		Kind:         HCCLinkKind,
+		Kind:         LinkKind,
 	}
 )

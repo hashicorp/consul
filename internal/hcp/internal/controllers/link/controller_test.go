@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package hcclink
+package link
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/hcp/internal/types"
+	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -25,12 +26,18 @@ type controllerSuite struct {
 	client *rtest.Client
 	rt     controller.Runtime
 
-	ctl hccLinkReconciler
+	ctl       linkReconciler
+	tenancies []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.RunResourceService(suite.T(), types.Register)
+	suite.tenancies = resourcetest.TestTenancies()
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.rt = controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(suite.T()),
@@ -38,7 +45,7 @@ func (suite *controllerSuite) SetupTest() {
 	suite.client = rtest.NewClient(client)
 }
 
-func TestHCCLinkController(t *testing.T) {
+func TestLinkController(t *testing.T) {
 	suite.Run(t, new(controllerSuite))
 }
 
@@ -51,65 +58,65 @@ func (suite *controllerSuite) deleteResourceFunc(id *pbresource.ID) func() {
 func (suite *controllerSuite) TestController_Ok() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(HCCLinkController(false, false))
+	mgr.Register(LinkController(false, false))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	hccLinkData := &pbhcp.HCCLink{
+	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
 
-	hccLink := rtest.Resource(pbhcp.HCCLinkType, "global").
-		WithData(suite.T(), hccLinkData).
+	link := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
-	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionLinked(hccLinkData.ResourceId))
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
 }
 
-func (suite *controllerSuite) TestControllerResourceApisEnabled_HCCLinkDisabled() {
+func (suite *controllerSuite) TestControllerResourceApisEnabled_LinkDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(HCCLinkController(true, false))
+	mgr.Register(LinkController(true, false))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	hccLinkData := &pbhcp.HCCLink{
+	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
 	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
-	hccLink := rtest.Resource(pbhcp.HCCLinkType, "global").
-		WithData(suite.T(), hccLinkData).
+	link := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
-	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionDisabled)
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionDisabled)
 }
 
-func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_HCCLinkNotDisabled() {
+func (suite *controllerSuite) TestControllerResourceApisEnabledWithOverride_LinkNotDisabled() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(HCCLinkController(true, true))
+	mgr.Register(LinkController(true, true))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	hccLinkData := &pbhcp.HCCLink{
+	linkData := &pbhcp.Link{
 		ClientId:     "abc",
 		ClientSecret: "abc",
 		ResourceId:   "abc",
 	}
 	// The controller is currently a no-op, so there is nothing to test other than making sure we do not panic
-	hccLink := rtest.Resource(pbhcp.HCCLinkType, "global").
-		WithData(suite.T(), hccLinkData).
+	link := rtest.Resource(pbhcp.LinkType, "global").
+		WithData(suite.T(), linkData).
 		Write(suite.T(), suite.client)
 
-	suite.T().Cleanup(suite.deleteResourceFunc(hccLink.Id))
+	suite.T().Cleanup(suite.deleteResourceFunc(link.Id))
 
-	suite.client.WaitForStatusCondition(suite.T(), hccLink.Id, StatusKey, ConditionLinked(hccLinkData.ResourceId))
+	suite.client.WaitForStatusCondition(suite.T(), link.Id, StatusKey, ConditionLinked(linkData.ResourceId))
 }

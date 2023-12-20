@@ -19,7 +19,7 @@ flowchart TD
   demo/v1/recordlabel
   demo/v2/album
   demo/v2/artist
-  hcp/v1/hcclink
+  hcp/v1/link
   internal/v1/tombstone
   mesh/v2beta1/computedexplicitdestinations --> catalog/v2beta1/service
   mesh/v2beta1/computedexplicitdestinations --> catalog/v2beta1/workload

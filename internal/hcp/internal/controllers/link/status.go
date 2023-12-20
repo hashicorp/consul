@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package hcclink
+package link
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	StatusKey = "consul.io/hcc-link"
+	StatusKey = "consul.io/link"
 
 	StatusLinked                      = "linked"
 	LinkedReason                      = "SUCCESS"

@@ -4,7 +4,7 @@ package hashicorp.consul.hcp.v1;
 
 import "pbresource/annotations.proto";
 
-message HCCLink {
+message Link {
   option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
 
   string resource_id = 1;

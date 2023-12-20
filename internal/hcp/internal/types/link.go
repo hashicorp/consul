@@ -11,30 +11,30 @@ import (
 	"github.com/hashicorp/go-multierror"
 )
 
-type DecodedCloudLink = resource.DecodedResource[*pbhcp.HCCLink]
+type DecodedLink = resource.DecodedResource[*pbhcp.Link]
 
 var (
-	hccLinkConfigurationNameError = errors.New("only a single HCCLink resource is allowed and it must be named global")
+	linkConfigurationNameError = errors.New("only a single Link resource is allowed and it must be named global")
 )
 
-func RegisterHCCLink(r resource.Registry) {
+func RegisterLink(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbhcp.HCCLinkType,
-		Proto:    &pbhcp.HCCLink{},
+		Type:     pbhcp.LinkType,
+		Proto:    &pbhcp.Link{},
 		Scope:    resource.ScopeCluster,
-		Validate: ValidateHCCLink,
+		Validate: ValidateLink,
 	})
 }
 
-var ValidateHCCLink = resource.DecodeAndValidate(validateHCCLink)
+var ValidateLink = resource.DecodeAndValidate(validateLink)
 
-func validateHCCLink(res *DecodedCloudLink) error {
+func validateLink(res *DecodedLink) error {
 	var err error
 
 	if res.Id.Name != "global" {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "name",
-			Wrapped: hccLinkConfigurationNameError,
+			Wrapped: linkConfigurationNameError,
 		})
 	}
 

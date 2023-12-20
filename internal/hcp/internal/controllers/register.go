@@ -5,7 +5,7 @@ package controllers
 
 import (
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/hcp/internal/controllers/hcclink"
+	"github.com/hashicorp/consul/internal/hcp/internal/controllers/link"
 )
 
 type Dependencies struct {
@@ -14,7 +14,7 @@ type Dependencies struct {
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
-	mgr.Register(hcclink.HCCLinkController(
+	mgr.Register(link.LinkController(
 		deps.ResourceApisEnabled,
 		deps.OverrideResourceApisEnabledCheck,
 	))
