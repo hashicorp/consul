@@ -1106,8 +1106,7 @@ func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
 				Key:               f.name,
 				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
 					Pattern: &envoy_matcher_v3.RegexMatcher{
-						Regex:      downstreamServiceIdentityMatcher,
-						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{},
+						Regex: downstreamServiceIdentityMatcher,
 					},
 					Substitution: f.sub,
 				},
