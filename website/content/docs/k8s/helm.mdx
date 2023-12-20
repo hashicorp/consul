@@ -134,7 +134,7 @@ Use these links to navigate to a particular top-level stanza.
 
     - `vault` ((#v-global-secretsbackend-vault))
 
-      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace` 
+      - `vaultNamespace` ((#v-global-secretsbackend-vault-vaultnamespace)) (`string: ""`) - Vault namespace (optional). This sets the Vault namespace for the `vault.hashicorp.com/namespace`
         agent annotation and [Vault Connect CA namespace](/consul/docs/connect/ca/vault#namespace).
         To override one of these values individually, see `agentAnnotations` and `connectCA.additionalConfig`.
 
@@ -423,7 +423,7 @@ Use these links to navigate to a particular top-level stanza.
 
       - `secretKey` ((#v-global-acls-replicationtoken-secretkey)) (`string: null`) - The key within the Kubernetes or Vault secret that holds the replication token.
 
-    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods. 
+    - `resources` ((#v-global-acls-resources)) (`map`) - The resource requests (CPU, memory, etc.) for the server-acl-init and server-acl-init-cleanup pods.
       This should be a YAML map corresponding to a Kubernetes
       [`ResourceRequirements``](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#resourcerequirements-v1-core)
       object.
@@ -501,7 +501,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-global-federation-enabled)) (`boolean: false`) - If enabled, this datacenter will be federation-capable. Only federation
       via mesh gateways is supported.
       Mesh gateways and servers will be configured to allow federation.
-      Requires `global.tls.enabled`, `connectInject.enabled`, and one of 
+      Requires `global.tls.enabled`, `connectInject.enabled`, and one of
       `meshGateway.enabled` or `externalServers.enabled` to be true.
       Requires Consul 1.8+.
 
@@ -525,7 +525,7 @@ Use these links to navigate to a particular top-level stanza.
       from the one used by the Consul Service Mesh.
       Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+      If `externalServers.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
       `externalServers.k8sAuthMethodHost` should be set to the same value.
 
       You can retrieve this value from your `kubeconfig` by running:
@@ -570,49 +570,53 @@ Use these links to navigate to a particular top-level stanza.
   - `consulAPITimeout` ((#v-global-consulapitimeout)) (`string: 5s`) - The time in seconds that the consul API client will wait for a response from
     the API before cancelling the request.
 
-  - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul self-managed cluster.
+  - `cloud` ((#v-global-cloud)) - Enables installing an HCP Consul Central self-managed cluster.
     Requires Consul v1.14+.
 
-    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart will enable the installation of an HCP Consul
-      self-managed cluster.
+    - `enabled` ((#v-global-cloud-enabled)) (`boolean: false`) - If true, the Helm chart will link a [self-managed cluster to HCP](/hcp/docs/consul/self-managed).
+      This can either be used to [configure a new cluster](/hcp/docs/consul/self-managed/new)
+      or [link an existing one](/hcp/docs/consul/self-managed/existing).
 
-    - `resourceId` ((#v-global-cloud-resourceid)) - The name of the Kubernetes secret that holds the HCP resource id.
+      Note: this setting should not be enabled for [HashiCorp-managed clusters](/hcp/docs/consul/hcp-managed).
+      It is strictly for linking self-managed clusters.
+
+    - `resourceId` ((#v-global-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to link to. Eg:
+      organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster
       This is required when global.cloud.enabled is true.
 
       - `secretName` ((#v-global-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource id.
 
       - `secretKey` ((#v-global-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource id.
 
-    - `clientId` ((#v-global-cloud-clientid)) - The name of the Kubernetes secret that holds the HCP cloud client id.
+    - `clientId` ((#v-global-cloud-clientid)) - The client id portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
+      in global.cloud.resourceId to HCP Consul Central.
       This is required when global.cloud.enabled is true.
 
       - `secretName` ((#v-global-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client id.
 
       - `secretKey` ((#v-global-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client id.
 
-    - `clientSecret` ((#v-global-cloud-clientsecret)) - The name of the Kubernetes secret that holds the HCP cloud client secret.
+    - `clientSecret` ((#v-global-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to link the cluster
+      in global.cloud.resourceId to HCP Consul Central.
       This is required when global.cloud.enabled is true.
 
       - `secretName` ((#v-global-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
 
       - `secretKey` ((#v-global-cloud-clientsecret-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client secret.
 
-    - `apiHost` ((#v-global-cloud-apihost)) - The name of the Kubernetes secret that holds the HCP cloud client id.
-      This is optional when global.cloud.enabled is true.
+    - `apiHost` ((#v-global-cloud-apihost)) - The hostname of HCP's API. This setting is used for internal testing and validation.
 
       - `secretName` ((#v-global-cloud-apihost-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the api hostname.
 
       - `secretKey` ((#v-global-cloud-apihost-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the api hostname.
 
-    - `authUrl` ((#v-global-cloud-authurl)) - The name of the Kubernetes secret that holds the HCP cloud authorization url.
-      This is optional when global.cloud.enabled is true.
+    - `authUrl` ((#v-global-cloud-authurl)) - The URL of HCP's auth API. This setting is used for internal testing and validation.
 
       - `secretName` ((#v-global-cloud-authurl-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the authorization url.
 
       - `secretKey` ((#v-global-cloud-authurl-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the authorization url.
 
-    - `scadaAddress` ((#v-global-cloud-scadaaddress)) - The name of the Kubernetes secret that holds the HCP cloud scada address.
-      This is optional when global.cloud.enabled is true.
+    - `scadaAddress` ((#v-global-cloud-scadaaddress)) - The address of HCP's scada service. This setting is used for internal testing and validation.
 
       - `secretName` ((#v-global-cloud-scadaaddress-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the scada address.
 
@@ -758,6 +762,19 @@ Use these links to navigate to a particular top-level stanza.
     ~> **Note:** The [Reference Architecture](/consul/tutorials/production-deploy/reference-architecture#hardware-sizing-for-consul-servers)
     contains best practices and recommendations for selecting suitable
     hardware sizes for your Consul servers.
+
+  - `persistentVolumeClaimRetentionPolicy` ((#v-server-persistentvolumeclaimretentionpolicy)) (`map`) - The [Persistent Volume Claim (PVC) retention policy](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#persistentvolumeclaim-retention)
+    controls if and how PVCs are deleted during the lifecycle of a StatefulSet.
+    WhenDeleted specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is deleted,
+    and WhenScaled specifies what happens to PVCs created from StatefulSet VolumeClaimTemplates when the StatefulSet is scaled down.
+
+    Example:
+
+    ```yaml
+    persistentVolumeClaimRetentionPolicy:
+      whenDeleted: Retain
+      whenScaled: Retain
+    ```
 
   - `connect` ((#v-server-connect)) (`boolean: true`) - This will enable/disable [service mesh](/consul/docs/connect). Setting this to true
     _will not_ automatically secure pod communication, this
@@ -1040,7 +1057,7 @@ Use these links to navigate to a particular top-level stanza.
         ...
       ```
 
-  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing 
+  - `auditLogs` ((#v-server-auditlogs)) - <EnterpriseAlert inline /> Added in Consul 1.8, the audit object allow users to enable auditing
     and configure a sink and filters for their audit logs. Please refer to
     [audit logs](/consul/docs/enterprise/audit-logging) documentation
     for further information.
@@ -1048,7 +1065,7 @@ Use these links to navigate to a particular top-level stanza.
     - `enabled` ((#v-server-auditlogs-enabled)) (`boolean: false`) - Controls whether Consul logs out each time a user performs an operation.
       global.acls.manageSystemACLs must be enabled to use this feature.
 
-    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul 
+    - `sinks` ((#v-server-auditlogs-sinks)) (`array<map>`) - A single entry of the sink object provides configuration for the destination to which Consul
       will log auditing events.
 
       Example:
@@ -1063,7 +1080,7 @@ Use these links to navigate to a particular top-level stanza.
           rotate_duration: 24h
           rotate_max_files: 15
           rotate_bytes: 25165824
-          
+
       ```
 
       The sink object supports the following keys:
@@ -1160,7 +1177,7 @@ Use these links to navigate to a particular top-level stanza.
     This address must be reachable from the Consul servers.
     Please refer to the [Kubernetes Auth Method documentation](/consul/docs/security/acl/auth-methods/kubernetes).
 
-    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and 
+    If `global.federation.enabled` is set to true, `global.federation.k8sAuthMethodHost` and
     `externalServers.k8sAuthMethodHost` should be set to the same value.
 
     You could retrieve this value from your `kubeconfig` by running:
@@ -1780,7 +1797,7 @@ Use these links to navigate to a particular top-level stanza.
       These CRDs can clash with existing Gateway API CRDs if they are already installed in your cluster.
       If this setting is false, you will need to install the Gateway API CRDs manually.
 
-    - `manageNonStandardCRDs` ((#v-connectinject-apigateway-managenonstandardcrds)) (`boolean: false`) - Enables Consul on Kubernets to manage only the non-standard CRDs used for Gateway API. If manageExternalCRDs is true 
+    - `manageNonStandardCRDs` ((#v-connectinject-apigateway-managenonstandardcrds)) (`boolean: false`) - Enables Consul on Kubernets to manage only the non-standard CRDs used for Gateway API. If manageExternalCRDs is true
       then all CRDs will be installed; otherwise, if manageNonStandardCRDs is true then only TCPRoute, GatewayClassConfig and MeshService
       will be installed.
 
@@ -2161,15 +2178,15 @@ Use these links to navigate to a particular top-level stanza.
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port`
       - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path`
 
-        - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
+      - `defaultEnabled` ((#v-connectinject-sidecarproxy-lifecycle-defaultenabled)) (`boolean: true`)
 
-        - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
+      - `defaultEnableShutdownDrainListeners` ((#v-connectinject-sidecarproxy-lifecycle-defaultenableshutdowndrainlisteners)) (`boolean: true`)
 
-        - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
+      - `defaultShutdownGracePeriodSeconds` ((#v-connectinject-sidecarproxy-lifecycle-defaultshutdowngraceperiodseconds)) (`integer: 30`)
 
-        - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
+      - `defaultGracefulPort` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)) (`integer: 20600`)
 
-        - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
+      - `defaultGracefulShutdownPath` ((#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)) (`string: /graceful_shutdown`)
 
   - `initContainer` ((#v-connectinject-initcontainer)) (`map`) - The resource settings for the Connect injected init container. If null, the resources
     won't be set for the initContainer. The defaults are optimized for developer instances of
@@ -2477,8 +2494,8 @@ Use these links to navigate to a particular top-level stanza.
 
   - `gateways` ((#v-ingressgateways-gateways)) (`array<map>`) - Gateways is a list of gateway objects. The only required field for
     each is `name`, though they can also contain any of the fields in
-    `defaults`. You must provide a unique name for each ingress gateway. These names 
-    must be unique across different namespaces. 
+    `defaults`. You must provide a unique name for each ingress gateway. These names
+    must be unique across different namespaces.
     Values defined here override the defaults, except in the case of annotations where both will be applied.
 
     - `name` ((#v-ingressgateways-gateways-name)) (`string: ingress-gateway`)
@@ -2772,7 +2789,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `service` ((#v-telemetrycollector-service))
 
-    - `annotations` ((#v-telemetrycollector-service-annotations)) (`string: null`) - This value defines additional annotations for the server service account. This should be formatted as a multi-line
+    - `annotations` ((#v-telemetrycollector-service-annotations)) (`string: null`) - This value defines additional annotations for the telemetry-collector's service account. This should be formatted as a multi-line
       string.
 
       ```yaml
@@ -2794,17 +2811,37 @@ Use these links to navigate to a particular top-level stanza.
 
   - `cloud` ((#v-telemetrycollector-cloud))
 
-    - `clientId` ((#v-telemetrycollector-cloud-clientid))
+    - `resourceId` ((#v-telemetrycollector-cloud-resourceid)) - The resource id of the HCP Consul Central cluster to push metrics for. Eg:
+      `organization/27109cd4-a309-4bf3-9986-e1d071914b18/project/fcef6c24-259d-4510-bb8d-1d812e120e34/hashicorp.consul.global-network-manager.cluster/consul-cluster`
 
-      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`)
+      This is used for HCP Consul Central-linked or managed clusters where global.cloud.resourceId is unset. For example, when using externalServers
+      with HCP Consul-managed clusters or HCP Consul Central-linked clusters in a different admin partition.
 
-      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`)
+      If global.cloud.resourceId is set, this should either be unset (defaulting to global.cloud.resourceId) or be the same as global.cloud.resourceId.
 
-    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret))
+      - `secretName` ((#v-telemetrycollector-cloud-resourceid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the resource id.
 
-      - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`)
+      - `secretKey` ((#v-telemetrycollector-cloud-resourceid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the resource id.
 
-      - `secretKey` ((#v-telemetrycollector-cloud-clientsecret-secretkey)) (`string: null`)
+    - `clientId` ((#v-telemetrycollector-cloud-clientid)) - The client id portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to push metrics to HCP
+
+      This is set in two scenarios:
+        - the service principal in global.cloud is unset
+        - the HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in global.cloud
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientid-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client id.
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientid-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client id.
+
+    - `clientSecret` ((#v-telemetrycollector-cloud-clientsecret)) - The client secret portion of a [service principal](/hcp/docs/hcp/admin/iam/service-principals#service-principals) with authorization to push metrics to HCP.
+
+      This is set in two scenarios:
+        - the service principal in global.cloud is unset
+        - the HCP UI provides a service principal with more narrowly scoped permissions that the service principal used in global.cloud
+
+      - `secretName` ((#v-telemetrycollector-cloud-clientsecret-secretname)) (`string: null`) - The name of the Kubernetes secret that holds the client secret.
+
+      - `secretKey` ((#v-telemetrycollector-cloud-clientsecret-secretkey)) (`string: null`) - The key within the Kubernetes secret that holds the client secret.
 
   - `initContainer` ((#v-telemetrycollector-initcontainer))
 
@@ -2814,7 +2851,7 @@ Use these links to navigate to a particular top-level stanza.
 
   - `priorityClassName` ((#v-telemetrycollector-priorityclassname)) (`string: ""`) - Optional priorityClassName.
 
-  - `extraEnvironmentVars` ((#v-telemetrycollector-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the stateful set.
+  - `extraEnvironmentVars` ((#v-telemetrycollector-extraenvironmentvars)) (`map`) - A list of extra environment variables to set within the deployment.
     These could be used to include proxy settings required for cloud auto-join
     feature, in case kubernetes cluster is behind egress http proxies. Additionally,
     it could be used to configure custom consul parameters.
