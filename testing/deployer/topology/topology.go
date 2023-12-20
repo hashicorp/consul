@@ -35,6 +35,10 @@ type Topology struct {
 	// Peerings defines the list of pairwise peerings that should be established
 	// between clusters.
 	Peerings []*Peering `json:",omitempty"`
+
+	// NetworkAreas defines the list of pairwise network area that should be established
+	// between clusters.
+	NetworkAreas []*NetworkArea `json:",omitempty"`
 }
 
 func (t *Topology) DigestExposedProxyPort(netName string, proxyPort int) (bool, error) {
@@ -100,6 +104,10 @@ type Config struct {
 	// Peerings defines the list of pairwise peerings that should be established
 	// between clusters.
 	Peerings []*Peering
+
+	// NetworkAreas defines the list of pairwise NetworkArea that should be established
+	// between clusters.
+	NetworkAreas []*NetworkArea
 }
 
 func (c *Config) Cluster(name string) *Cluster {
@@ -293,6 +301,10 @@ type Cluster struct {
 
 	// Segments is a map of network segment name and the ports
 	Segments map[string]int
+
+	// DisableGossipEncryption disables gossip encryption on the cluster
+	// Default is false to enable gossip encryption
+	DisableGossipEncryption bool `json:",omitempty"`
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {
@@ -1056,6 +1068,13 @@ type Destination struct {
 type Peering struct {
 	Dialing   PeerCluster
 	Accepting PeerCluster
+}
+
+// NetworkArea - a pair of clusters that are peered together
+// through network area. PeerCluster type is reused here.
+type NetworkArea struct {
+	Primary   PeerCluster
+	Secondary PeerCluster
 }
 
 type PeerCluster struct {
