@@ -131,8 +131,7 @@ func makeEnvoyRouteMatchFromProxystateRouteMatch(psRouteMatch *pbproxystate.Rout
 
 func makeEnvoyRegexMatch(pattern string) *envoy_matcher_v3.RegexMatcher {
 	return &envoy_matcher_v3.RegexMatcher{
-		EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{},
-		Regex:      pattern,
+		Regex: pattern,
 	}
 }
 

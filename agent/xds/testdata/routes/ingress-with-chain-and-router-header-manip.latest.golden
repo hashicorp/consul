@@ -70,7 +70,6 @@
             {
               "match": {
                 "safeRegex": {
-                  "googleRe2": {},
                   "regex": "/regex"
                 }
               },
@@ -162,8 +161,7 @@
                     "name": "x-debug",
                     "stringMatch": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "regex"
+                            "regex": "regex"
                       }
                     }
                   }
@@ -180,8 +178,7 @@
                   {
                     "name": ":method",
                     "safeRegexMatch": {
-                      "googleRe2": {},
-                      "regex": "GET|PUT"
+                        "regex": "GET|PUT"
                     }
                   }
                 ],
@@ -203,8 +200,7 @@
                   {
                     "name": ":method",
                     "safeRegexMatch": {
-                      "googleRe2": {},
-                      "regex": "GET|PUT"
+                        "regex": "GET|PUT"
                     }
                   }
                 ],
@@ -238,8 +234,7 @@
                     "name": "secretparam2",
                     "stringMatch": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "regex"
+                            "regex": "regex"
                       }
                     }
                   }

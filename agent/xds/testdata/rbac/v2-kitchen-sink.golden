@@ -18,8 +18,7 @@
                   "authenticated": {
                     "principalName": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/db$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/db$"
                       }
                     }
                   }
@@ -28,8 +27,7 @@
                   "authenticated": {
                     "principalName": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/cron$"
                       }
                     }
                   }
@@ -58,8 +56,7 @@
                   "authenticated": {
                     "principalName": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/api$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/api$"
                       }
                     }
                   }
@@ -71,8 +68,7 @@
                         "authenticated": {
                           "principalName": {
                             "safeRegex": {
-                              "googleRe2": {},
-                              "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
+                                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/[^/]+$"
                             }
                           }
                         }
@@ -82,7 +78,6 @@
                           "authenticated": {
                             "principalName": {
                               "safeRegex": {
-                                "googleRe2": {},
                                 "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/unsafe$"
                               }
                             }
@@ -105,8 +100,7 @@
                   "authenticated": {
                     "principalName": {
                       "safeRegex": {
-                        "googleRe2": {},
-                        "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
+                            "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                       }
                     }
                   }
