@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -55,9 +56,16 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 			pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION,
 		},
 		DefaultRouter: &pbproxystate.Router{
-			Match:       &pbproxystate.Match{ServerNames: []string{""}},
-			Destination: &pbproxystate.Router_Sni{},
-			InboundTls:  &pbproxystate.TransportSocket{},
+			Destination: &pbproxystate.Router_L4{
+				L4: &pbproxystate.L4Destination{
+					Destination: &pbproxystate.L4Destination_Cluster{
+						Cluster: &pbproxystate.DestinationCluster{
+							Name: "",
+						},
+					},
+					StatPrefix: "prefix",
+				},
+			},
 		},
 		Routers: b.routers(),
 	}
@@ -136,7 +144,7 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 		Id: &pbresource.ID{
 			Name:    "backend",
 			Type:    pbcatalog.ServiceEndpointsType,
-			Tenancy: &pbresource.Tenancy{Namespace: "default", Partition: "default"},
+			Tenancy: resource.DefaultNamespacedTenancy(),
 		},
 		Port: "8080",
 	}
