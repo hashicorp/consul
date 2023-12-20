@@ -65,6 +65,11 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 		Capabilities: []pbproxystate.Capability{
 			pbproxystate.Capability_CAPABILITY_L4_TLS_INSPECTION,
 		},
+		DefaultRouter: &pbproxystate.Router{
+			Match:       &pbproxystate.Match{ServerNames: []string{""}},
+			Destination: &pbproxystate.Router_Sni{},
+			InboundTls:  &pbproxystate.TransportSocket{},
+		},
 		Routers: b.routers(),
 	}
 
@@ -105,6 +110,17 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 		}
 	}
 
+	clusters["my-fancy-cluster"] = &pbproxystate.Cluster{
+		Name: "my-fancy-cluster",
+		Group: &pbproxystate.Cluster_EndpointGroup{
+			EndpointGroup: &pbproxystate.EndpointGroup{
+				Group: &pbproxystate.EndpointGroup_Dynamic{},
+			},
+		},
+		AltStatName: "prefix",
+		Protocol:    pbproxystate.Protocol_PROTOCOL_TCP, // TODO
+	}
+
 	return clusters
 }
 
@@ -125,6 +141,15 @@ func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate
 				Port: service.TargetRef.Section,
 			}
 		}
+	}
+
+	requiredEndpoints["my-fancy-cluster"] = &pbproxystate.EndpointRef{
+		Id: &pbresource.ID{
+			Name:    "backend",
+			Type:    pbcatalog.ServiceEndpointsType,
+			Tenancy: &pbresource.Tenancy{Namespace: "default", Partition: "default"},
+		},
+		Port: "8080",
 	}
 
 	return requiredEndpoints
