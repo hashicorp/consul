@@ -1,23 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ratelimit
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -35,6 +32,7 @@ const (
 //     - logs for exceeding
 
 func TestServerRequestRateLimit(t *testing.T) {
+	t.Parallel()
 
 	type action struct {
 		function           func(client *api.Client) error
@@ -48,14 +46,12 @@ func TestServerRequestRateLimit(t *testing.T) {
 		expectMetric      bool
 	}
 	type testCase struct {
-		description    string
-		cmd            string
-		operations     []operation
-		mode           string
-		enterpriseOnly bool
+		description string
+		cmd         string
+		operations  []operation
+		mode        string
 	}
 
-	// getKV and putKV are net/RPC calls
 	getKV := action{
 		function: func(client *api.Client) error {
 			_, _, err := client.KV().Get("foo", &api.QueryOptions{})
@@ -70,30 +66,6 @@ func TestServerRequestRateLimit(t *testing.T) {
 			return err
 		},
 		rateLimitOperation: "KVS.Apply",
-		rateLimitType:      "global/write",
-	}
-
-	// listPartition and putPartition are gRPC calls
-	listPartition := action{
-		function: func(client *api.Client) error {
-			ctx := context.Background()
-			_, _, err := client.Partitions().List(ctx, nil)
-			return err
-		},
-		rateLimitOperation: "/partition.PartitionService/List",
-		rateLimitType:      "global/read",
-	}
-
-	putPartition := action{
-		function: func(client *api.Client) error {
-			ctx := context.Background()
-			p := api.Partition{
-				Name: "ptest",
-			}
-			_, _, err := client.Partitions().Create(ctx, &p, nil)
-			return err
-		},
-		rateLimitOperation: "/partition.PartitionService/Write",
 		rateLimitType:      "global/write",
 	}
 
@@ -127,13 +99,13 @@ func TestServerRequestRateLimit(t *testing.T) {
 					action:            putKV,
 					expectedErrorMsg:  "",
 					expectExceededLog: true,
-					expectMetric:      true,
+					expectMetric:      false,
 				},
 				{
 					action:            getKV,
 					expectedErrorMsg:  "",
 					expectExceededLog: true,
-					expectMetric:      true,
+					expectMetric:      false,
 				},
 			},
 		},
@@ -155,77 +127,10 @@ func TestServerRequestRateLimit(t *testing.T) {
 					expectMetric:      true,
 				},
 			},
-		},
-		// gRPC
-		{
-			description: "GRPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
-			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
-			mode:        "disabled",
-			operations: []operation{
-				{
-					action:            putPartition,
-					expectedErrorMsg:  "",
-					expectExceededLog: false,
-					expectMetric:      false,
-				},
-				{
-					action:            listPartition,
-					expectedErrorMsg:  "",
-					expectExceededLog: false,
-					expectMetric:      false,
-				},
-			},
-			enterpriseOnly: true,
-		},
-		{
-			description: "GRPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
-			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
-			mode:        "permissive",
-			operations: []operation{
-				{
-					action:            putPartition,
-					expectedErrorMsg:  "",
-					expectExceededLog: true,
-					expectMetric:      true,
-				},
-				{
-					action:            listPartition,
-					expectedErrorMsg:  "",
-					expectExceededLog: true,
-					expectMetric:      true,
-				},
-			},
-			enterpriseOnly: true,
-		},
-		{
-			description: "GRPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
-			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
-			mode:        "enforcing",
-			operations: []operation{
-				{
-					action:            putPartition,
-					expectedErrorMsg:  nonRetryableErrorMsg,
-					expectExceededLog: true,
-					expectMetric:      true,
-				},
-				{
-					action:            listPartition,
-					expectedErrorMsg:  retryableErrorMsg,
-					expectExceededLog: true,
-					expectMetric:      true,
-				},
-			},
-			enterpriseOnly: true,
-		},
-	}
+		}}
 
 	for _, tc := range testCases {
-		if tc.enterpriseOnly && !utils.IsEnterprise() {
-			continue
-		}
-		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
-			t.Parallel()
 			clusterConfig := &libtopology.ClusterConfig{
 				NumServers:  1,
 				NumClients:  0,
@@ -239,8 +144,11 @@ func TestServerRequestRateLimit(t *testing.T) {
 				ApplyDefaultProxySettings: false,
 			}
 
-			cluster, client := setupClusterAndClient(t, clusterConfig, true)
+			cluster, _, _ := libtopology.NewCluster(t, clusterConfig)
 			defer terminate(t, cluster)
+
+			client, err := cluster.GetClient(nil, true)
+			require.NoError(t, err)
 
 			// perform actions and validate returned errors to client
 			for _, op := range tc.operations {
@@ -257,9 +165,17 @@ func TestServerRequestRateLimit(t *testing.T) {
 			// doing this in a separate loop so we can perform actions, allow metrics
 			// and logs to collect and then assert on each.
 			for _, op := range tc.operations {
-				timer := &retry.Timer{Timeout: 15 * time.Second, Wait: 500 * time.Millisecond}
+				timer := &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
 				retry.RunWith(timer, t, func(r *retry.R) {
-					checkForMetric(r, cluster, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode, op.expectMetric)
+					// validate metrics
+					metricsInfo, err := client.Agent().Metrics()
+					// TODO(NET-1978): currently returns NaN error
+					//			require.NoError(t, err)
+					if metricsInfo != nil && err == nil {
+						if op.expectMetric {
+							checkForMetric(r, metricsInfo, op.action.rateLimitOperation, op.action.rateLimitType, tc.mode)
+						}
+					}
 
 					// validate logs
 					// putting this last as there are cases where logs
@@ -274,65 +190,43 @@ func TestServerRequestRateLimit(t *testing.T) {
 	}
 }
 
-func setupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isServer bool) (*libcluster.Cluster, *api.Client) {
-	cluster, _, _ := libtopology.NewCluster(t, config)
+func checkForMetric(t *retry.R, metricsInfo *api.MetricsInfo, operationName string, expectedLimitType string, expectedMode string) {
+	const counterName = "consul.rpc.rate_limit.exceeded"
 
-	client, err := cluster.GetClient(nil, isServer)
-	require.NoError(t, err)
-
-	return cluster, client
-}
-
-func checkForMetric(t testutil.TestingTB, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
-	// validate metrics
-	server, err := cluster.GetClient(nil, true)
-	require.NoError(t, err)
-	metricsInfo, err := server.Agent().Metrics()
-	// TODO(NET-1978): currently returns NaN error
-	//			require.NoError(t, err)
-	if metricsInfo != nil && err == nil {
-		if expectMetric {
-			const counterName = "consul.rpc.rate_limit.exceeded"
-
-			var counter api.SampledValue
-			for _, c := range metricsInfo.Counters {
-				if c.Name == counterName {
-					counter = c
-					break
-				}
-			}
-			require.NotEmptyf(t, counter.Name, "counter not found: %s", counterName)
-
-			operation, ok := counter.Labels["op"]
-			require.True(t, ok)
-
-			limitType, ok := counter.Labels["limit_type"]
-			require.True(t, ok)
-
-			mode, ok := counter.Labels["mode"]
-			require.True(t, ok)
-
-			if operation == operationName {
-				require.GreaterOrEqual(t, counter.Count, 1)
-				require.Equal(t, expectedLimitType, limitType)
-				require.Equal(t, expectedMode, mode)
-			}
+	var counter api.SampledValue
+	for _, c := range metricsInfo.Counters {
+		if c.Name == counterName {
+			counter = c
+			break
 		}
+	}
+	require.NotEmptyf(t, counter.Name, "counter not found: %s", counterName)
+
+	operation, ok := counter.Labels["op"]
+	require.True(t, ok)
+
+	limitType, ok := counter.Labels["limit_type"]
+	require.True(t, ok)
+
+	mode, ok := counter.Labels["mode"]
+	require.True(t, ok)
+
+	if operation == operationName {
+		require.GreaterOrEqual(t, counter.Count, 1)
+		require.Equal(t, expectedLimitType, limitType)
+		require.Equal(t, expectedMode, mode)
 	}
 }
 
-func checkLogsForMessage(t testutil.TestingTB, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
-	if logShouldExist {
-		found := false
-		for _, log := range logs {
-			if strings.Contains(log, msg) {
-				found = true
-				break
-			}
+func checkLogsForMessage(t *retry.R, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+	found := false
+	for _, log := range logs {
+		if strings.Contains(log, msg) {
+			found = true
+			break
 		}
-		expectedLog := fmt.Sprintf("%s log check failed for: %s. Log expected: %t", logType, operationName, logShouldExist)
-		require.Equal(t, logShouldExist, found, expectedLog)
 	}
+	require.Equal(t, logShouldExist, found, fmt.Sprintf("%s log check failed for: %s. Log expected: %t", logType, operationName, logShouldExist))
 }
 
 func terminate(t *testing.T, cluster *libcluster.Cluster) {

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -7,17 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/consul/internal/catalog"
-	"github.com/hashicorp/consul/internal/mesh"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/internal/resource"
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/serf/serf"
@@ -509,7 +504,7 @@ func newClient(t *testing.T, config *Config) *Client {
 	return client
 }
 
-func newTestResolverConfig(t testutil.TestingTB, suffix string, dc, agentType string) resolver.Config {
+func newTestResolverConfig(t *testing.T, suffix string, dc, agentType string) resolver.Config {
 	n := t.Name()
 	s := strings.Replace(n, "/", "", -1)
 	s = strings.Replace(s, "_", "", -1)
@@ -520,7 +515,7 @@ func newTestResolverConfig(t testutil.TestingTB, suffix string, dc, agentType st
 	}
 }
 
-func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
+func newDefaultDeps(t *testing.T, c *Config) Deps {
 	t.Helper()
 
 	logger := hclog.NewInterceptLogger(&hclog.LoggerOptions{
@@ -562,10 +557,6 @@ func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
 		RPCHoldTimeout:   c.RPCHoldTimeout,
 	}
 	connPool.SetRPCClientTimeout(c.RPCClientTimeout)
-	registry := resource.NewRegistry()
-	demo.RegisterTypes(registry)
-	mesh.RegisterTypes(registry)
-	catalog.RegisterTypes(registry)
 	return Deps{
 		EventPublisher:  stream.NewEventPublisher(10 * time.Second),
 		Logger:          logger,
@@ -585,7 +576,6 @@ func newDefaultDeps(t testutil.TestingTB, c *Config) Deps {
 		GetNetRPCInterceptorFunc: middleware.GetNetRPCInterceptor,
 		EnterpriseDeps:           newDefaultDepsEnterprise(t, logger, c),
 		XDSStreamLimiter:         limiter.NewSessionLimiter(),
-		Registry:                 registry,
 	}
 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package agent
 
@@ -58,7 +58,6 @@ import (
 	"github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/internal/go-sso/oidcauth/oidcauthtest"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/proto/private/pbautoconf"
@@ -90,7 +89,7 @@ func requireServiceMissing(t *testing.T, a *TestAgent, id string) {
 	require.Nil(t, getService(a, id), "have service %q (expected missing)", id)
 }
 
-func requireCheckExists(t testutil.TestingTB, a *TestAgent, id types.CheckID) *structs.HealthCheck {
+func requireCheckExists(t *testing.T, a *TestAgent, id types.CheckID) *structs.HealthCheck {
 	t.Helper()
 	chk := getCheck(a, id)
 	require.NotNil(t, chk, "missing check %q", id)
@@ -324,7 +323,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 					Tokens:          new(token.Store),
 					TLSConfigurator: tlsConf,
 					GRPCConnPool:    &fakeGRPCConnPool{},
-					Registry:        resource.NewRegistry(),
 				},
 				RuntimeConfig: &config.RuntimeConfig{
 					HTTPAddrs: []net.Addr{
@@ -348,9 +346,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 
 			a, err := New(bd)
 			require.NoError(t, err)
-			mockDelegate := delegateMock{}
-			mockDelegate.On("LicenseCheck").Return()
-			a.delegate = &mockDelegate
 
 			a.startLicenseManager(testutil.TestContext(t))
 
@@ -385,8 +380,6 @@ func TestAgent_HTTPMaxHeaderBytes(t *testing.T) {
 				resp, err := client.Do(req.WithContext(ctx))
 				require.NoError(t, err)
 				require.Equal(t, tt.expectedHTTPResponse, resp.StatusCode, "expected a '%d' http response, got '%d'", tt.expectedHTTPResponse, resp.StatusCode)
-				resp.Body.Close()
-				s.Shutdown(ctx)
 			}
 		})
 	}
@@ -853,7 +846,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	assert.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		r.Helper()
+		t.Helper()
 		var args structs.NodeSpecificRequest
 		args.Datacenter = "dc1"
 		args.Node = "node1"
@@ -1888,7 +1881,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
-	logf := func(a *TestAgent, format string, args ...interface{}) {
+	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
@@ -1947,12 +1940,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
 		t.Helper()
 		retry.Run(t, func(r *retry.R) {
-			chk := requireCheckExists(r, a, types.CheckID(checkID))
+			chk := requireCheckExists(t, a, types.CheckID(checkID))
 			if chk.Status != expectedStatus {
-				logf(a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
+				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 			}
-			logf(a, "check %q has reached desired status %q", checkID, expectedStatus)
+			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
 		})
 	}
 
@@ -1963,7 +1956,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
 	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
 
-	logf(a, "==== POWERING DOWN ORIGINAL ====")
+	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
 
 	require.NoError(t, a.Shutdown())
 
@@ -1985,7 +1978,7 @@ node_name = "` + a.Config.NodeName + `"
 		// reregister during standup; we use an adjustable timing to try and force a race
 		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
 		time.Sleep(sleepDur)
-		logf(a2, "re-registering checks and services after a delay of %v", sleepDur)
+		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
 		for i := 0; i < 20; i++ { // RACE RACE RACE!
 			registerServicesAndChecks(t, a2)
 			time.Sleep(50 * time.Millisecond)
@@ -1995,7 +1988,7 @@ node_name = "` + a.Config.NodeName + `"
 
 		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
 
-		logf(a2, "giving the alias check a chance to notice...")
+		logf(t, a2, "giving the alias check a chance to notice...")
 		time.Sleep(5 * time.Second)
 
 		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)
@@ -5559,7 +5552,6 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 			Tokens:          new(token.Store),
 			TLSConfigurator: tlsConf,
 			GRPCConnPool:    &fakeGRPCConnPool{},
-			Registry:        resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{
@@ -5582,9 +5574,6 @@ func TestAgent_ListenHTTP_MultipleAddresses(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	agent.startLicenseManager(testutil.TestContext(t))
@@ -6159,7 +6148,6 @@ func TestAgent_startListeners(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{
 			HTTPAddrs: []net.Addr{},
@@ -6178,9 +6166,6 @@ func TestAgent_startListeners(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// use up an address
@@ -6303,7 +6288,6 @@ func TestAgent_startListeners_scada(t *testing.T) {
 			HCP: hcp.Deps{
 				Provider: pvd,
 			},
-			Registry: resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6321,9 +6305,6 @@ func TestAgent_startListeners_scada(t *testing.T) {
 	require.NoError(t, err)
 
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	_, err = agent.startListeners([]net.Addr{c})
@@ -6367,7 +6348,6 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 			Logger:       hclog.NewInterceptLogger(nil),
 			Tokens:       new(token.Store),
 			GRPCConnPool: &fakeGRPCConnPool{},
-			Registry:     resource.NewRegistry(),
 		},
 		RuntimeConfig: &config.RuntimeConfig{},
 		Cache:         cache.New(cache.Options{}),
@@ -6379,9 +6359,6 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 		Config:      leafcert.Config{},
 	})
 	agent, err := New(bd)
-	mockDelegate := delegateMock{}
-	mockDelegate.On("LicenseCheck").Return()
-	agent.delegate = &mockDelegate
 	require.NoError(t, err)
 
 	// Test that an ErrNotExist OS error is treated as ok.

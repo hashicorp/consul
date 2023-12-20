@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 version: v1
 managed:
@@ -26,8 +26,3 @@ plugins:
     out: .
     opt:
       - paths=source_relative
-  - name: resource-types
-    out: .
-    opt:
-      - paths=source_relative
-    strategy: all

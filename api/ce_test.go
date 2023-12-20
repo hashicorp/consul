@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //go:build !consulent
+// +build !consulent
 
 package api
 

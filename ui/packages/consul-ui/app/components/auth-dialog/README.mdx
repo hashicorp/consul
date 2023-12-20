@@ -14,6 +14,9 @@ A component to help orchestrate a login/logout flow.
     />
   </:unauthorized>
   <:authorized as |api|>
+    <AuthProfile
+      @item={{api.token}}
+    />
     <button
       {{on 'click' (fn api.logout)}}
     >

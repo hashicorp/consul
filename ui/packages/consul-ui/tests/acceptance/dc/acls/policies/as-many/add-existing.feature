@@ -46,5 +46,6 @@ Feature: dc / acls / policies / as many / add existing: Add existing policy
   Where:
     -------------
     | Model     |
+    | token     |
     | role      |
     -------------

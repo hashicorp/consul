@@ -1,11 +1,12 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 @import 'prism-coldark-dark';
 
 // temporary component debugging setup
+@import 'consul-ui/components/main-nav-vertical/debug';
 @import 'consul-ui/components/badge/debug';
 @import 'consul-ui/components/panel/debug';
 @import 'consul-ui/components/tile/debug';

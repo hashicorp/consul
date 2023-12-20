@@ -1,6 +1,6 @@
 {{!
   Copyright (c) HashiCorp, Inc.
-  SPDX-License-Identifier: BUSL-1.1
+  SPDX-License-Identifier: MPL-2.0
 }}
 
 <Providers::Dimension as |p|>
@@ -18,7 +18,7 @@
           <div
             class="hds-typography-display-300 text-hds-foreground-strong hds-font-weight-semibold"
           >{{address}}</div>
-          <ConsulCopyButton
+          <CopyButton
             @value={{address}}
             @name="Address"
             class="opacity-0 group-hover:opacity-100"

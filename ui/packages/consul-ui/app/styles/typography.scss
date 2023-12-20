@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 body,
@@ -14,6 +14,9 @@ fieldset > header,
 %tbody-th,
 %form-element > span {
   @extend %display-100-semibold;
+}
+%main-nav-horizontal-action {
+  @extend %body-200-medium;
 }
 %definition-table dt {
   line-height: var(--token-typography-body-300-line-height);
@@ -42,6 +45,7 @@ fieldset > header,
 %empty-state-anchor,
 %form-element-label,
 %stats-card header a span,
+%footer,
 %app-view h1 span.kind-proxy {
   @extend %body-100-regular;
 }

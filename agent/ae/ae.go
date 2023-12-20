@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 // Package ae provides tools to synchronize state between local and remote consul servers.
 package ae
@@ -81,9 +81,8 @@ type StateSyncer struct {
 	SyncChanges *Trigger
 
 	// paused stores whether sync runs are temporarily disabled.
-	pauseLock    sync.Mutex
-	paused       int
-	hardDisabled bool
+	pauseLock sync.Mutex
+	paused    int
 
 	// serverUpInterval is the max time after which a full sync is
 	// performed when a server has been added to the cluster.
@@ -152,20 +151,9 @@ const (
 	retryFullSyncState fsmState = "retryFullSync"
 )
 
-// HardDisableSync is like PauseSync but is one-way. It causes other
-// Pause/Resume/Start operations to be completely ignored.
-func (s *StateSyncer) HardDisableSync() {
-	s.pauseLock.Lock()
-	s.hardDisabled = true
-	s.pauseLock.Unlock()
-}
-
 // Run is the long running method to perform state synchronization
 // between local and remote servers.
 func (s *StateSyncer) Run() {
-	if s.Disabled() {
-		return
-	}
 	if s.ClusterSize == nil {
 		panic("ClusterSize not set")
 	}
@@ -341,14 +329,7 @@ func (s *StateSyncer) Pause() {
 func (s *StateSyncer) Paused() bool {
 	s.pauseLock.Lock()
 	defer s.pauseLock.Unlock()
-	return s.paused != 0 || s.hardDisabled
-}
-
-// Disabled returns whether sync runs are permanently disabled.
-func (s *StateSyncer) Disabled() bool {
-	s.pauseLock.Lock()
-	defer s.pauseLock.Unlock()
-	return s.hardDisabled
+	return s.paused != 0
 }
 
 // Resume re-enables sync runs. It returns true if it was the last pause/resume
@@ -359,7 +340,7 @@ func (s *StateSyncer) Resume() bool {
 	if s.paused < 0 {
 		panic("unbalanced pause/resume")
 	}
-	trigger := s.paused == 0 && !s.hardDisabled
+	trigger := s.paused == 0
 	s.pauseLock.Unlock()
 	if trigger {
 		s.SyncChanges.Trigger()

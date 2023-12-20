@@ -1,28 +1,22 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package endpoints
 
 import (
 	"context"
-	"fmt"
 	"testing"
-
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/workloadhealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/mappers/selectiontracker"
 	"github.com/hashicorp/consul/internal/catalog/internal/types"
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource/mappers/selectiontracker"
-	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 var (
@@ -66,14 +60,14 @@ func TestWorkloadsToEndpoints(t *testing.T) {
 	workloads := []*workloadData{
 		{
 			// this workload should result in an endpoints
-			resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			resource: rtest.Resource(types.WorkloadType, "foo").
 				WithData(t, workloadData1).
 				Build(),
 			workload: workloadData1,
 		},
 		{
 			// this workload should be filtered out
-			resource: rtest.Resource(pbcatalog.WorkloadType, "bar").
+			resource: rtest.Resource(types.WorkloadType, "bar").
 				WithData(t, workloadData2).
 				Build(),
 			workload: workloadData2,
@@ -126,11 +120,10 @@ func TestWorkloadToEndpoint(t *testing.T) {
 			// the protocol is wrong here so it will not show up in the endpoints.
 			"grpc": {Port: 9090, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP2},
 		},
-		Identity: "test-identity",
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+		resource: rtest.Resource(types.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
 		workload: workload,
@@ -150,7 +143,6 @@ func TestWorkloadToEndpoint(t *testing.T) {
 		// that we can properly determine the health status and the overall
 		// controller tests will prove that the integration works as expected.
 		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-		Identity:     workload.Identity,
 	}
 
 	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
@@ -178,58 +170,13 @@ func TestWorkloadToEndpoint_AllAddressesFiltered(t *testing.T) {
 	}
 
 	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
+		resource: rtest.Resource(types.WorkloadType, "foo").
 			WithData(t, workload).
 			Build(),
 		workload: workload,
 	}
 
 	require.Nil(t, workloadToEndpoint(service, data))
-}
-
-func TestWorkloadToEndpoint_MissingWorkloadProtocol(t *testing.T) {
-	// This test checks that when a workload is missing its protocol,
-	// we will default to service's protocol.
-
-	service := &pbcatalog.Service{
-		Ports: []*pbcatalog.ServicePort{
-			{TargetPort: "test-port", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-		},
-	}
-
-	workload := &pbcatalog.Workload{
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1"},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"test-port": {Port: 8080},
-		},
-	}
-
-	data := &workloadData{
-		resource: rtest.Resource(pbcatalog.WorkloadType, "foo").
-			WithData(t, workload).
-			Build(),
-		workload: workload,
-	}
-
-	expected := &pbcatalog.Endpoint{
-		TargetRef: data.resource.Id,
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{Host: "127.0.0.1", Ports: []string{"test-port"}},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"test-port": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-		},
-		// The health is critical because we are not setting the workload's
-		// health status. The tests for determineWorkloadHealth will ensure
-		// that we can properly determine the health status and the overall
-		// controller tests will prove that the integration works as expected.
-		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-		Identity:     workload.Identity,
-	}
-
-	prototest.AssertDeepEqual(t, expected, workloadToEndpoint(service, data))
 }
 
 func TestServiceUnderManagement(t *testing.T) {
@@ -294,11 +241,11 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 
 	cases := map[string]testCase{
 		"no-status": {
-			res:      rtest.Resource(pbcatalog.WorkloadType, "foo").Build(),
+			res:      rtest.Resource(types.WorkloadType, "foo").Build(),
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"condition-not-found": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -312,7 +259,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"invalid-reason": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -326,7 +273,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"passing": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -340,7 +287,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_PASSING,
 		},
 		"warning": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -354,7 +301,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_WARNING,
 		},
 		"critical": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -368,7 +315,7 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 			expected: pbcatalog.Health_HEALTH_CRITICAL,
 		},
 		"maintenance": {
-			res: rtest.Resource(pbcatalog.WorkloadType, "foo").
+			res: rtest.Resource(types.WorkloadType, "foo").
 				WithStatus(workloadhealth.StatusKey, &pbresource.Status{
 					Conditions: []*pbresource.Condition{
 						{
@@ -390,50 +337,6 @@ func TestDetermineWorkloadHealth(t *testing.T) {
 	}
 }
 
-func TestWorkloadIdentityStatusFromEndpoints(t *testing.T) {
-	cases := map[string]struct {
-		endpoints *pbcatalog.ServiceEndpoints
-		expStatus *pbresource.Condition
-	}{
-		"endpoints are nil": {
-			expStatus: ConditionIdentitiesNotFound,
-		},
-		"endpoints without identities": {
-			endpoints: &pbcatalog.ServiceEndpoints{},
-			expStatus: ConditionIdentitiesNotFound,
-		},
-		"endpoints with identities": {
-			endpoints: &pbcatalog.ServiceEndpoints{
-				Endpoints: []*pbcatalog.Endpoint{
-					{
-						Identity: "foo",
-					},
-				},
-			},
-			expStatus: ConditionIdentitiesFound([]string{"foo"}),
-		},
-		"endpoints with multiple identities": {
-			endpoints: &pbcatalog.ServiceEndpoints{
-				Endpoints: []*pbcatalog.Endpoint{
-					{
-						Identity: "foo",
-					},
-					{
-						Identity: "bar",
-					},
-				},
-			},
-			expStatus: ConditionIdentitiesFound([]string{"bar", "foo"}),
-		},
-	}
-
-	for name, c := range cases {
-		t.Run(name, func(t *testing.T) {
-			prototest.AssertDeepEqual(t, c.expStatus, workloadIdentityStatusFromEndpoints(c.endpoints))
-		})
-	}
-}
-
 type controllerSuite struct {
 	suite.Suite
 
@@ -443,16 +346,11 @@ type controllerSuite struct {
 
 	tracker    *selectiontracker.WorkloadSelectionTracker
 	reconciler *serviceEndpointsReconciler
-	tenancies  []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
-	suite.tenancies = resourcetest.TestTenancies()
 	suite.ctx = testutil.TestContext(suite.T())
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register).
-		WithTenancies(suite.tenancies...).
-		Run(suite.T())
+	client := svctest.RunResourceService(suite.T(), types.Register)
 	suite.rt = controller.Runtime{
 		Client: client,
 		Logger: testutil.Logger(suite.T()),
@@ -485,28 +383,25 @@ func (suite *controllerSuite) TestReconcile_ServiceNotFound() {
 
 	// generate a workload resource to use for checking if it maps
 	// to a service endpoints object
+	workload := rtest.Resource(types.WorkloadType, "foo").Build()
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		workload := rtest.Resource(pbcatalog.WorkloadType, "foo").WithTenancy(tenancy).Build()
+	// ensure that the tracker knows about the service prior to
+	// calling reconcile so that we can ensure it removes tracking
+	id := rtest.Resource(types.ServiceEndpointsType, "not-found").ID()
+	suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
 
-		// ensure that the tracker knows about the service prior to
-		// calling reconcile so that we can ensure it removes tracking
-		id := rtest.Resource(pbcatalog.ServiceEndpointsType, "not-found").WithTenancy(tenancy).ID()
-		suite.tracker.TrackIDForSelector(id, &pbcatalog.WorkloadSelector{Prefixes: []string{""}})
+	// verify that mapping the workload to service endpoints returns a
+	// non-empty list prior to reconciliation which should remove the
+	// tracking.
+	suite.requireTracking(workload, id)
 
-		// verify that mapping the workload to service endpoints returns a
-		// non-empty list prior to reconciliation which should remove the
-		// tracking.
-		suite.requireTracking(workload, id)
+	// Because the endpoints don't exist, this reconcile call should
+	// cause tracking of the endpoints to be removed
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
+	require.NoError(suite.T(), err)
 
-		// Because the endpoints don't exist, this reconcile call should
-		// cause tracking of the endpoints to be removed
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: id})
-		require.NoError(suite.T(), err)
-
-		// Now ensure that the tracking was removed
-		suite.requireTracking(workload)
-	})
+	// Now ensure that the tracking was removed
+	suite.requireTracking(workload)
 }
 
 func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
@@ -515,23 +410,20 @@ func (suite *controllerSuite) TestReconcile_NoSelector_NoEndpoints() {
 	// managed. Additionally, with no endpoints pre-existing it will
 	// not attempt to delete them.
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		service := rtest.Resource(pbcatalog.ServiceType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	service := rtest.Resource(types.ServiceType, "test").
+		WithData(suite.T(), &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").WithTenancy(tenancy).ID()
+	endpointsID := rtest.Resource(types.ServiceEndpointsType, "test").ID()
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
-		require.NoError(suite.T(), err)
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+	require.NoError(suite.T(), err)
 
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
-	})
+	suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
 }
 
 func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
@@ -539,30 +431,26 @@ func (suite *controllerSuite) TestReconcile_NoSelector_ManagedEndpoints() {
 	// to unmanaged endpoints for a service, any already generated managed endpoints
 	// get deleted.
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		service := rtest.Resource(pbcatalog.ServiceType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	service := rtest.Resource(types.ServiceType, "test").
+		WithData(suite.T(), &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		endpoints := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
-			// this marks these endpoints as under management
-			WithMeta(endpointsMetaManagedBy, StatusKey).
-			Write(suite.T(), suite.client)
+	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
+		// this marks these endpoints as under management
+		WithMeta(endpointsMetaManagedBy, StatusKey).
+		Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
-		// the status should indicate the services endpoints are not being managed
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
-		// endpoints under management should be deleted
-		suite.client.RequireResourceNotFound(suite.T(), endpoints.Id)
-	})
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+	require.NoError(suite.T(), err)
+	// the status should indicate the services endpoints are not being managed
+	suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
+	// endpoints under management should be deleted
+	suite.client.RequireResourceNotFound(suite.T(), endpoints.Id)
 }
 
 func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
@@ -570,73 +458,65 @@ func (suite *controllerSuite) TestReconcile_NoSelector_UnmanagedEndpoints() {
 	// doesn't have its endpoints managed, that we do not delete any unmanaged
 	// ServiceEndpoints resource that the user would have manually written.
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		service := rtest.Resource(pbcatalog.ServiceType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	service := rtest.Resource(types.ServiceType, "test").
+		WithData(suite.T(), &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		endpoints := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
-			Write(suite.T(), suite.client)
+	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
+		Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
-		// the status should indicate the services endpoints are not being managed
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
-		// unmanaged endpoints should not be deleted when the service is unmanaged
-		suite.client.RequireResourceExists(suite.T(), endpoints.Id)
-	})
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+	require.NoError(suite.T(), err)
+	// the status should indicate the services endpoints are not being managed
+	suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionUnmanaged)
+	// unmanaged endpoints should not be deleted when the service is unmanaged
+	suite.client.RequireResourceExists(suite.T(), endpoints.Id)
 }
 
 func (suite *controllerSuite) TestReconcile_Managed_NoPreviousEndpoints() {
 	// This test's purpose is to ensure the managed endpoint generation occurs
 	// as expected when there are no pre-existing endpoints.
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		service := rtest.Resource(pbcatalog.ServiceType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{""},
-				},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	service := rtest.Resource(types.ServiceType, "test").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{""},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").WithTenancy(tenancy).ID()
+	endpointsID := rtest.Resource(types.ServiceEndpointsType, "test").ID()
 
-		rtest.Resource(pbcatalog.WorkloadType, "test-workload").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	rtest.Resource(types.WorkloadType, "test-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
-		require.NoError(suite.T(), err)
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpointsID})
+	require.NoError(suite.T(), err)
 
-		// Verify that the services status has been set to indicate endpoints are automatically managed.
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
+	// Verify that the services status has been set to indicate endpoints are automatically managed.
+	suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
 
-		// The service endpoints metadata should include our tag to indcate it was generated by this controller
-		res := suite.client.RequireResourceMeta(suite.T(), endpointsID, endpointsMetaManagedBy, StatusKey)
+	// The service endpoints metadata should include our tag to indcate it was generated by this controller
+	res := suite.client.RequireResourceMeta(suite.T(), endpointsID, endpointsMetaManagedBy, StatusKey)
 
-		var endpoints pbcatalog.ServiceEndpoints
-		err = res.Data.UnmarshalTo(&endpoints)
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), endpoints.Endpoints, 1)
-	})
+	var endpoints pbcatalog.ServiceEndpoints
+	err = res.Data.UnmarshalTo(&endpoints)
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), endpoints.Endpoints, 1)
 	// We are not going to retest that the workloads to endpoints conversion process
 	// The length check should be sufficient to prove the endpoints are being
 	// converted. The unit tests for the workloadsToEndpoints functions prove that
@@ -647,46 +527,41 @@ func (suite *controllerSuite) TestReconcile_Managed_ExistingEndpoints() {
 	// This test's purpose is to ensure that when the current set of endpoints
 	// differs from any prior set of endpoints that the resource gets rewritten.
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		service := rtest.Resource(pbcatalog.ServiceType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{""},
-				},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	service := rtest.Resource(types.ServiceType, "test").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{""},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		endpoints := rtest.Resource(pbcatalog.ServiceEndpointsType, "test").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
-			WithOwner(service.Id).
-			Write(suite.T(), suite.client)
+	endpoints := rtest.Resource(types.ServiceEndpointsType, "test").
+		WithData(suite.T(), &pbcatalog.ServiceEndpoints{}).
+		WithOwner(service.Id).
+		Write(suite.T(), suite.client)
 
-		rtest.Resource(pbcatalog.WorkloadType, "test-workload").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
+	rtest.Resource(types.WorkloadType, "test-workload").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
 
-		err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
-		require.NoError(suite.T(), err)
+	err := suite.reconciler.Reconcile(suite.ctx, suite.rt, controller.Request{ID: endpoints.Id})
+	require.NoError(suite.T(), err)
 
-		suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
-		res := suite.client.RequireResourceMeta(suite.T(), endpoints.Id, endpointsMetaManagedBy, StatusKey)
+	suite.client.RequireStatusCondition(suite.T(), service.Id, StatusKey, ConditionManaged)
+	res := suite.client.RequireResourceMeta(suite.T(), endpoints.Id, endpointsMetaManagedBy, StatusKey)
 
-		var newEndpoints pbcatalog.ServiceEndpoints
-		err = res.Data.UnmarshalTo(&newEndpoints)
-		require.NoError(suite.T(), err)
-		require.Len(suite.T(), newEndpoints.Endpoints, 1)
-	})
+	var newEndpoints pbcatalog.ServiceEndpoints
+	err = res.Data.UnmarshalTo(&newEndpoints)
+	require.NoError(suite.T(), err)
+	require.Len(suite.T(), newEndpoints.Endpoints, 1)
 }
 
 func (suite *controllerSuite) TestController() {
@@ -703,202 +578,132 @@ func (suite *controllerSuite) TestController() {
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
-		// Add a service - there are no workloads so an empty endpoints
-		// object should be created.
-		service := rtest.Resource(pbcatalog.ServiceType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{"api-"},
-				},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
-
-		// Wait for the controller to record that the endpoints are being managed
-		res := suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
-		// Check that the services status was updated accordingly
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionManaged)
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionIdentitiesNotFound)
-
-		// Check that the endpoints resource exists and contains 0 endpoints
-		endpointsID := rtest.Resource(pbcatalog.ServiceEndpointsType, "api").WithTenancy(tenancy).ID()
-		endpoints := suite.client.RequireResourceExists(suite.T(), endpointsID)
-		suite.requireEndpoints(endpoints)
-
-		// Now add a workload that would be selected by the service. Leave
-		// the workload in a state where its health has not been reconciled
-		workload := rtest.Resource(pbcatalog.WorkloadType, "api-1").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-				},
-				Identity: "api",
-			}).
-			Write(suite.T(), suite.client)
-
-		suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey,
-			ConditionIdentitiesFound([]string{"api"}))
-
-		// Wait for the endpoints to be regenerated
-		endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
-
-		// Verify that the generated endpoints now contain the workload
-		suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
-			TargetRef: workload.Id,
-			Addresses: []*pbcatalog.WorkloadAddress{
-				{Host: "127.0.0.1", Ports: []string{"http"}},
+	// Add a service - there are no workloads so an empty endpoints
+	// object should be created.
+	service := rtest.Resource(types.ServiceType, "api").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"api-"},
 			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	// Wait for the controller to record that the endpoints are being managed
+	res := suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
+	// Check that the services status was updated accordingly
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionManaged)
+
+	// Check that the endpoints resource exists and contains 0 endpoints
+	endpointsID := rtest.Resource(types.ServiceEndpointsType, "api").ID()
+	endpoints := suite.client.RequireResourceExists(suite.T(), endpointsID)
+	suite.requireEndpoints(endpoints)
+
+	// Now add a workload that would be selected by the service. Leave
+	// the workload in a state where its health has not been reconciled
+	workload := rtest.Resource(types.WorkloadType, "api-1").
+		WithData(suite.T(), &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
 			Ports: map[string]*pbcatalog.WorkloadPort{
 				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
 			},
-			HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
-			Identity:     "api",
-		})
+			Identity: "api",
+		}).
+		Write(suite.T(), suite.client)
 
-		// Update the health status of the workload
-		suite.client.WriteStatus(suite.ctx, &pbresource.WriteStatusRequest{
-			Id:  workload.Id,
-			Key: workloadhealth.StatusKey,
-			Status: &pbresource.Status{
-				ObservedGeneration: workload.Generation,
-				Conditions: []*pbresource.Condition{
-					{
-						Type:   workloadhealth.StatusConditionHealthy,
-						State:  pbresource.Condition_STATE_TRUE,
-						Reason: "HEALTH_PASSING",
-					},
-				},
-			},
-		})
+	// Wait for the endpoints to be regenerated
+	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
 
-		// Wait for the endpoints to be regenerated
-		endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
-
-		// ensure the endpoint was put into the passing state
-		suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
-			TargetRef: workload.Id,
-			Addresses: []*pbcatalog.WorkloadAddress{
-				{Host: "127.0.0.1", Ports: []string{"http"}},
-			},
-			Ports: map[string]*pbcatalog.WorkloadPort{
-				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-			},
-			HealthStatus: pbcatalog.Health_HEALTH_PASSING,
-			Identity:     "api",
-		})
-
-		// Update workload identity and check that the status on the service is updated
-		workload = rtest.Resource(pbcatalog.WorkloadType, "api-1").WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Workload{
-				Addresses: []*pbcatalog.WorkloadAddress{{Host: "127.0.0.1"}},
-				Ports: map[string]*pbcatalog.WorkloadPort{
-					"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					"grpc": {Port: 8081, Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-				},
-				Identity: "endpoints-api-identity",
-			}).
-			Write(suite.T(), suite.client)
-
-		suite.client.WaitForStatusCondition(suite.T(), service.Id, StatusKey, ConditionIdentitiesFound([]string{"endpoints-api-identity"}))
-
-		// Verify that the generated endpoints now contain the workload
-		endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
-		suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
-			TargetRef: workload.Id,
-			Addresses: []*pbcatalog.WorkloadAddress{
-				{Host: "127.0.0.1", Ports: []string{"http"}},
-			},
-			Ports: map[string]*pbcatalog.WorkloadPort{
-				"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-			},
-			HealthStatus: pbcatalog.Health_HEALTH_PASSING,
-			Identity:     "endpoints-api-identity",
-		})
-
-		// rewrite the service to add more selection criteria. This should trigger
-		// reconciliation but shouldn't result in updating the endpoints because
-		// the actual list of currently selected workloads has not changed
-		rtest.Resource(pbcatalog.ServiceType, "api").WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{"api-"},
-					Names:    []string{"doesnt-matter"},
-				},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
-
-		// Wait for the service status' observed generation to get bumped
-		service = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
-
-		// Verify that the endpoints were not regenerated
-		suite.client.RequireVersionUnchanged(suite.T(), endpointsID, endpoints.Version)
-
-		// Update the service.
-		updatedService := rtest.Resource(pbcatalog.ServiceType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Workloads: &pbcatalog.WorkloadSelector{
-					Prefixes: []string{"api-"},
-				},
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-					{TargetPort: "grpc", Protocol: pbcatalog.Protocol_PROTOCOL_GRPC},
-				},
-			}).
-			Write(suite.T(), suite.client)
-
-		// Wait for the endpoints to be regenerated
-		endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
-		rtest.RequireOwner(suite.T(), endpoints, updatedService.Id, false)
-
-		// Delete the endpoints. The controller should bring these back momentarily
-		suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: endpointsID})
-
-		// Wait for controller to recreate the endpoints
-		retry.Run(suite.T(), func(r *retry.R) {
-			suite.client.RequireResourceExists(r, endpointsID)
-		})
-
-		// Move the service to having unmanaged endpoints
-		rtest.Resource(pbcatalog.ServiceType, "api").
-			WithTenancy(tenancy).
-			WithData(suite.T(), &pbcatalog.Service{
-				Ports: []*pbcatalog.ServicePort{
-					{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
-				},
-			}).
-			Write(suite.T(), suite.client)
-
-		res = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
-		rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionUnmanaged)
-
-		// Verify that the endpoints were deleted
-		suite.client.RequireResourceNotFound(suite.T(), endpointsID)
+	// Verify that the generated endpoints now contain the workload
+	suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
+		TargetRef: workload.Id,
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{Host: "127.0.0.1", Ports: []string{"http"}},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+		},
+		HealthStatus: pbcatalog.Health_HEALTH_CRITICAL,
 	})
+
+	// Update the health status of the workload
+	suite.client.WriteStatus(suite.ctx, &pbresource.WriteStatusRequest{
+		Id:  workload.Id,
+		Key: workloadhealth.StatusKey,
+		Status: &pbresource.Status{
+			ObservedGeneration: workload.Generation,
+			Conditions: []*pbresource.Condition{
+				{
+					Type:   workloadhealth.StatusConditionHealthy,
+					State:  pbresource.Condition_STATE_TRUE,
+					Reason: "HEALTH_PASSING",
+				},
+			},
+		},
+	})
+
+	// Wait for the endpoints to be regenerated
+	endpoints = suite.client.WaitForNewVersion(suite.T(), endpointsID, endpoints.Version)
+
+	// ensure the endpoint was put into the passing state
+	suite.requireEndpoints(endpoints, &pbcatalog.Endpoint{
+		TargetRef: workload.Id,
+		Addresses: []*pbcatalog.WorkloadAddress{
+			{Host: "127.0.0.1", Ports: []string{"http"}},
+		},
+		Ports: map[string]*pbcatalog.WorkloadPort{
+			"http": {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+		},
+		HealthStatus: pbcatalog.Health_HEALTH_PASSING,
+	})
+
+	// rewrite the service to add more selection criteria. This should trigger
+	// reconciliation but shouldn't result in updating the endpoints because
+	// the actual list of currently selected workloads has not changed
+	rtest.Resource(types.ServiceType, "api").
+		WithData(suite.T(), &pbcatalog.Service{
+			Workloads: &pbcatalog.WorkloadSelector{
+				Prefixes: []string{"api-"},
+				Names:    []string{"doesnt-matter"},
+			},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	// Wait for the service status' observed generation to get bumped
+	service = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
+
+	// Verify that the endpoints were not regenerated
+	suite.client.RequireVersionUnchanged(suite.T(), endpointsID, endpoints.Version)
+
+	// Delete the endpoints. The controller should bring these back momentarily
+	suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: endpointsID})
+
+	// Wait for controller to recreate the endpoints
+	retry.Run(suite.T(), func(r *retry.R) {
+		suite.client.RequireResourceExists(r, endpointsID)
+	})
+
+	// Move the service to having unmanaged endpoints
+	rtest.Resource(types.ServiceType, "api").
+		WithData(suite.T(), &pbcatalog.Service{
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "http", Protocol: pbcatalog.Protocol_PROTOCOL_HTTP},
+			},
+		}).
+		Write(suite.T(), suite.client)
+
+	res = suite.client.WaitForReconciliation(suite.T(), service.Id, StatusKey)
+	rtest.RequireStatusCondition(suite.T(), res, StatusKey, ConditionUnmanaged)
+
+	// Verify that the endpoints were deleted
+	suite.client.RequireResourceNotFound(suite.T(), endpointsID)
 }
 
 func TestController(t *testing.T) {
 	suite.Run(t, new(controllerSuite))
-}
-
-func (suite *controllerSuite) runTestCaseWithTenancies(testFunc func(*pbresource.Tenancy)) {
-	for _, tenancy := range suite.tenancies {
-		suite.Run(suite.appendTenancyInfo(tenancy), func() {
-			testFunc(tenancy)
-		})
-	}
-}
-
-func (suite *controllerSuite) appendTenancyInfo(tenancy *pbresource.Tenancy) string {
-	return fmt.Sprintf("%s_Namespace_%s_Partition", tenancy.Namespace, tenancy.Partition)
 }

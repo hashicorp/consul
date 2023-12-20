@@ -1,3 +1,0 @@
-```release-note:improvement
-acl: add api-gateway templated policy
-```

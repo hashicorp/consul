@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
-package config
+package xds
 
 import (
 	"strings"
@@ -244,9 +244,9 @@ func ToOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passive
 		// NOTE: EnforcingConsecutive5xx must be great than 0 for ingress-gateway
 		if *override.EnforcingConsecutive5xx != 0 {
 			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
+		} else if allowZero {
+			od.EnforcingConsecutive_5Xx = &wrapperspb.UInt32Value{Value: *override.EnforcingConsecutive5xx}
 		}
-		// Because only ingress gateways have overrides and they cannot have a value of 0, there is no allowZero
-		// override case to handle
 	}
 
 	if override.MaxEjectionPercent != nil {

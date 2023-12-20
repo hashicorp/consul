@@ -1,3 +1,0 @@
-```release-note:improvement
-ui: move nspace and partitions requests into their selector menus
-```

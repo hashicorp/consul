@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ca
 
@@ -113,7 +113,7 @@ func TestStructs_CAConfiguration_MsgpackEncodeDecode(t *testing.T) {
 				TLSSkipVerify:          true,
 			},
 			parseFunc: func(t *testing.T, raw map[string]interface{}) interface{} {
-				config, err := ParseVaultCAConfig(raw, true)
+				config, err := ParseVaultCAConfig(raw)
 				require.NoError(t, err)
 				return config
 			},

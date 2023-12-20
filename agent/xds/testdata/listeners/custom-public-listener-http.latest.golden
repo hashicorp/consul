@@ -1,8 +1,9 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "custom-public-listen",
       "address": {
         "socketAddress": {
           "address": "11.11.11.11",
@@ -16,26 +17,14 @@
               "name": "envoy.filters.network.http_connection_manager",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.rbac",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules": {}
-                    }
-                  },
-                  {
-                    "name": "envoy.filters.http.router"
-                  }
-                ],
                 "routeConfig": {
                   "name": "public_listener",
                   "virtualHosts": [
                     {
+                      "name": "public_listener",
                       "domains": [
                         "*"
                       ],
-                      "name": "public_listener",
                       "routes": [
                         {
                           "match": {
@@ -48,7 +37,21 @@
                       ]
                     }
                   ]
-                }
+                },
+                "httpFilters": [
+                  {
+                    "name": "envoy.filters.http.rbac",
+                    "typedConfig": {
+                      "@type": "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
+                      "rules": {
+
+                      }
+                    }
+                  },
+                  {
+                    "name": "envoy.filters.http.router"
+                  }
+                ]
               }
             }
           ],
@@ -57,9 +60,9 @@
             "typedConfig": {
               "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
               "commonTlsContext": {
-                "alpnProtocols": [
-                  "http/1.1"
-                ],
+                "tlsParams": {
+
+                },
                 "tlsCertificates": [
                   {
                     "certificateChain": {
@@ -70,22 +73,24 @@
                     }
                   }
                 ],
-                "tlsParams": {},
                 "validationContext": {
                   "trustedCa": {
                     "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
                   }
-                }
+                },
+                "alpnProtocols": [
+                  "http/1.1"
+                ]
               },
               "requireClientCertificate": true
             }
           }
         }
-      ],
-      "name": "custom-public-listen"
+      ]
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "db:127.0.0.1:9191",
       "address": {
         "socketAddress": {
           "address": "127.0.0.1",
@@ -99,18 +104,18 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "upstream.db.default.default.dc1"
+                "statPrefix": "upstream.db.default.default.dc1",
+                "cluster": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
       ],
-      "name": "db:127.0.0.1:9191",
       "trafficDirection": "OUTBOUND"
     },
     {
       "@type": "type.googleapis.com/envoy.config.listener.v3.Listener",
+      "name": "prepared_query:geo-cache:127.10.10.10:8181",
       "address": {
         "socketAddress": {
           "address": "127.10.10.10",
@@ -124,17 +129,16 @@
               "name": "envoy.filters.network.tcp_proxy",
               "typedConfig": {
                 "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
-                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul",
-                "statPrefix": "upstream.prepared_query_geo-cache"
+                "statPrefix": "upstream.prepared_query_geo-cache",
+                "cluster": "geo-cache.default.dc1.query.11111111-2222-3333-4444-555555555555.consul"
               }
             }
           ]
         }
       ],
-      "name": "prepared_query:geo-cache:127.10.10.10:8181",
       "trafficDirection": "OUTBOUND"
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.listener.v3.Listener",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

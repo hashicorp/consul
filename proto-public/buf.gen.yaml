@@ -6,9 +6,6 @@ managed:
   enabled: true
   go_package_prefix:
     default: github.com/hashicorp/consul/proto-public
-    except:
-      - buf.build/k8s/api
-
 plugins:
   - name: go
     out: .
@@ -22,18 +19,7 @@ plugins:
     out: .
     opt:
       - paths=source_relative
-  - name: resource-types
-    out: .
-    opt:
-      - paths=source_relative
-    strategy: all
   - name: consul-rate-limit
     out: .
     opt:
       - paths=source_relative
-  - name: deepcopy
-    out: .
-    opt: paths=source_relative
-  - name: json-shim
-    out: .
-    opt: paths=source_relative

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package demo
 
@@ -14,7 +14,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
@@ -28,9 +27,9 @@ func RegisterControllers(mgr *controller.Manager) {
 	mgr.Register(artistController())
 }
 
-func artistController() *controller.Controller {
-	return controller.NewController("artists", TypeV2Artist).
-		WithWatch(TypeV2Album, dependency.MapOwner).
+func artistController() controller.Controller {
+	return controller.ForType(TypeV2Artist).
+		WithWatch(TypeV2Album, controller.MapOwner).
 		WithReconciler(&artistReconciler{})
 }
 
@@ -72,7 +71,7 @@ func (r *artistReconciler) Reconcile(ctx context.Context, rt controller.Runtime,
 	actualAlbums, err := rt.Client.List(ctx, &pbresource.ListRequest{
 		Type:       TypeV2Album,
 		Tenancy:    res.Id.Tenancy,
-		NamePrefix: fmt.Sprintf("%s-", res.Id.Name),
+		NamePrefix: fmt.Sprintf("%s/", res.Id.Name),
 	})
 	if err != nil {
 		return err

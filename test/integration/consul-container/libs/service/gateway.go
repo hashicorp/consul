@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package service
 
@@ -11,9 +11,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+
+	"github.com/hashicorp/consul/api"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -144,7 +145,6 @@ type GatewayConfig struct {
 	Name      string
 	Kind      string
 	Namespace string
-	Partition string
 }
 
 func NewGatewayService(ctx context.Context, gwCfg GatewayConfig, node libcluster.Agent, ports ...int) (Service, error) {
@@ -170,7 +170,6 @@ func NewGatewayServiceReg(ctx context.Context, gwCfg GatewayConfig, node libclus
 		fmt.Sprintf("-gateway=%s", gwCfg.Kind),
 		"-service", gwCfg.Name,
 		"-namespace", gwCfg.Namespace,
-		"-partition", gwCfg.Partition,
 		"-address", "{{ GetInterfaceIP \"eth0\" }}:8443",
 		"-admin-bind", fmt.Sprintf("0.0.0.0:%d", adminPort),
 	}

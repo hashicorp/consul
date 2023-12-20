@@ -1,5 +1,4 @@
 {
-  "connectTimeout": "5s",
   "loadAssignment": {
     "clusterName": "jwks_cluster_okta",
     "endpoints": [
@@ -20,5 +19,6 @@
     ]
   },
   "name": "jwks_cluster_okta",
+  "connectTimeout": "5s",
   "type": "STATIC"
 }

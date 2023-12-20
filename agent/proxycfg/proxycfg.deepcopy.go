@@ -5,7 +5,7 @@ package proxycfg
 import (
 	"context"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/agent/xds/config"
+	xds "github.com/hashicorp/consul/agent/xds/config"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
 	"github.com/hashicorp/consul/types"
 	"time"
@@ -14,10 +14,6 @@ import (
 // DeepCopy generates a deep copy of *ConfigSnapshot
 func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 	var cp ConfigSnapshot = *o
-	if o.ServiceLocality != nil {
-		cp.ServiceLocality = new(structs.Locality)
-		*cp.ServiceLocality = *o.ServiceLocality
-	}
 	if o.ServiceMeta != nil {
 		cp.ServiceMeta = make(map[string]string, len(o.ServiceMeta))
 		for k2, v2 := range o.ServiceMeta {
@@ -149,7 +145,7 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		cp.APIGateway = *retV
 	}
 	if o.computedFields.xdsCommonConfig != nil {
-		cp.computedFields.xdsCommonConfig = new(config.XDSCommonConfig)
+		cp.computedFields.xdsCommonConfig = new(xds.XDSCommonConfig)
 		*cp.computedFields.xdsCommonConfig = *o.computedFields.xdsCommonConfig
 		if o.computedFields.xdsCommonConfig.XDSFetchTimeoutMs != nil {
 			cp.computedFields.xdsCommonConfig.XDSFetchTimeoutMs = new(int)
@@ -157,7 +153,7 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		}
 	}
 	if o.computedFields.proxyConfig != nil {
-		cp.computedFields.proxyConfig = new(config.ProxyConfig)
+		cp.computedFields.proxyConfig = new(xds.ProxyConfig)
 		*cp.computedFields.proxyConfig = *o.computedFields.proxyConfig
 		if o.computedFields.proxyConfig.LocalRequestTimeoutMs != nil {
 			cp.computedFields.proxyConfig.LocalRequestTimeoutMs = new(int)
@@ -169,7 +165,7 @@ func (o *ConfigSnapshot) DeepCopy() *ConfigSnapshot {
 		}
 	}
 	if o.computedFields.gatewayConfig != nil {
-		cp.computedFields.gatewayConfig = new(config.GatewayConfig)
+		cp.computedFields.gatewayConfig = new(xds.GatewayConfig)
 		*cp.computedFields.gatewayConfig = *o.computedFields.gatewayConfig
 		if o.computedFields.gatewayConfig.BindAddresses != nil {
 			cp.computedFields.gatewayConfig.BindAddresses = make(map[string]structs.ServiceAddress, len(o.computedFields.gatewayConfig.BindAddresses))

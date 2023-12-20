@@ -1,11 +1,10 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
-FROM docker.mirror.hashicorp.services/node:18-alpine
+FROM docker.mirror.hashicorp.services/circleci/node:16-browsers
 
 USER root
 
-RUN apk update && apk add make
 RUN mkdir /consul-src
 WORKDIR /consul-src
 CMD make dist-docker

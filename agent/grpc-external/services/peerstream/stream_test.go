@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package peerstream
 
@@ -690,7 +690,7 @@ func TestStreamResources_Server_StreamTracker(t *testing.T) {
 			req := msg.GetRequest()
 			require.NotNil(r, req)
 			require.Equal(r, pbpeerstream.TypeURLExportedService, req.ResourceURL)
-			prototest.AssertDeepEqual(r, expectAck, msg)
+			prototest.AssertDeepEqual(t, expectAck, msg)
 		})
 
 		expect := Status{

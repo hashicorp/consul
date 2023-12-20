@@ -1,10 +1,9 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package fsm
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -153,11 +152,7 @@ func init() {
 func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"fsm", "register"}, time.Now())
 	var req structs.RegisterRequest
-	if err := decodeRegistrationReq(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted register request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -172,11 +167,7 @@ func (c *FSM) applyRegister(buf []byte, index uint64) interface{} {
 func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 	defer metrics.MeasureSince([]string{"fsm", "deregister"}, time.Now())
 	var req structs.DeregisterRequest
-	if err := decodeDeregistrationReq(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted deregister request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -204,11 +195,7 @@ func (c *FSM) applyDeregister(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 	var req structs.KVSRequest
-	if err := decodeKVSRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted KV request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "kvs"}, time.Now(),
@@ -253,11 +240,7 @@ func (c *FSM) applyKVSOperation(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applySessionOperation(buf []byte, index uint64) interface{} {
 	var req structs.SessionRequest
-	if err := decodeSessionRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted session request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "session"}, time.Now(),
@@ -316,11 +299,7 @@ func (c *FSM) applyCoordinateBatchUpdate(buf []byte, index uint64) interface{} {
 // state store.
 func (c *FSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} {
 	var req structs.PreparedQueryRequest
-	if err := decodePreparedQueryRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted prepared query request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -339,7 +318,7 @@ func (c *FSM) applyPreparedQueryOperation(buf []byte, index uint64) interface{} 
 
 func (c *FSM) applyTxn(buf []byte, index uint64) interface{} {
 	var req structs.TxnRequest
-	if err := decodeTxnRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSince([]string{"fsm", "txn"}, time.Now())
@@ -506,7 +485,7 @@ func (c *FSM) applyConnectCALeafOperation(buf []byte, index uint64) interface{} 
 
 func (c *FSM) applyACLTokenSetOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLTokenBatchSetRequest
-	if err := decodeACLTokenBatchSetRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "token"}, time.Now(),
@@ -544,7 +523,7 @@ func (c *FSM) applyACLTokenBootstrap(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applyACLPolicySetOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLPolicyBatchSetRequest
-	if err := decodeACLPolicyBatchSetRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "policy"}, time.Now(),
@@ -565,12 +544,10 @@ func (c *FSM) applyACLPolicyDeleteOperation(buf []byte, index uint64) interface{
 }
 
 func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
-	req := structs.ConfigEntryRequest{}
-	if err := decodeConfigEntryOperationRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted config entry request")
-			return nil
-		}
+	req := structs.ConfigEntryRequest{
+		Entry: &structs.ProxyConfigEntry{},
+	}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 
@@ -617,7 +594,7 @@ func (c *FSM) applyConfigEntryOperation(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applyACLRoleSetOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLRoleBatchSetRequest
-	if err := decodeACLRoleBatchSetRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "role"}, time.Now(),
@@ -639,7 +616,7 @@ func (c *FSM) applyACLRoleDeleteOperation(buf []byte, index uint64) interface{} 
 
 func (c *FSM) applyACLBindingRuleSetOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLBindingRuleBatchSetRequest
-	if err := decodeACLBindingRuleBatchSetRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "bindingrule"}, time.Now(),
@@ -661,7 +638,7 @@ func (c *FSM) applyACLBindingRuleDeleteOperation(buf []byte, index uint64) inter
 
 func (c *FSM) applyACLAuthMethodSetOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLAuthMethodBatchSetRequest
-	if err := decodeACLAuthMethodBatchSetRequest(buf, &req); err != nil {
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "authmethod"}, time.Now(),
@@ -672,11 +649,7 @@ func (c *FSM) applyACLAuthMethodSetOperation(buf []byte, index uint64) interface
 
 func (c *FSM) applyACLAuthMethodDeleteOperation(buf []byte, index uint64) interface{} {
 	var req structs.ACLAuthMethodBatchDeleteRequest
-	if err := decodeACLAuthMethodBatchDeleteRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted acl auth method delete request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 	defer metrics.MeasureSinceWithLabels([]string{"fsm", "acl", "authmethod"}, time.Now(),
@@ -733,11 +706,7 @@ func (c *FSM) applySystemMetadataOperation(buf []byte, index uint64) interface{}
 
 func (c *FSM) applyPeeringWrite(buf []byte, index uint64) interface{} {
 	var req pbpeering.PeeringWriteRequest
-	if err := decodePeeringWriteRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted peering write request")
-			return nil
-		}
+	if err := structs.DecodeProto(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode peering write request: %v", err))
 	}
 
@@ -749,11 +718,7 @@ func (c *FSM) applyPeeringWrite(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applyPeeringDelete(buf []byte, index uint64) interface{} {
 	var req pbpeering.PeeringDeleteRequest
-	if err := decodePeeringDeleteRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted peering delete request")
-			return nil
-		}
+	if err := structs.DecodeProto(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode peering delete request: %v", err))
 	}
 
@@ -793,11 +758,7 @@ func (c *FSM) applyPeeringTerminate(buf []byte, index uint64) interface{} {
 
 func (c *FSM) applyPeeringTrustBundleWrite(buf []byte, index uint64) interface{} {
 	var req pbpeering.PeeringTrustBundleWriteRequest
-	if err := decodePeeringTrustBundleWriteRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted peering trust bundle write request")
-			return nil
-		}
+	if err := structs.DecodeProto(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode peering trust bundle write request: %v", err))
 	}
 
@@ -809,11 +770,7 @@ func (c *FSM) applyPeeringTrustBundleWrite(buf []byte, index uint64) interface{}
 
 func (c *FSM) applyPeeringTrustBundleDelete(buf []byte, index uint64) interface{} {
 	var req pbpeering.PeeringTrustBundleDeleteRequest
-	if err := decodePeeringTrustBundleDeleteRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted peering trust bundle delete request")
-			return nil
-		}
+	if err := structs.DecodeProto(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode peering trust bundle delete request: %v", err))
 	}
 
@@ -833,11 +790,7 @@ func (f *FSM) applyResourceOperation(buf []byte, idx uint64) any {
 
 func (c *FSM) applyManualVirtualIPs(buf []byte, index uint64) interface{} {
 	var req state.ServiceVirtualIP
-	if err := decodeServiceVirtualIPRequest(buf, &req); err != nil {
-		if errors.Is(err, ErrDroppingTenantedReq) {
-			c.logger.Warn("dropping tenanted virtual ip request")
-			return nil
-		}
+	if err := structs.Decode(buf, &req); err != nil {
 		panic(fmt.Errorf("failed to decode request: %v", err))
 	}
 

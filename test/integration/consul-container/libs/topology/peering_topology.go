@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package topology
 
@@ -43,7 +43,7 @@ type PeeringClusterSize struct {
 //
 //   - an accepting cluster with 3 servers and 1 client agent. The client should be used to
 //     host a service for export: staticServerSvc.
-//   - a dialing cluster with 1 server and 1 client. The client should be used to host a
+//   - an dialing cluster with 1 server and 1 client. The client should be used to host a
 //     service connecting to staticServerSvc.
 //   - Create the peering, export the service from accepting cluster, and verify service
 //     connectivity.
@@ -120,7 +120,7 @@ func BasicPeeringTwoClustersSetup(
 	libassert.PeeringStatus(t, acceptingClient, AcceptingPeerName, api.PeeringStateActive)
 	// libassert.PeeringExports(t, acceptingClient, acceptingPeerName, 1)
 
-	// Register a static-server service in acceptingCluster and export to dialing cluster
+	// Register an static-server service in acceptingCluster and export to dialing cluster
 	var serverService, serverSidecarService libservice.Service
 	{
 		clientNode := acceptingCluster.Clients()[0]
@@ -144,7 +144,7 @@ func BasicPeeringTwoClustersSetup(
 		require.NoError(t, serverService.Export("default", AcceptingPeerName, acceptingClient))
 	}
 
-	// Register a static-client service in dialing cluster and set upstream to static-server service
+	// Register an static-client service in dialing cluster and set upstream to static-server service
 	var clientSidecarService *libservice.ConnectContainer
 	{
 		clientNode := dialingCluster.Clients()[0]
@@ -194,22 +194,13 @@ type ClusterConfig struct {
 	ExposedPorts []int
 }
 
-func NewCluster(
-	t *testing.T,
-	config *ClusterConfig,
-) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
-	return NewClusterWithConfig(t, config, "", "")
-}
-
 // NewCluster creates a cluster with peering enabled. It also creates
 // and registers a mesh-gateway at the client agent. The API client returned is
 // pointed at the client agent.
 // - proxy-defaults.protocol = tcp
-func NewClusterWithConfig(
+func NewCluster(
 	t *testing.T,
 	config *ClusterConfig,
-	serverHclConfig string,
-	clientHclConfig string,
 ) (*libcluster.Cluster, *libcluster.BuildContext, *api.Client) {
 	var (
 		cluster *libcluster.Cluster
@@ -247,10 +238,6 @@ func NewClusterWithConfig(
 		serverConf.Cmd = append(serverConf.Cmd, config.Cmd)
 	}
 
-	if serverHclConfig != "" {
-		serverConf.MutatebyAgentConfig(serverHclConfig)
-	}
-
 	if config.ExposedPorts != nil {
 		cluster, err = libcluster.New(t, []libcluster.Config{*serverConf}, config.ExposedPorts...)
 	} else {
@@ -268,18 +255,12 @@ func NewClusterWithConfig(
 	}
 
 	// Add numClients static clients to register the service
-	configBuilder := libcluster.NewConfigBuilder(ctx).
+	configbuiilder := libcluster.NewConfigBuilder(ctx).
 		Client().
 		Peering(true).
 		RetryJoin(retryJoin...)
-	if cluster.TokenBootstrap != "" {
-		configBuilder.SetACLToken(cluster.TokenBootstrap)
-	}
-	clientConf := configBuilder.ToAgentConfig(t)
+	clientConf := configbuiilder.ToAgentConfig(t)
 	t.Logf("%s client config: \n%s", opts.Datacenter, clientConf.JSON)
-	if clientHclConfig != "" {
-		clientConf.MutatebyAgentConfig(clientHclConfig)
-	}
 
 	require.NoError(t, cluster.AddN(*clientConf, config.NumClients, true))
 

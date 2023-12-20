@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package command
 
@@ -36,10 +36,6 @@ import (
 	aclrlist "github.com/hashicorp/consul/command/acl/role/list"
 	aclrread "github.com/hashicorp/consul/command/acl/role/read"
 	aclrupdate "github.com/hashicorp/consul/command/acl/role/update"
-	acltp "github.com/hashicorp/consul/command/acl/templatedpolicy"
-	acltplist "github.com/hashicorp/consul/command/acl/templatedpolicy/list"
-	acltppreview "github.com/hashicorp/consul/command/acl/templatedpolicy/preview"
-	acltpread "github.com/hashicorp/consul/command/acl/templatedpolicy/read"
 	acltoken "github.com/hashicorp/consul/command/acl/token"
 	acltclone "github.com/hashicorp/consul/command/acl/token/clone"
 	acltcreate "github.com/hashicorp/consul/command/acl/token/create"
@@ -108,16 +104,10 @@ import (
 	"github.com/hashicorp/consul/command/peering"
 	peerdelete "github.com/hashicorp/consul/command/peering/delete"
 	peerestablish "github.com/hashicorp/consul/command/peering/establish"
-	peerexported "github.com/hashicorp/consul/command/peering/exportedservices"
 	peergenerate "github.com/hashicorp/consul/command/peering/generate"
 	peerlist "github.com/hashicorp/consul/command/peering/list"
 	peerread "github.com/hashicorp/consul/command/peering/read"
 	"github.com/hashicorp/consul/command/reload"
-	"github.com/hashicorp/consul/command/resource"
-	resourceapply "github.com/hashicorp/consul/command/resource/apply"
-	resourcedelete "github.com/hashicorp/consul/command/resource/delete"
-	resourcelist "github.com/hashicorp/consul/command/resource/list"
-	resourceread "github.com/hashicorp/consul/command/resource/read"
 	"github.com/hashicorp/consul/command/rtt"
 	"github.com/hashicorp/consul/command/services"
 	svcsderegister "github.com/hashicorp/consul/command/services/deregister"
@@ -184,10 +174,6 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"acl binding-rule read", func(ui cli.Ui) (cli.Command, error) { return aclbrread.New(ui), nil }},
 		entry{"acl binding-rule update", func(ui cli.Ui) (cli.Command, error) { return aclbrupdate.New(ui), nil }},
 		entry{"acl binding-rule delete", func(ui cli.Ui) (cli.Command, error) { return aclbrdelete.New(ui), nil }},
-		entry{"acl templated-policy", func(cli.Ui) (cli.Command, error) { return acltp.New(), nil }},
-		entry{"acl templated-policy list", func(ui cli.Ui) (cli.Command, error) { return acltplist.New(ui), nil }},
-		entry{"acl templated-policy read", func(ui cli.Ui) (cli.Command, error) { return acltpread.New(ui), nil }},
-		entry{"acl templated-policy preview", func(ui cli.Ui) (cli.Command, error) { return acltppreview.New(ui), nil }},
 		entry{"agent", func(ui cli.Ui) (cli.Command, error) { return agent.New(ui), nil }},
 		entry{"catalog", func(cli.Ui) (cli.Command, error) { return catalog.New(), nil }},
 		entry{"catalog datacenters", func(ui cli.Ui) (cli.Command, error) { return catlistdc.New(ui), nil }},
@@ -248,17 +234,11 @@ func RegisteredCommands(ui cli.Ui) map[string]mcli.CommandFactory {
 		entry{"operator usage instances", func(ui cli.Ui) (cli.Command, error) { return instances.New(ui), nil }},
 		entry{"peering", func(cli.Ui) (cli.Command, error) { return peering.New(), nil }},
 		entry{"peering delete", func(ui cli.Ui) (cli.Command, error) { return peerdelete.New(ui), nil }},
-		entry{"peering exported-services", func(ui cli.Ui) (cli.Command, error) { return peerexported.New(ui), nil }},
 		entry{"peering generate-token", func(ui cli.Ui) (cli.Command, error) { return peergenerate.New(ui), nil }},
 		entry{"peering establish", func(ui cli.Ui) (cli.Command, error) { return peerestablish.New(ui), nil }},
 		entry{"peering list", func(ui cli.Ui) (cli.Command, error) { return peerlist.New(ui), nil }},
 		entry{"peering read", func(ui cli.Ui) (cli.Command, error) { return peerread.New(ui), nil }},
 		entry{"reload", func(ui cli.Ui) (cli.Command, error) { return reload.New(ui), nil }},
-		entry{"resource", func(cli.Ui) (cli.Command, error) { return resource.New(), nil }},
-		entry{"resource read", func(ui cli.Ui) (cli.Command, error) { return resourceread.New(ui), nil }},
-		entry{"resource delete", func(ui cli.Ui) (cli.Command, error) { return resourcedelete.New(ui), nil }},
-		entry{"resource apply", func(ui cli.Ui) (cli.Command, error) { return resourceapply.New(ui), nil }},
-		entry{"resource list", func(ui cli.Ui) (cli.Command, error) { return resourcelist.New(ui), nil }},
 		entry{"rtt", func(ui cli.Ui) (cli.Command, error) { return rtt.New(ui), nil }},
 		entry{"services", func(cli.Ui) (cli.Command, error) { return services.New(), nil }},
 		entry{"services register", func(ui cli.Ui) (cli.Command, error) { return svcsregister.New(ui), nil }},

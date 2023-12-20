@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package proxycfg
 
@@ -54,11 +54,6 @@ func (h *handlerAPIGateway) initialize(ctx context.Context) (ConfigSnapshot, err
 		return snap, err
 	}
 
-	err = watchJWTProviders(ctx, h)
-	if err != nil {
-		return snap, err
-	}
-
 	snap.APIGateway.Listeners = make(map[string]structs.APIGatewayListener)
 	snap.APIGateway.BoundListeners = make(map[string]structs.BoundAPIGatewayListener)
 	snap.APIGateway.HTTPRoutes = watch.NewMap[structs.ResourceReference, *structs.HTTPRouteConfigEntry]()
@@ -102,33 +97,27 @@ func (h *handlerAPIGateway) handleUpdate(ctx context.Context, u UpdateEvent, sna
 		return fmt.Errorf("error filling agent cache: %v", u.Err)
 	}
 
-	switch u.CorrelationID {
-	case rootsWatchID:
+	switch {
+	case u.CorrelationID == rootsWatchID:
 		// Handle change in the CA roots
 		if err := h.handleRootCAUpdate(u, snap); err != nil {
 			return err
 		}
-	case apiGatewayConfigWatchID, boundGatewayConfigWatchID:
+	case u.CorrelationID == apiGatewayConfigWatchID || u.CorrelationID == boundGatewayConfigWatchID:
 		// Handle change in the api-gateway or bound-api-gateway config entry
 		if err := h.handleGatewayConfigUpdate(ctx, u, snap, u.CorrelationID); err != nil {
 			return err
 		}
-	case inlineCertificateConfigWatchID:
+	case u.CorrelationID == inlineCertificateConfigWatchID:
 		// Handle change in an attached inline-certificate config entry
 		if err := h.handleInlineCertConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	case routeConfigWatchID:
+	case u.CorrelationID == routeConfigWatchID:
 		// Handle change in an attached http-route or tcp-route config entry
 		if err := h.handleRouteConfigUpdate(ctx, u, snap); err != nil {
 			return err
 		}
-	case jwtProviderID:
-		err := setJWTProvider(u, snap)
-		if err != nil {
-			return err
-		}
-
 	default:
 		if err := (*handlerUpstreams)(h).handleUpdateUpstreams(ctx, u, snap); err != nil {
 			return err

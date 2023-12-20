@@ -1,36 +1,50 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package types
 
 import (
 	"math"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-multierror"
 )
 
-type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]
+const (
+	DNSPolicyKind = "DNSPolicy"
+)
+
+var (
+	DNSPolicyV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         DNSPolicyKind,
+	}
+
+	DNSPolicyType = DNSPolicyV1Alpha1Type
+)
 
 func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbcatalog.DNSPolicyType,
+		Type:     DNSPolicyV1Alpha1Type,
 		Proto:    &pbcatalog.DNSPolicy{},
-		Scope:    resource.ScopeNamespace,
 		Validate: ValidateDNSPolicy,
-		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.DNSPolicy](),
 	})
 }
 
-var ValidateDNSPolicy = resource.DecodeAndValidate(validateDNSPolicy)
+func ValidateDNSPolicy(res *pbresource.Resource) error {
+	var policy pbcatalog.DNSPolicy
 
-func validateDNSPolicy(res *DecodedDNSPolicy) error {
+	if err := res.Data.UnmarshalTo(&policy); err != nil {
+		return resource.NewErrDataParse(&policy, err)
+	}
+
 	var err error
 	// Ensure that this resource isn't useless and is attempting to
 	// select at least one workload.
-	if selErr := ValidateSelector(res.Data.Workloads, false); selErr != nil {
+	if selErr := validateSelector(policy.Workloads, false); selErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "workloads",
 			Wrapped: selErr,
@@ -38,7 +52,7 @@ func validateDNSPolicy(res *DecodedDNSPolicy) error {
 	}
 
 	// Validate the weights
-	if weightErr := validateDNSPolicyWeights(res.Data.Weights); weightErr != nil {
+	if weightErr := validateDNSPolicyWeights(policy.Weights); weightErr != nil {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "weights",
 			Wrapped: weightErr,

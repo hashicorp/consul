@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package main
 
@@ -27,6 +27,7 @@ import "github.com/hashicorp/consul/agent/consul/rate"
 `
 
 	entTags = `//go:build consulent
+// +build consulent
 `
 )
 

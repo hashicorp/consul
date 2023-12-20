@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package ca
 
@@ -99,7 +99,7 @@ func vaultTLSConfig(config *structs.VaultCAProviderConfig) *vaultapi.TLSConfig {
 // Configure sets up the provider using the given configuration.
 // Configure supports being called multiple times to re-configure the provider.
 func (v *VaultProvider) Configure(cfg ProviderConfig) error {
-	config, err := ParseVaultCAConfig(cfg.RawConfig, v.isPrimary)
+	config, err := ParseVaultCAConfig(cfg.RawConfig)
 	if err != nil {
 		return err
 	}
@@ -196,11 +196,11 @@ func (v *VaultProvider) Configure(cfg ProviderConfig) error {
 }
 
 func (v *VaultProvider) ValidateConfigUpdate(prevRaw, nextRaw map[string]interface{}) error {
-	prev, err := ParseVaultCAConfig(prevRaw, v.isPrimary)
+	prev, err := ParseVaultCAConfig(prevRaw)
 	if err != nil {
 		return fmt.Errorf("failed to parse existing CA config: %w", err)
 	}
-	next, err := ParseVaultCAConfig(nextRaw, v.isPrimary)
+	next, err := ParseVaultCAConfig(nextRaw)
 	if err != nil {
 		return fmt.Errorf("failed to parse new CA config: %w", err)
 	}
@@ -848,7 +848,7 @@ func (v *VaultProvider) Cleanup(providerTypeChange bool, otherConfig map[string]
 	v.Stop()
 
 	if !providerTypeChange {
-		newConfig, err := ParseVaultCAConfig(otherConfig, v.isPrimary)
+		newConfig, err := ParseVaultCAConfig(otherConfig)
 		if err != nil {
 			return err
 		}
@@ -941,7 +941,7 @@ func (v *VaultProvider) autotidyIssuers(path string) (bool, string) {
 	return tidySet, errStr
 }
 
-func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.VaultCAProviderConfig, error) {
+func ParseVaultCAConfig(raw map[string]interface{}) (*structs.VaultCAProviderConfig, error) {
 	config := structs.VaultCAProviderConfig{
 		CommonCAProviderConfig: defaultCommonConfig(),
 	}
@@ -972,10 +972,10 @@ func ParseVaultCAConfig(raw map[string]interface{}, isPrimary bool) (*structs.Va
 		return nil, fmt.Errorf("only one of Vault token or Vault auth method can be provided, but not both")
 	}
 
-	if isPrimary && config.RootPKIPath == "" {
+	if config.RootPKIPath == "" {
 		return nil, fmt.Errorf("must provide a valid path to a root PKI backend")
 	}
-	if config.RootPKIPath != "" && !strings.HasSuffix(config.RootPKIPath, "/") {
+	if !strings.HasSuffix(config.RootPKIPath, "/") {
 		config.RootPKIPath += "/"
 	}
 

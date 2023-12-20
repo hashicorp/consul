@@ -1,6 +1,6 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 // REDIRECTS FILE
@@ -73,84 +73,13 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/connect/registration/service-registration',
-    destination: '/consul/docs/connect/proxies/proxy-config-reference',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/connect/registration',
-    destination: '/consul/docs/connect/proxies/',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/connect/registration/sidecar-service',
-    destination: '/consul/docs/connect/proxies/deploy-sidecar-services',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/terraform/install',
-    destination: '/consul/docs/ecs/deploy/terraform',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/terraform/secure-configuration',
-    destination: '/consul/docs/ecs/deploy/terraform',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/terraform/migrate-existing-tasks',
-    destination: '/consul/docs/ecs/deploy/migrate-existing-tasks',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/manual/install',
-    destination: '/consul/docs/ecs/deploy/manual',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/manual/secure-configuration',
-    destination: '/consul/docs/ecs/deploy/manual',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/manual/acl-controller',
-    destination: '/consul/docs/ecs/deploy/manual',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/task-resource-usage',
-    destination: '/consul/docs/ecs/tech-specs',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/requirements',
-    destination: '/consul/docs/ecs/tech-specs',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/configuration-reference',
-    destination: '/consul/docs/ecs/reference/configuration-reference',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/ecs/compatibility',
-    destination: '/consul/docs/ecs/reference/compatibility',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/connect/gateways/api-gateway/usage',
-    destination:
-      '/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms',
-    permanent: true,
-  },
-  {
-    source: '/consul/docs/api-gateway',
-    destination: '/consul/docs/connect/gateways/api-gateway',
+    source: '/consul/docs/agi-gateway',
+    destination: '/consul/docs/connect/gateways/agi-gateway',
     permanent: true,
   },
   {
     source: '/consul/docs/api-gateway/install',
-    destination: '/consul/docs/connect/gateways/api-gateway/install-k8s',
+    destination: '/consul/docs/connect/gateways/api-gateway/deploy/install-k8s',
     permanent: true,
   },
   {
@@ -162,7 +91,7 @@ module.exports = [
   {
     source: '/consul/docs/api-gateway/usage/route-to-peered-services',
     destination:
-      '/consul/docs/connect/gateways/api-gateway/define-routes/route-to-peered-services',
+      '/consul/docs/connect/gateways/api-gateway/route-to-peered-services',
     permanent: true,
   },
   {
@@ -182,8 +111,8 @@ module.exports = [
     permanent: true,
   },
   {
-    source: '/consul/docs/api-gateway/configuration',
-    destination: '/consul/docs/connect/gateways/api-gateway/configuration',
+    source: '/consul/docs/api-gateway/configuration/',
+    destination: '/consul/docs/connect/gateways/api-gateway/configuration/',
     permanent: true,
   },
   {
@@ -210,6 +139,21 @@ module.exports = [
   {
     source: '/consul/docs/v1.8.x/connect/config-entries/:slug',
     destination: '/consul/docs/v1.8.x/agent/config-entries/:slug',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration/service-registration',
+    destination: '/consul/docs/connect/proxies/proxy-config-reference',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration',
+    destination: '/consul/docs/connect/proxies/',
+    permanent: true,
+  },
+  {
+    source: '/consul/docs/connect/registration/sidecar-service',
+    destination: '/consul/docs/connect/proxies/deploy-sidecar-services',
     permanent: true,
   },
 ]

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package workloadhealth
 
 import (
@@ -8,15 +5,14 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
+	"github.com/hashicorp/consul/internal/catalog/internal/types"
+	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/resource"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v1alpha1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
-	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
-	"github.com/hashicorp/consul/internal/resource"
-	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 var (
@@ -46,14 +42,14 @@ type NodeMapper interface {
 	NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID
 }
 
-func WorkloadHealthController(nodeMap NodeMapper) *controller.Controller {
+func WorkloadHealthController(nodeMap NodeMapper) controller.Controller {
 	if nodeMap == nil {
 		panic("No NodeMapper was provided to the WorkloadHealthController constructor")
 	}
 
-	return controller.NewController(StatusKey, pbcatalog.WorkloadType).
-		WithWatch(pbcatalog.HealthStatusType, dependency.MapOwnerFiltered(pbcatalog.WorkloadType)).
-		WithWatch(pbcatalog.NodeType, nodeMap.MapNodeToWorkloads).
+	return controller.ForType(types.WorkloadType).
+		WithWatch(types.HealthStatusType, controller.MapOwnerFiltered(types.WorkloadType)).
+		WithWatch(types.NodeType, nodeMap.MapNodeToWorkloads).
 		WithReconciler(&workloadHealthReconciler{nodeMap: nodeMap})
 }
 
@@ -110,10 +106,7 @@ func (r *workloadHealthReconciler) Reconcile(ctx context.Context, rt controller.
 		r.nodeMap.UntrackWorkload(res.Id)
 	}
 
-	// passing the workload from the response because getWorkloadHealth uses
-	// resourceClient.ListByOwner which requires ownerID have a Uid and this is the
-	// safest way for application and test code to ensure Uid is provided.
-	workloadHealth, err := getWorkloadHealth(ctx, rt, rsp.Resource.Id)
+	workloadHealth, err := getWorkloadHealth(ctx, rt, req.ID)
 	if err != nil {
 		// This should be impossible under normal operations and will not be exercised
 		// within the unit tests. This can only fail if the resource service fails
@@ -203,7 +196,6 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 }
 
 func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *pbresource.ID) (pbcatalog.Health, error) {
-	rt.Logger.Trace("getWorkloadHealth", "workloadRef", workloadRef)
 	rsp, err := rt.Client.ListByOwner(ctx, &pbresource.ListByOwnerRequest{
 		Owner: workloadRef,
 	})
@@ -215,7 +207,7 @@ func getWorkloadHealth(ctx context.Context, rt controller.Runtime, workloadRef *
 	workloadHealth := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
+		if resource.EqualType(res.Id.Type, types.HealthStatusType) {
 			var hs pbcatalog.HealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible and will not be executing in tests. The resource type

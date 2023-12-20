@@ -1,16 +1,15 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "bar",
-      "validateClusters": true,
       "virtualHosts": [
         {
+          "name": "bar",
           "domains": [
             "*"
           ],
-          "name": "bar",
           "routes": [
             {
               "match": {
@@ -22,18 +21,18 @@
             }
           ]
         }
-      ]
+      ],
+      "validateClusters": true
     },
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "foo",
-      "validateClusters": true,
       "virtualHosts": [
         {
+          "name": "foo",
           "domains": [
             "*"
           ],
-          "name": "foo",
           "routes": [
             {
               "match": {
@@ -45,18 +44,18 @@
             }
           ]
         }
-      ]
+      ],
+      "validateClusters": true
     },
     {
       "@type": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
       "name": "gir",
-      "validateClusters": true,
       "virtualHosts": [
         {
+          "name": "gir",
           "domains": [
             "*"
           ],
-          "name": "gir",
           "routes": [
             {
               "match": {
@@ -68,9 +67,10 @@
             }
           ]
         }
-      ]
+      ],
+      "validateClusters": true
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.route.v3.RouteConfiguration",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

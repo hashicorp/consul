@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package acl
 
@@ -10,9 +10,6 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/command/helpers"
-	"github.com/hashicorp/hcl"
-	"github.com/mitchellh/mapstructure"
 )
 
 func GetTokenAccessorIDFromPartial(client *api.Client, partialAccessorID string) (string, error) {
@@ -223,79 +220,6 @@ func ExtractNodeIdentities(nodeIdents []string) ([]*api.ACLNodeIdentity, error) 
 		}
 	}
 	return out, nil
-}
-
-func ExtractTemplatedPolicies(templatedPolicy string, templatedPolicyFile string, templatedPolicyVariables []string) ([]*api.ACLTemplatedPolicy, error) {
-	var out []*api.ACLTemplatedPolicy
-	if templatedPolicy == "" && templatedPolicyFile == "" {
-		return out, nil
-	}
-
-	if templatedPolicy != "" {
-		parsedVariables, err := getTemplatedPolicyVariables(templatedPolicyVariables)
-		if err != nil {
-			return nil, err
-		}
-
-		out = append(out, &api.ACLTemplatedPolicy{
-			TemplateName:      templatedPolicy,
-			TemplateVariables: parsedVariables,
-		})
-	}
-
-	if templatedPolicyFile != "" {
-		fileData, err := helpers.LoadFromFile(templatedPolicyFile)
-		if err != nil {
-			return nil, err
-		}
-
-		var config map[string]map[string][]api.ACLTemplatedPolicyVariables
-		err = hcl.Decode(&config, fileData)
-		if err != nil {
-			return nil, err
-		}
-
-		for templateName, templateVariables := range config["TemplatedPolicy"] {
-			for _, tp := range templateVariables {
-				out = append(out, &api.ACLTemplatedPolicy{
-					TemplateName: templateName,
-					TemplateVariables: &api.ACLTemplatedPolicyVariables{
-						Name: tp.Name,
-					},
-				})
-			}
-		}
-	}
-	return out, nil
-}
-
-func ExtractBindVars(bindVars map[string]string) (*api.ACLTemplatedPolicyVariables, error) {
-	if len(bindVars) == 0 {
-		return nil, nil
-	}
-	out := &api.ACLTemplatedPolicyVariables{}
-	err := mapstructure.Decode(bindVars, out)
-	return out, err
-}
-
-func getTemplatedPolicyVariables(variables []string) (*api.ACLTemplatedPolicyVariables, error) {
-	if len(variables) == 0 {
-		return nil, nil
-	}
-
-	out := &api.ACLTemplatedPolicyVariables{}
-	jsonVariables := make(map[string]string)
-
-	for _, variable := range variables {
-		parts := strings.Split(variable, ":")
-		if len(parts) != 2 {
-			return nil, fmt.Errorf("malformed -var argument: %q, expecting VariableName:Value", variable)
-		}
-		jsonVariables[parts[0]] = parts[1]
-	}
-
-	err := mapstructure.Decode(jsonVariables, out)
-	return out, err
 }
 
 // TestKubernetesJWT_A is a valid service account jwt extracted from a minikube setup.

@@ -226,7 +226,7 @@ Listeners = [
             ResponseHeaderName = "<response header value to set>"
           }
           Remove = [
-            "<response header remove>"
+            "<response header to remove>"
           ]
         }
         TLS = {
@@ -289,7 +289,7 @@ spec:
     passiveHealthCheck:
       interval: "<the time between checks>"
       maxFailures: <number>
-      enforcingConsecutive5xx:<number>
+      enforcingConsecutive5xx: <number>
       maxEjectionPercent: <number>
       baseEjectionTime: "<the base time that a host is ejected for>"
   listeners:
@@ -306,7 +306,7 @@ spec:
               requestHeaderName: <request header value to add>
             set:
               requestHeaderName: <request header value to set>
-      remove:
+            remove:
               - <request header to remove>
           responseHeaders:
             add:
@@ -314,7 +314,7 @@ spec:
             set:
               responseHeaderName: <response header value to set>
             remove:
-              - <response header remove>
+              - <response header to remove>
           tls:
             sds:
               clusterName: <name of SDS cluster>
@@ -407,7 +407,7 @@ spec:
               "ResponseHeaderName" : "<response header value to set>"
             },
             "Remove" : [
-              "<response header remove>"
+              "<response header to remove>"
             ]
           },
           "TLS" : {
@@ -422,10 +422,9 @@ spec:
           "PassiveHealthCheck" : {
             "interval": "<the time between checks>",
             "maxFailures": <number>,
-            "enforcingConsecutive5xx":<number>,
+            "enforcingConsecutive5xx": <number>,
             "maxEjectionPercent": <number>,
             "baseEjectionTime": "<the base time that a host is ejected for>"
-          }
         }
       ],
       "TLS" : {
@@ -723,7 +722,7 @@ Specifies a list of services that the listener exposes to services outside the m
 Specifies the name of a service to expose to the listener. You can specify services in the following ways:
 
 - Provide the name of a service registered in the Consul catalog.
-- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/manage-traffic) for additional information.
+- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/l7-traffic) for additional information.
 - Provide a `*` wildcard to expose all services in the datacenter. Wild cards are not supported for listeners configured for TCP. Refer to [`Listeners[].Protocol`](#listeners-protocol) for additional information.
 
 #### Values
@@ -1258,7 +1257,7 @@ Specifies a list of services that the listener exposes to services outside the m
 Specifies the name of a service to expose to the listener. You can specify services in the following ways:
 
 - Provide the name of a service registered in the Consul catalog.
-- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/manage-traffic) for additional information. Refer to [HTTP listener with path-based routes](#http-listener-with-path-based-routes) for an example.
+- Provide the name of a service defined in other configuration entries. Refer to [Service Mesh Traffic Management Overview](/consul/docs/connect/l7-traffic) for additional information. Refer to [HTTP listener with path-based routes](#http-listener-with-path-based-routes) for an example.
 - Provide a `*` wildcard to expose all services in the datacenter. Wild cards are not supported for listeners configured for TCP. Refer to [`spec.listeners.protocol`](#spec-listeners-protocol) for additional information.
 
 #### Values

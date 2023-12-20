@@ -1,32 +1,24 @@
 /**
  * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import Modifier from 'ember-modifier';
 import { inject as service } from '@ember/service';
-import { registerDestructor } from '@ember/destroyable';
 
-function cleanup(instance) {
-  if (instance && instance?.named?.sticky) {
-    instance.notify?.clearMessages();
-  }
-}
 export default class NotificationModifier extends Modifier {
   @service('flashMessages') notify;
 
-  modify(element, _, named) {
-    this.named = named;
-    element.setAttribute('role', 'alert');
-    element.dataset['notification'] = null;
-
+  didInstall() {
+    this.element.setAttribute('role', 'alert');
+    this.element.dataset['notification'] = null;
     const options = {
       timeout: 6000,
       extendedTimeout: 300,
-      ...named,
+      ...this.args.named,
     };
-    options.dom = element.outerHTML;
-    element.remove();
+    options.dom = this.element.outerHTML;
+    this.element.remove();
     this.notify.clearMessages();
     if (typeof options.after === 'function') {
       Promise.resolve()
@@ -36,13 +28,16 @@ export default class NotificationModifier extends Modifier {
             throw e;
           }
         })
-        .then((_) => {
+        .then((res) => {
           this.notify.add(options);
         });
     } else {
       this.notify.add(options);
     }
-
-    registerDestructor(this, cleanup);
+  }
+  willDestroy() {
+    if (this.args.named.sticky) {
+      this.notify.clearMessages();
+    }
   }
 }

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package raft_test
 
@@ -23,9 +23,6 @@ import (
 )
 
 func TestBackend_Conformance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	t.Run("Leader", func(t *testing.T) {
 		conformance.Test(t, conformance.TestOptions{
 			NewBackend: func(t *testing.T) storage.Backend {

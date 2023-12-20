@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: MPL-2.0
 
 # Configuration for security scanner.
 # Run on PRs and pushes to `main` and `release/**` branches.
