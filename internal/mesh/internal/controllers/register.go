@@ -48,7 +48,7 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		sidecarproxy.Controller(cache.New(), deps.TrustDomainFetcher, deps.LocalDatacenter, deps.DefaultAllow),
 	)
 
-	mgr.Register(gatewayproxy.Controller(cache.New()))
+	mgr.Register(gatewayproxy.Controller(cache.New(), deps.TrustDomainFetcher, deps.LocalDatacenter, deps.DefaultAllow))
 
 	mgr.Register(routes.Controller())
 

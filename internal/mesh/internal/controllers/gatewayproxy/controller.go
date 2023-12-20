@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
@@ -26,20 +27,26 @@ import (
 const ControllerName = "consul.io/gateway-proxy"
 
 // Controller is responsible for triggering reconciler for watched resources
-func Controller(cache *cache.Cache) *controller.Controller {
+func Controller(cache *cache.Cache, trustDomainFetcher sidecarproxy.TrustDomainFetcher, dc string, defaultAllow bool) *controller.Controller {
 	// TODO Add the host of other types we should watch
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithReconciler(&reconciler{
-			cache: cache,
+			cache:          cache,
+			dc:             dc,
+			defaultAllow:   defaultAllow,
+			getTrustDomain: trustDomainFetcher,
 		})
 }
 
 // reconciler is responsible for managing the ProxyStateTemplate for all
 // gateway types: mesh, api (future) and terminating (future).
 type reconciler struct {
-	cache *cache.Cache
+	cache          *cache.Cache
+	dc             string
+	defaultAllow   bool
+	getTrustDomain sidecarproxy.TrustDomainFetcher
 }
 
 // Reconcile is responsible for creating and updating the pbmesh.ProxyStateTemplate
@@ -113,12 +120,36 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 	exportedServices, err := dataFetcher.FetchComputedExportedServices(ctx, exportedServicesID)
 	if err != nil || exportedServices == nil {
+		// Fake it til you make it (requires a service named "backend" be deployed + mesh-injected)
 		exportedServices = &types.DecodedComputedExportedServices{
-			Data: &pbmulticluster.ComputedExportedServices{},
+			Data: &pbmulticluster.ComputedExportedServices{
+				Consumers: []*pbmulticluster.ComputedExportedService{
+					{
+						TargetRef: &pbresource.Reference{
+							Type:    pbcatalog.ServiceType,
+							Tenancy: resource.DefaultNamespacedTenancy(),
+							Name:    "backend",
+						},
+						Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+							{
+								ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
+									Partition: "part1",
+								},
+							},
+						},
+					},
+				},
+			},
 		}
 	}
 
-	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices).Build()
+	trustDomain, err := r.getTrustDomain()
+	if err != nil {
+		rt.Logger.Error("error fetching trust domain to compute proxy state template", "error", err)
+		return err
+	}
+
+	newPST := builder.NewProxyStateTemplateBuilder(workload, exportedServices, rt.Logger, dataFetcher, r.dc, trustDomain).Build()
 
 	proxyTemplateData, err := anypb.New(newPST)
 	if err != nil {

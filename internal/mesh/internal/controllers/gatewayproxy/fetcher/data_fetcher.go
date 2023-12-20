@@ -69,6 +69,20 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	return dec, err
 }
 
+func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		// TODO f.cache.UntrackService(id)
+		return nil, nil
+	}
+
+	// TODO f.cache.TrackService(dec)
+
+	return dec, err
+}
+
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
 	dec, err := resource.GetDecodedResource[*pbcatalog.Workload](ctx, f.client, id)
 	if err != nil {

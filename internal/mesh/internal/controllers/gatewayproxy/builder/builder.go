@@ -4,9 +4,14 @@
 package builder
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
@@ -18,13 +23,21 @@ import (
 )
 
 type proxyStateTemplateBuilder struct {
+	dataFetcher      *fetcher.Fetcher
+	dc               string
 	exportedServices *types.DecodedComputedExportedServices
+	logger           hclog.Logger
+	trustDomain      string
 	workload         *types.DecodedWorkload
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices) *proxyStateTemplateBuilder {
+func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *proxyStateTemplateBuilder {
 	return &proxyStateTemplateBuilder{
+		dataFetcher:      dataFetcher,
+		dc:               dc,
 		exportedServices: exportedServices,
+		logger:           logger,
+		trustDomain:      trustDomain,
 		workload:         workload,
 	}
 }
@@ -74,18 +87,42 @@ func (b *proxyStateTemplateBuilder) listeners() []*pbproxystate.Listener {
 	return []*pbproxystate.Listener{listener}
 }
 
-// routers loops through the consumers for each exported service and generates a
-// pbproxystate.Router matching the SNI to the cluster name, which matches the SNI
+// routers loops through the ports and consumers for each exported service and generates
+// a pbproxystate.Router matching the SNI to the target cluster. The target port name
+// will be included in the ALPN. The targeted cluster will marry this port name with the SNI.
 func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 	var routers []*pbproxystate.Router
 
-	for _, service := range b.exportedServices.Data.Consumers {
-		for _, consumer := range service.Consumers {
-			sni := clusterName(service.TargetRef, consumer)
-			routers = append(routers, &pbproxystate.Router{
-				Match:       &pbproxystate.Match{ServerNames: []string{sni}},
-				Destination: &pbproxystate.Router_Sni{},
-			})
+	for _, exportedService := range b.exportedServices.Data.Consumers {
+		serviceID := resource.IDFromReference(exportedService.TargetRef)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		for _, port := range service.Data.Ports {
+			for _, consumer := range exportedService.Consumers {
+				routers = append(routers, &pbproxystate.Router{
+					Match: &pbproxystate.Match{
+						AlpnProtocols: []string{alpnProtocol(port.TargetPort)},
+						ServerNames:   []string{b.sni(exportedService.TargetRef, consumer)},
+					},
+					Destination: &pbproxystate.Router_L4{
+						L4: &pbproxystate.L4Destination{
+							Destination: &pbproxystate.L4Destination_Cluster{
+								Cluster: &pbproxystate.DestinationCluster{
+									Name: b.clusterName(exportedService.TargetRef, consumer, port.TargetPort),
+								},
+							},
+							StatPrefix: "prefix",
+						},
+					},
+				})
+			}
 		}
 	}
 
@@ -97,25 +134,32 @@ func (b *proxyStateTemplateBuilder) routers() []*pbproxystate.Router {
 func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster {
 	clusters := map[string]*pbproxystate.Cluster{}
 
-	for _, service := range b.exportedServices.Data.Consumers {
-		for _, consumer := range service.Consumers {
-			clusterName := clusterName(service.TargetRef, consumer)
-			clusters[clusterName] = &pbproxystate.Cluster{
-				Name:     clusterName,
-				Protocol: pbproxystate.Protocol_PROTOCOL_UNSPECIFIED, // TODO
+	for _, exportedService := range b.exportedServices.Data.Consumers {
+		serviceID := resource.IDFromReference(exportedService.TargetRef)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		for _, port := range service.Data.Ports {
+			for _, consumer := range exportedService.Consumers {
+				clusterName := b.clusterName(exportedService.TargetRef, consumer, port.TargetPort)
+				clusters[clusterName] = &pbproxystate.Cluster{
+					Name:     clusterName,
+					Protocol: pbproxystate.Protocol_PROTOCOL_TCP, // TODO
+					Group: &pbproxystate.Cluster_EndpointGroup{
+						EndpointGroup: &pbproxystate.EndpointGroup{
+							Group: &pbproxystate.EndpointGroup_Dynamic{},
+						},
+					},
+					AltStatName: "prefix",
+				}
 			}
 		}
-	}
-
-	clusters["my-fancy-cluster"] = &pbproxystate.Cluster{
-		Name: "my-fancy-cluster",
-		Group: &pbproxystate.Cluster_EndpointGroup{
-			EndpointGroup: &pbproxystate.EndpointGroup{
-				Group: &pbproxystate.EndpointGroup_Dynamic{},
-			},
-		},
-		AltStatName: "prefix",
-		Protocol:    pbproxystate.Protocol_PROTOCOL_TCP, // TODO
 	}
 
 	return clusters
@@ -126,27 +170,26 @@ func (b *proxyStateTemplateBuilder) clusters() map[string]*pbproxystate.Cluster 
 func (b *proxyStateTemplateBuilder) requiredEndpoints() map[string]*pbproxystate.EndpointRef {
 	requiredEndpoints := map[string]*pbproxystate.EndpointRef{}
 
-	for _, service := range b.exportedServices.Data.Consumers {
-		for _, consumer := range service.Consumers {
-			clusterName := clusterName(service.TargetRef, consumer)
-			requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
-				Id: &pbresource.ID{
-					Name:    service.TargetRef.Name,
-					Type:    pbcatalog.ServiceEndpointsType,
-					Tenancy: service.TargetRef.Tenancy,
-				},
-				Port: service.TargetRef.Section,
+	for _, exportedService := range b.exportedServices.Data.Consumers {
+		serviceID := resource.IDFromReference(exportedService.TargetRef)
+		service, err := b.dataFetcher.FetchService(context.Background(), serviceID)
+		if err != nil {
+			b.logger.Trace("error reading exported service", "error", err)
+			continue
+		} else if service == nil {
+			b.logger.Trace("service does not exist, skipping router", "service", serviceID)
+			continue
+		}
+
+		for _, port := range service.Data.Ports {
+			for _, consumer := range exportedService.Consumers {
+				clusterName := b.clusterName(exportedService.TargetRef, consumer, port.TargetPort)
+				requiredEndpoints[clusterName] = &pbproxystate.EndpointRef{
+					Id:   resource.ReplaceType(pbcatalog.ServiceEndpointsType, serviceID),
+					Port: port.TargetPort,
+				}
 			}
 		}
-	}
-
-	requiredEndpoints["my-fancy-cluster"] = &pbproxystate.EndpointRef{
-		Id: &pbresource.ID{
-			Name:    "backend",
-			Type:    pbcatalog.ServiceEndpointsType,
-			Tenancy: resource.DefaultNamespacedTenancy(),
-		},
-		Port: "8080",
 	}
 
 	return requiredEndpoints
@@ -177,13 +220,21 @@ func (b *proxyStateTemplateBuilder) Build() *meshv2beta1.ProxyStateTemplate {
 	}
 }
 
-func clusterName(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServicesConsumer) string {
+func (b *proxyStateTemplateBuilder) clusterName(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServicesConsumer, port string) string {
+	return fmt.Sprintf("%s.%s", port, b.sni(serviceRef, consumer))
+}
+
+func (b *proxyStateTemplateBuilder) sni(serviceRef *pbresource.Reference, consumer *pbmulticluster.ComputedExportedServicesConsumer) string {
 	switch tConsumer := consumer.ConsumerTenancy.(type) {
 	case *pbmulticluster.ComputedExportedServicesConsumer_Partition:
-		return fmt.Sprintf("%s-%d", serviceRef.Name, tConsumer.Partition)
+		return connect.ServiceSNI(serviceRef.Name, "", serviceRef.Tenancy.Namespace, tConsumer.Partition, b.dc, b.trustDomain)
 	case *pbmulticluster.ComputedExportedServicesConsumer_Peer:
-		return fmt.Sprintf("%s-%d", serviceRef.Name, tConsumer.Peer)
+		return connect.PeeredServiceSNI(serviceRef.Name, serviceRef.Tenancy.Namespace, serviceRef.Tenancy.Partition, tConsumer.Peer, b.trustDomain)
 	default:
 		return ""
 	}
+}
+
+func alpnProtocol(portName string) string {
+	return fmt.Sprintf("consul~%s", portName)
 }
