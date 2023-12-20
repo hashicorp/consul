@@ -61,6 +61,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	if workload == nil {
+		rt.Logger.Trace("workload doesn't exist; skipping reconciliation")
 		// Workload no longer exists, let garbage collector clean up
 		return nil
 	}
@@ -128,6 +129,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
 	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
+		rt.Logger.Trace("proxy state template matches existing one; skipping reconciliation")
 		return nil
 	}
 
