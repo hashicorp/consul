@@ -48,3 +48,25 @@ Feature: dc / services / show / topology / metrics
       service: web
     ---
     And I see the "[data-test-sparkline]" element
+  Scenario: Metrics enabled but service source is Consul API Gateway
+    Given 1 datacenter model with the value "datacenter"
+    And the local datacenter is "datacenter"
+    And 1 service model from yaml
+    ---
+      - Service:
+        Name: web
+        Kind: ~
+        Meta:
+        external-source: consul-api-gateway
+    ---
+    And ui_config from yaml
+    ---
+      metrics_proxy_enabled: true
+      metrics_provider: 'prometheus'
+    ---
+    When I visit the service page for yaml
+    ---
+      dc: datacenter
+      service: web
+    ---
+    And I don't see the "[data-test-sparkline]" element
