@@ -154,6 +154,7 @@ jobs:
       CONSUL_NSPACES_ENABLED: 0
       EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
@@ -226,6 +227,7 @@ jobs:
       CONSUL_NSPACES_ENABLED: 1
       EMBER_TEST_REPORT: test-results/report-ce.xml #outputs test report for CI test summary
       EMBER_TEST_PARALLEL: true #enables test parallelization with ember-exam
+      JOBS: 2 # limit parallelism for broccoli-babel-transpiler
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
