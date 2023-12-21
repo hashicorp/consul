@@ -1,0 +1,3 @@
+```release-note:security
+ Upgrade to use `ubi-minimal:9.3` for OpenShift container images.
+ ```
