@@ -209,6 +209,31 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
+		"partitioned type with wildcard partition and namespace": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
+		"cluster type with empty partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+
+		"cluster type with wildcard partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
 	}
 }
 

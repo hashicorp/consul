@@ -251,7 +251,7 @@ import (
 )
 
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithReconciler(barReconciler{})
 }
 
@@ -387,7 +387,7 @@ controller also watches workloads and services.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithWatch(pbv1alpha1.BazType, controller.MapOwner)
 		WithReconciler(barReconciler{})
 }
@@ -397,11 +397,11 @@ The second argument to `WithWatch` is a [dependency mapper] function. Whenever a
 resource of the watched type is modified, the dependency mapper will be called
 to determine which of the controller's managed resources need to be reconciled.
 
-[`controller.MapOwner`] is a convenience function which causes the watched
+[`dependency.MapOwner`] is a convenience function which causes the watched
 resource's [owner](#ownership--cascading-deletion) to be reconciled.
 
 [dependency mapper]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#DependencyMapper
-[`controller.MapOwner`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller#MapOwner
+[`dependency.MapOwner`]: https://pkg.go.dev/github.com/hashicorp/consul/internal/controller/dependency#MapOwner
 
 ### Placement
 
@@ -413,7 +413,7 @@ the controller's placement.
 
 ```Go
 func barController() controller.Controller {
-	return controller.ForType(pbv1alpha1.BarType).
+	return controller.NewController("bar", pbv1alpha1.BarType).
 		WithPlacement(controller.PlacementEachServer)
 		WithReconciler(barReconciler{})
 }

@@ -35,6 +35,7 @@ You can use the following commands with `consul-k8s`.
       - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
       - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
       - [`proxy log`](#proxy-log): Inspect and modify the Envoy logging configuration for a given Pod.
+      - [`proxy stats`](#proxy-stats):  View the Envoy cluster stats for a given Pod.
   - [`status`](#status): Check the status of a Consul installation on Kubernetes.
   - [`troubleshoot`](#troubleshoot): Troubleshoot Consul service mesh and networking issues from a given pod.
   - [`uninstall`](#uninstall): Uninstall Consul deployment.
@@ -150,6 +151,7 @@ Consul in your Kubernetes Cluster.
 - [`proxy list`](#proxy-list): List all Pods running proxies managed by Consul.
 - [`proxy read`](#proxy-read): Inspect the Envoy configuration for a given Pod.
 - [`proxy log`](#proxy-log): Inspect and modify the Envoy logging configuration for a given Pod.
+- [`proxy stats`](#proxy-stats): View the Envoy cluster stats for a given Pod.
 
 ### `proxy list`
 
@@ -161,6 +163,7 @@ $ consul-k8s proxy list <OPTIONS>
 | ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | <nobr>`-all-namespaces`, `-A`</nobr> | `Boolean` List pods in all Kubernetes namespaces.     | `false`                                                                                                                |
 | <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+| <nobr>`-output-format`, `-o`</nobr>  | `String` If set to json, outputs the result in json format, else table format | `table`
 
 Refer to the [Global Options](#global-options) for additional options that you can use
 when installing Consul on Kubernetes.
@@ -227,6 +230,46 @@ default  	client-767ccfc8f9-6f6gx                	Sidecar
 default  	client-767ccfc8f9-f8nsn                	Sidecar
 default  	client-767ccfc8f9-ggrtx                	Sidecar
 default  	frontend-676564547c-v2mfq              	Sidecar
+```
+
+Display all Pods across all namespaces that run proxies managed by Consul in JSON format
+
+```shell-session
+$ consul-k8s proxy list -A -o json
+Namespace: All namespaces
+
+[
+    {
+        "Name": "frontend-6fd97b8fb5-spqb8",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "nginx-6d7469694f-p5wrz",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "payments-667d87bf95-ktb8n",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "product-api-7c4d77c7c9-g4g2b",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "product-api-db-685c844cb-k5l8f",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    },
+    {
+        "Name": "public-api-567d949866-cgksl",
+        "Namespace": "default",
+        "Type": "Sidecar"
+    }
+]
 ```
 
 ### `proxy read`
@@ -781,6 +824,86 @@ file                            info
 kafka                           info
 lua                             info
 ```
+
+### `proxy stats`
+
+The `proxy stats` command allows you to inspect the Envoy cluster stats for Envoy proxies running on a given Pod.
+
+```shell-session
+$ consul-k8s proxy stats <PODNAME> <OPTIONS>
+```
+| Flag                                 | Description                                           | Default                                                                                                                |
+| ------------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| <nobr>`-namespace`, `-n`</nobr>      | `String` The Kubernetes namespace to list proxies in. | Current [kubeconfig](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) namespace. |
+
+Refer to the [Global Options](#global-options) for additional options that you can use
+when installing Consul on Kubernetes.
+
+#### Example Commands
+
+Display the Envoy cluster stats in a given pod in default namespace.
+
+```shell-session
+$ consul-k8s proxy stats product-api-7c4d77c7c9-6slnl
+cluster.frontend.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.nginx.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.payments.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.product-api-db.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.public-api.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster_manager.cds.version_text: ""
+control_plane.identifier: ""
+listener_manager.lds.version_text: ""
+cluster.consul-dataplane.assignment_stale: 0
+cluster.consul-dataplane.assignment_timeout_received: 0
+cluster.consul-dataplane.bind_errors: 0
+cluster.consul-dataplane.circuit_breakers.default.cx_open: 0
+cluster.consul-dataplane.circuit_breakers.default.cx_pool_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_pending_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_retry_open: 0
+cluster.consul-dataplane.circuit_breakers.high.cx_open: 0
+cluster.consul-dataplane.circuit_breakers.high.cx_pool_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_pending_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_retry_open: 0
+cluster.consul-dataplane.default.total_match_count: 1
+cluster.consul-dataplane.http2.deferred_stream_close: 0
+cluster.consul-dataplane.http2.dropped_headers_with_underscores: 0
+cluster.consul-dataplane.http2.header_overflow: 0
+cluster.consul-dataplane.http2.headers_cb_no_stream: 0
+cluster.consul-dataplane.http2.inbound_empty_frames_flood: 0
+cluster.consul-dataplane.http2.inbound_priority_frames_flood: 0
+.........
+```
+
+Display the Envoy cluster stats in a given pod in different namespace.
+
+```shell-session
+$ consul-k8s proxy stats public-api-567d949866-452xc -n consul
+cluster.frontend.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.nginx.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.payments.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.product-api-db.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster.product-api.default.dc1.internal.4b11bae3-b8ca-ee63-89bc-428cbfa6ef60.consul.version_text: ""
+cluster_manager.cds.version_text: ""
+control_plane.identifier: ""
+listener_manager.lds.version_text: ""
+cluster.consul-dataplane.assignment_stale: 0
+cluster.consul-dataplane.assignment_timeout_received: 0
+cluster.consul-dataplane.bind_errors: 0
+cluster.consul-dataplane.circuit_breakers.default.cx_open: 0
+cluster.consul-dataplane.circuit_breakers.default.cx_pool_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_pending_open: 0
+cluster.consul-dataplane.circuit_breakers.default.rq_retry_open: 0
+cluster.consul-dataplane.circuit_breakers.high.cx_open: 0
+cluster.consul-dataplane.circuit_breakers.high.cx_pool_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_pending_open: 0
+cluster.consul-dataplane.circuit_breakers.high.rq_retry_open: 0
+.........
+```
+
 ### `status`
 
 The `status` command provides an overall status summary of the Consul on Kubernetes installation. It also provides the configuration that was used to deploy Consul K8s and information about the health of Consul servers and clients. This command does not take in any flags.

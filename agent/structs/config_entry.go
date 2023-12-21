@@ -95,6 +95,16 @@ type ConfigEntry interface {
 	GetMeta() map[string]string
 	GetEnterpriseMeta() *acl.EnterpriseMeta
 	GetRaftIndex() *RaftIndex
+	GetHash() uint64
+	SetHash(h uint64)
+}
+
+func HashConfigEntry(conf ConfigEntry) (uint64, error) {
+	hash, err := hashstructure.Hash(conf, nil)
+	if err != nil {
+		return hash, err
+	}
+	return hash, nil
 }
 
 // ControlledConfigEntry is an optional interface implemented by a ConfigEntry
@@ -169,8 +179,17 @@ type ServiceConfigEntry struct {
 	EnvoyExtensions           EnvoyExtensions        `json:",omitempty" alias:"envoy_extensions"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ServiceConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ServiceConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ServiceConfigEntry) Clone() *ServiceConfigEntry {
@@ -225,6 +244,11 @@ func (e *ServiceConfigEntry) Normalize() error {
 			}
 		}
 	}
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 
 	return validationErr
 }
@@ -451,8 +475,17 @@ type ProxyConfigEntry struct {
 	PrioritizeByLocality *ServiceResolverPrioritizeByLocality `json:",omitempty" alias:"prioritize_by_locality"`
 
 	Meta               map[string]string `json:",omitempty"`
+	Hash               uint64            `json:",omitempty" hash:"ignore"`
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
-	RaftIndex
+	RaftIndex          `hash:"ignore"`
+}
+
+func (e *ProxyConfigEntry) SetHash(h uint64) {
+	e.Hash = h
+}
+
+func (e *ProxyConfigEntry) GetHash() uint64 {
+	return e.Hash
 }
 
 func (e *ProxyConfigEntry) GetKind() string {
@@ -491,7 +524,13 @@ func (e *ProxyConfigEntry) Normalize() error {
 
 	e.EnterpriseMeta.Normalize()
 
+	h, err := HashConfigEntry(e)
+	if err != nil {
+		return err
+	}
+	e.Hash = h
 	return nil
+
 }
 
 func (e *ProxyConfigEntry) Validate() error {
