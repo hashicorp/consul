@@ -1,98 +1,84 @@
 ---
 layout: docs
-page_title: Service defaults configuration entry reference
+page_title: Service Defaults Configuration Reference
 description: ->
   Use the service-defaults configuration entry to set default configurations for services, such as upstreams, protocols, and namespaces. Learn how to configure service-defaults.
 ---
 
-# Service defaults configuration reference
-
+# Service Defaults Configuration Reference
 This topic describes how to configure service defaults configuration entries. The service defaults configuration entry contains common configuration settings for service mesh services, such as upstreams and gateways. Refer to [Define service defaults](/consul/docs/services/usage/define-services#define-service-defaults) for usage information.
 
 ## Configuration model
 
-The following list outlines field hierarchy, language-specific data types, requirements, and any applicable default values in service defaults configuration entries. Click on a property name to view additional details.
+The following outline shows how to format the service defaults configuration entry. Click on a property name to view details about the configuration.
 
 <Tabs>
 <Tab heading="HCL and JSON" group="hcl">
 
 - [`Kind`](#kind): string | required
 - [`Name`](#name): string | required
-- [`Namespace`](#namespace): string | `default` <EnterpriseAlert inline />
-- [`Partition`](#partition): string | `default` <EnterpriseAlert inline />
-- [`Meta`](#meta): map
-- [`Protocol`](#protocol): string | `tcp`
-- [`BalanceInboundConnections`](#balanceinboundconnections): string
-- [`Mode`](#mode): string
-- [`RateLimits`](#ratelimits): map | <EnterpriseAlert inline />
-  - [`InstanceLevel`](#ratelimits-instancelevel): map
-    - [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond): number
-    - [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst): number
-    - [`Routes`](#ratelimits-instancelevel-routes): list maps
-      - [`PathExact`](#ratelimits-instancelevel-routes): string
-      - [`PathPrefix`](#ratelimits-instancelevel-routes): string
-      - [`PathRegex`](#ratelimits-instancelevel-routes): string
-      - [`RequestsPerSecond`](#ratelimits-instancelevel-routes): number | required
-      - [`RequestsMaxBurst`](#ratelimits-instancelevel-routes): number
-- [`UpstreamConfig`](#upstreamconfig): map
-  - [`Overrides`](#upstreamconfig-overrides): map
-    - [`Name`](#upstreamconfig-overrides-name): string
-    - [`Namespace`](#upstreamconfig-overrides-namespace): string
-    - [`Peer`](#upstreamconfig-overrides-peer): string
-    - [`Protocol`](#upstreamconfig-overrides-protocol): string
-    - [`ConnectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | `5000`
-    - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map
-      - [`mode`](#upstreamconfig-overrides-meshgateway): string
-    - [`BalanceOutboundConnections`](#upstreamconfig-overrides-balanceoutboundconnections): string
-    - [`Limits`](#upstreamconfig-overrides-limits): map
-      - [`MaxConnections`](#upstreamconfig-overrides-limits): number | `0`
-      - [`MaxPendingRequests`](#upstreamconfig-overrides-limits): number | `0`
-      - [`MaxConcurrentRequests`](#upstreamconfig-overrides-limits): number | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map
+- [`Namespace`](#namespace): string  <EnterpriseAlert inline />
+- [`Partition`](#partition): string  <EnterpriseAlert inline />
+- [`Meta`](#meta): map | no default
+- [`Protocol`](#protocol): string | default: `tcp`
+- [`BalanceInboundConnections`](#balanceinboundconnections): string | no default
+- [`Mode`](#mode): string | no default
+- [`UpstreamConfig`](#upstreamconfig): map | no default
+  - [`Overrides`](#upstreamconfig-overrides): map | no default
+    - [`Name`](#upstreamconfig-overrides-name): string | no default
+    - [`Namespace`](#upstreamconfig-overrides-namespace): string | no default
+    - [`Peer`](#upstreamconfig-overrides-peer): string | no default
+    - [`Protocol`](#upstreamconfig-overrides-protocol): string | no default
+    - [`ConnectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
+    - [`MeshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
+      - [`mode`](#upstreamconfig-overrides-meshgateway): string | no default
+    - [`BalanceOutboundConnections`](#upstreamconfig-overrides-balanceoutboundconnections): string | no default
+    - [`Limits`](#upstreamconfig-overrides-limits): map | optional
+      - [`MaxConnections`](#upstreamconfig-overrides-limits): integer | `0`
+      - [`MaxPendingRequests`](#upstreamconfig-overrides-limits): integer | `0`
+      - [`MaxConcurrentRequests`](#upstreamconfig-overrides-limits): integer | `0`
+    - [`PassiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map | optional
       - [`Interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
-      - [`MaxFailures`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
-      - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
+      - [`MaxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+      - [`EnforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+      - [`MaxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
       - [`BaseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
-  - [`Defaults`](#upstreamconfig-defaults): map
-    - [`Protocol`](#upstreamconfig-defaults-protocol): string
-    - [`ConnectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | `5000`
-    - [`MeshGateway`](#upstreamconfig-defaults-meshgateway): map
-      - [`mode`](#upstreamconfig-defaults-meshgateway): string
-    - [`BalanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string
-    - [`Limits`](#upstreamconfig-defaults-limits): map
-      - [`MaxConnections`](#upstreamconfig-defaults-limits): number | `0`
-      - [`MaxPendingRequests`](#upstreamconfig-defaults-limits): number | `0`
-      - [`MaxConcurrentRequests`](#upstreamconfig-defaults-limits): number | `0`
-    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map
+  - [`Defaults`](#upstreamconfig-defaults): map | no default
+    - [`Protocol`](#upstreamconfig-defaults-protocol): string | no default
+    - [`ConnectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
+    - [`MeshGateway`](#upstreamconfig-defaults-meshgateway): map | no default
+      - [`mode`](#upstreamconfig-defaults-meshgateway): string | no default
+    - [`BalanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string | no default
+    - [`Limits`](#upstreamconfig-defaults-limits): map | optional
+      - [`MaxConnections`](#upstreamconfig-defaults-limits): integer | `0`
+      - [`MaxPendingRequests`](#upstreamconfig-defaults-limits): integer | `0`
+      - [`MaxConcurrentRequests`](#upstreamconfig-defaults-limits): integer | `0`
+    - [`PassiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map | optional
       - [`Interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
-      - [`MaxFailures`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
-      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): number | `100`
-      - [`MaxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
+      - [`MaxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
+      - [`EnforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | `100`
+      - [`MaxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
       - [`BaseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
-- [`TransparentProxy`](#transparentproxy): map
-  - [`OutboundListenerPort`](#transparentproxy): number | `15001`
+- [`TransparentProxy`](#transparentproxy): map | no default
+  - [`OutboundListenerPort`](#transparentproxy): integer | `15001`
   - [`DialedDirectly`](#transparentproxy  ): boolean | `false`
-- [`MutualTLSMode`](#mutualtlsmode): string
-- [`EnvoyExtensions`](#envoyextensions): list
-  - [`Name`](#envoyextensions): string
-  - [`Required`](#envoyextensions): string
-  - [`Arguments`](#envoyextensions): map
-  - [`ConsulVersion`](#envoyextensions): string
-  - [`EnvoyVersion`](#envoyextensions): string
-- [`Destination`](#destination): map
-  - [`Addresses`](#destination): list
+- [`EnvoyExtensions`](#envoyextensions): list | no default
+  - [`Name`](#envoyextensions): string | `""`
+  - [`Required`](#envoyextensions): string | `""`
+  - [`Arguments`](#envoyextensions): map | `nil`
+- [`Destination`](#destination): map | no default
+  - [`Addresses`](#destination): list | no default
   - [`Port`](#destination): integer | `0`
-- [`MaxInboundConnections`](#maxinboundconnections): number | `0`
-- [`LocalConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
-- [`LocalRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
-- [`MeshGateway`](#meshgateway): map
-  - [`Mode`](#meshgateway): string
-- [`ExternalSNI`](#externalsni): string
-- [`Expose`](#expose): map
+- [`MaxInboundConnections`](#maxinboundconnections): integer | `0`
+- [`LocalConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
+- [`LocalRequestTimeoutMs`](#localrequesttimeoutms): integer | `0`
+- [`MeshGateway`](#meshgateway): map | no default
+  - [`Mode`](#meshgateway): string | no default
+- [`ExternalSNI`](#externalsni): string | no default
+- [`Expose`](#expose): map | no default
   - [`Checks`](#expose-checks): boolean | `false`
-  - [`Paths`](#expose-paths): list
-    - [`Path`](#expose-paths): string
+  - [`Paths`](#expose-paths): list | no default
+    - [`Path`](#expose-paths): string | no default
     - [`LocalPathPort`](#expose-paths): integer | `0`
     - [`ListenerPort`](#expose-paths): integer | `0`
     - [`Protocol`](#expose-paths): string | `http`
@@ -100,86 +86,72 @@ The following list outlines field hierarchy, language-specific data types, requi
 </Tab>
 <Tab heading="Kubernetes YAML" group="yaml">
 
-- [`apiVersion`](#apiversion): string | required | must be set to `consul.hashicorp.com/v1alpha1`
-- [`kind`](#kind): string
-- [`metadata`](#metadata): map
-  - [`name`](#name): string
-  - [`namespace`](#namespace): string | `default`` | <EnterpriseAlert inline />
-- [`spec`](#spec): map
-  - [`protocol`](#protocol): string | `tcp`
-  - [`balanceInboundConnections`](#balanceinboundconnections): string
-  - [`mode`](#mode): string
-  - [`rateLimits`](#spec-ratelimits): map | <EnterpriseAlert inline />
-    - [`instanceLevel`](#spec-ratelimits-instancelevel): map
-      - [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond): number
-      - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst): number
-      - [`routes`](#spec-ratelimits-instancelevel-routes): list maps
-        - [`pathExact`](#spec-ratelimits-instancelevel-routes): string
-        - [`pathPrefix`](#spec-ratelimits-instancelevel-routes): string
-        - [`pathRegex`](#spec-ratelimits-instancelevel-routes): string
-        - [`requestsPerSecond`](#spec-ratelimits-instancelevel-routes): number | required
-        - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-routes): number
-  - [`upstreamConfig`](#upstreamconfig): map
-    - [`overrides`](#upstreamconfig-overrides): list
-      - [`name`](#upstreamconfig-overrides-name): string
-      - [`namespace`](#upstreamconfig-overrides-namespace): string
-      - [`peer`](#upstreamconfig-overrides-peer): string
-      - [`protocol`](#upstreamconfig-overrides-protocol): string
-      - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): number | `5000`
-      - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map
-        - [`mode`](#upstreamconfig-overrides-meshgateway): string
-      - [`balanceOutboundConnections`](#overrides-balanceoutboundconnections): string
-      - [`limits`](#upstreamconfig-overrides-limits): map
-        - [`maxConnections`](#upstreamconfig-overrides-limits): number | `0`
-        - [`maxPendingRequests`](#upstreamconfig-overrides-limits): number | `0`
-        - [`maxConcurrentRequests`](#upstreamconfig-overrides-limits): number | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map
+- [`apiVersion`](#apiversion): string | must be set to `consul.hashicorp.com/v1alpha1`
+- [`kind`](#kind): string | no default
+- [`metadata`](#metadata): map | no default
+  - [`name`](#name): string | no default
+  - [`namespace`](#namespace): string | no default | <EnterpriseAlert inline />
+- [`spec`](#spec): map | no default
+  - [`protocol`](#protocol): string | default: `tcp`
+  - [`balanceInboundConnections`](#balanceinboundconnections): string | no default
+  - [`mode`](#mode): string | no default
+  - [`upstreamConfig`](#upstreamconfig): map | no default
+    - [`overrides`](#upstreamconfig-overrides): list | no default
+      - [`name`](#upstreamconfig-overrides-name): string | no default
+      - [`namespace`](#upstreamconfig-overrides-namespace): string | no default
+      - [`protocol`](#upstreamconfig-overrides-protocol): string | no default
+      - [`connectTimeoutMs`](#upstreamconfig-overrides-connecttimeoutms): int | default: `5000`
+      - [`meshGateway`](#upstreamconfig-overrides-meshgateway): map | no default
+        - [`mode`](#upstreamconfig-overrides-meshgateway): string | no default
+      - [`balanceOutboundConnections`](#overrides-balanceoutboundconnections): string | no default
+      - [`limits`](#upstreamconfig-overrides-limits): map | optional
+        - [`maxConnections`](#upstreamconfig-overrides-limits): integer | `0`
+        - [`maxPendingRequests`](#upstreamconfig-overrides-limits): integer | `0`
+        - [`maxConcurrentRequests`](#upstreamconfig-overrides-limits): integer | `0`
+      - [`passiveHealthCheck`](#upstreamconfig-overrides-passivehealthcheck): map | optional
         - [`interval`](#upstreamconfig-overrides-passivehealthcheck): string | `0s`
-        - [`maxFailures`](#upstreamconfig-overrides-passivehealthcheck): number | `0`
-        - [`enforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): number | `100`
-        - [`maxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): number | `10`
+        - [`maxFailures`](#upstreamconfig-overrides-passivehealthcheck): integer | `0`
+        - [`enforcingConsecutive5xx`](#upstreamconfig-overrides-passivehealthcheck): integer | `100`
+        - [`maxEjectionPercent`](#upstreamconfig-overrides-passivehealthcheck): integer | `10`
         - [`baseEjectionTime`](#upstreamconfig-overrides-passivehealthcheck): string | `30s`
-    - [`defaults`](#upstreamconfig-defaults): map
-      - [`protocol`](#upstreamconfig-defaults-protocol): string
-      - [`connectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): number | `5000`
-      - [`meshGateway`](#upstreamconfig-defaults-meshgateway): map
-        - [`mode`](#upstreamconfig-defaults-meshgateway): string
-      - [`balanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string
-      - [`limits`](#upstreamconfig-defaults-limits): map
-        - [`maxConnections`](#upstreamconfig-defaults-limits): number | `0`
-        - [`maxPendingRequests`](#upstreamconfig-defaults-limits): number | `0`
-        - [`maxConcurrentRequests`](#upstreamconfig-defaults-limits): number | `0`
-      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map
+    - [`defaults`](#upstreamconfig-defaults): map | no default
+      - [`protocol`](#upstreamconfig-defaults-protocol): string | no default
+      - [`connectTimeoutMs`](#upstreamconfig-defaults-connecttimeoutms): int | default: `5000`
+      - [`meshGateway`](#upstreamconfig-defaults-meshgateway): map | no default
+        - [`mode`](#upstreamconfig-defaults-meshgateway): string | no default
+      - [`balanceOutboundConnections`](#upstreamconfig-defaults-balanceoutboundconnections): string | no default
+      - [`limits`](#upstreamconfig-defaults-limits): map | optional
+        - [`maxConnections`](#upstreamconfig-defaults-limits): integer | `0`
+        - [`maxPendingRequests`](#upstreamconfig-defaults-limits): integer | `0`
+        - [`maxConcurrentRequests`](#upstreamconfig-defaults-limits): integer | `0`
+      - [`passiveHealthCheck`](#upstreamconfig-defaults-passivehealthcheck): map | optional
         - [`interval`](#upstreamconfig-defaults-passivehealthcheck): string | `0s`
-        - [`maxFailures`](#upstreamconfig-defaults-passivehealthcheck): number | `0`
-        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): number | `100`
-        - [`maxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): number | `10`
+        - [`maxFailures`](#upstreamconfig-defaults-passivehealthcheck): integer | `0`
+        - [`enforcingConsecutive5xx`](#upstreamconfig-defaults-passivehealthcheck): integer | `100`
+        - [`maxEjectionPercent`](#upstreamconfig-defaults-passivehealthcheck): integer | `10`
         - [`baseEjectionTime`](#upstreamconfig-defaults-passivehealthcheck): string | `30s`
-  - [`transparentProxy`](#transparentproxy): map
-    - [`outboundListenerPort`](#transparentproxy): number | `15001`
+  - [`transparentProxy`](#transparentproxy): map | no default
+    - [`outboundListenerPort`](#transparentproxy): integer | `15001`
     - [`dialedDirectly`](#transparentproxy): boolean | `false`
-  - [`mutualTLSMode`](#mutualtlsmode): string
-  - [`envoyExtensions`](#envoyextensions): list
-    - [`name`](#envoyextensions): string
-    - [`required`](#envoyextensions): string
-    - [`arguments`](#envoyextensions): map
-    - [`consulVersion`](#envoyextensions): string
-    - [`envoyVersion`](#envoyextensions): string
-  - [`destination`](#destination): map
-    - [`addresses`](#destination): list
-    - [`port`](#destination): number | `0`
-  - [`maxInboundConnections`](#maxinboundconnections): number | `0`
-  - [`localConnectTimeoutMs`](#localconnecttimeoutms): number | `0`
-  - [`localRequestTimeoutMs`](#localrequesttimeoutms): number | `0`
-  - [`meshGateway`](#meshgateway): map
-    - [`mode`](#meshgateway): string
-  - [`externalSNI`](#externalsni): string
-  - [`expose`](#expose): map
+  - [`envoyExtensions`](#envoyextensions): list | no default
+    - [`name`](#envoyextensions): string | `""`
+    - [`required`](#envoyextensions): string | `""`
+    - [`arguments`](#envoyextensions): map | `nil`
+  - [`destination`](#destination): map | no default
+    - [`addresses`](#destination): list | no default
+    - [`port`](#destination): integer | `0`
+  - [`maxInboundConnections`](#maxinboundconnections): integer | `0`
+  - [`localConnectTimeoutMs`](#localconnecttimeoutms): integer | `0`
+  - [`localRequestTimeoutMs`](#localrequesttimeoutms): integer | `0`
+  - [`meshGateway`](#meshgateway): map | no default
+    - [`mode`](#meshgateway): string | no default
+  - [`externalSNI`](#externalsni): string | no default
+  - [`expose`](#expose): map | no default
     - [`checks`](#expose-checks): boolean | `false`
-    - [`paths`](#expose-paths): list
-      - [`path`](#expose-paths): string
-      - [`localPathPort`](#expose-paths): number | `0`
-      - [`listenerPort`](#expose-paths): number | `0`
+    - [`paths`](#expose-paths): list | no default
+      - [`path`](#expose-paths): string | no default
+      - [`localPathPort`](#expose-paths): integer | `0`
+      - [`listenerPort`](#expose-paths): integer | `0`
       - [`protocol`](#expose-paths): string | `http`
 
 </Tab>
@@ -194,110 +166,85 @@ When every field is defined, a service-defaults configuration entry has the foll
 
 ```hcl
 Kind      = "service-defaults"
-Name      = "<service_name>"
-Namespace = "default"
-Partition = "default"
+Name      = "service_name"
+Namespace = "namespace"
+Partition = "partition"
 Meta = {
   Key = "value"
 }
 Protocol                  = "tcp"
 BalanceInboundConnections = "exact_balance"
-Mode                      = "<mode for directing traffic>"
-RateLimits = {
-  InstanceLevel = {
-    RequestsPerSecond = <average number of requests allowed to the service per second>
-    RequestsMaxBurst = <max number of concurrent requests allowed to the service>
-    Routes = [		# Configure RequestsPerSecond and one route matching parameter for each member of the list
-      {
-        PathExact = "<limits apply paths that match this value>"
-        PathPrefix = "<limits apply to paths starting with this value>"
-        PathRegex = "<limits apply to paths that match this expression>"
-        RequestsPerSecond = <overrides top-level limit>
-        RequestMaxBurst = <overrides top-level limit>
-      }
-  ]
-}
+Mode                      = "transparent"
 UpstreamConfig = {
   Overrides = {
-    Name             = "<name of upstreams to override>"
-    Namespace        = "<namespace containing upstreams to override>"
-    Peer             = "<peer name of upstream service>"
-    Protocol         = "<protocol for requests to upstream services>"
-    ConnectTimeoutMs = 5000
+    Name             = "name-of-upstreams-to-override"
+    Namespace        = "namespace-containing-upstreams-to-override"
+    Protocol         = "http"
+    ConnectTimeoutMs = 100
     MeshGateway = {
-      mode = "<mode for mesh gateway services>"
+      mode = "remote"
     }
     BalanceOutboundConnections = "exact_balance"
     Limits = {
-      MaxConnections        = 0
-      MaxPendingRequests    = 0
-      MaxConcurrentRequests = 0
+      MaxConnections        = 10
+      MaxPendingRequests    = 50
+      MaxConcurrentRequests = 100
     }
     PassiveHealthCheck = {
-      Interval                = "0s"
-      MaxFailures             = 0
-      EnforcingConsecutive5xx = 100
+      Interval                = "5s"
+      MaxFailures             = 5
+      EnforcingConsecutive5xx = 99
       MaxEjectionPercent      = 10
       BaseEjectionTime        = "30s"
     }
   }
   Defaults = {
-    Protocol         = "<default protocol for upstream traffic>"
-    ConnectTimeoutMs = 5000
+    Protocol         = "http2"
+    ConnectTimeoutMs = 2000
     MeshGateway = {
-      mode = "<default mode for mesh gateway services>"
+      mode = "local"
     }
     BalanceOutboundConnections = "exact_balance"
     Limits = {
-      MaxConnections        = 0
-      MaxPendingRequests    = 0
-      MaxConcurrentRequests = 0
+      MaxConnections        = 100
+      MaxPendingRequests    = 500
+      MaxConcurrentRequests = 1000
     }
     PassiveHealthCheck = {
-      Interval                = "0s"
-      MaxFailures             = 0
-      EnforcingConsecutive5xx = 100
+      Interval                = "1s"
+      MaxFailures             = 1
+      EnforcingConsecutive5xx = 89
       MaxEjectionPercent      = 10
       BaseEjectionTime        = "30s"
     }
   }
 }
 TransparentProxy = {
-  OutboundListenerPort = 15001
-  DialedDirectly       = false
+  OutboundListenerPort = 15002
+  DialedDirectly       = true
 }
-MutualTLSMode = "strict" # only supported when services are in transparent proxy mode
-EnvoyExtensions = [
-  {
-    Name = "<name of the extension>"
-    Required = `false`
-    Arguments = { <specific to each extension> }
-    ConsulVersion = "<Consul version constraint for applying the extension>"
-    EnvoyVersion = "<Envoy version constraint for applying the extension>"
-  }
-]
 Destination = {
   Addresses = [
-    "<first IP address>",
-    "<second IP address>"
+    "First IP address",
+    "Second IP address"
   ]
-  Port = 0
+  Port = 88
 }
-MaxInboundConnections = 0
-LocalConnectTimeoutMs = 5000
-LocalRequestTimeoutMs = "15s"
+MaxInboundConnections = 100
+LocalConnectTimeoutMs = 10
+LocalRequestTimeoutMs = 10
 MeshGateway = {
-  Mode = "<default mode for mesh gateway services>"
+  Mode = "remote"
 }
-ExternalSNI = "<SNI server host>"
+ExternalSNI = "sni-server-host"
 Expose = {
-  Checks = false
+  Checks = true
   Paths = [
     {
-      Path          = "</local/dir>"
-      LocalPathPort = 0
-      LocalListenerPort = 0
-      Protocol      = "http"
+      Path          = "/local/dir"
+      LocalPathPort = 99
+      LocalListenerPort = 98
+      Protocol      = "http2"
     }
   ]
 }
@@ -311,46 +258,35 @@ apiVersion: consul.hashicorp.com/v1alpha1
 kind: ServiceDefaults
 metadata:
   name: <name of the service you are configuring>
-  namespace: default
+  namespace: <Consul Enterprise namespace>
 spec:
   protocol: tcp
   balanceInboundConnections: exact_balance
-  mode: <mode for directing traffic>
-  rateLimits:
-    instanceLevel:
-      requestsPerSecond: <average number of requests allowed to the service per second>
-      requestsMaxBurst: <max number of concurrent requests allowed to the service>
-      routes: 		# Configure RequestsPerSecond and one route matching parameter for each member of the list
-      - pathExact: "<limits apply paths that match this value>"
-        pathPrefix: "<limits apply to paths starting with this value>"
-        pathRegex: "<limits apply to paths that match this expression>"
-        requestsPerSecond: <overrides top-level limit>
-        requestMaxBurst: <overrides top-level limit>
+  mode: transparent
   upstreamConfig:
     overrides:
-    - name: <name of upstreams to override>
-      namespace: <namespace containing upstream>
-      peer: <peer name of upstream services>
+    - name: <name of upstream>
+      namespace: <namespace containing upstream - Consul Enterprise>
       protocol: <protocol for the upstream listener>
       connectTimeoutMs: 5000
       meshGateway:
-        mode: <mode for mesh gateway services>
+        mode: <type of mesh gateway>
       balanceOutboundConnections: exact_balance
       limits:
         maxConnections: 0
         maxPendingRequests: 0
         maxConcurrentRequests: 0
       passiveHealthCheck:
-        interval: "0s"
+        interval: "10s"
         maxFailures: 0
         enforcingConsecutive5xx: 100
         maxEjectionPercent: 10
         baseEjectionTime: "30s"
     defaults:
-      protocol: <default protocol for the upstream listener>
+      protocol: <protocol for the upstream listener>
       connectTimeoutMs: 5000
       meshGateway:
-        mode: <default mode for mesh gateway services>
+        mode: <type of mesh gateway>
       balanceOutboundConnections: exact_balance
       limits:
         maxConnections: 0
@@ -365,22 +301,14 @@ spec:
   transparentProxy:
     outboundListenerPort: 15001
     dialedDirectly: false
-  mutualTLSMode: strict
-  envoyExtensions:
-  - name: <name of the extension>
-    required: false
-    arguments:
-    - <specific to each extension>
-    consulVersion: <Consul version constraint for applying the extension>
-    envoyVersion: <Envoy version constraint for applying the extension>
   destination:
     addresses:
-    - <first hostname or IP address>
-      <second hostname or IP address>
+    - <First hostname or IP address>
+      <Second hostname or IP address>
     port:  0
   maxInboundConnections: 0
   meshGateway:
-    mode: <default mode for mesh gateway services>
+    mode: <type of mesh gateway>
   externalSNI: <name of TLS SNI outside o f the mesh>
   expose:
     checks: false
@@ -397,111 +325,92 @@ spec:
 
 ```json
 {
-	"Kind": "ServiceDefaults",
-	"Name": "<name of the service you are configuring>",
-	"Namespace": "default",
-	"Partition": "default",
-	"Meta": {
-		"<Keys>": "<Values>"
-	},
-	"Protocol": "tcp",
-	"BalanceInboundConnections": "exact_balance",
-	"Mode": "<mode for directing traffic>",
-  "RateLimits": {
-    "InstanceLevel": {
-      "RequestsPerSecond": 100,
-      "RequestsMaxBurst": 200,
-      "Routes": [
+  "apiVersion": "consul.hashicorp.com/v1alpha1",
+  "kind": "ServiceDefaults",
+  "metadata": {
+    "name": "<name of the service you are configuring>",
+    "namespace": "<Consul Enterprise namespace>",
+    "partition": "<Consul Enterprise admin partition>"
+  },
+  "spec": {
+    "protocol": "tcp",
+    "balanceInboundConnections": "exact_balance",
+    "mode": "transparent",
+    "upstreamConfig": {
+      "overrides": [
         {
-          "PathExact": "<limits apply paths that match this value>",
-          "PathPrefix": "<limits apply to paths starting with this value>",
-          "PathRegex": "<limits apply to paths that match this expression>",
-          "RequestsPerSecond":  50,
-          "RequestMaxBurst": 100
+          "name": "<name of upstream>",
+          "namespace": "<namespace containing upstream - Consul Enterprise>",
+          "peer": "<peer name of the upstream service>",
+          "protocol": "<protocol for the upstream listener>",
+          "connectTimeoutMs": 5000,
+          "meshGateway": {
+            "mode": "<type of mesh gateway>"
+          },
+          "balanceOutboundConnections": "exact_balance",
+          "limits": {
+            "maxConnections": 0,
+            "maxPendingRequests": 0,
+            "maxConcurrentRequests": 0
+          },
+          "passiveHealthCheck": {
+            "interval": "0s",
+            "maxFailures": 0,
+            "enforcingConsecutive5xx": 100,
+            "maxEjectionPercent": 10,
+            "baseEjectionTime": "30s",
+          },
+        }
+      ],
+      "defaults": {
+        "protocol": "<protocol for the upstream listener>",
+        "connectTimeoutMs": 5000,
+        "meshGateway": {
+          "mode": "<type of mesh gateway>"
+        },
+        "balanceOutboundConnections": "exact_balance",
+        "limits": {
+          "maxConnections": 0,
+          "maxPendingRequests": 0,
+          "maxConcurrentRequests": 0
+        },
+        "passiveHealthCheck": {
+          "interval": "0s",
+          "maxFailures": 0,
+          "enforcingConsecutive5xx": 100,
+          "maxEjectionPercent": 10,
+          "baseEjectionTime": "30s",
+        }
+      }
+    },
+    "transparentProxy": {
+      "outboundListenerPort": 15001,
+      "dialedDirectly": false
+    },
+    "destination": {
+      "addresses": [
+        "<First hostname or IP address>",
+        "<Second hostname or IP address>"
+      ],
+      "port": 0
+    },
+    "maxInboundConnections": 0,
+    "meshGateway": {
+      "mode": "<type of mesh gateway>"
+    },
+    "externalSNI": "<name of TLS SNI outside o f the mesh>",
+    "expose": {
+      "checks": false,
+      "paths": [
+        {
+          "path": "<HTTP path to expose through Envoy>",
+          "localPathPort": 0,
+          "listenerPort": 0,
+          "protocol": "http"
         }
       ]
     }
-  },
-	"UpstreamConfig": {
-		"Overrides": [{
-			"Name": "<name of upstream>",
-			"Namespace": "<namespace containing upstream - Consul Enterprise>",
-			"Peer": "<peer name of the upstream service>",
-			"Protocol": "<protocol for the upstream listener>",
-			"ConnectTimeoutMs": 5000,
-			"MeshGateway": {
-				"Mode": "<mode for mesh gateway services>"
-			},
-			"BalanceOutboundConnections": "exact_balance",
-			"Limits": {
-				"MaxConnections": 0,
-				"MaxPendingRequests": 0,
-				"MaxConcurrentRequests": 0
-			},
-			"PassiveHealthCheck": {
-				"Interval": "0s",
-				"MaxFailures": 0,
-				"EnforcingConsecutive5xx": 100,
-				"MaxEjectionPercent": 10,
-				"BaseEjectionTime": "30s"
-			}
-		}]
-	},
-	"Defaults": {
-		"Protocol": "<protocol for the upstream listener>",
-		"ConnectTimeoutMs": 5000,
-		"MeshGateway": {
-			"Mode": "<mode for mesh gateway services>"
-		},
-		"BalanceOutboundConnections": "exact_balance",
-		"Limits": {
-			"MaxConnections": 0,
-			"MaxPendingRequests": 0,
-			"MaxConcurrentRequests": 0
-		},
-		"PassiveHealthCheck": {
-			"Interval": "0s",
-			"MaxFailures": 0,
-			"EnforcingConsecutive5xx": 100,
-			"MaxEjectionPercent": 10,
-			"BaseEjectionTime": "30s"
-		}
-	},
-	"TransparentProxy": {
-		"OutboundListenerPort": 15001,
-		"DialedDirectly": false
-	},
-	"MutualTLSMode": "strict",
-	"EnvoyExtensions": [{
-		"Name": "<name of the extension>",
-		"Required": false,
-		"Arguments": {
-			"<specific to each extension>": "<specific to each extension>"
-		},
-		"ConsulVersion": "<Consul version constraint for applying the extension>",
-		"EnvoyVersion": "<Envoy version constraint for applying the extension>"
-	}],
-	"Destination": {
-		"Addresses": [
-			"<first hostname or IP address>",
-			"<second hostname or IP address>"
-		],
-		"Port": 0
-	},
-	"MaxInboundConnections": 0,
-	"MeshGateway": {
-		"Mode": "<mode for mesh gateway services>"
-	},
-	"ExternalSNI": "<name of TLS SNI outside o f the mesh>",
-	"Expose": {
-		"Checks": false,
-		"Paths": [{
-			"Path": "<HTTP path to expose through Envoy>",
-			"LocalPathPort": 0,
-			"ListenerPort": 0,
-			"Protocol": "http"
-		}]
-	}
+  }
 }
 ```
 
@@ -514,11 +423,11 @@ spec:
 This section provides details about the fields you can configure in the service defaults configuration entry.
 
 <Tabs>
-<Tab heading="HCL and JSON" group="hcl">
+<Tab heading="HCL" group="hcl">
 
 ### `Kind`
 
-Specifies the configuration entry type. The value must be set to `service-defaults`.
+Specifies the configuration entry type.
 
 #### Values
 
@@ -534,25 +443,25 @@ Specifies the name of the service you are setting the defaults for.
 
 - Default: none
 - This field is required.
-- Data type: String
+- Data type: string
 
-### `Namespace` <EnterpriseAlert inline/>
+### `Namespace` <Enterprise/>
 
 Specifies the Consul namespace that the configuration entry applies to.
 
 #### Values
 
 - Default: `default`
-- Data type: String
+- Data type: string
 
-### `Partition` <EnterpriseAlert inline/>
+### `Partition` <Enterprise/>
 
 Specifies the name of the Consul admin partition that the configuration entry applies to.  Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.
 
 #### Values
 
 - Default: `default`
-- Data type: String
+- Data type: string
 
 ### `Meta`
 
@@ -562,8 +471,8 @@ Specifies a set of custom key-value pairs to add to the [Consul KV](/consul/docs
 
 - Default: none
 - Data type: Map of one or more key-value pairs.
-  - keys: String
-  - values: String, integer, or float
+  - keys: string
+  - values: string, integer, or float
 
 ### `Protocol`
 
@@ -579,7 +488,7 @@ You can set the global protocol for proxies in the [`proxy-defaults`](/consul/do
 #### Values
 
 - Default: `tcp`
-- You can specify one of the following String values:
+- You can specify one of the following string values:
   - `tcp` (default)
   - `http`
   - `http2`
@@ -593,78 +502,18 @@ Specifies the strategy for allocating inbound connections to the service across 
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `Mode`
 
 Specifies a mode for how the service directs inbound and outbound traffic.
 
-- Default: None
+- Default: none
 - You can specify the following string values:
   - `direct`: The proxy's listeners must be dialed directly by the local application and other proxies.
   - `transparent`: The service captures inbound and outbound traffic and redirects it through the proxy. The mode does not enable the traffic redirection. It instructs Consul to configure Envoy as if traffic is already being redirected.
 
-### `RateLimits` <EnterpriseAlert inline />
-
-Map containing an instance-level configuration for limiting the service's traffic rate.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `RateLimits{}.InstanceLevel`
-
-Map containing a set of request rate limit configurations for instances of the service.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `RateLimits{}.InstanceLevel{}.RequestsPerSecond`
-
-Specifies the average number of requests per second allowed to the service. If the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `RequestsPerSecond` up to the value specified in `RequestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
-
-#### Values
-
-- Default: None
-- Data type: Integer
-
-### `RateLimits{}.InstanceLevel{}.RequestsMaxBurst`
-
-Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `RequestsPerSecond`. Internally, this is the maximum size of the token bucket used for rate limiting.
-
-#### Values
-
-- Default: None
-- Data type: Integer
-
-### `RateLimits{}.InstanceLevel{}.Routes`
-
-Specifies a list of rate limiting configurations to apply to specific routes to the service. Each member of the `Routes` list must configure the `RequestsPerSecond` parameter and one of the following route-matching parameters:
-
-- `PathExact`
-- `PathPrefix`
-- `PathRegex`
-
-Consul applies the rate limit configuration to the first matching route for each request. Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-The following table describes the parameters you can specify in the `Routes` map:
-
-| Parameter | Description | Data type | Default |
-| ---       | ---         | ---       | ---     |
-| `PathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `PathPrefix` or `PathRegex` in the same `Routes` map. | String | None |
-| `PathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `PathExact` or `PathRegex` in the same `Routes` map. | String | None |
-| `PathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `PathExact` or `PathPrefix` in the same `Routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
-| `RequestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the  [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
-| `RequestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `Routes.RequestsPerSecond` parameter. Overrides the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `UpstreamConfig`
 
@@ -675,8 +524,8 @@ Controls default upstream connection settings and custom overrides for individua
 
 #### Values
 
-- Default: None
-- Data type: Map
+- Default: none
+- Data type: map
 
 ### `UpstreamConfig.Overrides[]`
 
@@ -684,8 +533,8 @@ Specifies options that override the [default upstream configurations](#upstreamc
 
 #### Values
 
-- Default: None
-- Data type: List
+- Default: none
+- Data type: list
 
 ### `UpstreamConfig.Overrides[].Name`
 
@@ -693,48 +542,39 @@ Specifies the name of the upstream service that the configuration applies to. We
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
-### `UpstreamConfig.Overrides[].Namespace` <EnterpriseAlert inline/>
+### `UpstreamConfig.Overrides[].Namespace` <Enterprise/>
 
-Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
-
-#### Values
-
-- Default: None
-- Data type: String
-
-### `UpstreamConfig.Overrides[].Peer`
-
-Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
+Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from appling to unintended upstreams.
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `UpstreamConfig.Overrides[].Protocol`
 Specifies the protocol to use for requests to the upstream listener.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 
 ### `UpstreamConfig.Overrides[].ConnectTimeoutMs`
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `UpstreamConfig.Overrides[].MeshGateway`
 
@@ -757,8 +597,8 @@ Sets the strategy for allocating outbound connections from the upstream across E
 
 The only supported value is `exact_balance`. By default, no connections are balanced. Refer to the [Envoy documentation](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig) for details.
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `UpstreamConfig.Overrides[].Limits`
 
@@ -770,9 +610,9 @@ The following table describes limits you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `MaxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | Integer | `0` |
-| `MaxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
-| `MaxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
+| `MaxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | integer | `0` |
+| `MaxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
+| `MaxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
 
 Refer to the [upstream configuration example](#upstream-configuration) for additional guidance.
 
@@ -786,11 +626,11 @@ The following table describes passive health check parameters you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `Interval` | Specifies the time between checks. | String | `0s` |
-| `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | Integer | `0` |
-| `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | `100` |
-  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | Integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | String | `30s` |
+| `Interval` | Specifies the time between checks. | string | `0s` |
+| `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+| `EnforcingConsecutive5xx` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `UpstreamConfig.Defaults`
 
@@ -798,26 +638,26 @@ Specifies configurations that set default upstream settings. For information abo
 
 #### Values
 
-- Default: None
-- Data type: Map
+- Default: none
+- Data type: map
 
 ### `UpstreamConfig.Defaults.Protocol`
 
 Specifies default protocol for upstream listeners.
 
-We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `UpstreamConfig.Defaults.ConnectTimeoutMs`
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
+For non-Kubernetes environments, we recommend configuring the upstream timeout in the [`connection_timeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `service-resolver` configuration entry for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `service-defaults` upstream configuration limits L7 management functionality.
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `UpstreamConfig.Defaults.MeshGateway`
 
@@ -825,7 +665,7 @@ Specifies the default mesh gateway `mode` field for all upstreams. Refer to [Ser
 
 You can specify the following string values for the `mode` field:
 
-- `None`: The service does not make outbound connections through a mesh gateway. Instead, the service makes outbound connections directly to the destination services.
+- `none`: The service does not make outbound connections through a mesh gateway. Instead, the service makes outbound connections directly to the destination services.
 - `local`: The service mesh proxy makes an outbound connection to a gateway running in the same datacenter.
 - `remote`: The service mesh proxy makes an outbound connection to a gateway running in the destination datacenter.
 
@@ -833,8 +673,8 @@ You can specify the following string values for the `mode` field:
 
 Sets the strategy for allocating outbound connections from upstreams across Envoy proxy threads. The only supported value is `exact_balance`. By default, no connections are balanced. Refer to the [Envoy documentation](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig) for details.
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `UpstreamConfig.Defaults.Limits`
 
@@ -842,9 +682,9 @@ Map that specifies a set of limits to apply to when connecting upstream services
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `MaxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | Integer | `0` |
-| `MaxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
-| `MaxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
+| `MaxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | integer | `0` |
+| `MaxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
+| `MaxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
 
 ### `UpstreamConfig.Defaults.PassiveHealthCheck`
 
@@ -852,83 +692,66 @@ Map that specifies a set of rules that enable Consul to remove hosts from the up
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `Interval` | Specifies the time between checks. | String | `0s` |
-| `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | Integer | `0` |
-| `EnforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | `100` |
-  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | Integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | String | `30s` |
+| `Interval` | Specifies the time between checks. | string | `0s` |
+| `MaxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+| `EnforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `TransparentProxy`
 
-Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy Mode](/consul/docs/k8s/connect/transparent-proxy) for additional information.
+Controls configurations specific to proxies in transparent mode. Refer to [Transparent Proxy](/consul/docs/connect/transparent-proxy) for additional information.
 
 You can configure the following parameters in the `TransparentProxy` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | Integer | `15001` |
-| `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | Boolean | `false` |
-
-### `MutualTLSMode`
-
-Controls whether mutual TLS is required for incoming connections to this service. This setting is
-only supported for services with transparent proxy enabled. We recommend only using `permissive`
-mode if necessary while onboarding services to the service mesh.
-
-You can specify the following string values for the `MutualTLSMode` field:
-
-- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
-- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
-- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
-  and accepts any traffic on the destination service's port.
+| `OutboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
+| `DialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
 ### `EnvoyExtensions`
 
 List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensions](/consul/docs/connect/proxies/envoy-extensions) for additional information.
 
-The following table describes how to configure values in the `EnvoyExtensions` map:
+You can configure the following parameters in the `EnvoyExtensions` block:
 
 | Parameter | Description | Data type | Default |
-| ---       | ---         | ---       | ---     |
-| `Name` | Specifies the name of the extension. | String | None |
-| `Required` | Specify `true` to require the extension to apply successfully. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>When Envoy fails to apply a required extension, Consul logs an error and skips all extensions, leaving xDS resources unchanged. </p> | String | None |
-| `Arguments` | Specifies the arguments to pass to the extension. Refer to the documentation for the extension you want to implement for additional information. | Map | None |
-| `ConsulVersion` | Specifies the Consul [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the runtime version during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Consul.</p> | String | None |
-| `EnvoyVersion` | Specifies the Envoy [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the version of the running Envoy proxy during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Envoy.</p> | String | None |
+| ---   | ---         | ---       | ---     |
+| `Name` | Name of the extension. | string | `""` |
+| `Required` | When Required is true and the extension does not update any Envoy resources, an error is returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed. | string | `""` |
+| `Arguments` | Arguments to pass to the extension executable. | map | `nil` |
 
-### `Destination{}`
+### `Destination[]`
 
 Configures the destination for service traffic through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
-
-To use the `Destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 
 You can configure the following parameters in the `Destination` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `Addresses` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
-| `Port` | Specifies the port number of the destination. | Integer | `0` |
+| `Address` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | list | none |
+| `Port` | Specifies the port number of the destination. | integer | `0` |
 
 ### `MaxInboundConnections`
 
 Specifies the maximum number of concurrent inbound connections to each service instance.
 
 - Default: `0`
-- Data type: Integer
+- Data type: integer
 
 ### `LocalConnectTimeoutMs`
 
 Specifies the number of milliseconds allowed for establishing connections to the local application instance before timing out.
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `LocalRequestTimeoutMs`
 
 Specifies the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts.
 
 - Default: Inherits `15s` from Envoy as the default
-- Data type: String
+- Data type: string
 
 ### `MeshGateway`
 
@@ -944,15 +767,15 @@ You can specify the following string values for the `mode` field:
 
 Specifies the TLS server name indication (SNI) when federating with an external system.
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `Expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on localhost only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
 
-- Default: None
-- Data type: Map
+- Default: none
+- Data type: map
 
 ### `Expose.Checks`
 
@@ -961,7 +784,7 @@ Exposes all HTTP and gRPC checks registered with the agent if set to `true`. Env
 We recommend enabling the `Checks` configuration when a Consul client cannot reach registered services over localhost, such as when Consul agents run in their own pods in Kubernetes.
 
 - Default: `false`
-- Data type: Boolean
+- Data type: boolean
 
 ### `Expose.Paths[]`
 
@@ -969,10 +792,10 @@ Specifies a list of configuration maps that define paths to expose through Envoy
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `Path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | String | None |
-| `LocalPathPort` | Specifies the port where the local service listens for connections to the path. | Integer | `0` |
-| `ListenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
-| `Protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | Integer | `http` |
+| `Path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | string | none |
+| `LocalPathPort` | Specifies the port where the local service listens for connections to the path. | integer | `0` |
+| `ListenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | integer | `0` |
+| `Protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | integer | `http` |
 
 </Tab>
 
@@ -982,7 +805,7 @@ Specifies a list of configuration maps that define paths to expose through Envoy
 
 Specifies the version of the Consul API for integrating with Kubernetes. The value must be `consul.hashicorp.com/v1alpha1`. The `apiVersion` field is not supported for non-Kubernetes deployments.
 
-- Default: None
+- Default: none
 - This field is required.
 - String value that must be set to `consul.hashicorp.com/v1alpha1`.
 
@@ -999,7 +822,7 @@ Map that contains the service name, namespace, and admin partition that the conf
 
 #### Values
 
-- Default: None
+- Default: none
 - Map containing the following strings:
   - [`name`](#name)
   - [`namespace`](#namespace)
@@ -1012,16 +835,16 @@ Specifies the name of the service you are setting the defaults for.
 
 #### Values
 
-- Default: None
+- Default: none
 - This field is required
-- Data type: String
+- Data type: string
 
-### `metadata.namespace` <EnterpriseAlert inline/>
+### `metadata.namespace` <Enterprise/>
 
-Specifies the Consul namespace that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
+Specifies the Consul namespace that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Open source Consul distributions (Consul OSS) ignore the `metadata.namespace` configuration.
 
 - Default: `default`
-- Data type: String
+- Data type: string
 
 ### `spec`
 
@@ -1055,8 +878,8 @@ Specifies the strategy for allocating inbound connections to the service across 
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.mode`
 
@@ -1064,73 +887,12 @@ Specifies a mode for how the service directs inbound and outbound traffic.
 
 #### Values
 
-- Default: None
+- Default: none
 - Required: optional
 - You can specified the following string values:
 
 - `direct`: The proxy's listeners must be dialed directly by the local application and other proxies.
 - `transparent`: The service captures inbound and outbound traffic and redirects it through the proxy. The mode does not enable the traffic redirection. It instructs Consul to configure Envoy as if traffic is already being redirected.
-
-### `spec.rateLimits` <EnterpriseAlert inline />
-
-Map containing an instance-level configuration for limiting the service's traffic rate.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rateLimits{}.instanceLevel`
-
-Map containing a set of request rate limit configurations for instances of the service.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-### `spec.rateLimits{}.instanceLevel{}.requestsPerSecond`
-
-Specifies the average number of requests per second allowed to the service. If the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `requestsPerSecond` up to the value specified in `requestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
-
-#### Values
-
-- Default: None
-- Data type: Integer
-
-### `spec.rateLimits{}.instanceLevel{}.requestsMaxBurst`
-
-Specifies the maximum number of concurrent requests momentarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter. If unspecified, this parameter defaults to `requestsPerSecond`. Internally, this is the maximum size of the token bucket used for rate limiting.
-
-#### Values
-
-- Default: None
-- Data type: Integer
-
-### `spec.rateLimits{}.instanceLevel{}.routes`
-
-Specifies a list of rate limiting configurations to apply to specific routes to the service. Each member of the `routes` list must configure the `requestsPerSecond` parameter and one of the following route-matching parameters:
-
-- `pathExact`
-- `pathPrefix`
-- `pathRegex`
-
-Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
-
-#### Values
-
-- Default: None
-- Data type: Map
-
-The following table describes the parameters you can specify in the `routes` map:
-
-| Parameter | Description | Data type | Default |
-| ---       | ---         | ---       | ---     |
-| `pathExact` | Specifies the exact path to match on the request path. When using this field, do not configure `pathPrefix` or `pathRegex` in the same `routes` map. | String | None |
-| `pathPrefix` | Specifies the path prefix to match on the request path. When using this field, do not configure `pathExact` or `pathRegex` in the same `routes` map. | String | None |
-| `pathRegex` | Specifies a regular expression to match on the request path. When using this field, do not configure `pathExact` or `pathPrefix` in the same `routes` map. The syntax is proxy-specific. When [using Envoy](/consul/docs/connect/proxies/envoy), refer to [the documentation for Envoy v1.11.2 or newer](https://github.com/google/re2/wiki/Syntax) or [the documentation for Envoy v1.11.1 or older](https://en.cppreference.com/w/cpp/regex/ecmascript), depending on the version of Envoy you use. | String | None |
-| `requestsPerSecond` | Specifies the average number of requests per second allowed to the service. Overrides the [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond) parameter specified for the service. | Integer | None |
-| `requestsMaxBurst` | Specifies the maximum number of concurrent requests temporarily allowed to the service. When the limit is reached, Consul blocks additional requests. You must specify a value equal to or greater than the `routes.requestsPerSecond` parameter. Overrides the [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst) parameter specified for the service. | Integer | None |
 
 ### `spec.upstreamConfig`
 
@@ -1138,7 +900,7 @@ Specifies a map that controls default upstream connection settings and custom ov
 
 #### Values
 
-- Default: None
+- Default: none
 - Map that contains the following configurations:
   - [`UpstreamConfig.Overrides`](#upstreamconfig-overrides)
   - [`UpstreamConfig.Defaults`](#upstreamconfig-defaults)
@@ -1149,8 +911,8 @@ Specifies options that override the [default upstream configurations](#spec-upst
 
 #### Values
 
-- Default: None
-- Data type: List
+- Default: none
+- Data type: list
 
 ### `spec.upstreamConfig.overrides[].name`
 
@@ -1158,47 +920,38 @@ Specifies the name of the upstream service that the configuration applies to. Do
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
-### `spec.upstreamConfig.overrides[].namespace` <EnterpriseAlert inline/>
+### `spec.upstreamConfig.overrides[].namespace` <Enterprise/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
 
 #### Values
 
-- Default: None
-- Data type: String
-
-### `spec.upstreamConfig.overrides[].peer`
-
-Specifies the peer name of the upstream service that the configuration applies to. The `*` wildcard is not supported.
-
-#### Values
-
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.upstreamConfig.overrides[].protocol`
 
-Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies the protocol to use for requests to the upstream listener. We recommend configuring the protocol in the main [`protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
 - Default: inherits the main [`protocol`](#protocol) configuration
-- Data type: String
+- Data type: string
 
 
 ### `spec.upstreamConfig.overrides[].connectTimeoutMs`
 
 Specifies how long in milliseconds that the service should attempt to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for the upstream destination service. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `spec.upstreamConfig.overrides[].meshGateway.mode`
 
@@ -1218,8 +971,8 @@ Sets the strategy for allocating outbound connections from the upstream across E
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.upstreamConfig.overrides[].limits`
 
@@ -1231,9 +984,9 @@ The following table describes limits you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `maxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | Integer | `0` |
-| `maxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
-| `maxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
+| `maxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | integer | `0` |
+| `maxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
+| `maxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
 
 ### `spec.upstreamConfig.overrides[].passiveHealthCheck`
 
@@ -1245,11 +998,11 @@ The following table describes passive health check parameters you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `interval` | Specifies the time between checks. | String | `0s` |
-| `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | Integer | `0` |
-| `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | `100` |
-  | `maxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | Integer | `10` |
-  | `baseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | String | `30s` |
+| `interval` | Specifies the time between checks. | string | `0s` |
+| `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+| `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `maxEjectionPercent` | The maximum % of an upstream cluster that can be ejected due to outlier detection. Defaults to 10% but will eject at least one host regardless of the value. | integer | `10` |
+  | `baseEjectionTime` | The base time that a host is ejected for. The real time is equal to the base time multiplied by the number of times the host has been ejected and is capped by max_ejection_time (Default 300s). Defaults to 30000ms or 30s. | string | `30s` |
 
 ### `spec.upstreamConfig.defaults`
 
@@ -1257,28 +1010,28 @@ Map of configurations that set default upstream configurations for the service. 
 
 #### Values
 
-- Default: None
-- Data type: List
+- Default: none
+- Data type: list
 
 ### `spec.upstreamConfig.defaults.protocol`
 
-Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/manage-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
+Specifies default protocol for upstream listeners. We recommend configuring the protocol in the main [`Protocol`](#protocol) field of the configuration entry so that you can leverage [L7 features](/consul/docs/connect/l7-traffic). Setting the protocol in an upstream configuration limits L7 management functionality.
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.upstreamConfig.default.connectTimeoutMs`
 
 Specifies how long in milliseconds that all services should continue attempting to establish an upstream connection before timing out.
 
-We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/connect/manage-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
+We recommend configuring the upstream timeout in the [`connectTimeout`](/consul/docs/connect/config-entries/service-resolver#connecttimeout) field of the `ServiceResolver` CRD for upstream destination services. Doing so enables you to leverage [L7 features](/consul/docs/connect/l7-traffic). Configuring the timeout in the `ServiceDefaults` upstream configuration limits L7 management functionality.
 
 #### Values
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `spec.upstreamConfig.defaults.meshGateway.mode`
 
@@ -1298,8 +1051,8 @@ Sets the strategy for allocating outbound connections from upstreams across Envo
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.upstreamConfig.defaults.limits`
 
@@ -1311,9 +1064,9 @@ The following table describes limits you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `maxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | Integer | `0` |
-| `maxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
-| `maxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | Integer | `0` |
+| `maxConnections` | Specifies the maximum number of connections a service instance can establish against the upstream. Define this limit for HTTP/1.1 traffic. | integer | `0` |
+| `maxPendingRequests` | Specifies the maximum number of requests that are queued while waiting for a connection to establish. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
+| `maxConcurrentRequests` | Specifies the maximum number of concurrent requests. Define this limit for HTTP/2 traffic. An L7 protocol must be defined in the [`protocol`](#protocol) field for this limit to take effect. | integer | `0` |
 
 ### `spec.upstreamConfig.defaults.passiveHealthCheck`
 Map that specifies a set of rules that enable Consul to remove hosts from the upstream cluster that are unreachable or that return errors.
@@ -1324,11 +1077,11 @@ The following table describes the health check parameters you can configure:
 
 | Limit | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `interval` | Specifies the time between checks. | String | `0s` |
-| `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | Integer | `0` |
-| `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | Integer | `100` |
-  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | Integer | `10` |
-  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | String | `30s` |
+| `interval` | Specifies the time between checks. | string | `0s` |
+| `maxFailures` | Specifies the number of consecutive failures allowed per check interval. If exceeded, Consul removes the host from the load balancer. | integer | `0` |
+| `enforcingConsecutive5xx ` | Specifies a percentage that indicates how many times out of 100 that Consul ejects the host when it detects an outlier status. The outlier status is determined by consecutive errors in the 500-599 response range. | integer | `100` |
+  | `MaxEjectionPercent` | Specifies the maximum percentage of an upstream cluster that Consul ejects when the proxy reports an outlier. Consul ejects at least one host when an outlier is detected regardless of the value. | integer | `10` |
+  | `BaseEjectionTime` | Specifies the minimum amount of time that an ejected host must remain outside the cluster before rejoining. The real time is equal to the value of the `BaseEjectionTime` multiplied by the number of times the host has been ejected. | string | `30s` |
 
 ### `spec.transparentProxy`
 
@@ -1340,23 +1093,8 @@ You can configure the following parameters in the `TransparentProxy` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | Integer | `15001` |
-| `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | Boolean | `false` |
-
-### `spec.mutualTLSMode`
-
-Controls whether mutual TLS is required for incoming connections to this service. This setting is
-only supported for services with transparent proxy enabled. We recommend only using `permissive`
-mode if necessary while onboarding services to the service mesh.
-
-#### Values
-
-You can specify the following string values for the `MutualTLSMode` field:
-
-- `""`: When this field is empty, the value is inherited from the `proxy-defaults` config entry.
-- `strict`: The sidecar proxy requires mutual TLS for incoming traffic.
-- `permissive`: The sidecar proxy accepts mutual TLS traffic on the sidecar proxy service port,
-  and accepts any traffic on the destination service's port.
+| `outboundListenerPort` | Specifies the port that the proxy listens on for outbound traffic. This must be the same port number where outbound application traffic is redirected. | integer | `15001` |
+| `dialedDirectly` | Enables transparent proxies to dial the proxy instance's IP address directly when set to `true`. Transparent proxies commonly dial upstreams at the `"virtual"` tagged address, which load balances across instances. Dialing individual instances can be helpful for stateful services, such as a database cluster with a leader. | boolean | `false` |
 
 ### `spec.envoyExtensions`
 
@@ -1364,30 +1102,26 @@ List of extensions to modify Envoy proxy configuration. Refer to [Envoy Extensio
 
 #### Values
 
-The following table describes how to configure values in the `envoyExtensions` map:
+You can configure the following parameters in the `EnvoyExtensions` block:
 
 | Parameter | Description | Data type | Default |
-| ---       | ---         | ---       | ---     |
-| `name` | Specifies the name of the extension. | String | None |
-| `required` | Specify `true` to require the extension to apply successfully. <p>Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed.</p><p>When Envoy fails to apply a required extension, Consul logs an error and skips all extensions, leaving xDS resources unchanged. </p> | String | None |
-| `arguments` | Specifies the arguments to pass to the extension. Refer to the documentation for the extension for additional information. | Map | None |
-| `consulVersion` | Specifies the Consul [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the runtime version during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Consul.</p> | String | None |
-| `envoyVersion` | Specifies the Envoy [version constraint](https://github.com/hashicorp/go-version) for the extension. Consul validates the version constraint against the version of the running Envoy proxy during xDS updates. If a non-matching version is in use, Consul logs and skips the extension. <p>Use this parameter to avoid upgrade issues when a configured extension is not compatible with a new version of Envoy.</p> | String | None |
+| ---   | ---         | ---       | ---     |
+| `name` | Name of the extension. | string | `""` |
+| `required` | When Required is true and the extension does not update any Envoy resources, an error is returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally bypassed. | string | `""` |
+| `arguments` | Arguments to pass to the extension executable. | map | `nil` |
 
 ### `spec.destination`
 
 Map of configurations that specify one or more destinations for service traffic routed through terminating gateways. Refer to [Terminating Gateway](/consul/docs/connect/gateways/terminating-gateway) for additional information.
 
-To use the `destination` block, proxy services must be in transparent proxy mode. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
-
 #### Values
 
-You can configure the following parameters in the `destination` block:
+You can configure the following parameters in the `Destination` block:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `addresses` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | List | None |
-| `port` | Specifies the port number of the destination. | Integer | `0` |
+| `address` | Specifies a list of addresses for the destination. You can configure a list of hostnames and IP addresses. Wildcards are  not supported.  | list | none |
+| `port` | Specifies the port number of the destination. | integer | `0` |
 
 ### `spec.maxInboundConnections`
 
@@ -1396,7 +1130,7 @@ Specifies the maximum number of concurrent inbound connections to each service i
 #### Values
 
 - Default: `0`
-- Data type: Integer
+- Data type: integer
 
 ### `spec.localConnectTimeoutMs`
 
@@ -1405,7 +1139,7 @@ Specifies the number of milliseconds allowed for establishing connections to the
 #### Values
 
 - Default: `5000`
-- Data type: Integer
+- Data type: integer
 
 ### `spec.localRequestTimeoutMs`
 
@@ -1414,7 +1148,7 @@ Specifies the timeout for HTTP requests to the local application instance. Appli
 #### Values
 
 - Default of `15s` is inherited from Envoy
-- Data type: String
+- Data type: string
 
 ### `spec.meshGateway.mode`
 Specifies the default mesh gateway `mode` field for the service. Refer to [Service Mesh Proxy Configuration](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration) in the mesh gateway documentation for additional information.
@@ -1433,17 +1167,17 @@ Specifies the TLS server name indication (SNI) when federating with an external 
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.expose`
 
-Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/proxies/proxy-config-reference#expose-paths-configuration-reference) for additional information and example configurations.
+Specifies default configurations for exposing HTTP paths through Envoy. Exposing paths through Envoy enables services to listen on `localhost` only. Applications that are not Consul service mesh-enabled can still contact an HTTP endpoint. Refer to [Expose Paths Configuration Reference](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference) for additional information and example configurations.
 
 #### Values
 
-- Default: None
-- Data type: String
+- Default: none
+- Data type: string
 
 ### `spec.expose.checks`
 
@@ -1454,7 +1188,7 @@ We recommend enabling the `Checks` configuration when a Consul client cannot rea
 #### Values
 
 - Default: `false`
-- Data type: Boolean
+- Data type: boolean
 
 ### `spec.expose.paths[]`
 
@@ -1466,10 +1200,10 @@ The following table describes the parameters for each map:
 
 | Parameter | Description | Data type | Default |
 | ---   | ---         | ---       | ---     |
-| `path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | String | None |
-| `localPathPort` | Specifies the port where the local service listens for connections to the path. | Integer | `0` |
-| `listenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | Integer | `0` |
-| `protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | Integer | `http` |
+| `path` | Specifies the HTTP path to expose. You must prepend the path with a forward slash (`/`). | string | none |
+| `localPathPort` | Specifies the port where the local service listens for connections to the path. | integer | `0` |
+| `listenPort` | Specifies the port where the proxy listens for connections. The port must be available. If the port is unavailable, Envoy does not expose a listener for the path and the proxy registration still succeeds. | integer | `0` |
+| `protocol` | Specifies the protocol of the listener. You can configure one of the following values: <li>`http`</li><li>`http2`: Use with gRPC traffic</li> | integer | `http` |
 
 </Tab>
 </Tabs>
@@ -1516,7 +1250,7 @@ You can also set the global default protocol for all proxies in the [`proxy-defa
 ### Upstream configuration
 
 <Tabs>
-<Tab heading="Consul CE">
+<Tab heading="Consul OSS">
 
 The following example sets default connection limits and mesh gateway mode across all upstreams of the `dashboard` service.
 It also overrides the mesh gateway mode used when dialing its `counting` upstream  service.
@@ -1695,7 +1429,6 @@ spec:
 
 The following examples creates a default destination assigned to a terminating gateway. A destination
 represents a location outside the Consul cluster. Services can dial destinations dialed directly when transparent proxy mode is enabled.
-Proxy services must be in transparent proxy mode to configure destinations. Refer to [Enable transparent proxy mode](/consul/docs/k8s/connect/transparent-proxy/enable-transparent-proxy) for additional information.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1737,175 +1470,626 @@ Proxy services must be in transparent proxy mode to configure destinations. Refe
 
 </CodeTabs>
 
-### Enable request rate limit for a service on all paths <EnterpriseAlert inline />
+<!-- CONTINUE OLD CONTENT>
+## Available Fields
 
-The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service to an average of 1000 requests per second, but allows the service to accept up to 1500 concurrent requests.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "service-defaults"
-Name = "billing"
-Protocol = "http"
-
-RateLimit {
-  InstanceLevel {
-    RequestsPerSecond = 1000
-    RequestsMaxBurst = 1500
-  }
-}
-```
-
-```yaml
-kind: ServiceDefaults
-name: billing
-protocol: http
-rateLimit:
-  instanceLevel:
-    requestsPerSecond: 1000
-    requestsMaxBurst: 1500
-```
-
-```json
-{
-  "Kind": "service-defaults",
-  "Name": "billing",
-  "Protocol": "http",
-  "RateLimit": {
-    "InstanceLevel": {
-      "RequestsPerSecond": 1000,
-      "RequestsMaxBurst": 1500
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-### Enable request rate limit on a prefixed path <EnterpriseAlert inline />
-
-The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests. Request paths that begin with `/admin`, however, are limited to `20` requests per second.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "service-defaults"
-Name = "service-foo"
-Protocol = "http"
-
-RateLimit {
-  InstanceLevel {
-    RequestsPerSecond = 1000
-    RequestsMaxBurst = 1500
-
-    Routes = [
-      {
-         PathPrefix = "/admin"
-         RequestsPerSecond = 20
-      }
-    ]
-  }
-}
-```
-
-```yaml
-kind: service-defaults
-name: service-foo
-protocol: http
-rateLimit:
-  instanceLevel:
-    requestsPerSecond: 1000
-    requestsMaxBurst: 1500
-    routes:
-      - pathPrefix: /admin
-        requestsPerSecond: 20
-```
-
-```json
-{
-  "Kind": "service-defaults",
-  "Name": "service-foo",
-  "Protocol": "http",
-  "RateLimit": {
-    "InstanceLevel": {
-      "RequestsPerSecond": 1000,
-      "RequestsMaxBurst": 1500,
-      "Routes": [
-        {
-          "PathPrefix": "/admin",
-          "RequestsPerSecond": 20
-        }
-      ]
-    }
-  }
-}
-```
-
-</CodeTabs>
-
-### Enable request rate limits on multiple paths <EnterpriseAlert inline />
-
-The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service depending on the path it received the request on. The service is limited to an average of 500 requests when the request is made on an HTTP path with the `/api` prefix. When an instance of the billing service receives a request from the `/login` path, it is limited to an average of 100 requests per second and 500 concurrent connections.
-
-<CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
-
-```hcl
-Kind = "service-defaults"
-Name = "billing"
-Protocol = "http"
-
-RateLimit {
-  InstanceLevel {
-    Routes = [
-      {
-         PathPrefix = "/api"
-         RequestsPerSecond = 500
+<ConfigEntryReference
+  keys={[
+    {
+      name: 'apiVersion',
+      description: 'Must be set to `consul.hashicorp.com/v1alpha1`',
+      hcl: false,
+    },
+    {
+      name: 'Kind',
+      description: {
+        hcl: 'Must be set to `service-defaults`',
+        yaml: 'Must be set to `ServiceDefaults`',
       },
-      {
-         PathPrefix = "/login"
-         RequestsPerSecond = 100
-         RequestsMaxBurst = 500
-      }
-    ]
-  }
-}
-```
-
-```yaml
-kind: service-defaults
-name: billing
-protocol: http
-rateLimit:
-  instanceLevel:
-    routes:
-      - pathPrefix: /api
-        requestsPerSecond: 500
-      - pathPrefix: /login
-        requestsPerSecond: 100
-        requestsMaxBurst: 500
-```
-
-```json
-{
-  "Kind": "service-defaults",
-  "Name": "billing",
-  "Protocol": "http",
-  "RateLimit": {
-    "InstanceLevel": {
-      "Routes": [
+    },
+    {
+      name: 'Name',
+      description: 'Set to the name of the service being configured.',
+      type: 'string: <required>',
+      yaml: false,
+    },
+    {
+      name: 'Namespace',
+      type: `string: "default"`,
+      enterprise: true,
+      description: 'Specifies the namespace the config entry will apply to.',
+      yaml: false,
+    },
+    {
+      name: 'Partition',
+      type: `string: "default"`,
+      enterprise: true,
+      description:
+        'Specifies the name of the admin partition in which the configuration entry applies. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for additional information.',
+      yaml: false,
+    },
+    {
+      name: 'Meta',
+      type: 'map<string|string>: nil',
+      description:
+        'Specifies arbitrary KV metadata pairs. Added in Consul 1.8.4.',
+      yaml: false,
+    },
+    {
+      name: 'metadata',
+      children: [
         {
-          "PathPrefix": "/api",
-          "RequestsPerSecond": 500
+          name: 'name',
+          description: 'Set to the name of the service being configured.',
         },
         {
-          "PathPrefix": "/login",
-          "RequestsPerSecond": 100,
-          "RequestsMaxBurst": 500
-        }
+          name: 'namespace',
+          description:
+            'If running Consul Open Source, the namespace is ignored (see [Kubernetes Namespaces in Consul OSS](/consul/docs/k8s/crds#consul-oss)). If running Consul Enterprise see [Kubernetes Namespaces in Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for more details.',
+        },
+        {
+          name: 'partition',
+          enterprise: true,
+          description:
+            'Specifies the admin partition in which the configuration will apply. The current partition is used if unspecified. Refer to the [Admin Partitions documentation](/consul/docs/enterprise/admin-partitions) for details. The partitions parameter is not supported in Consul OSS.',
+        },
+      ],
+      hcl: false,
+    },
+    {
+      name: 'Protocol',
+      type: `string: "tcp"`,
+      description: `Sets the protocol of the service. This is used
+                      by service mesh proxies for things like observability features and to unlock usage
+                      of the [\`service-splitter\`](/consul/docs/connect/config-entries/service-splitter) and
+                      [\`service-router\`](/consul/docs/connect/config-entries/service-router) config entries
+                      for a service. It also unlocks the ability to define L7 intentions via
+                      [\`service-intentions\`](/consul/docs/connect/config-entries/service-intentions).
+                      Supported values are one of \`tcp\`, \`http\`, \`http2\`, or \`grpc\`.`,
+    },
+    {
+      name: 'BalanceInboundConnections',
+      type: `string: ""`,
+      description: `Sets the strategy for allocating inbound connections to the service across proxy threads.
+                      The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                      Refer to the
+                      [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                      for details.`
+    },
+    {
+      name: 'EnvoyExtensions',
+      type: 'list<EnvoyExtension>: []',
+      description: `A list of extensions to modify Envoy proxy configuration.`,
+      children: [
+        {
+          name: 'Name',
+          type: `string: ""`,
+          description: `Name of the extension.`,
+        },
+        {
+          name: 'Required',
+          type: `string: ""`,
+          description: `When \`Required\` is true and the extension does not update any Envoy resources, an error is
+          returned. Use this parameter to ensure that extensions required for secure communication are not unintentionally
+          bypassed.`,
+        },
+        {
+          name: 'Arguments',
+          type: 'map<string|Any>: nil',
+          description: `Arguments to pass to the extension executable.`,
+        },
+      ],
+    },
+    {
+      name: 'Mode',
+      type: `string: ""`,
+      description: `One of \`direct\` or \`transparent\`.
+                    \`transparent\` represents that inbound and outbound application traffic is being
+                    captured and redirected through the proxy. This mode does not enable the traffic redirection
+                     itself. Instead it signals Consul to configure Envoy as if traffic is already being redirected.
+                    \`direct\` represents that the proxy's listeners must be dialed directly by the local
+                    application and other proxies.
+                    Added in v1.10.0.`,
+    },
+    {
+      name: 'UpstreamConfig',
+      type: 'UpstreamConfiguration: <optional>',
+      description: `Controls default configuration settings that apply across all upstreams, and per-upstream
+                    configuration overrides. Note that per-upstream configuration applies across all federated datacenters
+                    to the pairing of source and upstream destination services.
+                    Added in v1.10.0.`,
+      children: [
+        {
+          name: 'Overrides',
+          type: 'list<UpstreamConfig>: []',
+          description: `A list of optional overrides for per-upstream configuration.`,
+          children: [
+            {
+              name: 'Name',
+              type: 'string: ""',
+              description:
+                'The upstream name to apply the configuration to. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Namespace',
+              type: 'string: ""',
+              description:
+                'The namespace of the upstream. This should not be set to the wildcard specifier `*`.',
+            },
+            {
+              name: 'Peer',
+              type: 'string: ""',
+              description:
+                `The name of the peer containing the upstream. Do not use a wildcard specifier ( \`*\`).<br><br>
+                    If the \`peer\` field is not set in any \`Overrides\` configuration, then Consul applies overrides to peered services with the same [\`name\`](/consul/docs/connect/config-entries/service-defaults#name).
+                    This maintains backward compatibility with Consul 1.14.0.
+                    If the \`peer\` field is specified in any override, then backward compatibility with Consul 1.14.0 is disabled.
+                    As a result, each peered service must have a separate override configuration if desired.` ,
+            },
+            {
+              name: 'Protocol',
+              type: 'string: ""',
+              description: `The protocol for the upstream listener.<br><br>
+                  NOTE: The protocol of a service should ideally be configured via the
+                    [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
+                    field of a
+                    [\`service-defaults\`](/consul/docs/connect/config-entries/service-defaults)
+                    config entry for the upstream destination service. Configuring it in a
+                    proxy upstream config will not fully enable some
+                    [L7 features](/consul/docs/connect/l7-traffic).
+                    It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    In addition, the \`protocol\` of a peered service cannot be overridden. Any value in
+                    this field is ignored for peered services.
+                  `,
+            },
+            {
+              name: 'ConnectTimeoutMs',
+              type: 'int: 5000',
+              description: {
+                hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connect_timeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`service-resolver\`](/consul/docs/connect/config-entries/service-resolver)
+                      config entry for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connectTimeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`ServiceResolver\`](/consul/docs/connect/config-entries/service-resolver)
+                      CRD for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                `,
+              },
+            },
+            {
+              name: 'MeshGateway',
+              type: 'MeshGatewayConfig: <optional>',
+              description: `Controls the default
+                [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway#connect-proxy-configuration)
+                for this upstream.`,
+              children: [
+                {
+                  name: 'Mode',
+                  type: 'string: ""',
+                  description: 'One of `none`, `local`, or `remote`.',
+                },
+              ],
+            },
+            {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
+            },
+            {
+              name: 'Limits',
+              type: 'Limits: <optional>',
+              description: `A set of limits to apply when connecting to the upstream service.
+                    These limits are applied on a per-service-instance basis.
+                    The following limits are respected.`,
+              children: [
+                {
+                  name: 'MaxConnections',
+                  type: 'int: 0',
+                  description: `The maximum number of connections a service instance
+                        will be allowed to establish against the given upstream. Use this to limit
+                        HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
+                },
+                {
+                  name: 'MaxPendingRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of requests that will be queued
+                        while waiting for a connection to be established. For this configuration to
+                        be respected, a L7 protocol must be defined in the \`protocol\` field.`,
+                },
+                {
+                  name: 'MaxConcurrentRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of concurrent requests that
+                        will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+                        since HTTP/2 has many requests per connection. For this configuration to be
+                        respected, a L7 protocol must be defined in the \`protocol\` field.`,
+                },
+              ],
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: `Passive health checks are used to remove hosts from
+                    the upstream cluster which are unreachable or are returning errors..`,
+              children: [
+                {
+                  name: 'Interval',
+                  type: 'duration: 0s',
+                  description: {
+                    hcl: `The time between checks. Each check will cause hosts which
+                          have exceeded \`max_failures\` to be removed from the load balancer, and
+                          any hosts which have passed their ejection time to be returned to the
+                          load balancer.`,
+                    yaml: `The time between checks. Each check will cause hosts which
+                          have exceeded \`maxFailures\` to be removed from the load balancer, and
+                          any hosts which have passed their ejection time to be returned to the
+                          load balancer.`,
+                  },
+                },
+                {
+                  name: 'MaxFailures',
+                  type: 'int: 0',
+                  description: `The number of consecutive failures which cause a host to be
+                      removed from the load balancer.`,
+                },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `Measured in percent (%), the probability of a host's ejection
+                      after a passive health check detects an outlier status through consecutive 5xx.`,
+                    yaml: `Measured in percent (%), the probability of a host's ejection
+                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                  },
+                },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by
+                    max_ejection_time (Default 300s). If not specified, inherits Envoy's default value of 30s.`,
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'Defaults',
+          type: 'UpstreamConfig: <optional>',
+          description: `Default configuration that applies to all upstreams of this service.`,
+          children: [
+            {
+              name: 'Protocol',
+              type: 'string: ""',
+              description: {
+                hcl: `The protocol for the upstream listener.<br><br>
+                    NOTE: The protocol of a service should ideally be configured via the
+                      [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
+                      field of a
+                      [\`service-defaults\`](/consul/docs/connect/config-entries/service-defaults)
+                      config entry for the upstream destination service. Configuring it in a
+                      proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The protocol for the upstream listener.<br><br>
+                    NOTE: The protocol of a service should ideally be configured via the
+                      [\`protocol\`](/consul/docs/connect/config-entries/service-defaults#protocol)
+                      field of a
+                      [\`ServiceDefaults\`](/consul/docs/connect/config-entries/service-defaults)
+                      CRD for the upstream destination service. Configuring it in a
+                      proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+              },
+            },
+            {
+              name: 'ConnectTimeoutMs',
+              type: 'int: 5000',
+              description: {
+                hcl: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connect_timeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`service-resolver\`](/consul/docs/connect/config-entries/service-resolver)
+                      config entry for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+                yaml: `The number of milliseconds to allow when making upstream connections before timing out.<br><br>
+                    NOTE: The connect timeout of a service should ideally be configured via the
+                      [\`connectTimeout\`](/consul/docs/connect/config-entries/service-resolver#connecttimeout)
+                      field of a
+                      [\`ServiceResolver\`](/consul/docs/connect/config-entries/service-resolver)
+                      CRD for the upstream destination service.
+                      Configuring it in a proxy upstream config will not fully enable some
+                      [L7 features](/consul/docs/connect/l7-traffic).
+                      It is supported here for backwards compatibility with Consul versions prior to 1.6.0.
+                    `,
+              },
+            },
+            {
+              name: 'MeshGateway',
+              type: 'MeshGatewayConfig: <optional>',
+              description: `Controls the default
+                  [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
+                  for this upstream.`,
+              children: [
+                {
+                  name: 'Mode',
+                  type: 'string: ""',
+                  description: 'One of `none`, `local`, or `remote`.',
+                },
+              ],
+            },
+            {
+              name: 'BalanceOutboundConnections',
+              type: `string: ""`,
+              description: `Sets the strategy for allocating outbound connections from the upstream across proxy threads.
+                  The only supported value is \`exact_balance\`. By default, no connection balancing is used.
+                  Refer to the
+                  [Envoy Connection Balance config](https://cloudnative.to/envoy/api-v3/config/listener/v3/listener.proto.html#config-listener-v3-listener-connectionbalanceconfig)
+                  for details.`
+            },
+            {
+              name: 'Limits',
+              type: 'Limits: <optional>',
+              description: `A set of limits to apply when connecting to the upstream service.
+                  These limits are applied on a per-service-instance basis.
+                  The following limits are respected.`,
+              children: [
+                {
+                  name: 'MaxConnections',
+                  type: 'int: 0',
+                  description: `The maximum number of connections a service instance
+                      will be allowed to establish against the given upstream. Use this to limit
+                      HTTP/1.1 traffic, since HTTP/1.1 has a request per connection.`,
+                },
+                {
+                  name: 'MaxPendingRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of requests that will be queued
+                      while waiting for a connection to be established. For this configuration to
+                      be respected, a L7 protocol must be defined in the \`protocol\` field.`,
+                },
+                {
+                  name: 'MaxConcurrentRequests',
+                  type: 'int: 0',
+                  description: `The maximum number of concurrent requests that
+                      will be allowed at a single point in time. Use this to limit HTTP/2 traffic,
+                      since HTTP/2 has many requests per connection. For this configuration to be
+                      respected, a L7 protocol must be defined in the \`protocol\` field.`,
+                },
+              ],
+            },
+            {
+              name: 'PassiveHealthCheck',
+              type: 'PassiveHealthCheck: <optional>',
+              description: `Passive health checks are used to remove hosts from
+                    the upstream cluster which are unreachable or are returning errors..`,
+              children: [
+                {
+                  name: 'Interval',
+                  type: 'duration: 0s',
+                  description: {
+                    hcl: `The time between checks. Each check will cause hosts which
+                        have exceeded \`max_failures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
+                    yaml: `The time between checks. Each check will cause hosts which
+                        have exceeded \`maxFailures\` to be removed from the load balancer, and
+                        any hosts which have passed their ejection time to be returned to the
+                        load balancer.`,
+                  },
+                },
+                {
+                  name: 'MaxFailures',
+                  type: 'int: 0',
+                  description: `The number of consecutive failures which cause a host to be
+                    removed from the load balancer.`,
+                },
+                {
+                  name: 'EnforcingConsecutive5xx',
+                  type: 'int: 100',
+                  description: {
+                    hcl: `Measured in percent (%), the probability of a host's ejection
+                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                    yaml: `Measured in percent (%), the probability of a host's ejection
+                       after a passive health check detects an outlier status through consecutive 5xx.`,
+                  },
+                },
+                {
+                  name: 'MaxEjectionPercent',
+                  type: 'int: 10',
+                  description: `Measured in percent (%), the maximum percentage of hosts that can be ejected
+                    from a upstream cluster due to passive health check failures. If not specified, inherits
+                    Envoy's default of 10% or at least one host.`,
+                },
+                {
+                  name: 'BaseEjectionTime',
+                  type: 'duration: 30s',
+                  description: `The base time that a host is ejected for. The real time is equal to the base
+                    time multiplied by the number of times the host has been ejected and is capped by
+                    max_ejection_time (Default 300s). If not specified, inherits Envoy's default value of 30s.`,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'TransparentProxy',
+      type: 'TransparentProxyConfig: <optional>',
+      description: `Controls configuration specific to proxies in transparent mode. Added in v1.10.0.`,
+      children: [
+        {
+          name: 'OutboundListenerPort',
+          type: 'int: "15001"',
+          description: `The port the proxy should listen on for outbound traffic. This must be the port where
+                        outbound application traffic is redirected to.`,
+        },
+        {
+          name: 'DialedDirectly',
+          type: 'bool: false',
+          description: {
+            hcl: `Determines whether this proxy instance's IP address can be dialed directly by transparent proxies.
+              Typically transparent proxies dial upstreams using the "virtual" tagged address, which load balances
+              across instances. Dialing individual instances can be helpful in cases like stateful services such
+              as a database cluster with a leader.`,
+            yaml: `Determines whether the Pod IPs can be dialed directly (versus the Cluster IP).
+              Dialing Pod IPs can be helpful in cases like stateful services such
+              as a database cluster with a leader or with an ingress controller that dials Pod IPs instead of Cluster IPs.`,
+          },
+        },
+      ],
+    },
+    {
+      name: 'Destination',
+      type: 'DestinationConfig: <optional>',
+      description: `Controls configuration specific to destinations through terminating-gateway. Added in v1.13.0.`,
+      children: [
+        {
+          name: 'Addresses',
+          type: 'list<string>: []',
+          description:`List of addresses associated with the destination. This can be a hostname or an IP address.
+          Wildcards are not accepted.`,
+        },
+        {
+          name: 'Port',
+          type: 'int: 0',
+          description: `Port number associated with the destination.`,
+        },
       ]
-    }
-  }
-}
-```
+    },
+    {
+      name: 'MaxInboundConnections',
+      description: 'The maximum number of concurrent inbound connections to each service instance.',
+      type: 'int: 0',
+      yaml: true,
+    },
+    {
+      name: 'LocalConnectTimeoutMs',
+      description: ' The number of milliseconds allowed to make connections to the local application instance before timing out. Defaults to 5000.',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'LocalRequestTimeoutMs',
+      description: ' In milliseconds, the timeout for HTTP requests to the local application instance. Applies to HTTP-based protocols only. If not specified, inherits the Envoy default for route timeouts (15s).',
+      type: 'int: 0',
+      yaml: false,
+    },
+    {
+      name: 'MeshGateway',
+      type: 'MeshGatewayConfig: <optional>',
+      description: `Controls the default
+      [mesh gateway configuration](/consul/docs/connect/gateways/mesh-gateway/service-to-service-traffic-wan-datacenters#connect-proxy-configuration)
+      for this service. Added in v1.6.0.`,
+      children: [
+        {
+          name: 'Mode',
+          type: 'string: ""',
+          description: 'One of `none`, `local`, or `remote`.',
+        },
+      ],
+    },
+    {
+      name: 'ExternalSNI',
+      type: 'string: ""',
+      description: `This is an optional setting that allows for
+                      the TLS [SNI](https://en.wikipedia.org/wiki/Server_Name_Indication) value to
+                      be changed to a non-mesh value when federating with an external system.
+                      Added in v1.6.0.`,
+    },
+    {
+      name: 'Expose',
+      type: 'ExposeConfig: <optional>',
+      description: `Controls the default
+                      [expose path configuration](/consul/docs/connect/registration/service-registration#expose-paths-configuration-reference)
+                      for Envoy. Added in v1.6.2.<br><br>
+                      Exposing paths through Envoy enables a service to protect itself by only listening on localhost, while still allowing
+                      non-mesh-enabled applications to contact an HTTP endpoint.
+                      Some examples include: exposing a \`/metrics\` path for Prometheus or \`/healthz\` for kubelet liveness checks.`,
+      children: [
+        {
+          name: 'Checks',
+          type: 'bool: false',
+          description: `If enabled, all HTTP and gRPC checks registered with the agent are exposed through Envoy.
+        Envoy will expose listeners for these checks and will only accept connections originating from localhost or Consul's
+        [advertise address](/consul/docs/agent/config/config-files#advertise). The port for these listeners are dynamically allocated from
+        [expose_min_port](/consul/docs/agent/config/config-files#expose_min_port) to [expose_max_port](/consul/docs/agent/config/config-files#expose_max_port).
+        This flag is useful when a Consul client cannot reach registered services over localhost. One example is when running
+        Consul on Kubernetes, and Consul agents run in their own pods.`,
+        },
+        {
+          name: 'Paths',
+          type: 'list<Path>: []',
+          description: 'A list of paths to expose through Envoy.',
+          children: [
+            {
+              name: 'Path',
+              type: 'string: ""',
+              description:
+                'The HTTP path to expose. The path must be prefixed by a slash. ie: `/metrics`.',
+            },
+            {
+              name: 'LocalPathPort',
+              type: 'int: 0',
+              description:
+                'The port where the local service is listening for connections to the path.',
+            },
+            {
+              name: 'ListenerPort',
+              type: 'int: 0',
+              description: `The port where the proxy will listen for connections. This port must be available
+           for the listener to be set up. If the port is not free then Envoy will not expose a listener for the path,
+           but the proxy registration will not fail.`,
+            },
+            {
+              name: 'Protocol',
+              type: 'string: "http"',
+              description:
+                'Sets the protocol of the listener. One of `http` or `http2`. For gRPC use `http2`.',
+            },
+          ],
+        },
+      ],
+    },
+  ]}
+/>
 
-</CodeTabs>
+## ACLs
+
+Configuration entries may be protected by [ACLs](/consul/docs/security/acl).
+
+Reading a `service-defaults` config entry requires `service:read` on the resource.
+
+Creating, updating, or deleting a `service-defaults` config entry requires
+`service:write` on the resource.
+-->

@@ -67,7 +67,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
     steps:
       - name: 'Checkout directory'
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
       - name: Generate metadata file
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -108,12 +108,12 @@ jobs:
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
-          node-version: '18'
+          node-version: '14'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -198,12 +198,12 @@ jobs:
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
-          node-version: '18'
+          node-version: '14'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -249,12 +249,12 @@ jobs:
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Setup with node and yarn
-        uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
+        uses: actions/setup-node@64ed1c7eab4cce3362f8c340dee64e5eaeef8f7c # v3.6.0
         with:
-          node-version: '18'
+          node-version: '14'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -294,17 +294,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "386" }
-          - { arch: "arm" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["386", "amd64", "arm", "arm64"]
     env:
       repo: ${{github.event.repository.name}}
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -331,8 +327,8 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
-  build-docker-ubi-dockerhub:
-    name: Docker Build UBI Images
+  build-docker-ubi-redhat:
+    name: Docker Build UBI Image for RedHat Registry
     needs:
       - set-product-version
       - build
@@ -342,7 +338,27 @@ jobs:
       version: ${{needs.set-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - uses: hashicorp/actions-docker-build@v1
+        with:
+          version: ${{env.version}}
+          target: ubi
+          arch: amd64
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
+          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+
+  build-docker-ubi-dockerhub:
+    name: Docker Build UBI Image for DockerHub
+    needs:
+      - set-product-version
+      - build
+    runs-on: ubuntu-latest
+    env:
+      repo: ${{github.event.repository.name}}
+      version: ${{needs.set-product-version.outputs.product-version}}
+
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       # Strip everything but MAJOR.MINOR from the version string and add a `-dev` suffix
       # This naming convention will be used ONLY for per-commit dev images
@@ -367,7 +383,6 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
 
   verify-linux:
     needs:
@@ -376,11 +391,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "386" }
-          - { arch: "arm" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["386", "amd64", "arm", "arm64"]
       fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
@@ -388,7 +399,7 @@ jobs:
 
     name: Verify ${{ matrix.arch }} linux binary
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         if: ${{ endsWith(github.repository, '-enterprise') || matrix.arch != 's390x' }}
 
       - name: Download ${{ matrix.arch  }} zip
@@ -398,7 +409,7 @@ jobs:
           name: ${{ env.zip_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
         if: ${{ matrix.arch == 'arm' || matrix.arch == 'arm64' }}
         with:
           # this should be a comma-separated string as opposed to an array
@@ -421,7 +432,7 @@ jobs:
 
     name: Verify amd64 darwin binary
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Download amd64 darwin zip
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -441,18 +452,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "i386" }
-          - { arch: "armhf" }
-          - { arch: "amd64" }
-          - { arch: "arm64" }
+        arch: ["i386", "amd64", "armhf", "arm64"]
       # fail-fast: true
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} debian package
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Set package version
         run: |
@@ -468,7 +475,7 @@ jobs:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
         with:
           platforms: all
 
@@ -482,18 +489,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - { arch: "i386" }
-          - { arch: "x86_64" }
         # TODO(eculver): re-enable when there is a smaller verification container available
-          # - { arch: "armv7hl" }
-          # - { arch: "aarch64" }
+        arch: ["i386", "x86_64"] #, "armv7hl", "aarch64"]
     env:
       version: ${{ needs.set-product-version.outputs.product-version }}
 
     name: Verify ${{ matrix.arch }} rpm
     steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Set package version
         run: |
@@ -509,7 +512,7 @@ jobs:
           name: ${{ env.pkg_name }}
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
+        uses: docker/setup-qemu-action@e81a89b1732b9c48d79cd809d8d81d79c4647a18 # v2.1.0
         with:
           platforms: all
 

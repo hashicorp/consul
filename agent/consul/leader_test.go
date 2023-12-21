@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -1640,7 +1637,7 @@ func TestLeader_ConfigEntryBootstrap_Fail(t *testing.T) {
 			deps := newDefaultDeps(t, config)
 			deps.Logger = logger
 
-			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger, nil)
+			srv, err := NewServer(config, deps, grpc.NewServer(), nil, logger)
 			require.NoError(t, err)
 			defer srv.Shutdown()
 
@@ -2086,6 +2083,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			},
 
 			RaftIndex: got.RaftIndex,
+			Hash:      got.GetHash(),
 		}
 
 		require.Equal(t, expect, got)

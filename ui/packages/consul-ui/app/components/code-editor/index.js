@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import Component from '@ember/component';
 import { set } from '@ember/object';
 import { inject as service } from '@ember/service';
@@ -36,24 +31,22 @@ export default Component.extend({
     }
   },
   setMode: function (mode) {
-    if (!this.isDestroying && !this.isDestroyed) {
-      let options = {
-        ...DEFAULTS,
-        mode: mode.mime,
-        readOnly: this.readonly,
-      };
-      if (mode.name === 'XML') {
-        options.htmlMode = mode.htmlMode;
-        options.matchClosing = mode.matchClosing;
-        options.alignCDATA = mode.alignCDATA;
-      }
-      set(this, 'options', options);
-
-      const editor = this.editor;
-      editor.setOption('mode', mode.mime);
-      this.helper.lint(editor, mode.mode);
-      set(this, 'mode', mode);
+    let options = {
+      ...DEFAULTS,
+      mode: mode.mime,
+      readOnly: this.readonly,
+    };
+    if (mode.name === 'XML') {
+      options.htmlMode = mode.htmlMode;
+      options.matchClosing = mode.matchClosing;
+      options.alignCDATA = mode.alignCDATA;
     }
+    set(this, 'options', options);
+
+    const editor = this.editor;
+    editor.setOption('mode', mode.mime);
+    this.helper.lint(editor, mode.mode);
+    set(this, 'mode', mode);
   },
   willDestroyElement: function () {
     this._super(...arguments);

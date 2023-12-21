@@ -1,37 +1,45 @@
 {
-  "nonce": "00000001",
+  "versionInfo": "00000001",
   "resources": [
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "connectTimeout": "5s",
-      "edsClusterConfig": {
-        "edsConfig": {
-          "ads": {},
-          "resourceApiVersion": "V3"
-        }
-      },
       "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "EDS"
-    },
-    {
-      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "connectTimeout": "5s",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "EDS"
+      "connectTimeout": "5s",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {
+
+          },
+          "resourceApiVersion": "V3"
+        }
+      },
       "connectTimeout": "5s",
-      "dnsLookupFamily": "V4_ONLY",
-      "dnsRefreshRate": "10s",
+      "outlierDetection": {
+
+      }
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
+      "connectTimeout": "5s",
       "loadAssignment": {
         "clusterName": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -53,15 +61,17 @@
           }
         ]
       },
-      "name": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "LOGICAL_DNS"
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "name": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "LOGICAL_DNS",
       "connectTimeout": "5s",
-      "dnsLookupFamily": "V4_ONLY",
-      "dnsRefreshRate": "10s",
       "loadAssignment": {
         "clusterName": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
         "endpoints": [
@@ -83,24 +93,30 @@
           }
         ]
       },
-      "name": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "LOGICAL_DNS"
+      "dnsRefreshRate": "10s",
+      "dnsLookupFamily": "V4_ONLY",
+      "outlierDetection": {
+
+      }
     },
     {
       "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-      "connectTimeout": "5s",
+      "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "type": "EDS",
       "edsClusterConfig": {
         "edsConfig": {
-          "ads": {},
+          "ads": {
+
+          },
           "resourceApiVersion": "V3"
         }
       },
-      "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
-      "outlierDetection": {},
-      "type": "EDS"
+      "connectTimeout": "5s",
+      "outlierDetection": {
+
+      }
     }
   ],
   "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
-  "versionInfo": "00000001"
+  "nonce": "00000001"
 }

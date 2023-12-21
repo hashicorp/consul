@@ -37,8 +37,8 @@ Feature: dc / acls / policies / update: ACL Policy Update
 
     ---
     Then the url should be /datacenter/acls/policies
-        And "[data-notification]" has the "hds-toast" class
-        And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class
     Where:
       ------------------------------------------------------------------------------
       | Name          |  Rules                        | Description                |
@@ -50,8 +50,8 @@ Feature: dc / acls / policies / update: ACL Policy Update
     Given the url "/v1/acl/policy/policy-id" responds with a 500 status
     And I submit
     Then the url should be /datacenter/acls/policies/policy-id
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-critical" class
+    Then "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "error" class
 
   @notNamespaceable
   Scenario: Updating a simple ACL policy when Namespaces are disabled does not send Namespace
@@ -65,5 +65,5 @@ Feature: dc / acls / policies / update: ACL Policy Update
       - Namespace
     ---
     Then the url should be /datacenter/acls/policies
-    And "[data-notification]" has the "hds-toast" class
-    And "[data-notification]" has the "hds-alert--color-success" class
+    And "[data-notification]" has the "notification-update" class
+    And "[data-notification]" has the "success" class

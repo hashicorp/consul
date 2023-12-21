@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -601,6 +598,7 @@ func (c *Catalog) ListServices(args *structs.DCSpecificRequest, reply *structs.I
 			if err != nil {
 				return err
 			}
+
 			if isUnmodified(args.QueryOptions, reply.Index) {
 				reply.Services = nil
 				reply.QueryMeta.NotModified = true

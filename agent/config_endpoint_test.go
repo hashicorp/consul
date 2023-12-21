@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -18,23 +15,6 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/testrpc"
 )
-
-func TestConfigEndpointsFailInV2(t *testing.T) {
-	t.Parallel()
-
-	a := NewTestAgent(t, `experiments = ["resource-apis"]`)
-
-	checkRequest := func(method, url string) {
-		t.Run(method+" "+url, func(t *testing.T) {
-			assertV1CatalogEndpointDoesNotWorkWithV2(t, a, method, url, `{"kind":"service-defaults", "name":"web"}`)
-		})
-	}
-
-	checkRequest("GET", "/v1/config/service-defaults")
-	checkRequest("GET", "/v1/config/service-defaults/web")
-	checkRequest("DELETE", "/v1/config/service-defaults/web")
-	checkRequest("PUT", "/v1/config")
-}
 
 func TestConfig_Get(t *testing.T) {
 	if testing.Short() {
@@ -142,6 +122,7 @@ func TestConfig_Get(t *testing.T) {
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
 		ce.EnterpriseMeta = acl.EnterpriseMeta{}
+		ce.Hash = 0
 
 		out, err := a.srv.marshalJSON(req, obj)
 		require.NoError(t, err)
@@ -467,6 +448,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 				},
 			},
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			Hash:           got.GetHash(),
 		}
 		require.Equal(t, expect, got)
 	}

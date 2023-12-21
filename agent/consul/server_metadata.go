@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
+// SPDX-License-Identifier: MPL-2.0
 
 package consul
 
@@ -31,7 +31,7 @@ func (md *ServerMetadata) IsLastSeenStale(d time.Duration) bool {
 // OpenServerMetadata is a helper function for opening the server metadata file
 // with the correct permissions.
 func OpenServerMetadata(filename string) (io.WriteCloser, error) {
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, 0600)
+	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 }
 
 type ServerMetadataReadFunc func(filename string) (*ServerMetadata, error)

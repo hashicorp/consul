@@ -1,17 +1,11 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -39,12 +33,10 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -121,7 +113,7 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 	})
 }
 
-func testServerConfig(t testutil.TestingTB) (string, *Config) {
+func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
@@ -237,7 +229,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		dir, config = testServerConfig(r)
+		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
 		}
@@ -250,8 +242,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		deps = newDefaultDeps(r, config)
-		srv, err = newServerWithDeps(r, config, deps)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -331,7 +323,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	return newServerWithDeps(t, c, newDefaultDeps(t, c))
 }
 
-func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, error) {
+func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -342,8 +334,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 		}
 	}
 	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
-	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger)
 	if err != nil {
 		return nil, err
 	}
@@ -1250,7 +1241,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			}
 		}
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1288,7 +1279,7 @@ func TestServer_RPC_MetricsIntercept_Off(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 		if err != nil {
 			t.Fatalf("err: %v", err)
 		}
@@ -1322,7 +1313,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 		deps := newDefaultDeps(t, conf)
 		deps.NewRequestRecorderFunc = nil
 
-		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s1, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when provider func is nil")
 		require.Equal(t, err.Error(), "cannot initialize server without an RPC request recorder provider")
@@ -1341,7 +1332,7 @@ func TestServer_RPC_RequestRecorder(t *testing.T) {
 			return nil
 		}
 
-		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger, nil)
+		s2, err := NewServer(conf, deps, grpc.NewServer(), nil, deps.Logger)
 
 		require.Error(t, err, "need err when RequestRecorder is nil")
 		require.Equal(t, err.Error(), "cannot initialize server with a nil RPC request recorder")
@@ -1890,18 +1881,14 @@ func TestServer_ReloadConfig(t *testing.T) {
 
 	// Check the incoming RPC rate limiter got updated
 	mockHandler.AssertCalled(t, "UpdateConfig", rpcRate.HandlerConfig{
-		GlobalLimitConfig: rpcRate.GlobalLimitConfig{
-			Mode: rc.RequestLimits.Mode,
-			ReadWriteConfig: rpcRate.ReadWriteConfig{
-				ReadConfig: multilimiter.LimiterConfig{
-					Rate:  rc.RequestLimits.ReadRate,
-					Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
-				},
-				WriteConfig: multilimiter.LimiterConfig{
-					Rate:  rc.RequestLimits.WriteRate,
-					Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
-				},
-			},
+		GlobalMode: rc.RequestLimits.Mode,
+		GlobalReadConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.ReadRate,
+			Burst: int(rc.RequestLimits.ReadRate) * requestLimitsBurstMultiplier,
+		},
+		GlobalWriteConfig: multilimiter.LimiterConfig{
+			Rate:  rc.RequestLimits.WriteRate,
+			Burst: int(rc.RequestLimits.WriteRate) * requestLimitsBurstMultiplier,
 		},
 	})
 
@@ -1912,7 +1899,7 @@ func TestServer_ReloadConfig(t *testing.T) {
 	defaults := DefaultConfig()
 	got := s.raft.ReloadableConfig()
 	require.Equal(t, uint64(4321), got.SnapshotThreshold,
-		"should have been reloaded to new value")
+		"should have be reloaded to new value")
 	require.Equal(t, defaults.RaftConfig.SnapshotInterval, got.SnapshotInterval,
 		"should have remained the default interval")
 	require.Equal(t, defaults.RaftConfig.TrailingLogs, got.TrailingLogs,
@@ -2106,183 +2093,4 @@ func TestServer_hcpManager(t *testing.T) {
 	waitForLeaderEstablishment(t, s1)
 	hcp1.AssertExpectations(t)
 
-}
-
-func TestServer_addServerTLSInfo(t *testing.T) {
-	testCases := map[string]struct {
-		errMsg            string
-		setupConfigurator func(*testing.T) tlsutil.ConfiguratorIface
-		checkStatus       func(*testing.T, hcpclient.ServerStatus)
-	}{
-		"Success": {
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				tlsConfig := tlsutil.Config{
-					InternalRPC: tlsutil.ProtocolConfig{
-						CAFile:               "../../test/ca/root.cer",
-						CertFile:             "../../test/key/ourdomain_with_intermediate.cer",
-						KeyFile:              "../../test/key/ourdomain.key",
-						VerifyIncoming:       true,
-						VerifyOutgoing:       true,
-						VerifyServerHostname: true,
-					},
-				}
-
-				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
-				require.NoError(t, err)
-				return tlsConfigurator
-			},
-			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
-				expected := hcpclient.ServerTLSInfo{
-					Enabled:              true,
-					CertIssuer:           "test.internal",
-					CertName:             "testco.internal",
-					CertSerial:           "40",
-					CertExpiry:           time.Date(2123, time.October, 9, 17, 20, 16, 0, time.UTC),
-					VerifyIncoming:       true,
-					VerifyOutgoing:       true,
-					VerifyServerHostname: true,
-					CertificateAuthorities: []hcpclient.CertificateMetadata{
-						{ // manual ca pem
-							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
-							CertName:   "test.internal",
-							CertSerial: "191297809789001034260919865367524695178070761520",
-						},
-						{ // certificate intermediate
-							CertExpiry: time.Date(2033, time.October, 30, 15, 50, 29, 0, time.UTC),
-							CertName:   "test.internal",
-							CertSerial: "191297809789001034260919865367524695178070761520",
-						},
-					},
-				}
-
-				require.Equal(t, expected, s.ServerTLSMetadata.InternalRPC)
-
-				// TODO: remove check for status.TLS once deprecation is ready
-				// https://hashicorp.atlassian.net/browse/CC-7015
-				require.Equal(t, expected, s.TLS)
-			},
-		},
-		"Nil Cert": {
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				tlsConfigurator, err := tlsutil.NewConfigurator(tlsutil.Config{},
-					hclog.NewNullLogger())
-				require.NoError(t, err)
-				return tlsConfigurator
-			},
-			checkStatus: func(t *testing.T, s hcpclient.ServerStatus) {
-				require.Empty(t, s.TLS)
-				require.Empty(t, s.ServerTLSMetadata.InternalRPC)
-			},
-		},
-		"Fail: No leaf": {
-			errMsg: "expected a leaf certificate",
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				return tlsutil.MockConfigurator{
-					TlsCert: &tls.Certificate{},
-				}
-			},
-		},
-		"Fail: Parse leaf cert": {
-			errMsg: "error parsing leaf cert",
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				return tlsutil.MockConfigurator{
-					TlsCert: &tls.Certificate{
-						Certificate: [][]byte{{}},
-					},
-				}
-			},
-		},
-		"Fail: Parse manual ca pems": {
-			errMsg: "error parsing manual ca pem",
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				tlsConfig := tlsutil.Config{
-					InternalRPC: tlsutil.ProtocolConfig{
-						CertFile: "../../test/key/ourdomain.cer",
-						KeyFile:  "../../test/key/ourdomain.key",
-					},
-				}
-				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
-				require.NoError(t, err)
-
-				return tlsutil.MockConfigurator{
-					TlsCert:         tlsConfigurator.Cert(),
-					ManualCAPemsArr: []string{"invalid-format"},
-				}
-			},
-		},
-		"Fail: Parse tls cert intermediate": {
-			errMsg: "error parsing tls cert",
-			setupConfigurator: func(t *testing.T) tlsutil.ConfiguratorIface {
-				tlsConfig := tlsutil.Config{
-					InternalRPC: tlsutil.ProtocolConfig{
-						CertFile: "../../test/key/ourdomain.cer",
-						KeyFile:  "../../test/key/ourdomain.key",
-					},
-				}
-				tlsConfigurator, err := tlsutil.NewConfigurator(tlsConfig, hclog.NewNullLogger())
-				require.NoError(t, err)
-				cert := tlsConfigurator.Cert().Certificate
-				cert = append(cert, []byte{})
-				return tlsutil.MockConfigurator{
-					TlsCert: &tls.Certificate{
-						Certificate: cert,
-					},
-				}
-			},
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			require.NotNil(t, tc.setupConfigurator)
-			tlsConfigurator := tc.setupConfigurator(t)
-
-			status := hcpclient.ServerStatus{}
-			err := addServerTLSInfo(&status, tlsConfigurator)
-
-			if len(tc.errMsg) > 0 {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tc.errMsg)
-				require.Empty(t, status)
-			} else {
-				require.NoError(t, err)
-				require.NotNil(t, tc.checkStatus)
-				tc.checkStatus(t, status)
-			}
-		})
-	}
-}
-
-// goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
-// returning the contents as a string.
-func goldenMarkdown(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".md")
-	update := flag.Lookup("update").Value.(flag.Getter).Get().(bool)
-	if update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
-
-func TestServer_ControllerDependencies(t *testing.T) {
-	t.Parallel()
-
-	_, conf := testServerConfig(t)
-	deps := newDefaultDeps(t, conf)
-	deps.Experiments = []string{"resource-apis"}
-	deps.LeafCertManager = &leafcert.Manager{}
-
-	s1, err := newServerWithDeps(t, conf, deps)
-	require.NoError(t, err)
-
-	waitForLeaderEstablishment(t, s1)
-	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	expected := goldenMarkdown(t, "v2-resource-dependencies", actual)
-	require.Equal(t, expected, actual)
 }

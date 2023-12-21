@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 (function(doc, appName) {
   const fs = new Map(
     Object.entries(JSON.parse(doc.querySelector(`[data-${appName}-fs]`).textContent))

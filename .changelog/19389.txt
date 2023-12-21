@@ -1,3 +1,0 @@
-```release-note:improvement
-cli: stop simultaneous usage of -templated-policy and -templated-policy-file when creating a role or token.
-```

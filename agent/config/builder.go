@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package config
 
 import (
@@ -457,14 +454,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	sidecarMaxPort := b.portVal("ports.sidecar_max_port", c.Ports.SidecarMaxPort)
 	exposeMinPort := b.portVal("ports.expose_min_port", c.Ports.ExposeMinPort)
 	exposeMaxPort := b.portVal("ports.expose_max_port", c.Ports.ExposeMaxPort)
-	if serverPort <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"server-port must be greater than zero")
-	}
-	if serfPortLAN <= 0 {
-		return RuntimeConfig{}, fmt.Errorf(
-			"serf-lan-port must be greater than zero")
-	}
 	if proxyMaxPort < proxyMinPort {
 		return RuntimeConfig{}, fmt.Errorf(
 			"proxy_min_port must be less than proxy_max_port. To disable, set both to zero.")
@@ -828,7 +817,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		Version:                    stringVal(c.Version),
 		VersionPrerelease:          stringVal(c.VersionPrerelease),
 		VersionMetadata:            stringVal(c.VersionMetadata),
-		Experiments:                c.Experiments,
 		// What is a sensible default for BuildDate?
 		BuildDate: timeValWithDefault(c.BuildDate, time.Date(1970, 1, 00, 00, 00, 01, 0, time.UTC)),
 
@@ -844,7 +832,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		// gossip configuration
 		GossipLANGossipInterval: b.durationVal("gossip_lan..gossip_interval", c.GossipLAN.GossipInterval),
 		GossipLANGossipNodes:    intVal(c.GossipLAN.GossipNodes),
-		Locality:                c.Locality,
 		GossipLANProbeInterval:  b.durationVal("gossip_lan..probe_interval", c.GossipLAN.ProbeInterval),
 		GossipLANProbeTimeout:   b.durationVal("gossip_lan..probe_timeout", c.GossipLAN.ProbeTimeout),
 		GossipLANSuspicionMult:  intVal(c.GossipLAN.SuspicionMult),
@@ -882,7 +869,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 			ACLAgentRecoveryToken:          stringVal(c.ACL.Tokens.AgentRecovery),
 			ACLReplicationToken:            stringVal(c.ACL.Tokens.Replication),
 			ACLConfigFileRegistrationToken: stringVal(c.ACL.Tokens.ConfigFileRegistration),
-			ACLDNSToken:                    stringVal(c.ACL.Tokens.DNS),
 		},
 
 		// Autopilot
@@ -1137,15 +1123,6 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 		return RuntimeConfig{}, fmt.Errorf("cache.entry_fetch_rate must be strictly positive, was: %v", rt.Cache.EntryFetchRate)
 	}
 
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
-		// Allow override of this check for development/testing purposes. Should not be used in production
-		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
-		if err != nil || !override {
-			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
-		}
-	}
-
 	if rt.UIConfig.MetricsProvider == "prometheus" {
 		// Handle defaulting for the built-in version of prometheus.
 		if len(rt.UIConfig.MetricsProxy.PathAllowlist) == 0 {
@@ -1302,10 +1279,6 @@ func (b *builder) validate(rt RuntimeConfig) error {
 			"1 and 63 bytes.", rt.NodeName)
 	}
 
-	if err := rt.StructLocality().Validate(); err != nil {
-		return fmt.Errorf("locality is invalid: %s", err)
-	}
-
 	if ipaddr.IsAny(rt.AdvertiseAddrLAN.IP) {
 		return fmt.Errorf("Advertise address cannot be 0.0.0.0, :: or [::]")
 	}
@@ -1416,7 +1389,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 
 		// Raft LogStore validation
 		if rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendBoltDB &&
-			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL && rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendDefault {
+			rt.RaftLogStoreConfig.Backend != consul.LogStoreBackendWAL {
 			return fmt.Errorf("raft_logstore.backend must be one of '%s' or '%s'",
 				consul.LogStoreBackendBoltDB, consul.LogStoreBackendWAL)
 		}
@@ -1485,7 +1458,7 @@ func (b *builder) validate(rt RuntimeConfig) error {
 				return err
 			}
 		case structs.VaultCAProvider:
-			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig, rt.PrimaryDatacenter == rt.Datacenter); err != nil {
+			if _, err := ca.ParseVaultCAConfig(rt.ConnectCAConfig); err != nil {
 				return err
 			}
 		case structs.AWSCAProvider:
@@ -1630,7 +1603,6 @@ func (b *builder) checkVal(v *CheckDefinition) *structs.CheckDefinition {
 		Body:                           stringVal(v.Body),
 		DisableRedirects:               boolVal(v.DisableRedirects),
 		TCP:                            stringVal(v.TCP),
-		TCPUseTLS:                      boolVal(v.TCPUseTLS),
 		UDP:                            stringVal(v.UDP),
 		Interval:                       b.durationVal(fmt.Sprintf("check[%s].interval", id), v.Interval),
 		DockerContainerID:              stringVal(v.DockerContainerID),
@@ -1732,18 +1704,7 @@ func (b *builder) serviceVal(v *ServiceDefinition) *structs.ServiceDefinition {
 		Checks:            checks,
 		Proxy:             b.serviceProxyVal(v.Proxy),
 		Connect:           b.serviceConnectVal(v.Connect),
-		Locality:          b.serviceLocalityVal(v.Locality),
 		EnterpriseMeta:    v.EnterpriseMeta.ToStructs(),
-	}
-}
-
-func (b *builder) serviceLocalityVal(l *Locality) *structs.Locality {
-	if l == nil {
-		return nil
-	}
-	return &structs.Locality{
-		Region: stringVal(l.Region),
-		Zone:   stringVal(l.Zone),
 	}
 }
 
@@ -2573,7 +2534,7 @@ func (b *builder) cloudConfigVal(v Config) hcpconfig.CloudConfig {
 	val := hcpconfig.CloudConfig{
 		ResourceID: os.Getenv("HCP_RESOURCE_ID"),
 	}
-	// Node id might get overridden in setup.go:142
+	// Node id might get overriden in setup.go:142
 	nodeID := stringVal(v.NodeID)
 	val.NodeID = types.NodeID(nodeID)
 	val.NodeName = b.nodeName(v.NodeName)
@@ -2677,10 +2638,10 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 		return c, errors.New("verify_outgoing is not valid in the tls.grpc stanza")
 	}
 
-	// Similarly, only the internal RPC and defaults configuration honor VerifyServerHostname
+	// Similarly, only the internal RPC configuration honors VerifyServerHostname
 	// so we call it out here too.
-	if t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
-		return c, errors.New("verify_server_hostname is only valid in the tls.defaults and tls.internal_rpc stanzas")
+	if t.Defaults.VerifyServerHostname != nil || t.GRPC.VerifyServerHostname != nil || t.HTTPS.VerifyServerHostname != nil {
+		return c, errors.New("verify_server_hostname is only valid in the tls.internal_rpc stanza")
 	}
 
 	// And UseAutoCert right now only applies to external gRPC interface.
@@ -2730,11 +2691,8 @@ func (b *builder) buildTLSConfig(rt RuntimeConfig, t TLS) (tlsutil.Config, error
 	}
 
 	mapCommon("internal_rpc", t.InternalRPC, &c.InternalRPC)
+	c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
 
-	c.InternalRPC.VerifyServerHostname = boolVal(t.Defaults.VerifyServerHostname)
-	if t.InternalRPC.VerifyServerHostname != nil {
-		c.InternalRPC.VerifyServerHostname = boolVal(t.InternalRPC.VerifyServerHostname)
-	}
 	// Setting only verify_server_hostname is documented to imply verify_outgoing.
 	// If it doesn't then we risk sending communication over plain TCP when we
 	// documented it as forcing TLS for RPCs. Enforce this here rather than in
@@ -2795,7 +2753,7 @@ func (b *builder) parsePrefixFilter(telemetry *Telemetry) ([]string, []string) {
 func (b *builder) raftLogStoreConfigVal(raw *RaftLogStoreRaw) consul.RaftLogStoreConfig {
 	var cfg consul.RaftLogStoreConfig
 	if raw != nil {
-		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendDefault)
+		cfg.Backend = stringValWithDefault(raw.Backend, consul.LogStoreBackendBoltDB)
 		cfg.DisableLogCache = boolVal(raw.DisableLogCache)
 
 		cfg.Verification.Enabled = boolVal(raw.Verification.Enabled)

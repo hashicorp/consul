@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -234,7 +231,7 @@ func TestEventList_ACLFilter(t *testing.T) {
 
 	t.Run("token with access to one event type", func(t *testing.T) {
 		retry.Run(t, func(r *retry.R) {
-			token := testCreateToken(r, a, `
+			token := testCreateToken(t, a, `
 				event "foo" {
 					policy = "read"
 				}

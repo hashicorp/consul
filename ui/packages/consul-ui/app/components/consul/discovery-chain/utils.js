@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 const getNodesByType = function (nodes = {}, type) {
   return Object.values(nodes).filter((item) => item.Type === type);
 };

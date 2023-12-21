@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package structs
 
 // PeeringToken identifies a peer in order for a connection to be established.
@@ -17,7 +14,6 @@ type PeeringToken struct {
 type PeeringTokenRemote struct {
 	Partition  string
 	Datacenter string
-	Locality   *Locality
 }
 
 type IndexedExportedServiceList struct {

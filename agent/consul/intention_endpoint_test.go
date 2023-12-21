@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package consul
 
 import (
@@ -550,6 +547,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
 
 		require.Equal(t, expect, entry)
@@ -689,6 +687,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
 
 		require.Equal(t, expect, entry)
@@ -758,6 +757,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 				},
 			},
 			RaftIndex: entry.RaftIndex,
+			Hash:      entry.GetHash(),
 		}
 
 		require.Equal(t, expect, entry)
@@ -1926,7 +1926,6 @@ func TestIntentionMatch_acl(t *testing.T) {
 		}
 		var resp structs.IndexedIntentionMatches
 		err := msgpackrpc.CallWithCodec(codec, "Intention.Match", req, &resp)
-		require.Error(t, err)
 		require.True(t, acl.IsErrPermissionDenied(err))
 		require.Len(t, resp.Matches, 0)
 	}

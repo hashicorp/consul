@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package envoy
 
 import (
@@ -38,7 +35,7 @@ func New(ui cli.Ui) *cmd {
 	return c
 }
 
-const DefaultAdminAccessLogPath = os.DevNull
+const DefaultAdminAccessLogPath = "/dev/null"
 
 type cmd struct {
 	UI     cli.Ui
@@ -344,16 +341,15 @@ func (c *cmd) run(args []string) int {
 		}
 	}
 
-	var svcForSidecar api.AgentService
 	if c.proxyID == "" {
 		switch {
 		case c.sidecarFor != "":
-			svcForSidecar, err := proxyCmd.LookupServiceForSidecar(c.client, c.sidecarFor)
+			proxyID, err := proxyCmd.LookupProxyIDForSidecar(c.client, c.sidecarFor)
 			if err != nil {
 				c.UI.Error(err.Error())
 				return 1
 			}
-			c.proxyID = svcForSidecar.ID
+			c.proxyID = proxyID
 
 		case c.gateway != "" && !c.register:
 			gatewaySvc, err := proxyCmd.LookupGatewayProxy(c.client, c.gatewayKind)
@@ -395,13 +391,77 @@ func (c *cmd) run(args []string) int {
 			return 1
 		}
 
-		svc, err := c.proxyRegistration(&svcForSidecar)
-		if err != nil {
-			c.UI.Error(err.Error())
+		taggedAddrs := make(map[string]api.ServiceAddress)
+		lanAddr := c.lanAddress.Value()
+		if lanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressLAN] = lanAddr
+		}
+
+		wanAddr := c.wanAddress.Value()
+		if wanAddr.Address != "" {
+			taggedAddrs[structs.TaggedAddressWAN] = wanAddr
+		}
+
+		tcpCheckAddr := lanAddr.Address
+		if tcpCheckAddr == "" {
+			// fallback to localhost as the gateway has to reside in the same network namespace
+			// as the agent
+			tcpCheckAddr = "127.0.0.1"
+		}
+
+		var proxyConf *api.AgentServiceConnectProxyConfig
+		if len(c.bindAddresses.value) > 0 {
+			// override all default binding rules and just bind to the user-supplied addresses
+			proxyConf = &api.AgentServiceConnectProxyConfig{
+				Config: map[string]interface{}{
+					"envoy_gateway_no_default_bind": true,
+					"envoy_gateway_bind_addresses":  c.bindAddresses.value,
+				},
+			}
+		} else if canBind(lanAddr) && canBind(wanAddr) {
+			// when both addresses are bindable then we bind to the tagged addresses
+			// for creating the envoy listeners
+			proxyConf = &api.AgentServiceConnectProxyConfig{
+				Config: map[string]interface{}{
+					"envoy_gateway_no_default_bind":       true,
+					"envoy_gateway_bind_tagged_addresses": true,
+				},
+			}
+		} else if !canBind(lanAddr) && lanAddr.Address != "" {
+			c.UI.Error(fmt.Sprintf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr.Address))
 			return 1
 		}
 
-		if err := c.client.Agent().ServiceRegister(svc); err != nil {
+		var meta map[string]string
+		if c.exposeServers {
+			meta = map[string]string{structs.MetaWANFederationKey: "1"}
+		}
+
+		// API gateways do not have a default listener or ready endpoint,
+		// so adding any check to the registration will fail
+		var check *api.AgentServiceCheck
+		if c.gatewayKind != api.ServiceKindAPIGateway {
+			check = &api.AgentServiceCheck{
+				Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
+				TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
+				Interval:                       "10s",
+				DeregisterCriticalServiceAfter: c.deregAfterCritical,
+			}
+		}
+
+		svc := api.AgentServiceRegistration{
+			Kind:            c.gatewayKind,
+			Name:            c.gatewaySvcName,
+			ID:              c.proxyID,
+			Address:         lanAddr.Address,
+			Port:            lanAddr.Port,
+			Meta:            meta,
+			TaggedAddresses: taggedAddrs,
+			Proxy:           proxyConf,
+			Check:           check,
+		}
+
+		if err := c.client.Agent().ServiceRegister(&svc); err != nil {
 			c.UI.Error(fmt.Sprintf("Error registering service %q: %s", svc.Name, err))
 			return 1
 		}
@@ -477,85 +537,6 @@ func (c *cmd) run(args []string) int {
 	}
 
 	return 0
-}
-
-func (c *cmd) proxyRegistration(svcForSidecar *api.AgentService) (*api.AgentServiceRegistration, error) {
-	taggedAddrs := make(map[string]api.ServiceAddress)
-	lanAddr := c.lanAddress.Value()
-	if lanAddr.Address != "" {
-		taggedAddrs[structs.TaggedAddressLAN] = lanAddr
-	}
-
-	wanAddr := c.wanAddress.Value()
-	if wanAddr.Address != "" {
-		taggedAddrs[structs.TaggedAddressWAN] = wanAddr
-	}
-
-	tcpCheckAddr := lanAddr.Address
-	if tcpCheckAddr == "" {
-		// fallback to localhost as the gateway has to reside in the same network namespace
-		// as the agent
-		tcpCheckAddr = "127.0.0.1"
-	}
-
-	var proxyConf *api.AgentServiceConnectProxyConfig
-	if len(c.bindAddresses.value) > 0 {
-		// override all default binding rules and just bind to the user-supplied addresses
-		proxyConf = &api.AgentServiceConnectProxyConfig{
-			Config: map[string]interface{}{
-				"envoy_gateway_no_default_bind": true,
-				"envoy_gateway_bind_addresses":  c.bindAddresses.value,
-			},
-		}
-	} else if canBind(lanAddr) && canBind(wanAddr) {
-		// when both addresses are bindable then we bind to the tagged addresses
-		// for creating the envoy listeners
-		proxyConf = &api.AgentServiceConnectProxyConfig{
-			Config: map[string]interface{}{
-				"envoy_gateway_no_default_bind":       true,
-				"envoy_gateway_bind_tagged_addresses": true,
-			},
-		}
-	} else if !canBind(lanAddr) && lanAddr.Address != "" {
-		return nil, fmt.Errorf("The LAN address %q will not be bindable. Either set a bindable address or override the bind addresses with -bind-address", lanAddr.Address)
-	}
-
-	var meta map[string]string
-	if c.exposeServers {
-		meta = map[string]string{structs.MetaWANFederationKey: "1"}
-	}
-
-	// API gateways do not have a default listener or ready endpoint,
-	// so adding any check to the registration will fail
-	var check *api.AgentServiceCheck
-	if c.gatewayKind != api.ServiceKindAPIGateway {
-		check = &api.AgentServiceCheck{
-			Name:                           fmt.Sprintf("%s listening", c.gatewayKind),
-			TCP:                            ipaddr.FormatAddressPort(tcpCheckAddr, lanAddr.Port),
-			Interval:                       "10s",
-			DeregisterCriticalServiceAfter: c.deregAfterCritical,
-		}
-	}
-
-	// If registering a sidecar for an existing service, inherit the
-	// locality of that service if it was explicitly configured.
-	var locality *api.Locality
-	if c.sidecarFor != "" {
-		locality = svcForSidecar.Locality
-	}
-
-	return &api.AgentServiceRegistration{
-		Kind:            c.gatewayKind,
-		Name:            c.gatewaySvcName,
-		ID:              c.proxyID,
-		Address:         lanAddr.Address,
-		Port:            lanAddr.Port,
-		Meta:            meta,
-		TaggedAddresses: taggedAddrs,
-		Proxy:           proxyConf,
-		Check:           check,
-		Locality:        locality,
-	}, nil
 }
 
 var errUnsupportedOS = errors.New("envoy: not implemented on this operating system")

@@ -1,0 +1,3 @@
+```release-note:bug
+ui: only show back-to-hcp link when url is present
+```

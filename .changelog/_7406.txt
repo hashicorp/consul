@@ -1,3 +1,0 @@
-```release-note:bug
-server: **(Enterprise Only)** Fixed an issue where snake case keys were rejected when configuring the control-plane-request-limit config entry
-```

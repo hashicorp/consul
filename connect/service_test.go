@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package connect
 
 import (
@@ -246,7 +243,7 @@ func TestService_HTTPClient(t *testing.T) {
 			//require.Equal(t,"https://backend.service.consul:443", addr)
 			return &StaticResolver{
 				Addr:    testSvr.Addr,
-				CertURI: connect.TestSpiffeIDService(r, "backend"),
+				CertURI: connect.TestSpiffeIDService(t, "backend"),
 			}, nil
 		}
 

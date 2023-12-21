@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package iptables
 
 import (
@@ -78,11 +75,8 @@ type Provider interface {
 	// ApplyRules executes rules that have been added via AddRule.
 	// This operation is currently not atomic, and if there's an error applying rules,
 	// you may be left in a state where partial rules were applied.
-	// ApplyRules should not be called twice on the same instance in order to avoid
-	// duplicate rule application.
 	ApplyRules() error
-	// Rules returns the list of rules that have been added (including those not yet
-	// applied).
+	// Rules returns the list of rules that have been added but not applied yet.
 	Rules() []string
 }
 
@@ -152,7 +146,7 @@ func Setup(cfg Config) error {
 		// Redirect remaining outbound traffic to Envoy.
 		cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-A", ProxyOutputChain, "-j", ProxyOutputRedirectChain)
 
-		// We are using "insert" (-I) instead of "append" (-A) so the provided rules take precedence over default ones.
+		// We are using "insert" (-I) instead of "append" (-A) so the the provided rules take precedence over default ones.
 		for _, outboundPort := range cfg.ExcludeOutboundPorts {
 			cfg.IptablesProvider.AddRule("iptables", "-t", "nat", "-I", ProxyOutputChain, "-p", "tcp", "--dport", outboundPort, "-j", "RETURN")
 		}

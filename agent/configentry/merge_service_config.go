@@ -1,13 +1,10 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package configentry
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
+	memdb "github.com/hashicorp/go-memdb"
 	"github.com/imdario/mergo"
 	"github.com/mitchellh/copystructure"
 
@@ -26,22 +23,32 @@ type StateStore interface {
 func MergeNodeServiceWithCentralConfig(
 	ws memdb.WatchSet,
 	state StateStore,
-	unmergedNS *structs.NodeService,
+	ns *structs.NodeService,
 	logger hclog.Logger) (uint64, *structs.NodeService, error) {
 
-	ns := unmergedNS.WithNormalizedUpstreams()
 	serviceName := ns.Service
+	var upstreams []structs.PeeredServiceName
 	if ns.IsSidecarProxy() {
 		// This is a sidecar proxy, ignore the proxy service's config since we are
 		// managed by the target service config.
 		serviceName = ns.Proxy.DestinationServiceName
-	}
-	var upstreams []structs.PeeredServiceName
-	for _, us := range ns.Proxy.Upstreams {
-		if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
-			upstreams = append(upstreams, us.DestinationID())
+
+		// Also if we have any upstreams defined, add them to the defaults lookup request
+		// so we can learn about their configs.
+		for _, us := range ns.Proxy.Upstreams {
+			if us.DestinationType == "" || us.DestinationType == structs.UpstreamDestTypeService {
+				psn := us.DestinationID()
+				if psn.Peer == "" {
+					psn.ServiceName.EnterpriseMeta.Merge(&ns.EnterpriseMeta)
+				} else {
+					// Peer services should not have their namespace overwritten.
+					psn.ServiceName.EnterpriseMeta.OverridePartition(ns.EnterpriseMeta.PartitionOrDefault())
+				}
+				upstreams = append(upstreams, psn)
+			}
 		}
 	}
+
 	configReq := &structs.ServiceConfigRequest{
 		Name:                 serviceName,
 		MeshGateway:          ns.Proxy.MeshGateway,
@@ -131,10 +138,6 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.EnvoyExtensions = nsExtensions
 	}
 
-	if ratelimit := defaults.RateLimits.ToEnvoyExtension(); ratelimit != nil {
-		ns.Proxy.EnvoyExtensions = append(ns.Proxy.EnvoyExtensions, *ratelimit)
-	}
-
 	if ns.Proxy.MeshGateway.Mode == structs.MeshGatewayModeDefault {
 		ns.Proxy.MeshGateway.Mode = defaults.MeshGateway.Mode
 	}
@@ -148,10 +151,6 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 		ns.Proxy.TransparentProxy.DialedDirectly = defaults.TransparentProxy.DialedDirectly
 	}
 
-	if ns.Proxy.MutualTLSMode == structs.MutualTLSModeDefault {
-		ns.Proxy.MutualTLSMode = defaults.MutualTLSMode
-	}
-
 	// remoteUpstreams contains synthetic Upstreams generated from central config (service-defaults.UpstreamConfigs).
 	remoteUpstreams := make(map[structs.PeeredServiceName]structs.Upstream)
 
@@ -159,30 +158,54 @@ func MergeServiceConfig(defaults *structs.ServiceConfigResponse, service *struct
 	entMeta := ns.EnterpriseMeta
 	entMeta.Normalize()
 
-	for _, us := range defaults.UpstreamConfigs {
-		parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+	if len(defaults.UpstreamIDConfigs) > 0 {
+		// Handle legacy upstreams. This should be removed in Consul 1.16.
+		for _, us := range defaults.UpstreamIDConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
+			psn := structs.PeeredServiceName{
+				Peer:        "",
+				ServiceName: structs.NewServiceName(us.Upstream.ID, &us.Upstream.EnterpriseMeta),
+			}
+
+			remoteUpstreams[psn] = structs.Upstream{
+				DestinationNamespace: us.Upstream.NamespaceOrDefault(),
+				DestinationPartition: us.Upstream.PartitionOrDefault(),
+				DestinationName:      us.Upstream.ID,
+				DestinationPeer:      "",
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
+	} else {
+		for _, us := range defaults.UpstreamConfigs {
+			parsed, err := structs.ParseUpstreamConfigNoDefaults(us.Config)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse upstream config map for %s: %v", us.Upstream.String(), err)
+			}
 
-		// If the defaults did not fully normalize tenancy stuff, take care of
-		// that now too.
-		psn := us.Upstream // only normalize the copy
-		psn.ServiceName.EnterpriseMeta.Normalize()
+			// If the defaults did not fully normalize tenancy stuff, take care of
+			// that now too.
+			psn := us.Upstream // only normalize the copy
+			psn.ServiceName.EnterpriseMeta.Normalize()
 
-		// Normalize the partition field specially.
-		if psn.Peer != "" {
-			psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
-		}
+			// Normalize the partition field specially.
+			if psn.Peer != "" {
+				psn.ServiceName.OverridePartition(entMeta.PartitionOrDefault())
+			}
 
-		remoteUpstreams[psn] = structs.Upstream{
-			DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
-			DestinationPartition: psn.ServiceName.PartitionOrDefault(),
-			DestinationName:      psn.ServiceName.Name,
-			DestinationPeer:      psn.Peer,
-			Config:               us.Config,
-			MeshGateway:          parsed.MeshGateway,
-			CentrallyConfigured:  true,
+			remoteUpstreams[us.Upstream] = structs.Upstream{
+				DestinationNamespace: psn.ServiceName.NamespaceOrDefault(),
+				DestinationPartition: psn.ServiceName.PartitionOrDefault(),
+				DestinationName:      psn.ServiceName.Name,
+				DestinationPeer:      psn.Peer,
+				Config:               us.Config,
+				MeshGateway:          parsed.MeshGateway,
+				CentrallyConfigured:  true,
+			}
 		}
 	}
 

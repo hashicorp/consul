@@ -1,3 +1,0 @@
-```release-note:feature
-cli: Adds new command - `consul services export` - for exporting a service to a peer or partition
-```

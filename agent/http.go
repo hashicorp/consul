@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -36,10 +33,9 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/uiserver"
 	"github.com/hashicorp/consul/api"
-	resourcehttp "github.com/hashicorp/consul/internal/resource/http"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
-	"github.com/hashicorp/consul/proto/private/pbcommon"
+	"github.com/hashicorp/consul/proto/pbcommon"
 )
 
 var HTTPSummaries = []prometheus.SummaryDefinition{
@@ -260,17 +256,6 @@ func (s *HTTPHandlers) handler() http.Handler {
 	handlePProf("/debug/pprof/symbol", pprof.Symbol)
 	handlePProf("/debug/pprof/trace", pprof.Trace)
 
-	mux.Handle("/api/",
-		http.StripPrefix("/api",
-			resourcehttp.NewHandler(
-				s.agent.delegate.ResourceServiceClient(),
-				s.agent.baseDeps.Registry,
-				s.parseToken,
-				s.agent.logger.Named(logging.HTTP),
-			),
-		),
-	)
-
 	if s.IsUIEnabled() {
 		// Note that we _don't_ support reloading ui_config.{enabled, content_dir,
 		// content_path} since this only runs at initial startup.
@@ -394,11 +379,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 		}
 		logURL = aclEndpointRE.ReplaceAllString(logURL, "$1<hidden>$4")
 
-		rejectCatalogV1Endpoint := false
-		if s.agent.baseDeps.UseV2Resources() {
-			rejectCatalogV1Endpoint = isV1CatalogRequest(req.URL.Path)
-		}
-
 		if s.denylist.Block(req.URL.Path) {
 			errMsg := "Endpoint is blocked by agent configuration"
 			httpLogger.Error("Request error",
@@ -460,14 +440,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			return strings.Contains(err.Error(), rate.ErrRetryLater.Error())
 		}
 
-		isUsingV2CatalogExperiment := func(err error) bool {
-			if err == nil {
-				return false
-			}
-
-			return structs.IsErrUsingV2CatalogExperiment(err)
-		}
-
 		isMethodNotAllowed := func(err error) bool {
 			_, ok := err.(MethodNotAllowedError)
 			return ok
@@ -501,10 +473,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 			msg := err.Error()
 			if s, ok := status.FromError(err); ok {
 				msg = s.Message()
-			}
-
-			if isUsingV2CatalogExperiment(err) && !isHTTPError(err) {
-				err = newRejectV1RequestWhenV2EnabledError()
 			}
 
 			switch {
@@ -583,12 +551,7 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 
 			if err == nil {
 				// Invoke the handler
-				if rejectCatalogV1Endpoint {
-					obj = nil
-					err = s.rejectV1RequestWhenV2Enabled()
-				} else {
-					obj, err = handler(resp, req)
-				}
+				obj, err = handler(resp, req)
 			}
 		}
 		contentType := "application/json"
@@ -630,46 +593,6 @@ func (s *HTTPHandlers) wrap(handler endpoint, methods []string) http.HandlerFunc
 	}
 }
 
-func isV1CatalogRequest(logURL string) bool {
-	switch {
-	case strings.HasPrefix(logURL, "/v1/catalog/"),
-		strings.HasPrefix(logURL, "/v1/health/"),
-		strings.HasPrefix(logURL, "/v1/config/"):
-		return true
-
-	case strings.HasPrefix(logURL, "/v1/agent/token/"),
-		logURL == "/v1/agent/self",
-		logURL == "/v1/agent/host",
-		logURL == "/v1/agent/version",
-		logURL == "/v1/agent/reload",
-		logURL == "/v1/agent/monitor",
-		logURL == "/v1/agent/metrics",
-		logURL == "/v1/agent/metrics/stream",
-		logURL == "/v1/agent/members",
-		strings.HasPrefix(logURL, "/v1/agent/join/"),
-		logURL == "/v1/agent/leave",
-		strings.HasPrefix(logURL, "/v1/agent/force-leave/"),
-		logURL == "/v1/agent/connect/authorize",
-		logURL == "/v1/agent/connect/ca/roots",
-		strings.HasPrefix(logURL, "/v1/agent/connect/ca/leaf/"):
-		return false
-
-	case strings.HasPrefix(logURL, "/v1/agent/"):
-		return true
-
-	case logURL == "/v1/internal/acl/authorize",
-		logURL == "/v1/internal/service-virtual-ip",
-		logURL == "/v1/internal/ui/oidc-auth-methods",
-		strings.HasPrefix(logURL, "/v1/internal/ui/metrics-proxy/"):
-		return false
-
-	case strings.HasPrefix(logURL, "/v1/internal/"):
-		return true
-	default:
-		return false
-	}
-}
-
 // marshalJSON marshals the object into JSON, respecting the user's pretty-ness
 // configuration.
 func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, error) {
@@ -678,9 +601,7 @@ func (s *HTTPHandlers) marshalJSON(req *http.Request, obj interface{}) ([]byte, 
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			buf = append(buf, "\n"...)
-		}
+		buf = append(buf, "\n"...)
 		return buf, nil
 	}
 
@@ -1064,12 +985,9 @@ func parseConsistencyReadRequest(resp http.ResponseWriter, req *http.Request, b 
 	}
 }
 
-// parseDC is used to parse the datacenter from the query params.
-// ?datacenter has precedence over ?dc.
+// parseDC is used to parse the ?dc query param
 func (s *HTTPHandlers) parseDC(req *http.Request, dc *string) {
-	if other := req.URL.Query().Get("datacenter"); other != "" {
-		*dc = other
-	} else if other = req.URL.Query().Get("dc"); other != "" {
+	if other := req.URL.Query().Get("dc"); other != "" {
 		*dc = other
 	} else if *dc == "" {
 		*dc = s.agent.config.Datacenter
@@ -1144,20 +1062,6 @@ func (s *HTTPHandlers) parseTokenWithDefault(req *http.Request, token *string) {
 // Authorization Bearer token header (RFC6750). This function is used widely in Consul's endpoints
 func (s *HTTPHandlers) parseToken(req *http.Request, token *string) {
 	s.parseTokenWithDefault(req, token)
-}
-
-func (s *HTTPHandlers) rejectV1RequestWhenV2Enabled() error {
-	if s.agent.baseDeps.UseV2Resources() {
-		return newRejectV1RequestWhenV2EnabledError()
-	}
-	return nil
-}
-
-func newRejectV1RequestWhenV2EnabledError() error {
-	return HTTPError{
-		StatusCode: http.StatusBadRequest,
-		Reason:     structs.ErrUsingV2CatalogExperiment.Error(),
-	}
 }
 
 func sourceAddrFromRequest(req *http.Request) string {

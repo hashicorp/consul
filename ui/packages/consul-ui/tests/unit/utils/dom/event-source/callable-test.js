@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 import domEventSourceCallable, { defaultRunner } from 'consul-ui/utils/dom/event-source/callable';
 import { module, test } from 'qunit';
 import sinon from 'sinon';

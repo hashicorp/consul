@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package oidcauth
 
 import (
@@ -235,8 +232,7 @@ func (a *Authenticator) verifyOIDCToken(ctx context.Context, rawToken string) (m
 	if err := idToken.Claims(&allClaims); err != nil {
 		return nil, fmt.Errorf("unable to successfully parse all claims from token: %v", err)
 	}
-	// Follows behavior of hashicorp/vault-plugin-auth-jwt (non-strict validation).
-	// See https://developer.hashicorp.com/consul/docs/security/acl/auth-methods/oidc#oidc-configuration-troubleshooting.
+	// TODO(sso): why isn't this strict for OIDC?
 	if err := validateAudience(a.config.BoundAudiences, idToken.Audience, false); err != nil {
 		return nil, fmt.Errorf("error validating claims: %v", err)
 	}

@@ -1,10 +1,4 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 version: v1
-deps:
-  - buf.build/k8s/api
-name: buf.build/hashicorp/consul
 lint:
   use:
     - DEFAULT
@@ -17,8 +11,6 @@ lint:
     - PACKAGE_VERSION_SUFFIX
 
   service_suffix: Service
-  allow_comment_ignores: true
 breaking:
   use:
     - FILE
-

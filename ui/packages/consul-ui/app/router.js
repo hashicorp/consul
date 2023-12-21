@@ -1,20 +1,15 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /* globals requirejs */
 import EmberRouter from '@ember/routing/router';
 import config from './config/environment';
 import { runInDebug } from '@ember/debug';
-import assign from 'deepmerge';
+import merge from 'deepmerge';
 import { env } from 'consul-ui/env';
 import walk, { dump } from 'consul-ui/utils/routing/walk';
 
 const doc = document;
 const appName = config.modulePrefix;
 
-export const routes = assign.all(
+export const routes = merge.all(
   [...doc.querySelectorAll(`script[data-routes]`)].map(($item) =>
     JSON.parse($item.dataset[`routes`])
   )

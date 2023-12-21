@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package servercert
 
 import (
@@ -8,23 +5,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-memdb"
-
 	"github.com/hashicorp/consul/agent/cache"
+	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/connect"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/lib/retry"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-memdb"
 )
 
 // Correlation ID for leaf cert watches.
 const leafWatchID = "leaf"
 
-// LeafCertManager is an interface to represent the necessary methods of the agent/leafcert.Manager.
+// Cache is an interface to represent the necessary methods of the agent/cache.Cache.
 // It is used to request and renew the server leaf certificate.
-type LeafCertManager interface {
-	Notify(ctx context.Context, req *leafcert.ConnectCALeafRequest, correlationID string, ch chan<- cache.UpdateEvent) error
+type Cache interface {
+	Notify(ctx context.Context, t string, r cache.Request, correlationID string, ch chan<- cache.UpdateEvent) error
 }
 
 // TLSConfigurator is an interface to represent the necessary methods of the tlsutil.Configurator.
@@ -53,7 +49,7 @@ type Config struct {
 type Deps struct {
 	Config          Config
 	Logger          hclog.Logger
-	LeafCertManager LeafCertManager
+	Cache           Cache
 	GetStore        func() Store
 	TLSConfigurator TLSConfigurator
 	waiter          retry.Waiter
@@ -68,8 +64,9 @@ type CertManager struct {
 	// config contains agent configuration necessary for the cert manager to operate.
 	config Config
 
-	// leafCerts grants access to request and renew the server leaf cert.
-	leafCerts LeafCertManager
+	// cache provides an API to issue internal RPC requests and receive notifications
+	// when there are changes.
+	cache Cache
 
 	// cacheUpdateCh receives notifications of cache update events for resources watched.
 	cacheUpdateCh chan cache.UpdateEvent
@@ -85,13 +82,10 @@ type CertManager struct {
 }
 
 func NewCertManager(deps Deps) *CertManager {
-	if deps.LeafCertManager == nil {
-		panic("LeafCertManager is required")
-	}
 	return &CertManager{
 		config:          deps.Config,
 		logger:          deps.Logger,
-		leafCerts:       deps.LeafCertManager,
+		cache:           deps.Cache,
 		cacheUpdateCh:   make(chan cache.UpdateEvent, 1),
 		getStore:        deps.GetStore,
 		tlsConfigurator: deps.TLSConfigurator,
@@ -159,12 +153,12 @@ func (m *CertManager) watchServerToken(ctx context.Context) {
 		cancel()
 		notifyCtx, cancel = context.WithCancel(ctx)
 
-		req := leafcert.ConnectCALeafRequest{
+		req := cachetype.ConnectCALeafRequest{
 			Datacenter: m.config.Datacenter,
 			Token:      token.Value,
 			Server:     true,
 		}
-		if err := m.leafCerts.Notify(notifyCtx, &req, leafWatchID, m.cacheUpdateCh); err != nil {
+		if err := m.cache.Notify(notifyCtx, cachetype.ConnectCALeafName, &req, leafWatchID, m.cacheUpdateCh); err != nil {
 			return fmt.Errorf("failed to setup leaf cert notifications: %w", err)
 		}
 
@@ -177,11 +171,11 @@ func (m *CertManager) watchServerToken(ctx context.Context) {
 }
 
 func (m *CertManager) watchLeafCert(ctx context.Context) error {
-	req := leafcert.ConnectCALeafRequest{
+	req := cachetype.ConnectCALeafRequest{
 		Datacenter: m.config.Datacenter,
 		Server:     true,
 	}
-	if err := m.leafCerts.Notify(ctx, &req, leafWatchID, m.cacheUpdateCh); err != nil {
+	if err := m.cache.Notify(ctx, cachetype.ConnectCALeafName, &req, leafWatchID, m.cacheUpdateCh); err != nil {
 		return fmt.Errorf("failed to setup leaf cert notifications: %w", err)
 	}
 

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package agent
 
 import (
@@ -212,33 +209,31 @@ func (c *cmd) run(args []string) int {
 	if config.ServerMode {
 		segment = "<all>"
 	}
-	ui.Info(fmt.Sprintf("           Version: '%s'", c.versionHuman))
+	ui.Info(fmt.Sprintf("          Version: '%s'", c.versionHuman))
 	if strings.Contains(c.versionHuman, "dev") {
-		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
+		ui.Info(fmt.Sprintf("         Revision: '%s'", c.revision))
 	}
-	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
-	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
-	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
+	ui.Info(fmt.Sprintf("       Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("          Node ID: '%s'", config.NodeID))
+	ui.Info(fmt.Sprintf("        Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {
-		ui.Info(fmt.Sprintf("         Partition: '%s'", ap))
+		ui.Info(fmt.Sprintf("        Partition: '%s'", ap))
 	}
-	ui.Info(fmt.Sprintf("        Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
-	ui.Info(fmt.Sprintf("            Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
-	ui.Info(fmt.Sprintf("       Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
+	ui.Info(fmt.Sprintf("       Datacenter: '%s' (Segment: '%s')", config.Datacenter, segment))
+	ui.Info(fmt.Sprintf("           Server: %v (Bootstrap: %v)", config.ServerMode, config.Bootstrap))
+	ui.Info(fmt.Sprintf("      Client Addr: %v (HTTP: %d, HTTPS: %d, gRPC: %d, gRPC-TLS: %d, DNS: %d)", config.ClientAddrs,
 		config.HTTPPort, config.HTTPSPort, config.GRPCPort, config.GRPCTLSPort, config.DNSPort))
-	ui.Info(fmt.Sprintf("      Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
+	ui.Info(fmt.Sprintf("     Cluster Addr: %v (LAN: %d, WAN: %d)", config.AdvertiseAddrLAN,
 		config.SerfPortLAN, config.SerfPortWAN))
-	ui.Info(fmt.Sprintf(" Gossip Encryption: %t", config.EncryptKey != ""))
-	ui.Info(fmt.Sprintf("  Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
-	ui.Info(fmt.Sprintf("       ACL Enabled: %t", config.ACLsEnabled))
+	ui.Info(fmt.Sprintf("Gossip Encryption: %t", config.EncryptKey != ""))
+	ui.Info(fmt.Sprintf(" Auto-Encrypt-TLS: %t", config.AutoEncryptTLS || config.AutoEncryptAllowTLS))
 	if config.ServerMode {
 		ui.Info(fmt.Sprintf(" Reporting Enabled: %t", config.Reporting.License.Enabled))
 	}
-	ui.Info(fmt.Sprintf("ACL Default Policy: %s", config.ACLResolverSettings.ACLDefaultPolicy))
-	ui.Info(fmt.Sprintf("         HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
+	ui.Info(fmt.Sprintf("        HTTPS TLS: Verify Incoming: %t, Verify Outgoing: %t, Min Version: %s",
 		config.TLS.HTTPS.VerifyIncoming, config.TLS.HTTPS.VerifyOutgoing, config.TLS.HTTPS.TLSMinVersion))
-	ui.Info(fmt.Sprintf("          gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
-	ui.Info(fmt.Sprintf("  Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
+	ui.Info(fmt.Sprintf("         gRPC TLS: Verify Incoming: %t, Min Version: %s", config.TLS.GRPC.VerifyIncoming, config.TLS.GRPC.TLSMinVersion))
+	ui.Info(fmt.Sprintf(" Internal RPC TLS: Verify Incoming: %t, Verify Outgoing: %t (Verify Hostname: %t), Min Version: %s",
 		config.TLS.InternalRPC.VerifyIncoming, config.TLS.InternalRPC.VerifyOutgoing, config.TLS.InternalRPC.VerifyServerHostname, config.TLS.InternalRPC.TLSMinVersion))
 	// Enable log streaming
 	ui.Output("")

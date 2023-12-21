@@ -1,8 +1,3 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 /*eslint no-console: "off", ember/no-jquery: "off", ember/no-global-jquery: "off"*/
 
 const elementNotFound = 'Element not found';

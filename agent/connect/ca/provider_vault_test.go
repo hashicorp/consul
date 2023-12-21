@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package ca
 
 import (
@@ -9,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -62,7 +58,6 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 	cases := map[string]struct {
 		rawConfig map[string]interface{}
 		expConfig *structs.VaultCAProviderConfig
-		isPrimary bool
 		expError  string
 	}{
 		"no token and no auth method provided": {
@@ -73,26 +68,15 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 			rawConfig: map[string]interface{}{"Token": "test", "AuthMethod": map[string]interface{}{"Type": "test"}},
 			expError:  "only one of Vault token or Vault auth method can be provided, but not both",
 		},
-		"primary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: true,
+		"no root PKI path": {
+			rawConfig: map[string]interface{}{"Token": "test"},
 			expError:  "must provide a valid path to a root PKI backend",
-		},
-		"secondary no root PKI path": {
-			rawConfig: map[string]interface{}{"Token": "test", "IntermediatePKIPath": "test"},
-			isPrimary: false,
-			expConfig: &structs.VaultCAProviderConfig{
-				CommonCAProviderConfig: defaultCommonConfig(),
-				Token:                  "test",
-				IntermediatePKIPath:    "test/",
-			},
 		},
 		"no root intermediate path": {
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test"},
 			expError:  "must provide a valid path for the intermediate PKI backend",
 		},
 		"adds a slash to RootPKIPath and IntermediatePKIPath": {
-			isPrimary: true,
 			rawConfig: map[string]interface{}{"Token": "test", "RootPKIPath": "test", "IntermediatePKIPath": "test"},
 			expConfig: &structs.VaultCAProviderConfig{
 				CommonCAProviderConfig: defaultCommonConfig(),
@@ -105,7 +89,7 @@ func TestVaultCAProvider_ParseVaultCAConfig(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			config, err := ParseVaultCAConfig(c.rawConfig, c.isPrimary)
+			config, err := ParseVaultCAConfig(c.rawConfig)
 			if c.expError != "" {
 				require.EqualError(t, err, c.expError)
 			} else {
@@ -123,16 +107,16 @@ func TestVaultCAProvider_configureVaultAuthMethod(t *testing.T) {
 		expError     string
 		hasLDG       bool
 	}{
-		"alicloud":    {expLoginPath: "auth/alicloud/login", params: map[string]any{"role": "test-role", "region": "test-region"}, hasLDG: true},
-		"approle":     {expLoginPath: "auth/approle/login", params: map[string]any{"role_id_file_path": "test-path"}, hasLDG: true},
+		"alicloud":    {expLoginPath: "auth/alicloud/login"},
+		"approle":     {expLoginPath: "auth/approle/login"},
 		"aws":         {expLoginPath: "auth/aws/login", params: map[string]interface{}{"type": "iam"}, hasLDG: true},
-		"azure":       {expLoginPath: "auth/azure/login", params: map[string]interface{}{"role": "test-role", "resource": "test-resource"}, hasLDG: true},
+		"azure":       {expLoginPath: "auth/azure/login"},
 		"cf":          {expLoginPath: "auth/cf/login"},
 		"github":      {expLoginPath: "auth/github/login"},
 		"gcp":         {expLoginPath: "auth/gcp/login", params: map[string]interface{}{"type": "iam", "role": "test-role"}},
-		"jwt":         {expLoginPath: "auth/jwt/login", params: map[string]any{"role": "test-role", "path": "test-path"}, hasLDG: true},
+		"jwt":         {expLoginPath: "auth/jwt/login"},
 		"kerberos":    {expLoginPath: "auth/kerberos/login"},
-		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"role": "test-role"}, hasLDG: true},
+		"kubernetes":  {expLoginPath: "auth/kubernetes/login", params: map[string]interface{}{"jwt": "fake"}},
 		"ldap":        {expLoginPath: "auth/ldap/login/foo", params: map[string]interface{}{"username": "foo"}},
 		"oci":         {expLoginPath: "auth/oci/login/foo", params: map[string]interface{}{"role": "foo"}},
 		"okta":        {expLoginPath: "auth/okta/login/foo", params: map[string]interface{}{"username": "foo"}},
@@ -295,7 +279,7 @@ func TestVaultCAProvider_ConfigureFailureGoroutineLeakCheck(t *testing.T) {
 			profile := pprof.Lookup("goroutine")
 			sb := strings.Builder{}
 			require.NoError(r, profile.WriteTo(&sb, 2))
-			r.Log(sb.String())
+			t.Log(sb.String())
 			require.Contains(r, sb.String(),
 				"created by github.com/hashicorp/consul/agent/connect/ca.(*VaultProvider).Configure",
 				"expected renewal goroutine, got none")
@@ -322,7 +306,7 @@ func TestVaultCAProvider_SecondaryActiveIntermediate(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	cert, err := provider.ActiveLeafSigningCert()
+	cert, err := provider.ActiveIntermediate()
 	require.Empty(t, cert)
 	require.NoError(t, err)
 }
@@ -482,8 +466,8 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 				"LeafCertTTL": "1h",
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
-				root, err := provider.GenerateCAChain()
-				return root, err
+				root, err := provider.GenerateRoot()
+				return root.PEM, err
 			},
 			backendPath:         "pki-root/",
 			rootCaCreation:      true,
@@ -496,7 +480,7 @@ func TestVaultCAProvider_Bootstrap(t *testing.T) {
 				"RootCertTTL": "8761h",
 			},
 			certFunc: func(provider *VaultProvider) (string, error) {
-				return provider.ActiveLeafSigningCert()
+				return provider.ActiveIntermediate()
 			},
 			backendPath:         "pki-intermediate/",
 			rootCaCreation:      false,
@@ -560,11 +544,12 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 			Service:    "foo",
 		}
 
-		rootPEM, err := provider.GenerateCAChain()
+		root, err := provider.GenerateRoot()
 		require.NoError(t, err)
+		rootPEM := root.PEM
 		assertCorrectKeyType(t, tc.KeyType, rootPEM)
 
-		intPEM, err := provider.ActiveLeafSigningCert()
+		intPEM, err := provider.ActiveIntermediate()
 		require.NoError(t, err)
 		assertCorrectKeyType(t, tc.KeyType, intPEM)
 
@@ -628,9 +613,6 @@ func TestVaultCAProvider_SignLeaf(t *testing.T) {
 }
 
 func TestVaultCAProvider_CrossSignCA(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	SkipIfVaultNotPresent(t)
 
 	t.Parallel()
@@ -639,6 +621,12 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 
 	run := func(t *testing.T, tc CASigningKeyTypes, withSudo, expectFailure bool) {
 		t.Parallel()
+
+		if tc.SigningKeyType != tc.CSRKeyType {
+			// TODO: uncomment since the bug is closed
+			// See https://github.com/hashicorp/vault/issues/7709
+			t.Skip("Vault doesn't support cross-signing different key types yet.")
+		}
 
 		testVault1 := NewTestVaultServer(t)
 
@@ -659,11 +647,11 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "init", func(t *testing.T) {
-			rootPEM, err := provider1.GenerateCAChain()
+			root, err := provider1.GenerateRoot()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.SigningKeyType, rootPEM)
+			assertCorrectKeyType(t, tc.SigningKeyType, root.PEM)
 
-			intPEM, err := provider1.ActiveLeafSigningCert()
+			intPEM, err := provider1.ActiveIntermediate()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.SigningKeyType, intPEM)
 		})
@@ -687,11 +675,11 @@ func TestVaultCAProvider_CrossSignCA(t *testing.T) {
 		})
 
 		testutil.RunStep(t, "swap", func(t *testing.T) {
-			rootPEM, err := provider2.GenerateCAChain()
+			root, err := provider2.GenerateRoot()
 			require.NoError(t, err)
-			assertCorrectKeyType(t, tc.CSRKeyType, rootPEM)
+			assertCorrectKeyType(t, tc.CSRKeyType, root.PEM)
 
-			intPEM, err := provider2.ActiveLeafSigningCert()
+			intPEM, err := provider2.ActiveIntermediate()
 			require.NoError(t, err)
 			assertCorrectKeyType(t, tc.CSRKeyType, intPEM)
 
@@ -811,7 +799,7 @@ func TestVaultProvider_SignIntermediateConsul(t *testing.T) {
 		delegate := newMockDelegate(t, conf)
 		provider1 := TestConsulProvider(t, delegate)
 		require.NoError(t, provider1.Configure(testProviderConfig(conf)))
-		_, err := provider1.GenerateCAChain()
+		_, err := provider1.GenerateRoot()
 		require.NoError(t, err)
 
 		// Ensure that we don't configure vault to try and mint leafs that
@@ -1149,9 +1137,9 @@ func TestVaultProvider_ReconfigureIntermediateTTL(t *testing.T) {
 	t.Cleanup(provider.Stop)
 	err = provider.Configure(makeProviderConfWithTTL("222h"))
 	require.NoError(t, err)
-	_, err = provider.GenerateCAChain()
+	_, err = provider.GenerateRoot()
 	require.NoError(t, err)
-	_, err = provider.GenerateLeafSigningCert()
+	_, err = provider.GenerateIntermediate()
 	require.NoError(t, err)
 
 	// Attempt to update the ttl without permissions for the tune endpoint - shouldn't
@@ -1200,59 +1188,20 @@ func TestVaultCAProvider_GenerateIntermediate(t *testing.T) {
 		"IntermediatePKIPath": "pki-intermediate/",
 	})
 
-	orig, err := provider.ActiveLeafSigningCert()
+	orig, err := provider.ActiveIntermediate()
 	require.NoError(t, err)
 
 	// This test was created to ensure that our calls to Vault
 	// returns a new Intermediate certificate and further calls
-	// to ActiveLeafSigningCert return the same new cert.
-	newLeaf, err := provider.GenerateLeafSigningCert()
+	// to ActiveIntermediate return the same new cert.
+	new, err := provider.GenerateIntermediate()
 	require.NoError(t, err)
 
-	newActive, err := provider.ActiveLeafSigningCert()
+	newActive, err := provider.ActiveIntermediate()
 	require.NoError(t, err)
 
-	require.Equal(t, newLeaf, newActive)
-	require.NotEqual(t, orig, newLeaf)
-}
-
-func TestVaultCAProvider_AutoTidyExpiredIssuers(t *testing.T) {
-	SkipIfVaultNotPresent(t)
-	t.Parallel()
-
-	testVault := NewTestVaultServer(t)
-	attr := &VaultTokenAttributes{
-		RootPath:         "pki-root",
-		IntermediatePath: "pki-intermediate",
-		ConsulManaged:    true,
-	}
-	token := CreateVaultTokenWithAttrs(t, testVault.client, attr)
-	provider := createVaultProvider(t, true, testVault.Addr, token,
-		map[string]any{
-			"RootPKIPath":         "pki-root/",
-			"IntermediatePKIPath": "pki-intermediate/",
-		})
-
-	version := strings.Split(vaultTestVersion, ".")
-	require.Len(t, version, 3)
-	minorVersion, err := strconv.Atoi(version[1])
-	require.NoError(t, err)
-	expIssSet, errStr := provider.autotidyIssuers("pki-intermediate/")
-	switch {
-	case minorVersion <= 11:
-		require.False(t, expIssSet)
-		require.Contains(t, errStr, "auto-tidy")
-	case minorVersion == 12:
-		require.False(t, expIssSet)
-		require.Contains(t, errStr, "tidy_expired_issuers")
-	default: // Consul 1.13+
-		require.True(t, expIssSet)
-	}
-
-	// check permission denied
-	expIssSet, errStr = provider.autotidyIssuers("pki-bad/")
-	require.False(t, expIssSet)
-	require.Contains(t, errStr, "permission denied")
+	require.Equal(t, new, newActive)
+	require.NotEqual(t, orig, new)
 }
 
 func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
@@ -1273,6 +1222,11 @@ func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 		})
 	res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
 	require.NoError(t, err)
+
+	if res == nil {
+		t.Skip("Vault version < 1.11 does not have multi issuers functionality")
+	}
+
 	// Why 2 issuers? There is always an initial issuer that
 	// gets created before we manage the lifecycle of issuers.
 	// Since we're asserting that the number doesn't grow
@@ -1287,7 +1241,7 @@ func TestVaultCAProvider_DeletePreviousIssuerAndKey(t *testing.T) {
 	require.Len(t, res.Data["keys"], 1)
 
 	for i := 0; i < 3; i++ {
-		_, err := provider.GenerateLeafSigningCert()
+		_, err := provider.GenerateIntermediate()
 		require.NoError(t, err)
 
 		res, err := testVault.Client().Logical().List("pki-intermediate/issuers")
@@ -1310,7 +1264,7 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 	delegate := newMockDelegate(t, conf)
 	primaryProvider := TestConsulProvider(t, delegate)
 	require.NoError(t, primaryProvider.Configure(testProviderConfig(conf)))
-	_, err := primaryProvider.GenerateCAChain()
+	_, err := primaryProvider.GenerateRoot()
 	require.NoError(t, err)
 
 	// Ensure that we don't configure vault to try and mint leafs that
@@ -1344,13 +1298,14 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		rootPEM, err := primaryProvider.GenerateCAChain()
+		root, err := primaryProvider.GenerateRoot()
 		require.NoError(t, err)
+		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
 
-		origIntermediate, err = provider.ActiveLeafSigningCert()
+		origIntermediate, err = provider.ActiveIntermediate()
 		require.NoError(t, err)
 	})
 
@@ -1364,16 +1319,17 @@ func TestVaultCAProvider_GenerateIntermediate_inSecondary(t *testing.T) {
 		// Sign the CSR with primaryProvider.
 		intermediatePEM, err := primaryProvider.SignIntermediate(csr)
 		require.NoError(t, err)
-		rootPEM, err := primaryProvider.GenerateCAChain()
+		root, err := primaryProvider.GenerateRoot()
 		require.NoError(t, err)
+		rootPEM := root.PEM
 
 		// Give the new intermediate to provider to use.
 		require.NoError(t, provider.SetIntermediate(intermediatePEM, rootPEM, issuerID))
 
 		// This test was created to ensure that our calls to Vault
 		// returns a new Intermediate certificate and further calls
-		// to ActiveLeafSigningCert return the same new cert.
-		newActiveIntermediate, err := provider.ActiveLeafSigningCert()
+		// to ActiveIntermediate return the same new cert.
+		newActiveIntermediate, err := provider.ActiveIntermediate()
 		require.NoError(t, err)
 
 		require.NotEqual(t, origIntermediate, newActiveIntermediate)
@@ -1603,10 +1559,10 @@ func createVaultProviderE(t *testing.T, isPrimary bool, addr, token string, rawC
 		return provider, err
 	}
 	if isPrimary {
-		if _, err := provider.GenerateCAChain(); err != nil {
+		if _, err := provider.GenerateRoot(); err != nil {
 			return provider, err
 		}
-		if _, err := provider.GenerateLeafSigningCert(); err != nil {
+		if _, err := provider.GenerateIntermediate(); err != nil {
 			return provider, err
 		}
 	}

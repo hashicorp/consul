@@ -1,20 +1,15 @@
-/**
- * Copyright (c) HashiCorp, Inc.
- * SPDX-License-Identifier: BUSL-1.1
- */
-
 .freetext-filter {
   & {
     border: var(--decor-border-100);
     border-radius: var(--decor-radius-100);
 
-    background-color: var(--token-color-surface-primary);
-    border-color: var(--token-color-surface-interactive-active);
-    color: var(--token-color-foreground-disabled);
+    background-color: rgb(var(--tone-gray-000));
+    border-color: rgb(var(--tone-gray-200));
+    color: rgb(var(--tone-gray-400));
   }
   &:hover,
   &:hover * {
-    border-color: var(--token-color-foreground-disabled);
+    border-color: rgb(var(--tone-gray-400));
   }
   & *,
   &_input::placeholder {
@@ -40,14 +35,14 @@
     margin-top: -8px;
   }
   .popover-menu {
-    background-color: var(--token-color-surface-strong);
-    color: var(--token-color-foreground-primary);
+    background-color: rgb(var(--tone-gray-050));
+    color: rgb(var(--tone-gray-800));
   }
   .popover-menu {
     border-left: 1px solid;
     border-color: inherit;
   }
   .popover-menu > [type='checkbox']:checked + label button {
-    background-color: var(--token-color-surface-interactive-active);
+    background-color: rgb(var(--tone-gray-200));
   }
 }

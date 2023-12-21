@@ -1,3 +1,0 @@
-```release-note:feature
-server: **(Enterprise Only)** added server side RPC requests IP based read/write rate-limiter.
-```

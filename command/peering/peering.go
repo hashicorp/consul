@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package peering
 
 import (
@@ -63,10 +60,6 @@ Usage: consul peering <subcommand> [options] [args]
   Print the status of a peering connection:
 
     $ consul peering read -name west-dc
-
-  Lists services exported to a peering connection:
-
-    $ consul peering exported-services -name west-dc
 
   Delete and close a peering connection:
 

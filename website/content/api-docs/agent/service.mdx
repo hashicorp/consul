@@ -635,11 +635,11 @@ The `/agent/service/register` endpoint supports camel case and _snake case_ for 
   - `"connect-proxy"` for [service mesh](/consul/docs/connect) proxies representing another service
   - `"mesh-gateway"` for instances of a [mesh gateway](/consul/docs/connect/gateways/mesh-gateway#service-mesh-proxy-configuration)
   - `"terminating-gateway"` for instances of a [terminating gateway](/consul/docs/connect/gateways/terminating-gateway)
-  - `"ingress-gateway"` for instances of an [ingress gateway](/consul/docs/connect/gateways/ingress-gateway)
+  - `"ingress-gateway"` for instances of a [ingress gateway](/consul/docs/connect/gateways/ingress-gateway)
 
 - `Proxy` `(Proxy: nil)` - From 1.2.3 on, specifies the configuration for a
   service mesh proxy instance. This is only valid if `Kind` defines a proxy or gateway.
-  Refer to the [Service mesh proxy configuration reference](/consul/docs/connect/proxies/proxy-config-reference)
+  See the [Proxy documentation](/consul/docs/connect/registration/service-registration)
   for full details.
 
 - `Connect` `(Connect: nil)` - Specifies the
@@ -693,13 +693,13 @@ For the `Connect` field, the parameters are:
   If this is true, then service mesh proxies, DNS queries, etc. will be able to
   service discover this service.
 - `Proxy` `(Proxy: nil)` -
-  **Deprecated** Specifies that a managed service mesh proxy should be started 
-  for this service instance, and optionally provides configuration for the proxy. 
-  Managed proxies (which have been deprecated since Consul v1.3.0) have been 
-  [removed](/consul/docs/connect/proxies) since v1.6.0.
+  [**Deprecated**](/consul/docs/connect/proxies/managed-deprecated) Specifies that
+  a managed service mesh proxy should be started for this service instance, and
+  optionally provides configuration for the proxy. The format is as documented
+  in [Managed Proxy Deprecation](/consul/docs/connect/proxies/managed-deprecated).
 - `SidecarService` `(ServiceDefinition: nil)` - Specifies an optional nested
-  service definition to register. Refer to 
-  [Deploy sidecar services](/consul/docs/connect/proxies/deploy-sidecar-services) for additional information.
+  service definition to register. For more information see
+  [Sidecar Service Registration](/consul/docs/connect/registration/sidecar-service).
 
 ### Sample Payload
 
@@ -824,7 +824,7 @@ $ curl \
     http://127.0.0.1:8500/v1/agent/service/maintenance/my-service-id?enable=true&reason=For+the+docs
 ```
 
-## Methods to specify namespace <EnterpriseAlert inline />
+## Methods to Specify Namespace <EnterpriseAlert inline />
 
 Local agent service endpoints
 support several methods for specifying the namespace of service resources

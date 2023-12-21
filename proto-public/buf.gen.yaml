@@ -1,14 +1,14 @@
-# Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
-
 version: v1
 managed:
   enabled: true
   go_package_prefix:
-    default: github.com/hashicorp/consul/proto-public
-    except:
-      - buf.build/k8s/api
-
+    # this is not github.com/hashicorp/consul/proto-public because we are going
+    # to execute buf generate from the top level directory so that the filepaths
+    # contain the full path within the repo. This avoids registration conflicts
+    # in protocolbuffers/protobuf-go when Consul starts. Those conflicts would
+    # have been due to a protobuf file being registered to a global registry
+    # using a relative file name.
+    default: github.com/hashicorp/consul
 plugins:
   - name: go
     out: .
@@ -22,18 +22,7 @@ plugins:
     out: .
     opt:
       - paths=source_relative
-  - name: resource-types
-    out: .
-    opt:
-      - paths=source_relative
-    strategy: all
   - name: consul-rate-limit
     out: .
     opt:
       - paths=source_relative
-  - name: deepcopy
-    out: .
-    opt: paths=source_relative
-  - name: json-shim
-    out: .
-    opt: paths=source_relative

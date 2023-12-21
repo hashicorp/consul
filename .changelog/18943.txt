@@ -1,3 +1,0 @@
-```release-note:improvement
-api: added `CheckRegisterOpts` to Agent API
-```

@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: BUSL-1.1
-
 package hcp
 
 import (
@@ -317,8 +314,6 @@ func (m *mockRaceClient) FetchTelemetryConfig(ctx context.Context) (*client.Tele
 }
 
 func TestTelemetryConfigProvider_Race(t *testing.T) {
-	//todo(achooo): address flaky test
-	t.Skip("TODO(flaky): This test fails often in the CI")
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
