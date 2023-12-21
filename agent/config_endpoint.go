@@ -10,7 +10,11 @@ import (
 	"strings"
 
 	"github.com/hashicorp/consul/acl"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 )
 
 const ConfigEntryNotFoundErr string = "Config entry not found"
@@ -175,4 +179,38 @@ func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Req
 		return s.parseEntMeta(req, entMeta)
 	}
 	return s.parseEntMetaNoWildcard(req, entMeta)
+}
+
+func (s *HTTPHandlers) ResolvedExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+	var entMeta acl.EnterpriseMeta
+	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
+		return nil, err
+	}
+	args := pbconfigentry.GetResolvedExportedServicesRequest{
+		Partition: entMeta.PartitionOrEmpty(),
+	}
+
+	var dc string
+	options := structs.QueryOptions{}
+	s.parse(resp, req, &dc, &options)
+	ctx, err := external.ContextWithQueryOptions(req.Context(), options)
+	if err != nil {
+		return nil, err
+	}
+
+	var header metadata.MD
+	result, err := s.agent.grpcClientConfigEntry.GetResolvedExportedServices(ctx, &args, grpc.Header(&header))
+	if err != nil {
+		return nil, err
+	}
+
+	meta, err := external.QueryMetaFromGRPCMeta(header)
+	if err != nil {
+		return result.Services, fmt.Errorf("could not convert gRPC metadata to query meta: %w", err)
+	}
+	if err := setMeta(resp, &meta); err != nil {
+		return nil, err
+	}
+
+	return result.Services, nil
 }

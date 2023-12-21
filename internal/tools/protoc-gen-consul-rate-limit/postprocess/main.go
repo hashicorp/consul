@@ -128,6 +128,8 @@ func (s spec) GoOperationCategory() string {
 		return "rate.OperationCategoryPartition"
 	case "OPERATION_CATEGORY_PEERING":
 		return "rate.OperationCategoryPeering"
+	case "OPERATION_CATEGORY_CONFIGENTRY":
+		return "rate.OperationCategoryConfigEntry"
 	case "OPERATION_CATEGORY_SERVER_DISCOVERY":
 		return "rate.OperationCategoryServerDiscovery"
 	case "OPERATION_CATEGORY_DATAPLANE":

@@ -8,6 +8,32 @@ package hashicorp.consul.internal.configentry;
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "private/pbcommon/common.proto";
+import "annotations/ratelimit/ratelimit.proto";
+
+// ConfigEntryService handles operations related to config entries
+service ConfigEntryService {
+  rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
+    option (hashicorp.consul.internal.ratelimit.spec) = {
+      operation_type: OPERATION_TYPE_READ,
+      operation_category: OPERATION_CATEGORY_CONFIGENTRY
+    };
+  }
+}
+
+message GetResolvedExportedServicesRequest {
+  string Partition = 1;
+}
+
+message GetResolvedExportedServicesResponse {
+  repeated ResolvedExportedService services = 1;
+}
+
+message ResolvedExportedService {
+  string Service = 1;
+  common.EnterpriseMeta EnterpriseMeta = 2;
+  repeated string ConsumerPeers = 3;
+  repeated string ConsumerPartitions = 4;
+}
 
 enum Kind {
   KindUnknown = 0;

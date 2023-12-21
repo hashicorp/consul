@@ -54,6 +54,7 @@ import (
 	"github.com/hashicorp/consul/agent/consul/wanfed"
 	"github.com/hashicorp/consul/agent/consul/xdscapacity"
 	aclgrpc "github.com/hashicorp/consul/agent/grpc-external/services/acl"
+	"github.com/hashicorp/consul/agent/grpc-external/services/configentry"
 	"github.com/hashicorp/consul/agent/grpc-external/services/connectca"
 	"github.com/hashicorp/consul/agent/grpc-external/services/dataplane"
 	"github.com/hashicorp/consul/agent/grpc-external/services/peerstream"
@@ -426,6 +427,9 @@ type Server struct {
 	// operatorBackend is shared between the external and internal gRPC services for peering
 	operatorBackend *OperatorBackend
 
+	// configEntryBackend is shared between the external and internal gRPC services for config entry
+	configEntryBackend *ConfigEntryBackend
+
 	// peerStreamServer is a server used to handle peering streams from external clusters.
 	peerStreamServer *peerstream.Server
 
@@ -442,6 +446,8 @@ type Server struct {
 	// embedded struct to hold all the enterprise specific data
 	EnterpriseServer
 	operatorServer *operator.Server
+
+	configEntryServer *configentry.Server
 
 	// routineManager is responsible for managing longer running go routines
 	// run by the Server
@@ -1032,6 +1038,21 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 	})
 	s.operatorServer = o
 
+	s.configEntryBackend = NewConfigEntryBackend(s)
+	c := configentry.NewServer(configentry.Config{
+		Backend: s.configEntryBackend,
+		Logger:  deps.Logger.Named("grpc-api.configentry"),
+		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to transfer leader cannot be forwarded to remote datacenters")
+			}
+			return s.ForwardGRPC(s.grpcConnPool, info, fn)
+		},
+		FSMServer: s,
+	})
+	s.configEntryServer = c
+
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
 			pbsubscribe.RegisterStateChangeSubscriptionServer(srv, subscribe.NewServer(
@@ -1040,6 +1061,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		}
 		s.peeringServer.Register(srv)
 		s.operatorServer.Register(srv)
+		s.configEntryServer.Register(srv)
 		s.registerEnterpriseGRPCServices(deps, srv)
 
 		// Note: these external gRPC services are also exposed on the internal server to

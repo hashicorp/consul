@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -733,4 +734,75 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 		}
 		require.Equal(t, expose, entry.Expose)
 	}
+}
+
+func TestConfig_Resolved_Exported_Services(t *testing.T) {
+	if testing.Short() {
+		t.Skip("too slow for testing.Short")
+	}
+
+	t.Parallel()
+	a := NewTestAgent(t, "")
+	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	defer a.Shutdown()
+
+	{
+		// Register exported services
+		args := &structs.ExportedServicesConfigEntry{
+			Name: "default",
+			Services: []structs.ExportedService{
+				{
+					Name: "api",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "east",
+						},
+						{
+							Peer: "west",
+						},
+					},
+				},
+				{
+					Name: "db",
+					Consumers: []structs.ServiceConsumer{
+						{
+							Peer: "east",
+						},
+					},
+				},
+			},
+		}
+		req := structs.ConfigEntryRequest{
+			Datacenter: "dc1",
+			Entry:      args,
+		}
+		var configOutput bool
+		require.NoError(t, a.RPC(context.Background(), "ConfigEntry.Apply", &req, &configOutput))
+		require.True(t, configOutput)
+	}
+
+	t.Run("exported services", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/config/resolved-exported-services", nil)
+		resp := httptest.NewRecorder()
+		raw, err := a.srv.ResolvedExportedServices(resp, req)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, resp.Code)
+
+		services, ok := raw.([]*pbconfigentry.ResolvedExportedService)
+		require.True(t, ok)
+		require.Len(t, services, 2)
+		assertIndex(t, resp)
+
+		expected := []*pbconfigentry.ResolvedExportedService{
+			{
+				Service:       "api",
+				ConsumerPeers: []string{"east", "west"},
+			},
+			{
+				Service:       "db",
+				ConsumerPeers: []string{"east"},
+			},
+		}
+		require.ElementsMatch(t, expected, services)
+	})
 }
