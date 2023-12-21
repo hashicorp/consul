@@ -64,9 +64,10 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	_, err = rt.Client.Write(ctx, &pbresource.WriteRequest{
 		Resource: &pbresource.Resource{
-			Id:    resource.ReplaceType(pbcatalog.ServiceType, req.ID),
-			Owner: req.ID,
-			Data:  serviceData,
+			Data:     serviceData,
+			Id:       resource.ReplaceType(pbcatalog.ServiceType, req.ID),
+			Metadata: map[string]string{"gateway-kind": "mesh-gateway"},
+			Owner:    req.ID,
 		},
 	})
 	if err != nil {
