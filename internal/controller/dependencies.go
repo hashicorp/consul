@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-multierror"
+	"golang.org/x/exp/maps"
 
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -66,12 +67,23 @@ func (m *Manager) CalculateDependencies(registrations []resource.Registration) D
 	}
 
 	for _, c := range m.controllers {
-		watches := make([]string, 0, len(c.watches))
-		for _, w := range c.watches {
-			watches = append(watches, typeToString(w.watchedType))
+		watches := map[string]struct{}{}
+
+		// Extend existing watch list if one is present. This is necessary
+		// because there can be multiple controllers for a given type.
+		// ProxyStateTemplate, for example, is controlled by sidecar proxy and
+		// gateway proxy controllers.
+		if existing, ok := out[typeToString(c.managedTypeWatch.watchedType)]; ok {
+			for _, w := range existing {
+				watches[w] = struct{}{}
+			}
 		}
 
-		out[typeToString(c.managedTypeWatch.watchedType)] = watches
+		for _, w := range c.watches {
+			watches[typeToString(w.watchedType)] = struct{}{}
+		}
+
+		out[typeToString(c.managedTypeWatch.watchedType)] = maps.Keys(watches)
 	}
 
 	return out
