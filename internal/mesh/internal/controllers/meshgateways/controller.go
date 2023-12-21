@@ -17,6 +17,10 @@ import (
 
 const (
 	ControllerName = "consul.io/mesh-gateway"
+
+	meshPortName = "mesh"
+	wanPort      = 8443
+	wanPortName  = "wan"
 )
 
 func Controller() *controller.Controller {
@@ -34,21 +38,21 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	rt.Logger = rt.Logger.With("resource-id", req.ID)
 	rt.Logger.Trace("reconciling mesh gateway")
 
+	// TODO NET-6822 The ports and workload selector below are currently hardcoded
+	//  until they are added to the MeshGateway resource and pulled from there.
 	service := &pbcatalog.Service{
 		Workloads: &pbcatalog.WorkloadSelector{
-			// Assumes that our MeshGateway Deployment in K8s is named the same as the MeshGateway resource in Consul
-			// TODO(nathancoleman) Fetch the MeshGateway and use WorkloadSelector from there
 			Prefixes: []string{req.ID.Name},
 		},
 		Ports: []*pbcatalog.ServicePort{
 			{
 				Protocol:    pbcatalog.Protocol_PROTOCOL_TCP,
-				TargetPort:  "wan",
-				VirtualPort: 8443,
+				TargetPort:  wanPortName,
+				VirtualPort: wanPort,
 			},
 			{
 				Protocol:   pbcatalog.Protocol_PROTOCOL_MESH,
-				TargetPort: "mesh",
+				TargetPort: meshPortName,
 			},
 		},
 	}
