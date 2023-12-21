@@ -31,12 +31,8 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated gateway from cache.
-		// TODO f.cache.UntrackMeshGateway(id)
 		return nil, nil
 	}
-
-	// TODO f.cache.TrackMeshGateway(dec)
 
 	return dec, err
 }
@@ -46,12 +42,8 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated proxy from cache.
-		// TODO f.cache.UntrackProxyStateTemplate(id)
 		return nil, nil
 	}
-
-	// TODO f.cache.TrackProxyStateTemplate(dec)
 
 	return dec, err
 }
@@ -61,12 +53,8 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 	if err != nil {
 		return nil, err
 	} else if dec == nil {
-		// We also need to make sure to delete the associated proxy from cache.
-		// TODO f.cache.UntrackWorkload(id)
 		return nil, nil
 	}
-
-	// TODO f.cache.TrackWorkload(dec)
 
 	return dec, err
 }

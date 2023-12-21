@@ -25,7 +25,8 @@ const ControllerName = "consul.io/gateway-proxy-controller"
 
 // Controller is responsible for triggering reconciler for watched resources
 func Controller(cache *cache.Cache) *controller.Controller {
-	// TODO Add the host of other types we should watch
+	// TODO NET-7016 Use caching functionality in NewController being implemented at time of writing
+	// TODO NET-7017 Add the host of other types we should watch
 	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
@@ -59,7 +60,9 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	if workload == nil {
-		// Workload no longer exists, let garbage collector clean up
+		// If workload has been deleted, then return as ProxyStateTemplate should be cleaned up
+		// by the garbage collector because of the owner reference.
+		rt.Logger.Trace("workload doesn't exist; skipping reconciliation", "workload", workloadID)
 		return nil
 	}
 
@@ -69,7 +72,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		return nil
 	}
 
-	// TODO (nathancoleman) Determine what gateway controls this workload
+	// TODO NET-7014 Determine what gateway controls this workload
 	// For now, we cheat by knowing the MeshGateway's name, type + tenancy ahead of time
 	gatewayID := &pbresource.ID{
 		Name:    "mesh-gateway",
@@ -112,6 +115,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 
 	// If we're not creating a new PST and the generated one matches the existing one, nothing to do
 	if proxyStateTemplate != nil && proto.Equal(proxyStateTemplate.Data, newPST) {
+		rt.Logger.Trace("no changes to existing proxy state template")
 		return nil
 	}
 
