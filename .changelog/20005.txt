@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: replace usage of deprecated Envoy field `google_re2`
+```
