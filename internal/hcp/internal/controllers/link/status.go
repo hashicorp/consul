@@ -12,9 +12,9 @@ import (
 const (
 	StatusKey = "consul.io/link"
 
-	StatusLinked                      = "linked"
-	LinkedReason                      = "SUCCESS"
-	DisabledReasonResourceAPIsEnabled = "DISABLED"
+	StatusLinked                         = "linked"
+	LinkedReason                         = "SUCCESS"
+	DisabledReasonV2ResourcesUnsupported = "DISABLED_V2_RESOURCES_UNSUPPORTED"
 
 	LinkedMessageFormat                = "Successfully linked to cluster '%s'"
 	DisabledResourceAPIsEnabledMessage = "Link is disabled because resource-apis are enabled"
@@ -24,7 +24,7 @@ var (
 	ConditionDisabled = &pbresource.Condition{
 		Type:    StatusLinked,
 		State:   pbresource.Condition_STATE_FALSE,
-		Reason:  DisabledReasonResourceAPIsEnabled,
+		Reason:  DisabledReasonV2ResourcesUnsupported,
 		Message: DisabledResourceAPIsEnabledMessage,
 	}
 )
