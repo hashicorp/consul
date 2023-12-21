@@ -10,4 +10,5 @@ message Link {
   string resource_id = 1;
   string client_id = 2;
   string client_secret = 3;
+  string hcp_cluster_url = 4;
 }
