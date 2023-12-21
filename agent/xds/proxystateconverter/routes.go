@@ -6,18 +6,16 @@ package proxystateconverter
 import (
 	"errors"
 	"fmt"
+	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
-
 	"github.com/hashicorp/consul/agent/xds/response"
-
-	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	"google.golang.org/protobuf/types/known/durationpb"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -52,11 +50,6 @@ func (s *Converter) routesFromSnapshot(cfgSnap *proxycfg.ConfigSnapshot) error {
 func (s *Converter) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapshot) error {
 	for uid, chain := range cfgSnap.ConnectProxy.DiscoveryChain {
 		if chain.Default {
-			continue
-		}
-
-		// route already exists, don't clobber it.
-		if _, ok := s.proxyState.Routes[uid.EnvoyID()]; ok {
 			continue
 		}
 
@@ -257,32 +250,23 @@ func (s *Converter) makeUpstreamHostForDiscoveryChain(
 			routeRule := &pbproxystate.RouteRule{}
 
 			if destination != nil {
-				routeDestinationConfiguration := routeDestination.DestinationConfiguration
+				configHandle := routeDestination.DestinationConfiguration
 				if destination.PrefixRewrite != "" {
-					routeDestinationConfiguration.PrefixRewrite = destination.PrefixRewrite
+					configHandle.PrefixRewrite = destination.PrefixRewrite
 				}
 
-				if destination.RequestTimeout != 0 || destination.IdleTimeout != 0 {
-					routeDestinationConfiguration.TimeoutConfig = &pbproxystate.TimeoutConfig{}
+				if destination.RequestTimeout > 0 || destination.IdleTimeout > 0 {
+					configHandle.TimeoutConfig = &pbproxystate.TimeoutConfig{}
 				}
 				if destination.RequestTimeout > 0 {
-					routeDestinationConfiguration.TimeoutConfig.Timeout = durationpb.New(destination.RequestTimeout)
+					configHandle.TimeoutConfig.Timeout = durationpb.New(destination.RequestTimeout)
 				}
-				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-				if destination.RequestTimeout < 0 {
-					routeDestinationConfiguration.TimeoutConfig.Timeout = durationpb.New(0 * time.Second)
-				}
-
 				if destination.IdleTimeout > 0 {
-					routeDestinationConfiguration.TimeoutConfig.IdleTimeout = durationpb.New(destination.IdleTimeout)
-				}
-				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-				if destination.IdleTimeout < 0 {
-					routeDestinationConfiguration.TimeoutConfig.IdleTimeout = durationpb.New(0 * time.Second)
+					configHandle.TimeoutConfig.IdleTimeout = durationpb.New(destination.IdleTimeout)
 				}
 
 				if destination.HasRetryFeatures() {
-					routeDestinationConfiguration.RetryPolicy = getRetryPolicyForDestination(destination)
+					configHandle.RetryPolicy = getRetryPolicyForDestination(destination)
 				}
 
 				if err := injectHeaderManipToRoute(destination, routeRule); err != nil {
@@ -331,21 +315,9 @@ func (s *Converter) makeUpstreamHostForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
-		// A request timeout can be configured on a resolver or router. If configured on a resolver, the timeout will
-		// only apply if the start node is a resolver. This is because the timeout is attached to an (Envoy
-		// RouteAction)[https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction]
-		// If there is a splitter before this resolver, the branches of the split are configured within the same
-		// RouteAction, and the timeout cannot be shared between branches of a split.
 		if startNode.Resolver.RequestTimeout > 0 {
 			to := &pbproxystate.TimeoutConfig{
 				Timeout: durationpb.New(startNode.Resolver.RequestTimeout),
-			}
-			routeDestination.DestinationConfiguration.TimeoutConfig = to
-		}
-		// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-		if startNode.Resolver.RequestTimeout < 0 {
-			to := &pbproxystate.TimeoutConfig{
-				Timeout: durationpb.New(0 * time.Second),
 			}
 			routeDestination.DestinationConfiguration.TimeoutConfig = to
 		}

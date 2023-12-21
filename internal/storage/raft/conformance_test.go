@@ -23,9 +23,6 @@ import (
 )
 
 func TestBackend_Conformance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("too slow for testing.Short")
-	}
 	t.Run("Leader", func(t *testing.T) {
 		conformance.Test(t, conformance.TestOptions{
 			NewBackend: func(t *testing.T) storage.Backend {

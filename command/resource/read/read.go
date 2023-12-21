@@ -86,6 +86,10 @@ func (c *cmd) Run(args []string) int {
 			return 1
 		}
 	} else {
+		if len(args) < 2 {
+			c.UI.Error("Incorrect argument format: Must specify two arguments: resource type and resource name")
+			return 1
+		}
 		var err error
 		gvk, resourceName, err = resource.GetTypeAndResourceName(args)
 		if err != nil {

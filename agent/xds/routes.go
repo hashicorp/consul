@@ -61,11 +61,6 @@ func (s *ResourceGenerator) routesForConnectProxy(cfgSnap *proxycfg.ConfigSnapsh
 			continue
 		}
 
-		if !structs.IsProtocolHTTPLike(chain.Protocol) {
-			// Routes can only be defined for HTTP services
-			continue
-		}
-
 		virtualHost, err := s.makeUpstreamRouteForDiscoveryChain(cfgSnap, uid, chain, []string{"*"}, false, perRouteFilterBuilder{})
 		if err != nil {
 			return nil, err
@@ -696,17 +691,9 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 				if destination.RequestTimeout > 0 {
 					routeAction.Route.Timeout = durationpb.New(destination.RequestTimeout)
 				}
-				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-				if destination.RequestTimeout < 0 {
-					routeAction.Route.Timeout = durationpb.New(0 * time.Second)
-				}
 
 				if destination.IdleTimeout > 0 {
 					routeAction.Route.IdleTimeout = durationpb.New(destination.IdleTimeout)
-				}
-				// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-				if destination.IdleTimeout < 0 {
-					routeAction.Route.IdleTimeout = durationpb.New(0 * time.Second)
 				}
 
 				if destination.HasRetryFeatures() {
@@ -762,17 +749,8 @@ func (s *ResourceGenerator) makeUpstreamRouteForDiscoveryChain(
 			return nil, fmt.Errorf("failed to apply load balancer configuration to route action: %v", err)
 		}
 
-		// A request timeout can be configured on a resolver or router. If configured on a resolver, the timeout will
-		// only apply if the start node is a resolver. This is because the timeout is attached to an (Envoy
-		// RouteAction)[https://www.envoyproxy.io/docs/envoy/latest/api-v3/config/route/v3/route_components.proto#envoy-v3-api-msg-config-route-v3-routeaction]
-		// If there is a splitter before this resolver, the branches of the split are configured within the same
-		// RouteAction, and the timeout cannot be shared between branches of a split.
 		if startNode.Resolver.RequestTimeout > 0 {
 			routeAction.Route.Timeout = durationpb.New(startNode.Resolver.RequestTimeout)
-		}
-		// Disable the timeout if user specifies negative value. Setting 0 disables the timeout in Envoy.
-		if startNode.Resolver.RequestTimeout < 0 {
-			routeAction.Route.Timeout = durationpb.New(0 * time.Second)
 		}
 		defaultRoute := &envoy_route_v3.Route{
 			Match:  makeDefaultRouteMatch(),

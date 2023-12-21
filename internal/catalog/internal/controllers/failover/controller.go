@@ -31,11 +31,11 @@ type FailoverMapper interface {
 	MapService(ctx context.Context, rt controller.Runtime, res *pbresource.Resource) ([]controller.Request, error)
 }
 
-func FailoverPolicyController(mapper FailoverMapper) *controller.Controller {
+func FailoverPolicyController(mapper FailoverMapper) controller.Controller {
 	if mapper == nil {
 		panic("No FailoverMapper was provided to the FailoverPolicyController constructor")
 	}
-	return controller.NewController(StatusKey, pbcatalog.FailoverPolicyType).
+	return controller.ForType(pbcatalog.FailoverPolicyType).
 		WithWatch(pbcatalog.ServiceType, mapper.MapService).
 		WithReconciler(newFailoverPolicyReconciler(mapper))
 }

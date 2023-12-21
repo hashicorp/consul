@@ -343,7 +343,16 @@ func (s *Sprawl) registerCatalogNode(
 	node *topology.Node,
 ) error {
 	if node.IsV2() {
-		return s.registerCatalogNodeV2(cluster, node)
+
+		// TODO(rb): nodes are optional in v2 and won't be used in k8s by
+		// default. There are some scoping issues with the Node Type in 1.17 so
+		// disable it for now.
+		//
+		// To re-enable you also need to link it to the Workload by setting the
+		// NodeName field.
+		//
+		// return s.registerCatalogNodeV2(cluster, node)
+		return nil
 	}
 	return s.registerCatalogNodeV1(cluster, node)
 }
@@ -373,6 +382,7 @@ func (s *Sprawl) registerCatalogNodeV2(
 				Name: node.PodName(),
 				Tenancy: &pbresource.Tenancy{
 					Partition: node.Partition,
+					Namespace: "default", // temporary requirement
 				},
 			},
 			Metadata: map[string]string{
@@ -713,7 +723,8 @@ func workloadInstanceToResources(
 				Metadata: wrk.Meta,
 			},
 			Data: &pbcatalog.Workload{
-				NodeName: node.PodName(),
+				// TODO(rb): disabling this until node scoping makes sense again
+				// NodeName: node.PodName(),
 				Identity: wrk.WorkloadIdentity,
 				Ports:    wlPorts,
 				Addresses: []*pbcatalog.WorkloadAddress{

@@ -26,7 +26,7 @@ var (
 	testData embed.FS
 )
 
-// RunCatalogV2Beta1IntegrationTest will push up a bunch of catalog related data and then
+// RunCatalogV1Alpha1IntegrationTest will push up a bunch of catalog related data and then
 // verify that all the expected reconciliations happened correctly. This test is
 // intended to exercise a large swathe of behavior of the overall catalog package.
 // Besides just controller reconciliation behavior, the intent is also to verify
@@ -68,10 +68,10 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID())
 
 		for i := 1; i < 5; i++ {
-			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
+			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
 			c.RequireResourceExists(t, nodeId)
 
-			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
+			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
 			rtest.RequireOwner(t, res, nodeId, true)
 		}
 
@@ -85,10 +85,10 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 	})
 
 	testutil.RunStep(t, "node-health-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
 	})
 
 	testutil.RunStep(t, "workload-health-reconciliation", func(t *testing.T) {

@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/types/known/durationpb"
 
-	"github.com/hashicorp/go-hclog"
+	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
@@ -20,7 +21,6 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -28,9 +28,7 @@ import (
 
 func TestLoadResourcesForComputedRoutes(t *testing.T) {
 	ctx := testutil.TestContext(t)
-	rclient := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
-		Run(t)
+	rclient := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	rt := controller.Runtime{
 		Client: rclient,
 		Logger: testutil.Logger(t),

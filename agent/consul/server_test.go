@@ -7,11 +7,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"net"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
@@ -39,12 +37,10 @@ import (
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	grpcmiddleware "github.com/hashicorp/consul/agent/grpc-middleware"
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
-	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/agent/metadata"
 	"github.com/hashicorp/consul/agent/rpc/middleware"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/agent/token"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -121,7 +117,7 @@ func waitForLeaderEstablishment(t *testing.T, servers ...*Server) {
 	})
 }
 
-func testServerConfig(t testutil.TestingTB) (string, *Config) {
+func testServerConfig(t *testing.T) (string, *Config) {
 	dir := testutil.TempDir(t, "consul")
 	config := DefaultConfig()
 
@@ -237,7 +233,7 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 	var deps Deps
 	// Retry added to avoid cases where bind addr is already in use
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		dir, config = testServerConfig(r)
+		dir, config = testServerConfig(t)
 		for _, fn := range configOpts {
 			fn(config)
 		}
@@ -250,8 +246,8 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 		config.ACLResolverSettings.EnterpriseMeta = *config.AgentEnterpriseMeta()
 
 		var err error
-		deps = newDefaultDeps(r, config)
-		srv, err = newServerWithDeps(r, config, deps)
+		deps = newDefaultDeps(t, config)
+		srv, err = newServerWithDeps(t, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)
 		}
@@ -331,7 +327,7 @@ func newServer(t *testing.T, c *Config) (*Server, error) {
 	return newServerWithDeps(t, c, newDefaultDeps(t, c))
 }
 
-func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, error) {
+func newServerWithDeps(t *testing.T, c *Config, deps Deps) (*Server, error) {
 	// chain server up notification
 	oldNotify := c.NotifyListen
 	up := make(chan struct{})
@@ -342,8 +338,7 @@ func newServerWithDeps(t testutil.TestingTB, c *Config, deps Deps) (*Server, err
 		}
 	}
 	grpcServer := external.NewServer(deps.Logger.Named("grpc.external"), nil, deps.TLSConfigurator, rpcRate.NullRequestLimitsHandler(), keepalive.ServerParameters{})
-	proxyUpdater := proxytracker.NewProxyTracker(proxytracker.ProxyTrackerConfig{})
-	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, proxyUpdater)
+	srv, err := NewServer(c, deps, grpcServer, nil, deps.Logger, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -2250,39 +2245,4 @@ func TestServer_addServerTLSInfo(t *testing.T) {
 			}
 		})
 	}
-}
-
-// goldenMarkdown reads and optionally writes the expected data to the goldenMarkdown file,
-// returning the contents as a string.
-func goldenMarkdown(t *testing.T, name, got string) string {
-	t.Helper()
-
-	golden := filepath.Join("testdata", name+".md")
-	update := flag.Lookup("update").Value.(flag.Getter).Get().(bool)
-	if update && got != "" {
-		err := os.WriteFile(golden, []byte(got), 0644)
-		require.NoError(t, err)
-	}
-
-	expected, err := os.ReadFile(golden)
-	require.NoError(t, err)
-
-	return string(expected)
-}
-
-func TestServer_ControllerDependencies(t *testing.T) {
-	t.Parallel()
-
-	_, conf := testServerConfig(t)
-	deps := newDefaultDeps(t, conf)
-	deps.Experiments = []string{"resource-apis"}
-	deps.LeafCertManager = &leafcert.Manager{}
-
-	s1, err := newServerWithDeps(t, conf, deps)
-	require.NoError(t, err)
-
-	waitForLeaderEstablishment(t, s1)
-	actual := fmt.Sprintf("```mermaid\n%s\n```", s1.controllerManager.CalculateDependencies(s1.registry.Types()).ToMermaid())
-	expected := goldenMarkdown(t, "v2-resource-dependencies", actual)
-	require.Equal(t, expected, actual)
 }

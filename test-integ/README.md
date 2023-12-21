@@ -6,7 +6,7 @@ These should use the [testing/deployer framework](../testing/deployer) to bring
 up some local testing infrastructure and fixtures to run test assertions against.
 
 Where reasonably possible, try to bring up infrastructure interesting enough to
-be able to run many related sorts of tests against it, rather than waiting for
+be able to run many related sorts of test against it, rather than waiting for
 many similar clusters to be provisioned and torn down. This will help ensure
 that the integration tests do not consume CPU cycles needlessly.
 

@@ -26,9 +26,7 @@ func runInMemResourceServiceAndControllers(t *testing.T, deps controllers.Depend
 	ctx := testutil.TestContext(t)
 
 	// Create the in-mem resource service
-	client := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(catalog.RegisterTypes).
-		Run(t)
+	client := svctest.RunResourceService(t, catalog.RegisterTypes)
 
 	// Setup/Run the controller manager
 	mgr := controller.NewManager(client, testutil.Logger(t))

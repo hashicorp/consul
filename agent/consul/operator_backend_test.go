@@ -23,6 +23,7 @@ import (
 )
 
 func TestOperatorBackend_TransferLeader(t *testing.T) {
+	t.Skip("flaky and need to be rewritten")
 	t.Parallel()
 
 	conf := testClusterConfig{

@@ -22,10 +22,7 @@ import (
 )
 
 func TestMapToComputedType(t *testing.T) {
-	resourceClient := svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
-		Run(t)
-
+	resourceClient := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
 	mapper := New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)
 
 	workloadData := &pbcatalog.Workload{

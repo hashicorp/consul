@@ -20,13 +20,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func Controller() *controller.Controller {
+func Controller() controller.Controller {
 	mapper := xroutemapper.New()
 
 	r := &routesReconciler{
 		mapper: mapper,
 	}
-	return controller.NewController(StatusKey, pbmesh.ComputedRoutesType).
+	return controller.ForType(pbmesh.ComputedRoutesType).
 		WithWatch(pbmesh.HTTPRouteType, mapper.MapHTTPRoute).
 		WithWatch(pbmesh.GRPCRouteType, mapper.MapGRPCRoute).
 		WithWatch(pbmesh.TCPRouteType, mapper.MapTCPRoute).

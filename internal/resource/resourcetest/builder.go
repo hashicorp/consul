@@ -56,11 +56,6 @@ func (b *resourceBuilder) WithTenancy(tenant *pbresource.Tenancy) *resourceBuild
 	return b
 }
 
-func (b *resourceBuilder) WithVersion(version string) *resourceBuilder {
-	b.resource.Version = version
-	return b
-}
-
 func (b *resourceBuilder) WithData(t T, data protoreflect.ProtoMessage) *resourceBuilder {
 	t.Helper()
 

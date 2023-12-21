@@ -35,10 +35,6 @@ type Topology struct {
 	// Peerings defines the list of pairwise peerings that should be established
 	// between clusters.
 	Peerings []*Peering `json:",omitempty"`
-
-	// NetworkAreas defines the list of pairwise network area that should be established
-	// between clusters.
-	NetworkAreas []*NetworkArea `json:",omitempty"`
 }
 
 func (t *Topology) DigestExposedProxyPort(netName string, proxyPort int) (bool, error) {
@@ -104,10 +100,6 @@ type Config struct {
 	// Peerings defines the list of pairwise peerings that should be established
 	// between clusters.
 	Peerings []*Peering
-
-	// NetworkAreas defines the list of pairwise NetworkArea that should be established
-	// between clusters.
-	NetworkAreas []*NetworkArea
 }
 
 func (c *Config) Cluster(name string) *Cluster {
@@ -294,17 +286,6 @@ type Cluster struct {
 	// EnableV2 activates V2 on the servers. If any node in the cluster needs
 	// V2 this will be turned on automatically.
 	EnableV2 bool `json:",omitempty"`
-
-	// EnableV2Tenancy activates V2 tenancy on the servers. If not enabled,
-	// V2 resources are bridged to V1 tenancy counterparts.
-	EnableV2Tenancy bool `json:",omitempty"`
-
-	// Segments is a map of network segment name and the ports
-	Segments map[string]int
-
-	// DisableGossipEncryption disables gossip encryption on the cluster
-	// Default is false to enable gossip encryption
-	DisableGossipEncryption bool `json:",omitempty"`
 }
 
 func (c *Cluster) inheritFromExisting(existing *Cluster) {
@@ -500,11 +481,6 @@ const (
 	NodeVersionV2      NodeVersion = "v2"
 )
 
-type NetworkSegment struct {
-	Name string
-	Port int
-}
-
 // TODO: rename pod
 type Node struct {
 	Kind      NodeKind
@@ -550,9 +526,6 @@ type Node struct {
 
 	// AutopilotConfig of the server agent
 	AutopilotConfig map[string]string
-
-	// Network segment of the agent - applicable to client agent only
-	Segment *NetworkSegment
 }
 
 func (n *Node) DockerName() string {
@@ -1065,13 +1038,6 @@ type Destination struct {
 type Peering struct {
 	Dialing   PeerCluster
 	Accepting PeerCluster
-}
-
-// NetworkArea - a pair of clusters that are peered together
-// through network area. PeerCluster type is reused here.
-type NetworkArea struct {
-	Primary   PeerCluster
-	Secondary PeerCluster
 }
 
 type PeerCluster struct {

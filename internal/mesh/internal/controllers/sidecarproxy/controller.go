@@ -11,7 +11,6 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
@@ -33,7 +32,7 @@ func Controller(
 	trustDomainFetcher TrustDomainFetcher,
 	dc string,
 	defaultAllow bool,
-) *controller.Controller {
+) controller.Controller {
 	if cache == nil || trustDomainFetcher == nil {
 		panic("cache and trust domain fetcher are required")
 	}
@@ -85,11 +84,11 @@ func Controller(
 		    ComputedTrafficPermissions: find workloads in cache stored for this CTP=Workload, workloads=>PST reconcile requests
 	*/
 
-	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
+	return controller.ForType(pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.ServiceType, cache.MapService).
-		WithWatch(pbcatalog.WorkloadType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
-		WithWatch(pbmesh.ComputedExplicitDestinationsType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
-		WithWatch(pbmesh.ComputedProxyConfigurationType, dependency.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbcatalog.WorkloadType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedExplicitDestinationsType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
+		WithWatch(pbmesh.ComputedProxyConfigurationType, controller.ReplaceType(pbmesh.ProxyStateTemplateType)).
 		WithWatch(pbmesh.ComputedRoutesType, cache.MapComputedRoutes).
 		WithWatch(pbauth.ComputedTrafficPermissionsType, cache.MapComputedTrafficPermissions).
 		WithReconciler(&reconciler{
@@ -122,17 +121,10 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error reading the associated workload", "error", err)
 		return err
 	}
-
 	if workload == nil {
 		// If workload has been deleted, then return as ProxyStateTemplate should be cleaned up
 		// by the garbage collector because of the owner reference.
 		rt.Logger.Trace("workload doesn't exist; skipping reconciliation", "workload", workloadID)
-		return nil
-	}
-
-	// If the workload is for a xGateway, then do nothing + let the gatewayproxy controller reconcile it
-	if gatewayKind, ok := workload.Metadata["gateway-kind"]; ok && gatewayKind != "" {
-		rt.Logger.Trace("workload is a gateway; skipping reconciliation", "workload", workloadID, "gateway-kind", gatewayKind)
 		return nil
 	}
 

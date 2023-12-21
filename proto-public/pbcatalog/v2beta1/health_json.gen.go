@@ -104,17 +104,6 @@ func (this *CheckTLSConfig) UnmarshalJSON(b []byte) error {
 	return HealthUnmarshaler.Unmarshal(b, this)
 }
 
-// MarshalJSON is a custom marshaler for NodeHealthStatus
-func (this *NodeHealthStatus) MarshalJSON() ([]byte, error) {
-	str, err := HealthMarshaler.Marshal(this)
-	return []byte(str), err
-}
-
-// UnmarshalJSON is a custom unmarshaler for NodeHealthStatus
-func (this *NodeHealthStatus) UnmarshalJSON(b []byte) error {
-	return HealthUnmarshaler.Unmarshal(b, this)
-}
-
 var (
 	HealthMarshaler   = &protojson.MarshalOptions{}
 	HealthUnmarshaler = &protojson.UnmarshalOptions{DiscardUnknown: false}

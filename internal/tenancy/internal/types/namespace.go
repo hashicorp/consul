@@ -5,43 +5,44 @@ package types
 
 import (
 	"fmt"
-	"strings"
-
-	"google.golang.org/protobuf/types/known/anypb"
-
 	"github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
+	tenancyv1alpha1 "github.com/hashicorp/consul/proto-public/pbtenancy/v1alpha1"
+	"strings"
+)
+
+const (
+	NamespaceKind = "Namespace"
+)
+
+var (
+	NamespaceV1Alpha1Type = &pbresource.Type{
+		Group:        GroupName,
+		GroupVersion: VersionV1Alpha1,
+		Kind:         NamespaceKind,
+	}
+	NamespaceType = NamespaceV1Alpha1Type
 )
 
 func RegisterNamespace(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:     pbtenancy.NamespaceType,
-		Proto:    &pbtenancy.Namespace{},
+		Type:     NamespaceV1Alpha1Type,
+		Proto:    &tenancyv1alpha1.Namespace{},
 		Scope:    resource.ScopePartition,
-		Mutate:   MutateNamespace,
 		Validate: ValidateNamespace,
+		Mutate:   MutateNamespace,
 		// ACLs: TODO
 	})
 }
 
-// MutateNamespace sets the resource data if nil since description and
-// other fields are optional.
 func MutateNamespace(res *pbresource.Resource) error {
-	if res.Data != nil {
-		return nil
-	}
-	data, err := anypb.New(&pbtenancy.Namespace{})
-	if err != nil {
-		return err
-	}
-	res.Data = data
+	res.Id.Name = strings.ToLower(res.Id.Name)
 	return nil
 }
 
 func ValidateNamespace(res *pbresource.Resource) error {
-	var ns pbtenancy.Namespace
+	var ns tenancyv1alpha1.Namespace
 
 	if err := res.Data.UnmarshalTo(&ns); err != nil {
 		return resource.NewErrDataParse(&ns, err)
