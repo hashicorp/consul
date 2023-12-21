@@ -25,9 +25,9 @@ func TestEnvoy(t *testing.T) {
 			caseDir := "CASE_DIR=" + tc
 
 			t.Cleanup(func() {
-				if t.Failed() {
-					runCmd(t, "capture_logs", caseDir)
-				}
+				//if t.Failed() {
+				runCmd(t, "capture_logs", caseDir)
+				//}
 
 				runCmd(t, "test_teardown", caseDir)
 			})
