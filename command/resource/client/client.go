@@ -6,7 +6,6 @@ package client
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,7 +20,6 @@ import (
 
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-rootcerts"
 
 	"github.com/hashicorp/consul/api"
 )
@@ -72,14 +70,6 @@ const (
 	// HTTPSSLVerifyEnvName defines an environment variable name which sets
 	// whether or not to disable certificate checking.
 	HTTPSSLVerifyEnvName = "CONSUL_HTTP_SSL_VERIFY"
-
-	// GRPCCAFileEnvName defines an environment variable name which sets the
-	// CA file to use for talking to Consul gRPC over TLS.
-	GRPCCAFileEnvName = "CONSUL_GRPC_CACERT"
-
-	// GRPCCAPathEnvName defines an environment variable name which sets the
-	// path to a directory of CA certs to use for talking to Consul gRPC over TLS.
-	GRPCCAPathEnvName = "CONSUL_GRPC_CAPATH"
 
 	// HTTPNamespaceEnvVar defines an environment variable name which sets
 	// the HTTP Namespace to be used by default. This can still be overridden.
@@ -536,60 +526,6 @@ func defaultConfig(logger hclog.Logger, transportFn func() *http.Transport) *Con
 	}
 
 	return config
-}
-
-// TLSConfig is used to generate a TLSClientConfig that's useful for talking to
-// Consul using TLS.
-func SetupTLSConfig(tlsConfig *TLSConfig) (*tls.Config, error) {
-	tlsClientConfig := &tls.Config{
-		InsecureSkipVerify: tlsConfig.InsecureSkipVerify,
-	}
-
-	if tlsConfig.Address != "" {
-		server := tlsConfig.Address
-		hasPort := strings.LastIndex(server, ":") > strings.LastIndex(server, "]")
-		if hasPort {
-			var err error
-			server, _, err = net.SplitHostPort(server)
-			if err != nil {
-				return nil, err
-			}
-		}
-		tlsClientConfig.ServerName = server
-	}
-
-	if len(tlsConfig.CertPEM) != 0 && len(tlsConfig.KeyPEM) != 0 {
-		tlsCert, err := tls.X509KeyPair(tlsConfig.CertPEM, tlsConfig.KeyPEM)
-		if err != nil {
-			return nil, err
-		}
-		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
-	} else if len(tlsConfig.CertPEM) != 0 || len(tlsConfig.KeyPEM) != 0 {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
-	}
-
-	if tlsConfig.CertFile != "" && tlsConfig.KeyFile != "" {
-		tlsCert, err := tls.LoadX509KeyPair(tlsConfig.CertFile, tlsConfig.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-		tlsClientConfig.Certificates = []tls.Certificate{tlsCert}
-	} else if tlsConfig.CertFile != "" || tlsConfig.KeyFile != "" {
-		return nil, fmt.Errorf("both client cert and client key must be provided")
-	}
-
-	if tlsConfig.CAFile != "" || tlsConfig.CAPath != "" || len(tlsConfig.CAPem) != 0 {
-		rootConfig := &rootcerts.Config{
-			CAFile:        tlsConfig.CAFile,
-			CAPath:        tlsConfig.CAPath,
-			CACertificate: tlsConfig.CAPem,
-		}
-		if err := rootcerts.ConfigureTLS(tlsClientConfig, rootConfig); err != nil {
-			return nil, err
-		}
-	}
-
-	return tlsClientConfig, nil
 }
 
 func (c *Config) GenerateEnv() []string {
