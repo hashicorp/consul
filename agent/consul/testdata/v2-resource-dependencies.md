@@ -41,6 +41,7 @@ flowchart TD
   mesh/v2beta1/proxyconfiguration
   mesh/v2beta1/proxystatetemplate --> auth/v2beta1/computedtrafficpermissions
   mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/service
+  mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/serviceendpoints
   mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/workload
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedexplicitdestinations
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedproxyconfiguration
