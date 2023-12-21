@@ -37,7 +37,28 @@ import (
 // - default/nsa
 // - part1/nsa
 func TestBasicL4ImplicitDestinations(t *testing.T) {
-	cfg := testBasicL4ImplicitDestinationsCreator{}.NewConfig(t)
+	tenancies := []*pbresource.Tenancy{{
+		Namespace: "default",
+		Partition: "default",
+	}}
+	if utils.IsEnterprise() {
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Namespace: "default",
+			Partition: "nsa",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Namespace: "part1",
+			Partition: "default",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Namespace: "part1",
+			Partition: "nsa",
+		})
+	}
+
+	cfg := testBasicL4ImplicitDestinationsCreator{
+		tenancies: tenancies,
+	}.NewConfig(t)
 
 	sp := sprawltest.Launch(t, cfg)
 
@@ -55,11 +76,13 @@ func TestBasicL4ImplicitDestinations(t *testing.T) {
 	t.Log(topology.RenderRelationships(ships))
 
 	// Make sure things are truly in v2 not v1.
-	for _, name := range []string{
-		"static-server",
-		"static-client",
-	} {
-		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, name, nil, 1)
+	for _, tenancy := range tenancies {
+		for _, name := range []string{
+			"static-server",
+			"static-client",
+		} {
+			libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, name, tenancy, 1)
+		}
 	}
 
 	// Check relationships
@@ -81,7 +104,9 @@ func TestBasicL4ImplicitDestinations(t *testing.T) {
 	}
 }
 
-type testBasicL4ImplicitDestinationsCreator struct{}
+type testBasicL4ImplicitDestinationsCreator struct {
+	tenancies []*pbresource.Tenancy
+}
 
 func (c testBasicL4ImplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
 	const clusterName = "dc1"
@@ -100,11 +125,8 @@ func (c testBasicL4ImplicitDestinationsCreator) NewConfig(t *testing.T) *topolog
 		return fmt.Sprintf("%s-box%d", clusterName, lastNode)
 	}
 
-	c.topologyConfigAddNodes(t, cluster, nodeName, "default", "default")
-	if cluster.Enterprise {
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "default")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "nsa")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "default", "nsa")
+	for i := range c.tenancies {
+		c.topologyConfigAddNodes(t, cluster, nodeName, c.tenancies[i])
 	}
 
 	return &topology.Config{
@@ -123,34 +145,27 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 	t *testing.T,
 	cluster *topology.Cluster,
 	nodeName func() string,
-	partition,
-	namespace string,
+	tenancy *pbresource.Tenancy,
 ) {
 	clusterName := cluster.Name
 
-	newID := func(name string) topology.ID {
+	newID := func(name string, tenancy *pbresource.Tenancy) topology.ID {
 		return topology.ID{
-			Partition: partition,
-			Namespace: namespace,
+			Partition: tenancy.Partition,
+			Namespace: tenancy.Namespace,
 			Name:      name,
 		}
-	}
-
-	tenancy := &pbresource.Tenancy{
-		Partition: partition,
-		Namespace: namespace,
-		PeerName:  "local",
 	}
 
 	serverNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
 		Workloads: []*topology.Workload{
 			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newID("static-server"),
+				newID("static-server", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
 					wrk.EnableTransparentProxy = true
@@ -158,32 +173,50 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 			),
 		},
 	}
+
+	var impliedDestinations []*topology.Destination
+	for _, ten := range c.tenancies {
+		// For now we include all services in the same partition as implicit upstreams.
+		if tenancy.Partition != ten.Partition {
+			continue
+		}
+		impliedDestinations = append(impliedDestinations, &topology.Destination{
+			ID:       newID("static-server", ten),
+			PortName: "http",
+		})
+		impliedDestinations = append(impliedDestinations, &topology.Destination{
+			ID:       newID("static-server", ten),
+			PortName: "http2",
+		})
+	}
+
 	clientNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
 		Workloads: []*topology.Workload{
 			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newID("static-client"),
+				newID("static-client", tenancy),
 				topology.NodeVersionV2,
 				func(wrk *topology.Workload) {
 					wrk.EnableTransparentProxy = true
-					wrk.ImpliedDestinations = []*topology.Destination{
-						{
-							ID:       newID("static-server"),
-							PortName: "http",
-						},
-						{
-							ID:       newID("static-server"),
-							PortName: "http2",
-						},
-					}
+					wrk.ImpliedDestinations = impliedDestinations
 				},
 			),
 		},
 	}
+
+	var sources []*pbauth.Source
+	for _, ten := range c.tenancies {
+		sources = append(sources, &pbauth.Source{
+			IdentityName: "static-client",
+			Namespace:    ten.Namespace,
+			Partition:    ten.Partition,
+		})
+	}
+
 	trafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
 			Type:    pbauth.TrafficPermissionsType,
@@ -196,10 +229,7 @@ func (c testBasicL4ImplicitDestinationsCreator) topologyConfigAddNodes(
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "static-client",
-				Namespace:    namespace,
-			}},
+			Sources: sources,
 		}},
 	})
 

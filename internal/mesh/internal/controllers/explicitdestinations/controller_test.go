@@ -192,7 +192,10 @@ func TestFindDuplicates(t *testing.T) {
 
 func (suite *controllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.client = resourcetest.NewClient(resourceClient)
@@ -908,7 +911,7 @@ func (suite *controllerTestSuite) TestController() {
 				expDest := &pbmesh.ComputedExplicitDestinations{
 					Destinations: suite.dest1.Destinations,
 				}
-				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](t, res)
+				dec := resourcetest.MustDecode[*pbmesh.ComputedExplicitDestinations](r, res)
 				prototest.AssertDeepEqual(r, expDest.GetDestinations(), dec.GetData().GetDestinations())
 
 				matchingWorkloadCD := suite.client.RequireResourceExists(r, matchingWorkloadCDID)

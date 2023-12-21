@@ -445,7 +445,7 @@ end`,
 			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
 				extra := makeLambdaServiceDefaults(false)
 				extra.Name = "google"
-				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, extra)
+				return proxycfg.TestConfigSnapshotTransparentProxyHTTPUpstream(t, nil, extra)
 			},
 		},
 		// Make sure that if the upstream type is different from ExtensionConfiguration.Kind is, that the resources are not patched.

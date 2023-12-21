@@ -6,8 +6,6 @@ package sidecarproxy
 import (
 	"context"
 	"fmt"
-	mockres "github.com/hashicorp/consul/agent/grpc-external/services/resource"
-	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"strings"
 	"testing"
 
@@ -19,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes/routestest"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/builder"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/fetcher"
@@ -44,15 +43,9 @@ type controllerTestSuite struct {
 	ctl *reconciler
 	ctx context.Context
 
-	apiWorkloadID                     *pbresource.ID
-	apiWorkload                       *pbcatalog.Workload
-	apiComputedTrafficPermissions     *pbresource.Resource
-	apiComputedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
-	apiService                        *pbresource.Resource
-	apiServiceData                    *pbcatalog.Service
-	apiEndpoints                      *pbresource.Resource
-	apiEndpointsData                  *pbcatalog.ServiceEndpoints
-	webWorkload                       *pbresource.Resource
+	webWorkload *pbresource.Resource
+
+	api map[tenancyKey]apiData
 
 	dbWorkloadID    *pbresource.ID
 	dbWorkload      *pbcatalog.Workload
@@ -60,23 +53,42 @@ type controllerTestSuite struct {
 	dbEndpoints     *pbresource.Resource
 	dbEndpointsData *pbcatalog.ServiceEndpoints
 
-	proxyStateTemplate *pbmesh.ProxyStateTemplate
-	tenancies          []*pbresource.Tenancy
+	tenancies []*pbresource.Tenancy
+}
+
+type tenancyKey struct {
+	Namespace string
+	Partition string
+}
+
+func toTenancyKey(t *pbresource.Tenancy) tenancyKey {
+	return tenancyKey{
+		Namespace: t.Namespace,
+		Partition: t.Partition,
+	}
+}
+
+type apiData struct {
+	workloadID                     *pbresource.ID
+	workload                       *pbcatalog.Workload
+	computedTrafficPermissions     *pbresource.Resource
+	computedTrafficPermissionsData *pbauth.ComputedTrafficPermissions
+	service                        *pbresource.Resource
+	destinationListenerName        string
+	destinationClusterName         string
+	serviceData                    *pbcatalog.Service
+	endpoints                      *pbresource.Resource
+	endpointsData                  *pbcatalog.ServiceEndpoints
+	proxyStateTemplate             *pbmesh.ProxyStateTemplate
 }
 
 func (suite *controllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	mockTenancyBridge := &mockres.MockTenancyBridge{}
-	for _, tenancy := range suite.tenancies {
-		mockTenancyBridge.On("PartitionExists", tenancy.Partition).Return(true, nil)
-		mockTenancyBridge.On("NamespaceExists", tenancy.Partition, tenancy.Namespace).Return(true, nil)
-		mockTenancyBridge.On("IsPartitionMarkedForDeletion", tenancy.Partition).Return(false, nil)
-		mockTenancyBridge.On("IsNamespaceMarkedForDeletion", tenancy.Partition, tenancy.Namespace).Return(false, nil)
-	}
-	cfg := mockres.Config{
-		TenancyBridge: mockTenancyBridge,
-	}
-	resourceClient := svctest.RunResourceServiceWithConfig(suite.T(), cfg, types.Register, catalog.RegisterTypes, auth.RegisterTypes)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes, auth.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
+
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
@@ -98,48 +110,9 @@ func (suite *controllerTestSuite) SetupTest() {
 			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
 		},
 	}
-
-	suite.apiServiceData = &pbcatalog.Service{
-		Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"api-abc"}},
-		VirtualIps: []string{"1.1.1.1"},
-		Ports: []*pbcatalog.ServicePort{
-			{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-			{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-		},
-	}
-
-	suite.apiComputedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
-		IsDefault: false,
-		AllowPermissions: []*pbauth.Permission{
-			{
-				Sources: []*pbauth.Source{
-					{
-						IdentityName: "foo",
-						Namespace:    "default",
-						Partition:    "default",
-						Peer:         "local",
-					},
-				},
-			},
-		},
-	}
 }
 
 func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tenancy) {
-
-	suite.apiWorkload = &pbcatalog.Workload{
-		Identity: "api-identity",
-		Addresses: []*pbcatalog.WorkloadAddress{
-			{
-				Host: "10.0.0.1",
-			},
-		},
-		Ports: map[string]*pbcatalog.WorkloadPort{
-			"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
-			"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
-		},
-	}
-
 	webWorkloadData := &pbcatalog.Workload{
 		Identity: "web-identity",
 		Addresses: []*pbcatalog.WorkloadAddress{
@@ -181,42 +154,101 @@ func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tena
 			},
 		},
 	}
-
 	suite.dbEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "db-service").
 		WithData(suite.T(), suite.dbEndpointsData).
 		WithTenancy(tenancy).
 		Write(suite.T(), suite.client)
 
-	suite.apiWorkloadID = resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
-		WithTenancy(tenancy).
-		WithData(suite.T(), suite.apiWorkload).
-		Write(suite.T(), suite.client.ResourceServiceClient).Id
+	suite.api = make(map[tenancyKey]apiData)
 
-	suite.apiComputedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
-		WithData(suite.T(), suite.apiComputedTrafficPermissionsData).
-		WithTenancy(tenancy).
-		Write(suite.T(), suite.client.ResourceServiceClient)
+	for i, t := range suite.tenancies {
+		var a apiData
 
-	suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
-		WithData(suite.T(), suite.apiServiceData).
-		WithTenancy(tenancy).
-		Write(suite.T(), suite.client.ResourceServiceClient)
-
-	suite.apiEndpointsData = &pbcatalog.ServiceEndpoints{
-		Endpoints: []*pbcatalog.Endpoint{
-			{
-				TargetRef: suite.apiWorkloadID,
-				Addresses: suite.apiWorkload.Addresses,
-				Ports:     suite.apiWorkload.Ports,
-				Identity:  "api-identity",
+		a.computedTrafficPermissionsData = &pbauth.ComputedTrafficPermissions{
+			IsDefault: false,
+			AllowPermissions: []*pbauth.Permission{
+				{
+					Sources: []*pbauth.Source{
+						{
+							IdentityName: "foo",
+							Namespace:    "default",
+							Partition:    "default",
+							Peer:         "local",
+						},
+					},
+				},
 			},
-		},
-	}
+		}
 
-	suite.apiEndpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
-		WithData(suite.T(), suite.apiEndpointsData).
-		WithTenancy(tenancy).
-		Write(suite.T(), suite.client.ResourceServiceClient)
+		a.workload = &pbcatalog.Workload{
+			Identity: "api-identity",
+			Addresses: []*pbcatalog.WorkloadAddress{
+				{
+					Host: "10.0.0.1",
+				},
+			},
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			},
+		}
+
+		a.serviceData = &pbcatalog.Service{
+			Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"api-abc"}},
+			VirtualIps: []string{"1.1.1.1"},
+			Ports: []*pbcatalog.ServicePort{
+				{TargetPort: "tcp", Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+				{TargetPort: "mesh", Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+			},
+		}
+
+		a.workloadID = resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
+			WithTenancy(t).
+			WithData(suite.T(), a.workload).
+			Write(suite.T(), suite.client.ResourceServiceClient).Id
+
+		a.endpointsData = &pbcatalog.ServiceEndpoints{
+			Endpoints: []*pbcatalog.Endpoint{
+				{
+					TargetRef: a.workloadID,
+					Addresses: a.workload.Addresses,
+					Ports:     a.workload.Ports,
+					Identity:  "api-identity",
+				},
+			},
+		}
+
+		a.computedTrafficPermissions = resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, a.workload.Identity).
+			WithData(suite.T(), a.computedTrafficPermissionsData).
+			WithTenancy(t).
+			Write(suite.T(), suite.client.ResourceServiceClient)
+
+		a.service = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
+			WithData(suite.T(), a.serviceData).
+			WithTenancy(t).
+			Write(suite.T(), suite.client.ResourceServiceClient)
+
+		a.endpoints = resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
+			WithData(suite.T(), a.endpointsData).
+			WithTenancy(t).
+			Write(suite.T(), suite.client.ResourceServiceClient)
+
+		identityRef := &pbresource.Reference{
+			Name:    a.workload.Identity,
+			Tenancy: a.workloadID.Tenancy,
+			Type:    pbauth.WorkloadIdentityType,
+		}
+
+		a.destinationListenerName = builder.DestinationListenerName(resource.Reference(a.service.Id, ""), "tcp", "127.0.0.1", uint32(1234+i))
+		a.destinationClusterName = builder.DestinationSNI(resource.Reference(a.service.Id, ""), "dc1", "test.consul")
+
+		a.proxyStateTemplate = builder.New(resource.ReplaceType(pbmesh.ProxyStateTemplateType, a.workloadID),
+			identityRef, "test.consul", "dc1", false, nil).
+			BuildLocalApp(a.workload, a.computedTrafficPermissionsData).
+			Build()
+
+		suite.api[toTenancyKey(t)] = a
+	}
 
 	suite.webWorkload = resourcetest.Resource(pbcatalog.WorkloadType, "web-def").
 		WithData(suite.T(), webWorkloadData).
@@ -250,17 +282,6 @@ func (suite *controllerTestSuite) setupSuiteWithTenancy(tenancy *pbresource.Tena
 				},
 			},
 		}).Write(suite.T(), suite.client)
-
-	identityRef := &pbresource.Reference{
-		Name:    suite.apiWorkload.Identity,
-		Tenancy: suite.apiWorkloadID.Tenancy,
-		Type:    pbauth.WorkloadIdentityType,
-	}
-
-	suite.proxyStateTemplate = builder.New(resource.ReplaceType(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID),
-		identityRef, "test.consul", "dc1", false, nil).
-		BuildLocalApp(suite.apiWorkload, suite.apiComputedTrafficPermissionsData).
-		Build()
 }
 
 func (suite *controllerTestSuite) TestWorkloadPortProtocolsFromService_NoServicesInCache() {
@@ -433,6 +454,38 @@ func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 	})
 }
 
+func (suite *controllerTestSuite) TestReconcile_GatewayWorkload() {
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		// This test ensures that gateway workloads are ignored by the controller.
+
+		gatewayWorkload := &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{
+				{
+					Host: "10.0.0.1",
+				},
+			},
+			Identity: "mesh-gateway-identity",
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+			},
+		}
+
+		resourcetest.Resource(pbcatalog.WorkloadType, "test-gateway-workload").
+			WithData(suite.T(), gatewayWorkload).
+			WithTenancy(tenancy).
+			WithMeta("gateway-kind", "mesh-gateway").
+			Write(suite.T(), suite.client.ResourceServiceClient)
+
+		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: resourceID(pbmesh.ProxyStateTemplateType, "test-gateway-workload", tenancy),
+		})
+
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "test-non-mesh-api-workload", tenancy))
+	})
+}
+
 func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that non-mesh workloads are ignored by the controller.
@@ -465,35 +518,38 @@ func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 func (suite *controllerTestSuite) TestReconcile_NoExistingProxyStateTemplate() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 
+		api := suite.api[toTenancyKey(tenancy)]
+
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
-			ID: resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy),
+			ID: resourceID(pbmesh.ProxyStateTemplateType, api.workloadID.Name, tenancy),
 		})
 		require.NoError(suite.T(), err)
 
-		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy))
+		res := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, api.workloadID.Name, tenancy))
 		require.NoError(suite.T(), err)
 		require.NotNil(suite.T(), res.Data)
-		prototest.AssertDeepEqual(suite.T(), suite.apiWorkloadID, res.Owner)
+		prototest.AssertDeepEqual(suite.T(), api.workloadID, res.Owner)
 	})
 }
 
 func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithUpdates() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that we write a new proxy state template when there are changes.
+		api := suite.api[toTenancyKey(tenancy)]
 
 		// Write the original.
 		resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").
-			WithData(suite.T(), suite.proxyStateTemplate).
-			WithOwner(suite.apiWorkloadID).
+			WithData(suite.T(), api.proxyStateTemplate).
+			WithOwner(api.workloadID).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
 		// Update the apiWorkload and check that we default the port to tcp if it's unspecified.
-		suite.apiWorkload.Ports["tcp"].Protocol = pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
+		api.workload.Ports["tcp"].Protocol = pbcatalog.Protocol_PROTOCOL_UNSPECIFIED
 
 		updatedWorkloadID := resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
 			WithTenancy(tenancy).
-			WithData(suite.T(), suite.apiWorkload).
+			WithData(suite.T(), api.workload).
 			Write(suite.T(), suite.client.ResourceServiceClient).Id
 
 		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
@@ -523,17 +579,18 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_WithU
 func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpdates() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that we skip writing of the proxy state template when there are no changes to it.
+		api := suite.api[toTenancyKey(tenancy)]
 
 		// Write the original.
 		originalProxyState := resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").
-			WithData(suite.T(), suite.proxyStateTemplate).
-			WithOwner(suite.apiWorkloadID).
+			WithData(suite.T(), api.proxyStateTemplate).
+			WithOwner(api.workloadID).
 			WithTenancy(tenancy).
 			Write(suite.T(), suite.client.ResourceServiceClient)
 
 		// Update the metadata on the apiWorkload which should result in no changes.
 		updatedWorkloadID := resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
-			WithData(suite.T(), suite.apiWorkload).
+			WithData(suite.T(), api.workload).
 			WithMeta("some", "meta").
 			Write(suite.T(), suite.client.ResourceServiceClient).Id
 
@@ -542,7 +599,7 @@ func (suite *controllerTestSuite) TestReconcile_ExistingProxyStateTemplate_NoUpd
 		})
 		require.NoError(suite.T(), err)
 
-		updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, suite.apiWorkloadID.Name, tenancy))
+		updatedProxyState := suite.client.RequireResourceExists(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, api.workloadID.Name, tenancy))
 		resourcetest.RequireVersionUnchanged(suite.T(), updatedProxyState, originalProxyState.Version)
 	})
 }
@@ -563,13 +620,15 @@ func (suite *controllerTestSuite) TestController() {
 		// This should test interactions between the reconciler, the mappers, and the destinationsCache to ensure they work
 		// together and produce expected result.
 
+		api := suite.api[toTenancyKey(tenancy)]
+
 		// Run the controller manager
 		var (
 			// Create proxy state template IDs to check against in this test.
 			apiProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "api-abc").WithTenancy(tenancy).ID()
 			webProxyStateTemplateID = resourcetest.Resource(pbmesh.ProxyStateTemplateType, "web-def").WithTenancy(tenancy).ID()
 
-			apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.apiService.Id)
+			apiComputedRoutesID = resource.ReplaceType(pbmesh.ComputedRoutesType, api.service.Id)
 			dbComputedRoutesID  = resource.ReplaceType(pbmesh.ComputedRoutesType, suite.dbService.Id)
 
 			apiProxyStateTemplate   *pbresource.Resource
@@ -577,42 +636,52 @@ func (suite *controllerTestSuite) TestController() {
 			webComputedDestinations *pbresource.Resource
 		)
 
-		testutil.RunStep(suite.T(), "proxy state template generation", func(t *testing.T) {
-			// Check that proxy state template resource is generated for both the api and web workloads.
-			retry.Run(t, func(r *retry.R) {
-				suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-				webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
-				apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
-			})
+		// Check that proxy state template resource is generated for both the api and web workloads.
+		retry.Run(suite.T(), func(r *retry.R) {
+			suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
+			webProxyStateTemplate = suite.client.RequireResourceExists(r, webProxyStateTemplateID)
+			apiProxyStateTemplate = suite.client.RequireResourceExists(r, apiProxyStateTemplateID)
 		})
 
 		// Write a default ComputedRoutes for api.
-		routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-			resourcetest.MustDecode[*pbcatalog.Service](suite.T(), suite.apiService),
-		)
+		for _, api := range suite.api {
+			crID := resource.ReplaceType(pbmesh.ComputedRoutesType, api.service.Id)
+			routestest.ReconcileComputedRoutes(suite.T(), suite.client, crID,
+				resourcetest.MustDecode[*pbcatalog.Service](suite.T(), api.service),
+			)
+		}
+
+		var destinations []*pbmesh.Destination
+		var i uint32
+		for _, t := range suite.tenancies {
+			destinations = append(destinations, &pbmesh.Destination{
+				DestinationRef:  resource.Reference(suite.api[toTenancyKey(t)].service.Id, ""),
+				DestinationPort: "tcp",
+				ListenAddr: &pbmesh.Destination_IpPort{
+					IpPort: &pbmesh.IPPortAddress{
+						Ip:   "127.0.0.1",
+						Port: 1234 + i,
+					},
+				},
+			})
+			i++
+		}
 
 		// Add a source service and check that a new proxy state is generated.
 		webComputedDestinations = resourcetest.Resource(pbmesh.ComputedExplicitDestinationsType, suite.webWorkload.Id.Name).
 			WithTenancy(tenancy).
 			WithData(suite.T(), &pbmesh.ComputedExplicitDestinations{
-				Destinations: []*pbmesh.Destination{
-					{
-						DestinationRef:  resource.Reference(suite.apiService.Id, ""),
-						DestinationPort: "tcp",
-						ListenAddr: &pbmesh.Destination_IpPort{
-							IpPort: &pbmesh.IPPortAddress{
-								Ip:   "127.0.0.1",
-								Port: 1234,
-							},
-						},
-					},
-				},
+				Destinations: destinations,
 			}).Write(suite.T(), suite.client)
 
 		testutil.RunStep(suite.T(), "add explicit destinations and check that new proxy state is generated", func(t *testing.T) {
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-			requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				for _, data := range suite.api {
+					requireExplicitDestinationsFound(t, data.destinationListenerName, data.destinationClusterName, tmpl)
+				}
+			})
 		})
 
 		testutil.RunStep(suite.T(), "update api's ports to be non-mesh", func(t *testing.T) {
@@ -632,11 +701,11 @@ func (suite *controllerTestSuite) TestController() {
 				WithTenancy(tenancy).
 				WithData(suite.T(), &pbcatalog.Workload{
 					Identity:  "api-identity",
-					Addresses: suite.apiWorkload.Addresses,
+					Addresses: api.workload.Addresses,
 					Ports:     nonMeshPorts}).
 				Write(suite.T(), suite.client)
 
-			suite.apiService = resourcetest.ResourceID(suite.apiService.Id).
+			api.service = resourcetest.ResourceID(api.service.Id).
 				WithTenancy(tenancy).
 				WithData(t, &pbcatalog.Service{
 					Workloads:  &pbcatalog.WorkloadSelector{Names: []string{"api-abc"}},
@@ -653,8 +722,8 @@ func (suite *controllerTestSuite) TestController() {
 				WithData(suite.T(), &pbcatalog.ServiceEndpoints{
 					Endpoints: []*pbcatalog.Endpoint{
 						{
-							TargetRef: suite.apiWorkloadID,
-							Addresses: suite.apiWorkload.Addresses,
+							TargetRef: api.workloadID,
+							Addresses: api.workload.Addresses,
 							Ports:     nonMeshPorts,
 							Identity:  "api-identity",
 						},
@@ -664,7 +733,7 @@ func (suite *controllerTestSuite) TestController() {
 
 			// Refresh the computed routes in light of api losing a mesh port.
 			routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
+				resourcetest.MustDecode[*pbcatalog.Service](t, api.service),
 			)
 
 			// Check that api proxy template is gone.
@@ -675,7 +744,9 @@ func (suite *controllerTestSuite) TestController() {
 			// We should get a new web proxy template resource because this destination should be removed.
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-			requireExplicitDestinationsNotFound(t, "api", webProxyStateTemplate)
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				requireExplicitDestinationsNotFound(t, api.destinationListenerName, api.destinationClusterName, tmpl)
+			})
 		})
 
 		testutil.RunStep(suite.T(), "update ports to be mesh again", func(t *testing.T) {
@@ -685,28 +756,32 @@ func (suite *controllerTestSuite) TestController() {
 
 			resourcetest.Resource(pbcatalog.WorkloadType, "api-abc").
 				WithTenancy(tenancy).
-				WithData(suite.T(), suite.apiWorkload).
+				WithData(suite.T(), api.workload).
 				Write(suite.T(), suite.client)
 
-			suite.apiService = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
-				WithData(suite.T(), suite.apiServiceData).
+			api.service = resourcetest.Resource(pbcatalog.ServiceType, "api-service").
+				WithData(suite.T(), api.serviceData).
 				WithTenancy(tenancy).
 				Write(suite.T(), suite.client.ResourceServiceClient)
 
 			resourcetest.Resource(pbcatalog.ServiceEndpointsType, "api-service").
 				WithTenancy(tenancy).
-				WithData(suite.T(), suite.apiEndpointsData).
+				WithData(suite.T(), api.endpointsData).
 				Write(suite.T(), suite.client.ResourceServiceClient)
 
 			// Refresh the computed routes in light of api losing a mesh port.
 			routestest.ReconcileComputedRoutes(suite.T(), suite.client, apiComputedRoutesID,
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
+				resourcetest.MustDecode[*pbcatalog.Service](t, api.service),
 			)
 
 			// We should also get a new web proxy template resource as this destination should be added again.
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-			requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				for _, data := range suite.api {
+					requireExplicitDestinationsFound(t, data.destinationListenerName, data.destinationClusterName, tmpl)
+				}
+			})
 		})
 
 		testutil.RunStep(suite.T(), "delete the proxy state template and check re-generation", func(t *testing.T) {
@@ -716,7 +791,12 @@ func (suite *controllerTestSuite) TestController() {
 			require.NoError(suite.T(), err)
 
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
-			requireExplicitDestinationsFound(t, "api", webProxyStateTemplate)
+
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				for _, data := range suite.api {
+					requireExplicitDestinationsFound(t, data.destinationListenerName, data.destinationClusterName, tmpl)
+				}
+			})
 		})
 
 		testutil.RunStep(suite.T(), "add implicit upstream and enable tproxy", func(t *testing.T) {
@@ -748,8 +828,15 @@ func (suite *controllerTestSuite) TestController() {
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 			apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
-			requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
-			requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				listenerNameDb := fmt.Sprintf("%s/local/%s/db-service", tenancy.Partition, tenancy.Namespace)
+				clusterNameDb := fmt.Sprintf("db-service.%s.%s", tenancy.Namespace, tenancy.Partition)
+				if tenancy.Partition == "default" {
+					clusterNameDb = fmt.Sprintf("db-service.%s", tenancy.Namespace)
+				}
+				requireImplicitDestinationsFound(t, api.destinationListenerName, api.destinationClusterName, tmpl)
+				requireImplicitDestinationsFound(t, listenerNameDb, clusterNameDb, tmpl)
+			})
 		})
 
 		testutil.RunStep(suite.T(), "traffic permissions", func(t *testing.T) {
@@ -758,16 +845,16 @@ func (suite *controllerTestSuite) TestController() {
 			assertTrafficPermissionDefaultPolicy(t, false, webProxyStateTemplate)
 
 			suite.runtime.Logger.Trace("deleting computed traffic permissions")
-			_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: suite.apiComputedTrafficPermissions.Id})
+			_, err := suite.client.Delete(suite.ctx, &pbresource.DeleteRequest{Id: api.computedTrafficPermissions.Id})
 			require.NoError(t, err)
-			suite.client.WaitForDeletion(t, suite.apiComputedTrafficPermissions.Id)
+			suite.client.WaitForDeletion(t, api.computedTrafficPermissions.Id)
 
 			apiProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), apiProxyStateTemplateID, apiProxyStateTemplate.Version)
 
 			suite.runtime.Logger.Trace("creating computed traffic permissions")
-			resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, suite.apiWorkload.Identity).
+			resourcetest.Resource(pbauth.ComputedTrafficPermissionsType, api.workload.Identity).
 				WithTenancy(tenancy).
-				WithData(t, suite.apiComputedTrafficPermissionsData).
+				WithData(t, api.computedTrafficPermissionsData).
 				Write(t, suite.client)
 
 			suite.client.WaitForNewVersion(t, apiProxyStateTemplateID, apiProxyStateTemplate.Version)
@@ -788,7 +875,7 @@ func (suite *controllerTestSuite) TestController() {
 					BackendRefs: []*pbmesh.HTTPBackendRef{
 						{
 							BackendRef: &pbmesh.BackendReference{
-								Ref:  resource.Reference(suite.apiService.Id, ""),
+								Ref:  resource.Reference(api.service.Id, ""),
 								Port: "tcp",
 							},
 							Weight: 60,
@@ -815,14 +902,21 @@ func (suite *controllerTestSuite) TestController() {
 			dbCR := routestest.ReconcileComputedRoutes(suite.T(), suite.client, dbCRID,
 				resourcetest.MustDecode[*pbmesh.HTTPRoute](t, route),
 				resourcetest.MustDecode[*pbcatalog.Service](t, suite.dbService),
-				resourcetest.MustDecode[*pbcatalog.Service](t, suite.apiService),
+				resourcetest.MustDecode[*pbcatalog.Service](t, api.service),
 			)
 			require.NotNil(t, dbCR, "computed routes for db was deleted instead of created")
 
 			webProxyStateTemplate = suite.client.WaitForNewVersion(suite.T(), webProxyStateTemplateID, webProxyStateTemplate.Version)
 
-			requireImplicitDestinationsFound(t, "api", webProxyStateTemplate)
-			requireImplicitDestinationsFound(t, "db", webProxyStateTemplate)
+			suite.waitForProxyStateTemplateState(t, webProxyStateTemplateID, func(rt resourcetest.T, tmpl *pbmesh.ProxyStateTemplate) {
+				listenerNameDb := fmt.Sprintf("%s/local/%s/db-service", tenancy.Partition, tenancy.Namespace)
+				clusterNameDb := fmt.Sprintf("db-service.%s.%s", tenancy.Namespace, tenancy.Partition)
+				if tenancy.Partition == "default" {
+					clusterNameDb = fmt.Sprintf("db-service.%s", tenancy.Namespace)
+				}
+				requireImplicitDestinationsFound(t, api.destinationListenerName, api.destinationClusterName, tmpl)
+				requireImplicitDestinationsFound(t, listenerNameDb, clusterNameDb, tmpl)
+			})
 		})
 	})
 }
@@ -861,25 +955,21 @@ func TestMeshController(t *testing.T) {
 	suite.Run(t, new(controllerTestSuite))
 }
 
-func requireExplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
-	requireExplicitDestinations(t, name, tmplResource, true)
+func requireExplicitDestinationsFound(t *testing.T, listenerName, clusterName string, tmpl *pbmesh.ProxyStateTemplate) {
+	requireExplicitDestinations(t, listenerName, clusterName, tmpl, true)
 }
 
-func requireExplicitDestinationsNotFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
-	requireExplicitDestinations(t, name, tmplResource, false)
+func requireExplicitDestinationsNotFound(t *testing.T, listenerName, clusterName string, tmpl *pbmesh.ProxyStateTemplate) {
+	requireExplicitDestinations(t, listenerName, clusterName, tmpl, false)
 }
 
-func requireExplicitDestinations(t *testing.T, name string, tmplResource *pbresource.Resource, found bool) {
+func requireExplicitDestinations(t resourcetest.T, listenerName string, clusterName string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
 	t.Helper()
-
-	var tmpl pbmesh.ProxyStateTemplate
-	err := tmplResource.Data.UnmarshalTo(&tmpl)
-	require.NoError(t, err)
 
 	// Check outbound listener.
 	var foundListener bool
 	for _, l := range tmpl.ProxyState.Listeners {
-		if strings.Contains(l.Name, name) && l.Direction == pbproxystate.Direction_DIRECTION_OUTBOUND {
+		if l.Name == listenerName && l.Direction == pbproxystate.Direction_DIRECTION_OUTBOUND {
 			foundListener = true
 			break
 		}
@@ -887,15 +977,11 @@ func requireExplicitDestinations(t *testing.T, name string, tmplResource *pbreso
 
 	require.Equal(t, found, foundListener)
 
-	requireClustersAndEndpoints(t, name, &tmpl, found)
+	requireClustersAndEndpoints(t, clusterName, tmpl, found)
 }
 
-func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *pbresource.Resource) {
+func requireImplicitDestinationsFound(t resourcetest.T, listenerName string, clusterName string, tmpl *pbmesh.ProxyStateTemplate) {
 	t.Helper()
-
-	var tmpl pbmesh.ProxyStateTemplate
-	err := tmplResource.Data.UnmarshalTo(&tmpl)
-	require.NoError(t, err)
 
 	// Check outbound listener.
 	var foundListener bool
@@ -917,7 +1003,7 @@ func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *p
 				case *pbproxystate.Router_L7:
 					require.NotNil(t, x.L7.Route)
 					routerName := x.L7.Route.Name
-					foundByName = strings.Contains(routerName, name)
+					foundByName = strings.Contains(routerName, listenerName)
 				default:
 					t.Fatalf("unexpected type of destination: %T", r.Destination)
 				}
@@ -934,15 +1020,15 @@ func requireImplicitDestinationsFound(t *testing.T, name string, tmplResource *p
 	}
 	require.True(t, foundListener)
 
-	requireClustersAndEndpoints(t, name, &tmpl, true)
+	requireClustersAndEndpoints(t, clusterName, tmpl, true)
 }
 
-func requireClustersAndEndpoints(t *testing.T, name string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
+func requireClustersAndEndpoints(t resourcetest.T, clusterName string, tmpl *pbmesh.ProxyStateTemplate, found bool) {
 	t.Helper()
 
 	var foundCluster bool
 	for c := range tmpl.ProxyState.Clusters {
-		if strings.Contains(c, name) {
+		if strings.Contains(c, clusterName) {
 			foundCluster = true
 			break
 		}
@@ -952,13 +1038,23 @@ func requireClustersAndEndpoints(t *testing.T, name string, tmpl *pbmesh.ProxySt
 
 	var foundEndpoints bool
 	for c := range tmpl.RequiredEndpoints {
-		if strings.Contains(c, name) {
+		if strings.Contains(c, clusterName) {
 			foundEndpoints = true
 			break
 		}
 	}
 
 	require.Equal(t, found, foundEndpoints)
+}
+
+func (suite *controllerTestSuite) waitForProxyStateTemplateState(t *testing.T, id *pbresource.ID, verify func(resourcetest.T, *pbmesh.ProxyStateTemplate)) {
+	suite.client.WaitForResourceState(t, id, func(rt resourcetest.T, res *pbresource.Resource) {
+		var tmpl pbmesh.ProxyStateTemplate
+		err := res.Data.UnmarshalTo(&tmpl)
+		require.NoError(rt, err)
+
+		verify(rt, &tmpl)
+	})
 }
 
 func resourceID(rtype *pbresource.Type, name string, tenancy *pbresource.Tenancy) *pbresource.ID {
@@ -990,10 +1086,12 @@ func (suite *controllerTestSuite) appendTenancyInfo(tenancy *pbresource.Tenancy)
 
 func (suite *controllerTestSuite) cleanupResources() {
 
-	suite.client.MustDelete(suite.T(), suite.apiWorkloadID)
-	suite.client.MustDelete(suite.T(), suite.apiComputedTrafficPermissions.Id)
-	suite.client.MustDelete(suite.T(), suite.apiService.Id)
-	suite.client.MustDelete(suite.T(), suite.apiEndpoints.Id)
+	for _, api := range suite.api {
+		suite.client.MustDelete(suite.T(), api.workloadID)
+		suite.client.MustDelete(suite.T(), api.computedTrafficPermissions.Id)
+		suite.client.MustDelete(suite.T(), api.service.Id)
+		suite.client.MustDelete(suite.T(), api.endpoints.Id)
+	}
 	suite.client.MustDelete(suite.T(), suite.webWorkload.Id)
 	suite.client.MustDelete(suite.T(), suite.dbWorkloadID)
 	suite.client.MustDelete(suite.T(), suite.dbService.Id)

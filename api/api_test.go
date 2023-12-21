@@ -119,7 +119,7 @@ func makeClientWithConfig(
 	var server *testutil.TestServer
 	var err error
 	retry.RunWith(retry.ThreeTimes(), t, func(r *retry.R) {
-		server, err = testutil.NewTestServerConfigT(t, cb2)
+		server, err = testutil.NewTestServerConfigT(r, cb2)
 		if err != nil {
 			r.Fatalf("Failed to start server: %v", err.Error())
 		}

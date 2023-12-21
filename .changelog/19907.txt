@@ -1,0 +1,3 @@
+```release-note:bug
+ui: stop manually reconciling services if peering is enabled
+```

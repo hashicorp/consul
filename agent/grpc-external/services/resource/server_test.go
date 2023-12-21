@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package resource
+package resource_test
 
 import (
 	"context"
@@ -11,12 +11,14 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/go-uuid"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
+	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
@@ -51,7 +53,8 @@ func AuthorizerFrom(t *testing.T, policyStrs ...string) resolver.Result {
 	}
 }
 
-func testServer(t *testing.T) *Server {
+// Deprecated: use NewResourceServiceBuilder instead
+func testServer(t *testing.T) *svc.Server {
 	t.Helper()
 
 	backend, err := inmem.NewBackend()
@@ -59,7 +62,7 @@ func testServer(t *testing.T) *Server {
 	go backend.Run(testContext(t))
 
 	// Mock the ACL Resolver to "allow all" for testing.
-	mockACLResolver := &MockACLResolver{}
+	mockACLResolver := &svc.MockACLResolver{}
 	mockACLResolver.On("ResolveTokenAndDefaultMeta", mock.Anything, mock.Anything, mock.Anything).
 		Return(testutils.ACLsDisabled(t), nil).
 		Run(func(args mock.Arguments) {
@@ -76,7 +79,7 @@ func testServer(t *testing.T) *Server {
 		})
 
 	// Mock the tenancy bridge since we can't use the real thing.
-	mockTenancyBridge := &MockTenancyBridge{}
+	mockTenancyBridge := &svc.MockTenancyBridge{}
 	mockTenancyBridge.On("PartitionExists", resource.DefaultPartitionName).Return(true, nil)
 	mockTenancyBridge.On("NamespaceExists", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(true, nil)
 	mockTenancyBridge.On("PartitionExists", mock.Anything).Return(false, nil)
@@ -84,7 +87,7 @@ func testServer(t *testing.T) *Server {
 	mockTenancyBridge.On("IsPartitionMarkedForDeletion", resource.DefaultPartitionName).Return(false, nil)
 	mockTenancyBridge.On("IsNamespaceMarkedForDeletion", resource.DefaultPartitionName, resource.DefaultNamespaceName).Return(false, nil)
 
-	return NewServer(Config{
+	return svc.NewServer(svc.Config{
 		Logger:        testutil.Logger(t),
 		Registry:      resource.NewRegistry(),
 		Backend:       backend,
@@ -93,7 +96,8 @@ func testServer(t *testing.T) *Server {
 	})
 }
 
-func testClient(t *testing.T, server *Server) pbresource.ResourceServiceClient {
+// Deprecated: use NewResourceServiceBuilder instead
+func testClient(t *testing.T, server *svc.Server) pbresource.ResourceServiceClient {
 	t.Helper()
 
 	addr := testutils.RunTestServer(t, server)
@@ -205,6 +209,31 @@ func wildcardTenancyCases() map[string]struct {
 				PeerName:  "local",
 			},
 		},
+		"partitioned type with wildcard partition and namespace": {
+			typ: demo.TypeV1RecordLabel,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
+		"cluster type with empty partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "",
+				Namespace: "",
+				PeerName:  "local",
+			},
+		},
+
+		"cluster type with wildcard partition and namespace": {
+			typ: demo.TypeV1Executive,
+			tenancy: &pbresource.Tenancy{
+				Partition: "*",
+				Namespace: "*",
+				PeerName:  "local",
+			},
+		},
 	}
 }
 
@@ -253,3 +282,5 @@ func tenancyCases() map[string]func(artistId, recordlabelId *pbresource.ID) *pbr
 	}
 	return tenancyCases
 }
+
+func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }

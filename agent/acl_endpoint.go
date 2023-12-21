@@ -1166,6 +1166,7 @@ func (s *HTTPHandlers) ACLTemplatedPoliciesList(resp http.ResponseWriter, req *h
 			TemplateName: tmpBase.TemplateName,
 			Schema:       tmpBase.Schema,
 			Template:     tmpBase.Template,
+			Description:  tmpBase.Description,
 		}
 	}
 
@@ -1211,6 +1212,7 @@ func (s *HTTPHandlers) ACLTemplatedPolicyRead(resp http.ResponseWriter, req *htt
 		TemplateName: baseTemplate.TemplateName,
 		Schema:       baseTemplate.Schema,
 		Template:     baseTemplate.Template,
+		Description:  baseTemplate.Description,
 	}, nil
 }
 

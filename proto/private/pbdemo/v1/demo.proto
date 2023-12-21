@@ -7,19 +7,27 @@ syntax = "proto3";
 // Consul's generic storage APIs.
 package hashicorp.consul.internal.demo.v1;
 
+import "pbresource/annotations.proto";
+
 // Cluster scoped resource.
 message Executive {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
   string position = 1;
 }
 
-// Partition scoped resource.
+// Partition scoped resource
 message RecordLabel {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
+
   string name = 1;
   string description = 2;
 }
 
 // Namespace scoped resource.
 message Artist {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   string name = 1;
   string description = 2;
   Genre genre = 3;
@@ -43,10 +51,14 @@ enum Genre {
 }
 
 message Album {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
   string name = 1;
   int32 year_of_release = 2;
   bool critically_acclaimed = 3;
   repeated string tracks = 4;
 }
 
-message Concept {}
+message Concept {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+}

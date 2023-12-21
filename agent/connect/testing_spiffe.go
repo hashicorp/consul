@@ -3,24 +3,22 @@
 
 package connect
 
-import (
-	"github.com/mitchellh/go-testing-interface"
-)
+import "github.com/hashicorp/consul/sdk/testutil"
 
 // TestSpiffeIDService returns a SPIFFE ID representing a service.
-func TestSpiffeIDService(t testing.T, service string) *SpiffeIDService {
+func TestSpiffeIDService(t testutil.TestingTB, service string) *SpiffeIDService {
 	return TestSpiffeIDServiceWithHost(t, service, TestClusterID+".consul")
 }
 
 // TestSpiffeIDServiceWithHost returns a SPIFFE ID representing a service with
 // the specified trust domain.
-func TestSpiffeIDServiceWithHost(t testing.T, service, host string) *SpiffeIDService {
+func TestSpiffeIDServiceWithHost(t testutil.TestingTB, service, host string) *SpiffeIDService {
 	return TestSpiffeIDServiceWithHostDC(t, service, host, "dc1")
 }
 
 // TestSpiffeIDServiceWithHostDC returns a SPIFFE ID representing a service with
 // the specified trust domain for the given datacenter.
-func TestSpiffeIDServiceWithHostDC(t testing.T, service, host, datacenter string) *SpiffeIDService {
+func TestSpiffeIDServiceWithHostDC(t testutil.TestingTB, service, host, datacenter string) *SpiffeIDService {
 	return &SpiffeIDService{
 		Host:       host,
 		Namespace:  "default",

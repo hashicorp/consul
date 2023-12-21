@@ -3,7 +3,7 @@
 
 //go:build !consulent
 
-package resource
+package resource_test
 
 import "github.com/hashicorp/consul/acl"
 

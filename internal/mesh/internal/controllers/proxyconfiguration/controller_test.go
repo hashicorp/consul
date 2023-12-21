@@ -53,7 +53,10 @@ type controllerTestSuite struct {
 
 func (suite *controllerTestSuite) SetupTest() {
 	suite.tenancies = resourcetest.TestTenancies()
-	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register, catalog.RegisterTypes)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.runtime = controller.Runtime{Client: resourceClient, Logger: testutil.Logger(suite.T())}
 	suite.ctx = testutil.TestContext(suite.T())
@@ -242,7 +245,7 @@ func (suite *controllerTestSuite) TestController() {
 						PrometheusBindAddr: "0.0.0.0:9000",
 					},
 				}
-				dec := resourcetest.MustDecode[*pbmesh.ComputedProxyConfiguration](t, res)
+				dec := resourcetest.MustDecode[*pbmesh.ComputedProxyConfiguration](r, res)
 				prototest.AssertDeepEqual(r, expProxyCfg.GetDynamicConfig(), dec.GetData().GetDynamicConfig())
 				prototest.AssertDeepEqual(r, expProxyCfg.GetBootstrapConfig(), dec.GetData().GetBootstrapConfig())
 

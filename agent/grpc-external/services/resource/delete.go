@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 // Delete deletes a resource.
@@ -145,7 +146,7 @@ func (s *Server) maybeCreateTombstone(ctx context.Context, deleteId *pbresource.
 		Id: &pbresource.ID{
 			Type:    resource.TypeV1Tombstone,
 			Tenancy: deleteId.Tenancy,
-			Name:    tombstoneName(deleteId),
+			Name:    TombstoneNameFor(deleteId),
 			Uid:     ulid.Make().String(),
 		},
 		Generation: ulid.Make().String(),
@@ -188,22 +189,28 @@ func (s *Server) ensureDeleteRequestValid(req *pbresource.DeleteRequest) (*resou
 		return nil, err
 	}
 
-	// Check scope
-	if reg.Scope == resource.ScopePartition && req.Id.Tenancy.Namespace != "" {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"partition scoped resource %s cannot have a namespace. got: %s",
-			resource.ToGVK(req.Id.Type),
-			req.Id.Tenancy.Namespace,
-		)
+	if err := validateScopedTenancy(reg.Scope, reg.Type, req.Id.Tenancy, false); err != nil {
+		return nil, err
 	}
 
+	if err := blockBuiltinsDeletion(reg.Type, req.Id); err != nil {
+		return nil, err
+	}
 	return reg, nil
 }
 
 // Maintains a deterministic mapping between a resource and it's tombstone's
 // name by embedding the resources's Uid in the name.
-func tombstoneName(deleteId *pbresource.ID) string {
+func TombstoneNameFor(deleteId *pbresource.ID) string {
 	// deleteId.Name is just included for easier identification
 	return fmt.Sprintf("tombstone-%v-%v", deleteId.Name, strings.ToLower(deleteId.Uid))
+}
+
+func blockDefaultNamespaceDeletion(rtype *pbresource.Type, id *pbresource.ID) error {
+	if id.Name == resource.DefaultNamespaceName &&
+		id.Tenancy.Partition == resource.DefaultPartitionName &&
+		resource.EqualType(rtype, pbtenancy.NamespaceType) {
+		return status.Errorf(codes.InvalidArgument, "cannot delete default namespace")
+	}
+	return nil
 }

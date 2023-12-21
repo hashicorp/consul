@@ -20,9 +20,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func Controller() controller.Controller {
+const (
+	ControllerName = "consul.io/exported-services"
+)
 
-	return controller.ForType(pbmulticluster.ComputedExportedServicesType).
+func Controller() *controller.Controller {
+
+	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
 		WithWatch(pbmulticluster.ExportedServicesType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbcatalog.ServiceType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, ReplaceTypeForComputedExportedServices()).
@@ -76,10 +80,24 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error getting partitioned exported services", "error", err)
 		return err
 	}
-	//TODO: we are listing more services than required. this should be optimized
+	oldComputedExportedService, err := getOldComputedExportedService(ctx, rt, req)
+	if err != nil {
+		return err
+	}
+	if len(exportedServices) == 0 && len(namespaceExportedServices) == 0 && len(partitionedExportedServices) == 0 {
+		if oldComputedExportedService.GetResource() != nil {
+			rt.Logger.Trace("deleting computed exported services")
+			if err := deleteResource(ctx, rt, oldComputedExportedService.GetResource()); err != nil {
+				rt.Logger.Error("error deleting computed exported service", "error", err)
+				return err
+			}
+		}
+		return nil
+	}
+	namespace := getNamespaceForServices(exportedServices, namespaceExportedServices, partitionedExportedServices)
 	services, err := resource.ListDecodedResource[*pbcatalog.Service](ctx, rt.Client, &pbresource.ListRequest{
 		Tenancy: &pbresource.Tenancy{
-			Namespace: storage.Wildcard,
+			Namespace: namespace,
 			Partition: req.ID.Tenancy.Partition,
 			PeerName:  resource.DefaultPeerName,
 		},
@@ -123,20 +141,11 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			builder.track(svc.Id, pes.Data.Consumers)
 		}
 	}
-
-	oldComputedExportedService, err := getOldComputedExportedService(ctx, rt, req)
-	if err != nil {
-		return err
-	}
 	newComputedExportedService := builder.build()
 
 	if oldComputedExportedService.GetResource() != nil && newComputedExportedService == nil {
 		rt.Logger.Trace("deleting computed exported services")
-		_, err := rt.Client.Delete(ctx, &pbresource.DeleteRequest{
-			Id:      oldComputedExportedService.GetResource().GetId(),
-			Version: oldComputedExportedService.GetResource().GetVersion(),
-		})
-		if err != nil {
+		if err := deleteResource(ctx, rt, oldComputedExportedService.GetResource()); err != nil {
 			rt.Logger.Error("error deleting computed exported service", "error", err)
 			return err
 		}
@@ -292,4 +301,44 @@ func sortRefValue(m map[resource.ReferenceKey]*serviceExports) []*serviceExports
 		return resource.ReferenceToString(vals[i].ref) < resource.ReferenceToString(vals[j].ref)
 	})
 	return vals
+}
+
+func getNamespaceForServices(exportedServices []*types.DecodedExportedServices, namespaceExportedServices []*types.DecodedNamespaceExportedServices, partitionedExportedServices []*types.DecodedPartitionExportedServices) string {
+	if len(partitionedExportedServices) > 0 {
+		return storage.Wildcard
+	}
+	resources := []*pbresource.Resource{}
+	for _, exp := range exportedServices {
+		resources = append(resources, exp.GetResource())
+	}
+	for _, exp := range namespaceExportedServices {
+		resources = append(resources, exp.GetResource())
+	}
+	return getNamespace(resources)
+}
+
+func getNamespace(resources []*pbresource.Resource) string {
+	if len(resources) == 0 {
+		// We shouldn't ever hit this.
+		panic("resources cannot be empty")
+	}
+
+	namespace := resources[0].Id.Tenancy.Namespace
+	for _, res := range resources[1:] {
+		if res.Id.Tenancy.Namespace != namespace {
+			return storage.Wildcard
+		}
+	}
+	return namespace
+}
+
+func deleteResource(ctx context.Context, rt controller.Runtime, resource *pbresource.Resource) error {
+	_, err := rt.Client.Delete(ctx, &pbresource.DeleteRequest{
+		Id:      resource.GetId(),
+		Version: resource.GetVersion(),
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

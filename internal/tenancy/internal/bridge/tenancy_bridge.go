@@ -6,6 +6,9 @@ package bridge
 import (
 	"context"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
@@ -30,7 +33,14 @@ func NewV2TenancyBridge() *V2TenancyBridge {
 }
 
 func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
-	rsp, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
+	if namespace == resource.DefaultNamespaceName {
+		// The default namespace implicitly exists in all partitions regardless of whether
+		// the resource has actually been created yet. Therefore all we need to do is check
+		// if the partition exists to know whether the namespace exists.
+		return b.PartitionExists(partition)
+	}
+
+	_, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,
 			Tenancy: &pbresource.Tenancy{
@@ -39,7 +49,14 @@ func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, er
 			Type: pbtenancy.NamespaceType,
 		},
 	})
-	return rsp != nil && rsp.Resource != nil, err
+	switch {
+	case err == nil:
+		return true, nil
+	case status.Code(err) == codes.NotFound:
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error) {

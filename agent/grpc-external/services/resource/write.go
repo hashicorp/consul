@@ -357,8 +357,9 @@ func ensureDataUnchanged(input *pbresource.Resource, existing *pbresource.Resour
 	return nil
 }
 
-// ensureFinalizerRemoved ensures at least one finalizer was removed.
-func ensureFinalizerRemoved(input *pbresource.Resource, existing *pbresource.Resource) error {
+// EnsureFinalizerRemoved ensures at least one finalizer was removed.
+// TODO: only public for test to access
+func EnsureFinalizerRemoved(input *pbresource.Resource, existing *pbresource.Resource) error {
 	inputFinalizers := resource.GetFinalizers(input)
 	existingFinalizers := resource.GetFinalizers(existing)
 	if !inputFinalizers.IsProperSubset(existingFinalizers) {
@@ -419,13 +420,13 @@ func vetIfDeleteRelated(input, existing *pbresource.Resource, tenancyMarkedForDe
 		if err := ensureDataUnchanged(input, existing); err != nil {
 			return err
 		}
-		if err := ensureFinalizerRemoved(input, existing); err != nil {
+		if err := EnsureFinalizerRemoved(input, existing); err != nil {
 			return err
 		}
 	}
 
 	// Classify writes that just remove finalizer as deleteRelated regardless of deletion state.
-	if err := ensureFinalizerRemoved(input, existing); err == nil {
+	if err := EnsureFinalizerRemoved(input, existing); err == nil {
 		if err := ensureDataUnchanged(input, existing); err == nil {
 			deleteRelated = deleteRelated || true
 		}

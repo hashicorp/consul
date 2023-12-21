@@ -1,0 +1,21 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+
+package hashicorp.consul.catalog.v2beta1;
+
+import "pbcatalog/v2beta1/failover_policy.proto";
+import "pbresource/annotations.proto";
+
+// This is a Resource type.
+message ComputedFailoverPolicy {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+
+  // Config defines failover for any named port not present in PortConfigs.
+  FailoverConfig config = 1;
+
+  // PortConfigs defines failover for a specific port on this service and takes
+  // precedence over Config.
+  map<string, FailoverConfig> port_configs = 2;
+}

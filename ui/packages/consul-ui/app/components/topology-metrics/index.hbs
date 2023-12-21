@@ -32,7 +32,7 @@
       @hasMetricsProvider={{@hasMetricsProvider}}
       @noMetricsReason={{this.noMetricsReason}}
     >
-    {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway'))}}
+    {{#if (and @hasMetricsProvider this.mainNotIngressService (not-eq item.Kind 'ingress-gateway') this.mainNotAPIGatewayService (not-eq item.Kind 'api-gateway'))}}
       {{!-- One of the only places in the app where it's acceptable to default to 'default' namespace --}}
       <TopologyMetrics::Stats
         data-test-topology-metrics-downstream-stats
@@ -53,7 +53,7 @@
     <div class="metrics-header">
       {{@service.Service.Service}}
     </div>
-  {{#if (not-eq @service.Service.Meta.external-source 'consul-api-gateway')}}
+  {{#if (not (and (eq @service.Service.Meta.external-source 'consul-api-gateway') (eq @service.Service.Kind 'ingress-gateway'))) }}
     {{#if @hasMetricsProvider}}
       <TopologyMetrics::Series
         @nspace={{or @service.Service.Namespace 'default'}}
@@ -63,7 +63,7 @@
         @protocol={{@topology.Protocol}}
         @noMetricsReason={{this.noMetricsReason}}
       />
-      {{#if this.mainNotIngressService}}
+      {{#if (or (this.mainNotIngressService) (this.mainNotAPIGatewayService))}}
       <TopologyMetrics::Stats
         @nspace={{or @service.Service.Namespace 'default'}}
         @partition={{or service.Service.Partition 'default'}}
