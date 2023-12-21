@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package hashicorp.consul.hcp.v2;
+
+import "pbresource/annotations.proto";
+
+message TelemetryState {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
+  string resource_id = 1;
+  string client_id = 2;
+  string client_secret = 3;
+  string endpoint = 4;
+  map<string,string> labels = 5;
+  MetricsState metrics = 6;
+}
+
+message MetricsState {
+  string endpoint = 1;
+  repeated string include_list = 2;
+  bool disabled = 3;
+}
