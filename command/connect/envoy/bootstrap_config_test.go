@@ -18,7 +18,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+	"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+      "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+      "explicit_http_config": {
+        "http_protocol_options": {}
+      }
+    }
+  },
   "loadAssignment": {
     "clusterName": "self_admin",
     "endpoints": [
@@ -44,7 +51,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+    "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+	  "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+      "explicit_http_config": {
+        "http_protocol_options": {}
+      }
+    }
+  },
   "loadAssignment": {
     "clusterName": "self_admin",
     "endpoints": [
@@ -70,7 +84,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+	"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+	 "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+	 "explicit_http_config": {
+	  "http_protocol_options": {}
+	 }
+	}
+   },
   "loadAssignment": {
     "clusterName": "prometheus_backend",
     "endpoints": [
