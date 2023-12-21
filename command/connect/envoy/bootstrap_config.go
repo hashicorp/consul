@@ -655,12 +655,12 @@ func (c *BootstrapConfig) generateListenerConfig(args *BootstrapTplArgs, bindAdd
 		"type": "STATIC",
 		"typed_extension_protocol_options": {
 			"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-			 "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-			 "explicit_http_config": {
-			  "http_protocol_options": {}
-			 }
+				"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+				"explicit_http_config": {
+					"http_protocol_options": {}
+				}
 			}
-          },
+		},
 		"loadAssignment": {
 			"clusterName": "` + clusterName + `",
 			"endpoints": [
