@@ -72,8 +72,9 @@ func TestManager_BasicLifecycle(t *testing.T) {
 			// to override connect timeouts.
 			req.OverrideConnectTimeout = 1 * time.Second
 		}, &structs.ProxyConfigEntry{
-			Kind: structs.ProxyDefaults,
-			Name: structs.ProxyConfigGlobal,
+			Kind:     structs.ProxyDefaults,
+			Name:     structs.ProxyConfigGlobal,
+			Protocol: "http",
 			Config: map[string]interface{}{
 				"protocol": "http",
 			},

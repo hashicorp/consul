@@ -5,6 +5,7 @@ package envoy
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -20,7 +21,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+	"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+      "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+      "explicit_http_config": {
+        "http_protocol_options": {}
+      }
+    }
+  },
   "loadAssignment": {
     "clusterName": "self_admin",
     "endpoints": [
@@ -46,7 +54,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+    "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+	  "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+      "explicit_http_config": {
+        "http_protocol_options": {}
+      }
+    }
+  },
   "loadAssignment": {
     "clusterName": "self_admin",
     "endpoints": [
@@ -72,7 +87,14 @@ const (
   "ignore_health_on_host_removal": false,
   "connect_timeout": "5s",
   "type": "STATIC",
-  "http_protocol_options": {},
+  "typed_extension_protocol_options": {
+	"envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+	 "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+	 "explicit_http_config": {
+	  "http_protocol_options": {}
+	 }
+	}
+   },
   "loadAssignment": {
     "clusterName": "prometheus_backend",
     "endpoints": [
@@ -547,7 +569,14 @@ const (
 	expectedTelemetryCollectorCluster = `{
 	"name": "consul_telemetry_collector_loopback",
 	"type": "STATIC",
-	"http2_protocol_options": {},
+	"typed_extension_protocol_options": {
+	  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
+		"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
+		"explicit_http_config": {
+		  "http2_protocol_options": {}
+		}
+	  }
+	},
 	"loadAssignment": {
 	  "clusterName": "consul_telemetry_collector_loopback",
 	  "endpoints": [
@@ -628,46 +657,49 @@ func TestBootstrapConfig_ConfigureArgs(t *testing.T) {
 				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
 			},
 			wantArgs: BootstrapTplArgs{
-				ProxyID:         "web-sidecar-proxy",
-				StatsConfigJSON: defaultStatsConfigJSON,
-				StatsSinksJSON: `{
-					"name": "envoy.stat_sinks.metrics_service",
-					"typed_config": {
-					  "@type": "type.googleapis.com/envoy.config.metrics.v3.MetricsServiceConfig",
-					  "transport_api_version": "V3",
-					  "grpc_service": {
-						"envoy_grpc": {
-						  "cluster_name": "consul_telemetry_collector_loopback"
-						}
-					  },
-					  "emit_tags_as_labels": true
-					}
-				  }`,
-				StaticClustersJSON: `{
-					"name": "consul_telemetry_collector_loopback",
-					"type": "STATIC",
-					"http2_protocol_options": {},
-					"loadAssignment": {
-					  "clusterName": "consul_telemetry_collector_loopback",
-					  "endpoints": [
-						{
-						  "lbEndpoints": [
-							{
-							  "endpoint": {
-								"address": {
-								  "pipe": {
-									"path": "/tmp/consul/telemetry-collector/gqmuzdHCUPAEY5mbF8vgkZCNI14.sock"
-								  }
-								}
-							  }
-							}
-						  ]
-						}
-					  ]
-					}
-				  }`,
+				StatsFlushInterval: "60s",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
 			},
 			wantErr: false,
+		},
+		{
+			name: "telemetry-collector-no-default-flush-interval-when-interval-preconfigured",
+			baseArgs: BootstrapTplArgs{
+				ProxyID: "web-sidecar-proxy",
+			},
+			input: BootstrapConfig{
+				// Explicitly defined StatsFlushInterval by end user should not be overriden.
+				StatsFlushInterval:              "10s",
+				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsFlushInterval: "10s",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     expectedTelemetryCollectorStatsSink,
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
+			},
+		},
+		{
+			name: "telemetry-collector-no-default-flush-interval-when-sinks-preconfigured",
+			baseArgs: BootstrapTplArgs{
+				ProxyID: "web-sidecar-proxy",
+			},
+			input: BootstrapConfig{
+				// If stats sinks are explicitly defined by end user, do not default StatsFlushInterval.
+				StatsdURL:                       "udp://127.0.0.1:9125",
+				TelemetryCollectorBindSocketDir: "/tmp/consul/telemetry-collector",
+			},
+			wantArgs: BootstrapTplArgs{
+				StatsFlushInterval: "",
+				ProxyID:            "web-sidecar-proxy",
+				StatsConfigJSON:    defaultStatsConfigJSON,
+				StatsSinksJSON:     fmt.Sprintf(`%s,%s`, expectedStatsdSink, expectedTelemetryCollectorStatsSink),
+				StaticClustersJSON: expectedTelemetryCollectorCluster,
+			},
 		},
 		{
 			name: "simple-statsd-sink",

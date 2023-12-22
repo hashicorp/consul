@@ -1,0 +1,3 @@
+```release-note:bug
+xds: Add configurable `xds_fetch_timeout_ms` option to proxy registrations that allows users to prevent endpoints from dropping when they have proxies with a large number of upstreams.
+```

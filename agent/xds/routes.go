@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/proxycfg"
 	"github.com/hashicorp/consul/agent/structs"
+	config "github.com/hashicorp/consul/agent/xds/config"
 )
 
 // routesFromSnapshot returns the xDS API representation of the "routes" in the
@@ -149,7 +150,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 	var resources []proto.Message
 	for _, svc := range cfgSnap.TerminatingGateway.ValidServices() {
 		clusterName := connect.ServiceSNI(svc.Name, "", svc.NamespaceOrDefault(), svc.PartitionOrDefault(), cfgSnap.Datacenter, cfgSnap.Roots.TrustDomain)
-		cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+		cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 		if err != nil {
 			// Don't hard fail on a config typo, just warn. The parse func returns
 			// default config if there is an error so it's safe to continue.
@@ -177,7 +178,7 @@ func (s *ResourceGenerator) routesForTerminatingGateway(cfgSnap *proxycfg.Config
 
 		for _, address := range svcConfig.Destination.Addresses {
 			clusterName := clusterNameForDestination(cfgSnap, svc.Name, address, svc.NamespaceOrDefault(), svc.PartitionOrDefault())
-			cfg, err := ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
+			cfg, err := config.ParseProxyConfig(cfgSnap.TerminatingGateway.ServiceConfigs[svc].ProxyConfig)
 			if err != nil {
 				// Don't hard fail on a config typo, just warn. The parse func returns
 				// default config if there is an error so it's safe to continue.

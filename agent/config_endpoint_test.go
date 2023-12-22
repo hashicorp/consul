@@ -125,6 +125,7 @@ func TestConfig_Get(t *testing.T) {
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
 		ce.EnterpriseMeta = acl.EnterpriseMeta{}
+		ce.Hash = 0
 
 		out, err := a.srv.marshalJSON(req, obj)
 		require.NoError(t, err)
@@ -450,6 +451,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 				},
 			},
 			EnterpriseMeta: *structs.DefaultEnterpriseMetaInDefaultPartition(),
+			Hash:           got.GetHash(),
 		}
 		require.Equal(t, expect, got)
 	}

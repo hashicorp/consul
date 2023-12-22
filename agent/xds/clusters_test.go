@@ -725,8 +725,10 @@ func TestClustersFromSnapshot(t *testing.T) {
 			},
 		},
 		{
-			name:   "terminating-gateway-service-subsets",
-			create: proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache,
+			name: "terminating-gateway-service-subsets",
+			create: func(t testinf.T) *proxycfg.ConfigSnapshot {
+				return proxycfg.TestConfigSnapshotTerminatingGatewayServiceSubsetsWebAndCache(t, nil)
+			},
 		},
 		{
 			name:   "terminating-gateway-hostname-service-subsets",

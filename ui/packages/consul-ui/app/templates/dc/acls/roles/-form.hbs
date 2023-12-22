@@ -11,15 +11,15 @@
     @nspace={{nspace}}
     @partition={{partition}}
   />
-{{#if (not create)}}
-  <DataSource
-    @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
-      (hash
-        partition=partition
-        nspace=nspace
-        dc=dc
-        id=(or id '')
-      )
+  {{#if (not create)}}
+    <DataSource
+      @src={{uri '/${partition}/${nspace}/${dc}/tokens/for-role/${id}'
+                 (hash
+                   partition=partition
+                   nspace=nspace
+                   dc=dc
+                   id=(if item item.ID '')
+                 )
     }}
   as |loader|>
   {{#if (gt loader.data.length 0)}}
