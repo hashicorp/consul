@@ -125,7 +125,7 @@ For example, if your Consul on Kubernetes servers need access to [Gossip encrypt
       <CodeBlockConfig filename="license-policy.hcl">
 
       ```HCL
-      path "secret/data/consul/license" {
+      path "consul-kv/data/secret/license" {
         capabilities = ["read"]
       }
       ```
