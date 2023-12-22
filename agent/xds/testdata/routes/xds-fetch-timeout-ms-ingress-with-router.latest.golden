@@ -141,9 +141,11 @@
                 "headers": [
                   {
                     "name": ":method",
-                    "safeRegexMatch": {
-                      "googleRe2": {},
-                      "regex": "GET|PUT"
+                    "stringMatch": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "GET|PUT"
+                      }
                     }
                   }
                 ],
@@ -164,9 +166,11 @@
                   },
                   {
                     "name": ":method",
-                    "safeRegexMatch": {
-                      "googleRe2": {},
-                      "regex": "GET|PUT"
+                    "stringMatch": {
+                      "safeRegex": {
+                        "googleRe2": {},
+                        "regex": "GET|PUT"
+                      }
                     }
                   }
                 ],

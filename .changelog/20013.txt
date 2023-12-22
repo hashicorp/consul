@@ -1,0 +1,3 @@
+```release-note:improvement
+xds: replace usage of deprecated Envoy field `envoy.config.route.v3.HeaderMatcher.safe_regex_match`
+```

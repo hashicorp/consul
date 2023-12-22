@@ -47,9 +47,11 @@
                         {
                           "header": {
                             "name": ":method",
-                            "safeRegexMatch": {
-                              "googleRe2": {},
-                              "regex": "GET|HEAD|OPTIONS"
+                            "stringMatch": {
+                              "safeRegex": {
+                                "googleRe2": {},
+                                "regex": "GET|HEAD|OPTIONS"
+                              }
                             }
                           }
                         }
@@ -190,9 +192,11 @@
                           {
                             "header": {
                               "name": ":method",
-                              "safeRegexMatch": {
-                                "googleRe2": {},
-                                "regex": "GET|HEAD|OPTIONS"
+                              "stringMatch": {
+                                "safeRegex": {
+                                  "googleRe2": {},
+                                  "regex": "GET|HEAD|OPTIONS"
+                                }
                               }
                             }
                           }
