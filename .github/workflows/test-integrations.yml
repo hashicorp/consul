@@ -385,7 +385,7 @@ jobs:
       - name: Generate Compatibility Job Matrix
         id: set-matrix
         env:
-          TOTAL_RUNNERS: 2
+          TOTAL_RUNNERS: 3
           JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | ceil)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
@@ -473,7 +473,7 @@ jobs:
               go test \
               -tags "${{ env.GOTAGS }}" \
               -timeout=30m \
-              -json `${{ matrix.test-cases }}"
+              -json `${{ matrix.test-cases }}`
               --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
               --target-version local \
               --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
