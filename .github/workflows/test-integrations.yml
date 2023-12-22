@@ -263,7 +263,7 @@ jobs:
           # envoy-version: ["1.28.0"]
           # xds-target: ["server", "client"]
           TOTAL_RUNNERS: 4
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | ceil)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/connect/envoy -mindepth 1 -maxdepth 1 -type d | wc -l)
@@ -386,7 +386,7 @@ jobs:
         id: set-matrix
         env:
           TOTAL_RUNNERS: 2
-          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | floor)]'
+          JQ_SLICER: '[ inputs ] | [_nwise(length / $runnercount | ceil)]'
         run: |
           NUM_RUNNERS=$TOTAL_RUNNERS
           NUM_DIRS=$(find ./test/integration/consul-container -mindepth 1 -maxdepth 1 -type d | wc -l)
@@ -399,7 +399,7 @@ jobs:
           NUM_RUNNERS=$((NUM_RUNNERS-1))
           {
             echo -n "compatibility-matrix="
-            go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo \
+            go list -tags "${{ env.GOTAGS }}" ./test/integration/consul-container/... | grep -v upgrade | grep -v peering_commontopo \
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
