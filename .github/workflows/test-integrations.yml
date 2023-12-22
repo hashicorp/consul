@@ -397,9 +397,10 @@ jobs:
           fi
           # fix issue where test splitting calculation generates 1 more split than TOTAL_RUNNERS.
           NUM_RUNNERS=$((NUM_RUNNERS-1))
+          cd ./test/integration/consul-container
           {
             echo -n "compatibility-matrix="
-            go list -tags "${{ env.GOTAGS }}" ./test/integration/consul-container/... | grep -v upgrade | grep -v peering_commontopo \
+            go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo \
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
               | jq --compact-output 'map(join("|"))'
           } >> "$GITHUB_OUTPUT"
