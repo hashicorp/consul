@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	StatusKey = "consul.io/link"
+	StatusKey = "consul.io/hcp/link"
 
 	StatusLinked                         = "linked"
 	LinkedReason                         = "SUCCESS"
