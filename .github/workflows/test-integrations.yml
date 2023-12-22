@@ -402,7 +402,7 @@ jobs:
             echo -n "compatibility-matrix="
             go list -tags "${{ env.GOTAGS }}" ./... | grep -v upgrade | grep -v peering_commontopo \
               | jq --raw-input --argjson runnercount "$NUM_RUNNERS" "$JQ_SLICER" \
-              | jq --compact-output 'map(join(" "))'
+              | jq --compact-output 'map(join("\n"))'
           } >> "$GITHUB_OUTPUT"
 
   compatibility-integration-test:
