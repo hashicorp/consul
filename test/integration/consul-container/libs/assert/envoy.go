@@ -250,7 +250,29 @@ func AssertEnvoyPresentsCertURI(t *testing.T, port int, serviceName string) {
 		}
 		require.NotNil(r, dump)
 	})
+	validateEnvoyCertificateURI(t, dump, serviceName)
+}
 
+func AssertEnvoyPresentsCertURIWithClient(t *testing.T, client *http.Client, addr string, serviceName string) {
+	var (
+		dump string
+		err  error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 30 * time.Second, Wait: 1 * time.Second}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		dump, _, err = GetEnvoyOutputWithClient(client, addr, "certs", nil)
+		if err != nil {
+			r.Fatal("could not fetch envoy configuration")
+		}
+		require.NotNil(r, dump)
+	})
+	validateEnvoyCertificateURI(t, dump, serviceName)
+}
+
+func validateEnvoyCertificateURI(t *testing.T, dump string, serviceName string) {
 	// Validate certificate uri
 	filter := `.certificates[] | .cert_chain[].subject_alt_names[].uri`
 	results, err := utils.JQFilter(dump, filter)
@@ -277,6 +299,22 @@ func AssertEnvoyRunning(t *testing.T, port int) {
 
 	retry.RunWith(failer(), t, func(r *retry.R) {
 		_, _, err = GetEnvoyOutput(port, "stats", nil)
+		if err != nil {
+			r.Fatal("could not fetch envoy stats")
+		}
+	})
+}
+
+func AssertEnvoyRunningWithClient(t *testing.T, client *http.Client, addr string) {
+	var (
+		err error
+	)
+	failer := func() *retry.Timer {
+		return &retry.Timer{Timeout: 10 * time.Second, Wait: 500 * time.Millisecond}
+	}
+
+	retry.RunWith(failer(), t, func(r *retry.R) {
+		_, _, err = GetEnvoyOutputWithClient(client, addr, "stats", nil)
 		if err != nil {
 			r.Fatal("could not fetch envoy stats")
 		}

@@ -101,6 +101,30 @@ func (a *Asserter) DestinationEndpointStatus(
 	libassert.AssertUpstreamEndpointStatusWithClient(t, client, addr, clusterName, healthStatus, count)
 }
 
+func (a *Asserter) getEnvoyClient(t *testing.T, workload *topology.Workload) (client *http.Client, addr string) {
+	node := workload.Node
+	ip := node.LocalAddress()
+	port := workload.EnvoyAdminPort
+	addr = fmt.Sprintf("%s:%d", ip, port)
+	client = a.mustGetHTTPClient(t, node.Cluster)
+	return client, addr
+}
+
+// AssertEnvoyRunningWithClient asserts that envoy is running by querying its stats page
+func (a *Asserter) AssertEnvoyRunningWithClient(t *testing.T, workload *topology.Workload) {
+	t.Helper()
+	client, addr := a.getEnvoyClient(t, workload)
+	libassert.AssertEnvoyRunningWithClient(t, client, addr)
+}
+
+// AssertEnvoyPresentsCertURIWithClient makes GET request to /certs endpoint and validates that
+// two certificates URI is available in the response
+func (a *Asserter) AssertEnvoyPresentsCertURIWithClient(t *testing.T, workload *topology.Workload) {
+	t.Helper()
+	client, addr := a.getEnvoyClient(t, workload)
+	libassert.AssertEnvoyPresentsCertURIWithClient(t, client, addr, workload.ID.Name)
+}
+
 // HTTPServiceEchoes verifies that a post to the given ip/port combination
 // returns the data in the response body. Optional path can be provided to
 // differentiate requests.
@@ -217,6 +241,22 @@ func (a *Asserter) fortioFetch2Destination(
 ) (body []byte, res *http.Response) {
 	t.Helper()
 
+	err, res := getFortioFetch2DestinationResponse(t, client, addr, dest, path)
+	require.NoError(t, err)
+	defer res.Body.Close()
+
+	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
+	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
+	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
+	// not sure when this happens, suspect it's when envoy hasn't configured the local destination yet
+	require.NotEqual(t, http.StatusBadRequest, res.StatusCode)
+	body, err = io.ReadAll(res.Body)
+	require.NoError(t, err)
+
+	return body, res
+}
+
+func getFortioFetch2DestinationResponse(t testutil.TestingTB, client *http.Client, addr string, dest *topology.Destination, path string) (error, *http.Response) {
 	var actualURL string
 	if dest.Implied {
 		actualURL = fmt.Sprintf("http://%s--%s--%s.virtual.consul:%d/%s",
@@ -237,19 +277,9 @@ func (a *Asserter) fortioFetch2Destination(
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	require.NoError(t, err)
 
-	res, err = client.Do(req)
+	res, err := client.Do(req)
 	require.NoError(t, err)
-	defer res.Body.Close()
-
-	// not sure when these happen, suspect it's when the mesh gateway in the peer is not yet ready
-	require.NotEqual(t, http.StatusServiceUnavailable, res.StatusCode)
-	require.NotEqual(t, http.StatusGatewayTimeout, res.StatusCode)
-	// not sure when this happens, suspect it's when envoy hasn't configured the local destination yet
-	require.NotEqual(t, http.StatusBadRequest, res.StatusCode)
-	body, err = io.ReadAll(res.Body)
-	require.NoError(t, err)
-
-	return body, res
+	return err, res
 }
 
 // uses the /fortio/fetch2 endpoint to do a header echo check against an
@@ -307,10 +337,45 @@ func (a *Asserter) FortioFetch2FortioName(
 	})
 }
 
+// FortioFetch2ServiceUnavailable uses the /fortio/fetch2 endpoint to do a header echo check against an destination
+// fortio and asserts that the service is unavailable (503)
+func (a *Asserter) FortioFetch2ServiceUnavailable(t *testing.T, fortioWrk *topology.Workload, dest *topology.Destination) {
+	const kPassphrase = "x-passphrase"
+	const passphrase = "hello"
+	path := (fmt.Sprintf("/?header=%s:%s", kPassphrase, passphrase))
+
+	var (
+		node   = fortioWrk.Node
+		addr   = fmt.Sprintf("%s:%d", node.LocalAddress(), fortioWrk.PortOrDefault(dest.PortName))
+		client = a.mustGetHTTPClient(t, node.Cluster)
+	)
+
+	retry.RunWith(&retry.Timer{Timeout: 60 * time.Second, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		_, res := getFortioFetch2DestinationResponse(r, client, addr, dest, path)
+		defer res.Body.Close()
+		require.Equal(r, http.StatusServiceUnavailable, res.StatusCode)
+	})
+}
+
 // CatalogServiceExists is the same as libassert.CatalogServiceExists, except that it uses
 // a proxied API client
 func (a *Asserter) CatalogServiceExists(t *testing.T, cluster string, svc string, opts *api.QueryOptions) {
 	t.Helper()
 	cl := a.mustGetAPIClient(t, cluster)
 	libassert.CatalogServiceExists(t, cl, svc, opts)
+}
+
+// AssertServiceHealth asserts whether the given service is healthy or not
+func (a *Asserter) AssertServiceHealth(t *testing.T, cl *api.Client, serverSVC string, onlypassing bool, count int) {
+	t.Helper()
+	retry.RunWith(&retry.Timer{Timeout: time.Second * 20, Wait: time.Millisecond * 500}, t, func(r *retry.R) {
+		svcs, _, err := cl.Health().Service(
+			serverSVC,
+			"",
+			onlypassing,
+			nil,
+		)
+		require.NoError(r, err)
+		require.Equal(r, count, len(svcs))
+	})
 }
