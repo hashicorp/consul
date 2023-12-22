@@ -49,9 +49,11 @@ type reconciliationDataSuite struct {
 
 func (suite *reconciliationDataSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
-
 	suite.tenancies = rtest.TestTenancies()
-	resourceClient := svctest.RunResourceServiceWithTenancies(suite.T(), types.Register)
+	resourceClient := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register).
+		WithTenancies(suite.tenancies...).
+		Run(suite.T())
 	suite.client = resourcetest.NewClient(resourceClient)
 	suite.rt = controller.Runtime{
 		Client: suite.client,

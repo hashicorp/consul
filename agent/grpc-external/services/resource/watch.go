@@ -116,7 +116,7 @@ func (s *Server) ensureWatchListRequestValid(req *pbresource.WatchListRequest) (
 	}
 
 	// Check scope
-	if err = validateScopedTenancy(reg.Scope, req.Type, req.Tenancy); err != nil {
+	if err = validateScopedTenancy(reg.Scope, req.Type, req.Tenancy, true); err != nil {
 		return nil, err
 	}
 

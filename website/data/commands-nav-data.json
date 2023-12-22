@@ -473,6 +473,10 @@
         "path": "peering/establish"
       },
       {
+        "title": "exported-services",
+        "path": "peering/exported-services"
+      },
+      {
         "title": "generate-token",
         "path": "peering/generate-token"
       },
@@ -571,6 +575,10 @@
       {
         "title": "proxy",
         "path": "troubleshoot/proxy"
+      },
+      {
+        "title": "ports",
+        "path": "troubleshoot/ports"
       }
     ]
   },

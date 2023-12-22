@@ -2,9 +2,11 @@
 flowchart TD
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/trafficpermissions
   auth/v2beta1/computedtrafficpermissions --> auth/v2beta1/workloadidentity
+  catalog/v2beta1/computedfailoverpolicy
   catalog/v2beta1/failoverpolicy --> catalog/v2beta1/service
   catalog/v2beta1/healthstatus
-  catalog/v2beta1/node --> catalog/v2beta1/healthstatus
+  catalog/v2beta1/node --> catalog/v2beta1/nodehealthstatus
+  catalog/v2beta1/nodehealthstatus
   catalog/v2beta1/service
   catalog/v2beta1/serviceendpoints --> catalog/v2beta1/service
   catalog/v2beta1/serviceendpoints --> catalog/v2beta1/workload
@@ -39,6 +41,7 @@ flowchart TD
   mesh/v2beta1/proxyconfiguration
   mesh/v2beta1/proxystatetemplate --> auth/v2beta1/computedtrafficpermissions
   mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/service
+  mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/serviceendpoints
   mesh/v2beta1/proxystatetemplate --> catalog/v2beta1/workload
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedexplicitdestinations
   mesh/v2beta1/proxystatetemplate --> mesh/v2beta1/computedproxyconfiguration
