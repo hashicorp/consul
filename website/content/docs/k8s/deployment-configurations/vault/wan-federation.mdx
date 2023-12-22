@@ -129,7 +129,7 @@ Repeat the following steps for each datacenter in the cluster:
 1. Enable [Vault KV secrets engine - Version 2](/vault/docs/secrets/kv/kv-v2) in order to store the [Gossip Encryption Key](/consul/docs/k8s/helm#v-global-acls-replicationtoken) and the ACL Replication token ([`global.acls.replicationToken`](/consul/docs/k8s/helm#v-global-acls-replicationtoken)).
 
     ```shell-session
-    $ vault secrets enable -path=consul kv-v2
+    $ vault secrets enable -path=consul-kv kv-v2
     ```
 
 1. Enable Vault PKI Engine in order to leverage Vault for issuing Consul Server TLS certificates.
@@ -314,15 +314,15 @@ Repeat the following steps for each datacenter in the cluster:
 1. Store the ACL bootstrap and replication tokens, gossip encryption key, and root CA certificate secrets in Vault.
 
     ```shell-session
-    $ vault kv put consul/secret/gossip key="$(consul keygen)"
+    $ vault kv put consul-kv/secret/gossip key="$(consul keygen)"
     ```
 
     ```shell-session
-    $ vault kv put consul/secret/bootstrap token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+    $ vault kv put consul-kv/secret/bootstrap token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
     ```
 
     ```shell-session
-    $ vault kv put consul/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+    $ vault kv put consul-kv/secret/replication token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
     ```
     ```shell-session
     $ vault write pki/root/generate/internal common_name="Consul CA" ttl=87600h
@@ -332,7 +332,7 @@ Repeat the following steps for each datacenter in the cluster:
 
     ```shell-session
     $ vault policy write gossip - <<EOF
-    path "consul/data/secret/gossip" {
+    path "consul-kv/data/secret/gossip" {
       capabilities = ["read"]
     }
     EOF
@@ -340,7 +340,7 @@ Repeat the following steps for each datacenter in the cluster:
 
     ```shell-session
     $ vault policy write bootstrap-token - <<EOF
-    path "consul/data/secret/bootstrap" {
+    path "consul-kv/data/secret/bootstrap" {
       capabilities = ["read"]
     }
     EOF
@@ -348,7 +348,7 @@ Repeat the following steps for each datacenter in the cluster:
 
     ```shell-session
     $ vault policy write replication-token - <<EOF
-    path "consul/data/secret/replication" {
+    path "consul-kv/data/secret/replication" {
       capabilities = ["read"]
     }
     EOF
@@ -477,13 +477,13 @@ Repeat the following steps for each datacenter in the cluster:
         manageSystemACLs: true
         createReplicationToken: true
         bootstrapToken:
-          secretName: consul/data/secret/bootstrap
+          secretName: consul-kv/data/secret/bootstrap
           secretKey: token
         replicationToken:
-          secretName: consul/data/secret/replication
+          secretName: consul-kv/data/secret/replication
           secretKey: token
       gossipEncryption:
-        secretName: consul/data/secret/gossip
+        secretName: consul-kv/data/secret/gossip
         secretKey: key
     server:
       replicas: 1
@@ -660,10 +660,10 @@ Repeat the following steps for each datacenter in the cluster:
       acls:
         manageSystemACLs: true
         replicationToken:
-          secretName: consul/data/secret/replication
+          secretName: consul-kv/data/secret/replication
           secretKey: token
       gossipEncryption:
-        secretName: consul/data/secret/gossip
+        secretName: consul-kv/data/secret/gossip
         secretKey: key
     server:
       replicas: 1
