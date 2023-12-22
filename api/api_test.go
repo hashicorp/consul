@@ -717,8 +717,11 @@ func TestAPI_ClientTLSOptions(t *testing.T) {
 
 		// Should fail
 		_, err = client.Agent().Self()
-		if err == nil || !strings.Contains(err.Error(), "bad certificate") {
-			t.Fatal(err)
+		// Check for one of the possible cert error messages
+		// See https://cs.opensource.google/go/go/+/62a994837a57a7d0c58bb364b580a389488446c9
+		if err == nil || !(strings.Contains(err.Error(), "tls: bad certificate") ||
+			strings.Contains(err.Error(), "tls: certificate required")) {
+			t.Fatalf("expected tls certificate error, but got '%v'", err)
 		}
 	})
 

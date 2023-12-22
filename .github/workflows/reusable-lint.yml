@@ -48,11 +48,13 @@ jobs:
         with:
           go-version: ${{ inputs.go-version }}
       - run: go env
+      - name: Set golangci-lint version
+        run: echo "GOLANGCI_LINT_VERSION=$(make --no-print-directory print-GOLANGCI_LINT_VERSION)" >> $GITHUB_ENV
       - name: lint-${{ matrix.directory }}
         uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # pin@v3.4.0
         with:
           working-directory: ${{ matrix.directory }}
-          version: v1.51.1
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
           args: --build-tags="${{ env.GOTAGS }}" -v
           skip-cache: true
       - name: Notify Slack
