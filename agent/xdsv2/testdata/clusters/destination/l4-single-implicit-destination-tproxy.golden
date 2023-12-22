@@ -42,9 +42,12 @@
               "trustedCa":  {
                 "inlineString":  "some-root\nsome-other-root\n"
               },
-              "matchSubjectAltNames":  [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                  "sanType": "URI",
+                  "matcher": {
+                    "exact":  "spiffe://foo.consul/ap/default/ns/default/identity/api1-identity"
+                  }
                 }
               ]
             },
