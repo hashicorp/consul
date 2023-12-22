@@ -264,22 +264,15 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 	case *pbproxystate.RouteDestination_WeightedClusters:
 		psWeightedClusters := psRouteDestination.GetWeightedClusters()
 		envoyClusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(psWeightedClusters.GetClusters()))
-		totalWeight := 0
 		for _, psCluster := range psWeightedClusters.GetClusters() {
 			pr.addEnvoyClustersAndEndpointsToEnvoyResources(psCluster.Name)
 
-			totalWeight += int(psCluster.Weight.GetValue())
 			envoyClusters = append(envoyClusters, makeEnvoyClusterWeightFromProxystateWeightedCluster(psCluster))
-		}
-		var envoyWeightScale *wrapperspb.UInt32Value
-		if totalWeight == 10000 {
-			envoyWeightScale = response.MakeUint32Value(10000)
 		}
 
 		envoyRouteRoute.Route.ClusterSpecifier = &envoy_route_v3.RouteAction_WeightedClusters{
 			WeightedClusters: &envoy_route_v3.WeightedCluster{
-				Clusters:    envoyClusters,
-				TotalWeight: envoyWeightScale,
+				Clusters: envoyClusters,
 			},
 		}
 	default:
