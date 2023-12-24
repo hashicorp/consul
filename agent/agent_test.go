@@ -23,18 +23,11 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/hashicorp/consul/agent/grpc-external/limiter"
-	"github.com/hashicorp/consul/agent/proxycfg"
-	"github.com/hashicorp/consul/agent/proxycfg-sources/local"
-	"github.com/hashicorp/consul/agent/xds"
-	proxytracker "github.com/hashicorp/consul/internal/mesh/proxy-tracker"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -97,7 +90,7 @@ func requireServiceMissing(t *testing.T, a *TestAgent, id string) {
 	require.Nil(t, getService(a, id), "have service %q (expected missing)", id)
 }
 
-func requireCheckExists(t *testing.T, a *TestAgent, id types.CheckID) *structs.HealthCheck {
+func requireCheckExists(t testutil.TestingTB, a *TestAgent, id types.CheckID) *structs.HealthCheck {
 	t.Helper()
 	chk := getCheck(a, id)
 	require.NotNil(t, chk, "missing check %q", id)
@@ -860,7 +853,7 @@ func TestAgent_CheckAliasRPC(t *testing.T) {
 	assert.NoError(t, err)
 
 	retry.Run(t, func(r *retry.R) {
-		t.Helper()
+		r.Helper()
 		var args structs.NodeSpecificRequest
 		args.Datacenter = "dc1"
 		args.Node = "node1"
@@ -1895,7 +1888,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 
 	// We do this so that the agent logs and the informational messages from
 	// the test itself are interwoven properly.
-	logf := func(t *testing.T, a *TestAgent, format string, args ...interface{}) {
+	logf := func(a *TestAgent, format string, args ...interface{}) {
 		a.logger.Info("testharness: " + fmt.Sprintf(format, args...))
 	}
 
@@ -1954,12 +1947,12 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState := func(t *testing.T, a *TestAgent, checkID string, expectedStatus string) {
 		t.Helper()
 		retry.Run(t, func(r *retry.R) {
-			chk := requireCheckExists(t, a, types.CheckID(checkID))
+			chk := requireCheckExists(r, a, types.CheckID(checkID))
 			if chk.Status != expectedStatus {
-				logf(t, a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
+				logf(a, "check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 				r.Fatalf("check=%q expected status %q but got %q", checkID, expectedStatus, chk.Status)
 			}
-			logf(t, a, "check %q has reached desired status %q", checkID, expectedStatus)
+			logf(a, "check %q has reached desired status %q", checkID, expectedStatus)
 		})
 	}
 
@@ -1970,7 +1963,7 @@ func TestAgent_RestoreServiceWithAliasCheck(t *testing.T) {
 	retryUntilCheckState(t, a, "service:ping", api.HealthPassing)
 	retryUntilCheckState(t, a, "service:ping-sidecar-proxy", api.HealthPassing)
 
-	logf(t, a, "==== POWERING DOWN ORIGINAL ====")
+	logf(a, "==== POWERING DOWN ORIGINAL ====")
 
 	require.NoError(t, a.Shutdown())
 
@@ -1992,7 +1985,7 @@ node_name = "` + a.Config.NodeName + `"
 		// reregister during standup; we use an adjustable timing to try and force a race
 		sleepDur := time.Duration(idx+1) * 500 * time.Millisecond
 		time.Sleep(sleepDur)
-		logf(t, a2, "re-registering checks and services after a delay of %v", sleepDur)
+		logf(a2, "re-registering checks and services after a delay of %v", sleepDur)
 		for i := 0; i < 20; i++ { // RACE RACE RACE!
 			registerServicesAndChecks(t, a2)
 			time.Sleep(50 * time.Millisecond)
@@ -2002,7 +1995,7 @@ node_name = "` + a.Config.NodeName + `"
 
 		retryUntilCheckState(t, a2, "service:ping", api.HealthPassing)
 
-		logf(t, a2, "giving the alias check a chance to notice...")
+		logf(a2, "giving the alias check a chance to notice...")
 		time.Sleep(5 * time.Second)
 
 		retryUntilCheckState(t, a2, "service:ping-sidecar-proxy", api.HealthPassing)
@@ -6442,73 +6435,6 @@ func TestAgent_checkServerLastSeen(t *testing.T) {
 	})
 }
 
-func TestAgent_getProxyWatcher(t *testing.T) {
-	type testcase struct {
-		description    string
-		getExperiments func() []string
-		expectedType   xds.ProxyWatcher
-	}
-	testscases := []testcase{
-		{
-			description:  "config source is returned when api-resources experiment is not configured",
-			expectedType: &local.ConfigSource{},
-			getExperiments: func() []string {
-				return []string{}
-			},
-		},
-		{
-			description:  "proxy tracker is returned when api-resources experiment is configured",
-			expectedType: &proxytracker.ProxyTracker{},
-			getExperiments: func() []string {
-				return []string{consul.CatalogResourceExperimentName}
-			},
-		},
-	}
-	for _, tc := range testscases {
-		caConfig := tlsutil.Config{}
-		tlsConf, err := tlsutil.NewConfigurator(caConfig, hclog.New(nil))
-		require.NoError(t, err)
-
-		bd := BaseDeps{
-			Deps: consul.Deps{
-				Logger:          hclog.NewInterceptLogger(nil),
-				Tokens:          new(token.Store),
-				TLSConfigurator: tlsConf,
-				GRPCConnPool:    &fakeGRPCConnPool{},
-				Registry:        resource.NewRegistry(),
-			},
-			RuntimeConfig: &config.RuntimeConfig{
-				HTTPAddrs: []net.Addr{
-					&net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: freeport.GetOne(t)},
-				},
-			},
-			Cache:  cache.New(cache.Options{}),
-			NetRPC: &LazyNetRPC{},
-		}
-
-		bd.XDSStreamLimiter = limiter.NewSessionLimiter()
-		bd.LeafCertManager = leafcert.NewManager(leafcert.Deps{
-			CertSigner:  leafcert.NewNetRPCCertSigner(bd.NetRPC),
-			RootsReader: leafcert.NewCachedRootsReader(bd.Cache, "dc1"),
-			Config:      leafcert.Config{},
-		})
-
-		cfg := config.RuntimeConfig{
-			BuildDate: time.Date(2000, 1, 1, 0, 0, 1, 0, time.UTC),
-		}
-		bd, err = initEnterpriseBaseDeps(bd, &cfg)
-		require.NoError(t, err)
-
-		bd.Experiments = tc.getExperiments()
-
-		agent, err := New(bd)
-		require.NoError(t, err)
-		agent.proxyConfig, err = proxycfg.NewManager(proxycfg.ManagerConfig{Logger: bd.Logger, Source: &structs.QuerySource{}})
-		require.NoError(t, err)
-		require.IsTypef(t, tc.expectedType, agent.getProxyWatcher(), fmt.Sprintf("Expected proxyWatcher to be of type %s", reflect.TypeOf(tc.expectedType)))
-	}
-
-}
 func getExpectedCaPoolByFile(t *testing.T) *x509.CertPool {
 	pool := x509.NewCertPool()
 	data, err := os.ReadFile("../test/ca/root.cer")

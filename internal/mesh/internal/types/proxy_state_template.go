@@ -5,7 +5,8 @@ package types
 
 import (
 	"fmt"
-
+	"github.com/hashicorp/consul/internal/catalog"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/hashicorp/consul/acl"
@@ -49,25 +50,21 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 	})
 }
 
-func ValidateProxyStateTemplate(res *pbresource.Resource) error {
+var ValidateProxyStateTemplate = resource.DecodeAndValidate(validateProxyStateTemplate)
+
+func validateProxyStateTemplate(res *DecodedProxyStateTemplate) error {
 	// TODO(v2): validate a lot more of this
-
-	var pst pbmesh.ProxyStateTemplate
-
-	if err := res.Data.UnmarshalTo(&pst); err != nil {
-		return resource.NewErrDataParse(&pst, err)
-	}
 
 	var merr error
 
-	if pst.ProxyState != nil {
+	if res.Data.ProxyState != nil {
 		wrapProxyStateErr := func(err error) error {
 			return resource.ErrInvalidField{
 				Name:    "proxy_state",
 				Wrapped: err,
 			}
 		}
-		for name, cluster := range pst.ProxyState.Clusters {
+		for name, cluster := range res.Data.ProxyState.Clusters {
 			if name == "" {
 				merr = multierror.Append(merr, wrapProxyStateErr(resource.ErrInvalidMapKey{
 					Map:     "clusters",
@@ -89,6 +86,28 @@ func ValidateProxyStateTemplate(res *pbresource.Resource) error {
 				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
 					Name:    "name",
 					Wrapped: fmt.Errorf("cluster name %q does not match map key %q", cluster.Name, name),
+				}))
+			}
+
+			if portErr := catalog.ValidateProtocol(pbcatalog.Protocol(cluster.Protocol)); portErr != nil {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: portErr,
+				}))
+			}
+
+			if pbcatalog.Protocol(cluster.Protocol) == pbcatalog.Protocol_PROTOCOL_UNSPECIFIED {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name:    "protocol",
+					Wrapped: resource.ErrMissing,
+				}))
+			}
+
+			if pbcatalog.Protocol(cluster.Protocol) == pbcatalog.Protocol_PROTOCOL_MESH {
+				merr = multierror.Append(merr, wrapClusterErr(resource.ErrInvalidField{
+					Name: "protocol",
+					Wrapped: fmt.Errorf("protocol %q is not a valid cluster traffic protocol",
+						cluster.Protocol.String()),
 				}))
 			}
 

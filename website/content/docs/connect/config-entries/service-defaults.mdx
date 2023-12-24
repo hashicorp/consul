@@ -24,7 +24,7 @@ The following list outlines field hierarchy, language-specific data types, requi
 - [`Protocol`](#protocol): string | `tcp`
 - [`BalanceInboundConnections`](#balanceinboundconnections): string
 - [`Mode`](#mode): string
-- [`RateLimits`](#ratelimits): map
+- [`RateLimits`](#ratelimits): map | <EnterpriseAlert inline />
   - [`InstanceLevel`](#ratelimits-instancelevel): map
     - [`RequestsPerSecond`](#ratelimits-instancelevel-requestspersecond): number
     - [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst): number
@@ -109,7 +109,7 @@ The following list outlines field hierarchy, language-specific data types, requi
   - [`protocol`](#protocol): string | `tcp`
   - [`balanceInboundConnections`](#balanceinboundconnections): string
   - [`mode`](#mode): string
-  - [`rateLimits`](#spec-ratelimits): map
+  - [`rateLimits`](#spec-ratelimits): map | <EnterpriseAlert inline />
     - [`instanceLevel`](#spec-ratelimits-instancelevel): map
       - [`requestsPerSecond`](#spec-ratelimits-instancelevel-requestspersecond): number
       - [`requestsMaxBurst`](#spec-ratelimits-instancelevel-requestsmaxburst): number
@@ -205,7 +205,7 @@ BalanceInboundConnections = "exact_balance"
 Mode                      = "<mode for directing traffic>"
 RateLimits = {
   InstanceLevel = {
-    RequestsPerScond = <average number of requests allowed to the service per second>
+    RequestsPerSecond = <average number of requests allowed to the service per second>
     RequestsMaxBurst = <max number of concurrent requests allowed to the service>
     Routes = [		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       {
@@ -318,7 +318,7 @@ spec:
   mode: <mode for directing traffic>
   rateLimits:
     instanceLevel:
-      requestsPerScond: <average number of requests allowed to the service per second>
+      requestsPerSecond: <average number of requests allowed to the service per second>
       requestsMaxBurst: <max number of concurrent requests allowed to the service>
       routes: 		# Configure RequestsPerSecond and one route matching parameter for each member of the list
       - pathExact: "<limits apply paths that match this value>"
@@ -409,7 +409,7 @@ spec:
 	"Mode": "<mode for directing traffic>",
   "RateLimits": {
     "InstanceLevel": {
-      "RequestsPerScond": 100,
+      "RequestsPerSecond": 100,
       "RequestsMaxBurst": 200,
       "Routes": [
         {
@@ -547,7 +547,7 @@ Specifies the Consul namespace that the configuration entry applies to.
 
 ### `Partition` <EnterpriseAlert inline/>
 
-Specifies the name of the name of the Consul admin partition that the configuration entry applies to.  Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.
+Specifies the name of the Consul admin partition that the configuration entry applies to.  Refer to [Admin Partitions](/consul/docs/enterprise/admin-partitions) for additional information.
 
 #### Values
 
@@ -605,7 +605,7 @@ Specifies a mode for how the service directs inbound and outbound traffic.
   - `direct`: The proxy's listeners must be dialed directly by the local application and other proxies.
   - `transparent`: The service captures inbound and outbound traffic and redirects it through the proxy. The mode does not enable the traffic redirection. It instructs Consul to configure Envoy as if traffic is already being redirected.
 
-### `RateLimits`
+### `RateLimits` <EnterpriseAlert inline />
 
 Map containing an instance-level configuration for limiting the service's traffic rate.
 
@@ -623,7 +623,7 @@ Map containing a set of request rate limit configurations for instances of the s
 - Default: None
 - Data type: Map
 
-### `RateLimits{}.InstanceLevel{}.RequestsPerScond`
+### `RateLimits{}.InstanceLevel{}.RequestsPerSecond`
 
 Specifies the average number of requests per second allowed to the service. If the [`RequestsMaxBurst`](#ratelimits-instancelevel-requestsmaxburst) parameter is set, the number of requests per second to the service can temporarily exceed the limit specified in the `RequestsPerSecond` up to the value specified in `RequestsMaxBurst`. Internally, this is the refill rate of the token bucket used for rate limiting.
 
@@ -649,7 +649,7 @@ Specifies a list of rate limiting configurations to apply to specific routes to 
 - `PathPrefix`
 - `PathRegex`
 
-Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
+Consul applies the rate limit configuration to the first matching route for each request. Refer to [Examples](#enable-request-rate-limit-on-a-prefixed-path) for example configurations.
 
 #### Values
 
@@ -696,7 +696,7 @@ Specifies the name of the upstream service that the configuration applies to. We
 - Default: None
 - Data type: String
 
-### `UpstreamConfig.Overrides[].Namespace` <Enterprise/>
+### `UpstreamConfig.Overrides[].Namespace` <EnterpriseAlert inline/>
 
 Specifies the namespace containing the upstream service that the configuration applies to. Do not use the `*` wildcard to prevent the configuration from applying to unintended upstreams.
 
@@ -1016,7 +1016,7 @@ Specifies the name of the service you are setting the defaults for.
 - This field is required
 - Data type: String
 
-### `metadata.namespace` <Enterprise/>
+### `metadata.namespace` <EnterpriseAlert inline/>
 
 Specifies the Consul namespace that the configuration entry applies to. Refer to [Consul Enterprise](/consul/docs/k8s/crds#consul-enterprise) for information about how Consul namespaces map to Kubernetes Namespaces. Consul Community Edition (Consul CE) ignores the `metadata.namespace` configuration.
 
@@ -1071,7 +1071,7 @@ Specifies a mode for how the service directs inbound and outbound traffic.
 - `direct`: The proxy's listeners must be dialed directly by the local application and other proxies.
 - `transparent`: The service captures inbound and outbound traffic and redirects it through the proxy. The mode does not enable the traffic redirection. It instructs Consul to configure Envoy as if traffic is already being redirected.
 
-### `spec.rateLimits`
+### `spec.rateLimits` <EnterpriseAlert inline />
 
 Map containing an instance-level configuration for limiting the service's traffic rate.
 
@@ -1737,16 +1737,15 @@ Proxy services must be in transparent proxy mode to configure destinations. Refe
 
 </CodeTabs>
 
+### Enable request rate limit for a service on all paths <EnterpriseAlert inline />
 
-### Enable request rate limit for a service on all paths
-
-The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests.
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service to an average of 1000 requests per second, but allows the service to accept up to 1500 concurrent requests.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
 ```hcl
 Kind = "service-defaults"
-Name = "service-foo"
+Name = "billing"
 Protocol = "http"
 
 RateLimit {
@@ -1756,21 +1755,21 @@ RateLimit {
   }
 }
 ```
+
 ```yaml
 kind: ServiceDefaults
-name: service-foo
+name: billing
 protocol: http
 rateLimit:
   instanceLevel:
     requestsPerSecond: 1000
     requestsMaxBurst: 1500
-  }
-}
 ```
+
 ```json
 {
   "Kind": "service-defaults",
-  "Name": "service-foo",
+  "Name": "billing",
   "Protocol": "http",
   "RateLimit": {
     "InstanceLevel": {
@@ -1780,9 +1779,10 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
-### Enable request rate limit on a prefixed path
+### Enable request rate limit on a prefixed path <EnterpriseAlert inline />
 
 The following example limits the request rate on all paths to `service-foo` to an average of `1000` requests per second but allows up to `1500` temporary concurrent requests. Request paths that begin with `/admin`, however, are limited to `20` requests per second.
 
@@ -1840,11 +1840,12 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>
 
-### Enable request rate limits on multiple paths
+### Enable request rate limits on multiple paths <EnterpriseAlert inline />
 
-The following example limits the request rate to the `billing` service when requests begin with `/api` and `/login`.
+The following example configures the default behavior for a service named `billing`. This configuration limits each instance of the billing service depending on the path it received the request on. The service is limited to an average of 500 requests when the request is made on an HTTP path with the `/api` prefix. When an instance of the billing service receives a request from the `/login` path, it is limited to an average of 100 requests per second and 500 concurrent connections.
 
 <CodeTabs tabs={[ "HCL", "Kubernetes YAML", "JSON" ]}>
 
@@ -1883,6 +1884,7 @@ rateLimit:
         requestsPerSecond: 100
         requestsMaxBurst: 500
 ```
+
 ```json
 {
   "Kind": "service-defaults",
@@ -1905,4 +1907,5 @@ rateLimit:
   }
 }
 ```
+
 </CodeTabs>

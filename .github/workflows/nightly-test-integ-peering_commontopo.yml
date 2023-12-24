@@ -1,0 +1,163 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: Nightly test integrations - peering_common_topo
+
+on:
+  schedule:
+    # Run nightly at 12AM UTC/8PM EST/5PM PST
+    - cron: '* 0 * * *'
+  workflow_dispatch: {}
+
+env:
+  TEST_RESULTS_DIR: /tmp/test-results
+  CONSUL_LICENSE: ${{ secrets.CONSUL_LICENSE }}
+  GOTAGS: ${{ endsWith(github.repository, '-enterprise') && 'consulent' || '' }}
+  GOTESTSUM_VERSION: "1.10.1"
+  CONSUL_BINARY_UPLOAD_NAME: consul-bin
+  # strip the hashicorp/ off the front of github.repository for consul
+  CONSUL_LATEST_IMAGE_NAME: ${{ endsWith(github.repository, '-enterprise') && github.repository || 'hashicorp/consul' }}
+  GOPRIVATE: github.com/hashicorp # Required for enterprise deps
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    name: Setup
+    outputs:
+      compute-small: ${{ steps.runners.outputs.compute-small }}
+      compute-medium: ${{ steps.runners.outputs.compute-medium }}
+      compute-large: ${{ steps.runners.outputs.compute-large }}
+      compute-xl: ${{ steps.runners.outputs.compute-xl }}
+      enterprise: ${{ steps.runners.outputs.enterprise }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        with:
+          ref: ${{ inputs.branch }}
+      - id: runners
+        run: .github/scripts/get_runner_classes.sh
+
+  tests:
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl ) }}
+    needs:
+      - setup
+    permissions:
+      id-token: write # NOTE: this permission is explicitly required for Vault auth.
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        test-case:
+          - TestSuitesOnSharedTopo
+          # these are not part of sharedTopoSuites
+          - TestAC5PreparedQueryFailover
+          - TestAC6Failovers
+          - TestNET5029Failovers
+          - TestRotateGW
+          - TestAC7_2RotateLeader
+    name: '${{matrix.test-case}}'
+
+    env:
+      ENVOY_VERSION: "1.24.6"
+    steps:
+      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+      # NOTE: This step is specifically needed for ENT. It allows us to access the required private HashiCorp repos.
+      - name: Setup Git
+        if: ${{ endsWith(github.repository, '-enterprise') }}
+        run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
+      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version-file: 'go.mod'
+      - run: go env
+      - name: Build
+        run: |
+          make dev
+          mv bin/consul consul
+      - name: restore mode+x
+        run: chmod +x consul
+      - name: Build consul:local image
+        run: docker build -t ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local -f ./build-support/docker/Consul-Dev.dockerfile .
+      - name: Peering commonTopo Integration Tests
+        run: |
+          export NOLOGBUFFER=1
+          mkdir -p "${{ env.TEST_RESULTS_DIR }}"
+          cd ./test-integ/peering_commontopo
+          docker run --rm ${{ env.CONSUL_LATEST_IMAGE_NAME }}:local consul version
+          go run gotest.tools/gotestsum@v${{env.GOTESTSUM_VERSION}} \
+            --raw-command \
+            --format=standard-verbose \
+            --debug \
+            --packages="./..." \
+            -- \
+            go test \
+            -tags "${{ env.GOTAGS }}" \
+            -run '^${{ matrix.test-case }}$' \
+            -timeout=60m \
+            -parallel=1 \
+            -json . \
+            --target-image ${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --target-version local \
+            --latest-image docker.mirror.hashicorp.services/${{ env.CONSUL_LATEST_IMAGE_NAME }} \
+            --latest-version latest
+        env:
+          GOTESTSUM_JUNITFILE: ${{ env.TEST_RESULTS_DIR }}/results.xml
+          GOTESTSUM_FORMAT: standard-verbose
+          # tput complains if this isn't set to something.
+          TERM: ansi
+
+      - name: Authenticate to Vault
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: vault-auth
+        run: vault-auth
+
+      - name: Fetch Secrets
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
+        id: secrets
+        uses: hashicorp/vault-action@v2.5.0
+        with:
+          url: ${{ steps.vault-auth.outputs.addr }}
+          caCertificate: ${{ steps.vault-auth.outputs.ca_certificate }}
+          token: ${{ steps.vault-auth.outputs.token }}
+          secrets: |
+              kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
+
+      - name: upload test results
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        env:
+          DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
+          DD_ENV: ci
+        run: |
+          # TODO: we should probably version this and check a shasum or something? or run a container?
+          which datadog-ci > /dev/null 2>&1 || {
+            curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
+            chmod +x /usr/local/bin/datadog-ci 
+          }
+          datadog-ci junit upload --service "$GITHUB_REPOSITORY" $TEST_RESULTS_DIR/results.xml
+
+
+  success:
+    needs: 
+    - setup
+    - tests
+    runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
+    if: ${{ always() }}
+    steps:
+      - name: evaluate upstream job results
+        run: |
+          # exit 1 if failure or cancelled result for any upstream job
+          if printf '${{ toJSON(needs) }}' | grep -E -i '\"result\": \"(failure|cancelled)\"'; then
+            printf "Tests failed or workflow cancelled:\n\n${{ toJSON(needs) }}"
+            exit 1
+          fi
+      - name: Notify Slack
+        if: ${{ failure() }}
+        id: slack
+        uses: slackapi/slack-github-action@e28cf165c92ffef168d23c5c9000cffc8a25e117 # v1.24.0
+        with:
+          payload: |
+            {
+              "message": "One or more nightly peering_commontopo integration tests have failed. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.CONSUL_NIGHTLY_INTEG_TEST_SLACK_WEBHOOK }}

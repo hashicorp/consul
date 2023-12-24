@@ -38,19 +38,19 @@ var (
 // is another RunCatalogIntegrationTestLifeCycle function that can be used for those
 // purposes. The two are distinct so that the data being published and the assertions
 // made against the system can be reused in upgrade tests.
-func RunCatalogV2Beta1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient) {
+func RunCatalogV2Beta1IntegrationTest(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
 	t.Helper()
 
-	PublishCatalogV2Beta1IntegrationTestData(t, client)
+	PublishCatalogV2Beta1IntegrationTestData(t, client, opts...)
 	VerifyCatalogV2Beta1IntegrationTestResults(t, client)
 }
 
 // PublishCatalogV2Beta1IntegrationTestData will perform a whole bunch of resource writes
 // for Service, ServiceEndpoints, Workload, Node and HealthStatus objects
-func PublishCatalogV2Beta1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient) {
+func PublishCatalogV2Beta1IntegrationTestData(t *testing.T, client pbresource.ResourceServiceClient, opts ...rtest.ClientOption) {
 	t.Helper()
 
-	c := rtest.NewClient(client)
+	c := rtest.NewClient(client, opts...)
 
 	resources := rtest.ParseResourcesFromFilesystem(t, testData, "integration_test_data/v2beta1")
 	c.PublishResources(t, resources)
@@ -68,10 +68,10 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 		c.RequireResourceExists(t, rtest.Resource(pbcatalog.ServiceType, "foo").ID())
 
 		for i := 1; i < 5; i++ {
-			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultNamespacedTenancy()).ID()
+			nodeId := rtest.Resource(pbcatalog.NodeType, fmt.Sprintf("node-%d", i)).WithTenancy(resource.DefaultPartitionedTenancy()).ID()
 			c.RequireResourceExists(t, nodeId)
 
-			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.HealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
+			res := c.RequireResourceExists(t, rtest.Resource(pbcatalog.NodeHealthStatusType, fmt.Sprintf("node-%d-health", i)).ID())
 			rtest.RequireOwner(t, res, nodeId, true)
 		}
 
@@ -85,10 +85,10 @@ func VerifyCatalogV2Beta1IntegrationTestResults(t *testing.T, client pbresource.
 	})
 
 	testutil.RunStep(t, "node-health-reconciliation", func(t *testing.T) {
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
-		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-1").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionPassing)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-2").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionWarning)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-3").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionCritical)
+		c.WaitForStatusCondition(t, rtest.Resource(pbcatalog.NodeType, "node-4").WithTenancy(resource.DefaultPartitionedTenancy()).ID(), nodehealth.StatusKey, nodehealth.ConditionMaintenance)
 	})
 
 	testutil.RunStep(t, "workload-health-reconciliation", func(t *testing.T) {

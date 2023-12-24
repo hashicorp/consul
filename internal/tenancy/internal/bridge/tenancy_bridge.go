@@ -5,8 +5,13 @@ package bridge
 
 import (
 	"context"
-	"github.com/hashicorp/consul/internal/tenancy/internal/types"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 )
 
 // V2TenancyBridge is used by the resource service to access V2 implementations of
@@ -28,27 +33,44 @@ func NewV2TenancyBridge() *V2TenancyBridge {
 }
 
 func (b *V2TenancyBridge) NamespaceExists(partition, namespace string) (bool, error) {
-	read, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
+	if namespace == resource.DefaultNamespaceName {
+		// The default namespace implicitly exists in all partitions regardless of whether
+		// the resource has actually been created yet. Therefore all we need to do is check
+		// if the partition exists to know whether the namespace exists.
+		return b.PartitionExists(partition)
+	}
+
+	_, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,
 			Tenancy: &pbresource.Tenancy{
 				Partition: partition,
 			},
-			Type: types.NamespaceType,
+			Type: pbtenancy.NamespaceType,
 		},
 	})
-	return read != nil && read.Resource != nil, err
+	switch {
+	case err == nil:
+		return true, nil
+	case status.Code(err) == codes.NotFound:
+		return false, nil
+	default:
+		return false, err
+	}
 }
 
 func (b *V2TenancyBridge) IsNamespaceMarkedForDeletion(partition, namespace string) (bool, error) {
-	read, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
+	rsp, err := b.client.Read(context.Background(), &pbresource.ReadRequest{
 		Id: &pbresource.ID{
 			Name: namespace,
 			Tenancy: &pbresource.Tenancy{
 				Partition: partition,
 			},
-			Type: types.NamespaceType,
+			Type: pbtenancy.NamespaceType,
 		},
 	})
-	return read.Resource != nil, err
+	if err != nil {
+		return false, err
+	}
+	return resource.IsMarkedForDeletion(rsp.Resource), nil
 }

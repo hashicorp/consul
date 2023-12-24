@@ -68,7 +68,7 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 			continue
 		}
 
-		gvkString := strings.TrimPrefix(string(m.Desc.FullName()), "hashicorp.consul.")
+		gvkString := strings.TrimPrefix(strings.TrimPrefix(string(m.Desc.FullName()), "hashicorp.consul."), "internal.")
 		rtype, err := resource.ParseGVK(gvkString)
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func (g *generator) ensureAPIGroup(gv apiGroupVersion, importPath protogen.GoImp
 
 func (g *generator) generateTypes(gp *protogen.Plugin) error {
 	for _, info := range g.resources {
-		f := gp.NewGeneratedFile(filepath.Join(info.Directory, "resource_types.gen.go"), info.ImportPath)
+		f := gp.NewGeneratedFile(filepath.Join(info.Directory, "resources.rtypes.go"), info.ImportPath)
 
 		sort.Slice(info.Kinds, func(a, b int) bool {
 			return info.Kinds[a].Name < info.Kinds[b].Name

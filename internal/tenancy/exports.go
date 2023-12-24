@@ -4,22 +4,11 @@
 package tenancy
 
 import (
+	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/tenancy/internal/bridge"
+	"github.com/hashicorp/consul/internal/tenancy/internal/controllers"
 	"github.com/hashicorp/consul/internal/tenancy/internal/types"
-)
-
-var (
-	// API Group Information
-
-	APIGroup       = types.GroupName
-	VersionV2Beta1 = types.VersionV2Beta1
-	CurrentVersion = types.CurrentVersion
-
-	// Resource Kind Names.
-
-	NamespaceKind        = types.NamespaceKind
-	NamespaceV2Beta1Type = types.NamespaceV2Beta1Type
 )
 
 type (
@@ -32,6 +21,14 @@ func RegisterTypes(r resource.Registry) {
 	types.Register(r)
 }
 
+// RegisterControllers registers controllers for the tenancy types with
+// the given controller manager.
+func RegisterControllers(mgr *controller.Manager, deps Dependencies) {
+	controllers.Register(mgr, deps)
+}
+
 func NewV2TenancyBridge() *V2TenancyBridge {
 	return bridge.NewV2TenancyBridge()
 }
+
+type Dependencies = controllers.Dependencies

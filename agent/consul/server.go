@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"io"
 	"net"
 	"os"
@@ -21,6 +20,13 @@ import (
 	"time"
 
 	"github.com/armon/go-metrics"
+	"go.etcd.io/bbolt"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
+
+	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-connlimit"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
@@ -31,16 +37,11 @@ import (
 	walmetrics "github.com/hashicorp/raft-wal/metrics"
 	"github.com/hashicorp/raft-wal/verifier"
 	"github.com/hashicorp/serf/serf"
-	"go.etcd.io/bbolt"
-	"golang.org/x/time/rate"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/reflection"
 
-	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
 	"github.com/hashicorp/consul/agent/blockingquery"
+	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/consul/authmethod"
 	"github.com/hashicorp/consul/agent/consul/authmethod/ssoauth"
 	"github.com/hashicorp/consul/agent/consul/fsm"
@@ -76,10 +77,12 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/resource/reaper"
 	raftstorage "github.com/hashicorp/consul/internal/storage/raft"
+	"github.com/hashicorp/consul/internal/tenancy"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/lib/routine"
 	"github.com/hashicorp/consul/lib/stringslice"
@@ -468,6 +471,9 @@ type Server struct {
 	registry resource.Registry
 
 	useV2Resources bool
+
+	// useV2Tenancy is tied to the "v2tenancy" feature flag.
+	useV2Tenancy bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -557,6 +563,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		routineManager:          routine.NewManager(logger.Named(logging.ConsulServer)),
 		registry:                flat.Registry,
 		useV2Resources:          flat.UseV2Resources(),
+		useV2Tenancy:            flat.UseV2Tenancy(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -834,7 +841,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.reportingManager.Run(&lib.StopChannelContext{StopCh: s.shutdownCh})
 
 	// Setup insecure resource service client.
-	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger, flat); err != nil {
+	if err := s.setupInsecureResourceServiceClient(flat.Registry, logger); err != nil {
 		return nil, err
 	}
 
@@ -931,9 +938,17 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	// When not enabled, the v1 tenancy bridge is used by default.
+	if s.useV2Tenancy {
+		tenancy.RegisterControllers(
+			s.controllerManager,
+			tenancy.Dependencies{Registry: deps.Registry},
+		)
+	}
+
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-
+		multicluster.RegisterControllers(s.controllerManager)
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
@@ -1456,7 +1471,7 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 	s.peerStreamServer.Register(s.externalGRPCServer)
 
 	tenancyBridge := NewV1TenancyBridge(s)
-	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+	if s.useV2Tenancy {
 		tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
 		tenancyBridge = tenancyBridgeV2.WithClient(s.insecureResourceServiceClient)
 	}
@@ -1467,20 +1482,22 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 		ACLResolver:   s.ACLResolver,
 		Logger:        logger.Named("grpc-api.resource"),
 		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
 	})
 	s.resourceServiceServer.Register(s.externalGRPCServer)
 
 	reflection.Register(s.externalGRPCServer)
 }
 
-func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger, deps Deps) error {
+func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Registry, logger hclog.Logger) error {
 	if s.raftStorageBackend == nil {
 		return fmt.Errorf("raft storage backend cannot be nil")
 	}
 
+	// Can't use interface type var here since v2 specific "WithClient(...)" is called futher down.
 	tenancyBridge := NewV1TenancyBridge(s)
 	tenancyBridgeV2 := tenancy.NewV2TenancyBridge()
-	if stringslice.Contains(deps.Experiments, V2TenancyExperimentName) {
+	if s.useV2Tenancy {
 		tenancyBridge = tenancyBridgeV2
 	}
 	server := resourcegrpc.NewServer(resourcegrpc.Config{
@@ -1489,6 +1506,7 @@ func (s *Server) setupInsecureResourceServiceClient(typeRegistry resource.Regist
 		ACLResolver:   resolver.DANGER_NO_AUTH{},
 		Logger:        logger.Named("grpc-api.resource"),
 		TenancyBridge: tenancyBridge,
+		UseV2Tenancy:  s.useV2Tenancy,
 	})
 
 	conn, err := s.runInProcessGRPCServer(server.Register)
@@ -2218,24 +2236,9 @@ func (s *Server) hcpServerStatus(deps Deps) hcp.StatusCallback {
 		status.RPCPort = s.config.RPCAddr.Port
 		status.Datacenter = s.config.Datacenter
 
-		tlsCert := s.tlsConfigurator.Cert()
-		if tlsCert != nil {
-			status.TLS.Enabled = true
-			leaf := tlsCert.Leaf
-			if leaf == nil {
-				// Parse the leaf cert
-				leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
-				if err != nil {
-					// Shouldn't be possible
-					return
-				}
-			}
-			status.TLS.CertName = leaf.Subject.CommonName
-			status.TLS.CertSerial = leaf.SerialNumber.String()
-			status.TLS.CertExpiry = leaf.NotAfter
-			status.TLS.VerifyIncoming = s.tlsConfigurator.VerifyIncomingRPC()
-			status.TLS.VerifyOutgoing = s.tlsConfigurator.Base().InternalRPC.VerifyOutgoing
-			status.TLS.VerifyServerHostname = s.tlsConfigurator.VerifyServerHostname()
+		err = addServerTLSInfo(&status, s.tlsConfigurator)
+		if err != nil {
+			return status, fmt.Errorf("error adding server tls info: %w", err)
 		}
 
 		status.Raft.IsLeader = s.raft.State() == raft.Leader
@@ -2322,6 +2325,83 @@ func convertConsulConfigToRateLimitHandlerConfig(limitsConfig RequestLimits, mul
 	}
 
 	return hc
+}
+
+// addServerTLSInfo adds the server's TLS information if available to the status
+func addServerTLSInfo(status *hcpclient.ServerStatus, tlsConfigurator tlsutil.ConfiguratorIface) error {
+	tlsCert := tlsConfigurator.Cert()
+	if tlsCert == nil {
+		return nil
+	}
+
+	leaf := tlsCert.Leaf
+	var err error
+	if leaf == nil {
+		// Parse the leaf cert
+		if len(tlsCert.Certificate) == 0 {
+			return fmt.Errorf("expected a leaf certificate but there was none")
+		}
+		leaf, err = x509.ParseCertificate(tlsCert.Certificate[0])
+		if err != nil {
+			// Shouldn't be possible
+			return fmt.Errorf("error parsing leaf cert: %w", err)
+		}
+	}
+
+	tlsInfo := hcpclient.ServerTLSInfo{
+		Enabled:              true,
+		CertIssuer:           leaf.Issuer.CommonName,
+		CertName:             leaf.Subject.CommonName,
+		CertSerial:           leaf.SerialNumber.String(),
+		CertExpiry:           leaf.NotAfter,
+		VerifyIncoming:       tlsConfigurator.VerifyIncomingRPC(),
+		VerifyOutgoing:       tlsConfigurator.Base().InternalRPC.VerifyOutgoing,
+		VerifyServerHostname: tlsConfigurator.VerifyServerHostname(),
+	}
+
+	// Collect metadata for all CA certs used for internal RPC
+	metadata := make([]hcpclient.CertificateMetadata, 0)
+	for _, pemStr := range tlsConfigurator.ManualCAPems() {
+		cert, err := connect.ParseCert(pemStr)
+		if err != nil {
+			return fmt.Errorf("error parsing manual ca pem: %w", err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	for ix, certBytes := range tlsCert.Certificate {
+		if ix == 0 {
+			// Skip the leaf cert at index 0. Only collect intermediates
+			continue
+		}
+
+		cert, err := x509.ParseCertificate(certBytes)
+		if err != nil {
+			return fmt.Errorf("error parsing tls cert index %d: %w", ix, err)
+		}
+
+		metadatum := hcpclient.CertificateMetadata{
+			CertExpiry: cert.NotAfter,
+			CertName:   cert.Subject.CommonName,
+			CertSerial: cert.SerialNumber.String(),
+		}
+		metadata = append(metadata, metadatum)
+	}
+	tlsInfo.CertificateAuthorities = metadata
+
+	status.ServerTLSMetadata.InternalRPC = tlsInfo
+
+	// TODO: remove status.TLS in preference for server.ServerTLSMetadata.InternalRPC
+	// when deprecation path is ready
+	// https://hashicorp.atlassian.net/browse/CC-7015
+	status.TLS = tlsInfo
+
+	return nil
 }
 
 // peersInfoContent is used to help operators understand what happened to the

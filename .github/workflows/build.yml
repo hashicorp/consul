@@ -86,15 +86,24 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.10", goos: "linux", goarch: "386"}
-          - {go: "1.20.10", goos: "linux", goarch: "amd64"}
-          - {go: "1.20.10", goos: "linux", goarch: "arm"}
-          - {go: "1.20.10", goos: "linux", goarch: "arm64"}
-          - {go: "1.20.10", goos: "freebsd", goarch: "386"}
-          - {go: "1.20.10", goos: "freebsd", goarch: "amd64"}
-          - {go: "1.20.10", goos: "windows", goarch: "386"}
-          - {go: "1.20.10", goos: "windows", goarch: "amd64"}
-          - {go: "1.20.10", goos: "solaris", goarch: "amd64"}
+          - {go: "1.20.12",
+            goos: "linux", goarch: "386"}
+          - {go: "1.20.12",
+            goos: "linux", goarch: "amd64"}
+          - {go: "1.20.12",
+            goos: "linux", goarch: "arm"}
+          - {go: "1.20.12",
+            goos: "linux", goarch: "arm64"}
+          - {go: "1.20.12", 
+            goos: "freebsd", goarch: "386"}
+          - {go: "1.20.12",
+            goos: "freebsd", goarch: "amd64"}
+          - {go: "1.20.12", 
+            goos: "windows", goarch: "386"}
+          - {go: "1.20.12",
+            goos: "windows", goarch: "amd64"}
+          - {go: "1.20.12",
+            goos: "solaris", goarch: "amd64"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -104,7 +113,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -183,7 +192,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - {go: "1.20.10", goos: "linux", goarch: "s390x"}
+          - {go: "1.20.12",
+            goos: "linux", goarch: "s390x"}
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -193,7 +203,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -234,7 +244,7 @@ jobs:
       matrix:
         goos: [ darwin ]
         goarch: [ "amd64", "arm64" ]
-        go: [ "1.20.10" ]
+        go: [ "1.20.12" ]
       fail-fast: true
 
     name: Go ${{ matrix.go }} ${{ matrix.goos }} ${{ matrix.goarch }} build
@@ -244,7 +254,7 @@ jobs:
       - name: Setup with node and yarn
         uses: actions/setup-node@e33196f7422957bea03ed53f6fbb155025ffc7b8 # v3.7.0
         with:
-          node-version: '14'
+          node-version: '18'
           cache: 'yarn'
           cache-dependency-path: 'ui/yarn.lock'
 
@@ -321,28 +331,8 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
 
-  build-docker-ubi-redhat:
-    name: Docker Build UBI Image for RedHat Registry
-    needs:
-      - set-product-version
-      - build
-    runs-on: ubuntu-latest
-    env:
-      repo: ${{github.event.repository.name}}
-      version: ${{needs.set-product-version.outputs.product-version}}
-
-    steps:
-      - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
-      - uses: hashicorp/actions-docker-build@v1
-        with:
-          version: ${{env.version}}
-          target: ubi
-          arch: amd64
-          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
-          smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
-
   build-docker-ubi-dockerhub:
-    name: Docker Build UBI Image for DockerHub
+    name: Docker Build UBI Images
     needs:
       - set-product-version
       - build
@@ -377,6 +367,7 @@ jobs:
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi
             docker.io/hashicorppreview/${{ env.repo }}:${{ env.minor_dev_tag }}-ubi-${{ github.sha }}
           smoke_test: .github/scripts/verify_docker.sh v${{ env.version }}
+          redhat_tag: quay.io/redhat-isv-containers/60f9fdbec3a80eac643abedf:${{env.version}}-ubi
 
   verify-linux:
     needs:

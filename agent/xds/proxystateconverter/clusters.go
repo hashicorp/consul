@@ -462,7 +462,7 @@ func (s *Converter) makeAppCluster(cfgSnap *proxycfg.ConfigSnapshot, name, pathP
 	if protocol == "" {
 		protocol = cfg.Protocol
 	}
-	namedCluster.cluster.Protocol = protocol
+	namedCluster.cluster.Protocol = protocolMap[protocol]
 	if cfg.MaxInboundConnections > 0 {
 		namedCluster.cluster.GetEndpointGroup().GetStatic().GetConfig().
 			CircuitBreakers = &pbproxystate.CircuitBreakers{
@@ -646,7 +646,7 @@ func (s *Converter) makeUpstreamClusterForPreparedQuery(upstream structs.Upstrea
 
 	if c == nil {
 		c = &pbproxystate.Cluster{
-			Protocol: cfg.Protocol,
+			Protocol: protocolMap[cfg.Protocol],
 			Group: &pbproxystate.Cluster_EndpointGroup{
 				EndpointGroup: &pbproxystate.EndpointGroup{
 					Group: &pbproxystate.EndpointGroup_Dynamic{
@@ -725,13 +725,6 @@ func (s *Converter) createOutboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot, spi
 		return nil, fmt.Errorf("cannot inject peering trust bundles for kind %q", cfgSnap.Kind)
 	}
 
-	cfg, err := config.ParseProxyConfig(cfgSnap.Proxy.Config)
-	if err != nil {
-		// Don't hard fail on a config typo, just warn. The parse func returns
-		// default config if there is an error so it's safe to continue.
-		s.Logger.Warn("failed to parse Connect.Proxy.Config", "error", err)
-	}
-
 	// Add all trust bundle peer names, including local.
 	trustBundlePeerNames := []string{"local"}
 	for _, tb := range cfgSnap.PeeringTrustBundles() {
@@ -761,7 +754,6 @@ func (s *Converter) createOutboundMeshMTLS(cfgSnap *proxycfg.ConfigSnapshot, spi
 		Key:  cfgSnap.Leaf().PrivateKeyPEM,
 	}
 	ts.TlsParameters = makeTLSParametersFromProxyTLSConfig(cfgSnap.MeshConfigTLSOutgoing())
-	ts.AlpnProtocols = getAlpnProtocols(cfg.Protocol)
 
 	return ts, nil
 }
@@ -864,6 +856,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			failoverGroup = &pbproxystate.FailoverGroup{
 				Config: &pbproxystate.FailoverGroupConfig{
 					ConnectTimeout: durationpb.New(node.Resolver.ConnectTimeout),
+					UseAltStatName: true,
 				},
 			}
 		}
@@ -927,12 +920,13 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 					Group: &pbproxystate.EndpointGroup_Dynamic{
 						Dynamic: dynamic,
 					},
+					Name: groupedTarget.ClusterName,
 				}
 				endpointGroups = append(endpointGroups, eg)
 			} else {
 				cluster := &pbproxystate.Cluster{
 					AltStatName: mappedTargets.baseClusterName,
-					Protocol:    upstreamConfig.Protocol,
+					Protocol:    protocolMap[upstreamConfig.Protocol],
 					Group: &pbproxystate.Cluster_EndpointGroup{
 						EndpointGroup: &pbproxystate.EndpointGroup{
 							Group: &pbproxystate.EndpointGroup_Dynamic{
@@ -940,6 +934,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 							},
 						},
 					},
+					Name: mappedTargets.baseClusterName,
 				}
 
 				out[mappedTargets.baseClusterName] = cluster
@@ -952,7 +947,7 @@ func (s *Converter) makeUpstreamClustersForDiscoveryChain(
 			failoverGroup.EndpointGroups = endpointGroups
 			cluster := &pbproxystate.Cluster{
 				AltStatName: mappedTargets.baseClusterName,
-				Protocol:    upstreamConfig.Protocol,
+				Protocol:    protocolMap[upstreamConfig.Protocol],
 				Group: &pbproxystate.Cluster_FailoverGroup{
 					FailoverGroup: failoverGroup,
 				},
@@ -1250,4 +1245,14 @@ func makeOutlierDetection(p *structs.PassiveHealthCheck, override *structs.Passi
 	}
 
 	return od
+}
+
+// protocolMap converts config entry protocols to proxystate protocol values.
+// As documented on config entry protos, the valid values are "tcp", "http",
+// "http2" and "grpc". Anything else is treated as tcp.
+var protocolMap = map[string]pbproxystate.Protocol{
+	"http":  pbproxystate.Protocol_PROTOCOL_HTTP,
+	"http2": pbproxystate.Protocol_PROTOCOL_HTTP2,
+	"grpc":  pbproxystate.Protocol_PROTOCOL_GRPC,
+	"tcp":   pbproxystate.Protocol_PROTOCOL_TCP,
 }

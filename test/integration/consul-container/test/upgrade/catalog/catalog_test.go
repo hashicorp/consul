@@ -18,7 +18,7 @@ import (
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
-var minCatalogResourceVersion = version.Must(version.NewVersion("v1.17.0"))
+var minCatalogResourceVersion = version.Must(version.NewVersion("v1.18.0"))
 
 const (
 	versionUndetermined = `
@@ -60,7 +60,7 @@ func TestCatalogUpgrade(t *testing.T) {
 	cluster, _, _ := topology.NewCluster(t, &topology.ClusterConfig{
 		NumServers:                1,
 		BuildOpts:                 buildOpts,
-		ApplyDefaultProxySettings: true,
+		ApplyDefaultProxySettings: false,
 		Cmd:                       `-hcl=experiments=["resource-apis"]`,
 	})
 

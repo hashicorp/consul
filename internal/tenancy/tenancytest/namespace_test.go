@@ -5,56 +5,68 @@ package tenancytest
 
 import (
 	"context"
-	"github.com/hashicorp/consul/agent/grpc-external/services/resource"
-	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
-	resource2 "github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/tenancy"
 	"testing"
 
-	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
-	"github.com/hashicorp/consul/proto/private/prototest"
+	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/internal/resource"
+	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	"github.com/stretchr/testify/require"
+	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
+func TestWriteNamespace_Success(t *testing.T) {
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
+
+	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
+		WithTenancy(resource.DefaultPartitionedTenancy()).
+		WithData(t, validNamespace()).
+		Build()
+
+	writeRsp, err := cl.Write(context.Background(), &pbresource.WriteRequest{Resource: res})
+	require.NoError(t, err)
+	prototest.AssertDeepEqual(t, res.Id.Type, writeRsp.Resource.Id.Type)
+	prototest.AssertDeepEqual(t, res.Id.Tenancy, writeRsp.Resource.Id.Tenancy)
+	prototest.AssertDeepEqual(t, res.Id.Name, writeRsp.Resource.Id.Name)
+	prototest.AssertDeepEqual(t, res.Data, writeRsp.Resource.Data)
+}
+
 func TestReadNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).
 		Write(t, cl)
 
-	readRsp, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
-	require.NoError(t, err)
-	prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
-}
+	cases := []struct {
+		name     string
+		resource *pbresource.Resource
+		errMsg   string
+	}{
+		{
+			name: "read namespace",
+			resource: rtest.Resource(pbtenancy.NamespaceType, "ns1").
+				WithData(t, validNamespace()).
+				Build(),
+		},
+	}
 
-func TestReadNamespace_NotFound(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
-
-	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
-		WithData(t, validNamespace()).Build()
-
-	_, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: res.Id})
-	require.Error(t, err)
-	require.Equal(t, codes.NotFound.String(), status.Code(err).String())
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			readRsp, err := cl.Read(context.Background(), &pbresource.ReadRequest{Id: tc.resource.Id})
+			require.NoError(t, err)
+			prototest.AssertDeepEqual(t, res.Id, readRsp.Resource.Id)
+			prototest.AssertDeepEqual(t, res.Data, readRsp.Resource.Data)
+		})
+	}
 }
 
 func TestDeleteNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).Write(t, cl)
@@ -73,10 +85,7 @@ func TestDeleteNamespace_Success(t *testing.T) {
 }
 
 func TestListNamespace_Success(t *testing.T) {
-	v2TenancyBridge := tenancy.NewV2TenancyBridge()
-	config := resource.Config{TenancyBridge: v2TenancyBridge}
-	client := svctest.RunResourceServiceWithConfig(t, config, tenancy.RegisterTypes)
-	cl := rtest.NewClient(client)
+	cl := rtest.NewClient(svctest.NewResourceServiceBuilder().WithV2Tenancy(true).Run(t))
 
 	res := rtest.Resource(pbtenancy.NamespaceType, "ns1").
 		WithData(t, validNamespace()).Write(t, cl)
@@ -87,7 +96,7 @@ func TestListNamespace_Success(t *testing.T) {
 
 	require.NotNil(t, res)
 
-	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resource2.DefaultPartitionedTenancy()})
+	listRsp, err := cl.List(context.Background(), &pbresource.ListRequest{Type: pbtenancy.NamespaceType, Tenancy: resource.DefaultPartitionedTenancy()})
 	require.NoError(t, err)
 	require.Len(t, listRsp.Resources, 3)
 	names := []string{

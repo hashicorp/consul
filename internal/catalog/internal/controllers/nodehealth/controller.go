@@ -11,14 +11,15 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
-func NodeHealthController() controller.Controller {
-	return controller.ForType(pbcatalog.NodeType).
-		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.NodeType)).
+func NodeHealthController() *controller.Controller {
+	return controller.NewController(StatusKey, pbcatalog.NodeType).
+		WithWatch(pbcatalog.NodeHealthStatusType, dependency.MapOwnerFiltered(pbcatalog.NodeType)).
 		WithReconciler(&nodeHealthReconciler{})
 }
 
@@ -89,8 +90,8 @@ func getNodeHealth(ctx context.Context, rt controller.Runtime, nodeRef *pbresour
 	health := pbcatalog.Health_HEALTH_PASSING
 
 	for _, res := range rsp.Resources {
-		if resource.EqualType(res.Id.Type, pbcatalog.HealthStatusType) {
-			var hs pbcatalog.HealthStatus
+		if resource.EqualType(res.Id.Type, pbcatalog.NodeHealthStatusType) {
+			var hs pbcatalog.NodeHealthStatus
 			if err := res.Data.UnmarshalTo(&hs); err != nil {
 				// This should be impossible as the resource service + type validations the
 				// catalog is performing will ensure that no data gets written where unmarshalling

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -32,13 +33,13 @@ type TrafficPermissionsMapper interface {
 
 // Controller creates a controller for automatic ComputedTrafficPermissions management for
 // updates to WorkloadIdentity or TrafficPermission resources.
-func Controller(mapper TrafficPermissionsMapper) controller.Controller {
+func Controller(mapper TrafficPermissionsMapper) *controller.Controller {
 	if mapper == nil {
 		panic("No TrafficPermissionsMapper was provided to the TrafficPermissionsController constructor")
 	}
 
-	return controller.ForType(pbauth.ComputedTrafficPermissionsType).
-		WithWatch(pbauth.WorkloadIdentityType, controller.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
+	return controller.NewController(StatusKey, pbauth.ComputedTrafficPermissionsType).
+		WithWatch(pbauth.WorkloadIdentityType, dependency.ReplaceType(pbauth.ComputedTrafficPermissionsType)).
 		WithWatch(pbauth.TrafficPermissionsType, mapper.MapTrafficPermissions).
 		WithReconciler(&reconciler{mapper: mapper})
 }

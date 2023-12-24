@@ -67,7 +67,7 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 		"invalid resource type format": {
 			args:         []string{"a.", "name", "-namespace", "default"},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must include resource type argument in group.verion.kind format"),
+			expectedErr:  errors.New("Incorrect argument format: Must provide resource type argument with either in group.verion.kind format or its shorthand name"),
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestResourceRead(t *testing.T) {
 			name:         "read resource that doesn't exist",
 			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
 			expectedCode: 1,
-			errMsg:       "Error reading resource &{demo v2 Artist}/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
 		},
 	}
 
@@ -149,7 +149,7 @@ func TestResourceRead(t *testing.T) {
 			c := New(ui)
 			cliArgs := append(tc.args, defaultCmdArgs...)
 			code := c.Run(cliArgs)
-			require.Equal(t, ui.ErrorWriter.String(), tc.errMsg)
+			require.Equal(t, tc.errMsg, ui.ErrorWriter.String())
 			require.Equal(t, tc.expectedCode, code)
 		})
 	}

@@ -12,16 +12,13 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
+type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
+
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
-		Type:  pbcatalog.NodeType,
-		Proto: &pbcatalog.Node{},
-		// TODO: A node should be partition scoped. However its HealthStatus which is
-		// namespace scoped has Node as an owner. We do not support ownership between resources
-		// of differing scope at this time. HealthStatus will probably be split out into two different
-		// types, one for namespace scoped owners and the other for partition scoped owners.
-		// Until that time, Node will remain namespace scoped.
-		Scope:    resource.ScopeNamespace,
+		Type:     pbcatalog.NodeType,
+		Proto:    &pbcatalog.Node{},
+		Scope:    resource.ScopePartition,
 		Validate: ValidateNode,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNode,
@@ -31,16 +28,12 @@ func RegisterNode(r resource.Registry) {
 	})
 }
 
-func ValidateNode(res *pbresource.Resource) error {
-	var node pbcatalog.Node
+var ValidateNode = resource.DecodeAndValidate(validateNode)
 
-	if err := res.Data.UnmarshalTo(&node); err != nil {
-		return resource.NewErrDataParse(&node, err)
-	}
-
+func validateNode(res *DecodedNode) error {
 	var err error
 	// Validate that the node has at least 1 address
-	if len(node.Addresses) < 1 {
+	if len(res.Data.Addresses) < 1 {
 		err = multierror.Append(err, resource.ErrInvalidField{
 			Name:    "addresses",
 			Wrapped: resource.ErrEmpty,
@@ -48,7 +41,7 @@ func ValidateNode(res *pbresource.Resource) error {
 	}
 
 	// Validate each node address
-	for idx, addr := range node.Addresses {
+	for idx, addr := range res.Data.Addresses {
 		if addrErr := validateNodeAddress(addr); addrErr != nil {
 			err = multierror.Append(err, resource.ErrInvalidListElement{
 				Name:    "addresses",

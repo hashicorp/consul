@@ -12,12 +12,12 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 type xRouteParentRefMutateTestcase struct {
@@ -441,7 +441,7 @@ func testXRouteACLs[R XRouteData](t *testing.T, newRoute func(t *testing.T, pare
 		})
 	}
 
-	isEnterprise := (structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default")
+	isEnterprise := versiontest.IsEnterprise()
 
 	serviceRead := func(partition, namespace, name string) string {
 		if isEnterprise {

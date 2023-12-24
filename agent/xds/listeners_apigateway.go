@@ -93,13 +93,14 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 			l := makeListener(opts)
 
 			filterChain, err := s.makeUpstreamFilterChain(filterChainOpts{
-				accessLogs:  &cfgSnap.Proxy.AccessLogs,
-				routeName:   uid.EnvoyID(),
-				useRDS:      useRDS,
-				clusterName: clusterName,
-				filterName:  filterName,
-				protocol:    cfg.Protocol,
-				tlsContext:  tlsContext,
+				accessLogs:      &cfgSnap.Proxy.AccessLogs,
+				routeName:       uid.EnvoyID(),
+				useRDS:          useRDS,
+				fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+				clusterName:     clusterName,
+				filterName:      filterName,
+				protocol:        cfg.Protocol,
+				tlsContext:      tlsContext,
 			})
 			if err != nil {
 				return nil, err
@@ -115,13 +116,14 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 					cfgSnap.APIGateway.TLSConfig,
 					listenerKey.Protocol,
 					listenerFilterOpts{
-						useRDS:     useRDS,
-						protocol:   listenerKey.Protocol,
-						routeName:  listenerKey.RouteName(),
-						cluster:    clusterName,
-						statPrefix: "ingress_upstream_",
-						accessLogs: &cfgSnap.Proxy.AccessLogs,
-						logger:     s.Logger,
+						useRDS:          useRDS,
+						fetchTimeoutRDS: cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
+						protocol:        listenerKey.Protocol,
+						routeName:       listenerKey.RouteName(),
+						cluster:         clusterName,
+						statPrefix:      "ingress_upstream_",
+						accessLogs:      &cfgSnap.Proxy.AccessLogs,
+						logger:          s.Logger,
 					},
 					certs,
 				)
@@ -206,6 +208,7 @@ func (s *ResourceGenerator) makeAPIGatewayListeners(address string, cfgSnap *pro
 
 			filterOpts := listenerFilterOpts{
 				useRDS:           true,
+				fetchTimeoutRDS:  cfgSnap.GetXDSCommonConfig(s.Logger).GetXDSFetchTimeout(),
 				protocol:         listenerKey.Protocol,
 				filterName:       listenerKey.RouteName(),
 				routeName:        listenerKey.RouteName(),

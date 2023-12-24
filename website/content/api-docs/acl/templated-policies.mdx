@@ -1,0 +1,189 @@
+---
+layout: api
+page_title: ACL Templated Policies - HTTP API
+description: The /acl/templated-policies endpoints manage Consul's ACL templated policies.
+---
+
+# ACL Templated Policy HTTP API
+
+The `/acl/templated-policy` endpoints [read](#read-a-templated-policy-by-name),
+[preview](#preview-a-templated-policy), and [list](#list-templated-policies) ACL templated policies in Consul.
+
+For more information on how to setup ACLs, refer to the following resources: 
+
+- [Access control list (ACL) overview](/consul/docs/security/acl)
+- [ACL tutorial](/consul/tutorials/security/access-control-setup-production)
+
+## Read a templated policy by name
+
+This endpoint reads an ACL policy with the given ID.
+
+| Method | Path                     | Produces           |
+| ------ | ------------------------ | ------------------ |
+| `GET`  | `/acl/templated-policy/name/:name` | `application/json` |
+
+The following table shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`            | `none`             | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl templated-policy read -name=<string>`](/consul/commands/acl/templated-policy/read#name).
+
+### Path parameters
+
+- `name` `(string: <required>)` - Specifies the name of the ACL policy to read.
+
+### Sample request
+
+```shell-session
+$ curl --request GET http://127.0.0.1:8500/v1/acl/templated-policy/name/builtin/service
+```
+
+### Sample response
+
+```json
+{
+  "TemplateName": "builtin/service",
+  "Schema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n\t},\n\t\"required\": [\"name\"],\n\t\"definitions\": {\n\t\t\"min-length-one\": {\n\t\t\t\t\"type\": \"string\",\n\t\t\t\t\"minLength\": 1\n\t\t}\n\t}\n}",
+  "Template": "\nservice \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice \"{{.Name}}-sidecar-proxy\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}"
+}
+```
+
+## Preview a templated policy
+
+The `preview` endpoint shows the policy created from a templated policy. The endpoint helps you understand what templated variables are required or are missing from your request.
+
+| Method | Path          | Produces           |
+| ------ | ------------- | ------------------ |
+| `POST`  | `/acl/templated-policy/preview/:name` | `application/json` |
+
+The following table shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `NO`             | `none`            | `none`        | `acl:read`  |
+
+The corresponding CLI command is [`consul acl templated-policy preview`](/consul/commands/acl/templated-policy/preview).
+
+### Path parameters
+
+- `name` `(string: <required>)` - Specifies the name of the ACL templated policy to preview.
+
+### Query parameters
+
+- `ns` `(string: "")` <EnterpriseAlert inline /> - Specifies the namespace that the policy created from the template applies to.
+  You can also [specify the namespace through other methods](#methods-to-specify-namespace).
+
+### JSON request body schema
+
+- `Name` `(string: <optional>)` - Specifies the value of the `name` variable in the templated policy variables.
+
+### Sample payload
+
+```json
+{
+  "Name": "api"
+}
+```
+
+### Sample request
+
+```shell-session
+$ curl --request POST \
+    --data @payload.json \
+    http://127.0.0.1:8500/v1/acl-templated/preview/builtin/service
+```
+
+### Sample response
+
+```json
+{
+    "ID": "0a73657276696365202277656222207...",
+    "Name": "synthetic-policy-0a73657276...",
+    "Description": "synthetic policy generated from templated policy: builtin/service",
+    "Rules": "\nservice \"web\" {\n\tpolicy = \"write\"\n}\nservice \"web-sidecar-proxy\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}",
+    "Hash": "b04MnvCVtBXZAmGe4uDpGLABJoGo2nNhEJkqaN5E5x4=",
+    "CreateIndex": 0,
+    "ModifyIndex": 0
+}
+```
+
+## List templated policies
+
+Call the `templated-policies` endpoint with a `GET` method to list all templated ACL policies.
+
+| Method | Path                      | Produces           |
+| ------ | ------------------------- | ------------------ |
+| `GET`  | `/acl/templated-policies` | `application/json` |
+
+The following table shows this endpoint's support for
+[blocking queries](/consul/api-docs/features/blocking),
+[consistency modes](/consul/api-docs/features/consistency),
+[agent caching](/consul/api-docs/features/caching), and
+[required ACLs](/consul/api-docs/api-structure#authentication).
+
+| Blocking Queries | Consistency Modes | Agent Caching | ACL Required |
+| ---------------- | ----------------- | ------------- | ------------ |
+| `No`             | `none`             | `none`        | `acl:read`   |
+
+The corresponding CLI command is [`consul acl templated-policy list`](/consul/commands/acl/templated-policy/list).
+
+### Query parameters
+
+This endpoint does not accept query parameters.
+
+## Sample Request
+
+```shell-session
+$ curl --request GET http://127.0.0.1:8500/v1/acl/templated-policies
+```
+
+### Sample response 
+
+```json
+{
+  "builtin/dns": {
+      "TemplateName": "builtin/dns",
+      "Schema": "",
+      "Template": "\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nquery_prefix \"\" {\n\tpolicy = \"read\"\n}"
+  },
+  "builtin/node": {
+      "TemplateName": "builtin/node",
+      "Schema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n\t},\n\t\"required\": [\"name\"],\n\t\"definitions\": {\n\t\t\"min-length-one\": {\n\t\t\t\t\"type\": \"string\",\n\t\t\t\t\"minLength\": 1\n\t\t}\n\t}\n}",
+      "Template": "\nnode \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}"
+  },
+  "builtin/nomad-server": {
+      "TemplateName": "builtin/nomad-server",
+      "Schema": "",
+      "Template": "\nacl = \"write\"\nagent_prefix \"\" {\n  policy = \"read\"\n}\nnode_prefix \"\" {\n  policy = \"read\"\n}\nservice_prefix \"\" {\n  policy = \"write\"\n}"
+  },
+  "builtin/service": {
+      "TemplateName": "builtin/service",
+      "Schema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n\t},\n\t\"required\": [\"name\"],\n\t\"definitions\": {\n\t\t\"min-length-one\": {\n\t\t\t\t\"type\": \"string\",\n\t\t\t\t\"minLength\": 1\n\t\t}\n\t}\n}",
+      "Template": "\nservice \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice \"{{.Name}}-sidecar-proxy\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}\nnode_prefix \"\" {\n\tpolicy = \"read\"\n}"
+  },
+  "builtin/workload-identity": {
+      "TemplateName": "builtin/workload-identity",
+      "Schema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n  },\n  \"required\": [\"name\"],\n  \"definitions\": {\n    \"min-length-one\": {\n      \"type\": \"string\",\n      \"minLength\": 1\n    }\n  }\n}",
+      "Template": "identity \"{{.Name}}\" {\n\tpolicy = \"write\"\n}"
+  }
+}
+```
+
+## Methods to specify namespace <EnterpriseAlert inline />
+
+You can employ several methods to specify the namespace in calls to templated ACL policy endpoints. Consul applies the following order of precedence to determine the namespace:
+1. `Namespace` field of the JSON request body. This method only applies to [create](#create-a-policy) and [update](#update-a-policy) endpoints
+1. `ns` query parameter.
+1. `X-Consul-Namespace` request header.
+1. Namespace inherited from the namespace of the request's ACL token.
+1. The `default` namespace.

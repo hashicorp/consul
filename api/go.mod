@@ -6,7 +6,7 @@ replace github.com/hashicorp/consul/sdk => ../sdk
 
 require (
 	github.com/google/go-cmp v0.5.9
-	github.com/hashicorp/consul/sdk v0.14.1
+	github.com/hashicorp/consul/sdk v0.15.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.5.0
 	github.com/hashicorp/go-multierror v1.1.1
@@ -41,6 +41,6 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

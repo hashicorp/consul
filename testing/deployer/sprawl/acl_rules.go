@@ -86,22 +86,34 @@ func tokenForNode(node *topology.Node, enterprise bool) *api.ACLToken {
 	return token
 }
 
-func tokenForService(svc *topology.Service, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
+// Deprecated: tokenForWorkload
+func tokenForService(wrk *topology.Workload, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
+	return tokenForWorkload(wrk, overridePolicy, enterprise)
+}
+
+func tokenForWorkload(wrk *topology.Workload, overridePolicy *api.ACLPolicy, enterprise bool) *api.ACLToken {
 	token := &api.ACLToken{
-		Description: "service--" + svc.ID.ACLString(),
+		Description: "service--" + wrk.ID.ACLString(),
 		Local:       false,
 	}
 	if overridePolicy != nil {
 		token.Policies = []*api.ACLTokenPolicyLink{{ID: overridePolicy.ID}}
+	} else if wrk.IsV2() {
+		token.TemplatedPolicies = []*api.ACLTemplatedPolicy{{
+			TemplateName: api.ACLTemplatedPolicyWorkloadIdentityName,
+			TemplateVariables: &api.ACLTemplatedPolicyVariables{
+				Name: wrk.WorkloadIdentity,
+			},
+		}}
 	} else {
 		token.ServiceIdentities = []*api.ACLServiceIdentity{{
-			ServiceName: svc.ID.Name,
+			ServiceName: wrk.ID.Name,
 		}}
 	}
 
 	if enterprise {
-		token.Namespace = svc.ID.Namespace
-		token.Partition = svc.ID.Partition
+		token.Namespace = wrk.ID.Namespace
+		token.Partition = wrk.ID.Partition
 	}
 
 	return token
@@ -169,20 +181,20 @@ mesh = "write"
 `
 )
 
-func policyForMeshGateway(svc *topology.Service, enterprise bool) *api.ACLPolicy {
-	policyName := "mesh-gateway--" + svc.ID.ACLString()
+func policyForMeshGateway(wrk *topology.Workload, enterprise bool) *api.ACLPolicy {
+	policyName := "mesh-gateway--" + wrk.ID.ACLString()
 
 	policy := &api.ACLPolicy{
 		Name:        policyName,
 		Description: policyName,
 	}
 	if enterprise {
-		policy.Partition = svc.ID.Partition
+		policy.Partition = wrk.ID.Partition
 		policy.Namespace = "default"
 	}
 
 	if enterprise {
-		if svc.ID.Partition == "default" {
+		if wrk.ID.Partition == "default" {
 			policy.Rules = meshGatewayEntDefaultRules
 		} else {
 			policy.Rules = meshGatewayEntNonDefaultRules

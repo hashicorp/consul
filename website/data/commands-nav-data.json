@@ -102,6 +102,27 @@
         ]
       },
       {
+        "title": "templated policy",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "acl/templated-policy"
+          },
+          {
+            "title": "list",
+            "path": "acl/templated-policy/list"
+          },
+          {
+            "title": "preview",
+            "path": "acl/templated-policy/preview"
+          },
+          {
+            "title": "read",
+            "path": "acl/templated-policy/read"
+          }
+        ]
+      },
+      {
         "title": "role",
         "routes": [
           {
@@ -452,6 +473,10 @@
         "path": "peering/establish"
       },
       {
+        "title": "exported-services",
+        "path": "peering/exported-services"
+      },
+      {
         "title": "generate-token",
         "path": "peering/generate-token"
       },
@@ -550,6 +575,10 @@
       {
         "title": "proxy",
         "path": "troubleshoot/proxy"
+      },
+      {
+        "title": "ports",
+        "path": "troubleshoot/ports"
       }
     ]
   },

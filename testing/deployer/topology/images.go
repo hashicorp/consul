@@ -5,11 +5,27 @@ package topology
 
 import (
 	"strings"
+
+	goversion "github.com/hashicorp/go-version"
+)
+
+var (
+	MinVersionAgentTokenPartition = goversion.Must(goversion.NewVersion("v1.11.0"))
+	MinVersionPeering             = goversion.Must(goversion.NewVersion("v1.13.0"))
+	MinVersionTLS                 = goversion.Must(goversion.NewVersion("v1.12.0"))
 )
 
 type Images struct {
-	Consul           string `json:",omitempty"`
-	ConsulCE         string `json:",omitempty"`
+	// Consul is the image used for creating the container,
+	// Use ChooseConsul() to control which image (ConsulCE or ConsulEnterprise) assign to Consul
+	Consul string `json:",omitempty"`
+	// ConsulCE sets the CE image
+	ConsulCE string `json:",omitempty"`
+	// consulVersion is the version part of Consul image,
+	// e.g., if Consul image is hashicorp/consul-enterprise:1.15.0-ent,
+	// consulVersion is 1.15.0-ent
+	consulVersion string
+	// ConsulEnterprise sets the ent image
 	ConsulEnterprise string `json:",omitempty"`
 	Envoy            string
 	Dataplane        string
@@ -25,22 +41,27 @@ func (i Images) LocalDataplaneImage() string {
 		tag = "latest"
 	}
 
-	repo, name, ok := strings.Cut(img, "/")
-	if ok {
-		name = repo + "-" + name
-	}
+	name := strings.ReplaceAll(img, "/", "-")
 
 	// ex: local/hashicorp-consul-dataplane:1.1.0
 	return "local/" + name + ":" + tag
 }
 
+func (i Images) LocalDataplaneTProxyImage() string {
+	return spliceImageNamesAndTags(i.Dataplane, i.Consul, "tproxy")
+}
+
 func (i Images) EnvoyConsulImage() string {
-	if i.Consul == "" || i.Envoy == "" {
+	return spliceImageNamesAndTags(i.Consul, i.Envoy, "")
+}
+
+func spliceImageNamesAndTags(base1, base2, nameSuffix string) string {
+	if base1 == "" || base2 == "" {
 		return ""
 	}
 
-	img1, tag1, ok1 := strings.Cut(i.Consul, ":")
-	img2, tag2, ok2 := strings.Cut(i.Envoy, ":")
+	img1, tag1, ok1 := strings.Cut(base1, ":")
+	img2, tag2, ok2 := strings.Cut(base2, ":")
 	if !ok1 {
 		tag1 = "latest"
 	}
@@ -48,22 +69,15 @@ func (i Images) EnvoyConsulImage() string {
 		tag2 = "latest"
 	}
 
-	repo1, name1, ok1 := strings.Cut(img1, "/")
-	repo2, name2, ok2 := strings.Cut(img2, "/")
+	name1 := strings.ReplaceAll(img1, "/", "-")
+	name2 := strings.ReplaceAll(img2, "/", "-")
 
-	if ok1 {
-		name1 = repo1 + "-" + name1
-	} else {
-		name1 = repo1
-	}
-	if ok2 {
-		name2 = repo2 + "-" + name2
-	} else {
-		name2 = repo2
+	if nameSuffix != "" {
+		nameSuffix = "-" + nameSuffix
 	}
 
 	// ex: local/hashicorp-consul-and-envoyproxy-envoy:1.15.0-with-v1.26.2
-	return "local/" + name1 + "-and-" + name2 + ":" + tag1 + "-with-" + tag2
+	return "local/" + name1 + "-and-" + name2 + nameSuffix + ":" + tag1 + "-with-" + tag2
 }
 
 // TODO: what is this for and why do we need to do this and why is it named this?
@@ -82,6 +96,7 @@ func (i Images) ChooseNode(kind NodeKind) Images {
 	return i
 }
 
+// ChooseConsul controls which image assigns to Consul
 func (i Images) ChooseConsul(enterprise bool) Images {
 	if enterprise {
 		i.Consul = i.ConsulEnterprise
@@ -90,7 +105,19 @@ func (i Images) ChooseConsul(enterprise bool) Images {
 	}
 	i.ConsulEnterprise = ""
 	i.ConsulCE = ""
+
+	// extract the version part of Consul
+	i.consulVersion = i.Consul[strings.Index(i.Consul, ":")+1:]
 	return i
+}
+
+// GreaterThanVersion compares the image version to a specified version
+func (i Images) GreaterThanVersion(version *goversion.Version) bool {
+	if i.consulVersion == "local" {
+		return true
+	}
+	iVer := goversion.Must(goversion.NewVersion(i.consulVersion))
+	return iVer.GreaterThanOrEqual(version)
 }
 
 func (i Images) OverrideWith(i2 Images) Images {
@@ -119,7 +146,7 @@ func (i Images) OverrideWith(i2 Images) Images {
 func DefaultImages() Images {
 	return Images{
 		Consul:           "",
-		ConsulCE:         DefaultConsulImage,
+		ConsulCE:         DefaultConsulCEImage,
 		ConsulEnterprise: DefaultConsulEnterpriseImage,
 		Envoy:            DefaultEnvoyImage,
 		Dataplane:        DefaultDataplaneImage,

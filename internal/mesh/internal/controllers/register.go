@@ -6,10 +6,14 @@ package controllers
 import (
 	"context"
 
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshconfiguration"
+
 	"github.com/hashicorp/consul/agent/leafcert"
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/explicitdestinations/mapper"
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshgateways"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/proxyconfiguration"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/routes"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
@@ -44,8 +48,13 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 		sidecarproxy.Controller(cache.New(), deps.TrustDomainFetcher, deps.LocalDatacenter, deps.DefaultAllow),
 	)
 
+	mgr.Register(gatewayproxy.Controller(cache.New()))
+
 	mgr.Register(routes.Controller())
 
 	mgr.Register(proxyconfiguration.Controller(workloadselectionmapper.New[*pbmesh.ProxyConfiguration](pbmesh.ComputedProxyConfigurationType)))
 	mgr.Register(explicitdestinations.Controller(mapper.New()))
+
+	mgr.Register(meshgateways.Controller())
+	mgr.Register(meshconfiguration.Controller())
 }

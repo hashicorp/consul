@@ -5,8 +5,11 @@ package config
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/hashicorp/consul/agent/structs"
 )
@@ -308,4 +311,62 @@ func TestParseGatewayConfig(t *testing.T) {
 
 func intPointer(i int) *int {
 	return &i
+}
+
+func Test_ProxyConfig_GetXDSFetchTimeout(t *testing.T) {
+	tests := map[string]struct {
+		conf      map[string]interface{}
+		expect    *durationpb.Duration
+		expectErr bool
+	}{
+		"nil_conf": {
+			expect: nil,
+			conf:   nil,
+		},
+		"key_not_found": {
+			expect: nil,
+			conf:   map[string]interface{}{},
+		},
+		"invalid_key": {
+			expect: nil,
+			conf: map[string]interface{}{
+				"i_do_not_exist": "as_an_expected_field",
+			},
+		},
+		"nil_value_for_key": {
+			expect: nil,
+			conf: map[string]interface{}{
+				"xds_fetch_timeout_ms": nil,
+			},
+		},
+		"bad_value_for_key": {
+			expectErr: true,
+			conf: map[string]interface{}{
+				"xds_fetch_timeout_ms": "bad",
+			},
+		},
+		"negative_value_for_key": {
+			expect: nil,
+			conf: map[string]interface{}{
+				"xds_fetch_timeout_ms": -1,
+			},
+		},
+		"valid_value_for_key": {
+			expect: durationpb.New(99 * time.Millisecond),
+			conf: map[string]interface{}{
+				"xds_fetch_timeout_ms": 99,
+			},
+		},
+	}
+	for n, tc := range tests {
+		t.Run(n, func(t *testing.T) {
+			conf, err := ParseXDSCommonConfig(tc.conf)
+			if tc.expectErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			require.True(t, proto.Equal(tc.expect, conf.GetXDSFetchTimeout()))
+		})
+	}
 }

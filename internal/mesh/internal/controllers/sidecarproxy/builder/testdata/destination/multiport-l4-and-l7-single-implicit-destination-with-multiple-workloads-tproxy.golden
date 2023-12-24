@@ -26,7 +26,8 @@
             }
           }
         },
-        "name": "http.api-app.default.dc1.internal.foo.consul"
+        "name": "http.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_HTTP"
       },
       "original-destination": {
         "endpointGroup": {
@@ -36,7 +37,8 @@
             }
           }
         },
-        "name": "original-destination"
+        "name": "original-destination",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "tcp.api-app.default.dc1.internal.foo.consul",
@@ -63,7 +65,8 @@
             }
           }
         },
-        "name": "tcp.api-app.default.dc1.internal.foo.consul"
+        "name": "tcp.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       },
       "tcp2.api-app.default.dc1.internal.foo.consul": {
         "altStatName": "tcp2.api-app.default.dc1.internal.foo.consul",
@@ -90,7 +93,8 @@
             }
           }
         },
-        "name": "tcp2.api-app.default.dc1.internal.foo.consul"
+        "name": "tcp2.api-app.default.dc1.internal.foo.consul",
+        "protocol": "PROTOCOL_TCP"
       }
     },
     "identity": {
@@ -148,7 +152,7 @@
               "route": {
                 "name": "default/local/default/api-app:http"
               },
-              "statPrefix": "upstream."
+              "statPrefix": "upstream.http.api-app.default.default.dc1"
             },
             "match": {
               "destinationPort": 8080,

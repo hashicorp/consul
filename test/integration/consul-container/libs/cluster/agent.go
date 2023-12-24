@@ -10,7 +10,6 @@ import (
 	"io"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	agentconfig "github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/lib/decode"
 	"github.com/hashicorp/hcl"
@@ -96,10 +95,6 @@ func (c Config) Clone() Config {
 	return c2
 }
 
-type decodeTarget struct {
-	agentconfig.Config `mapstructure:",squash"`
-}
-
 // MutatebyAgentConfig mutates config by applying the fields in the input hclConfig
 // Note that the precedence order is config > hclConfig, because user provider hclConfig
 // may not work with the testing environment, e.g., data dir, agent name, etc.
@@ -135,7 +130,10 @@ func convertHcl2Json(in string) (string, error) {
 		return "", err
 	}
 
-	var target decodeTarget
+	// We target an opaque map so that changes to config fields not yet present
+	// in a tagged version of `consul` (missing from latest released schema)
+	// can be used in tests.
+	var target map[string]any
 	var md mapstructure.Metadata
 	d, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
 		DecodeHook: mapstructure.ComposeDecodeHookFunc(

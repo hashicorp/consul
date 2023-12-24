@@ -8,15 +8,17 @@ package testing
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/oklog/ulid/v2"
+	"google.golang.org/protobuf/types/known/anypb"
+
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	"github.com/oklog/ulid/v2"
-	"google.golang.org/protobuf/types/known/anypb"
-	"time"
 )
 
 func FillEntMeta(entMeta *acl.EnterpriseMeta) {
@@ -29,8 +31,6 @@ func FillAuthorizerContext(authzContext *acl.AuthorizerContext) {
 
 // initTenancy create the base tenancy objects (default/default)
 func initTenancy(ctx context.Context, b *inmem.Backend) error {
-	//TODO(dhiaayachi): This is now called for testing purpose but at some point we need to add something similar
-	// when bootstrapping a server, probably in the tenancy controllers.
 	nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
 	if err != nil {
 		return err
@@ -59,5 +59,4 @@ func initTenancy(ctx context.Context, b *inmem.Backend) error {
 		}
 	}
 	return nil
-
 }

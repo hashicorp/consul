@@ -15,6 +15,7 @@ type (
 	DecodedGRPCRoute                  = resource.DecodedResource[*pbmesh.GRPCRoute]
 	DecodedTCPRoute                   = resource.DecodedResource[*pbmesh.TCPRoute]
 	DecodedDestinationPolicy          = resource.DecodedResource[*pbmesh.DestinationPolicy]
+	DecodedDestinationsConfiguration  = resource.DecodedResource[*pbmesh.DestinationsConfiguration]
 	DecodedComputedRoutes             = resource.DecodedResource[*pbmesh.ComputedRoutes]
 	DecodedComputedTrafficPermissions = resource.DecodedResource[*pbauth.ComputedTrafficPermissions]
 	DecodedFailoverPolicy             = resource.DecodedResource[*pbcatalog.FailoverPolicy]
@@ -26,4 +27,5 @@ type (
 	DecodedDestinations               = resource.DecodedResource[*pbmesh.Destinations]
 	DecodedComputedDestinations       = resource.DecodedResource[*pbmesh.ComputedExplicitDestinations]
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
+	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
 )

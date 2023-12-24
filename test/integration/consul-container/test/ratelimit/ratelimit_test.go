@@ -4,17 +4,20 @@
 package ratelimit
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/stretchr/testify/require"
 
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	libtopology "github.com/hashicorp/consul/test/integration/consul-container/libs/topology"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
 )
 
 const (
@@ -45,10 +48,11 @@ func TestServerRequestRateLimit(t *testing.T) {
 		expectMetric      bool
 	}
 	type testCase struct {
-		description string
-		cmd         string
-		operations  []operation
-		mode        string
+		description    string
+		cmd            string
+		operations     []operation
+		mode           string
+		enterpriseOnly bool
 	}
 
 	// getKV and putKV are net/RPC calls
@@ -66,6 +70,30 @@ func TestServerRequestRateLimit(t *testing.T) {
 			return err
 		},
 		rateLimitOperation: "KVS.Apply",
+		rateLimitType:      "global/write",
+	}
+
+	// listPartition and putPartition are gRPC calls
+	listPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			_, _, err := client.Partitions().List(ctx, nil)
+			return err
+		},
+		rateLimitOperation: "/partition.PartitionService/List",
+		rateLimitType:      "global/read",
+	}
+
+	putPartition := action{
+		function: func(client *api.Client) error {
+			ctx := context.Background()
+			p := api.Partition{
+				Name: "ptest",
+			}
+			_, _, err := client.Partitions().Create(ctx, &p, nil)
+			return err
+		},
+		rateLimitOperation: "/partition.PartitionService/Write",
 		rateLimitType:      "global/write",
 	}
 
@@ -128,9 +156,73 @@ func TestServerRequestRateLimit(t *testing.T) {
 				},
 			},
 		},
+		// gRPC
+		{
+			description: "GRPC / Mode: disabled - errors: no / exceeded logs: no / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "disabled" read_rate = 0 write_rate = 0 }}`,
+			mode:        "disabled",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: false,
+					expectMetric:      false,
+				},
+			},
+			enterpriseOnly: true,
+		},
+		{
+			description: "GRPC / Mode: permissive - errors: no / exceeded logs: yes / metrics: no",
+			cmd:         `-hcl=limits { request_limits { mode = "permissive" read_rate = 0 write_rate = 0 }}`,
+			mode:        "permissive",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  "",
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+			},
+			enterpriseOnly: true,
+		},
+		{
+			description: "GRPC / Mode: enforcing - errors: yes / exceeded logs: yes / metrics: yes",
+			cmd:         `-hcl=limits { request_limits { mode = "enforcing" read_rate = 0 write_rate = 0 }}`,
+			mode:        "enforcing",
+			operations: []operation{
+				{
+					action:            putPartition,
+					expectedErrorMsg:  nonRetryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+				{
+					action:            listPartition,
+					expectedErrorMsg:  retryableErrorMsg,
+					expectExceededLog: true,
+					expectMetric:      true,
+				},
+			},
+			enterpriseOnly: true,
+		},
 	}
 
 	for _, tc := range testCases {
+		if tc.enterpriseOnly && !utils.IsEnterprise() {
+			continue
+		}
 		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
@@ -191,7 +283,7 @@ func setupClusterAndClient(t *testing.T, config *libtopology.ClusterConfig, isSe
 	return cluster, client
 }
 
-func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
+func checkForMetric(t testutil.TestingTB, cluster *libcluster.Cluster, operationName string, expectedLimitType string, expectedMode string, expectMetric bool) {
 	// validate metrics
 	server, err := cluster.GetClient(nil, true)
 	require.NoError(t, err)
@@ -229,7 +321,7 @@ func checkForMetric(t require.TestingT, cluster *libcluster.Cluster, operationNa
 	}
 }
 
-func checkLogsForMessage(t require.TestingT, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
+func checkLogsForMessage(t testutil.TestingTB, logs []string, msg string, operationName string, logType string, logShouldExist bool) {
 	if logShouldExist {
 		found := false
 		for _, log := range logs {

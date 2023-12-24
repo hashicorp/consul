@@ -42,7 +42,15 @@ func GetBytes(t *testing.T, actual, filename string) []byte {
 		require.NoError(t, err)
 	}
 
-	expected, err := os.ReadFile(path)
+	return GetBytesAtFilePath(t, path)
+}
+
+// GetBytes reads the expected value from the file at filepath and returns the
+// value as a byte array. filepath is relative to the ./testdata directory.
+func GetBytesAtFilePath(t *testing.T, filepath string) []byte {
+	t.Helper()
+
+	expected, err := os.ReadFile(filepath)
 	require.NoError(t, err)
 	return expected
 }

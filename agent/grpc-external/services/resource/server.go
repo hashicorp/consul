@@ -7,12 +7,13 @@ import (
 	"context"
 	"strings"
 
-	"github.com/hashicorp/go-hclog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+
+	"github.com/hashicorp/go-hclog"
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/acl/resolver"
@@ -35,6 +36,11 @@ type Config struct {
 	// TenancyBridge temporarily allows us to use V1 implementations of
 	// partitions and namespaces until V2 implementations are available.
 	TenancyBridge TenancyBridge
+
+	// UseV2Tenancy is true if the "v2tenancy" experiement is active, false otherwise.
+	// Attempts to create v2 tenancy resources (partition or namespace) will fail when the
+	// flag is false.
+	UseV2Tenancy bool
 }
 
 //go:generate mockery --name Registry --inpackage
@@ -205,6 +211,11 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 		return status.Errorf(codes.InvalidArgument, "name_prefix invalid: must be lowercase alphanumeric, got: %v", namePrefix)
 	}
 
+	// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
+	if tenancy.PeerName == "" {
+		tenancy.PeerName = resource.DefaultPeerName
+	}
+
 	return nil
 }
 
@@ -232,28 +243,58 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 	return nil
 }
 
-// tenancyMarkedForDeletion returns a gRPC InvalidArgument when either partition or namespace is marked for deletion.
-func tenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) error {
+func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy, allowWildcards bool) error {
+	if scope == resource.ScopePartition && tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
+		return status.Errorf(
+			codes.InvalidArgument,
+			"partition scoped resource %s cannot have a namespace. got: %s",
+			resource.ToGVK(resourceType),
+			tenancy.Namespace,
+		)
+	}
+
+	if scope == resource.ScopeCluster {
+		if tenancy.Partition != "" && (!allowWildcards || tenancy.Partition != storage.Wildcard) {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a partition: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Partition,
+			)
+		}
+		if tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
+			return status.Errorf(
+				codes.InvalidArgument,
+				"cluster scoped resource %s cannot have a namespace: %s",
+				resource.ToGVK(resourceType),
+				tenancy.Namespace,
+			)
+		}
+	}
+	return nil
+}
+
+func isTenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) (bool, error) {
 	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
 		marked, err := tenancyBridge.IsPartitionMarkedForDeletion(tenancy.Partition)
-		switch {
-		case err != nil:
-			return err
-		case marked:
-			return status.Errorf(codes.InvalidArgument, "partition marked for deletion: %v", tenancy.Partition)
+		if err != nil {
+			return false, err
+		}
+		if marked {
+			return marked, nil
 		}
 	}
 
 	if reg.Scope == resource.ScopeNamespace {
 		marked, err := tenancyBridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
-		switch {
-		case err != nil:
-			return err
-		case marked:
-			return status.Errorf(codes.InvalidArgument, "namespace marked for deletion: %v", tenancy.Namespace)
+		if err != nil {
+			return false, err
 		}
+		return marked, nil
 	}
-	return nil
+
+	// Cluster scope has no tenancy so always return false
+	return false, nil
 }
 
 func clone[T proto.Message](v T) T { return proto.Clone(v).(T) }
