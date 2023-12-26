@@ -427,7 +427,7 @@ type Server struct {
 	// operatorBackend is shared between the external and internal gRPC services for peering
 	operatorBackend *OperatorBackend
 
-	// configEntryBackend is shared between the external and internal gRPC services for config entry
+	// configEntryBackend is shared between the external and internal gRPC services for config entries
 	configEntryBackend *ConfigEntryBackend
 
 	// peerStreamServer is a server used to handle peering streams from external clusters.
@@ -1039,7 +1039,7 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 	s.operatorServer = o
 
 	s.configEntryBackend = NewConfigEntryBackend(s)
-	c := configentry.NewServer(configentry.Config{
+	s.configEntryServer = configentry.NewServer(configentry.Config{
 		Backend: s.configEntryBackend,
 		Logger:  deps.Logger.Named("grpc-api.configentry"),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
@@ -1051,7 +1051,6 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		},
 		FSMServer: s,
 	})
-	s.configEntryServer = c
 
 	register := func(srv *grpc.Server) {
 		if config.RPCConfig.EnableStreaming {
@@ -1483,10 +1482,6 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 		Datacenter:     s.config.Datacenter,
 		ConnectEnabled: s.config.ConnectEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
-			}
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})

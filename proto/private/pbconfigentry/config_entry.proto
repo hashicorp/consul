@@ -31,8 +31,12 @@ message GetResolvedExportedServicesResponse {
 message ResolvedExportedService {
   string Service = 1;
   common.EnterpriseMeta EnterpriseMeta = 2;
-  repeated string ConsumerPeers = 3;
-  repeated string ConsumerPartitions = 4;
+  Consumers Consumers = 3;
+}
+
+message Consumers {
+  repeated string Peers = 1;
+  repeated string Partitions = 2; 
 }
 
 enum Kind {

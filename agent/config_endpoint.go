@@ -181,6 +181,8 @@ func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Req
 	return s.parseEntMetaNoWildcard(req, entMeta)
 }
 
+// ResolvedExportedServices returns all the exported services by resolving wildcards and sameness groups
+// in the exported services configuration entry
 func (s *HTTPHandlers) ResolvedExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {

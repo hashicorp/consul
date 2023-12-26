@@ -50,8 +50,10 @@ func prepareExportedServicesResponse(exportedServices map[structs.ServiceName]ma
 		sort.Strings(consumerPeers)
 
 		resp = append(resp, &pbconfigentry.ResolvedExportedService{
-			Service:       svc.Name,
-			ConsumerPeers: consumerPeers,
+			Service: svc.Name,
+			Consumers: &pbconfigentry.Consumers{
+				Peers: consumerPeers,
+			},
 		})
 	}
 

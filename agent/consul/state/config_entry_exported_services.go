@@ -67,16 +67,16 @@ func getExportedServicesConfigEntryTxn(
 	return idx, export, nil
 }
 
-// ExportedServices returns the list of exported services along with consumers.
-// Sameness Groups and wild card entries are expanded.
-func (s *Store) ExportedServices(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedExportedService, error) {
+// ResolvedExportedServices returns the list of exported services along with consumers.
+// Sameness Groups and wild card entries are resolved.
+func (s *Store) ResolvedExportedServices(ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedExportedService, error) {
 	tx := s.db.ReadTxn()
 	defer tx.Abort()
 
-	return exportedServicesTxn(tx, ws, entMeta)
+	return resolvedExportedServicesTxn(tx, ws, entMeta)
 }
 
-func exportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedExportedService, error) {
+func resolvedExportedServicesTxn(tx ReadTxn, ws memdb.WatchSet, entMeta *acl.EnterpriseMeta) (uint64, []*pbconfigentry.ResolvedExportedService, error) {
 	var resp []*pbconfigentry.ResolvedExportedService
 
 	// getSimplifiedExportedServices resolves the sameness group information to partitions and peers.

@@ -44,9 +44,9 @@ type Backend interface {
 }
 
 func NewServer(cfg Config) *Server {
-	requireNotNil(cfg.Backend, "Backend")
-	requireNotNil(cfg.Logger, "Logger")
-	requireNotNil(cfg.FSMServer, "FSMServer")
+	external.RequireNotNil(cfg.Backend, "Backend")
+	external.RequireNotNil(cfg.Logger, "Logger")
+	external.RequireNotNil(cfg.FSMServer, "FSMServer")
 
 	return &Server{
 		Config: cfg,
@@ -58,14 +58,6 @@ var _ pbconfigentry.ConfigEntryServiceServer = (*Server)(nil)
 type readRequest struct {
 	structs.QueryOptions
 	structs.DCSpecificRequest
-}
-
-var emptyDCSpecificRequest structs.DCSpecificRequest
-
-func requireNotNil(v interface{}, name string) {
-	if v == nil {
-		panic(name + " is required")
-	}
 }
 
 func (s *Server) Register(grpcServer *grpc.Server) {
@@ -87,6 +79,8 @@ func (s *Server) GetResolvedExportedServices(
 	}
 
 	var resp *pbconfigentry.GetResolvedExportedServicesResponse
+	var emptyDCSpecificRequest structs.DCSpecificRequest
+
 	handled, err := s.ForwardRPC(&readRequest{options, emptyDCSpecificRequest}, func(conn *grpc.ClientConn) error {
 		var err error
 		resp, err = pbconfigentry.NewConfigEntryServiceClient(conn).GetResolvedExportedServices(ctx, req)
@@ -96,7 +90,7 @@ func (s *Server) GetResolvedExportedServices(
 		return resp, err
 	}
 
-	defer metrics.MeasureSince([]string{"configentry", "GetResolvedExportedServices"}, time.Now())
+	defer metrics.MeasureSince([]string{"configentry", "get_resolved_exported_services"}, time.Now())
 
 	var authzCtx acl.AuthorizerContext
 	entMeta := structs.DefaultEnterpriseMetaInPartition(req.Partition)
@@ -113,7 +107,7 @@ func (s *Server) GetResolvedExportedServices(
 	res := &pbconfigentry.GetResolvedExportedServicesResponse{}
 	meta := structs.QueryMeta{}
 	err = blockingquery.Query(s.FSMServer, &options, &meta, func(ws memdb.WatchSet, store *state.Store) error {
-		idx, exportedSvcs, err := store.ExportedServices(ws, entMeta)
+		idx, exportedSvcs, err := store.ResolvedExportedServices(ws, entMeta)
 		if err != nil {
 			return err
 		}

@@ -795,12 +795,16 @@ func TestConfig_Resolved_Exported_Services(t *testing.T) {
 
 		expected := []*pbconfigentry.ResolvedExportedService{
 			{
-				Service:       "api",
-				ConsumerPeers: []string{"east", "west"},
+				Service: "api",
+				Consumers: &pbconfigentry.Consumers{
+					Peers: []string{"east", "west"},
+				},
 			},
 			{
-				Service:       "db",
-				ConsumerPeers: []string{"east"},
+				Service: "db",
+				Consumers: &pbconfigentry.Consumers{
+					Peers: []string{"east"},
+				},
 			},
 		}
 		require.ElementsMatch(t, expected, services)
