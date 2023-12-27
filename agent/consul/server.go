@@ -1043,10 +1043,6 @@ func newGRPCHandlerFromConfig(deps Deps, config *Config, s *Server) connHandler 
 		Backend: s.configEntryBackend,
 		Logger:  deps.Logger.Named("grpc-api.configentry"),
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
-			// Only forward the request if the dc in the request matches the server's datacenter.
-			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
-				return false, fmt.Errorf("requests to transfer leader cannot be forwarded to remote datacenters")
-			}
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 		FSMServer: s,
@@ -1482,6 +1478,10 @@ func (s *Server) setupExternalGRPC(config *Config, deps Deps, logger hclog.Logge
 		Datacenter:     s.config.Datacenter,
 		ConnectEnabled: s.config.ConnectEnabled,
 		ForwardRPC: func(info structs.RPCInfo, fn func(*grpc.ClientConn) error) (bool, error) {
+			// Only forward the request if the dc in the request matches the server's datacenter.
+			if info.RequestDatacenter() != "" && info.RequestDatacenter() != config.Datacenter {
+				return false, fmt.Errorf("requests to generate peering tokens cannot be forwarded to remote datacenters")
+			}
 			return s.ForwardGRPC(s.grpcConnPool, info, fn)
 		},
 	})

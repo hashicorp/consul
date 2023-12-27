@@ -10,7 +10,6 @@ import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "private/pbcommon/common.proto";
 
-
 // ConfigEntryService handles operations related to config entries
 service ConfigEntryService {
   rpc GetResolvedExportedServices(GetResolvedExportedServicesRequest) returns (GetResolvedExportedServicesResponse) {
