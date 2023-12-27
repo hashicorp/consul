@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/agent/blockingquery"
 	"github.com/hashicorp/consul/agent/consul/state"
 	"github.com/hashicorp/consul/agent/consul/stream"
 	"github.com/stretchr/testify/require"
@@ -68,6 +69,47 @@ func (f *FakeFSM) ReplaceStore(store *state.Store) {
 	for _, topic := range f.config.Refresh {
 		f.config.publisher.RefreshTopic(topic)
 	}
+}
+
+type FakeBlockingFSM struct {
+	store *state.Store
+}
+
+func NewFakeBlockingFSM(t *testing.T) *FakeBlockingFSM {
+	t.Helper()
+
+	store := TestStateStore(t, nil)
+
+	fsm := &FakeBlockingFSM{store: store}
+
+	return fsm
+}
+
+func (f *FakeBlockingFSM) GetState() *state.Store {
+	return f.store
+}
+
+func (f *FakeBlockingFSM) ConsistentRead() error {
+	return nil
+}
+
+func (f *FakeBlockingFSM) DecrementBlockingQueries() uint64 {
+	return 0
+}
+
+func (f *FakeBlockingFSM) IncrementBlockingQueries() uint64 {
+	return 0
+}
+
+func (f *FakeBlockingFSM) GetShutdownChannel() chan struct{} {
+	return nil
+}
+
+func (f *FakeBlockingFSM) RPCQueryTimeout(queryTimeout time.Duration) time.Duration {
+	return queryTimeout
+}
+
+func (f *FakeBlockingFSM) SetQueryMeta(blockingquery.ResponseMeta, string) {
 }
 
 func SetupFSMAndPublisher(t *testing.T, config FakeFSMConfig) (*FakeFSM, state.EventPublisher) {
