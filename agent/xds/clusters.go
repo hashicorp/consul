@@ -1620,17 +1620,19 @@ func injectSANMatcher(tlsContext *envoy_tls_v3.CommonTlsContext, matchStrings ..
 			tlsContext.ValidationContextType)
 	}
 
-	var matchers []*envoy_matcher_v3.StringMatcher
+	var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 	for _, m := range matchStrings {
-		matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
-			MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-				Exact: m,
+		matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+			SanType: envoy_tls_v3.SubjectAltNameMatcher_URI,
+			Matcher: &envoy_matcher_v3.StringMatcher{
+				MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+					Exact: m,
+				},
 			},
 		})
 	}
 
-	//nolint:staticcheck
-	validationCtx.ValidationContext.MatchSubjectAltNames = matchers
+	validationCtx.ValidationContext.MatchTypedSubjectAltNames = matchers
 
 	return nil
 }
