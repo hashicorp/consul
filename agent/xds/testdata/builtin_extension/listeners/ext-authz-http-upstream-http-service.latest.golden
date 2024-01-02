@@ -121,13 +121,11 @@
                             "patterns": [
                               {
                                 "safeRegex": {
-                                  "googleRe2": {},
                                   "regex": "client-ok-header-1"
                                 }
                               },
                               {
                                 "safeRegex": {
-                                  "googleRe2": {},
                                   "regex": "client-ok-header-2"
                                 }
                               }
