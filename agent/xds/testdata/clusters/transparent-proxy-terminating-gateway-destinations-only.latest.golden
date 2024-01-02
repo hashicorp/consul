@@ -168,10 +168,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
                     "exact": "api.test.com"
-                  }
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
