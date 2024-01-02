@@ -66,6 +66,9 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+# When changing the method of Go version detection, also update
+# version detection in CI workflows (reusable-get-go-version.yml).
+GOLANG_VERSION?=$(shell head -n 1 .go-version)
 ENVOY_VERSION?='1.25.4'
 CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
 DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
@@ -519,8 +522,8 @@ docker-images: go-build-image ui-build-image
 
 .PHONY: go-build-image
 go-build-image: ## Building Golang build container
-	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@echo "Building Golang $(GOLANG_VERSION) build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) --build-arg GOLANG_VERSION=$(GOLANG_VERSION) - < build-support/docker/Build-Go.dockerfile
 
 .PHONY: consul-docker
 consul-docker: go-build-image ## Builds consul in a docker container and then dumps executable into ./pkg/bin/...

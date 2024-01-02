@@ -37,6 +37,9 @@ on:
         required: false
         type: string
         default: ""
+      go-version:
+        required: true
+        type: string
     secrets:
       elevated-github-token:
         required: true
@@ -63,7 +66,7 @@ jobs:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ inputs.go-version }}
       - id: set-matrix
         run: ./.github/scripts/set_test_package_matrix.sh ${{env.TOTAL_RUNNERS}}
 
@@ -90,8 +93,7 @@ jobs:
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
-          cache: true
+          go-version: ${{ inputs.go-version }}
       - run: mkdir -p ${{env.TEST_RESULTS}}
       - name: go mod download
         working-directory: ${{inputs.directory}}
