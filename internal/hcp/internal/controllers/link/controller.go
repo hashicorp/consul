@@ -5,17 +5,22 @@ package link
 
 import (
 	"context"
-	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
+	"time"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/anypb"
+
+	gnmmod "github.com/hashicorp/hcp-sdk-go/clients/cloud-global-network-manager-service/preview/2022-02-15/models"
 
 	hcpclient "github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/internal/resource"
+	"github.com/hashicorp/consul/lib/retry"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/hcp/internal/types"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 )
 
@@ -37,8 +42,11 @@ var DefaultHCPClientFn HCPClientFn = func(link *pbhcp.Link) (hcpclient.Client, e
 	return hcpClient, nil
 }
 
-func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpClientFn HCPClientFn) *controller.Controller {
+func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool, hcpClientFn HCPClientFn, cfg config.CloudConfig) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
+		WithInitializer(&linkInitializer{
+			cloudConfig: cfg,
+		}).
 		WithReconciler(&linkReconciler{
 			resourceApisEnabled:    resourceApisEnabled,
 			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
@@ -168,4 +176,66 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	return r.writeStatusIfNotEqual(ctx, rt, res, newStatus)
+}
+
+type linkInitializer struct {
+	cloudConfig config.CloudConfig
+}
+
+func (i *linkInitializer) Initialize(ctx context.Context, rt controller.Runtime) error {
+	if !i.cloudConfig.IsConfigured() {
+		return nil
+	}
+
+	// Construct a link resource to reflect the configuration
+	data, err := anypb.New(&pbhcp.Link{
+		ResourceId:   i.cloudConfig.ResourceID,
+		ClientId:     i.cloudConfig.ClientID,
+		ClientSecret: i.cloudConfig.ClientSecret,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Create the link resource for a configuration-based link
+	w := retry.Waiter{
+		MinWait: 1 * time.Second,
+		MaxWait: 15 * time.Second,
+		Jitter:  retry.NewJitter(50),
+	}
+	retryCtx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+	var writeErr error
+	for {
+		_, writeErr = rt.Client.Write(ctx,
+			&pbresource.WriteRequest{
+				Resource: &pbresource.Resource{
+					Id: &pbresource.ID{
+						Name: types.LinkName,
+						Type: pbhcp.LinkType,
+					},
+					Metadata: map[string]string{
+						types.MetadataSourceKey: types.MetadataSourceConfig,
+					},
+					Data: data,
+				},
+			},
+		)
+		if writeErr != nil {
+			// Retry on error
+			rt.Logger.Trace("error initializing link, retrying", "error", writeErr)
+			if err := w.Wait(retryCtx); err != nil {
+				// Retry timed out, break out of retry loop
+				break
+			}
+			continue
+		}
+		// Write was successful, break out of retry loop
+		break
+	}
+	if writeErr != nil {
+		return writeErr
+	}
+
+	return nil
 }

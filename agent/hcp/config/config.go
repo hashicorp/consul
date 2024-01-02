@@ -65,3 +65,9 @@ func (c *CloudConfig) HCPConfig(opts ...hcpcfg.HCPConfigOption) (hcpcfg.HCPConfi
 	opts = append(opts, hcpcfg.FromEnv(), hcpcfg.WithoutBrowserLogin())
 	return hcpcfg.NewHCPConfig(opts...)
 }
+
+// IsConfigured returns whether the cloud configuration has been set either
+// in the configuration file or via environment variables.
+func (c *CloudConfig) IsConfigured() bool {
+	return c.ResourceID != "" && c.ClientID != "" && c.ClientSecret != ""
+}
