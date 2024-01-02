@@ -64,6 +64,9 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
+# When changing the method of Go version detection, also update
+# version detection in CI workflows (reusable-get-go-version.yml).
+GOLANG_VERSION?=$(shell head -n 1 .go-version)
 ENVOY_VERSION?='1.25.4'
 
 ################
@@ -331,9 +334,9 @@ other-consul:
 		echo "Found other running consul agents. This may affect your tests." ; \
 		exit 1 ; \
 	fi
-	
+
 .PHONY: fmt
-fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod)) 
+fmt: $(foreach mod,$(GO_MODULES),fmt/$(mod))
 
 .PHONY: fmt/%
 fmt/%:
@@ -409,8 +412,8 @@ version:
 docker-images: go-build-image ui-build-image
 
 go-build-image:
-	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@echo "Building Golang $(GOLANG_VERSION) build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) --build-arg GOLANG_VERSION=$(GOLANG_VERSION) - < build-support/docker/Build-Go.dockerfile
 
 ui-build-image:
 	@echo "Building UI build container"

@@ -30,8 +30,13 @@ jobs:
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   dev-build-push:
-    needs: setup
+    needs:
+    - setup
+    - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -65,7 +70,7 @@ jobs:
 
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # pin@v3.5.0
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     
     - run: go env
 
