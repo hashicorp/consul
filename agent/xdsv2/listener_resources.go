@@ -730,13 +730,16 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 			return nil, fmt.Errorf("failed to create transport socket: provided peer name does not exist in trust bundle map: %s", peerName)
 		}
 
-		var matchers []*envoy_matcher_v3.StringMatcher
+		var matchers []*envoy_tls_v3.SubjectAltNameMatcher
 		if len(om.ValidationContext.SpiffeIds) > 0 {
-			matchers = make([]*envoy_matcher_v3.StringMatcher, 0)
+			matchers = make([]*envoy_tls_v3.SubjectAltNameMatcher, 0)
 			for _, m := range om.ValidationContext.SpiffeIds {
-				matchers = append(matchers, &envoy_matcher_v3.StringMatcher{
-					MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
-						Exact: m,
+				matchers = append(matchers, &envoy_tls_v3.SubjectAltNameMatcher{
+					SanType: envoy_tls_v3.SubjectAltNameMatcher_URI,
+					Matcher: &envoy_matcher_v3.StringMatcher{
+						MatchPattern: &envoy_matcher_v3.StringMatcher_Exact{
+							Exact: m,
+						},
 					},
 				})
 			}
@@ -749,7 +752,7 @@ func (pr *ProxyResources) makeEnvoyTransportSocket(ts *pbproxystate.TransportSoc
 						InlineString: RootPEMsAsString(tb.Roots),
 					},
 				},
-				MatchSubjectAltNames: matchers,
+				MatchTypedSubjectAltNames: matchers,
 			},
 		}
 

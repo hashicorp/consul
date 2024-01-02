@@ -1962,9 +1962,12 @@
           "trusted_ca": {
            "inline_string": "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBCzAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktYWRk\najM4YWsuY29uc3VsLmNhLjc4MzhiNGJkLmNvbnN1bDAeFw0yMzAxMjcxNzI2MjVa\nFw0zMzAxMjQxNzI2MjVaMDExLzAtBgNVBAMTJnByaS1hZGRqMzhhay5jb25zdWwu\nY2EuNzgzOGI0YmQuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkCV2\nZ+2bi4uRGjiUye4K5CO8IhF/7nqsTFG+f4dRio7JLOkAUDzlGLKbH+mLqce0YLzb\nS9hpIJjSk3ge+q8EPaOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUw\nAwEB/zApBgNVHQ4EIgQgUYvu/s5FtHrW/Ilzfbe1QgkGOEKJjXvn7AiEQ8WS+pIw\nKwYDVR0jBCQwIoAgUYvu/s5FtHrW/Ilzfbe1QgkGOEKJjXvn7AiEQ8WS+pIwPwYD\nVR0RBDgwNoY0c3BpZmZlOi8vNzgzOGI0YmQtNThiMy04MTE3LTNkZjEtNjA1ODQ5\nMTA1NDFiLmNvbnN1bDAKBggqhkjOPQQDAgNHADBEAiAv+zXWDgQsI9dPeedNCvI6\ntSP0bFU6q1LiL2b6PPR55wIgftf6sS3lzp5dSwhm7VgksQRKzAV7ixmXP0nMWdwT\nbQo=\n-----END CERTIFICATE-----\n"
           },
-          "match_subject_alt_names": [
+          "match_typed_subject_alt_names": [
            {
-            "exact": "spiffe://7838b4bd-58b3-8117-3df1-60584910541b.consul/ns/default/dc/dc1/svc/backend"
+            "san_type": "URI",
+            "matcher": {
+             "exact": "spiffe://7838b4bd-58b3-8117-3df1-60584910541b.consul/ns/default/dc/dc1/svc/backend"
+            }
            }
           ]
          }
@@ -2014,9 +2017,12 @@
           "trusted_ca": {
            "inline_string": "-----BEGIN CERTIFICATE-----\nMIICDjCCAbWgAwIBAgIBCzAKBggqhkjOPQQDAjAxMS8wLQYDVQQDEyZwcmktYWRk\najM4YWsuY29uc3VsLmNhLjc4MzhiNGJkLmNvbnN1bDAeFw0yMzAxMjcxNzI2MjVa\nFw0zMzAxMjQxNzI2MjVaMDExLzAtBgNVBAMTJnByaS1hZGRqMzhhay5jb25zdWwu\nY2EuNzgzOGI0YmQuY29uc3VsMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEkCV2\nZ+2bi4uRGjiUye4K5CO8IhF/7nqsTFG+f4dRio7JLOkAUDzlGLKbH+mLqce0YLzb\nS9hpIJjSk3ge+q8EPaOBvTCBujAOBgNVHQ8BAf8EBAMCAYYwDwYDVR0TAQH/BAUw\nAwEB/zApBgNVHQ4EIgQgUYvu/s5FtHrW/Ilzfbe1QgkGOEKJjXvn7AiEQ8WS+pIw\nKwYDVR0jBCQwIoAgUYvu/s5FtHrW/Ilzfbe1QgkGOEKJjXvn7AiEQ8WS+pIwPwYD\nVR0RBDgwNoY0c3BpZmZlOi8vNzgzOGI0YmQtNThiMy04MTE3LTNkZjEtNjA1ODQ5\nMTA1NDFiLmNvbnN1bDAKBggqhkjOPQQDAgNHADBEAiAv+zXWDgQsI9dPeedNCvI6\ntSP0bFU6q1LiL2b6PPR55wIgftf6sS3lzp5dSwhm7VgksQRKzAV7ixmXP0nMWdwT\nbQo=\n-----END CERTIFICATE-----\n"
           },
-          "match_subject_alt_names": [
+          "match_typed_subject_alt_names": [
            {
-            "exact": "spiffe://7838b4bd-58b3-8117-3df1-60584910541b.consul/ns/default/dc/dc1/svc/backend2"
+            "san_type": "URI",
+            "matcher": {
+             "exact": "spiffe://7838b4bd-58b3-8117-3df1-60584910541b.consul/ns/default/dc/dc1/svc/backend"
+            }
            }
           ]
          }

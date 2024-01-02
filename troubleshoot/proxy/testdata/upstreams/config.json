@@ -174,8 +174,7 @@
                                                         "name": "backend2.default.dc1.internal.domain.consul",
                                                         "weight": 5000
                                                     }
-                                                ],
-                                                "total_weight": 10000
+                                                ]
                                             }
                                         }
                                     }
