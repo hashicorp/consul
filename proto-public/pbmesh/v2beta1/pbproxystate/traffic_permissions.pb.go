@@ -95,7 +95,6 @@ type Permission struct {
 	unknownFields protoimpl.UnknownFields
 
 	Principals []*Principal `protobuf:"bytes,1,rep,name=principals,proto3" json:"principals,omitempty"`
-	// We don't need destination rules here yet because they either apply to L7 features or multi-ports.
 	// In the case of multiple ports, the sidecar proxy controller is responsible for filtering
 	// per-port permissions.
 	DestinationRules []*DestinationRule `protobuf:"bytes,2,rep,name=destination_rules,json=destinationRules,proto3" json:"destination_rules,omitempty"`

@@ -17,7 +17,6 @@ message TrafficPermissions {
 message Permission {
   repeated Principal principals = 1;
 
-  // We don't need destination rules here yet because they either apply to L7 features or multi-ports.
   // In the case of multiple ports, the sidecar proxy controller is responsible for filtering
   // per-port permissions.
   repeated DestinationRule destination_rules = 2;

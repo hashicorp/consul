@@ -62,7 +62,24 @@
                     "name":  "envoy.filters.http.rbac",
                     "typedConfig":  {
                       "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules":  {}
+                      "rules":  {
+                        "policies": {
+                          "consul-intentions-layer4": {
+                            "permissions": [{
+                              "any": true
+                            }],
+                            "principals": [{
+                              "authenticated": {
+                                "principalName": {
+                                  "safeRegex": {
+                                    "regex":"^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                                  }
+                                }
+                              }
+                            }]
+                          }
+                        }
+                      }
                     }
                   },
                   {
@@ -152,7 +169,24 @@
                     "name":  "envoy.filters.http.rbac",
                     "typedConfig":  {
                       "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules":  {}
+                      "rules":  {
+                        "policies": {
+                          "consul-intentions-layer4": {
+                            "permissions": [{
+                              "any": true
+                            }],
+                            "principals": [{
+                              "authenticated": {
+                                "principalName": {
+                                  "safeRegex": {
+                                    "regex":"^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                                  }
+                                }
+                              }
+                            }]
+                          }
+                        }
+                      }
                     }
                   },
                   {
@@ -240,7 +274,24 @@
                     "name":  "envoy.filters.http.rbac",
                     "typedConfig":  {
                       "@type":  "type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC",
-                      "rules":  {}
+                      "rules":  {
+                        "policies": {
+                          "consul-intentions-layer4": {
+                            "permissions": [{
+                              "any": true
+                            }],
+                            "principals": [{
+                              "authenticated": {
+                                "principalName": {
+                                  "safeRegex": {
+                                    "regex":"^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                                  }
+                                }
+                              }
+                            }]
+                          }
+                        }
+                      }
                     }
                   },
                   {
@@ -303,7 +354,24 @@
               "name":  "envoy.filters.network.rbac",
               "typedConfig":  {
                 "@type":  "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
-                "rules":  {},
+                "rules":  {
+                  "policies": {
+                          "consul-intentions-layer4": {
+                            "permissions": [{
+                              "any": true
+                            }],
+                            "principals": [{
+                              "authenticated": {
+                                "principalName": {
+                                  "safeRegex": {
+                                    "regex":"^spiffe://foo.consul/ap/default/ns/default/identity/foo$"
+                                  }
+                                }
+                              }
+                            }]
+                          }
+                        }
+                      },
                 "statPrefix":  "connect_authz"
               }
             },
