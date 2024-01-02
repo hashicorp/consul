@@ -38,13 +38,19 @@ jobs:
       - id: runners
         run: .github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   dev-build:
-    needs: [setup]
+    needs:
+    - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       uploaded-binary-name: 'consul-bin'
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -91,6 +97,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
+      - get-go-version
       - generate-envoy-job-matrices
       - dev-build
     permissions:
@@ -113,7 +120,7 @@ jobs:
           ref: ${{ inputs.branch }}
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: fetch binary
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
@@ -186,6 +193,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
+      - get-go-version
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -211,7 +219,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
 
       # Get go binary from workspace
@@ -314,6 +322,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large ) }}
     needs:
       - setup
+      - get-go-version
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -334,7 +343,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go env
       - name: Build image
         run: make test-deployer-setup
