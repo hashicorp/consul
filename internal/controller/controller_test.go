@@ -50,6 +50,7 @@ func TestController_API(t *testing.T) {
 	})
 
 	rec := newTestReconciler()
+	init := newTestInitializer()
 	client := svctest.NewResourceServiceBuilder().
 		WithRegisterFns(demo.RegisterTypes).
 		Run(t)
@@ -70,12 +71,21 @@ func TestController_API(t *testing.T) {
 		WithQuery("some-query", errQuery).
 		WithCustomWatch(concertSource, concertMapper).
 		WithBackoff(10*time.Millisecond, 100*time.Millisecond).
-		WithReconciler(rec)
+		WithReconciler(rec).
+		WithInitializer(init)
 
 	mgr := controller.NewManager(client, testutil.Logger(t))
 	mgr.Register(ctrl)
 	mgr.SetRaftLeader(true)
+	init.failNext(errors.New("initialize error"))
 	go mgr.Run(testContext(t))
+
+	t.Run("initialize", func(t *testing.T) {
+		// First attempt at initialization, expected to error
+		init.wait(t)
+		// Initialization retried due to error
+		init.wait(t)
+	})
 
 	t.Run("managed resource type", func(t *testing.T) {
 		res, err := demo.GenerateV2Artist()
@@ -492,4 +502,43 @@ type Concert struct {
 
 func (c Concert) Key() string {
 	return c.name
+}
+
+func newTestInitializer() *testInitializer {
+	return &testInitializer{
+		calls:  make(chan error, 1),
+		errors: make(chan error, 1),
+	}
+}
+
+type testInitializer struct {
+	calls  chan error
+	errors chan error
+}
+
+func (i *testInitializer) Initialize(_ context.Context, _ controller.Runtime) error {
+	select {
+	case err := <-i.errors:
+		i.calls <- err
+		return err
+	default:
+		i.calls <- nil
+		return nil
+	}
+}
+
+func (i *testInitializer) failNext(err error) { i.errors <- err }
+
+func (i *testInitializer) wait(t *testing.T) {
+	t.Helper()
+	select {
+	case err := <-i.calls:
+		if err == nil {
+			// Initialize did not error, no more calls should be expected
+			close(i.calls)
+		}
+		return
+	case <-time.After(1000 * time.Millisecond):
+		t.Fatal("Initialize was not called after 1000ms")
+	}
 }

@@ -67,6 +67,17 @@ func (c *controllerRunner) run(ctx context.Context) error {
 	c.logger.Debug("controller running")
 	defer c.logger.Debug("controller stopping")
 
+	// Initialize the controller if required
+	if c.ctrl.initializer != nil {
+		c.logger.Debug("controller initializing")
+		err := c.ctrl.initializer.Initialize(ctx, c.runtime(c.logger))
+		if err != nil {
+			c.logger.Error("error initializing controller", "error", err)
+			return err
+		}
+		c.logger.Debug("controller initialized")
+	}
+
 	c.cache = c.ctrl.buildCache()
 	defer func() {
 		// once no longer running we should nil out the cache
