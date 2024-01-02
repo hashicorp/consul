@@ -6,6 +6,7 @@ package lua
 import (
 	"errors"
 	"fmt"
+	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 
 	envoy_listener_v3 "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	envoy_lua_v3 "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
@@ -97,7 +98,11 @@ func (l *lua) PatchFilter(p extensioncommon.FilterPayload) (*envoy_listener_v3.F
 	luaHttpFilter, err := extensioncommon.MakeEnvoyHTTPFilter(
 		"envoy.filters.http.lua",
 		&envoy_lua_v3.Lua{
-			InlineCode: l.Script,
+			DefaultSourceCode: &envoy_core_v3.DataSource{
+				Specifier: &envoy_core_v3.DataSource_InlineString{
+					InlineString: l.Script,
+				},
+			},
 		},
 	)
 	if err != nil {
