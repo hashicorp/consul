@@ -9,7 +9,6 @@ import (
 
 	envoy_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	envoy_matcher_v3 "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/hashicorp/consul/agent/xds/response"
 	"github.com/hashicorp/consul/envoyextensions/xdscommon"
@@ -266,22 +265,15 @@ func (pr *ProxyResources) makeEnvoyRouteActionFromProxystateRouteDestination(psR
 	case *pbproxystate.RouteDestination_WeightedClusters:
 		psWeightedClusters := psRouteDestination.GetWeightedClusters()
 		envoyClusters := make([]*envoy_route_v3.WeightedCluster_ClusterWeight, 0, len(psWeightedClusters.GetClusters()))
-		totalWeight := 0
 		for _, psCluster := range psWeightedClusters.GetClusters() {
 			clusters, _ := pr.makeClusters(psCluster.Name)
 			pr.envoyResources[xdscommon.ClusterType] = append(pr.envoyResources[xdscommon.ClusterType], clusters...)
-			totalWeight += int(psCluster.Weight.GetValue())
 			envoyClusters = append(envoyClusters, makeEnvoyClusterWeightFromProxystateWeightedCluster(psCluster))
-		}
-		var envoyWeightScale *wrapperspb.UInt32Value
-		if totalWeight == 10000 {
-			envoyWeightScale = response.MakeUint32Value(10000)
 		}
 
 		envoyRouteRoute.Route.ClusterSpecifier = &envoy_route_v3.RouteAction_WeightedClusters{
 			WeightedClusters: &envoy_route_v3.WeightedCluster{
-				Clusters:    envoyClusters,
-				TotalWeight: envoyWeightScale,
+				Clusters: envoyClusters,
 			},
 		}
 	default:
