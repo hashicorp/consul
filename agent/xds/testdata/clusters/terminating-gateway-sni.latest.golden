@@ -46,9 +46,12 @@
             ],
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "bar.com"
+                  "sanType": "URI",
+                  "matcher": {
+                    "exact": "bar.com"
+                  }
                 }
               ],
               "trustedCa": {
@@ -139,9 +142,12 @@
           "commonTlsContext": {
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "foo.com"
+                  "sanType": "URI",
+                  "matcher": {
+                    "exact": "foo.com"
+                  }
                 }
               ],
               "trustedCa": {
