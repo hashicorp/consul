@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import domEventTargetRsvp from 'consul-ui/utils/dom/event-target/rsvp';
 import { module, test } from 'qunit';
 

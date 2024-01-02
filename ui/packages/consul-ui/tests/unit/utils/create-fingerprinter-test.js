@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import createFingerprinter from 'consul-ui/utils/create-fingerprinter';
 import { module, test } from 'qunit';
 

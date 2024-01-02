@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import RepositoryService from 'consul-ui/services/repository';
 
 const modelName = 'intention-permission-http-header';

@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 
 # retry based on
 # https://github.com/fernandoacorreia/azure-docker-registry/blob/master/tools/scripts/create-registry-server

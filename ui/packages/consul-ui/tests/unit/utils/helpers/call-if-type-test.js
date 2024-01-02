@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import callIfType from 'consul-ui/utils/helpers/call-if-type';
 import { module, test } from 'qunit';
 

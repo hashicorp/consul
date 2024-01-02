@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export default (collection, clickable, attribute, text, actions) => () => {
   return collection('.consul-token-list [data-test-list-row]', {
     id: attribute('data-test-token', '[data-test-token]'),

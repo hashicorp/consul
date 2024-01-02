@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { isPresent as present, fillable, clickable, property } from 'ember-cli-page-object';
 
 export const input = function () {

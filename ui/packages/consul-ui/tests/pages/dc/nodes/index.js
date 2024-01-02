@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export default function (visitable, text, clickable, attribute, collection, popoverSelect) {
   const node = {
     name: text('[data-test-node]'),

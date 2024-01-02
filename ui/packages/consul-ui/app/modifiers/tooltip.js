@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { modifier } from 'ember-modifier';
 import tippy, { followCursor } from 'tippy.js';
 

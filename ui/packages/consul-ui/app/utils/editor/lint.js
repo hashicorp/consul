@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 /*global CodeMirror*/
 
 // CodeMirror doesn't seem to have anyway to hook into whether a mode

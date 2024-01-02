@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: BUSL-1.1
+
 # These scan results are run as part of CRT workflows.
 
 # Un-triaged results will block release. See `security-scanner` docs for more
@@ -8,6 +11,7 @@
 # `SECURITY_SCANNER_CONFIG_FILE=.release/security-scan.hcl scan ...`
 # To scan a local container, add `local_daemon = true` to the `container` block below.
 # See `security-scanner` docs or run with `--help` for scan target syntax.
+
 
 container {
 	dependencies = true

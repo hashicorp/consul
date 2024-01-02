@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import format from 'pretty-ms';
 import parse from 'parse-duration';
 import { assert } from '@ember/debug';

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package ae provides tools to synchronize state between local and remote consul servers.
 package ae
 
