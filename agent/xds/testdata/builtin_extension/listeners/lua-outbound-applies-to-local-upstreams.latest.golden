@@ -14,29 +14,13 @@
         {
           "filters":  [
             {
-              "name": "envoy.filters.network.http_connection_manager",
-              "typedConfig": {
-                "@type": "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-                "httpFilters": [
-                  {
-                    "name": "envoy.filters.http.lua",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "defaultSourceCode": {
-                        "inlineString": "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
-                      }
-                    }
-                  },
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ],
-                "routeConfig": {
-                  "name": "db",
-                  "virtualHosts": [
+              "name":  "envoy.filters.network.http_connection_manager",
+              "typedConfig":  {
+                "@type":  "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
+                "statPrefix":  "upstream.db.default.default.dc1",
+                "routeConfig":  {
+                  "name":  "db",
+                  "virtualHosts":  [
                     {
                       "name":  "db.default.default.dc1",
                       "domains":  [
@@ -60,7 +44,9 @@
                     "name":  "envoy.filters.http.lua",
                     "typedConfig":  {
                       "@type":  "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "inlineCode":  "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      "defaultSourceCode":  {
+                        "inlineString":  "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      }
                     }
                   },
                   {

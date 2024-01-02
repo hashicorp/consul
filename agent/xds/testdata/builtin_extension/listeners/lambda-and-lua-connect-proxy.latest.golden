@@ -49,96 +49,9 @@
                     }
                   },
                   {
-                    "name": "envoy.filters.http.header_to_metadata",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.header_to_metadata.v3.Config",
-                      "requestRules": [
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "key": "trust-domain",
-                            "metadataNamespace": "consul",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\1"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "key": "partition",
-                            "metadataNamespace": "consul",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\2"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "key": "namespace",
-                            "metadataNamespace": "consul",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\3"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "key": "datacenter",
-                            "metadataNamespace": "consul",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\4"
-                            }
-                          }
-                        },
-                        {
-                          "header": "x-forwarded-client-cert",
-                          "onHeaderPresent": {
-                            "key": "service",
-                            "metadataNamespace": "consul",
-                            "regexValueRewrite": {
-                              "pattern": {
-                                "googleRe2": {},
-                                "regex": ".*URI=spiffe://([^/]+.[^/]+)(?:/ap/([^/]+))?/ns/([^/]+)/dc/([^/]+)/svc/([^/;,]+).*"
-                              },
-                              "substitution": "\\5"
-                            }
-                          }
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "name": "envoy.filters.http.lua",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "defaultSourceCode": {
-                        "inlineString": "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
-                      }
-                    }
-                  },
-                  {
-                    "name": "envoy.filters.http.router",
-                    "typedConfig": {
-                      "@type": "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                    "name":  "envoy.filters.http.router",
+                    "typedConfig":  {
+                      "@type":  "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
                   }
                 ],
@@ -311,7 +224,9 @@
                     "name":  "envoy.filters.http.lua",
                     "typedConfig":  {
                       "@type":  "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "inlineCode":  "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      "defaultSourceCode":  {
+                        "inlineString":  "\nfunction envoy_on_request(request_handle)\n  request_handle:headers():add(\"test\", \"test\")\nend"
+                      }
                     }
                   },
                   {
