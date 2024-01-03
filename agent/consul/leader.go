@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,6 +16,7 @@ import (
 
 	"github.com/armon/go-metrics"
 	"github.com/armon/go-metrics/prometheus"
+	"github.com/google/go-cmp/cmp"
 	"github.com/oklog/ulid/v2"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -36,9 +36,9 @@ import (
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
+	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	"github.com/hashicorp/consul/types"
 )
 
 var LeaderSummaries = []prometheus.SummaryDefinition{
@@ -351,6 +351,12 @@ func (s *Server) establishLeadership(ctx context.Context) error {
 
 	if s.useV2Tenancy {
 		if err := s.initTenancy(ctx, s.resourceServiceServer.Backend); err != nil {
+			return err
+		}
+	}
+
+	if s.useV2Resources {
+		if err := s.initConsulService(ctx, s.insecureResourceServiceClient); err != nil {
 			return err
 		}
 	}
@@ -958,11 +964,19 @@ func (s *Server) reconcileReaped(known map[string]struct{}, nodeEntMeta *acl.Ent
 		}
 
 		// Attempt to reap this member
-		if err := s.handleReapMember(member, nodeEntMeta); err != nil {
+		if err := s.registrator.HandleReapMember(member, nodeEntMeta, s.removeConsulServer); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// ConsulRegistrator is an interface that manages the catalog registration lifecycle of Consul servers from serf events.
+type ConsulRegistrator interface {
+	HandleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, joinServer func(m serf.Member, parts *metadata.Server) error) error
+	HandleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error
+	HandleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, removeServerFunc func(m serf.Member) error) error
+	HandleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta, removeServerFunc func(m serf.Member) error) error
 }
 
 // reconcileMember is used to do an async reconcile of a single
@@ -983,13 +997,13 @@ func (s *Server) reconcileMember(member serf.Member) error {
 	var err error
 	switch member.Status {
 	case serf.StatusAlive:
-		err = s.handleAliveMember(member, nodeEntMeta)
+		err = s.registrator.HandleAliveMember(member, nodeEntMeta, s.joinConsulServer)
 	case serf.StatusFailed:
-		err = s.handleFailedMember(member, nodeEntMeta)
+		err = s.registrator.HandleFailedMember(member, nodeEntMeta)
 	case serf.StatusLeft:
-		err = s.handleLeftMember(member, nodeEntMeta)
+		err = s.registrator.HandleLeftMember(member, nodeEntMeta, s.removeConsulServer)
 	case StatusReap:
-		err = s.handleReapMember(member, nodeEntMeta)
+		err = s.registrator.HandleReapMember(member, nodeEntMeta, s.removeConsulServer)
 	}
 	if err != nil {
 		s.logger.Error("failed to reconcile member",
@@ -1018,254 +1032,6 @@ func (s *Server) shouldHandleMember(member serf.Member) bool {
 		return true
 	}
 	return false
-}
-
-// handleAliveMember is used to ensure the node
-// is registered, with a passing health check.
-func (s *Server) handleAliveMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Register consul service if a server
-	var service *structs.NodeService
-	if valid, parts := metadata.IsConsulServer(member); valid {
-		service = &structs.NodeService{
-			ID:      structs.ConsulServiceID,
-			Service: structs.ConsulServiceName,
-			Port:    parts.Port,
-			Weights: &structs.Weights{
-				Passing: 1,
-				Warning: 1,
-			},
-			EnterpriseMeta: *nodeEntMeta,
-			Meta: map[string]string{
-				// DEPRECATED - remove nonvoter in favor of read_replica in a future version of consul
-				"non_voter":             strconv.FormatBool(member.Tags["nonvoter"] == "1"),
-				"read_replica":          strconv.FormatBool(member.Tags["read_replica"] == "1"),
-				"raft_version":          strconv.Itoa(parts.RaftVersion),
-				"serf_protocol_current": strconv.FormatUint(uint64(member.ProtocolCur), 10),
-				"serf_protocol_min":     strconv.FormatUint(uint64(member.ProtocolMin), 10),
-				"serf_protocol_max":     strconv.FormatUint(uint64(member.ProtocolMax), 10),
-				"version":               parts.Build.String(),
-			},
-		}
-
-		if parts.ExternalGRPCPort > 0 {
-			service.Meta["grpc_port"] = strconv.Itoa(parts.ExternalGRPCPort)
-		}
-		if parts.ExternalGRPCTLSPort > 0 {
-			service.Meta["grpc_tls_port"] = strconv.Itoa(parts.ExternalGRPCTLSPort)
-		}
-
-		// Attempt to join the consul server
-		if err := s.joinConsulServer(member, parts); err != nil {
-			return err
-		}
-	}
-
-	// Check if the node exists
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-	if node != nil && node.Address == member.Addr.String() {
-		// Check if the associated service is available
-		if service != nil {
-			match := false
-			_, services, err := state.NodeServices(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-			if err != nil {
-				return err
-			}
-			if services != nil {
-				for id, serv := range services.Services {
-					if id == service.ID {
-						// If metadata are different, be sure to update it
-						match = reflect.DeepEqual(serv.Meta, service.Meta)
-					}
-				}
-			}
-			if !match {
-				goto AFTER_CHECK
-			}
-		}
-
-		// Check if the serfCheck is in the passing state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-		if err != nil {
-			return err
-		}
-		for _, check := range checks {
-			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthPassing {
-				return nil
-			}
-		}
-	}
-AFTER_CHECK:
-	s.logger.Info("member joined, marking health alive",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-	)
-
-	// Get consul version from serf member
-	// add this as node meta in catalog register request
-	buildVersion, err := metadata.Build(&member)
-	if err != nil {
-		return err
-	}
-
-	// Register with the catalog.
-	req := structs.RegisterRequest{
-		Datacenter: s.config.Datacenter,
-		Node:       member.Name,
-		ID:         types.NodeID(member.Tags["id"]),
-		Address:    member.Addr.String(),
-		Service:    service,
-		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthPassing,
-			Output:  structs.SerfCheckAliveOutput,
-		},
-		EnterpriseMeta: *nodeEntMeta,
-		NodeMeta: map[string]string{
-			structs.MetaConsulVersion: buildVersion.String(),
-		},
-	}
-	if node != nil {
-		req.TaggedAddresses = node.TaggedAddresses
-		req.NodeMeta = node.Meta
-	}
-
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
-	return err
-}
-
-// handleFailedMember is used to mark the node's status
-// as being critical, along with all checks as unknown.
-func (s *Server) handleFailedMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Check if the node exists
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-
-	if node == nil {
-		s.logger.Info("ignoring failed event for member because it does not exist in the catalog",
-			"member", member.Name,
-			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		)
-		return nil
-	}
-
-	if node.Address == member.Addr.String() {
-		// Check if the serfCheck is in the critical state
-		_, checks, err := state.NodeChecks(nil, member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-		if err != nil {
-			return err
-		}
-		for _, check := range checks {
-			if check.CheckID == structs.SerfCheckID && check.Status == api.HealthCritical {
-				return nil
-			}
-		}
-	}
-	s.logger.Info("member failed, marking health critical",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-	)
-
-	// Register with the catalog
-	req := structs.RegisterRequest{
-		Datacenter:     s.config.Datacenter,
-		Node:           member.Name,
-		EnterpriseMeta: *nodeEntMeta,
-		ID:             types.NodeID(member.Tags["id"]),
-		Address:        member.Addr.String(),
-		Check: &structs.HealthCheck{
-			Node:    member.Name,
-			CheckID: structs.SerfCheckID,
-			Name:    structs.SerfCheckName,
-			Status:  api.HealthCritical,
-			Output:  structs.SerfCheckFailedOutput,
-		},
-
-		// If there's existing information about the node, do not
-		// clobber it.
-		SkipNodeUpdate: true,
-	}
-	_, err = s.raftApply(structs.RegisterRequestType, &req)
-	return err
-}
-
-// handleLeftMember is used to handle members that gracefully
-// left. They are deregistered if necessary.
-func (s *Server) handleLeftMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	return s.handleDeregisterMember("left", member, nodeEntMeta)
-}
-
-// handleReapMember is used to handle members that have been
-// reaped after a prolonged failure. They are deregistered.
-func (s *Server) handleReapMember(member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	return s.handleDeregisterMember("reaped", member, nodeEntMeta)
-}
-
-// handleDeregisterMember is used to deregister a member of a given reason
-func (s *Server) handleDeregisterMember(reason string, member serf.Member, nodeEntMeta *acl.EnterpriseMeta) error {
-	if nodeEntMeta == nil {
-		nodeEntMeta = structs.NodeEnterpriseMetaInDefaultPartition()
-	}
-
-	// Do not deregister ourself. This can only happen if the current leader
-	// is leaving. Instead, we should allow a follower to take-over and
-	// deregister us later.
-	//
-	// TODO(partitions): check partitions here too? server names should be unique in general though
-	if strings.EqualFold(member.Name, s.config.NodeName) {
-		s.logger.Warn("deregistering self should be done by follower",
-			"name", s.config.NodeName,
-			"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		)
-		return nil
-	}
-
-	// Remove from Raft peers if this was a server
-	if valid, _ := metadata.IsConsulServer(member); valid {
-		if err := s.removeConsulServer(member); err != nil {
-			return err
-		}
-	}
-
-	// Check if the node does not exist
-	state := s.fsm.State()
-	_, node, err := state.GetNode(member.Name, nodeEntMeta, structs.DefaultPeerKeyword)
-	if err != nil {
-		return err
-	}
-	if node == nil {
-		return nil
-	}
-
-	// Deregister the node
-	s.logger.Info("deregistering member",
-		"member", member.Name,
-		"partition", getSerfMemberEnterpriseMeta(member).PartitionOrDefault(),
-		"reason", reason,
-	)
-	req := structs.DeregisterRequest{
-		Datacenter:     s.config.Datacenter,
-		Node:           member.Name,
-		EnterpriseMeta: *nodeEntMeta,
-	}
-	_, err = s.raftApply(structs.DeregisterRequestType, &req)
-	return err
 }
 
 // joinConsulServer is used to try to join another consul server
@@ -1462,6 +1228,66 @@ func (s *serversIntentionsAsConfigEntriesInfo) update(srv *metadata.Server) bool
 
 	// prevent continuing server evaluation
 	return false
+}
+
+func (s *Server) initConsulService(ctx context.Context, client pbresource.ResourceServiceClient) error {
+	service := &pbcatalog.Service{
+		Workloads: &pbcatalog.WorkloadSelector{
+			Prefixes: []string{consulWorkloadPrefix},
+		},
+		Ports: []*pbcatalog.ServicePort{
+			{
+				TargetPort: consulPortNameServer,
+				Protocol:   pbcatalog.Protocol_PROTOCOL_TCP,
+				// No virtual port defined for now, as we assume this is generally for Service Discovery
+			},
+		},
+	}
+
+	serviceData, err := anypb.New(service)
+	if err != nil {
+		return fmt.Errorf("could not convert Service to `any` message: %w", err)
+	}
+
+	// create a default namespace in default partition
+	serviceID := &pbresource.ID{
+		Type:    pbcatalog.ServiceType,
+		Name:    structs.ConsulServiceName,
+		Tenancy: resource.DefaultNamespacedTenancy(),
+	}
+
+	serviceResource := &pbresource.Resource{
+		Id:   serviceID,
+		Data: serviceData,
+	}
+
+	res, err := client.Read(ctx, &pbresource.ReadRequest{Id: serviceID})
+	if err != nil && !grpcNotFoundErr(err) {
+		return fmt.Errorf("failed to read the %s Service: %w", structs.ConsulServiceName, err)
+	}
+
+	if err == nil {
+		existingService := res.GetResource()
+		s.logger.Debug("existingService consul Service found")
+
+		// If the Service is identical, we're done.
+		if cmp.Equal(serviceResource, existingService, resourceCmpOptions...) {
+			s.logger.Debug("no updates to perform on consul Service")
+			return nil
+		}
+
+		// If the existing Service is different, add the Version to the patch for CAS write.
+		serviceResource.Id = existingService.Id
+		serviceResource.Version = existingService.Version
+	}
+
+	_, err = client.Write(ctx, &pbresource.WriteRequest{Resource: serviceResource})
+	if err != nil {
+		return fmt.Errorf("failed to create the %s service: %w", structs.ConsulServiceName, err)
+	}
+
+	s.logger.Info("Created consul Service in catalog")
+	return nil
 }
 
 func (s *Server) initTenancy(ctx context.Context, b storage.Backend) error {
