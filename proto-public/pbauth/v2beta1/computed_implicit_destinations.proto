@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package hashicorp.consul.auth.v2beta1;
+
+import "pbresource/annotations.proto";
+import "pbresource/resource.proto";
+
+// ImplicitDestinations tracks destination services for a given workload identity.
+message ComputedImplicitDestinations {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  // destinations is the list of destinations.
+  repeated ImplicitDestination destinations = 1;
+
+  // BoundReferences is a slice of mixed type references of resources that were
+  // involved in the formulation of this resource.
+  repeated hashicorp.consul.resource.Reference bound_references = 2;
+}
+
+// Destination contains a reference to a catalog service, any workload identity
+// references this service points to and a list of port names that are allowed by TrafficPermissions.
+message ImplicitDestination {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_NAMESPACE};
+  hashicorp.consul.resource.Reference service_ref = 1;
+  repeated hashicorp.consul.resource.Reference identity_refs = 2;
+  repeated string ports = 3;
+}
