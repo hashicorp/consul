@@ -1107,9 +1107,6 @@ func parseXFCCToDynamicMetaHTTPFilter() (*envoy_http_v3.HttpFilter, error) {
 				RegexValueRewrite: &envoy_matcher_v3.RegexMatchAndSubstitute{
 					Pattern: &envoy_matcher_v3.RegexMatcher{
 						Regex: downstreamServiceIdentityMatcher,
-						EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
-							GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
-						},
 					},
 					Substitution: f.sub,
 				},
@@ -1310,8 +1307,12 @@ func convertPermission(perm *structs.IntentionPermission) *envoy_rbac_v3.Permiss
 
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
 			},
 		}
 

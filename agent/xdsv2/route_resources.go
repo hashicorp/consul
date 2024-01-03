@@ -111,8 +111,12 @@ func makeEnvoyRouteMatchFromProxystateRouteMatch(psRouteMatch *pbproxystate.Rout
 
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: makeEnvoyRegexMatch(methodHeaderRegex),
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
 			},
 		}
 
@@ -131,9 +135,6 @@ func makeEnvoyRouteMatchFromProxystateRouteMatch(psRouteMatch *pbproxystate.Rout
 
 func makeEnvoyRegexMatch(pattern string) *envoy_matcher_v3.RegexMatcher {
 	return &envoy_matcher_v3.RegexMatcher{
-		EngineType: &envoy_matcher_v3.RegexMatcher_GoogleRe2{
-			GoogleRe2: &envoy_matcher_v3.RegexMatcher_GoogleRE2{},
-		},
 		Regex: pattern,
 	}
 }

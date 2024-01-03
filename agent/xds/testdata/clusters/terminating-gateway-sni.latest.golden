@@ -48,10 +48,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
                     "exact": "bar.com"
-                  }
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
@@ -144,10 +144,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
                     "exact": "foo.com"
-                  }
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {

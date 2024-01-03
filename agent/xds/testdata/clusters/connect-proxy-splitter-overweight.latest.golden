@@ -36,10 +36,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
-                    "exact":  "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/big-side"
-                  }
+                    "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/big-side"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
@@ -83,16 +83,16 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/geo-cache-target"
-                  }
+                  },
+                  "sanType": "URI"
                 },
                 {
-                  "sanType": "URI",
                   "matcher": {
                     "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc2/svc/geo-cache-target"
-                  }
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
@@ -140,10 +140,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
-                    "exact":  "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/goldilocks-side"
-                  }
+                    "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/goldilocks-side"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {
@@ -191,10 +191,10 @@
             "validationContext": {
               "matchTypedSubjectAltNames": [
                 {
-                  "sanType": "URI",
                   "matcher": {
-                    "exact":  "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/lil-bit-side"
-                  }
+                    "exact": "spiffe://11111111-2222-3333-4444-555555555555.consul/ns/default/dc/dc1/svc/lil-bit-side"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {

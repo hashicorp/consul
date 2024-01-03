@@ -924,8 +924,12 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
 			},
 		}
 
