@@ -230,6 +230,12 @@ func testServerDCExpect(t *testing.T, dc string, expect int) (string, *Server) {
 }
 
 func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *Server) {
+	return testServerWithDepsAndConfig(t, nil, configOpts...)
+}
+
+// testServerWithDepsAndConfig is similar to testServerWithConfig except that it also allows modifying dependencies.
+// This is useful for things like injecting experiment flags.
+func testServerWithDepsAndConfig(t *testing.T, depOpts func(*Deps), configOpts ...func(*Config)) (string, *Server) {
 	var dir string
 	var srv *Server
 
@@ -251,6 +257,11 @@ func testServerWithConfig(t *testing.T, configOpts ...func(*Config)) (string, *S
 
 		var err error
 		deps = newDefaultDeps(r, config)
+
+		if depOpts != nil {
+			depOpts(&deps)
+		}
+
 		srv, err = newServerWithDeps(r, config, deps)
 		if err != nil {
 			r.Fatalf("err: %v", err)

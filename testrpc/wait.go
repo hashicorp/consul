@@ -47,6 +47,37 @@ func WaitForLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	})
 }
 
+// WaitForRaftLeader is a V2-compatible version of WaitForLeader.
+// Unlike WaitForLeader, it requires a token with operator:read access.
+func WaitForRaftLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
+	t.Helper()
+
+	flat := flattenOptions(options)
+	if flat.WaitForAntiEntropySync {
+		t.Fatalf("WaitForRaftLeader doesn't accept the WaitForAntiEntropySync option")
+	}
+
+	var out structs.RaftConfigurationResponse
+	retry.Run(t, func(r *retry.R) {
+		args := &structs.DCSpecificRequest{
+			Datacenter:   dc,
+			QueryOptions: structs.QueryOptions{Token: flat.Token},
+		}
+		if err := rpc(context.Background(), "Operator.RaftGetConfiguration", args, &out); err != nil {
+			r.Fatalf("Operator.RaftGetConfiguration failed: %v", err)
+		}
+		// Don't check the Raft index. With other things are going on in V2 the assumption the index >= 2 is
+		// no longer valid.
+
+		for _, server := range out.Servers {
+			if server.Leader {
+				return
+			}
+		}
+		r.Fatalf("No leader")
+	})
+}
+
 // WaitUntilNoLeader ensures no leader is present, useful for testing lost leadership.
 func WaitUntilNoLeader(t *testing.T, rpc rpcFn, dc string, options ...waitOption) {
 	t.Helper()
