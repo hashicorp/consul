@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/consul/internal/controller"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
+	"github.com/hashicorp/consul/internal/multicluster"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
@@ -43,7 +44,7 @@ func (suite *dataFetcherSuite) SetupTest() {
 	suite.ctx = testutil.TestContext(suite.T())
 	suite.tenancies = resourcetest.TestTenancies()
 	suite.client = svctest.NewResourceServiceBuilder().
-		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		WithRegisterFns(types.Register, catalog.RegisterTypes, multicluster.RegisterTypes).
 		WithTenancies(suite.tenancies...).
 		Run(suite.T())
 	suite.resourceClient = resourcetest.NewClient(suite.client)
@@ -94,8 +95,7 @@ func (suite *dataFetcherSuite) setupWithTenancy(tenancy *pbresource.Tenancy) {
 			},
 		}).Write(suite.T(), suite.client)
 
-	suite.exportedServices = resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "exported-services").
-		WithTenancy(tenancy).
+	suite.exportedServices = resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
 		WithData(suite.T(), &pbmulticluster.ComputedExportedServices{}).
 		Write(suite.T(), suite.client)
 }
@@ -173,7 +173,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchWorkload() {
 }
 
 func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
-	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+	suite.runTestCaseWithTenancies(func(_ *pbresource.Tenancy) {
 		c := cache.New()
 
 		f := Fetcher{
@@ -182,7 +182,7 @@ func (suite *dataFetcherSuite) TestFetcher_FetchExportedServices() {
 		}
 
 		testutil.RunStep(suite.T(), "exported services do not exist", func(t *testing.T) {
-			nonExistantID := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "not-found").WithTenancy(tenancy).ID()
+			nonExistantID := resourcetest.Resource(pbmulticluster.ComputedExportedServicesType, "not-found").ID()
 			svcs, err := f.FetchExportedServices(suite.ctx, nonExistantID)
 			require.NoError(t, err)
 			require.Nil(t, svcs)
