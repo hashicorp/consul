@@ -20,7 +20,6 @@ func Register(r resource.Registry) {
 	RegisterComputedRoutes(r)
 	RegisterMeshGateway(r)
 	RegisterMeshConfiguration(r)
-	// RegisterComputedExportedServices(r)
 	// todo (v2): uncomment once we implement it.
-	// RegisterDestinationsConfiguration(r)
+	//RegisterDestinationsConfiguration(r)
 }
