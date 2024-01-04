@@ -1,3 +1,0 @@
-```release-note:improvement
-connect: replace usage of deprecated Envoy field `envoy.config.router.v3.WeightedCluster.total_weight`.
-```
