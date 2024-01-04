@@ -44,6 +44,7 @@ func New(ui cli.Ui) *cmd {
 		version:           consulversion.Version,
 		versionPrerelease: consulversion.VersionPrerelease,
 		versionHuman:      consulversion.GetHumanVersion(),
+		buildArch:         consulversion.BuildArch,
 		buildDate:         buildDate,
 		flags:             flag.NewFlagSet("", flag.ContinueOnError),
 	}
@@ -65,6 +66,7 @@ type cmd struct {
 	version           string
 	versionPrerelease string
 	versionHuman      string
+	buildArch         string
 	buildDate         time.Time
 	configLoadOpts    config.LoadOpts
 	logger            hclog.InterceptLogger
@@ -217,6 +219,7 @@ func (c *cmd) run(args []string) int {
 		ui.Info(fmt.Sprintf("          Revision: '%s'", c.revision))
 	}
 	ui.Info(fmt.Sprintf("        Build Date: '%s'", c.buildDate))
+	ui.Info(fmt.Sprintf("Build Architecture: '%s'", c.buildArch))
 	ui.Info(fmt.Sprintf("           Node ID: '%s'", config.NodeID))
 	ui.Info(fmt.Sprintf("         Node name: '%s'", config.NodeName))
 	if ap := config.PartitionOrEmpty(); ap != "" {

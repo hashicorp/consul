@@ -6,6 +6,7 @@ package version
 import (
 	_ "embed"
 	"fmt"
+	"runtime"
 	"strings"
 )
 
@@ -31,6 +32,9 @@ var (
 	// The date/time of the build (actually the HEAD commit in git, to preserve stability)
 	// This isn't just informational, but is also used by the licensing system. Default is chosen to be flagantly wrong.
 	BuildDate string = "1970-01-01T00:00:01Z"
+
+	// The architecture that the current binary was built for.
+	BuildArch string = runtime.GOARCH
 )
 
 // BuildInfo includes all available version info for this build
@@ -39,6 +43,7 @@ type BuildInfo struct {
 	BuildDate    string
 	HumanVersion string
 	FIPS         string
+	Arch         string
 }
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
@@ -71,5 +76,6 @@ func GetBuildInfo() *BuildInfo {
 		BuildDate:    BuildDate,
 		HumanVersion: GetHumanVersion(),
 		FIPS:         GetFIPSInfo(),
+		Arch:         BuildArch,
 	}
 }
