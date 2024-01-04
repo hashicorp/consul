@@ -1596,8 +1596,7 @@ func mustParse(t *testing.T, q string) *Plan {
 
 func TestMakeQueryOptionsWithContext(t *testing.T) {
 	p := &Plan{
-		QueryOptions: &api.QueryOptions{
-			AllowStale: true,
+		QueryOptions: api.QueryOptions{
 			Peer:       "dc-1",
 			Datacenter: "dc-1",
 		},
