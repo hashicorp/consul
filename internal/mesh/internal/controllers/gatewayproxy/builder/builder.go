@@ -4,20 +4,32 @@
 package builder
 
 import (
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	"github.com/hashicorp/go-hclog"
 )
 
 type proxyStateTemplateBuilder struct {
-	workload *types.DecodedWorkload
+	workload         *types.DecodedWorkload
+	dataFetcher      *fetcher.Fetcher
+	dc               string
+	exportedServices *types.DecodedComputedExportedServices
+	logger           hclog.Logger
+	trustDomain      string
 }
 
-func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload) *proxyStateTemplateBuilder {
+func NewProxyStateTemplateBuilder(workload *types.DecodedWorkload, exportedServices *types.DecodedComputedExportedServices, logger hclog.Logger, dataFetcher *fetcher.Fetcher, dc, trustDomain string) *proxyStateTemplateBuilder {
 	return &proxyStateTemplateBuilder{
-		workload: workload,
+		workload:         workload,
+		dataFetcher:      dataFetcher,
+		dc:               dc,
+		exportedServices: exportedServices,
+		logger:           logger,
+		trustDomain:      trustDomain,
 	}
 }
 
