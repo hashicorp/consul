@@ -48,7 +48,7 @@ func (_ *prettyFormatter) Format(info *VersionInfo) (string, error) {
 	}
 
 	buffer.WriteString(fmt.Sprintf("Build Date %s\n", info.BuildDate.Format(time.RFC3339)))
-	buffer.WriteString(fmt.Sprintf("Build Architecture: %s\n", info.Arch))
+	buffer.WriteString(fmt.Sprintf("Build Architecture: %s\n", info.BuildArch))
 
 	if info.FIPS != "" {
 		buffer.WriteString(fmt.Sprintf("FIPS: %s\n", info.FIPS))

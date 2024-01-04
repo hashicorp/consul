@@ -43,7 +43,7 @@ type BuildInfo struct {
 	BuildDate    string
 	HumanVersion string
 	FIPS         string
-	Arch         string
+	BuildArch    string
 }
 
 // GetHumanVersion composes the parts of the version in a way that's suitable
@@ -76,6 +76,6 @@ func GetBuildInfo() *BuildInfo {
 		BuildDate:    BuildDate,
 		HumanVersion: GetHumanVersion(),
 		FIPS:         GetFIPSInfo(),
-		Arch:         BuildArch,
+		BuildArch:    BuildArch,
 	}
 }
