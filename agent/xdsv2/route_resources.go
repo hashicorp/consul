@@ -328,20 +328,29 @@ func makeEnvoyClusterWeightFromNameAndWeight(name string, weight *wrapperspb.UIn
 	return envoyClusterWeight
 }
 
+func getXDSAppendActionFromProxyStateAppendAction(action pbproxystate.AppendAction) envoy_core_v3.HeaderValueOption_HeaderAppendAction {
+	if action == pbproxystate.AppendAction_APPEND_ACTION_OVERWRITE_IF_EXISTS_OR_ADD {
+		return envoy_core_v3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD
+	} else if action == pbproxystate.AppendAction_APPEND_ACTION_ADD_IF_ABSENT {
+		return envoy_core_v3.HeaderValueOption_ADD_IF_ABSENT
+	}
+
+	// XDS default
+	return envoy_core_v3.HeaderValueOption_APPEND_IF_EXISTS_OR_ADD
+}
+
 func injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight *envoy_route_v3.WeightedCluster_ClusterWeight, mutation *pbproxystate.HeaderMutation) {
 	mutation.GetAction()
 	switch mutation.GetAction().(type) {
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:
 		action := mutation.GetRequestHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
-
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyClusterWeight.RequestHeadersToAdd = append(envoyClusterWeight.RequestHeadersToAdd, hvo)
 
@@ -352,14 +361,13 @@ func injectEnvoyClusterWeightWithProxystateHeaderMutation(envoyClusterWeight *en
 	case *pbproxystate.HeaderMutation_ResponseHeaderAdd:
 		action := mutation.GetResponseHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
 
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyClusterWeight.ResponseHeadersToAdd = append(envoyClusterWeight.ResponseHeadersToAdd, hvo)
 
@@ -457,14 +465,13 @@ func injectEnvoyRouteRuleWithProxystateHeaderMutation(envoyRouteRule *envoy_rout
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:
 		action := mutation.GetRequestHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
 
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyRouteRule.RequestHeadersToAdd = append(envoyRouteRule.RequestHeadersToAdd, hvo)
 
@@ -475,14 +482,13 @@ func injectEnvoyRouteRuleWithProxystateHeaderMutation(envoyRouteRule *envoy_rout
 	case *pbproxystate.HeaderMutation_ResponseHeaderAdd:
 		action := mutation.GetResponseHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
 
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyRouteRule.ResponseHeadersToAdd = append(envoyRouteRule.ResponseHeadersToAdd, hvo)
 
@@ -502,14 +508,13 @@ func injectEnvoyVirtualHostWithProxystateHeaderMutation(envoyVirtualHost *envoy_
 	case *pbproxystate.HeaderMutation_RequestHeaderAdd:
 		action := mutation.GetRequestHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
 
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyVirtualHost.RequestHeadersToAdd = append(envoyVirtualHost.RequestHeadersToAdd, hvo)
 
@@ -520,14 +525,13 @@ func injectEnvoyVirtualHostWithProxystateHeaderMutation(envoyVirtualHost *envoy_
 	case *pbproxystate.HeaderMutation_ResponseHeaderAdd:
 		action := mutation.GetResponseHeaderAdd()
 		header := action.GetHeader()
-		app := action.GetAppendAction() == pbproxystate.AppendAction_APPEND_ACTION_APPEND_IF_EXISTS_OR_ADD
 
 		hvo := &envoy_core_v3.HeaderValueOption{
 			Header: &envoy_core_v3.HeaderValue{
 				Key:   header.GetKey(),
 				Value: header.GetValue(),
 			},
-			Append: response.MakeBoolValue(app),
+			AppendAction: getXDSAppendActionFromProxyStateAppendAction(action.GetAppendAction()),
 		}
 		envoyVirtualHost.ResponseHeadersToAdd = append(envoyVirtualHost.ResponseHeadersToAdd, hvo)
 

@@ -370,14 +370,13 @@
               },
               "requestHeadersToAdd": [
                 {
-                  "append": true,
                   "header": {
                     "key": "request",
                     "value": "bar"
                   }
                 },
                 {
-                  "append": false,
+                  "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                   "header": {
                     "key": "bar",
                     "value": "baz"
@@ -389,14 +388,13 @@
               ],
               "responseHeadersToAdd": [
                 {
-                  "append": true,
                   "header": {
                     "key": "response",
                     "value": "bar"
                   }
                 },
                 {
-                  "append": false,
+                  "appendAction": "OVERWRITE_IF_EXISTS_OR_ADD",
                   "header": {
                     "key": "bar",
                     "value": "baz"
