@@ -340,7 +340,12 @@ func agentServiceWatch(params map[string]interface{}) (WatcherFunc, error) {
 func makeQueryOptionsWithContext(p *Plan, stale bool) consulapi.QueryOptions {
 	ctx, cancel := context.WithCancel(context.Background())
 	p.setCancelFunc(cancel)
-	opts := *p.QueryOptions
+
+	opts := consulapi.QueryOptions{}
+	if p.QueryOptions != nil {
+		opts = *p.QueryOptions
+	}
+
 	opts.AllowStale = stale
 	switch param := p.lastParamVal.(type) {
 	case WaitIndexVal:
