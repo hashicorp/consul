@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-package watch_test
+package watch
 
 import (
 	"bytes"
@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/api/watch"
 	"github.com/hashicorp/consul/sdk/testutil"
 	"github.com/stretchr/testify/require"
 )
@@ -1533,7 +1532,7 @@ func TestAgentServiceWatch(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := mustParse(t, `{"type":"agent_service", "service_id":"web"}`)
-	plan.HybridHandler = func(blockParamVal watch.BlockingParamVal, raw interface{}) {
+	plan.HybridHandler = func(blockParamVal BlockingParamVal, raw interface{}) {
 		if raw == nil {
 			return // ignore
 		}
@@ -1582,15 +1581,28 @@ func TestAgentServiceWatch(t *testing.T) {
 	}
 }
 
-func mustParse(t *testing.T, q string) *watch.Plan {
+func mustParse(t *testing.T, q string) *Plan {
 	t.Helper()
 	var params map[string]interface{}
 	if err := json.Unmarshal([]byte(q), &params); err != nil {
 		t.Fatal(err)
 	}
-	plan, err := watch.Parse(params)
+	plan, err := Parse(params)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	return plan
+}
+
+func TestMakeQueryOptionsWithContext(t *testing.T) {
+	p := &Plan{
+		QueryOptions: &api.QueryOptions{
+			AllowStale: true,
+			Peer:       "dc-1",
+			Datacenter: "dc-1",
+		},
+	}
+	opt := makeQueryOptionsWithContext(p, false)
+	require.Equal(t, "dc-1", opt.Peer)
+	require.Equal(t, "dc-1", opt.Datacenter)
 }

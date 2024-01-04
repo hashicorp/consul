@@ -23,7 +23,7 @@ func noopWatch(params map[string]interface{}) (WatcherFunc, error) {
 	return fn, nil
 }
 
-func mustParse(t *testing.T, q string) *Plan {
+func planMustParse(t *testing.T, q string) *Plan {
 	params := makeParams(t, q)
 	plan, err := Parse(params)
 	if err != nil {
@@ -34,7 +34,7 @@ func mustParse(t *testing.T, q string) *Plan {
 
 func TestRun_Stop(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop"}`)
+	plan := planMustParse(t, `{"type":"noop"}`)
 
 	var expect uint64 = 1
 	doneCh := make(chan struct{})
@@ -81,7 +81,7 @@ func TestRun_Stop(t *testing.T) {
 
 func TestRun_Stop_Hybrid(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop"}`)
+	plan := planMustParse(t, `{"type":"noop"}`)
 
 	var expect uint64 = 1
 	doneCh := make(chan struct{})
@@ -133,7 +133,7 @@ func TestRun_Stop_Hybrid(t *testing.T) {
 
 func TestRunWithClientAndLogger_NilLogger(t *testing.T) {
 	t.Parallel()
-	plan := mustParse(t, `{"type":"noop"}`)
+	plan := planMustParse(t, `{"type":"noop"}`)
 
 	errCh := make(chan error, 1)
 	go func() {

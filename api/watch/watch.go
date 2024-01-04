@@ -42,6 +42,7 @@ type Plan struct {
 	client       *consulapi.Client
 	lastParamVal BlockingParamVal
 	lastResult   interface{}
+	QueryOptions *consulapi.QueryOptions
 
 	stop       bool
 	stopCh     chan struct{}
