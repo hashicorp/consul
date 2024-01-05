@@ -3,7 +3,11 @@
 
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/hashicorp/consul/acl"
+)
 
 // ExportedServicesConfigEntry manages the exported services for a single admin partition.
 // Admin Partitions are a Consul Enterprise feature.
@@ -79,4 +83,19 @@ func (e *ExportedServicesConfigEntry) MarshalJSON() ([]byte, error) {
 		Alias: (*Alias)(e),
 	}
 	return json.Marshal(source)
+}
+
+type ResolvedExportedService struct {
+	// Service is the name of the service which is exported.
+	Service string
+
+	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+
+	// Consumers is a list of downstream consumers of the service.
+	Consumers ResolvedConsumers
+}
+
+type ResolvedConsumers struct {
+	Peers      []string `json:",omitempty"`
+	Partitions []string `json:",omitempty"`
 }

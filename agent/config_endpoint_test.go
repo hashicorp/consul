@@ -16,7 +16,7 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto/private/pbconfigentry"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -736,7 +736,7 @@ func TestConfig_Apply_ProxyDefaultsExpose(t *testing.T) {
 	}
 }
 
-func TestConfig_Resolved_Exported_Services(t *testing.T) {
+func TestConfig_Exported_Services(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
@@ -782,27 +782,27 @@ func TestConfig_Resolved_Exported_Services(t *testing.T) {
 	}
 
 	t.Run("exported services", func(t *testing.T) {
-		req, _ := http.NewRequest("GET", "/v1/config/resolved-exported-services", nil)
+		req, _ := http.NewRequest("GET", "/v1/exported-services", nil)
 		resp := httptest.NewRecorder()
-		raw, err := a.srv.ResolvedExportedServices(resp, req)
+		raw, err := a.srv.ExportedServices(resp, req)
 		require.NoError(t, err)
 		require.Equal(t, http.StatusOK, resp.Code)
 
-		services, ok := raw.([]*pbconfigentry.ResolvedExportedService)
+		services, ok := raw.([]api.ResolvedExportedService)
 		require.True(t, ok)
 		require.Len(t, services, 2)
 		assertIndex(t, resp)
 
-		expected := []*pbconfigentry.ResolvedExportedService{
+		expected := []api.ResolvedExportedService{
 			{
 				Service: "api",
-				Consumers: &pbconfigentry.Consumers{
+				Consumers: api.ResolvedConsumers{
 					Peers: []string{"east", "west"},
 				},
 			},
 			{
 				Service: "db",
-				Consumers: &pbconfigentry.Consumers{
+				Consumers: api.ResolvedConsumers{
 					Peers: []string{"east"},
 				},
 			},

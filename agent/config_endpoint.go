@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/consul/acl"
 	external "github.com/hashicorp/consul/agent/grpc-external"
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/proto/private/pbconfigentry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -181,9 +182,9 @@ func (s *HTTPHandlers) parseEntMetaForConfigEntryKind(kind string, req *http.Req
 	return s.parseEntMetaNoWildcard(req, entMeta)
 }
 
-// ResolvedExportedServices returns all the exported services by resolving wildcards and sameness groups
+// ExportedServices returns all the exported services by resolving wildcards and sameness groups
 // in the exported services configuration entry
-func (s *HTTPHandlers) ResolvedExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
+func (s *HTTPHandlers) ExportedServices(resp http.ResponseWriter, req *http.Request) (interface{}, error) {
 	var entMeta acl.EnterpriseMeta
 	if err := s.parseEntMetaPartition(req, &entMeta); err != nil {
 		return nil, err
@@ -214,5 +215,11 @@ func (s *HTTPHandlers) ResolvedExportedServices(resp http.ResponseWriter, req *h
 		return nil, err
 	}
 
-	return result.Services, nil
+	svcs := make([]api.ResolvedExportedService, len(result.Services))
+
+	for idx, svc := range result.Services {
+		svcs[idx] = *svc.ToAPI()
+	}
+
+	return svcs, nil
 }
