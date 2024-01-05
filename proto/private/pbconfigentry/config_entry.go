@@ -609,7 +609,11 @@ func (r *ResolvedExportedService) ToAPI() *api.ResolvedExportedService {
 	var t api.ResolvedExportedService
 
 	t.Service = r.Service
-	pbcommon.EnterpriseMetaToStructs(r.EnterpriseMeta, &t.EnterpriseMeta)
+	if r.EnterpriseMeta != nil {
+		t.Namespace = r.EnterpriseMeta.Namespace
+		t.Partition = r.EnterpriseMeta.Partition
+	}
+
 	t.Consumers.Peers = r.Consumers.Peers
 	t.Consumers.Partitions = r.Consumers.Partitions
 

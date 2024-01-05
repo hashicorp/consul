@@ -5,8 +5,6 @@ package api
 
 import (
 	"encoding/json"
-
-	"github.com/hashicorp/consul/acl"
 )
 
 // ExportedServicesConfigEntry manages the exported services for a single admin partition.
@@ -89,7 +87,11 @@ type ResolvedExportedService struct {
 	// Service is the name of the service which is exported.
 	Service string
 
-	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
+	// Partition of the service
+	Partition string `json:",omitempty"`
+
+	// Namespace of the service
+	Namespace string `json:",omitempty"`
 
 	// Consumers is a list of downstream consumers of the service.
 	Consumers ResolvedConsumers
