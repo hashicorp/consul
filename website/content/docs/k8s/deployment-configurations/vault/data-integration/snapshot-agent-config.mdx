@@ -29,7 +29,7 @@ Before you set up data integration between Vault and Consul on Kubernetes, compl
 First, store the snapshot agent config in Vault:
 
 ```shell-session
-$ vault kv put secret/consul/snapshot-agent-config key="<snapshot agent JSON config>"
+$ vault kv put consul-kv/secret/snapshot-agent-config key="<snapshot agent JSON config>"
 ```
 
 ## Create Vault policy
@@ -41,7 +41,7 @@ The path to the secret referenced in the `path` resource is the same values that
 <CodeBlockConfig filename="snapshot-agent-config-policy.hcl">
 
 ```HCL
-path "secret/data/consul/snapshot-agent-config" {
+path "consul-kv/data/secret/snapshot-agent-config" {
   capabilities = ["read"]
 }
 ```
@@ -91,7 +91,7 @@ global:
 client:
   snapshotAgent:
     configSecret:
-      secretName: secret/data/consul/snapshot-agent-config
+      secretName: consul-kv/data/secret/snapshot-agent-config
       secretKey: key
 ```
 
