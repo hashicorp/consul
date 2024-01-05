@@ -38,6 +38,14 @@ const (
 	// GRPCCAPathEnvName defines an environment variable name which sets the
 	// path to a directory of CA certs to use for talking to Consul gRPC over TLS.
 	GRPCCAPathEnvName = "CONSUL_GRPC_CAPATH"
+
+	// GRPCTokenEnvName defines an environment variable name which sets
+	// the GRPC token.
+	GRPCTokenEnvName = "CONSUL_GRPC_TOKEN"
+
+	// GRPCTokenFileEnvName defines an environment variable name which sets
+	// the GRPC token file.
+	GRPCTokenFileEnvName = "CONSUL_GRPC_TOKEN_FILE"
 )
 
 type GRPCConfig struct {
@@ -67,6 +75,14 @@ type GRPCConfig struct {
 	// CAPath is the optional path to a directory of CA certificates to use for
 	// Consul communication, defaults to the system bundle if not specified.
 	CAPath string
+
+	// Token is used to provide a per-request ACL token
+	// which overrides the agent's default token.
+	Token string
+
+	// TokenFile is a file containing the current token to use for this client.
+	// If provided it is read once at startup and never again.
+	TokenFile string
 }
 
 func GetDefaultGRPCConfig() *GRPCConfig {
@@ -129,6 +145,14 @@ func loadEnvToDefaultConfig(config *GRPCConfig) (*GRPCConfig, error) {
 
 	if caPath := os.Getenv(GRPCCAPathEnvName); caPath != "" {
 		config.CAPath = caPath
+	}
+
+	if token := os.Getenv(GRPCTokenEnvName); token != "" {
+		config.Token = token
+	}
+
+	if tokenFile := os.Getenv(GRPCTokenFileEnvName); tokenFile != "" {
+		config.TokenFile = tokenFile
 	}
 
 	return config, nil

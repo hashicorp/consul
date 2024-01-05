@@ -13,12 +13,14 @@ func TestMergeFlagsIntoGRPCConfig(t *testing.T) {
 	t.Run("MergeFlagsIntoGRPCConfig", func(t *testing.T) {
 		// Setup GRPCFlags with some flag values
 		flags := &GRPCFlags{
-			address:  TValue[string]{v: stringPointer("https://example.com:8502")},
-			grpcTLS:  TValue[bool]{v: boolPointer(true)},
-			certFile: TValue[string]{v: stringPointer("/path/to/client.crt")},
-			keyFile:  TValue[string]{v: stringPointer("/path/to/client.key")},
-			caFile:   TValue[string]{v: stringPointer("/path/to/ca.crt")},
-			caPath:   TValue[string]{v: stringPointer("/path/to/cacerts")},
+			address:   TValue[string]{v: stringPointer("https://example.com:8502")},
+			grpcTLS:   TValue[bool]{v: boolPointer(true)},
+			certFile:  TValue[string]{v: stringPointer("/path/to/client.crt")},
+			keyFile:   TValue[string]{v: stringPointer("/path/to/client.key")},
+			caFile:    TValue[string]{v: stringPointer("/path/to/ca.crt")},
+			caPath:    TValue[string]{v: stringPointer("/path/to/cacerts")},
+			token:     TValue[string]{v: stringPointer("token")},
+			tokenFile: TValue[string]{v: stringPointer("/path/to/token/file")},
 		}
 
 		// Setup GRPCConfig with some initial values
@@ -30,6 +32,8 @@ func TestMergeFlagsIntoGRPCConfig(t *testing.T) {
 			KeyFile:       "/path/to/default/client.key",
 			CAFile:        "/path/to/default/ca.crt",
 			CAPath:        "/path/to/default/cacerts",
+			Token:         "default-token",
+			TokenFile:     "/path/to/default/token/file",
 		}
 
 		// Call MergeFlagsIntoGRPCConfig to merge flag values into the config
@@ -44,6 +48,8 @@ func TestMergeFlagsIntoGRPCConfig(t *testing.T) {
 			KeyFile:       "/path/to/client.key",
 			CAFile:        "/path/to/ca.crt",
 			CAPath:        "/path/to/cacerts",
+			Token:         "token",
+			TokenFile:     "/path/to/token/file",
 		}
 
 		assert.Equal(t, expectedConfig, config)

@@ -27,6 +27,8 @@ func TestLoadGRPCConfig(t *testing.T) {
 		t.Setenv(GRPCClientKeyEnvName, "/path/to/client.key")
 		t.Setenv(GRPCCAFileEnvName, "/path/to/ca.crt")
 		t.Setenv(GRPCCAPathEnvName, "/path/to/cacerts")
+		t.Setenv(GRPCTokenEnvName, "token")
+		t.Setenv(GRPCTokenFileEnvName, "/path/to/token/file")
 
 		// Load and validate the configuration
 		config, err := LoadGRPCConfig(nil)
@@ -39,6 +41,8 @@ func TestLoadGRPCConfig(t *testing.T) {
 			KeyFile:       "/path/to/client.key",
 			CAFile:        "/path/to/ca.crt",
 			CAPath:        "/path/to/cacerts",
+			Token:         "token",
+			TokenFile:     "/path/to/token/file",
 		}
 		assert.Equal(t, expectedConfig, config)
 	})
