@@ -46,14 +46,7 @@
         "ignore_health_on_host_removal": false,
         "connect_timeout": "1s",
         "type": "STATIC",
-        "typed_extension_protocol_options": {
-          "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-            "@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-            "explicit_http_config": {
-              "http2_protocol_options": {}
-            }
-          }
-        },
+        "http2_protocol_options": {},
         "loadAssignment": {
           "clusterName": "local_agent",
           "endpoints": [
