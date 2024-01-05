@@ -196,7 +196,10 @@ jobs:
         consul-version: [ "1.16", "1.17"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
-      ENVOY_VERSION: "1.25.4"
+      # ENVOY_VERSION should be the latest version upported by all
+      # consul versions in the matrix.consul-version, since we are testing upgrade from
+      # an older consul version, e.g., 1.26.6 is supported by both 1.16 and 1.17.
+      ENVOY_VERSION: "1.26.6"
     steps:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3

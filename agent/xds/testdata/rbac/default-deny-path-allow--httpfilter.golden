@@ -19,7 +19,6 @@
               "authenticated": {
                 "principalName": {
                   "safeRegex": {
-                    "googleRe2": {},
                     "regex": "^spiffe://test.consul/ns/default/dc/[^/]+/svc/web$"
                   }
                 }

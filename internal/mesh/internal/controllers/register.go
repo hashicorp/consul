@@ -5,6 +5,8 @@ package controllers
 
 import (
 	"context"
+
+	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/meshconfiguration"
 
 	"github.com/hashicorp/consul/agent/leafcert"
@@ -45,6 +47,8 @@ func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(
 		sidecarproxy.Controller(cache.New(), deps.TrustDomainFetcher, deps.LocalDatacenter, deps.DefaultAllow),
 	)
+
+	mgr.Register(gatewayproxy.Controller(cache.New()))
 
 	mgr.Register(routes.Controller())
 

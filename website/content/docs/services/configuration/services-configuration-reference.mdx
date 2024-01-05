@@ -360,22 +360,21 @@ The following table describes the parameters you can explicitly configure in the
 | `zone` | Specifies the availability zone where the Consul agent is running. Consul assigns this value to services registered to that agent. When service proxy regions match, Consul is able to prioritize routes between service instances in the same region and zone over instances in other regions and zones. When healthy service instances are available in multiple zones within the most-local region, Consul prioritizes instances that also match the downstream proxy's `zone`. You must specify values that are consistent with how zones are defined in your network, for example `us-west-1a` for networks in AWS. | String | None |
 
 ### weights
-Object that configures how the service responds to DNS SRV requests based on the service's health status. Configuring allows service instances with more capacity to respond to DNS SRV requests. It also reduces the load on services with checks in `warning` status by giving passing instances a higher weight.
+Object that configures how a service instance is weighted in a DNS SRV request based on the service's health status. Configuring tells DNS clients to direct more traffic to instances with a higher weight. A use case would be adjusting the weight higher for an instance with large capacity. It could also be used to reduce the load on services with checks in `warning` status by favoring passing instances with a higher weight.
 
 You can specify one or more of the following states and configure an integer value indicating its weight:
 
 - `passing`
 - `warning`
-- `critical`
 
 Larger integer values increase the weight state. Services have the following default weights:
 
 - `"passing" : 1` 
 - `"warning" : 1`
 
-Services in a `critical` state are excluded from DNS responses by default. Services with `warning` checks are included in responses by default. Refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups) for additional information.
+Services in a `critical` state are excluded from DNS responses. Services with `warning` checks are included in responses by default. Refer to [Perform Static DNS Queries](/consul/docs/services/discovery/dns-static-lookups) for additional information.
 
-In the following example, service instances in a `passing`  state respond to DNS SRV requests, while instances in a `critical` instance can still respond at a lower frequency:
+In the following example, DNS SRV queries direct more traffic to service instances in a `passing` state, while instances in a `warning` instance are less favored:
 
 <CodeTabs tabs={[ "HCL",  "JSON" ]}>
 
@@ -386,8 +385,7 @@ service {
   port = 6379
   weights = {
     passing = 3
-    warning = 2
-    critical   = 1
+    warning = 1
   }
 }
 ```
@@ -400,8 +398,7 @@ service {
     "port": 6379,
     "weights": {
       "passing": 3,
-      "warning": 2,
-      "critical": 1
+      "warning": 1
     }
   }
 }

@@ -72,6 +72,10 @@ func (t *WorkloadSelectionTracker) GetIDsForWorkload(id *pbresource.ID) []*pbres
 // TrackIDForSelector will associate workloads matching the specified workload
 // selector with the given resource id.
 func (t *WorkloadSelectionTracker) TrackIDForSelector(id *pbresource.ID, selector *pbcatalog.WorkloadSelector) {
+	if selector == nil {
+		return
+	}
+
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
