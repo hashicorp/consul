@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import localStorage from 'consul-ui/utils/storage/local-storage';
 import { module, test } from 'qunit';
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import domNormalizeEvent from 'consul-ui/utils/dom/normalize-event';
 import { module, test } from 'qunit';
 

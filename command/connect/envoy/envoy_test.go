@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package envoy
 
 import (
@@ -690,15 +693,7 @@ func TestGenerateConfig(t *testing.T) {
 				"envoy_bootstrap_json_tpl": `
 				{
 					"admin": {
-						"access_log": [
-						  {
-							"name": "envoy.access_loggers.file",
-							"typed_config": {
-							  "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
-							  "path": "/dev/null"
-							}
-						  }
-						],
+						"access_log_path": "/dev/null",
 						"address": {
 							"socket_address": {
 								"address": "{{ .AdminBindAddress }}",

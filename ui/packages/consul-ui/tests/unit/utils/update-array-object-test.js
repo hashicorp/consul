@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import updateArrayObject from 'consul-ui/utils/update-array-object';
 import { module, test } from 'qunit';
 

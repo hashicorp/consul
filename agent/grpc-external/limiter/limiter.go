@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // package limiter provides primatives for limiting the number of concurrent
 // operations in-flight.
 package limiter

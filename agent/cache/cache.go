@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 // Package cache provides caching features for data from a Consul server.
 //
 // While this is similar in some ways to the "agent/ae" package, a key

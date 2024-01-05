@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package envoy
 
 import (
@@ -545,14 +548,7 @@ const (
 	expectedTelemetryCollectorCluster = `{
 	"name": "consul_telemetry_collector_loopback",
 	"type": "STATIC",
-	"typed_extension_protocol_options": {
-	  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-		"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-		"explicit_http_config": {
-		  "http2_protocol_options": {}
-		}
-	  }
-	},
+	"http2_protocol_options": {},
 	"loadAssignment": {
 	  "clusterName": "consul_telemetry_collector_loopback",
 	  "endpoints": [

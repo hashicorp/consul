@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 %oidc-select [class$='-oidc-provider']::before {
   width: 22px;
   height: 22px;

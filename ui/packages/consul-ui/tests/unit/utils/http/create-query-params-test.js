@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import createQueryParams from 'consul-ui/utils/http/create-query-params';
 import { module, test } from 'qunit';
 

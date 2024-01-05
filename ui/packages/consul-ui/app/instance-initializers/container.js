@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import { runInDebug } from '@ember/debug';
 import require from 'require';
 import merge from 'deepmerge';

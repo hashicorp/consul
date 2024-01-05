@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 import Mixin from '@ember/object/mixin';
 
 import minimizeModel from 'consul-ui/utils/minimizeModel';

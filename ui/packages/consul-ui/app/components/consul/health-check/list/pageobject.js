@@ -1,3 +1,8 @@
+/**
+ * Copyright (c) HashiCorp, Inc.
+ * SPDX-License-Identifier: BUSL-1.1
+ */
+
 export default (collection, text) =>
   (scope = '.consul-health-check-list') => {
     return collection({
