@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy"
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/sidecarproxy/cache"
+	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
@@ -68,7 +69,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	if workload == nil {
-		rt.Logger.Trace("workload doesn't exist; skipping reconciliation")
+		rt.Logger.Trace("workload doesn't exist; skipping reconciliation", "workload", workloadID)
 		// Workload no longer exists, let garbage collector clean up
 		return nil
 	}
@@ -120,7 +121,7 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	exportedServices, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)
 	if err != nil {
 		rt.Logger.Error("error reading the associated exported services", "error", err)
-		return err
+		exportedServices = &types.DecodedComputedExportedServices{}
 	}
 
 	trustDomain, err := r.getTrustDomain()
