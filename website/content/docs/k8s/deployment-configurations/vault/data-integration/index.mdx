@@ -93,7 +93,7 @@ For example, if your Consul on Kubernetes servers need access to [Consul Server 
     1. Enterprise License
 
       <Note>
-      When using Vault Key-Value Version 2 secrets engines, the `data` field is implicitly required for Vault API calls in the form of "vault-kv2-mount-path/**data**/secret-path". In this example, the key-value data in `consul-kv/secret/enterpriselicense` is accessible for API calls via the `consul-kv/data/secret/enterpriselicense` path.
+      Vault API calls to version 2 of the Key-Value secrets engine require the `data` field in the path configuration. In the following example, the key-value data in `consul-kv/secret/enterpriselicense` becomes accessible for Vault API calls on the `consul-kv/data/secret/enterpriselicense` path.
       </Note>
 
       <CodeBlockConfig filename="license-policy.hcl">
