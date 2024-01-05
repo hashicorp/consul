@@ -186,11 +186,11 @@
               },
               {
                 "title": "Monitor Raft metrics and logs",
-                "path": "deploy/server/wal/monitor-raft-metrics-logs"
+                "path": "deploy/server/wal/monitor-raft"
               },
               {
                 "title": "Revert to BoltDB",
-                "path": "deploy/server/wal/revert-to-boltdb"
+                "path": "deploy/server/wal/revert-boltdb"
               }
             ]
           },
@@ -239,15 +239,15 @@
                 "routes": [
                   {
                     "title": "Minikube",
-                    "path": "deploy/server/k8s/platform-guides/minikube"
+                    "path": "deploy/server/k8s/platform/minikube"
                   },
                   {
                     "title": "Kind",
-                    "path": "deploy/server/k8s/platform-guides/kind"
+                    "path": "deploy/server/k8s/platform/kind"
                   },
                   {
                     "title": "AKS (Azure)",
-                    "path": "deploy/server/k8s/platform-guides/aks"
+                    "path": "deploy/server/k8s/platform/aks"
                   },
                   {
                     "title": "EKS (AWS)",
@@ -255,15 +255,15 @@
                   },
                   {
                     "title": "GKE (Google Cloud)",
-                    "path": "deploy/server/k8s/platform-guides/gke"
+                    "path": "deploy/server/k8s/platform/gke"
                   },
                   {
                     "title": "Red Hat OpenShift",
-                    "path": "deploy/server/k8s/platform-guides/openshift"
+                    "path": "deploy/server/k8s/platform/openshift"
                   },
                   {
                     "title": "Self-hosted Kubernetes",
-                    "path": "deploy/server/k8s/platform-guides/self-hosted"
+                    "path": "deploy/server/k8s/platform/self-hosted"
                   }
                 ]
               },
@@ -272,15 +272,15 @@
                 "routes": [
                   {
                     "title": "Clients outside Kubernetes",
-                    "path": "deploy/server/k8s/examples/client-outside-k8s"
+                    "path": "deploy/server/k8s/examples/clients-outside"
                   },
                   {
                     "title": "Servers outside Kubernetes",
-                    "path": "deploy/server/k8s/examples/server-outside-k8s"
+                    "path": "deploy/server/k8s/examples/servers-outside"
                   },
                   {
                     "title": "Consul in multiple Kubernetes clusters",
-                    "path": "deploy/server/k8s/examples/multiple-k8s-cluster"
+                    "path": "deploy/server/k8s/examples/multiple-clusters"
                   },
                   {
                     "title": "Consul Enterprise",
@@ -295,11 +295,11 @@
                       },
                       {
                         "title": "Federate Kubernetes clusters",
-                        "path": "deploy/server/k8s/examples/federation/k8s-k8s"
+                        "path": "deploy/server/k8s/examples/federation/k8s"
                       },
                       {
                         "title": "Federate VM and Kubernetes clusters",
-                        "path": "deploy/server/k8s/examples/federation/vm-k8s"
+                        "path": "deploy/server/k8s/examples/federation/k8s-vm"
                       }
                     ]
                   },
@@ -361,7 +361,7 @@
                       },
                       {
                         "title": "WAN federation",
-                        "path": "deploy/server/k8s/examples/vault/wan-federation"
+                        "path": "deploy/server/k8s/examples/federation"
                       }
                     ]
                   }
@@ -391,7 +391,7 @@
               },
               {
                 "title": "Clients outside Kubernetes",
-                "path": "deploy/control-plane/k8s/client-outside-k8s"
+                "path": "deploy/control-plane/k8s/external-client"
               }
             ]
           },
