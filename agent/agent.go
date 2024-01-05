@@ -31,6 +31,7 @@ import (
 	"github.com/hashicorp/hcp-scada-provider/capability"
 	"github.com/hashicorp/raft"
 	"github.com/hashicorp/serf/serf"
+	"github.com/rboyer/safeio"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 	"google.golang.org/grpc"
@@ -4668,6 +4669,14 @@ func (a *Agent) persistServerMetadata() {
 				continue
 			}
 
+			// Use safeio.File to ensure the file is written to disk atomically
+			if sf, ok := f.(*safeio.File); ok {
+				if err := sf.Commit(); err != nil {
+					sf.Close()
+					a.logger.Error("failed to commit server metadata", "error", err)
+					continue
+				}
+			}
 			f.Close()
 		case <-a.shutdownCh:
 			return
