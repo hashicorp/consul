@@ -1,3 +1,0 @@
-```release-note:improvement
-xds: replace usage of deprecated Envoy field `envoy.extensions.filters.http.lua.v3.Lua.inline_code`
-```

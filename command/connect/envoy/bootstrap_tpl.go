@@ -161,15 +161,7 @@ type GRPC struct {
 const bootstrapTemplate = `{
   "admin": {
 	{{- if (not .AdminAccessLogConfig) }}
-    "access_log": [
-      {
-        "name": "envoy.access_loggers.file",
-        "typed_config": {
-          "@type": "type.googleapis.com/envoy.extensions.access_loggers.file.v3.FileAccessLog",
-          "path": "{{ .AdminAccessLogPath }}"
-        }
-      }
-    ],
+    "access_log_path": "{{ .AdminAccessLogPath }}",
 	{{- end}}
 	{{- if .AdminAccessLogConfig }}
     "access_log": [
@@ -228,14 +220,7 @@ const bootstrapTemplate = `{
           }
         },
         {{- end }}
-        "typed_extension_protocol_options": {
-		  "envoy.extensions.upstreams.http.v3.HttpProtocolOptions": {
-			"@type": "type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions",
-			"explicit_http_config": {
-			  "http2_protocol_options": {}
-			}
-		  }
-		},
+        "http2_protocol_options": {},
         "loadAssignment": {
           "clusterName": "{{ .LocalAgentClusterName }}",
           "endpoints": [
