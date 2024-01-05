@@ -47,7 +47,19 @@ After you update your cluster's configuration, the Consul agent must restart bef
 
 On VM deployments, restart each server in the cluster one at a time in order to maintain the cluster's availability.
 
-On Kubernetes deployments, you can run `kubectl apply -f values.yaml` to apply the configuration to your deployment. If you use the Consul on Kubernetes CLI, you can run `consul-k8s upgrade -config-file values.yaml`. For information about the `consul-k8s` CLI and how to install it, refer to [Install Consul on Kubernetes from Consul K8s CLI](/consul/docs/k8s/installation/install-cli)
+On Kubernetes deployments, you can run the following command to apply the configuration to your deployment: 
+
+```shell-session
+$ kubectl apply -f values.yaml
+```
+
+If you use the Consul on Kubernetes CLI, you can run the following command instead:
+
+```shell-session
+$ consul-k8s upgrade -config-file values.yaml
+```
+
+For information about the `consul-k8s` CLI and how to install it, refer to [Install Consul on Kubernetes from Consul K8s CLI](/consul/docs/k8s/installation/install-cli)
 
 ## Next steps
 

@@ -251,7 +251,7 @@
                   },
                   {
                     "title": "EKS (AWS)",
-                    "path": "deploy/server/k8s/platform-guides/eks"
+                    "path": "deploy/server/k8s/platform/eks"
                   },
                   {
                     "title": "GKE (Google Cloud)",
@@ -361,7 +361,7 @@
                       },
                       {
                         "title": "WAN federation",
-                        "path": "deploy/server/k8s/examples/federation"
+                        "path": "deploy/server/k8s/examples/vault/wan-federation"
                       }
                     ]
                   }
