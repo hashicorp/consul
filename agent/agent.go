@@ -4570,12 +4570,15 @@ func (a *Agent) persistServerMetadata() {
 				continue
 			}
 
-			sf := f.(*safeio.File)
-			if err := sf.Commit(); err != nil {
-				a.logger.Error("failed to commit server metadata", "error", err)
-				continue
+			// Use safeio.File to ensure the file is written to disk atomically
+			if sf, ok := f.(*safeio.File); ok {
+				if err := sf.Commit(); err != nil {
+					sf.Close()
+					a.logger.Error("failed to commit server metadata", "error", err)
+					continue
+				}
 			}
-			sf.Close()
+			f.Close()
 		case <-a.shutdownCh:
 			return
 		}
