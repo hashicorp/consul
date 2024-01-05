@@ -534,7 +534,10 @@ func makeHeadersValueOptions(vals map[string]string, add bool) []*envoy_core_v3.
 				Key:   k,
 				Value: v,
 			},
-			Append: response.MakeBoolValue(add),
+		}
+		if !add {
+			// default is APPEND_IF_EXISTS_OR_ADD
+			o.AppendAction = envoy_core_v3.HeaderValueOption_OVERWRITE_IF_EXISTS_OR_ADD
 		}
 		opts = append(opts, o)
 	}
@@ -924,8 +927,12 @@ func makeRouteMatchForDiscoveryRoute(discoveryRoute *structs.DiscoveryRoute) *en
 
 		eh := &envoy_route_v3.HeaderMatcher{
 			Name: ":method",
-			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+			HeaderMatchSpecifier: &envoy_route_v3.HeaderMatcher_StringMatch{
+				StringMatch: &envoy_matcher_v3.StringMatcher{
+					MatchPattern: &envoy_matcher_v3.StringMatcher_SafeRegex{
+						SafeRegex: response.MakeEnvoyRegexMatch(methodHeaderRegex),
+					},
+				},
 			},
 		}
 
@@ -1126,6 +1133,7 @@ func injectLBToRouteAction(lb *structs.LoadBalancer, action *envoy_route_v3.Rout
 }
 
 func injectHeaderManipToRoute(dest *structs.ServiceRouteDestination, r *envoy_route_v3.Route) error {
+
 	if !dest.RequestHeaders.IsZero() {
 		r.RequestHeadersToAdd = append(
 			r.RequestHeadersToAdd,
