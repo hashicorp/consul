@@ -5,6 +5,7 @@ package resource
 
 import (
 	"context"
+	"fmt"
 
 	"google.golang.org/grpc/metadata"
 
@@ -33,7 +34,7 @@ func (resource *ResourceGRPC) Apply(parsedResource *pbresource.Resource) (*pbres
 	defer resource.C.Conn.Close()
 	writeRsp, err := resource.C.Client.Write(ctx, &pbresource.WriteRequest{Resource: parsedResource})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error writing resource: %+v", err)
 	}
 
 	return writeRsp.Resource, err
