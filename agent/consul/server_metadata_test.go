@@ -6,6 +6,7 @@ package consul
 import (
 	"bytes"
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -64,5 +65,37 @@ func TestWriteServerMetadata(t *testing.T) {
 		err := WriteServerMetadata(b)
 		assert.NoError(t, err)
 		assert.True(t, b.Len() > 0)
+	})
+}
+
+func TestWriteServerMetadata_MultipleTimes(t *testing.T) {
+	file, err := os.CreateTemp("", "server_metadata.json")
+	assert.NoError(t, err)
+	defer os.Remove(file.Name())
+
+	// prepare some data in server_metadata.json
+	_, err = OpenServerMetadata(file.Name())
+	assert.NoError(t, err)
+	err = WriteServerMetadata(file)
+	assert.NoError(t, err)
+	stat, err := file.Stat()
+	assert.NoError(t, err)
+
+	t.Run("reopen not truncate file", func(t *testing.T) {
+		_, err = OpenServerMetadata(file.Name())
+		assert.NoError(t, err)
+
+		// file size unchanged
+		stat2, err := file.Stat()
+		assert.NoError(t, err)
+		assert.Equal(t, stat.Size(), stat2.Size())
+	})
+
+	t.Run("write updates the file", func(t *testing.T) {
+		err = WriteServerMetadata(file)
+		assert.NoError(t, err)
+		stat2, err := file.Stat()
+		assert.NoError(t, err)
+		assert.Equal(t, stat2.ModTime(), stat2.ModTime())
 	})
 }
