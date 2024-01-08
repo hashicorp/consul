@@ -38,7 +38,10 @@ func TestManager_Run(t *testing.T) {
 	).Return()
 	scadaM.EXPECT().Start().Return(nil)
 
-	telemetryProvider := &hcpProviderImpl{}
+	telemetryProvider := &hcpProviderImpl{
+		httpCfg: &httpCfg{},
+		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+	}
 
 	mgr := NewManager(ManagerConfig{
 		Client:            client,
@@ -63,6 +66,8 @@ func TestManager_Run(t *testing.T) {
 	cancel()
 	client.AssertExpectations(t)
 	require.Equal(t, client, telemetryProvider.hcpClient)
+	require.NotNil(t, telemetryProvider.GetHeader())
+	require.NotNil(t, telemetryProvider.GetHTTPClient())
 }
 
 func TestManager_SendUpdate(t *testing.T) {

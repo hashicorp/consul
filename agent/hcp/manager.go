@@ -95,6 +95,13 @@ func (m *Manager) Run(ctx context.Context) {
 			"error", err)
 	}
 
+	// Update the telemetry provider to enable the HCP metrics sink
+	if err := m.updateTelemetryProvider(); err != nil {
+		// Log the error but continue starting the manager. The telemetry provider
+		// could potentially be updated later with a working configuration.
+		m.logger.Error("error updating telemetry config provider", "error", err)
+	}
+
 	// immediately send initial update
 	select {
 	case <-ctx.Done():
@@ -103,12 +110,6 @@ func (m *Manager) Run(ctx context.Context) {
 		err = m.sendUpdate()
 	default:
 		err = m.sendUpdate()
-	}
-
-	// Update the telemetry config provider with the HCP client
-	if m.cfg.TelemetryProvider != nil {
-		m.cfg.TelemetryProvider.UpdateHCPClient(m.cfg.Client)
-		m.logger.Debug("updated telemetry config provider with HCP client")
 	}
 
 	// main loop
@@ -158,6 +159,22 @@ func (m *Manager) startSCADAProvider() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (m *Manager) updateTelemetryProvider() error {
+	if m.cfg.TelemetryProvider == nil {
+		return nil
+	}
+
+	m.cfg.TelemetryProvider.UpdateHCPClient(m.cfg.Client)
+	m.logger.Debug("updated telemetry config provider with HCP client")
+
+	err := m.cfg.TelemetryProvider.UpdateHCPConfig(&m.cfg.CloudConfig)
+	if err != nil {
+		return err
+	}
+	m.logger.Debug("updated telemetry config provider with HCP configuration")
 
 	return nil
 }
