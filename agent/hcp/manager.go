@@ -21,9 +21,10 @@ var (
 )
 
 type ManagerConfig struct {
-	Client        hcpclient.Client
-	CloudConfig   config.CloudConfig
-	SCADAProvider scada.Provider
+	Client            hcpclient.Client
+	CloudConfig       config.CloudConfig
+	SCADAProvider     scada.Provider
+	TelemetryProvider *hcpProviderImpl
 
 	StatusFn    StatusCallback
 	MinInterval time.Duration
@@ -66,9 +67,7 @@ type Manager struct {
 	testUpdateSent chan struct{}
 }
 
-// NewManager returns an initialized Manager with a zero configuration. It won't
-// do anything until UpdateConfig is called with a config that provides
-// credentials to contact HCP.
+// NewManager returns a Manager initialized with the given configuration.
 func NewManager(cfg ManagerConfig) *Manager {
 	return &Manager{
 		logger: cfg.Logger,
@@ -104,6 +103,12 @@ func (m *Manager) Run(ctx context.Context) {
 		err = m.sendUpdate()
 	default:
 		err = m.sendUpdate()
+	}
+
+	// Update the telemetry config provider with the HCP client
+	if m.cfg.TelemetryProvider != nil {
+		m.cfg.TelemetryProvider.UpdateHCPClient(m.cfg.Client)
+		m.logger.Debug("updated telemetry config provider with HCP client")
 	}
 
 	// main loop

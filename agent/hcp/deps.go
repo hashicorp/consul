@@ -18,9 +18,10 @@ import (
 
 // Deps contains the interfaces that the rest of Consul core depends on for HCP integration.
 type Deps struct {
-	Client   client.Client
-	Provider scada.Provider
-	Sink     metrics.MetricSink
+	Client            client.Client
+	Provider          scada.Provider
+	Sink              metrics.MetricSink
+	TelemetryProvider *hcpProviderImpl
 }
 
 func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
@@ -43,16 +44,18 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to init metrics client: %w", err)
 	}
 
-	sink, err := sink(ctx, metricsClient, NewHCPProvider(ctx, hcpClient))
+	metricsProvider := NewHCPProvider(ctx, nil)
+	sink, err := sink(ctx, metricsClient, metricsProvider)
 	if err != nil {
 		// Do not prevent server start if sink init fails, only log error.
 		logger.Error("failed to init sink", "error", err)
 	}
 
 	return Deps{
-		Client:   hcpClient,
-		Provider: provider,
-		Sink:     sink,
+		Client:            hcpClient,
+		Provider:          provider,
+		Sink:              sink,
+		TelemetryProvider: metricsProvider,
 	}, nil
 }
 

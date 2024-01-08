@@ -586,11 +586,12 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-		CloudConfig:   s.config.Cloud,
-		Client:        flat.HCP.Client,
-		StatusFn:      s.hcpServerStatus(flat),
-		Logger:        logger.Named("hcp_manager"),
-		SCADAProvider: flat.HCP.Provider,
+		CloudConfig:       s.config.Cloud,
+		Client:            flat.HCP.Client,
+		StatusFn:          s.hcpServerStatus(flat),
+		Logger:            logger.Named("hcp_manager"),
+		SCADAProvider:     flat.HCP.Provider,
+		TelemetryProvider: flat.HCP.TelemetryProvider,
 	})
 
 	var recorder *middleware.RequestRecorder

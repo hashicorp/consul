@@ -38,12 +38,15 @@ func TestManager_Run(t *testing.T) {
 	).Return()
 	scadaM.EXPECT().Start().Return(nil)
 
+	telemetryProvider := &hcpProviderImpl{}
+
 	mgr := NewManager(ManagerConfig{
-		Client:        client,
-		Logger:        hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
-		StatusFn:      statusF,
-		CloudConfig:   cloudCfg,
-		SCADAProvider: scadaM,
+		Client:            client,
+		Logger:            hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		StatusFn:          statusF,
+		CloudConfig:       cloudCfg,
+		SCADAProvider:     scadaM,
+		TelemetryProvider: telemetryProvider,
 	})
 	mgr.testUpdateSent = updateCh
 	ctx, cancel := context.WithCancel(context.Background())
@@ -59,6 +62,7 @@ func TestManager_Run(t *testing.T) {
 	// Make sure after manager has stopped no more statuses are pushed.
 	cancel()
 	client.AssertExpectations(t)
+	require.Equal(t, client, telemetryProvider.hcpClient)
 }
 
 func TestManager_SendUpdate(t *testing.T) {
