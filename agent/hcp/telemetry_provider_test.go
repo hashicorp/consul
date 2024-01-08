@@ -74,6 +74,7 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 		initCfg          *dynamicConfig
 		expected         *dynamicConfig
 		expectedInterval time.Duration
+		skipHCPClient    bool
 	}{
 		"noChanges": {
 			initCfg: testDynamicCfg(&testConfig{
@@ -236,12 +237,29 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			metricKey:        testMetricKeySuccess,
 			expectedInterval: defaultTelemetryConfigRefreshInterval,
 		},
+		"hcpClientNotConfigured": {
+			skipHCPClient: true,
+			initCfg: testDynamicCfg(&testConfig{
+				endpoint: "http://test.com/v1/metrics",
+				filters:  "test",
+				labels: map[string]string{
+					"test_label": "123",
+				},
+				refreshInterval: testRefreshInterval,
+			}),
+			expected:         defaultDisabledCfg(),
+			metricKey:        testMetricKeySuccess,
+			expectedInterval: defaultTelemetryConfigRefreshInterval,
+		},
 	} {
 		tc := tc
 		t.Run(name, func(t *testing.T) {
 			sink := initGlobalSink()
-			mockClient := client.NewMockClient(t)
-			tc.mockExpect(mockClient)
+			var mockClient *client.MockClient
+			if !tc.skipHCPClient {
+				mockClient = client.NewMockClient(t)
+				tc.mockExpect(mockClient)
+			}
 
 			provider := &hcpProviderImpl{
 				hcpClient: mockClient,

@@ -6,6 +6,7 @@ package hcp
 import (
 	"context"
 	"net/url"
+	"reflect"
 	"regexp"
 	"sync"
 	"time"
@@ -103,10 +104,18 @@ func (h *hcpProviderImpl) run(ctx context.Context) {
 func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
 
+	hcpClient := h.GetHCPClient()
+	if hcpClient == nil || reflect.ValueOf(hcpClient).IsNil() {
+		// Disable metrics if HCP client is not configured
+		disabledMetricsCfg := defaultDisabledCfg()
+		h.modifyDynamicCfg(disabledMetricsCfg)
+		return disabledMetricsCfg.refreshInterval
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	telemetryCfg, err := h.hcpClient.FetchTelemetryConfig(ctx)
+	telemetryCfg, err := hcpClient.FetchTelemetryConfig(ctx)
 	if err != nil {
 		// Only disable metrics on 404 or 401 to handle the case of an unlinked cluster.
 		// For other errors such as 5XX ones, we continue metrics collection, as these are potentially transient server-side errors.
@@ -182,4 +191,20 @@ func (h *hcpProviderImpl) IsDisabled() bool {
 	defer h.rw.RUnlock()
 
 	return h.cfg.disabled
+}
+
+// UpdateHCPClient acquires a read lock to return the HCP client.
+func (h *hcpProviderImpl) GetHCPClient() client.Client {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.hcpClient
+}
+
+// UpdateHCPClient acquires a write lock to set the HCP client.
+func (h *hcpProviderImpl) UpdateHCPClient(c client.Client) {
+	h.rw.Lock()
+	defer h.rw.Unlock()
+
+	h.hcpClient = c
 }
