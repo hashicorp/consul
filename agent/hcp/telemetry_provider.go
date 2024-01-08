@@ -5,6 +5,7 @@ package hcp
 
 import (
 	"context"
+	"net/http"
 	"net/url"
 	"reflect"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 	"github.com/armon/go-metrics"
 	"github.com/go-openapi/runtime"
 	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
@@ -31,12 +33,15 @@ var (
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
 var _ telemetry.ConfigProvider = &hcpProviderImpl{}
 var _ telemetry.EndpointProvider = &hcpProviderImpl{}
+var _ telemetry.ClientProvider = &hcpProviderImpl{}
 
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.
 type hcpProviderImpl struct {
 	// cfg holds configuration that can be dynamically updated.
 	cfg *dynamicConfig
+	// httpCfg holds configuration for the HTTP client
+	httpCfg *httpCfg
 
 	// A reader-writer mutex is used as the provider is read heavy.
 	// OTEL components access telemetryConfig during metrics collection and export (read).
@@ -66,6 +71,12 @@ func defaultDisabledCfg() *dynamicConfig {
 		endpoint:        nil,
 		disabled:        true,
 	}
+}
+
+// httpCfg is a set of configurable settings for the HTTP client used to export metrics
+type httpCfg struct {
+	header *http.Header
+	client *retryablehttp.Client
 }
 
 // NewHCPProvider initializes and starts a HCP Telemetry provider.
@@ -207,4 +218,22 @@ func (h *hcpProviderImpl) UpdateHCPClient(c client.Client) {
 	defer h.rw.Unlock()
 
 	h.hcpClient = c
+}
+
+// GetHeader acquires a read lock to return the HTTP request headers needed
+// to export metrics.
+func (h *hcpProviderImpl) GetHeader() *http.Header {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.httpCfg.header
+}
+
+// GetHTTPClient acquires a read lock to return the retryable HTTP client needed
+// to export metrics.
+func (h *hcpProviderImpl) GetHTTPClient() *retryablehttp.Client {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.httpCfg.client
 }

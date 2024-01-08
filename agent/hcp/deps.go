@@ -38,13 +38,12 @@ func NewDeps(cfg config.CloudConfig, logger hclog.Logger) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to init scada: %w", err)
 	}
 
-	metricsClient, err := client.NewMetricsClient(ctx, &cfg)
+	metricsProvider := NewHCPProvider(ctx, nil)
+	metricsClient, err := client.NewMetricsClient(ctx, &cfg, metricsProvider)
 	if err != nil {
 		logger.Error("failed to init metrics client", "error", err)
 		return Deps{}, fmt.Errorf("failed to init metrics client: %w", err)
 	}
-
-	metricsProvider := NewHCPProvider(ctx, nil)
 	sink, err := sink(ctx, metricsClient, metricsProvider)
 	if err != nil {
 		// Do not prevent server start if sink init fails, only log error.

@@ -6,9 +6,11 @@ package telemetry
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	goMetrics "github.com/armon/go-metrics"
+	"github.com/hashicorp/go-retryablehttp"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/aggregation"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -27,6 +29,13 @@ type MetricsClient interface {
 type EndpointProvider interface {
 	Disabled
 	GetEndpoint() *url.URL
+}
+
+// ClientProvider provides the retryable HTTP client and headers to use for exporting metrics
+// by the metrics client.
+type ClientProvider interface {
+	GetHTTPClient() *retryablehttp.Client
+	GetHeader() *http.Header
 }
 
 // otelExporter is a custom implementation of a OTEL Metrics SDK metrics.Exporter.

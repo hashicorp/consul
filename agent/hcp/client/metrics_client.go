@@ -6,6 +6,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -53,11 +54,13 @@ type CloudConfig interface {
 type otlpClient struct {
 	client *retryablehttp.Client
 	header *http.Header
+
+	provider telemetry.ClientProvider
 }
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(ctx context.Context, cfg CloudConfig) (telemetry.MetricsClient, error) {
+func NewMetricsClient(ctx context.Context, cfg CloudConfig, provider telemetry.ClientProvider) (telemetry.MetricsClient, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("failed to init telemetry client: provide valid cloudCfg (Cloud Configuration for TLS)")
 	}
@@ -84,8 +87,9 @@ func NewMetricsClient(ctx context.Context, cfg CloudConfig) (telemetry.MetricsCl
 	header.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
 
 	return &otlpClient{
-		client: c,
-		header: &header,
+		client:   c,
+		header:   &header,
+		provider: provider,
 	}, nil
 }
 
@@ -126,6 +130,11 @@ func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Cl
 // The endpoint is configurable as the endpoint can change during periodic refresh of CCM telemetry config.
 // By configuring the endpoint here, we can re-use the same client and override the endpoint when making a request.
 func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.ResourceMetrics, endpoint string) error {
+	client := o.provider.GetHTTPClient()
+	if client == nil {
+		return errors.New("http client not configured")
+	}
+
 	pbRequest := &colmetricpb.ExportMetricsServiceRequest{
 		ResourceMetrics: []*metricpb.ResourceMetrics{protoMetrics},
 	}
@@ -139,9 +148,9 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header = *o.header
+	req.Header = *o.provider.GetHeader()
 
-	resp, err := o.client.Do(req.WithContext(ctx))
+	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("failed to post metrics: %w", err)
 	}

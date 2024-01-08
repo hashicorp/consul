@@ -17,7 +17,28 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-retryablehttp"
 )
+
+type mockClientProvider struct {
+	client *retryablehttp.Client
+	header *http.Header
+}
+
+func (m *mockClientProvider) GetHTTPClient() *retryablehttp.Client { return m.client }
+func (m *mockClientProvider) GetHeader() *http.Header              { return m.header }
+
+func newMockClientProvider() *mockClientProvider {
+	header := make(http.Header)
+	header.Set("content-type", "application/x-protobuf")
+
+	client := retryablehttp.NewClient()
+
+	return &mockClientProvider{
+		header: &header,
+		client: client,
+	}
+}
 
 func TestNewMetricsClient(t *testing.T) {
 	for name, test := range map[string]struct {
@@ -55,7 +76,7 @@ func TestNewMetricsClient(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			client, err := NewMetricsClient(test.ctx, test.cfg)
+			client, err := NewMetricsClient(test.ctx, test.cfg, newMockClientProvider())
 			if test.wantErr != "" {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), test.wantErr)
@@ -83,6 +104,7 @@ func TestExportMetrics(t *testing.T) {
 		wantErr        string
 		status         int
 		largeBodyError bool
+		mutateProvider func(*mockClientProvider)
 	}{
 		"success": {
 			status: http.StatusOK,
@@ -95,6 +117,12 @@ func TestExportMetrics(t *testing.T) {
 			status:         http.StatusBadRequest,
 			wantErr:        "failed to export metrics: code 400",
 			largeBodyError: true,
+		},
+		"failsWithClientNotConfigured": {
+			mutateProvider: func(m *mockClientProvider) {
+				m.client = nil
+			},
+			wantErr: "http client not configured",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -121,7 +149,11 @@ func TestExportMetrics(t *testing.T) {
 			}))
 			defer srv.Close()
 
-			client, err := NewMetricsClient(context.Background(), MockCloudCfg{})
+			provider := newMockClientProvider()
+			if test.mutateProvider != nil {
+				test.mutateProvider(provider)
+			}
+			client, err := NewMetricsClient(context.Background(), MockCloudCfg{}, provider)
 			require.NoError(t, err)
 
 			ctx := context.Background()
