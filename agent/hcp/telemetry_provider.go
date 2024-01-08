@@ -225,7 +225,7 @@ func (h *hcpProviderImpl) IsDisabled() bool {
 	return h.cfg.disabled
 }
 
-// UpdateHCPClient acquires a read lock to return the HCP client.
+// GetHCPClient acquires a read lock to return the HCP client.
 func (h *hcpProviderImpl) GetHCPClient() client.Client {
 	h.rw.RLock()
 	defer h.rw.RUnlock()

@@ -21,8 +21,11 @@ func TestNewHTTPClient(t *testing.T) {
 	client := NewHTTPClient(mockHCPCfg.APITLSConfig(), mockHCPCfg, hclog.NewNullLogger())
 	require.NotNil(t, client)
 
+	var req *http.Request
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
+		req = r
 	}))
-	client.Get(srv.URL)
+	_, err = client.Get(srv.URL)
+	require.NoError(t, err)
+	require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
 }
