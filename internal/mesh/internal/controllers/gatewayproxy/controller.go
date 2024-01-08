@@ -113,9 +113,11 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 	}
 
 	exportedServicesID := &pbresource.ID{
-		Name:    "global",
-		Tenancy: &pbresource.Tenancy{},
-		Type:    pbmulticluster.ExportedServicesType,
+		Name: "global",
+		Tenancy: &pbresource.Tenancy{
+			Partition: req.ID.Tenancy.Partition,
+		},
+		Type: pbmulticluster.ExportedServicesType,
 	}
 
 	exportedServices, err := dataFetcher.FetchExportedServices(ctx, exportedServicesID)

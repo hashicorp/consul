@@ -4,13 +4,14 @@
 package builder
 
 import (
+	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/consul/internal/mesh/internal/controllers/gatewayproxy/fetcher"
 	"github.com/hashicorp/consul/internal/mesh/internal/types"
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	meshv2beta1 "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbmesh/v2beta1/pbproxystate"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/hashicorp/go-hclog"
 )
 
 type proxyStateTemplateBuilder struct {
