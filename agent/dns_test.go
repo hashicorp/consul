@@ -3681,7 +3681,6 @@ func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	t.Parallel()
 	for name, experimentsHCL := range versionHCL {
 		t.Run(name, func(t *testing.T) {
-
 			a := NewTestAgent(t, experimentsHCL)
 			defer a.Shutdown()
 			testrpc.WaitForLeader(t, a.RPC, "dc1")
