@@ -152,13 +152,13 @@ jobs:
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
         uses: hashicorp/vault-action@v2.5.0
         with:
@@ -169,14 +169,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -196,7 +196,10 @@ jobs:
         consul-version: [ "1.16", "1.17"]
     env:
       CONSUL_LATEST_VERSION: ${{ matrix.consul-version }}
-      ENVOY_VERSION: "1.25.4"
+      # ENVOY_VERSION should be the latest version upported by all
+      # consul versions in the matrix.consul-version, since we are testing upgrade from
+      # an older consul version, e.g., 1.26.6 is supported by both 1.16 and 1.17.
+      ENVOY_VERSION: "1.26.6"
     steps:
       - name: Checkout code
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
@@ -277,13 +280,13 @@ jobs:
           TERM: ansi
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
         uses: hashicorp/vault-action@v2.5.0
         with:
@@ -294,14 +297,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci
@@ -365,13 +368,13 @@ jobs:
           TERM: ansi
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Authenticate to Vault
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: vault-auth
         run: vault-auth
 
       # NOTE: ENT specific step as we store secrets in Vault.
       - name: Fetch Secrets
-        if: ${{ endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && endsWith(github.repository, '-enterprise') }}
         id: secrets
         uses: hashicorp/vault-action@v2.5.0
         with:
@@ -382,14 +385,14 @@ jobs:
               kv/data/github/${{ github.repository }}/datadog apikey | DATADOG_API_KEY;
 
       - name: prepare datadog-ci
-        if: ${{ !endsWith(github.repository, '-enterprise') }}
+        if: ${{ !cancelled() && !endsWith(github.repository, '-enterprise') }}
         run: |
           curl -L --fail "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci"
           chmod +x /usr/local/bin/datadog-ci
 
       - name: upload coverage
         # do not run on forks
-        if: github.event.pull_request.head.repo.full_name == github.repository
+        if: ${{ !cancelled() && github.event.pull_request.head.repo.full_name == github.repository }}
         env:
           DATADOG_API_KEY: "${{ endsWith(github.repository, '-enterprise') && env.DATADOG_API_KEY || secrets.DATADOG_API_KEY }}"
           DD_ENV: ci

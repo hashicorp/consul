@@ -5,13 +5,12 @@ package exportedservices
 
 import (
 	"context"
-	"fmt"
-	"sort"
 
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/consul/internal/controller"
+	expanderTypes "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander/types"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage"
@@ -24,22 +23,34 @@ const (
 	ControllerName = "consul.io/exported-services"
 )
 
-func Controller() *controller.Controller {
+type ExportedServicesSamenessGroupExpander interface {
+	// Expand resolves a sameness group into peers and partition and returns
+	// them as individual slices
+	//
+	// It also returns back the list of sameness group names that can't be resolved.
+	Expand([]*pbmulticluster.ExportedServicesConsumer, map[string][]*pbmulticluster.SamenessGroupMember) (*expanderTypes.ExpandedConsumers, error)
 
-	return controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
+	// List returns the list of sameness groups present in a given partition
+	List(context.Context, controller.Runtime, controller.Request) ([]*types.DecodedSamenessGroup, error)
+}
+
+func Controller(expander ExportedServicesSamenessGroupExpander) *controller.Controller {
+	if expander == nil {
+		panic("No sameness group expander was provided to the ExportedServiceController constructor")
+	}
+
+	ctrl := controller.NewController(ControllerName, pbmulticluster.ComputedExportedServicesType).
 		WithWatch(pbmulticluster.ExportedServicesType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbcatalog.ServiceType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbmulticluster.NamespaceExportedServicesType, ReplaceTypeForComputedExportedServices()).
 		WithWatch(pbmulticluster.PartitionExportedServicesType, ReplaceTypeForComputedExportedServices()).
-		WithReconciler(&reconciler{})
+		WithReconciler(&reconciler{samenessGroupExpander: expander})
+
+	return registerEnterpriseResourcesWatchers(ctrl)
 }
 
-type reconciler struct{}
-
-type serviceExports struct {
-	ref        *pbresource.Reference
-	partitions map[string]struct{}
-	peers      map[string]struct{}
+type reconciler struct {
+	samenessGroupExpander ExportedServicesSamenessGroupExpander
 }
 
 func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -107,7 +118,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 		rt.Logger.Error("error getting services", "error", err)
 		return err
 	}
-	builder := newExportedServicesBuilder()
+
+	samenessGroups, err := r.samenessGroupExpander.List(ctx, rt, req)
+	if err != nil {
+		rt.Logger.Error("failed to fetch sameness groups", err)
+		return err
+	}
+
+	builder := newExportedServicesBuilder(r.samenessGroupExpander, samenessGroups)
 
 	svcs := make(map[resource.ReferenceKey]struct{}, len(services))
 	for _, svc := range services {
@@ -122,7 +140,14 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 				Name:    svc,
 			}
 			if _, ok := svcs[resource.NewReferenceKey(id)]; ok {
-				builder.track(id, es.Data.Consumers)
+				if err := builder.track(id, es.Data.Consumers); err != nil {
+					rt.Logger.Error("error tracking service for exported service",
+						"exported_service", es.Id.Name,
+						"service", id.Name,
+						"error", err,
+					)
+					return err
+				}
 			}
 		}
 	}
@@ -132,13 +157,27 @@ func (r *reconciler) Reconcile(ctx context.Context, rt controller.Runtime, req c
 			if svc.Id.Tenancy.Namespace != nes.Id.Tenancy.Namespace {
 				continue
 			}
-			builder.track(svc.Id, nes.Data.Consumers)
+			if err := builder.track(svc.Id, nes.Data.Consumers); err != nil {
+				rt.Logger.Error("error tracking service for namespace exported service",
+					"exported_service", nes.Id.Name,
+					"service", svc.Id.Name,
+					"error", err,
+				)
+				return err
+			}
 		}
 	}
 
 	for _, pes := range partitionedExportedServices {
 		for _, svc := range services {
-			builder.track(svc.Id, pes.Data.Consumers)
+			if err := builder.track(svc.Id, pes.Data.Consumers); err != nil {
+				rt.Logger.Error("error tracking service for partition exported service",
+					"exported_service", pes.Id.Name,
+					"service", svc.Id.Name,
+					"error", err,
+				)
+				return err
+			}
 		}
 	}
 	newComputedExportedService := builder.build()
@@ -206,101 +245,6 @@ func getOldComputedExportedService(ctx context.Context, rt controller.Runtime, r
 		return nil, err
 	}
 	return computedExpSvcRes, nil
-}
-
-type exportedServicesBuilder struct {
-	data map[resource.ReferenceKey]*serviceExports
-}
-
-func newExportedServicesBuilder() *exportedServicesBuilder {
-	return &exportedServicesBuilder{
-		data: make(map[resource.ReferenceKey]*serviceExports),
-	}
-}
-
-func (b *exportedServicesBuilder) track(id *pbresource.ID, consumers []*pbmulticluster.ExportedServicesConsumer) error {
-	key := resource.NewReferenceKey(id)
-	exports, ok := b.data[key]
-
-	if !ok {
-		exports = &serviceExports{
-			ref:        resource.Reference(id, ""),
-			partitions: make(map[string]struct{}),
-			peers:      make(map[string]struct{}),
-		}
-		b.data[key] = exports
-	}
-
-	for _, c := range consumers {
-		switch v := c.ConsumerTenancy.(type) {
-		case *pbmulticluster.ExportedServicesConsumer_Peer:
-			exports.peers[v.Peer] = struct{}{}
-		case *pbmulticluster.ExportedServicesConsumer_Partition:
-			exports.partitions[v.Partition] = struct{}{}
-		case *pbmulticluster.ExportedServicesConsumer_SamenessGroup:
-			// TODO do we currently validate that sameness groups can't be set?
-			return fmt.Errorf("unexpected export to sameness group %q", v.SamenessGroup)
-		}
-	}
-
-	return nil
-}
-
-func (b *exportedServicesBuilder) build() *pbmulticluster.ComputedExportedServices {
-	if len(b.data) == 0 {
-		return nil
-	}
-
-	ces := &pbmulticluster.ComputedExportedServices{
-		Consumers: make([]*pbmulticluster.ComputedExportedService, 0, len(b.data)),
-	}
-
-	for _, svc := range sortRefValue(b.data) {
-		consumers := make([]*pbmulticluster.ComputedExportedServicesConsumer, 0, len(svc.peers)+len(svc.partitions))
-
-		for _, peer := range sortKeys(svc.peers) {
-			consumers = append(consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
-					Peer: peer,
-				},
-			})
-		}
-
-		for _, partition := range sortKeys(svc.partitions) {
-			consumers = append(consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
-					Partition: partition,
-				},
-			})
-		}
-
-		ces.Consumers = append(ces.Consumers, &pbmulticluster.ComputedExportedService{
-			TargetRef: svc.ref,
-			Consumers: consumers,
-		})
-	}
-
-	return ces
-}
-
-func sortKeys(m map[string]struct{}) []string {
-	keys := make([]string, 0, len(m))
-	for key := range m {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
-}
-
-func sortRefValue(m map[resource.ReferenceKey]*serviceExports) []*serviceExports {
-	vals := make([]*serviceExports, 0, len(m))
-	for _, val := range m {
-		vals = append(vals, val)
-	}
-	sort.Slice(vals, func(i, j int) bool {
-		return resource.ReferenceToString(vals[i].ref) < resource.ReferenceToString(vals[j].ref)
-	})
-	return vals
 }
 
 func getNamespaceForServices(exportedServices []*types.DecodedExportedServices, namespaceExportedServices []*types.DecodedNamespaceExportedServices, partitionedExportedServices []*types.DecodedPartitionExportedServices) string {

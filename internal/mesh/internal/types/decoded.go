@@ -27,4 +27,5 @@ type (
 	DecodedDestinations               = resource.DecodedResource[*pbmesh.Destinations]
 	DecodedComputedDestinations       = resource.DecodedResource[*pbmesh.ComputedExplicitDestinations]
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
+	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
 )

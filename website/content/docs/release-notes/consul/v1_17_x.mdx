@@ -7,7 +7,7 @@ description: >-
 
 # Consul 1.17.0
 
-We are pleased to announce the following Consul updates. 
+We are pleased to announce the following Consul updates.
 
 ## Release highlights
 
@@ -31,21 +31,21 @@ We are pleased to announce the following Consul updates.
 
   Refer to the [locality-aware service mesh routing](/consul/docs/connect/manage-traffic/route-to-local-upstreams) documentation for more information.
 
-- **Sameness groups (Enterprise):** Introduced in 1.16, sameness groups are a user-defined set of partitions that Consul uses to identify services that have the same name but are in different administrative partitions as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Sameness group is generally available in Consul 1.17. 
+- **Sameness groups (Enterprise):** Introduced in 1.16, sameness groups are a user-defined set of partitions that Consul uses to identify services that have the same name but are in different administrative partitions as being the same services. You can use sameness groups to create a blanket failover policy for deployments with cluster peering connections. Sameness group is generally available in Consul 1.17.
 
   Enterprises can use sameness groups to simplify operations and increase service availability for multi-cluster or multi-region deployments.
 
   Refer to the documentation for [creating sameness groups](/consul/docs/connect/cluster-peering/usage/create-sameness-groups) or [creating sameness groups on Kubernetes](/consul/docs/k8s/connect/cluster-peering/usage/create-sameness-groups) for more information.
 
-- **JWT-based authentication and authorization for API Gateway (Enterprise):** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs. 
+- **JWT-based authentication and authorization for API Gateway (Enterprise):** You can configure API gateway to use policies that control access to services based on JSON Web Tokens (JWT) embedded in the network traffic sent by external clients. These policies can control access to services, and even specific URLs, based on the claims contained in JWTs.
 
   Administrators can control access to services from outside the service mesh without having to modify services that do not support JWT-based authentication/authorization.
 
   Refer to the API gateway JWT documentation for [virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-vms) and [Kubernetes-orchestrated](/consul/docs/connect/gateways/api-gateway/secure-traffic/verify-jwts-k8s) networks for more information.
 
-- **Traffic rate limiting for services (Enterprise):**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size. 
+- **Traffic rate limiting for services (Enterprise):**  You can now configure Consul service mesh to limit the rate of HTTP requests to services. Configure rate limiting per service and apply them per service instance. Operators can set HTTP request rate limits for the service instance or separate rate limits for specific URL paths. The rate limiting configuration includes settings for requests per second (RPS) as well as maximum request burst size.
 
-  Rate limiting helps operators protect service instances from becoming overloaded with requests. They also enable operators to define criteria for allowing traffic to service instances and ensure service capacity is shared fairly. 
+  Rate limiting helps operators protect service instances from becoming overloaded with requests. They also enable operators to define criteria for allowing traffic to service instances and ensure service capacity is shared fairly.
 
   For more information, refer to the [rate limiting](/consul/docs/connect/manage-traffic/limit-request-rates) documentation.
 
@@ -53,13 +53,13 @@ We are pleased to announce the following Consul updates.
 
   For more information, refer to the [Consul ECS](/consul/docs/ecs) documentation.
 
-- **ACL templated policies**: You can now configure Consul tokens for common use cases without needing to manually create a policy. Templated policies can be added to tokens and roles. Consul automatically generates a policy and attach it to the token or role. 
+- **ACL templated policies**: You can now configure Consul tokens for common use cases without needing to manually create a policy. Templated policies can be added to tokens and roles. Consul automatically generates a policy and attach it to the token or role.
 
   For more information, refer to the [templated policies](/consul/docs/security/acl#templated-policies) documentation.
 
 ## What's deprecated
 
-- **Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below: 
+- **Non DNS-compatible service names:** Starting with this release, non DNS-compatible service names are deprecated. Consul will only accept lowercase alphanumeric characters and `-` , and names that start and end with an alphanumeric character. All other characters will be considered incompatible. An example of what is not considered dns-compatible is listed below:
 
    ```bash
    $ consul services register -name 'foo~bar%'
@@ -68,6 +68,7 @@ We are pleased to announce the following Consul updates.
    consul
    foo~bar%
    ```
+- **`-admin-access-log-path` flag for the `consul connect envoy` command:** The `-admin-access-log-path` flag for the `consul connect envoy` command is deprecated and will be removed in a future release.  `-admin-access-log-config` can be used to configure Envoy admin access logs.
 
 ## Upgrading
 

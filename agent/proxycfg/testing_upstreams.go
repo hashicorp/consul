@@ -535,8 +535,7 @@ func setupTestVariationDiscoveryChain(
 				Kind:           structs.ServiceResolver,
 				Name:           "db",
 				EnterpriseMeta: entMeta,
-				ConnectTimeout: 33 * time.Second,
-				RequestTimeout: 33 * time.Second,
+				ConnectTimeout: 25 * time.Second,
 			},
 			&structs.ProxyConfigEntry{
 				Kind:           structs.ProxyDefaults,
@@ -547,11 +546,56 @@ func setupTestVariationDiscoveryChain(
 					"protocol": "http",
 				},
 			},
+			// Adding a ServiceRouter in this case allows testing ServiceRoute.Destination timeouts.
+			&structs.ServiceRouterConfigEntry{
+				Kind:           structs.ServiceRouter,
+				Name:           "db",
+				EnterpriseMeta: entMeta,
+				Routes: []structs.ServiceRoute{
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/big-side",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "big-side",
+							// Test disabling idle timeout.
+							IdleTimeout: -1 * time.Second,
+							// Test a positive value for request timeout.
+							RequestTimeout: 10 * time.Second,
+						},
+					},
+					{
+						Match: &structs.ServiceRouteMatch{
+							HTTP: &structs.ServiceRouteHTTPMatch{
+								PathPrefix: "/lil-bit-side",
+							},
+						},
+						Destination: &structs.ServiceRouteDestination{
+							Service: "lil-bit-side",
+							// Test zero values for these timeouts.
+							IdleTimeout:    0 * time.Second,
+							RequestTimeout: 0 * time.Second,
+						},
+					},
+				},
+			},
 			&structs.ServiceSplitterConfigEntry{
 				Kind:           structs.ServiceSplitter,
 				Name:           "db",
 				EnterpriseMeta: entMeta,
 				Splits: []structs.ServiceSplit{
+					{
+						Weight:  1,
+						Service: "db",
+						RequestHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "db"},
+						},
+						ResponseHeaders: &structs.HTTPHeaderModifiers{
+							Set: map[string]string{"x-split-leg": "db"},
+						},
+					},
 					{
 						Weight:  95.5,
 						Service: "big-side",
@@ -563,7 +607,7 @@ func setupTestVariationDiscoveryChain(
 						},
 					},
 					{
-						Weight:  4,
+						Weight:  3,
 						Service: "goldilocks-side",
 						RequestHeaders: &structs.HTTPHeaderModifiers{
 							Set: map[string]string{"x-split-leg": "goldilocks"},

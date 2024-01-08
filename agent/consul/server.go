@@ -414,6 +414,9 @@ type Server struct {
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *routine.Manager
 
+	// registrator is an implemenation that translates serf events of Consul servers into catalog events
+	registrator ConsulRegistrator
+
 	// publisher is the EventPublisher to be shared amongst various server components. Events from
 	// modifications to the FSM, autopilot and others will flow through here. If in the future we
 	// need Events generated outside of the Server and all its components, then we could move
@@ -883,6 +886,24 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
 
+	// Construct the registrator that makes sense for the catalog version
+	if s.useV2Resources {
+		s.registrator = V2ConsulRegistrator{
+			Logger:   serverLogger,
+			NodeName: s.config.NodeName,
+			EntMeta:  s.config.AgentEnterpriseMeta(),
+			Client:   s.insecureResourceServiceClient,
+		}
+	} else {
+		s.registrator = V1ConsulRegistrator{
+			Datacenter:    s.config.Datacenter,
+			FSM:           s.fsm,
+			Logger:        serverLogger,
+			NodeName:      s.config.NodeName,
+			RaftApplyFunc: s.raftApplyMsgpack,
+		}
+	}
+
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
@@ -948,7 +969,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		multicluster.RegisterControllers(s.controllerManager)
+		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies())
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err

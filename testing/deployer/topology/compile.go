@@ -694,11 +694,12 @@ func compile(logger hclog.Logger, raw *Config, prev *Topology) (*Topology, error
 	}
 
 	t := &Topology{
-		ID:       id,
-		Networks: networks,
-		Clusters: clusters,
-		Images:   images,
-		Peerings: raw.Peerings,
+		ID:           id,
+		Networks:     networks,
+		Clusters:     clusters,
+		Images:       images,
+		Peerings:     raw.Peerings,
+		NetworkAreas: raw.NetworkAreas,
 	}
 
 	if prev != nil {

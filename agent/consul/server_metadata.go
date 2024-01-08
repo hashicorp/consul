@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"time"
+
+	"github.com/rboyer/safeio"
 )
 
 // ServerMetadataFile is the name of the file on disk that server metadata
@@ -31,7 +33,7 @@ func (md *ServerMetadata) IsLastSeenStale(d time.Duration) bool {
 // OpenServerMetadata is a helper function for opening the server metadata file
 // with the correct permissions.
 func OpenServerMetadata(filename string) (io.WriteCloser, error) {
-	return os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	return safeio.OpenFile(filename, 0600)
 }
 
 type ServerMetadataReadFunc func(filename string) (*ServerMetadata, error)
