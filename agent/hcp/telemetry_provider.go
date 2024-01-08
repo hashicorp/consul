@@ -5,6 +5,8 @@ package hcp
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -18,7 +20,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
+	"github.com/hashicorp/consul/version"
 )
 
 var (
@@ -49,6 +53,9 @@ type hcpProviderImpl struct {
 	rw sync.RWMutex
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
+
+	// logger is the HCP logger for the provider
+	logger hclog.Logger
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -79,17 +86,31 @@ type httpCfg struct {
 	client *retryablehttp.Client
 }
 
+type HCPProviderCfg struct {
+	HCPClient client.Client
+	HCPConfig config.CloudConfigurer
+}
+
 // NewHCPProvider initializes and starts a HCP Telemetry provider.
-func NewHCPProvider(ctx context.Context, hcpClient client.Client) *hcpProviderImpl {
+func NewHCPProvider(ctx context.Context, c *HCPProviderCfg) (*hcpProviderImpl, error) {
 	h := &hcpProviderImpl{
 		// Initialize with default config values.
 		cfg:       defaultDisabledCfg(),
-		hcpClient: hcpClient,
+		httpCfg:   &httpCfg{},
+		hcpClient: c.HCPClient,
+		logger:    hclog.FromContext(ctx),
+	}
+
+	if c.HCPConfig != nil {
+		err := h.UpdateHCPConfig(c.HCPConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to initialize HCP telemetry provider: %v", err)
+		}
 	}
 
 	go h.run(ctx)
 
-	return h
+	return h, nil
 }
 
 // run continously checks for updates to the telemetry configuration by making a request to HCP.
@@ -113,7 +134,7 @@ func (h *hcpProviderImpl) run(ctx context.Context) {
 
 // updateConfig makes a HTTP request to HCP to update metrics configuration held in the provider.
 func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
-	logger := hclog.FromContext(ctx).Named("telemetry_config_provider")
+	logger := h.logger.Named("telemetry_config_provider")
 
 	hcpClient := h.GetHCPClient()
 	if hcpClient == nil || reflect.ValueOf(hcpClient).IsNil() {
@@ -218,6 +239,39 @@ func (h *hcpProviderImpl) UpdateHCPClient(c client.Client) {
 	defer h.rw.Unlock()
 
 	h.hcpClient = c
+}
+
+// UpdateHCPConfig updates values that rely on the HCP configuration.
+func (h *hcpProviderImpl) UpdateHCPConfig(cfg config.CloudConfigurer) error {
+	h.rw.Lock()
+	defer h.rw.Unlock()
+
+	if cfg == nil {
+		return errors.New("must provide valid HCP configuration")
+	}
+
+	// Update headers
+	r, err := cfg.Resource()
+	if err != nil {
+		return fmt.Errorf("failed set telemetry client headers: %v", err)
+	}
+	header := make(http.Header)
+	header.Set("content-type", "application/x-protobuf")
+	header.Set("x-hcp-resource-id", r.String())
+	header.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
+	h.httpCfg.header = &header
+
+	// Update HTTP client
+	hcpCfg, err := cfg.HCPConfig()
+	if err != nil {
+		return fmt.Errorf("failed to configure telemetry HTTP client: %v", err)
+	}
+	h.httpCfg.client = client.NewHTTPClient(
+		hcpCfg.APITLSConfig(),
+		hcpCfg,
+		h.logger.Named("hcp_telemetry_client"))
+
+	return nil
 }
 
 // GetHeader acquires a read lock to return the HTTP request headers needed

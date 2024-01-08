@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
@@ -21,6 +22,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent/hcp/client"
+	"github.com/hashicorp/consul/agent/hcp/config"
+	"github.com/hashicorp/consul/version"
+	"github.com/hashicorp/go-hclog"
 )
 
 const (
@@ -53,7 +57,11 @@ func TestNewTelemetryConfigProvider_DefaultConfig(t *testing.T) {
 	mc := client.NewMockClient(t)
 	mc.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, errors.New("failed to fetch config"))
 
-	provider := NewHCPProvider(ctx, mc)
+	provider, err := NewHCPProvider(ctx, &HCPProviderCfg{mc, config.MockCloudCfg{}})
+	require.NoError(t, err)
+	require.NotNil(t, provider.httpCfg)
+	require.NotNil(t, provider.httpCfg.header)
+	require.NotNil(t, provider.httpCfg.client)
 	provider.updateConfig(ctx)
 
 	// Assert provider has default configuration and metrics processing is disabled.
@@ -264,6 +272,7 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			provider := &hcpProviderImpl{
 				hcpClient: mockClient,
 				cfg:       tc.initCfg,
+				logger:    hclog.NewNullLogger(),
 			}
 
 			newInterval := provider.updateConfig(context.Background())
@@ -281,6 +290,55 @@ func TestTelemetryConfigProvider_UpdateConfig(t *testing.T) {
 			sv := interval.Counters[tc.metricKey]
 			assert.NotNil(t, sv.AggregateSample)
 			require.Equal(t, sv.AggregateSample.Count, 1)
+		})
+	}
+}
+
+func TestTelemetryConfigProvider_UpdateHCPConfig(t *testing.T) {
+	for name, test := range map[string]struct {
+		wantErr string
+		cfg     config.CloudConfigurer
+	}{
+		"success": {
+			cfg: &config.MockCloudCfg{},
+		},
+		"failsWithoutCloudCfg": {
+			wantErr: "must provide valid HCP configuration",
+			cfg:     nil,
+		},
+		"failsHCPConfig": {
+			wantErr: "failed to configure telemetry HTTP client",
+			cfg: config.MockCloudCfg{
+				ConfigErr: fmt.Errorf("test bad hcp config"),
+			},
+		},
+		"failsBadResource": {
+			wantErr: "failed set telemetry client headers",
+			cfg: config.MockCloudCfg{
+				ResourceErr: fmt.Errorf("test bad resource"),
+			},
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			provider, err := NewHCPProvider(context.Background(), &HCPProviderCfg{})
+			require.NoError(t, err)
+
+			err = provider.UpdateHCPConfig(test.cfg)
+
+			if test.wantErr != "" {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), test.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, provider.GetHTTPClient())
+
+			expectedHeader := make(http.Header)
+			expectedHeader.Set("content-type", "application/x-protobuf")
+			expectedHeader.Set("x-hcp-resource-id", "organization/test-org/project/test-project/test-type/test-id")
+			expectedHeader.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
+			require.Equal(t, &expectedHeader, provider.GetHeader())
 		})
 	}
 }
@@ -353,7 +411,8 @@ func TestTelemetryConfigProvider_Race(t *testing.T) {
 	}
 
 	// Start the provider goroutine, which fetches client TelemetryConfig every RefreshInterval.
-	provider := NewHCPProvider(ctx, m)
+	provider, err := NewHCPProvider(ctx, &HCPProviderCfg{m, config.MockCloudCfg{}})
+	require.NoError(t, err)
 
 	for count := 0; count < testRaceWriteSampleCount; count++ {
 		// Force a TelemetryConfig value change in the mockRaceClient.
