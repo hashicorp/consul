@@ -16,7 +16,7 @@ import (
 
 // TestTrafficManagement_ResolverDefaultSubset_Agentless tests resolver directs traffic to default subset - agentless
 //   - Create a topology with static-server (meta version V2) and static-client (with static-server upstream)
-//   - Create a service resolver with V2 as default subset
+//   - Create a service resolver for static-server with V2 as default subset
 //   - Resolver directs traffic to the default subset, which is V2
 //   - Do a standard upgrade and validate the traffic is still directed to V2
 //   - Change the default version in serviceResolver to v1 and the client to server request fails
@@ -27,9 +27,9 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 	t.Parallel()
 
 	ct := NewCommonTopo(t)
-	configEntries := ct.Cfg.Clusters[0].InitialConfigEntries
-	configEntries = addServiceResolver(configEntries, staticServerSID.Name, "v2")
-	ct.Cfg.Clusters[0].InitialConfigEntries = configEntries
+	ct.Cfg.Clusters[0].InitialConfigEntries = append(ct.Cfg.Clusters[0].InitialConfigEntries,
+		newServiceResolver(staticServerSID.Name, "v2"))
+
 	ct.Launch(t)
 
 	resolverV2AssertFn := func() {
@@ -62,18 +62,19 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
-	ct.ValidateTopology(t)
+	ct.ValidateWorkloads(t)
 	resolverV2AssertFn()
 
 	// Change the default version in serviceResolver to v1 and the client to server request fails
-	configEntries = cfg.Clusters[0].InitialConfigEntries
-	configEntries = removeServiceResolvers(configEntries, staticServerSID.Name)
-	configEntries = addServiceResolver(configEntries, staticServerSID.Name, "v1")
-	cfg.Clusters[0].InitialConfigEntries = configEntries
-
-	require.NoError(t, ct.Sprawl.RelaunchWithPhase(cfg, sprawl.LaunchPhaseRegular))
-	t.Log("Finished first relaunch ...")
-	ct.ValidateTopology(t)
+	cluster := ct.Sprawl.Topology().Clusters[dc1]
+	cl, err := ct.Sprawl.APIClientForCluster(cluster.Name, "")
+	require.NoError(t, err)
+	configEntry := cl.ConfigEntries()
+	_, err = configEntry.Delete(api.ServiceResolver, staticServerSID.Name, nil)
+	require.NoError(t, err)
+	_, _, err = configEntry.Set(newServiceResolver(staticServerSID.Name, "v1"), nil)
+	require.NoError(t, err)
+	ct.ValidateWorkloads(t)
 
 	resolverV1AssertFn := func() {
 		cluster := ct.Sprawl.Topology().Clusters[dc1]
@@ -89,53 +90,27 @@ func TestTrafficManagement_ResolverDefaultSubset_Agentless(t *testing.T) {
 	resolverV1AssertFn()
 
 	// Change the default version in serviceResolver to v2 and the client to server request succeeds
-	cfg = ct.Sprawl.Config()
-	configEntries = cfg.Clusters[0].InitialConfigEntries
-	configEntries = removeServiceResolvers(configEntries, staticServerSID.Name)
-	configEntries = addServiceResolver(configEntries, staticServerSID.Name, "v2")
-	cfg.Clusters[0].InitialConfigEntries = configEntries
-
-	require.NoError(t, ct.Sprawl.RelaunchWithPhase(cfg, sprawl.LaunchPhaseRegular))
-	t.Log("Finished second relaunch ...")
-	ct.ValidateTopology(t)
+	configEntry = cl.ConfigEntries()
+	_, err = configEntry.Delete(api.ServiceResolver, staticServerSID.Name, nil)
+	require.NoError(t, err)
+	_, _, err = configEntry.Set(newServiceResolver(staticServerSID.Name, "v2"), nil)
+	require.NoError(t, err)
+	ct.ValidateWorkloads(t)
 	resolverV2AssertFn()
 }
 
-func addServiceResolver(configEntries []api.ConfigEntry, serviceResolverName string, defaultSubset string) []api.ConfigEntry {
-	configEntries = append(configEntries,
-		&api.ServiceResolverConfigEntry{
-			Kind:          api.ServiceResolver,
-			Name:          serviceResolverName,
-			DefaultSubset: defaultSubset,
-			Subsets: map[string]api.ServiceResolverSubset{
-				"v1": {
-					Filter: "Service.Meta.version == v1",
-				},
-				"v2": {
-					Filter: "Service.Meta.version == v2",
-				},
+func newServiceResolver(serviceResolverName string, defaultSubset string) api.ConfigEntry {
+	return &api.ServiceResolverConfigEntry{
+		Kind:          api.ServiceResolver,
+		Name:          serviceResolverName,
+		DefaultSubset: defaultSubset,
+		Subsets: map[string]api.ServiceResolverSubset{
+			"v1": {
+				Filter: "Service.Meta.version == v1",
+			},
+			"v2": {
+				Filter: "Service.Meta.version == v2",
 			},
 		},
-	)
-	return configEntries
-}
-
-func removeServiceResolvers(configEntries []api.ConfigEntry, serviceResolverNames ...string) []api.ConfigEntry {
-	var resConfigEntries []api.ConfigEntry
-	containsString := func(element string, slice []string) bool {
-		for _, v := range slice {
-			if v == element {
-				return true
-			}
-		}
-		return false
 	}
-
-	for _, entry := range configEntries {
-		if entry.GetKind() == api.ServiceResolver && containsString(entry.GetName(), serviceResolverNames) {
-			continue
-		}
-		resConfigEntries = append(resConfigEntries, entry)
-	}
-	return resConfigEntries
 }

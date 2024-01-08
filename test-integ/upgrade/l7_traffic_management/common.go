@@ -177,10 +177,15 @@ func (ct *commonTopo) Launch(t *testing.T) {
 		t.Fatalf("Launch must only be called once")
 	}
 	ct.Sprawl = sprawltest.Launch(t, ct.Cfg)
-	ct.ValidateTopology(t)
+	ct.ValidateWorkloads(t)
 }
 
-func (ct *commonTopo) ValidateTopology(t *testing.T) {
+// ValidateWorkloads validates below
+// - static server, static client workloads are reachable and, static server, static client services are healthy
+// - static client and its sidecar exists in catalog
+// - envoy is running for static server, static client workloads
+// - envoy cert uri is present in for static server, static client workloads
+func (ct *commonTopo) ValidateWorkloads(t *testing.T) {
 
 	t.Helper()
 	ct.Assert = topoutil.NewAsserter(ct.Sprawl)
