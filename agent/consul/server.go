@@ -143,6 +143,7 @@ const (
 
 	CatalogResourceExperimentName = "resource-apis"
 	V2TenancyExperimentName       = "v2tenancy"
+	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
 
 const (
@@ -475,6 +476,10 @@ type Server struct {
 
 	// useV2Tenancy is tied to the "v2tenancy" feature flag.
 	useV2Tenancy bool
+
+	// whether v2 resources are enabled for use with HCP
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	hcpAllowV2Resources bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -565,6 +570,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		registry:                flat.Registry,
 		useV2Resources:          flat.UseV2Resources(),
 		useV2Tenancy:            flat.UseV2Tenancy(),
+		hcpAllowV2Resources:     flat.HCPAllowV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -939,21 +945,9 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
-	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
-	overrideResourceApisEnabledCheckRaw := os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK")
-	overrideResourceApisEnabledCheck := false
-	if overrideResourceApisEnabledCheckRaw != "" {
-		var err error
-		// Allow override of this check for development/testing purposes. Should not be used in production
-		overrideResourceApisEnabledCheck, err = strconv.ParseBool(overrideResourceApisEnabledCheckRaw)
-		if err != nil {
-			s.logger.Warn(fmt.Sprintf("could not parse %s", "CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"), "error", err)
-		}
-	}
-
 	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
-		ResourceApisEnabled:              s.useV2Resources,
-		OverrideResourceApisEnabledCheck: overrideResourceApisEnabledCheck,
+		ResourceApisEnabled:    s.useV2Resources,
+		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
 	})
 
 	// When not enabled, the v1 tenancy bridge is used by default.

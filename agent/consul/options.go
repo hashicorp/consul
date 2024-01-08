@@ -67,6 +67,15 @@ func (d Deps) UseV2Tenancy() bool {
 	return false
 }
 
+// HCPAllowV2Resources returns true if "hcp-v2-resource-apis" is present in the Experiments
+// array of the agent config.
+func (d Deps) HCPAllowV2Resources() bool {
+	if stringslice.Contains(d.Experiments, HCPAllowV2ResourceAPIs) {
+		return true
+	}
+	return false
+}
+
 type GRPCClientConner interface {
 	ClientConn(datacenter string) (*grpc.ClientConn, error)
 	ClientConnLeader() (*grpc.ClientConn, error)

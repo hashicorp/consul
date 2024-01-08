@@ -15,17 +15,17 @@ import (
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 )
 
-func LinkController(resourceApisEnabled bool, overrideResourceApisEnabledCheck bool) *controller.Controller {
+func LinkController(resourceApisEnabled bool, hcpAllowV2ResourceApis bool) *controller.Controller {
 	return controller.NewController("link", pbhcp.LinkType).
 		WithReconciler(&linkReconciler{
-			resourceApisEnabled:              resourceApisEnabled,
-			overrideResourceApisEnabledCheck: overrideResourceApisEnabledCheck,
+			resourceApisEnabled:    resourceApisEnabled,
+			hcpAllowV2ResourceApis: hcpAllowV2ResourceApis,
 		})
 }
 
 type linkReconciler struct {
-	resourceApisEnabled              bool
-	overrideResourceApisEnabledCheck bool
+	resourceApisEnabled    bool
+	hcpAllowV2ResourceApis bool
 }
 
 func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, req controller.Request) error {
@@ -53,7 +53,7 @@ func (r *linkReconciler) Reconcile(ctx context.Context, rt controller.Runtime, r
 	}
 
 	var newStatus *pbresource.Status
-	if r.resourceApisEnabled && !r.overrideResourceApisEnabledCheck {
+	if r.resourceApisEnabled && !r.hcpAllowV2ResourceApis {
 		newStatus = &pbresource.Status{
 			ObservedGeneration: res.Generation,
 			Conditions:         []*pbresource.Condition{ConditionDisabled},

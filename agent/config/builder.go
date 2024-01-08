@@ -1140,8 +1140,7 @@ func (b *builder) build() (rt RuntimeConfig, err error) {
 	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
 	if stringslice.Contains(rt.Experiments, consul.CatalogResourceExperimentName) && rt.IsCloudEnabled() {
 		// Allow override of this check for development/testing purposes. Should not be used in production
-		override, err := strconv.ParseBool(os.Getenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK"))
-		if err != nil || !override {
+		if !stringslice.Contains(rt.Experiments, consul.HCPAllowV2ResourceAPIs) {
 			return RuntimeConfig{}, fmt.Errorf("`experiments` cannot include 'resource-apis' when HCP `cloud` configuration is set")
 		}
 	}

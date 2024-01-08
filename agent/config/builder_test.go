@@ -581,7 +581,6 @@ func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
 		name      string
 		hcl       string
 		expectErr bool
-		override  bool
 	}{
 		{
 			name: "base_case",
@@ -611,9 +610,8 @@ func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
 		{
 			name: "cloud-config_resource-apis_experiment_override",
 			hcl: `
-			experiments = ["resource-apis"]
+			experiments = ["resource-apis", "hcp-v2-resource-apis"]
 			cloud{ resource_id = "abc" client_id = "abc" client_secret = "abc"}`,
-			override: true,
 		},
 	}
 	for _, tc := range tests {
@@ -629,13 +627,7 @@ func TestBuilder_WarnCloudConfigWithResourceApis(t *testing.T) {
 				},
 			},
 		}
-		if tc.override {
-			os.Setenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK", "1")
-		}
 		_, err := Load(builderOpts)
-		if tc.override {
-			os.Unsetenv("CONSUL_OVERRIDE_HCP_RESOURCE_APIS_CHECK")
-		}
 		if tc.expectErr {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), "cannot include 'resource-apis' when HCP")

@@ -9,13 +9,13 @@ import (
 )
 
 type Dependencies struct {
-	ResourceApisEnabled              bool
-	OverrideResourceApisEnabledCheck bool
+	ResourceApisEnabled    bool
+	HCPAllowV2ResourceApis bool
 }
 
 func Register(mgr *controller.Manager, deps Dependencies) {
 	mgr.Register(link.LinkController(
 		deps.ResourceApisEnabled,
-		deps.OverrideResourceApisEnabledCheck,
+		deps.HCPAllowV2ResourceApis,
 	))
 }
