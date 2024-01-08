@@ -5,23 +5,11 @@ description: >-
   Configure your Consul API Gateway to manage traffic into your service mesh. Learn about the Kubernetes Gateway Specification items you can configure and how to configure custom API Gateways.
 ---
 
-# Consul API gateway configuration overview
+# Consul API gateway configuration reference overview
 
 This topic provides an overview of the configuration items you can use to create API gateways, configure listeners, define routes, and apply additional resources that may be necessary to operate Consul API gateways in your environment. 
 
-## Configurations for virtual machines
-
-Apply the following configuration items if your network runs on virtual machines nodes:
-
-| Configuration | Description | Usage |
-| ---  | ---         | ---   |
-| [`api-gateway`](/consul/docs/connect/config-entries/api-gateway) | Defines the main infrastructure resource for declaring an API gateway and listeners on the gateway. | [Deploy API gateway listeners on virtual machines](/consul/docs/connect/gateways/api-gateway/deploy/listeners-vms) |
-| [`http-route`](/consul/docs/connect/config-entries/http-route) | Enables HTTP traffic to reach services in the mesh from a listener on the gateway.| <nobr>[Define routes on virtual machines](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms)</nobr> |
-| [`tcp-route`](/consul/docs/connect/config-entries/tcp-route) | Enables TCP traffic to reach services in the mesh from a listener on the gateway.| [Define routes on virtual machines](/consul/docs/connect/gateways/api-gateway/define-routes/routes-vms) |
-| <nobr>[`inline-certificate`](/consul/docs/connect/config-entries/inline-certificate)</nobr> | Provides gateway artificats with a CA certificate so that requests between the user and the gateway endpoint are encrypted. | [Encrypt API gateway traffic on virtual machines](/consul/docs/connect/gateways/api-gateway/secure-traffic/encrypt-vms) |
-| [`service-intentions`](/consul/docs/connect/config-entries/service-intentions) | Specifies traffic communication rules between services in the mesh. Intentions also enforce rules for service-to-service traffic routed through a Consul API gateway. | General configuration for securing a service mesh |
- 
-## Configurations for Kubernetes
+## Custom Resource Definitions (CRDs) for Consul on Kubernetes
 
 Apply the following configuration items if your network runs on Kubernetes:
 

@@ -2192,11 +2192,7 @@
     ]
   },
   {
-    "title": "Glossary",
-    "path": "glossary"
-  },
-  {
-    "title": "References",
+    "title": "Configuration reference",
     "routes": [
       {
         "title": "Access Control Lists (ACLs)",
@@ -2381,7 +2377,7 @@
           },
           {
             "title": "Server JSON schema",
-            "path": "reference/server-json"
+            "path": "reference/ecs/server-json"
           }
         ]
       },
@@ -2397,7 +2393,7 @@
             "path": "reference/k8s/annotation-label"
           },
           {
-            "title": "API gateway",
+            "title": "API gateway resources",
             "routes": [
               {
                 "title": "Overview",
@@ -2443,7 +2439,7 @@
           },
           {
             "title": "Helm chart",
-            "path": "reference/k8s/helm chart"
+            "path": "reference/k8s/helm"
           }
         ]
       },
@@ -2527,5 +2523,9 @@
         "path": "reference/terminating-gateway"
       }
     ]
+  },
+  {
+    "title": "Glossary",
+    "path": "glossary"
   }
 ]
