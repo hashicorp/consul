@@ -4,6 +4,7 @@
 package client
 
 import (
+	"crypto/tls"
 	"net/http"
 	"time"
 
@@ -26,19 +27,14 @@ const (
 	defaultRetryMax = 0
 )
 
-// newHTTPClient configures the retryable HTTP client.
-func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Client, error) {
-	hcpCfg, err := cloudCfg.HCPConfig()
-	if err != nil {
-		return nil, err
-	}
-
+// NewHTTPClient configures the retryable HTTP client.
+func NewHTTPClient(tlsCfg *tls.Config, source oauth2.TokenSource, logger hclog.Logger) *retryablehttp.Client {
 	tlsTransport := cleanhttp.DefaultPooledTransport()
-	tlsTransport.TLSClientConfig = hcpCfg.APITLSConfig()
+	tlsTransport.TLSClientConfig = tlsCfg
 
 	var transport http.RoundTripper = &oauth2.Transport{
 		Base:   tlsTransport,
-		Source: hcpCfg,
+		Source: source,
 	}
 
 	client := &http.Client{
@@ -48,7 +44,7 @@ func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Cl
 
 	retryClient := &retryablehttp.Client{
 		HTTPClient:   client,
-		Logger:       logger.Named("hcp_telemetry_client"),
+		Logger:       logger,
 		RetryWaitMin: defaultRetryWaitMin,
 		RetryWaitMax: defaultRetryWaitMax,
 		RetryMax:     defaultRetryMax,
@@ -56,5 +52,5 @@ func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Cl
 		Backoff:      retryablehttp.DefaultBackoff,
 	}
 
-	return retryClient, nil
+	return retryClient
 }

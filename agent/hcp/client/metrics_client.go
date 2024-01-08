@@ -57,10 +57,11 @@ func NewMetricsClient(ctx context.Context, cfg CloudConfig, provider telemetry.C
 
 	logger := hclog.FromContext(ctx)
 
-	c, err := newHTTPClient(cfg, logger)
+	hcpCfg, err := cfg.HCPConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to init telemetry client: %v", err)
 	}
+	c := NewHTTPClient(hcpCfg.APITLSConfig(), hcpCfg, logger)
 
 	r, err := cfg.Resource()
 	if err != nil {
