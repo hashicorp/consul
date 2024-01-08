@@ -969,7 +969,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		multicluster.RegisterControllers(s.controllerManager)
+		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies())
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err
