@@ -454,6 +454,38 @@ func (suite *controllerTestSuite) TestReconcile_NoWorkload() {
 	})
 }
 
+func (suite *controllerTestSuite) TestReconcile_GatewayWorkload() {
+	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
+		// This test ensures that gateway workloads are ignored by the controller.
+
+		gatewayWorkload := &pbcatalog.Workload{
+			Addresses: []*pbcatalog.WorkloadAddress{
+				{
+					Host: "10.0.0.1",
+				},
+			},
+			Identity: "mesh-gateway-identity",
+			Ports: map[string]*pbcatalog.WorkloadPort{
+				"mesh": {Port: 20000, Protocol: pbcatalog.Protocol_PROTOCOL_MESH},
+				"tcp":  {Port: 8080, Protocol: pbcatalog.Protocol_PROTOCOL_TCP},
+			},
+		}
+
+		resourcetest.Resource(pbcatalog.WorkloadType, "test-gateway-workload").
+			WithData(suite.T(), gatewayWorkload).
+			WithTenancy(tenancy).
+			WithMeta("gateway-kind", "mesh-gateway").
+			Write(suite.T(), suite.client.ResourceServiceClient)
+
+		err := suite.ctl.Reconcile(context.Background(), suite.runtime, controller.Request{
+			ID: resourceID(pbmesh.ProxyStateTemplateType, "test-gateway-workload", tenancy),
+		})
+
+		require.NoError(suite.T(), err)
+		suite.client.RequireResourceNotFound(suite.T(), resourceID(pbmesh.ProxyStateTemplateType, "test-non-mesh-api-workload", tenancy))
+	})
+}
+
 func (suite *controllerTestSuite) TestReconcile_NonMeshWorkload() {
 	suite.runTestCaseWithTenancies(func(tenancy *pbresource.Tenancy) {
 		// This test ensures that non-mesh workloads are ignored by the controller.

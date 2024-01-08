@@ -30,7 +30,7 @@ Prior to setting up the data integration between Vault and Consul on Kubernetes,
 First, generate and store the ACL partition token in Vault. You will only need to perform this action once:
 
 ```shell-session
-$ vault kv put secret/consul/partition-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
+$ vault kv put consul-kv/secret/partition-token token="$(uuidgen | tr '[:upper:]' '[:lower:]')"
 ```
 
 ## Create Vault policy
@@ -42,7 +42,7 @@ The path to the secret referenced in the `path` resource is the same value that 
 <CodeBlockConfig filename="partition-token-policy.hcl">
 
 ```HCL
-path "secret/data/consul/partition-token" {
+path "consul-kv/data/secret/consul/partition-token" {
   capabilities = ["read"]
 }
 ```
@@ -90,7 +90,7 @@ global:
       adminPartitionsRole: consul-partition-init
   acls:
     partitionToken:
-      secretName: secret/data/consul/partition-token
+      secretName: consul-kv/data/secret/partition-token
       secretKey: token
 ```
 

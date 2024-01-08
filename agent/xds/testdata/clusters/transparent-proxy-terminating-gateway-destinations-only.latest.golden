@@ -166,9 +166,12 @@
           "commonTlsContext": {
             "tlsParams": {},
             "validationContext": {
-              "matchSubjectAltNames": [
+              "matchTypedSubjectAltNames": [
                 {
-                  "exact": "api.test.com"
+                  "matcher": {
+                    "exact": "api.test.com"
+                  },
+                  "sanType": "URI"
                 }
               ],
               "trustedCa": {

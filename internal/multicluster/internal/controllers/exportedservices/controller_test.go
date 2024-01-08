@@ -14,6 +14,7 @@ import (
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander"
 	"github.com/hashicorp/consul/internal/multicluster/internal/types"
 	"github.com/hashicorp/consul/internal/resource"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
@@ -27,12 +28,13 @@ import (
 
 type controllerSuite struct {
 	suite.Suite
-	ctx          context.Context
-	client       *rtest.Client
-	rt           controller.Runtime
-	isEnterprise bool
-	reconciler   *reconciler
-	tenancies    []*pbresource.Tenancy
+	ctx                   context.Context
+	client                *rtest.Client
+	rt                    controller.Runtime
+	isEnterprise          bool
+	reconciler            *reconciler
+	samenessGroupExpander ExportedServicesSamenessGroupExpander
+	tenancies             []*pbresource.Tenancy
 }
 
 func (suite *controllerSuite) SetupTest() {
@@ -44,12 +46,16 @@ func (suite *controllerSuite) SetupTest() {
 		WithTenancies(rtest.Tenancy("default.app"), rtest.Tenancy("foo.app")).
 		Run(suite.T())
 
+	suite.samenessGroupExpander = expander.New()
+
 	suite.client = rtest.NewClient(client)
 	suite.rt = controller.Runtime{
 		Client: suite.client,
 		Logger: testutil.Logger(suite.T()),
 	}
-	suite.reconciler = &reconciler{}
+	suite.reconciler = &reconciler{
+		samenessGroupExpander: suite.samenessGroupExpander,
+	}
 	suite.isEnterprise = versiontest.IsEnterprise()
 }
 
@@ -79,7 +85,7 @@ func (suite *controllerSuite) TestReconcile_DeleteOldCES_NoExportedServices() {
 		}
 
 		if suite.isEnterprise {
-			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("peer-n", "partition"))
+			oldCESData.Consumers[0].Consumers = append(oldCESData.Consumers[0].Consumers, suite.constructConsumer("part-n", "partition"))
 		}
 
 		oldCES := rtest.Resource(pbmulticluster.ComputedExportedServicesType, "global").
@@ -345,7 +351,7 @@ func (suite *controllerSuite) TestReconcile_ComputeCES() {
 func (suite *controllerSuite) TestController() {
 	// Run the controller manager
 	mgr := controller.NewManager(suite.client, suite.rt.Logger)
-	mgr.Register(Controller())
+	mgr.Register(Controller(suite.samenessGroupExpander))
 	mgr.SetRaftLeader(true)
 	go mgr.Run(suite.ctx)
 
@@ -574,6 +580,7 @@ func (suite *controllerSuite) TestController() {
 				},
 			),
 		)
+
 		prototest.AssertDeepEqual(suite.T(), expectedComputedExportedService, computedCES)
 
 		suite.writeService("svc5", tenancy)
