@@ -2028,6 +2028,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	questions := []string{
 		"webv4.service.consul.",
 		"webv4.query.consul.",
+		"foov4.node.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
@@ -2056,6 +2057,7 @@ func TestDNS_NonExistingLookupEmptyAorAAAA(t *testing.T) {
 	questions = []string{
 		"webv6.service.consul.",
 		"webv6.query.consul.",
+		"foov6.node.consul.",
 	}
 	for _, question := range questions {
 		m := new(dns.Msg)
