@@ -92,10 +92,14 @@ For example, if your Consul on Kubernetes servers need access to [Consul Server 
 
     1. Enterprise License
 
+      <Note>
+      Vault API calls to version 2 of the Key-Value secrets engine require the `data` field in the path configuration. In the following example, the key-value data in `consul-kv/secret/enterpriselicense` becomes accessible for Vault API calls on the `consul-kv/data/secret/enterpriselicense` path.
+      </Note>
+
       <CodeBlockConfig filename="license-policy.hcl">
 
       ```HCL
-      path "consul-kv/data/secret/license" {
+      path "consul-kv/data/secret/enterpriselicense" {
         capabilities = ["read"]
       }
       ```
