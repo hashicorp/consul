@@ -2376,8 +2376,12 @@
         "title": "ECS",
         "routes": [
           {
-            "title": "Task definition",
-            "path": "reference/ecs/task-definition"
+            "title": "Task module",
+            "path": "reference/ecs"
+          },
+          {
+            "title": "Server JSON schema",
+            "path": "reference/server-json"
           }
         ]
       },
@@ -2436,10 +2440,6 @@
                 "path": "reference/k8s/api-gateway/meshservice"
               }
             ]
-          },
-          {
-            "title": "consul-k8s CLI",
-            "path": "reference/k8s/consul-k8s-cli"
           },
           {
             "title": "Helm chart",
