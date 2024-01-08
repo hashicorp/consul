@@ -10,16 +10,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-retryablehttp"
 	hcpcfg "github.com/hashicorp/hcp-sdk-go/config"
 	"github.com/hashicorp/hcp-sdk-go/resource"
 	colmetricpb "go.opentelemetry.io/proto/otlp/collector/metrics/v1"
 	metricpb "go.opentelemetry.io/proto/otlp/metrics/v1"
-	"golang.org/x/oauth2"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/consul/agent/hcp/telemetry"
@@ -27,17 +24,6 @@ import (
 )
 
 const (
-	// HTTP Client config
-	defaultStreamTimeout = 15 * time.Second
-
-	// Retry config
-	// TODO: Eventually, we'd like to configure these values dynamically.
-	defaultRetryWaitMin = 1 * time.Second
-	defaultRetryWaitMax = 15 * time.Second
-	// defaultRetryMax is set to 0 to turn off retry functionality, until dynamic configuration is possible.
-	// This is to circumvent any spikes in load that may cause or exacerbate server-side issues for now.
-	defaultRetryMax = 0
-
 	// defaultErrRespBodyLength refers to the max character length of the body on a failure to export metrics.
 	// anything beyond we will truncate.
 	defaultErrRespBodyLength = 100
@@ -91,39 +77,6 @@ func NewMetricsClient(ctx context.Context, cfg CloudConfig, provider telemetry.C
 		header:   &header,
 		provider: provider,
 	}, nil
-}
-
-// newHTTPClient configures the retryable HTTP client.
-func newHTTPClient(cloudCfg CloudConfig, logger hclog.Logger) (*retryablehttp.Client, error) {
-	hcpCfg, err := cloudCfg.HCPConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	tlsTransport := cleanhttp.DefaultPooledTransport()
-	tlsTransport.TLSClientConfig = hcpCfg.APITLSConfig()
-
-	var transport http.RoundTripper = &oauth2.Transport{
-		Base:   tlsTransport,
-		Source: hcpCfg,
-	}
-
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   defaultStreamTimeout,
-	}
-
-	retryClient := &retryablehttp.Client{
-		HTTPClient:   client,
-		Logger:       logger.Named("hcp_telemetry_client"),
-		RetryWaitMin: defaultRetryWaitMin,
-		RetryWaitMax: defaultRetryWaitMax,
-		RetryMax:     defaultRetryMax,
-		CheckRetry:   retryablehttp.DefaultRetryPolicy,
-		Backoff:      retryablehttp.DefaultBackoff,
-	}
-
-	return retryClient, nil
 }
 
 // ExportMetrics is the single method exposed by MetricsClient to export OTLP metrics to the desired HCP endpoint.
