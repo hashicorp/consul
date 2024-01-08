@@ -1,0 +1,341 @@
+---
+layout: docs
+page_title: TCPRoute resource configuration reference
+description: The TCPRoute resource CRD configures L4 TCP behavior within the service mesh. TCPRoute is a GAMMA resource that requires the v2 catalog API. Learn how to configure the TCPRoute CRD with specifications and example configurations.
+---
+
+# TCPRoute resource configuration reference
+
+This page provides reference information for the `TCPRoute` resource, which defines Transport Layer (L4) TCP traffic within the service mesh.
+
+This custom resource definition (CRD) describes a resource related to the [Kubernetes GAMMA initiative](https://gateway-api.sigs.k8s.io/concepts/gamma/) that requires the [v2 catalog API](/consul/docs/architecture/catalog/v2). It is not compatible with the [v1 catalog API](/consul/docs/architecture/catalog/v1). For more information about GAMMA resources, refer to the [Kubernetes Gateway API documentation](https://gateway-api.sigs.k8s.io/concepts/gamma/).
+
+## Configuration model
+
+The following list outlines field hierarchy, language-specific data types, and requirements in an TCP route CRD. Click on a property name to view additional details, including default values.
+
+<Tabs>
+
+<Tab heading="YAML" group="yaml">
+
+- [`apiVersion`](#apiversion): string | required | must be set to `mesh.consul.hashicorp.com/v2beta1`
+- [`kind`](#kind): string | required | must be set to `TCPRoute`
+- [`metadata`](#metadata): map  | required
+  - [`name`](#metadata-name): string | required
+  - [`namespace`](#metadata-namespace): string | optional <EnterpriseAlert inline />
+- [`spec`](#spec): map | required
+  - [`parentRefs`](#spec-parentrefs): map | required
+    - [`port`](#spec-parentrefs-port): string
+    - [`ref`](#spec-parentrefs-ref):  string | required
+      - [`name`](#spec-parentrefs-ref-name): string
+      - [`type`](#spec-parentrefs-ref-type): map
+         - [`group`](#spec-parentrefs-ref-type): string
+         - [`groupVersion`](#spec-parentrefs-ref-type): string
+         - [`kind`](#spec-parentrefs-ref-type): string
+  - [`rules`](#spec-rules): map | required
+    - [`backendRefs`](#spec-rules-backendrefs): map
+      - [`backendRef`](#spec-rules-backendrefs-backendref): map
+        - [`datacenter`](#spec-rules-backendrefs-backendref-datacenter): string
+        - [`port`](#spec-rules-backendrefs-backendref-port): string
+        - [`ref`](#spec-rules-backendrefs-backendref-ref): map
+          - [`name`](#spec-rules-backendrefs-backendref-ref-name): string
+          - [`type`](#spec-rules-backendrefs-backendref-ref-type): map
+            - [`group`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`groupVersion`](#spec-rules-backendrefs-backendref-ref-type): string
+            - [`kind`](#spec-rules-backendrefs-backendref-ref-type): string
+      - [`weight`](#spec-rules-backendrefs-weight): number
+
+</Tab>
+</Tabs>
+
+## Complete configuration
+
+When every field is defined, a TCP route CRD has the following form:
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1        # required 
+kind: TCPRoute                                       # required
+metadata:
+  name: <crdName>
+  namespace: <namespace>
+spec:
+  parentRefs:
+    port: <portNameRoutedFrom>
+    - ref:
+      name: <nameRoutedFrom>
+      type: 
+        group: <catalog>
+        groupVersion: <v2beta1>
+        kind: <Service>
+  rules:
+    - backendRefs:
+      - backendRef:
+        datacenter: <datacenterRoutedTo>
+        port: <portNameRoutedTo>
+        ref:
+          name: <nameRoutedTo>
+          type:
+            group: <catalog>
+            groupVersion: <v2beta1>
+            kind: <Service>
+      weight: 1
+```
+
+## Specification
+
+This section provides details about the fields you can configure in the `TCPRoute` custom resource definition (CRD).
+
+### `apiVersion`
+
+Specifies the version of the Consul API for integrating with Kubernetes. The value must be `mesh.consul.hashicorp.com/v2beta1`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- String value that must be set to `mesh.consul.hashicorp.com/v2beta1`.
+
+### `kind`
+
+Specifies the type of CRD to implement. Must be set to `TCPRoute`.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String value that must be set to `TCPRoute`.
+
+### `metadata`
+
+Map that contains an arbitrary name for the CRD and the namespace it applies to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `metadata.name`
+
+Specifies a name for the CRD. The name is metadata that you can use to reference the resource when performing Consul operations, such as using the `consul resource` command. Refer to [`consul resource`](/consul/docs/k8s/connect/multiport/reference/resource-command) for more information.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: String
+
+### `metadata.namespace` <EnterpriseAlert inline />
+
+Specifies the namespace that the service resolver applies to. Refer to [namespaces](/consul/docs/enterprise/namespaces) for more information.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec`
+
+Map that contains the details about the `TCPRoute` CRD. The `apiVersion`, `kind`, and `metadata` fields are siblings of the spec field. All other configurations are children.
+
+When using this CRD, the `spec` field closely resembles the `TCPRoute` GAMMA resource.  Refer to [TCPRoute in the Kubernetes documentation](https://gateway-api.sigs.k8s.io/references/spec/#gateway.networking.k8s.io/v1alpha2.TCPRoute).
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.parentRefs`
+
+Specifies the services and other resources to attach the route to. You can only define one `parentsRefs` configuration for each route. To attach the route to multiple resources, specify additional [`spec.parentRefs.ref`](#spec-parentrefs-ref) configurations in the `parentsRefs` block. You can only specify the name of one port for the route. Any resources that send traffic through the route use the same port.
+
+#### Values
+
+- Default: None
+- This field is required.
+- Data type: Map
+
+### `spec.parentRefs.port`
+
+Specifies the name of the port that the configuration applies to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.parentRefs.ref`
+
+Specifies the resource that the route attaches to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.parentRefs.ref.name`
+
+Specifies the user-defined name of the resource that the configuration applies to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.parentRefs.ref.type`
+
+Specifies the type of resource that the configuration applies to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+
+  | Parameter     | Description                                                          | Data type | Default  |
+  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
+  | `kind`    | Specifies the kind of the Kubernetes object the resource applies to. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
+
+### `spec.rules`
+
+Specifies rules for sidecar proxies to direct a service's TCP traffic within the service mesh.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs`
+
+Specifies the Kubernetes Service backend to direct TCP traffic to when a request matches the service described in [`spec.parentRefs`](#spec-parentrefs). The Service backend is the collection of endpoint IPs for the service. Refer to [the Kubernetes Gateway API specification](https://gateway-api.sigs.k8s.io/concepts/gamma/#an-overview-of-the-gateway-api-for-service-mesh) for more information about Service backends.
+
+When a valid Service backend cannot be reached and no additional filters apply, traffic that matches the rule returns a 500 status code.
+
+When different Service backends are specified in [`spec.rules.backendRefs.weight`](#spec-rules-backendrefs-weight) and one of the backends is invalid, Consul continues to apply the specified weights instead of adjusting the relative weights to exclude traffic to the invalid backend. For example, when traffic is configured in a 50-50 split between `api` and `admin` and no valid endpoints for `admin` can be reached, the 50% of traffic intended for `admin` returns with a 500 status code.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef`
+
+Specifies an individual Service backend where matching requests should be sent.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef.datacenter`
+
+Specifies the name of the Consul datacenter that registered the Service backend that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.port`
+
+Specifies the name of the port for the Consul service that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.ref`
+
+The Consul service that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: Map
+
+### `spec.rules.backendRefs.backendRef.ref.name`
+
+Specifies the user-defined name of the resource that the configuration routes traffic to.
+
+#### Values
+
+- Default: None
+- Data type: String
+
+### `spec.rules.backendRefs.backendRef.ref.type`
+
+Specifies the type of resource that the configuration routes traffic to. To reference a service in the Consul catalog, configure the resource type as `catalog.v2beta1.Service`.
+
+#### Values
+
+- Default: None
+- Data type: Map containing the following parameters:
+
+  | Parameter     | Description                                                          | Data type | Default  |
+  | :------------ | :------------------------------------------------------------------- | :-------- | :------- |
+  | `group`   | Specifies a group for the resource type within the Kubernetes cluster. To reference a service in the Consul catalog, set this parameter to `catalog`. | String    | None     |
+  | `groupVersion` | Specifies a groupVersion for the resource type within the Kubenretes cluster. To reference a service in the Consul catalog, set this parameter to `v2beta1`. | String | None     |
+  | `kind`    | Specifies the kind of the Kubernetes object for the resource. To reference a service in the Consul catalog, set this parameter to `Service`.                | String    | None     |
+
+### `spec.rules.backendRefs.weight`
+
+Specifies the proportion of requests routed to the specified service. 
+
+This proportion is relative to the sum of all weights in the [`spec.rules.backendRefs`](#spec-rules-backendrefs) block. As a result, weights do not need to add up to 100. When only one backend is specified and the weight is greater then 0, Consul forwards 100% of traffic to the backend. 
+
+When this parameter is not specified, Consul defaults to `1`.
+
+#### Values
+
+- Default: `1`
+- Data type: Integer
+
+## Examples
+
+The following examples demonstrate common TCPRoute CRD configuration patterns for specific use cases.
+
+### Split TCP traffic between two ports
+
+The following example splits traffic for the `api` service. TCP traffic for services registered to the Consul catalog that are available at the `api` port is split so that 50% of the traffic routes to the service at the `api` port and 50% routes to the service at the `admin` port.
+
+```yaml
+apiVersion: mesh.consul.hashicorp.com/v2beta1
+kind: TCPRoute
+metadata:
+  name: api-split
+  namespace: default
+spec:
+  parentRefs:
+    - ref:
+        type: 
+          group: catalog
+          groupVersion: v2beta1
+          kind: Service
+        name: api
+      # The configuration targets the workload port, not the service port.
+      port: "api"
+  rules:
+    - backendRefs:
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "api"
+        weight: 50
+      - backendRef:
+          ref: 
+            type:
+              group: catalog
+              groupVersion: v2beta1
+              kind: Service
+            name: api
+          # The configuration targets the workload port, not the service port.
+          port: "admin"
+        weight: 50
+```

@@ -1350,43 +1350,43 @@
             "routes": [
               {
                 "title": "Overview",
-                "href": "reference/api-gateway"
+                "href": "reference/k8s/api-gateway"
               },
               {
                 "title": "Gateway",
-                "href": "reference/api-gateway/gateway"
+                "href": "reference/k8s/api-gateway/gateway"
               },
               {
                 "title": "GatewayClass",
-                "href": "reference/api-gateway/gatewayclass"
+                "href": "reference/k8s/api-gateway/gatewayclass"
               },
               {
                 "title": "GatewayClassConfig",
-                "href": "reference/api-gateway/gatewayclassconfig"
+                "href": "reference/k8s/api-gateway/gatewayclassconfig"
               },
               {
                 "title": "GatewayPolicy",
-                "href": "reference/api-gateway/gatewaypolicy"
+                "href": "reference/k8s/api-gateway/gatewaypolicy"
               },
               {
                 "title": "RouteAuthFilter",
-                "href": "reference/api-gateway/routeauthfilter"
+                "href": "reference/k8s/api-gateway/routeauthfilter"
               },
               {
                 "title": "Routes",
-                "href": "reference/api-gateway/routes"
+                "href": "reference/k8s/api-gateway/routes"
               },
               {
                 "title": "RouteRetryFilter",
-                "href": "reference/api-gateway/routeretryfilter"
+                "href": "reference/k8s/api-gateway/routeretryfilter"
               },
               {
                 "title": "RouteTimeoutFilter",
-                "href": "reference/api-gateway/routetimeoutfilter"
+                "href": "reference/k8s/api-gateway/routetimeoutfilter"
               },
               {
                 "title": "MeshService",
-                "href": "reference/api-gateway/meshservice"
+                "href": "reference/k8s/api-gateway/meshservice"
               }
             ]
           }
@@ -2245,51 +2245,6 @@
         "path": "reference/agent"
       },
       {
-        "title": "API gateway",
-        "routes": [
-          {
-            "title": "Overview",
-            "path": "reference/api-gateway"
-          },
-          {
-            "title": "Gateway",
-            "path": "reference/api-gateway/gateway"
-          },
-          {
-            "title": "GatewayClass",
-            "path": "reference/api-gateway/gatewayclass"
-          },
-          {
-            "title": "GatewayClassConfig",
-            "path": "reference/api-gateway/gatewayclassconfig"
-          },
-          {
-            "title": "GatewayPolicy",
-            "path": "reference/api-gateway/gatewaypolicy"
-          },
-          {
-            "title": "RouteAuthFilter",
-            "path": "reference/api-gateway/routeauthfilter"
-          },
-          {
-            "title": "Routes",
-            "path": "reference/api-gateway/routes"
-          },
-          {
-            "title": "RouteRetryFilter",
-            "path": "reference/api-gateway/routeretryfilter"
-          },
-          {
-            "title": "RouteTimeoutFilter",
-            "path": "reference/api-gateway/routetimeoutfilter"
-          },
-          {
-            "title": "MeshService",
-            "path": "reference/api-gateway/meshservice"
-          }
-        ]
-      },
-      {
         "title": "Configuration entries",
         "routes": [
           {
@@ -2431,6 +2386,68 @@
         "path": "reference/health-check"
       },
       {
+        "title": "Kubernetes",
+        "routes": [
+          {
+            "title": "Annotations and labels",
+            "path": "reference/k8s/annotation-label"
+          },
+          {
+            "title": "API gateway",
+            "routes": [
+              {
+                "title": "Overview",
+                "path": "reference/k8s/api-gateway"
+              },
+              {
+                "title": "Gateway",
+                "path": "reference/k8s/api-gateway/gateway"
+              },
+              {
+                "title": "GatewayClass",
+                "path": "reference/k8s/api-gateway/gatewayclass"
+              },
+              {
+                "title": "GatewayClassConfig",
+                "path": "reference/k8s/api-gateway/gatewayclassconfig"
+              },
+              {
+                "title": "GatewayPolicy",
+                "path": "reference/k8s/api-gateway/gatewaypolicy"
+              },
+              {
+                "title": "RouteAuthFilter",
+                "path": "reference/k8s/api-gateway/routeauthfilter"
+              },
+              {
+                "title": "Routes",
+                "path": "reference/k8s/api-gateway/routes"
+              },
+              {
+                "title": "RouteRetryFilter",
+                "path": "reference/k8s/api-gateway/routeretryfilter"
+              },
+              {
+                "title": "RouteTimeoutFilter",
+                "path": "reference/k8s/api-gateway/routetimeoutfilter"
+              },
+              {
+                "title": "MeshService",
+                "path": "reference/k8s/api-gateway/meshservice"
+              }
+            ]
+          },
+          {
+            "title": "consul-k8s CLI",
+            "path": "reference/k8s/consul-k8s-cli"
+          },
+          {
+            "title": "Helm chart",
+            "path": "reference/k8s/helm chart"
+          }
+        ]
+      },
+      {
         "title": "Proxies",
         "routes": [
           {
@@ -2480,74 +2497,24 @@
         "title": "Resources",
         "routes": [
           {
-            "title": "East-West",
-            "routes": [
-              {
-                "title": "GRPCRoute",
-                "path": "reference/resource/east-west/grpcroute"
-              },
-              {
-                "title": "HTTPRoute",
-                "path": "reference/resource/east-west/httproute"
-              },
-              {
-                "title": "ProxyConfiguration",
-                "path": "reference/resource/east-west/proxyconfig"
-              },
-              {
-                "title": "TCPRoute",
-                "path": "reference/resource/east-west/tcproute"
-              },
-              {
-                "title": "TrafficPermissions",
-                "path": "reference/resource/east-west/trafficpermissions"
-              }
-            ]
+            "title": "GRPCRoute",
+            "path": "reference/resource/grpcroute"
           },
           {
-            "title": "North-South",
-            "routes": [
-              {
-                "title": "Gateway",
-                "path": "reference/resource/north-south/gateway"
-              },
-              {
-                "title": "GatewayClass",
-                "path": "reference/resource/north-south/gatewayclass"
-              },
-              {
-                "title": "GatewayClassConfig",
-                "path": "reference/resource/north-south/gatewayclassconfig"
-              },
-              {
-                "title": "GatewayPolicy",
-                "path": "reference/resource/north-south/gatewaypolicy"
-              },
-              {
-                "title": "HTTPRoute",
-                "path": "reference/resource/north-south/httproute"
-              },
-              {
-                "title": "MeshService",
-                "path": "reference/resource/north-south/meshservice"
-              },
-              {
-                "title": "RouteAuthFilter",
-                "path": "reference/resource/north-south/routeauthfilter"
-              },
-              {
-                "title": "RouteRetryFilter",
-                "path": "reference/resource/north-south/routeretryfilter"
-              },
-              {
-                "title": "Routes",
-                "path": "reference/resource/north-south/routes"
-              },
-              {
-                "title": "RouteTimeoutFilter",
-                "path": "reference/resource/north-south/routetimeoutfilter"
-              }
-            ]
+            "title": "HTTPRoute",
+            "path": "reference/resource/httproute"
+          },
+          {
+            "title": "ProxyConfiguration",
+            "path": "reference/resource/proxyconfiguration"
+          },
+          {
+            "title": "TCPRoute",
+            "path": "reference/resource/tcproute"
+          },
+          {
+            "title": "TrafficPermissions",
+            "path": "reference/resource/trafficpermissions"
           }
         ]
       },
