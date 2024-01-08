@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package hashicorp.consul.hcp.v1;
+package hashicorp.consul.hcp.v2;
 
 import "pbresource/annotations.proto";
 

@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
-	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
+	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 )
 
 func LinkController(resourceApisEnabled bool, overrideResourceApisEnabledCheck bool) *controller.Controller {

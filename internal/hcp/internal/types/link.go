@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/hashicorp/consul/internal/resource"
-	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v1"
+	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
 	"github.com/hashicorp/go-multierror"
 )
 
