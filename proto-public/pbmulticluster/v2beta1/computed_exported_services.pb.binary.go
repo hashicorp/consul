@@ -28,11 +28,11 @@ func (msg *ComputedExportedService) UnmarshalBinary(b []byte) error {
 }
 
 // MarshalBinary implements encoding.BinaryMarshaler
-func (msg *ComputedExportedServicesConsumer) MarshalBinary() ([]byte, error) {
+func (msg *ComputedExportedServiceConsumer) MarshalBinary() ([]byte, error) {
 	return proto.Marshal(msg)
 }
 
 // UnmarshalBinary implements encoding.BinaryUnmarshaler
-func (msg *ComputedExportedServicesConsumer) UnmarshalBinary(b []byte) error {
+func (msg *ComputedExportedServiceConsumer) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }

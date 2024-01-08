@@ -80,15 +80,15 @@ func (b *exportedServicesBuilder) build() *pbmulticluster.ComputedExportedServic
 	}
 
 	ces := &pbmulticluster.ComputedExportedServices{
-		Consumers: make([]*pbmulticluster.ComputedExportedService, 0, len(b.data)),
+		Services: make([]*pbmulticluster.ComputedExportedService, 0, len(b.data)),
 	}
 
 	for _, svc := range sortRefValue(b.data) {
-		consumers := make([]*pbmulticluster.ComputedExportedServicesConsumer, 0, len(svc.peers)+len(svc.partitions))
+		consumers := make([]*pbmulticluster.ComputedExportedServiceConsumer, 0, len(svc.peers)+len(svc.partitions))
 
 		for _, peer := range sortKeys(svc.peers) {
-			consumers = append(consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
+			consumers = append(consumers, &pbmulticluster.ComputedExportedServiceConsumer{
+				Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Peer{
 					Peer: peer,
 				},
 			})
@@ -103,14 +103,14 @@ func (b *exportedServicesBuilder) build() *pbmulticluster.ComputedExportedServic
 				continue
 			}
 
-			consumers = append(consumers, &pbmulticluster.ComputedExportedServicesConsumer{
-				ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
+			consumers = append(consumers, &pbmulticluster.ComputedExportedServiceConsumer{
+				Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Partition{
 					Partition: partition,
 				},
 			})
 		}
 
-		ces.Consumers = append(ces.Consumers, &pbmulticluster.ComputedExportedService{
+		ces.Services = append(ces.Services, &pbmulticluster.ComputedExportedService{
 			TargetRef: svc.ref,
 			Consumers: consumers,
 		})
