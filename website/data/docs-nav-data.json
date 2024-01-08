@@ -2200,7 +2200,45 @@
     "routes": [
       {
         "title": "Access Control Lists (ACLs)",
-        "path": "reference/acl"
+        "routes": [
+          {
+            "title": "Auth methods",
+            "routes": [
+              {
+                "title": "AWS IAM",
+                "path": "reference/acl/auth-method/aws-iam"
+              },
+              {
+                "title": "JWT",
+                "path": "reference/acl/auth-method/jwt"
+              },
+              {
+                "title": "Kubernetes",
+                "path": "reference/acl/auth-method/k8s"
+              },
+              {
+                "title": "OIDC",
+                "path": "reference/acl/auth-method/oidc"
+              }
+            ]
+          },
+          {
+            "title": "Policies",
+            "path": "reference/acl/policy"
+          },
+          {
+            "title": "Roles",
+            "path": "reference/acl/role"
+          },
+          {
+            "title": "Rules",
+            "path": "reference/acl/rule"
+          },
+          {
+            "title": "Tokens",
+            "path": "reference/acl/token"
+          }
+        ]
       },
       {
         "title": "Agent",
