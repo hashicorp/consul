@@ -73,7 +73,8 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 	fs.Var(&f.tokenFile, "token-file",
 		"File containing the ACL token to use in the request instead of one specified "+
 			"via the -token argument or CONSUL_GRPC_TOKEN environment variable. "+
-			"This can also be specified via the CONSUL_GRPC_TOKEN_FILE environment variable.")
+			"This can also be specified via the CONSUL_GRPC_TOKEN_FILE environment variable."+
+			"Notice the tokenFile takes precedence over token flag and environment variables.")
 	return fs
 }
 
