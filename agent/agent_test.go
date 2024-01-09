@@ -6343,6 +6343,7 @@ func TestAgent_scadaProvider(t *testing.T) {
 	pvd.EXPECT().Listen(scada.CAPCoreAPI.Capability()).Return(l, nil).Once()
 	pvd.EXPECT().Stop().Return(nil).Once()
 	pvd.EXPECT().SessionStatus().Return("test")
+	pvd.EXPECT().UpdateHCPConfig(mock.Anything).Return(nil).Once()
 	a := TestAgent{
 		OverrideDeps: func(deps *BaseDeps) {
 			deps.HCP.Provider = pvd

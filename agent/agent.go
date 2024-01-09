@@ -896,17 +896,6 @@ func (a *Agent) Start(ctx context.Context) error {
 		}()
 	}
 
-	if a.scadaProvider != nil {
-		a.scadaProvider.UpdateMeta(map[string]string{
-			"consul_server_id": string(a.config.NodeID),
-		})
-
-		if err = a.scadaProvider.Start(); err != nil {
-			a.baseDeps.Logger.Error("scada provider failed to start, some HashiCorp Cloud Platform functionality has been disabled",
-				"error", err, "resource_id", a.config.Cloud.ResourceID)
-		}
-	}
-
 	return nil
 }
 
@@ -1598,7 +1587,7 @@ func newConsulConfig(runtimeCfg *config.RuntimeConfig, logger hclog.Logger) (*co
 	cfg.RequestLimitsWriteRate = runtimeCfg.RequestLimitsWriteRate
 	cfg.Locality = runtimeCfg.StructLocality()
 
-	cfg.Cloud.ManagementToken = runtimeCfg.Cloud.ManagementToken
+	cfg.Cloud = runtimeCfg.Cloud
 
 	cfg.Reporting.License.Enabled = runtimeCfg.Reporting.License.Enabled
 
