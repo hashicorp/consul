@@ -97,9 +97,9 @@ func generateECDSAKey(keyBits int) (crypto.Signer, string, error) {
 // GeneratePrivateKey generates a new Private key
 func GeneratePrivateKeyWithConfig(keyType string, keyBits int) (crypto.Signer, string, error) {
 	switch strings.ToLower(keyType) {
-	case "rsa":
+	case PrivateKeyTypeRSA:
 		return generateRSAKey(keyBits)
-	case "ec":
+	case DefaultPrivateKeyType:
 		return generateECDSAKey(keyBits)
 	default:
 		return nil, "", fmt.Errorf("unknown private key type requested: %s", keyType)
