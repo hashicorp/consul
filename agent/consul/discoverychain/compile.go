@@ -244,6 +244,13 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
 		if proxyDefault.Protocol != "" {
 			return c.recordProtocol(sid, proxyDefault.Protocol)
+		} else {
+			// if Config map has a protocol entry, read that value
+			for key, val := range proxyDefault.Config {
+				if proto, ok := val.(string); ok && strings.EqualFold("protocol", key) {
+					return c.recordProtocol(sid, proto)
+				}
+			}
 		}
 	}
 	return c.recordProtocol(sid, "")
