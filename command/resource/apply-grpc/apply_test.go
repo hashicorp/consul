@@ -46,11 +46,6 @@ func TestResourceApplyCommand(t *testing.T) {
 			args:   []string{"-f=../testdata/nested_data.hcl"},
 			output: "mesh.v2beta1.Destinations 'api' created.",
 		},
-		{
-			name:   "file path with no flag",
-			args:   []string{"../testdata/nested_data.hcl"},
-			output: "mesh.v2beta1.Destinations 'api' created.",
-		},
 	}
 
 	for _, tc := range cases {
@@ -122,6 +117,7 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		args := []string{
 			fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 			"-token=root",
+			"-f",
 			"-",
 		}
 
@@ -170,9 +166,10 @@ func TestResourceApplyCommand_StdIn(t *testing.T) {
 		}()
 
 		args := []string{
+			"-f",
+			"-",
 			fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 			"-token=root",
-			"-",
 		}
 
 		code := c.Run(args)

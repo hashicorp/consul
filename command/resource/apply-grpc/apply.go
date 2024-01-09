@@ -14,7 +14,6 @@ import (
 
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func New(ui cli.Ui) *cmd {
@@ -50,23 +49,19 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
+		c.UI.Error(fmt.Sprintf("Failed to run apply command: %v", err))
+		return 1
 	}
 
 	// parse resource
-	var parsedResource *pbresource.Resource
 	input := c.filePath
-	if input == "" && len(c.flags.Args()) > 0 {
-		input = c.flags.Arg(0)
-	}
-	if input != "" {
-		data, err := resource.ParseResourceInput(input, c.testStdin)
-		if err != nil {
-			c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
-			return 1
-		}
-		parsedResource = data
-	} else {
+	if input == "" {
 		c.UI.Error("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write")
+		return 1
+	}
+	parsedResource, err := resource.ParseResourceInput(input, c.testStdin)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Failed to decode resource from input file: %v", err))
 		return 1
 	}
 	if parsedResource == nil {
@@ -134,13 +129,9 @@ Usage: consul resource apply [options] <resource>
 
 	$ consul resource apply -f=demo.hcl
 
-	Example (from file):
-
-	$ consul resource apply demo.hcl
-
 	Example (from stdin):
 
-	$ consul resource apply -
+	$ consul resource apply -f - < demo.hcl
 
 	Sample demo.hcl:
 
