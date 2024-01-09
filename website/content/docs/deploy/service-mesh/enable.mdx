@@ -19,11 +19,16 @@ To enable Consul's service mesh, set `connect.enabled` to `true` in a new or exi
 
 <CodeTabs heading="Enable Consul service mesh" tabs={[ "HCL", "JSON", "YAML" ]}>
 
+<CodeBlockConfig>
+
 ```hcl
 connect {
   enabled = true
 }
 ```
+</CodeBlockConfig>
+
+<CodeBlockConfig>
 
 ```json
 {
@@ -33,11 +38,17 @@ connect {
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig>
+
 ```yaml
 server:
   connect:
     enabled: true
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
