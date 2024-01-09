@@ -36,19 +36,25 @@ jobs:
       name: Setup outputs
       run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   check-go-mod:
     needs:
     - setup
+    - get-go-version
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-medium }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   build-386:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     env:
       XC_OS: "freebsd linux windows"
@@ -63,7 +69,7 @@ jobs:
 
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -73,6 +79,7 @@ jobs:
   build-amd64:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     env:
       XC_OS: "darwin freebsd linux solaris windows"
@@ -87,7 +94,7 @@ jobs:
 
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: |
         for os in $XC_OS; do
@@ -97,6 +104,7 @@ jobs:
   build-arm:
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     env:
@@ -113,7 +121,7 @@ jobs:
 
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - run: |
         sudo apt-get update --allow-releaseinfo-change-suite --allow-releaseinfo-change-version && sudo apt-get install -y gcc-arm-linux-gnueabi gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu
 
@@ -126,6 +134,7 @@ jobs:
     if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
     - setup
+    - get-go-version
     - check-go-mod
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-xl) }}
     steps:
@@ -137,7 +146,7 @@ jobs:
 
     - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
       with:
-        go-version-file: 'go.mod'
+        go-version: ${{ needs.get-go-version.outputs.go-version }}
     - name: Build
       run: GOOS=linux GOARCH=s390x CGO_ENABLED=0 go build -tags "${{ env.GOTAGS }}"
 
