@@ -80,6 +80,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
+      - get-go-version
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -94,7 +95,7 @@ jobs:
           repository: hashicorp/nomad
           ref: ${{ matrix.nomad-version }}
 
-      - name: Install Go
+      - name: Install Go (Nomad build)
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           # Do not explicitly set Go version here, as it should depend on what Nomad declares.
@@ -112,6 +113,11 @@ jobs:
 
       - name: Make Nomad dev build
         run: make pkg/linux_amd64/nomad
+
+      - name: Install Go (Consul tests)
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Run integration tests
         run: |
@@ -177,16 +183,16 @@ jobs:
         if: ${{ endsWith(github.repository, '-enterprise') }}
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
 
-      - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
-        with:
-          # Do not explicitly set Go version here, as it should depend on what Vault declares.
-          go-version-file: 'go.mod'
-
       - name: Install Vault
         run: |
           wget -q -O /tmp/vault.zip "https://releases.hashicorp.com/vault/${{ env.VAULT_BINARY_VERSION }}/vault_${{ env.VAULT_BINARY_VERSION }}_linux_amd64.zip"
           unzip -d /tmp /tmp/vault.zip
           echo "/tmp" >> $GITHUB_PATH
+
+      - name: Install Go (Consul tests)
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Run Connect CA Provider Tests
         run: |
