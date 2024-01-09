@@ -759,7 +759,7 @@ func TestIntentionApply_WithoutIDs(t *testing.T) {
 			},
 			RaftIndex: entry.RaftIndex,
 		}
-
+		entry.Hash = 0
 		require.Equal(t, expect, entry)
 	}
 
