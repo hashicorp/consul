@@ -141,6 +141,7 @@ func TestConfig_Get(t *testing.T) {
 		// Set indexes and EnterpriseMeta to expected values for assertions
 		ce.CreateIndex = 12
 		ce.ModifyIndex = 13
+		ce.Hash = 0
 		ce.EnterpriseMeta = acl.EnterpriseMeta{}
 		ce.Hash = 0
 
@@ -451,6 +452,7 @@ func TestConfig_Apply_IngressGateway(t *testing.T) {
 		// Ignore create and modify indices
 		got.CreateIndex = 0
 		got.ModifyIndex = 0
+		got.Hash = 0
 
 		expect := &structs.IngressGatewayConfigEntry{
 			Name: "ingress",
