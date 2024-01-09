@@ -221,10 +221,10 @@ The following example creates a `Gateway` named `example-gateway` in namespace `
     - group: gateway.networking.k8s.io
       kind: Gateway
       namespace: gateway-namespace
-      to:
-      - group: ""
-        kind: Secret
-        name: cert
+    to:
+    - group: ""
+      kind: Secret
+      name: cert
   ```
 
 </CodeBlockConfig>
