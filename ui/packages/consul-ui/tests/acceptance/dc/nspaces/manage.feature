@@ -43,7 +43,6 @@ Feature: dc / nspaces / manage : Managing Namespaces
     And I don't see manageNspacesIsVisible on the navigation
     When I click services on the navigation
     Then the url should be /dc-1/services
-    When I click nspace on the navigation
     And I click manageNspaces on the navigation
     Then the url should be /dc-1/namespaces
     And I don't see manageNspacesIsVisible on the navigation
