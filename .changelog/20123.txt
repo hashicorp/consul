@@ -1,0 +1,3 @@
+```release-note:bug
+config: Fix issue where protocol in proxy-default was read incorrectly during put api call on config entry.
+```
