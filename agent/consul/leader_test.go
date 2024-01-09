@@ -2088,7 +2088,7 @@ func TestDatacenterSupportsIntentionsAsConfigEntries(t *testing.T) {
 			RaftIndex: got.RaftIndex,
 			Hash:      got.GetHash(),
 		}
-
+		got.Hash = 0
 		require.Equal(t, expect, got)
 	})
 
