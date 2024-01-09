@@ -75,6 +75,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/multicluster"
@@ -142,6 +143,7 @@ const (
 
 	CatalogResourceExperimentName = "resource-apis"
 	V2TenancyExperimentName       = "v2tenancy"
+	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
 
 const (
@@ -477,6 +479,10 @@ type Server struct {
 
 	// useV2Tenancy is tied to the "v2tenancy" feature flag.
 	useV2Tenancy bool
+
+	// whether v2 resources are enabled for use with HCP
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	hcpAllowV2Resources bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -567,6 +573,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		registry:                flat.Registry,
 		useV2Resources:          flat.UseV2Resources(),
 		useV2Tenancy:            flat.UseV2Tenancy(),
+		hcpAllowV2Resources:     flat.HCPAllowV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -961,6 +968,11 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
+		ResourceApisEnabled:    s.useV2Resources,
+		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+	})
+
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
 		tenancy.RegisterControllers(

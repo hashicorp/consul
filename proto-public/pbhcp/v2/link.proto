@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package hashicorp.consul.hcp.v2;
+
+import "pbresource/annotations.proto";
+
+message Link {
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_CLUSTER};
+
+  string resource_id = 1;
+  string client_id = 2;
+  string client_secret = 3;
+  string hcp_cluster_url = 4;
+}
