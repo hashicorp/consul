@@ -30,8 +30,9 @@ type MeshGateway struct {
 	unknownFields protoimpl.UnknownFields
 
 	// GatewayClassName is the name of the GatewayClass used by the MeshGateway
-	GatewayClassName string                 `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
-	Listeners        []*MeshGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
+	GatewayClassName string `protobuf:"bytes,1,opt,name=gateway_class_name,json=gatewayClassName,proto3" json:"gateway_class_name,omitempty"`
+	// +kubebuilder:validation:MinItems=1
+	Listeners []*MeshGatewayListener `protobuf:"bytes,2,rep,name=listeners,proto3" json:"listeners,omitempty"`
 }
 
 func (x *MeshGateway) Reset() {
