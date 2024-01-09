@@ -262,12 +262,16 @@ Below is an example configuration:
 
 <CodeTabs heading="Example services watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "services"
   args = ["/usr/bin/my-services-handler.sh"]
 }
 ```
+
+</CodeBlockConfig>
 
 ```json
 {
@@ -310,6 +314,10 @@ Below is an example configuration:
   args = ["/usr/bin/my-nodes-handler.sh"]
 }
 ```
+
+<CodeBlockConfig heading="JSON">
+
+</CodeBlockConfig>
 
 ```json
 {
@@ -380,6 +388,9 @@ Here is an example configuration with a single tag:
   tag = "bar"
 }
 ```
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
