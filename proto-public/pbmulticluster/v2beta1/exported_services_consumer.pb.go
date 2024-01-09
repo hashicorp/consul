@@ -23,6 +23,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// +kubebuilder:validation:Type=object
+// +kubebuilder:validation:Schemaless
+// +kubebuilder:pruning:PreserveUnknownFields
 type ExportedServicesConsumer struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
