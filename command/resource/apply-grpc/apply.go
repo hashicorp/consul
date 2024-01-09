@@ -131,7 +131,7 @@ Usage: consul resource apply [options] <resource>
 
 	Example (from stdin):
 
-	$ consul resource apply -f - < demo.hc
+	$ consul resource apply -f - < demo.hcl
 
 	Sample demo.hcl:
 
