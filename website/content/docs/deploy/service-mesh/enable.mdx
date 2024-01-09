@@ -17,9 +17,9 @@ Consul's service mesh features are not enabled by default. To enable the service
 
 To enable Consul's service mesh, set `connect.enabled` to `true` in a new or existing [agent configuration file](/consul/docs/agent/config/config-files). On Kubernetes deployments, update the cluster's [Helm chart configuration](/consul/docs/k8s/helm) instead.
 
-<CodeTabs heading="Enable Consul service mesh" tabs={[ "HCL", "JSON", "YAML" ]}>
+<CodeTabs>
 
-<CodeBlockConfig>
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 connect {
@@ -28,7 +28,7 @@ connect {
 ```
 </CodeBlockConfig>
 
-<CodeBlockConfig>
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -40,7 +40,7 @@ connect {
 
 </CodeBlockConfig>
 
-<CodeBlockConfig>
+<CodeBlockConfig heading="YAML">
 
 ```yaml
 server:
