@@ -56,7 +56,7 @@ func (c *cmd) Run(args []string) int {
 	// parse resource
 	input := c.filePath
 	if input == "" {
-		c.UI.Error("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write")
+		c.UI.Error("Required '-f' flag was not provided to specify where to load the resource content from")
 		return 1
 	}
 	parsedResource, err := resource.ParseResourceInput(input, c.testStdin)
