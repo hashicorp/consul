@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -34,7 +35,7 @@ func (f *Fetcher) FetchMeshGateway(ctx context.Context, id *pbresource.ID) (*typ
 		return nil, nil
 	}
 
-	return dec, err
+	return dec, nil
 }
 
 func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID) (*types.DecodedProxyStateTemplate, error) {
@@ -45,7 +46,7 @@ func (f *Fetcher) FetchProxyStateTemplate(ctx context.Context, id *pbresource.ID
 		return nil, nil
 	}
 
-	return dec, err
+	return dec, nil
 }
 
 func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.DecodedWorkload, error) {
@@ -56,5 +57,27 @@ func (f *Fetcher) FetchWorkload(ctx context.Context, id *pbresource.ID) (*types.
 		return nil, nil
 	}
 
-	return dec, err
+	return dec, nil
+}
+
+func (f *Fetcher) FetchExportedServices(ctx context.Context, id *pbresource.ID) (*types.DecodedComputedExportedServices, error) {
+	dec, err := resource.GetDecodedResource[*pbmulticluster.ComputedExportedServices](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		return nil, nil
+	}
+
+	return dec, nil
+}
+
+func (f *Fetcher) FetchService(ctx context.Context, id *pbresource.ID) (*types.DecodedService, error) {
+	dec, err := resource.GetDecodedResource[*pbcatalog.Service](ctx, f.client, id)
+	if err != nil {
+		return nil, err
+	} else if dec == nil {
+		return nil, nil
+	}
+
+	return dec, nil
 }
