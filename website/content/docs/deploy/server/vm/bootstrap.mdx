@@ -28,12 +28,12 @@ You can bootstrap a datacenter by passing configurations through flags on the `c
 
 ### Initiate cluster
 
-Use the [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when that many servers are available. To prevent inconsistencies and "split-brain" deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers.
+Use the [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when that many servers are available. To prevent inconsistencies and "split-brain" deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul assumes a default value of `1` for the number of expected servers.
 
-The following command bootstraps a simple datacenter that consists of a single Consul server:
+The following command bootstraps a simple datacenter that consists of three Consul servers:
 
 ```shell-session
-$ consul agent -data-dir /tmp/consul -server -bootstrap-expect 1
+$ consul agent -data-dir /tmp/consul -server -bootstrap-expect 3
 ```
 
 You can also create an agent configuration file to use when deploying multiple Consul servers. The following example demonstrates a basic agent configuration for bootstrapping a datacenter with three servers:

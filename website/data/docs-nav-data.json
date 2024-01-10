@@ -361,7 +361,7 @@
                       },
                       {
                         "title": "WAN federation",
-                        "path": "deploy/server/k8s/examples/vault/wan-federation"
+                        "path": "deploy/server/k8s/examples/vault/wan"
                       }
                     ]
                   }
@@ -2486,11 +2486,7 @@
         ]
       },
       {
-        "title": "Mesh gateways",
-        "path": "reference/mesh-gateway"
-      },
-      {
-        "title": "Resources",
+        "title": "v2 Resources",
         "routes": [
           {
             "title": "GRPCRoute",
@@ -2515,12 +2511,8 @@
         ]
       },
       {
-        "title": "Services",
+        "title": "Service definitions",
         "path": "reference/service"
-      },
-      {
-        "title": "Terminating gateways",
-        "path": "reference/terminating-gateway"
       }
     ]
   },
