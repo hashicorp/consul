@@ -1542,11 +1542,11 @@
           },
           {
             "title": "Enable traffic across WAN federated datacenters",
-            "path": "link/mesh-gateway/wan-federated-datacenter"
+            "path": "link/mesh-gateway/federation"
           },
           {
             "title": "Enable peering control plane traffic",
-            "path": "link/mesh-gateway/peered-datacenter"
+            "path": "link/mesh-gateway/cluster-peer"
           },
           {
             "title": "Enable traffic across admin partition",
