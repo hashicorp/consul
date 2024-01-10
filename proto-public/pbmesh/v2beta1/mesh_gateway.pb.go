@@ -87,6 +87,8 @@ type MeshGatewayListener struct {
 	unknownFields protoimpl.UnknownFields
 
 	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:Minimum=0
 	Port uint32 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 }
 
