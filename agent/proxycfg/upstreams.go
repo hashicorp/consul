@@ -418,7 +418,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			cancel()
 			return err
 		}
-
+		snap.WatchedLocalGWEndpoints.InitWatch(gwKey.String(), nil)
 		snap.WatchedGateways[uid][key] = cancel
 	}
 
