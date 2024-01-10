@@ -1421,6 +1421,11 @@
   },
   {
     "title": "Segment network",
+    "badge": {
+      "text": "ENTERPRISE",
+      "type": "outlined",
+      "color": "neutral"
+    },
     "routes": [
       {
         "title": "Overview",
@@ -1428,20 +1433,10 @@
       },
       {
         "title": "Admin partition",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
         "path": "segment/admin-partition"
       },
       {
         "title": "Namespace",
-        "badge": {
-          "text": "ENTERPRISE",
-          "type": "outlined",
-          "color": "neutral"
-        },
         "path": "segment/namespace"
       },
       {
