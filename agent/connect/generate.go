@@ -42,7 +42,7 @@ func generateRSAKey(keyBits int) (crypto.Signer, string, error) {
 
 	// Check for a secure key length.
 	if keyBits < MinPrivateKeyBitsRSA {
-		return nil, "", fmt.Errorf("error generating RSA private key: key size must be at least %d bits", MinPrivateKeyBitsRSA)
+		return nil, "", fmt.Errorf("error generating RSA private key: invalid key size %d, must be at least %d bits", keyBits, MinPrivateKeyBitsRSA)
 	}
 
 	pk, err := rsa.GenerateKey(rand.Reader, keyBits)
