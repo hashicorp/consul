@@ -1618,7 +1618,7 @@
           },
           {
             "title": "Configure TLS on an existing cluster",
-            "path": "secure-mesh/certificate/configure-tls-existing"
+            "path": "secure-mesh/certificate/existing"
           },
           {
             "title": "Use built-in CA",
@@ -1630,7 +1630,7 @@
           },
           {
             "title": "Use AWS certificate manager",
-            "path": "secure-mesh/certificate/aws-cert-manager"
+            "path": "secure-mesh/certificate/acm"
           },
           {
             "title": "Enable permissive mTLS",
