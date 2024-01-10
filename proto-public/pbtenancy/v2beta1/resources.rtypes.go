@@ -9,21 +9,54 @@ import (
 const (
 	GroupName = "tenancy"
 	Version   = "v2beta1"
-
-	NamespaceKind = "Namespace"
-	PartitionKind = "Partition"
 )
 
-var (
-	NamespaceType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceKind,
-	}
-
-	PartitionType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         PartitionKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.tenancy.v2beta1.Namespace
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	NamespaceKind  = "Namespace"
+	NamespaceScope = pbresource.Scope_SCOPE_PARTITION
 )
+
+var NamespaceType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceKind,
+}
+
+func (_ *Namespace) GetResourceType() *pbresource.Type {
+	return NamespaceType
+}
+
+func (_ *Namespace) GetResourceScope() pbresource.Scope {
+	return NamespaceScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.tenancy.v2beta1.Partition
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	PartitionKind  = "Partition"
+	PartitionScope = pbresource.Scope_SCOPE_CLUSTER
+)
+
+var PartitionType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         PartitionKind,
+}
+
+func (_ *Partition) GetResourceType() *pbresource.Type {
+	return PartitionType
+}
+
+func (_ *Partition) GetResourceScope() pbresource.Scope {
+	return PartitionScope
+}

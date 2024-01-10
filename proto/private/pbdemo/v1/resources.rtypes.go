@@ -9,42 +9,129 @@ import (
 const (
 	GroupName = "demo"
 	Version   = "v1"
-
-	AlbumKind       = "Album"
-	ArtistKind      = "Artist"
-	ConceptKind     = "Concept"
-	ExecutiveKind   = "Executive"
-	RecordLabelKind = "RecordLabel"
 )
 
-var (
-	AlbumType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         AlbumKind,
-	}
-
-	ArtistType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ArtistKind,
-	}
-
-	ConceptType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ConceptKind,
-	}
-
-	ExecutiveType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ExecutiveKind,
-	}
-
-	RecordLabelType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         RecordLabelKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.demo.v1.Album
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	AlbumKind  = "Album"
+	AlbumScope = pbresource.Scope_SCOPE_NAMESPACE
 )
+
+var AlbumType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         AlbumKind,
+}
+
+func (_ *Album) GetResourceType() *pbresource.Type {
+	return AlbumType
+}
+
+func (_ *Album) GetResourceScope() pbresource.Scope {
+	return AlbumScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.demo.v1.Artist
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ArtistKind  = "Artist"
+	ArtistScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var ArtistType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ArtistKind,
+}
+
+func (_ *Artist) GetResourceType() *pbresource.Type {
+	return ArtistType
+}
+
+func (_ *Artist) GetResourceScope() pbresource.Scope {
+	return ArtistScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.demo.v1.Concept
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ConceptKind  = "Concept"
+	ConceptScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var ConceptType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ConceptKind,
+}
+
+func (_ *Concept) GetResourceType() *pbresource.Type {
+	return ConceptType
+}
+
+func (_ *Concept) GetResourceScope() pbresource.Scope {
+	return ConceptScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.demo.v1.Executive
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ExecutiveKind  = "Executive"
+	ExecutiveScope = pbresource.Scope_SCOPE_CLUSTER
+)
+
+var ExecutiveType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ExecutiveKind,
+}
+
+func (_ *Executive) GetResourceType() *pbresource.Type {
+	return ExecutiveType
+}
+
+func (_ *Executive) GetResourceScope() pbresource.Scope {
+	return ExecutiveScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.demo.v1.RecordLabel
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	RecordLabelKind  = "RecordLabel"
+	RecordLabelScope = pbresource.Scope_SCOPE_PARTITION
+)
+
+var RecordLabelType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         RecordLabelKind,
+}
+
+func (_ *RecordLabel) GetResourceType() *pbresource.Type {
+	return RecordLabelType
+}
+
+func (_ *RecordLabel) GetResourceScope() pbresource.Scope {
+	return RecordLabelScope
+}

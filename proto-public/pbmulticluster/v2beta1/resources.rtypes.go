@@ -9,42 +9,129 @@ import (
 const (
 	GroupName = "multicluster"
 	Version   = "v2beta1"
+)
 
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.multicluster.v2beta1.ComputedExportedServices
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
 	ComputedExportedServicesKind  = "ComputedExportedServices"
-	ExportedServicesKind          = "ExportedServices"
-	NamespaceExportedServicesKind = "NamespaceExportedServices"
-	PartitionExportedServicesKind = "PartitionExportedServices"
-	SamenessGroupKind             = "SamenessGroup"
+	ComputedExportedServicesScope = pbresource.Scope_SCOPE_PARTITION
 )
 
-var (
-	ComputedExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedExportedServicesKind,
-	}
+var ComputedExportedServicesType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ComputedExportedServicesKind,
+}
 
-	ExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ExportedServicesKind,
-	}
+func (_ *ComputedExportedServices) GetResourceType() *pbresource.Type {
+	return ComputedExportedServicesType
+}
 
-	NamespaceExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NamespaceExportedServicesKind,
-	}
+func (_ *ComputedExportedServices) GetResourceScope() pbresource.Scope {
+	return ComputedExportedServicesScope
+}
 
-	PartitionExportedServicesType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         PartitionExportedServicesKind,
-	}
-
-	SamenessGroupType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         SamenessGroupKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.multicluster.v2beta1.ExportedServices
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ExportedServicesKind  = "ExportedServices"
+	ExportedServicesScope = pbresource.Scope_SCOPE_NAMESPACE
 )
+
+var ExportedServicesType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ExportedServicesKind,
+}
+
+func (_ *ExportedServices) GetResourceType() *pbresource.Type {
+	return ExportedServicesType
+}
+
+func (_ *ExportedServices) GetResourceScope() pbresource.Scope {
+	return ExportedServicesScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.multicluster.v2beta1.NamespaceExportedServices
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	NamespaceExportedServicesKind  = "NamespaceExportedServices"
+	NamespaceExportedServicesScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var NamespaceExportedServicesType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NamespaceExportedServicesKind,
+}
+
+func (_ *NamespaceExportedServices) GetResourceType() *pbresource.Type {
+	return NamespaceExportedServicesType
+}
+
+func (_ *NamespaceExportedServices) GetResourceScope() pbresource.Scope {
+	return NamespaceExportedServicesScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.multicluster.v2beta1.PartitionExportedServices
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	PartitionExportedServicesKind  = "PartitionExportedServices"
+	PartitionExportedServicesScope = pbresource.Scope_SCOPE_PARTITION
+)
+
+var PartitionExportedServicesType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         PartitionExportedServicesKind,
+}
+
+func (_ *PartitionExportedServices) GetResourceType() *pbresource.Type {
+	return PartitionExportedServicesType
+}
+
+func (_ *PartitionExportedServices) GetResourceScope() pbresource.Scope {
+	return PartitionExportedServicesScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.multicluster.v2beta1.SamenessGroup
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	SamenessGroupKind  = "SamenessGroup"
+	SamenessGroupScope = pbresource.Scope_SCOPE_PARTITION
+)
+
+var SamenessGroupType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         SamenessGroupKind,
+}
+
+func (_ *SamenessGroup) GetResourceType() *pbresource.Type {
+	return SamenessGroupType
+}
+
+func (_ *SamenessGroup) GetResourceScope() pbresource.Scope {
+	return SamenessGroupScope
+}

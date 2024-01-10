@@ -9,84 +9,279 @@ import (
 const (
 	GroupName = "catalog"
 	Version   = "v2beta1"
-
-	ComputedFailoverPolicyKind = "ComputedFailoverPolicy"
-	DNSPolicyKind              = "DNSPolicy"
-	FailoverPolicyKind         = "FailoverPolicy"
-	HealthChecksKind           = "HealthChecks"
-	HealthStatusKind           = "HealthStatus"
-	NodeKind                   = "Node"
-	NodeHealthStatusKind       = "NodeHealthStatus"
-	ServiceKind                = "Service"
-	ServiceEndpointsKind       = "ServiceEndpoints"
-	VirtualIPsKind             = "VirtualIPs"
-	WorkloadKind               = "Workload"
 )
 
-var (
-	ComputedFailoverPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ComputedFailoverPolicyKind,
-	}
-
-	DNSPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         DNSPolicyKind,
-	}
-
-	FailoverPolicyType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         FailoverPolicyKind,
-	}
-
-	HealthChecksType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         HealthChecksKind,
-	}
-
-	HealthStatusType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         HealthStatusKind,
-	}
-
-	NodeType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NodeKind,
-	}
-
-	NodeHealthStatusType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         NodeHealthStatusKind,
-	}
-
-	ServiceType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ServiceKind,
-	}
-
-	ServiceEndpointsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         ServiceEndpointsKind,
-	}
-
-	VirtualIPsType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         VirtualIPsKind,
-	}
-
-	WorkloadType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         WorkloadKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.ComputedFailoverPolicy
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ComputedFailoverPolicyKind  = "ComputedFailoverPolicy"
+	ComputedFailoverPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
 )
+
+var ComputedFailoverPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ComputedFailoverPolicyKind,
+}
+
+func (_ *ComputedFailoverPolicy) GetResourceType() *pbresource.Type {
+	return ComputedFailoverPolicyType
+}
+
+func (_ *ComputedFailoverPolicy) GetResourceScope() pbresource.Scope {
+	return ComputedFailoverPolicyScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.DNSPolicy
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	DNSPolicyKind  = "DNSPolicy"
+	DNSPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var DNSPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         DNSPolicyKind,
+}
+
+func (_ *DNSPolicy) GetResourceType() *pbresource.Type {
+	return DNSPolicyType
+}
+
+func (_ *DNSPolicy) GetResourceScope() pbresource.Scope {
+	return DNSPolicyScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.FailoverPolicy
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	FailoverPolicyKind  = "FailoverPolicy"
+	FailoverPolicyScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var FailoverPolicyType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         FailoverPolicyKind,
+}
+
+func (_ *FailoverPolicy) GetResourceType() *pbresource.Type {
+	return FailoverPolicyType
+}
+
+func (_ *FailoverPolicy) GetResourceScope() pbresource.Scope {
+	return FailoverPolicyScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.HealthChecks
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	HealthChecksKind  = "HealthChecks"
+	HealthChecksScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var HealthChecksType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         HealthChecksKind,
+}
+
+func (_ *HealthChecks) GetResourceType() *pbresource.Type {
+	return HealthChecksType
+}
+
+func (_ *HealthChecks) GetResourceScope() pbresource.Scope {
+	return HealthChecksScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.HealthStatus
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	HealthStatusKind  = "HealthStatus"
+	HealthStatusScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var HealthStatusType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         HealthStatusKind,
+}
+
+func (_ *HealthStatus) GetResourceType() *pbresource.Type {
+	return HealthStatusType
+}
+
+func (_ *HealthStatus) GetResourceScope() pbresource.Scope {
+	return HealthStatusScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.Node
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	NodeKind  = "Node"
+	NodeScope = pbresource.Scope_SCOPE_PARTITION
+)
+
+var NodeType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NodeKind,
+}
+
+func (_ *Node) GetResourceType() *pbresource.Type {
+	return NodeType
+}
+
+func (_ *Node) GetResourceScope() pbresource.Scope {
+	return NodeScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.NodeHealthStatus
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	NodeHealthStatusKind  = "NodeHealthStatus"
+	NodeHealthStatusScope = pbresource.Scope_SCOPE_PARTITION
+)
+
+var NodeHealthStatusType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         NodeHealthStatusKind,
+}
+
+func (_ *NodeHealthStatus) GetResourceType() *pbresource.Type {
+	return NodeHealthStatusType
+}
+
+func (_ *NodeHealthStatus) GetResourceScope() pbresource.Scope {
+	return NodeHealthStatusScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.Service
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ServiceKind  = "Service"
+	ServiceScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var ServiceType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ServiceKind,
+}
+
+func (_ *Service) GetResourceType() *pbresource.Type {
+	return ServiceType
+}
+
+func (_ *Service) GetResourceScope() pbresource.Scope {
+	return ServiceScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.ServiceEndpoints
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	ServiceEndpointsKind  = "ServiceEndpoints"
+	ServiceEndpointsScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var ServiceEndpointsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         ServiceEndpointsKind,
+}
+
+func (_ *ServiceEndpoints) GetResourceType() *pbresource.Type {
+	return ServiceEndpointsType
+}
+
+func (_ *ServiceEndpoints) GetResourceScope() pbresource.Scope {
+	return ServiceEndpointsScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.VirtualIPs
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	VirtualIPsKind  = "VirtualIPs"
+	VirtualIPsScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var VirtualIPsType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         VirtualIPsKind,
+}
+
+func (_ *VirtualIPs) GetResourceType() *pbresource.Type {
+	return VirtualIPsType
+}
+
+func (_ *VirtualIPs) GetResourceScope() pbresource.Scope {
+	return VirtualIPsScope
+}
+
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.catalog.v2beta1.Workload
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	WorkloadKind  = "Workload"
+	WorkloadScope = pbresource.Scope_SCOPE_NAMESPACE
+)
+
+var WorkloadType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         WorkloadKind,
+}
+
+func (_ *Workload) GetResourceType() *pbresource.Type {
+	return WorkloadType
+}
+
+func (_ *Workload) GetResourceScope() pbresource.Scope {
+	return WorkloadScope
+}

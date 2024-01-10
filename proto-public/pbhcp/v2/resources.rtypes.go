@@ -9,14 +9,29 @@ import (
 const (
 	GroupName = "hcp"
 	Version   = "v2"
-
-	LinkKind = "Link"
 )
 
-var (
-	LinkType = &pbresource.Type{
-		Group:        GroupName,
-		GroupVersion: Version,
-		Kind:         LinkKind,
-	}
+/* ---------------------------------------------------------------------------
+ * hashicorp.consul.hcp.v2.Link
+ *
+ * This following section contains constants variables and utility methods
+ * for interacting with this kind of resource.
+ * -------------------------------------------------------------------------*/
+const (
+	LinkKind  = "Link"
+	LinkScope = pbresource.Scope_SCOPE_CLUSTER
 )
+
+var LinkType = &pbresource.Type{
+	Group:        GroupName,
+	GroupVersion: Version,
+	Kind:         LinkKind,
+}
+
+func (_ *Link) GetResourceType() *pbresource.Type {
+	return LinkType
+}
+
+func (_ *Link) GetResourceScope() pbresource.Scope {
+	return LinkScope
+}
