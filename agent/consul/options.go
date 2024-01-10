@@ -4,8 +4,9 @@
 package consul
 
 import (
-	"github.com/hashicorp/consul/lib/stringslice"
 	"google.golang.org/grpc"
+
+	"github.com/hashicorp/consul/lib/stringslice"
 
 	"github.com/hashicorp/consul-net-rpc/net/rpc"
 	"github.com/hashicorp/go-hclog"
@@ -47,6 +48,15 @@ type Deps struct {
 	Experiments []string
 
 	EnterpriseDeps
+}
+
+// UseV2DNS returns true if "v2-dns" is present in the Experiments
+// array of the agent config. It is assumed if the v2 resource APIs are enabled.
+func (d Deps) UseV2DNS() bool {
+	if stringslice.Contains(d.Experiments, V2DNSExperimentName) || d.UseV2Resources() {
+		return true
+	}
+	return false
 }
 
 // UseV2Resources returns true if "resource-apis" is present in the Experiments
