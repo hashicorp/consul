@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,6 +43,8 @@ type memCheckResult struct {
 }
 
 type memCheckReconciler struct {
+	mu          sync.Mutex
+	closed      bool
 	reconcileCh chan memCheckResult
 	mapCh       chan memCheckResult
 }
@@ -49,18 +52,27 @@ type memCheckReconciler struct {
 func newMemCheckReconciler(t testutil.TestingTB) *memCheckReconciler {
 	t.Helper()
 
-	reconcileCh := make(chan memCheckResult)
-	t.Cleanup(func() {
-		close(reconcileCh)
-	})
-	mapCh := make(chan memCheckResult)
-	t.Cleanup(func() {
-		close(mapCh)
-	})
+	r := &memCheckReconciler{
+		reconcileCh: make(chan memCheckResult, 10),
+		mapCh:       make(chan memCheckResult, 10),
+	}
 
-	return &memCheckReconciler{
-		reconcileCh: reconcileCh,
-		mapCh:       mapCh,
+	t.Cleanup(r.Shutdown)
+	return r
+}
+
+func (r *memCheckReconciler) Shutdown() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.closed = true
+	close(r.reconcileCh)
+	close(r.mapCh)
+}
+
+func (r *memCheckReconciler) requireNotClosed(t testutil.TestingTB) {
+	t.Helper()
+	if r.closed {
+		require.FailNow(t, "the memCheckReconciler has been closed")
 	}
 }
 
@@ -95,7 +107,11 @@ func (r *memCheckReconciler) requireEqualNotSameMemCheckResult(t testutil.Testin
 }
 
 func (r *memCheckReconciler) Reconcile(ctx context.Context, rt Runtime, req Request) error {
-	r.getAndSend(ctx, rt, req.ID, r.reconcileCh)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.closed {
+		r.getAndSend(ctx, rt, req.ID, r.reconcileCh)
+	}
 	return nil
 }
 
@@ -104,7 +120,11 @@ func (r *memCheckReconciler) MapToNothing(
 	rt Runtime,
 	res *pbresource.Resource,
 ) ([]Request, error) {
-	r.getAndSend(ctx, rt, res.Id, r.mapCh)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if !r.closed {
+		r.getAndSend(ctx, rt, res.Id, r.mapCh)
+	}
 	return nil, nil
 }
 
