@@ -1,0 +1,1736 @@
+openapi: 3.0.0
+info:
+    title: Consul auth
+    description: Consul APIs for interacting with the auth resource kinds at version v2beta1
+    version: v2beta1
+paths:
+    /auth/v2beta1/ComputedTrafficPermissions:
+        get:
+            summary: List auth.v2beta1.ComputedTrafficPermissions resources
+            operationId: list-ComputedTrafficPermissions
+            parameters:
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/namespace'
+                - $ref: '#/components/parameters/ns'
+                - $ref: '#/components/parameters/partition'
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+    /auth/v2beta1/ComputedTrafficPermissions/{name}:
+        get:
+            summary: Read auth.v2beta1.ComputedTrafficPermissions resources
+            operationId: read-ComputedTrafficPermissions.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write auth.v2beta1.ComputedTrafficPermissions resources
+            operationId: write-ComputedTrafficPermissions
+            requestBody:
+                description: The auth.v2beta1.ComputedTrafficPermissions resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete auth.v2beta1.ComputedTrafficPermissions resources
+            operationId: delete-ComputedTrafficPermissions
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
+            - $ref: '#/components/parameters/namespace'
+            - $ref: '#/components/parameters/ns'
+            - $ref: '#/components/parameters/partition'
+    /auth/v2beta1/NamespaceTrafficPermissions:
+        get:
+            summary: List auth.v2beta1.NamespaceTrafficPermissions resources
+            operationId: list-NamespaceTrafficPermissions
+            parameters:
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/namespace'
+                - $ref: '#/components/parameters/ns'
+                - $ref: '#/components/parameters/partition'
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+    /auth/v2beta1/NamespaceTrafficPermissions/{name}:
+        get:
+            summary: Read auth.v2beta1.NamespaceTrafficPermissions resources
+            operationId: read-NamespaceTrafficPermissions.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write auth.v2beta1.NamespaceTrafficPermissions resources
+            operationId: write-NamespaceTrafficPermissions
+            requestBody:
+                description: The auth.v2beta1.NamespaceTrafficPermissions resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete auth.v2beta1.NamespaceTrafficPermissions resources
+            operationId: delete-NamespaceTrafficPermissions
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
+            - $ref: '#/components/parameters/namespace'
+            - $ref: '#/components/parameters/ns'
+            - $ref: '#/components/parameters/partition'
+    /auth/v2beta1/PartitionTrafficPermissions:
+        get:
+            summary: List auth.v2beta1.PartitionTrafficPermissions resources
+            operationId: list-PartitionTrafficPermissions
+            parameters:
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/partition'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+    /auth/v2beta1/PartitionTrafficPermissions/{name}:
+        get:
+            summary: Read auth.v2beta1.PartitionTrafficPermissions resources
+            operationId: read-PartitionTrafficPermissions.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write auth.v2beta1.PartitionTrafficPermissions resources
+            operationId: write-PartitionTrafficPermissions
+            requestBody:
+                description: The auth.v2beta1.PartitionTrafficPermissions resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete auth.v2beta1.PartitionTrafficPermissions resources
+            operationId: delete-PartitionTrafficPermissions
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
+            - $ref: '#/components/parameters/partition'
+    /auth/v2beta1/TrafficPermissions:
+        get:
+            summary: List auth.v2beta1.TrafficPermissions resources
+            operationId: list-TrafficPermissions
+            parameters:
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/namespace'
+                - $ref: '#/components/parameters/ns'
+                - $ref: '#/components/parameters/partition'
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.TrafficPermissions'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+    /auth/v2beta1/TrafficPermissions/{name}:
+        get:
+            summary: Read auth.v2beta1.TrafficPermissions resources
+            operationId: read-TrafficPermissions.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.TrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write auth.v2beta1.TrafficPermissions resources
+            operationId: write-TrafficPermissions
+            requestBody:
+                description: The auth.v2beta1.TrafficPermissions resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.TrafficPermissions'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.TrafficPermissions'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete auth.v2beta1.TrafficPermissions resources
+            operationId: delete-TrafficPermissions
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
+            - $ref: '#/components/parameters/namespace'
+            - $ref: '#/components/parameters/ns'
+            - $ref: '#/components/parameters/partition'
+    /auth/v2beta1/WorkloadIdentity:
+        get:
+            summary: List auth.v2beta1.WorkloadIdentity resources
+            operationId: list-WorkloadIdentity
+            parameters:
+                - $ref: '#/components/parameters/name_prefix'
+                - $ref: '#/components/parameters/namespace'
+                - $ref: '#/components/parameters/ns'
+                - $ref: '#/components/parameters/partition'
+                - $ref: '#/components/parameters/peer'
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The listing was successful and the body contains the array of results.
+                    content:
+                        application/json:
+                            schema:
+                                type: array
+                                items:
+                                    type: object
+                                    properties:
+                                        data:
+                                            $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.WorkloadIdentity'
+                                        generation:
+                                            type: string
+                                            description: |
+                                                // Generation is incremented whenever the resource's content (i.e. not its
+                                                // status) is modified. You can think of it as being the "user version".
+                                                //
+                                                // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                                // can treat its timestamp component as the resource's modification time.
+                                        id:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // ID uniquely identifies the resource.
+                                        metadata:
+                                            type: object
+                                            additionalProperties:
+                                                type: string
+                                            description: |
+                                                // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                                // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                        owner:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                            description: |
+                                                // Owner (optionally) describes which resource "owns" this resource, it is
+                                                // immutable and can only be set on resource creation. Owned resources will
+                                                // be automatically deleted when their owner is deleted.
+                                        status:
+                                            type: object
+                                            additionalProperties:
+                                                $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                            description: |
+                                                // Status is used by controllers to communicate the result of attempting to
+                                                // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                                // with users and other controllers. Each status is identified by a unique key
+                                                // and should only ever be updated by one controller.
+                                                //
+                                                // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                                // so via the Write endpoint will result in an InvalidArgument error code.
+                                        version:
+                                            type: string
+                                            description: |
+                                                // Version is the low-level version identifier used by the storage backend
+                                                // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                                // modified in any way, including status updates.
+                                                //
+                                                // When calling the Write endpoint, providing a non-blank version will perform
+                                                // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                                // if the given version doesn't match what is stored.
+    /auth/v2beta1/WorkloadIdentity/{name}:
+        get:
+            summary: Read auth.v2beta1.WorkloadIdentity resources
+            operationId: read-WorkloadIdentity.
+            parameters:
+                - $ref: '#/components/parameters/consistent'
+            responses:
+                "200":
+                    description: The read was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.WorkloadIdentity'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        put:
+            summary: Write auth.v2beta1.WorkloadIdentity resources
+            operationId: write-WorkloadIdentity
+            requestBody:
+                description: The auth.v2beta1.WorkloadIdentity resource to be updated.
+                content:
+                    application/json:
+                        schema:
+                            type: object
+                            properties:
+                                data:
+                                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.WorkloadIdentity'
+                                generation:
+                                    type: string
+                                    description: |
+                                        // Generation is incremented whenever the resource's content (i.e. not its
+                                        // status) is modified. You can think of it as being the "user version".
+                                        //
+                                        // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                        // can treat its timestamp component as the resource's modification time.
+                                id:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // ID uniquely identifies the resource.
+                                metadata:
+                                    type: object
+                                    additionalProperties:
+                                        type: string
+                                    description: |
+                                        // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                        // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                owner:
+                                    $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                    description: |
+                                        // Owner (optionally) describes which resource "owns" this resource, it is
+                                        // immutable and can only be set on resource creation. Owned resources will
+                                        // be automatically deleted when their owner is deleted.
+                                status:
+                                    type: object
+                                    additionalProperties:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                    description: |
+                                        // Status is used by controllers to communicate the result of attempting to
+                                        // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                        // with users and other controllers. Each status is identified by a unique key
+                                        // and should only ever be updated by one controller.
+                                        //
+                                        // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                        // so via the Write endpoint will result in an InvalidArgument error code.
+                                version:
+                                    type: string
+                                    description: |
+                                        // Version is the low-level version identifier used by the storage backend
+                                        // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                        // modified in any way, including status updates.
+                                        //
+                                        // When calling the Write endpoint, providing a non-blank version will perform
+                                        // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                        // if the given version doesn't match what is stored.
+            responses:
+                "200":
+                    description: The write was successful and the body contains the result.
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    data:
+                                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.WorkloadIdentity'
+                                    generation:
+                                        type: string
+                                        description: |
+                                            // Generation is incremented whenever the resource's content (i.e. not its
+                                            // status) is modified. You can think of it as being the "user version".
+                                            //
+                                            // Concretely, Generation is a [ULID](https://github.com/ulid/spec) and you
+                                            // can treat its timestamp component as the resource's modification time.
+                                    id:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // ID uniquely identifies the resource.
+                                    metadata:
+                                        type: object
+                                        additionalProperties:
+                                            type: string
+                                        description: |
+                                            // Metadata contains key/value pairs of arbitrary metadata about the resource.
+                                            // "deletionTimestamp" and "finalizers" keys are reserved for internal use.
+                                    owner:
+                                        $ref: '#/components/schemas/hashicorp.consul.resource.ID'
+                                        description: |
+                                            // Owner (optionally) describes which resource "owns" this resource, it is
+                                            // immutable and can only be set on resource creation. Owned resources will
+                                            // be automatically deleted when their owner is deleted.
+                                    status:
+                                        type: object
+                                        additionalProperties:
+                                            $ref: '#/components/schemas/hashicorp.consul.resource.Status'
+                                        description: |
+                                            // Status is used by controllers to communicate the result of attempting to
+                                            // reconcile and apply the resource (e.g. surface semantic validation errors)
+                                            // with users and other controllers. Each status is identified by a unique key
+                                            // and should only ever be updated by one controller.
+                                            //
+                                            // Status can only be updated via the WriteStatus endpoint. Attempting to do
+                                            // so via the Write endpoint will result in an InvalidArgument error code.
+                                    version:
+                                        type: string
+                                        description: |
+                                            // Version is the low-level version identifier used by the storage backend
+                                            // in CAS (Compare-And-Swap) operations. It will change when the resource is
+                                            // modified in any way, including status updates.
+                                            //
+                                            // When calling the Write endpoint, providing a non-blank version will perform
+                                            // a CAS (Compare-And-Swap) write, which will result in an Aborted error code
+                                            // if the given version doesn't match what is stored.
+        delete:
+            summary: Delete auth.v2beta1.WorkloadIdentity resources
+            operationId: delete-WorkloadIdentity
+            responses:
+                "200":
+                    description: The delete was successful and the body contains the result.
+        parameters:
+            - $ref: '#/components/parameters/peer'
+            - $ref: '#/components/parameters/name'
+            - $ref: '#/components/parameters/namespace'
+            - $ref: '#/components/parameters/ns'
+            - $ref: '#/components/parameters/partition'
+components:
+    schemas:
+        hashicorp.consul.auth.v2beta1.Action:
+            type: string
+            enum:
+                - ACTION_UNSPECIFIED
+                - ACTION_DENY
+                - ACTION_ALLOW
+            description: |4
+                 +kubebuilder:validation:Enum=ACTION_ALLOW;ACTION_DENY;ACTION_UNKNOWN
+                 +kubebuilder:validation:Type=string
+        hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions:
+            type: object
+            properties:
+                allow_permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Permission'
+                deny_permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Permission'
+                is_default:
+                    type: boolean
+        hashicorp.consul.auth.v2beta1.Destination:
+            type: object
+            properties:
+                identity_name:
+                    type: string
+            description: |4
+                 Destination contains the name or name-prefix of the WorkloadIdentity.
+                 The WorkloadIdentity resource must be in the same tenancy as the TrafficPermissions resource.
+        hashicorp.consul.auth.v2beta1.DestinationRule:
+            type: object
+            properties:
+                exclude:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ExcludePermissionRule'
+                    description: |
+                        // Exclude contains a list of rules to exclude when evaluating rules for the incoming connection.
+                header:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.DestinationRuleHeader'
+                methods:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        // Methods is the list of HTTP methods. If no methods are specified,
+                        // this rule will apply to all methods.
+                path_exact:
+                    type: string
+                path_prefix:
+                    type: string
+                path_regex:
+                    type: string
+                port_names:
+                    type: array
+                    items:
+                        type: string
+            description: |4
+                 DestinationRule contains rules rules to apply to the incoming connection.
+        hashicorp.consul.auth.v2beta1.DestinationRuleHeader:
+            type: object
+            properties:
+                exact:
+                    type: string
+                invert:
+                    type: boolean
+                name:
+                    type: string
+                prefix:
+                    type: string
+                present:
+                    type: boolean
+                regex:
+                    type: string
+                suffix:
+                    type: string
+        hashicorp.consul.auth.v2beta1.ExcludePermissionRule:
+            type: object
+            properties:
+                header:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.DestinationRuleHeader'
+                methods:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        // Methods is the list of HTTP methods.
+                path_exact:
+                    type: string
+                path_prefix:
+                    type: string
+                path_regex:
+                    type: string
+                port_names:
+                    type: array
+                    items:
+                        type: string
+                    description: |
+                        // PortNames is a list of workload ports to apply this rule to. The ports specified here
+                        // must be the ports used in the connection.
+        hashicorp.consul.auth.v2beta1.ExcludeSource:
+            type: object
+            properties:
+                identity_name:
+                    type: string
+                namespace:
+                    type: string
+                partition:
+                    type: string
+                peer:
+                    type: string
+                sameness_group:
+                    type: string
+            description: |4
+                 ExcludeSource is almost the same as source but it prevents the addition of
+                 matching sources.
+        hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions:
+            type: object
+            properties:
+                action:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Action'
+                permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Permission'
+        hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions:
+            type: object
+            properties:
+                action:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Action'
+                permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Permission'
+        hashicorp.consul.auth.v2beta1.Permission:
+            type: object
+            properties:
+                destination_rules:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.DestinationRule'
+                    description: |
+                        // DestinationRules is a list of rules to apply for matching sources in this Permission.
+                        // These rules are specific to the request or connection that is going to the destination(s)
+                        // selected by the TrafficPermissions resource.
+                sources:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Source'
+                    description: |
+                        // Sources is a list of sources in this traffic permission.
+            description: |4
+                 Permissions is a list of permissions to match on.
+        hashicorp.consul.auth.v2beta1.Source:
+            type: object
+            properties:
+                exclude:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.ExcludeSource'
+                    description: |
+                        // Exclude is a list of sources to exclude from this source.
+                identity_name:
+                    type: string
+                namespace:
+                    type: string
+                partition:
+                    type: string
+                peer:
+                    type: string
+                sameness_group:
+                    type: string
+            description: |4
+                 Source represents the source identity.
+                 To specify any of the wildcard sources, the specific fields need to be omitted.
+                 For example, for a wildcard namespace, identity_name should be omitted.
+        hashicorp.consul.auth.v2beta1.TrafficPermissions:
+            type: object
+            properties:
+                action:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Action'
+                    description: |
+                        // Action can be either allow or deny for the entire object. It will default to allow.
+                        //
+                        // If action is allow, we will allow the connection if one of the rules in Rules matches, in other words, we will deny
+                        // all requests except for the ones that match Rules. If Consul is in default allow mode, then allow
+                        // actions have no effect without a deny permission as everything is allowed by default.
+                        //
+                        // If action is deny, we will deny the connection if one of the rules in Rules match, in other words,
+                        // we will allow all requests except for the ones that match Rules. If Consul is default deny mode,
+                        // then deny permissions have no effect without an allow permission as everything is denied by default.
+                        //
+                        // Action unspecified is reserved for compatibility with the addition of future actions.
+                destination:
+                    $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Destination'
+                    description: |
+                        // Destination is a configuration of the destination proxies
+                        // where these traffic permissions should apply.
+                permissions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.auth.v2beta1.Permission'
+                    description: |
+                        // Permissions is a list of permissions to match on. They are applied using OR semantics.
+        hashicorp.consul.auth.v2beta1.WorkloadIdentity:
+            type: object
+        hashicorp.consul.resource.Condition:
+            type: object
+            properties:
+                message:
+                    type: string
+                    description: |
+                        // Message contains a human-friendly description of the status.
+                reason:
+                    type: string
+                    description: |
+                        // Reason provides more machine-readable details about the condition (e.g.
+                        // "InvalidProtocol").
+                resource:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Reference'
+                    description: |
+                        // Resource identifies which resource this condition relates to, when it is
+                        // not the core resource itself.
+                state:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Condition.State'
+                    description: |
+                        // State represents the state of the condition (i.e. true/false/unknown).
+                type:
+                    type: string
+                    description: |
+                        // Type identifies the type of condition (e.g. "Invalid", "ResolvedRefs").
+            description: |4
+                 Condition represents a discreet observation about a resource in relation to
+                 the current state of the system.
+
+                 It is heavily inspired by Kubernetes' [conditions](https://bit.ly/3H9Y6IK)
+                 and the Gateway API [types and reasons](https://bit.ly/3n2PPiP).
+        hashicorp.consul.resource.Condition.State:
+            type: string
+            enum:
+                - STATE_UNKNOWN
+                - STATE_TRUE
+                - STATE_FALSE
+            description: |4
+                 State represents the state of the condition (i.e. true/false/unknown).
+        hashicorp.consul.resource.ID:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: |
+                        // Name is the user-given name of the resource (e.g. the "billing" service).
+                tenancy:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Tenancy'
+                    description: |
+                        // Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+                        // the resource resides.
+                type:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Type'
+                    description: |
+                        // Type identifies the resource's type.
+                uid:
+                    type: string
+                    description: |
+                        // Uid is the unique internal identifier we gave to the resource.
+                        //
+                        // It is primarily used to tell the difference between the current resource
+                        // and previous deleted resources with the same user-given name.
+                        //
+                        // Concretely, Uid is a [ULID](https://github.com/ulid/spec) and you can treat
+                        // its timestamp component as the resource's creation time.
+            description: |4
+                 ID uniquely identifies a resource.
+        hashicorp.consul.resource.Reference:
+            type: object
+            properties:
+                name:
+                    type: string
+                    description: |
+                        // Name is the user-given name of the resource (e.g. the "billing" service).
+                section:
+                    type: string
+                    description: |
+                        // Section identifies which part of the resource the condition relates to.
+                tenancy:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Tenancy'
+                    description: |
+                        // Tenancy identifies the tenancy units (i.e. partition, namespace) in which
+                        // the resource resides.
+                type:
+                    $ref: '#/components/schemas/hashicorp.consul.resource.Type'
+                    description: |
+                        // Type identifies the resource's type.
+            description: |4
+                 Reference identifies which resource a condition relates to, when it is not
+                 the core resource itself.
+        hashicorp.consul.resource.Status:
+            type: object
+            properties:
+                conditions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/hashicorp.consul.resource.Condition'
+                    description: |
+                        // Conditions contains a set of discreet observations about the resource in
+                        // relation to the current state of the system (e.g. it is semantically valid).
+                observed_generation:
+                    type: string
+                    description: |
+                        // ObservedGeneration identifies which generation of a resource this status
+                        // related to. It can be used to determine whether the current generation of
+                        // a resource has been reconciled.
+                updated_at:
+                    type: string
+                    format: date-time
+                    description: |
+                        // UpdatedAt is the time at which the status was last written.
+            description: |4
+                 Status is used by controllers to communicate the result of attempting to
+                 reconcile and apply a resource (e.g. surface semantic validation errors)
+                 with users and other controllers.
+        hashicorp.consul.resource.Tenancy:
+            type: object
+            properties:
+                namespace:
+                    type: string
+                    description: |
+                        // Namespace further isolates resources within a partition.
+                        // https://developer.hashicorp.com/consul/docs/enterprise/namespaces
+                        //
+                        // When using the List and WatchList endpoints, provide the wildcard value "*"
+                        // to list resources across all namespaces.
+                partition:
+                    type: string
+                    description: |
+                        // Partition is the topmost administrative boundary within a cluster.
+                        // https://developer.hashicorp.com/consul/docs/enterprise/admin-partitions
+                        //
+                        // When using the List and WatchList endpoints, provide the wildcard value "*"
+                        // to list resources across all partitions.
+                peer_name:
+                    type: string
+                    description: |
+                        // PeerName identifies which peer the resource is imported from.
+                        // https://developer.hashicorp.com/consul/docs/connect/cluster-peering
+                        //
+                        // When using the List and WatchList endpoints, provide the wildcard value "*"
+                        // to list resources across all peers.
+            description: |4
+                 Tenancy describes the tenancy units in which the resource resides.
+        hashicorp.consul.resource.Type:
+            type: object
+            properties:
+                group:
+                    type: string
+                    description: |
+                        // Group describes the area of functionality to which this resource type
+                        // relates (e.g. "catalog", "authorization").
+                group_version:
+                    type: string
+                    description: |
+                        // GroupVersion is incremented when sweeping or backward-incompatible changes
+                        // are made to the group's resource types.
+                kind:
+                    type: string
+                    description: |
+                        // Kind identifies the specific resource type within the group.
+            description: |4
+                 Type describes a resource's type. It follows the GVK (Group Version Kind)
+                 [pattern](https://book.kubebuilder.io/cronjob-tutorial/gvks.html) established
+                 by Kubernetes.
+    parameters:
+        consistent:
+            name: consistent
+            in: query
+            description: When true, the operation will be performed with strong consistency
+            schema:
+                type: boolean
+        name:
+            name: name
+            in: path
+            description: The name of the resource to operate on.
+            required: true
+            schema:
+                type: string
+        name_prefix:
+            name: name_prefix
+            in: query
+            description: The resource name prefix used to filter the result list.
+            schema:
+                type: string
+        namespace:
+            name: namespace
+            in: query
+            description: Specifies the Consul namespace of resources to operate on. This parameter takes precedence over the `ns` alias.
+            schema:
+                type: string
+        ns:
+            name: ns
+            in: query
+            description: '`ns` is an alias for the `namespace` query param. The `namespace` parameter takes precedence.'
+            schema:
+                type: string
+        partition:
+            name: partition
+            in: query
+            description: Specifies the Consul partition of resources to operate on.
+            schema:
+                type: string
+        peer:
+            name: peer
+            in: query
+            description: Specifies the Consul peer of imported resources to operate on.
+            schema:
+                type: string
+    securitySchemes:
+        BearerAuth:
+            type: http
+            scheme: bearer
+        ConsulTokenHeader:
+            type: apiKey
+            in: header
+            name: X-Consul-Token
+security:
+    - BearerAuth: []
+    - ConsulTokenHeader: []

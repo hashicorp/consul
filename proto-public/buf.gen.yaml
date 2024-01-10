@@ -27,6 +27,11 @@ plugins:
     opt:
       - paths=source_relative
     strategy: all
+  - name: resource-openapi
+    out: ./openapi
+    opt:
+      - paths=source_relative
+    strategy: all
   - name: consul-rate-limit
     out: .
     opt:
