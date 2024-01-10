@@ -793,15 +793,21 @@ func TestConfig_Exported_Services(t *testing.T) {
 		require.Len(t, services, 2)
 		assertIndex(t, resp)
 
+		entMeta := acl.DefaultEnterpriseMeta()
+
 		expected := []api.ResolvedExportedService{
 			{
-				Service: "api",
+				Service:   "api",
+				Partition: entMeta.PartitionOrEmpty(),
+				Namespace: entMeta.NamespaceOrEmpty(),
 				Consumers: api.ResolvedConsumers{
 					Peers: []string{"east", "west"},
 				},
 			},
 			{
-				Service: "db",
+				Service:   "db",
+				Partition: entMeta.PartitionOrEmpty(),
+				Namespace: entMeta.NamespaceOrEmpty(),
 				Consumers: api.ResolvedConsumers{
 					Peers: []string{"east"},
 				},

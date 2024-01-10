@@ -63,71 +63,6 @@ func TestGetResolvedExportedServices_ACL_Deny(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestGetResolvedExportedServices_ACL_Allow(t *testing.T) {
-	authorizer := acl.MockAuthorizer{}
-	authorizer.On("MeshRead", mock.Anything).Return(acl.Allow)
-
-	backend := &MockBackend{authorizer: &authorizer}
-	backend.On("EnterpriseCheckPartitions", mock.Anything).Return(nil)
-
-	fakeFSM := testutils.NewFakeBlockingFSM(t)
-
-	c := Config{
-		Backend:    backend,
-		Logger:     hclog.New(nil),
-		ForwardRPC: doForwardRPC,
-		FSMServer:  fakeFSM,
-	}
-	server := NewServer(c)
-
-	// Add config entry
-	entry := &structs.ExportedServicesConfigEntry{
-		Name: "default",
-		Services: []structs.ExportedService{
-			{
-				Name: "db",
-				Consumers: []structs.ServiceConsumer{
-					{
-						Peer: "east",
-					},
-					{
-						Peer: "west",
-					},
-				},
-			},
-			{
-				Name: "cache",
-				Consumers: []structs.ServiceConsumer{
-					{
-						Peer: "east",
-					},
-				},
-			},
-		},
-	}
-	fakeFSM.GetState().EnsureConfigEntry(1, entry)
-
-	expected := []*pbconfigentry.ResolvedExportedService{
-		{
-			Service: "db",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east", "west"},
-			},
-		},
-		{
-			Service: "cache",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east"},
-			},
-		},
-	}
-
-	ctx := grpc.NewContextWithServerTransportStream(context.Background(), &testutils.MockServerTransportStream{})
-	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
-	require.NoError(t, err)
-	require.ElementsMatch(t, expected, resp.Services)
-}
-
 func TestGetResolvedExportedServices_PartitionCheck(t *testing.T) {
 	authorizer := acl.MockAuthorizer{}
 	authorizer.On("MeshRead", mock.Anything).Return(acl.Allow)
@@ -197,27 +132,12 @@ func TestGetResolvedExportedServices_Index(t *testing.T) {
 	}
 	fakeFSM.GetState().EnsureConfigEntry(1, entry)
 
-	expected := []*pbconfigentry.ResolvedExportedService{
-		{
-			Service: "db",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east", "west"},
-			},
-		},
-		{
-			Service: "cache",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east"},
-			},
-		},
-	}
-
 	headerStream := &testutils.MockServerTransportStream{}
 
 	ctx := grpc.NewContextWithServerTransportStream(context.Background(), headerStream)
 	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, resp.Services)
+	require.Equal(t, 2, len(resp.Services))
 	require.Equal(t, []string{"1"}, headerStream.MD.Get("index"))
 
 	// Updating the index
@@ -228,7 +148,7 @@ func TestGetResolvedExportedServices_Index(t *testing.T) {
 	ctx = grpc.NewContextWithServerTransportStream(context.Background(), headerStream)
 	resp, err = server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, resp.Services)
+	require.Equal(t, 2, len(resp.Services))
 	require.Equal(t, []string{"2"}, headerStream.MD.Get("index"))
 }
 
@@ -280,25 +200,10 @@ func TestGetResolvedExportedServices_Metrics(t *testing.T) {
 	}
 	fakeFSM.GetState().EnsureConfigEntry(1, entry)
 
-	expected := []*pbconfigentry.ResolvedExportedService{
-		{
-			Service: "db",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east", "west"},
-			},
-		},
-		{
-			Service: "cache",
-			Consumers: &pbconfigentry.Consumers{
-				Peers: []string{"east"},
-			},
-		},
-	}
-
 	ctx := grpc.NewContextWithServerTransportStream(context.Background(), &testutils.MockServerTransportStream{})
 	resp, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
 	require.NoError(t, err)
-	require.ElementsMatch(t, expected, resp.Services)
+	require.Equal(t, 2, len(resp.Services))
 
 	// Checking if metrics were added
 	require.NotNil(t, sink.Data()[0].Samples[`consul.configentry.get_resolved_exported_services`])

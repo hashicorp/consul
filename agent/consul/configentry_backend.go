@@ -15,7 +15,7 @@ type ConfigEntryBackend struct {
 
 var _ configentry.Backend = (*ConfigEntryBackend)(nil)
 
-// NewPeeringBackend returns a peering.Backend implementation that is bound to the given server.
+// NewConfigEntryBackend returns a configentry.Backend implementation that is bound to the given server.
 func NewConfigEntryBackend(srv *Server) *ConfigEntryBackend {
 	return &ConfigEntryBackend{
 		srv: srv,
