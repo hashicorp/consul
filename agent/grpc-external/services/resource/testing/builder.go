@@ -5,17 +5,14 @@ package testing
 
 import (
 	"context"
-	"testing"
 
+	"github.com/fullstorydev/grpchan/inprocgrpc"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/hashicorp/consul/acl"
 	svc "github.com/hashicorp/consul/agent/grpc-external/services/resource"
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	internal "github.com/hashicorp/consul/agent/grpc-internal"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/internal/tenancy"
@@ -23,26 +20,28 @@ import (
 	"github.com/hashicorp/consul/sdk/testutil"
 )
 
-type builder struct {
+type Builder struct {
 	registry     resource.Registry
 	registerFns  []func(resource.Registry)
 	useV2Tenancy bool
 	tenancies    []*pbresource.Tenancy
 	aclResolver  svc.ACLResolver
 	serviceImpl  *svc.Server
+	cloning      bool
 }
 
 // NewResourceServiceBuilder is the preferred way to configure and run
 // an isolated in-process instance of the resource service for unit
 // testing. The final call to `Run()` returns a client you can use for
 // making requests.
-func NewResourceServiceBuilder() *builder {
-	b := &builder{
+func NewResourceServiceBuilder() *Builder {
+	b := &Builder{
 		useV2Tenancy: false,
 		registry:     resource.NewRegistry(),
 		// Regardless of whether using mock of v2tenancy, always make sure
 		// the builtin tenancy exists.
 		tenancies: []*pbresource.Tenancy{resource.DefaultNamespacedTenancy()},
+		cloning:   true,
 	}
 	return b
 }
@@ -51,47 +50,63 @@ func NewResourceServiceBuilder() *builder {
 //
 // true  => real v2 default partition and namespace via v2 tenancy bridge
 // false => mock default partition and namespace since v1 tenancy bridge can't be used (not spinning up an entire server here)
-func (b *builder) WithV2Tenancy(useV2Tenancy bool) *builder {
+func (b *Builder) WithV2Tenancy(useV2Tenancy bool) *Builder {
 	b.useV2Tenancy = useV2Tenancy
 	return b
 }
 
 // Registry provides access to the constructed registry post-Run() when
 // needed by other test dependencies.
-func (b *builder) Registry() resource.Registry {
+func (b *Builder) Registry() resource.Registry {
 	return b.registry
 }
 
 // ServiceImpl provides access to the actual server side implemenation of the resource service. This should never be used
 // used/accessed without good reason. The current justifying use case is to monkeypatch the ACL resolver post-creation
 // to allow unfettered writes which some ACL related tests require to put test data in place.
-func (b *builder) ServiceImpl() *svc.Server {
+func (b *Builder) ServiceImpl() *svc.Server {
 	return b.serviceImpl
 }
 
-func (b *builder) WithRegisterFns(registerFns ...func(resource.Registry)) *builder {
+func (b *Builder) WithRegisterFns(registerFns ...func(resource.Registry)) *Builder {
 	for _, registerFn := range registerFns {
 		b.registerFns = append(b.registerFns, registerFn)
 	}
 	return b
 }
 
-func (b *builder) WithACLResolver(aclResolver svc.ACLResolver) *builder {
+func (b *Builder) WithACLResolver(aclResolver svc.ACLResolver) *Builder {
 	b.aclResolver = aclResolver
 	return b
 }
 
 // WithTenancies adds additional partitions and namespaces if default/default
 // is not sufficient.
-func (b *builder) WithTenancies(tenancies ...*pbresource.Tenancy) *builder {
+func (b *Builder) WithTenancies(tenancies ...*pbresource.Tenancy) *Builder {
 	for _, tenancy := range tenancies {
 		b.tenancies = append(b.tenancies, tenancy)
 	}
 	return b
 }
 
+// WithCloningDisabled disables resource service client functionality that will
+// clone protobuf message types as they pass through. By default
+// cloning is enabled.
+//
+// For in-process gRPC interactions we prefer to use an in-memory gRPC client. This
+// allows our controller infrastructure to avoid any unnecessary protobuf serialization
+// and deserialization and for controller caching to not duplicate memory that the
+// resource service is already holding on to. However, clients (including controllers)
+// often want to be able to perform read-modify-write ops and for the sake of not
+// forcing all call sites to be aware of the shared memory and to not touch it we
+// enable cloning in the clients that we give to those bits of code.
+func (b *Builder) WithCloningDisabled() *Builder {
+	b.cloning = false
+	return b
+}
+
 // Run starts the resource service and returns a client.
-func (b *builder) Run(t *testing.T) pbresource.ResourceServiceClient {
+func (b *Builder) Run(t testutil.TestingTB) pbresource.ResourceServiceClient {
 	// backend cannot be customized
 	backend, err := inmem.NewBackend()
 	require.NoError(t, err)
@@ -161,24 +176,15 @@ func (b *builder) Run(t *testing.T) pbresource.ResourceServiceClient {
 		UseV2Tenancy:  b.useV2Tenancy,
 	}
 
-	server := grpc.NewServer()
-
 	b.serviceImpl = svc.NewServer(config)
-	b.serviceImpl.Register(server)
+	ch := &inprocgrpc.Channel{}
+	pbresource.RegisterResourceServiceServer(ch, b.serviceImpl)
+	client := pbresource.NewResourceServiceClient(ch)
 
-	pipe := internal.NewPipeListener()
-	go server.Serve(pipe)
-	t.Cleanup(server.Stop)
-
-	conn, err := grpc.Dial("",
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithContextDialer(pipe.DialContext),
-		grpc.WithBlock(),
-	)
-	require.NoError(t, err)
-	t.Cleanup(func() { _ = conn.Close() })
-
-	client := pbresource.NewResourceServiceClient(conn)
+	if b.cloning {
+		// enable protobuf cloning wrapper
+		client = pbresource.NewCloningResourceServiceClient(client)
+	}
 
 	// HACK ALERT: The client needs to be injected into the V2TenancyBridge
 	// after it has been created due the the circular dependency. This will

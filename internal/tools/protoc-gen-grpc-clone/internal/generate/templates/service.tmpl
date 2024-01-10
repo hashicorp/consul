@@ -1,0 +1,44 @@
+// compile-time check to ensure that the generator is implementing all
+// of the grpc client interfaces methods.
+var _ {{.ClientTypeName}} = {{.CloningClientTypeName}}{}
+
+// Is{{.CloningClientTypeName}} is an interface that can be used to detect
+// that a {{.ClientTypeName}} is using the in-memory transport and has already
+// been wrapped with a with a {{.CloningClientTypeName}}.
+type Is{{.CloningClientTypeName}} interface {
+   Is{{.CloningClientTypeName}}() bool
+}
+
+// {{.CloningClientTypeName}} implements the {{.ClientTypeName}} interface by wrapping
+// another implementation and copying all protobuf messages that pass through the client.
+// This is mainly useful to wrap the an in-process client to insulate users of that
+// client from having to care about potential immutability of data they receive or having
+// the server implementation mutate their internal memory.
+type {{.CloningClientTypeName}} struct {
+   {{.ClientTypeName}}
+}
+
+func New{{.CloningClientTypeName}}(client {{.ClientTypeName}}) {{.ClientTypeName}} {
+   if cloner, ok := client.(Is{{.CloningClientTypeName}}); ok && cloner.Is{{.CloningClientTypeName}}() {
+      // prevent a double clone if the underlying client is already the cloning client.
+      return client
+   }
+   
+   return {{.CloningClientTypeName}}{
+      {{.ClientTypeName}}: client,
+   }
+}
+
+// Is{{.CloningClientTypeName}} implements the Is{{.CloningClientTypeName}} interface. This
+// is only used to detect wrapped clients that would be double cloning data and prevent that.
+func (c {{.CloningClientTypeName}}) Is{{.CloningClientTypeName}}() bool {
+   return true
+}
+
+{{ range $method := .UnaryMethods }}
+{{ template "unary-method.tmpl" $method }}
+{{ end }}
+
+{{ range $method := .ServerStreamMethods }}
+{{ template "server-stream-method.tmpl" $method }}
+{{- end}}
