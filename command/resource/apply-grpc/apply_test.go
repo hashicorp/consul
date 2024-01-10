@@ -200,7 +200,7 @@ func TestResourceApplyInvalidArgs(t *testing.T) {
 		"missing required flag": {
 			args:         []string{},
 			expectedCode: 1,
-			expectedErr:  errors.New("Incorrect argument format: Must provide exactly one positional argument to specify the resource to write"),
+			expectedErr:  errors.New("Required '-f' flag was not provided to specify where to load the resource content from"),
 		},
 		"file parsing failure": {
 			args:         []string{"-f=../testdata/invalid.hcl"},
