@@ -1,0 +1,3 @@
+```release-note:security
+Update RSA key generation to use a key size of at least 2048 bits.
+```
