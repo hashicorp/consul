@@ -653,6 +653,7 @@ type ServiceDumpRequest struct {
 	Datacenter         string
 	ServiceKind        ServiceKind
 	UseServiceKind     bool
+	NodesOnly          bool
 	Source             QuerySource
 	acl.EnterpriseMeta `hcl:",squash" mapstructure:",squash"`
 	PeerName           string
