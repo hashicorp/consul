@@ -22,9 +22,9 @@ import (
 	"github.com/hashicorp/consul/agent/grpc-external/testutils"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage/inmem"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -146,7 +146,7 @@ func wildcardTenancyCases() map[string]struct {
 		tenancy *pbresource.Tenancy
 	}{
 		"namespaced type with empty partition": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: resource.DefaultNamespaceName,
@@ -154,7 +154,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"namespaced type with empty namespace": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: resource.DefaultPartitionName,
 				Namespace: "",
@@ -163,7 +163,7 @@ func wildcardTenancyCases() map[string]struct {
 		},
 		// TODO(spatel): NET-5475 - Remove as part of peer_name moving to PeerTenancy
 		"namespaced type with empty peername": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: resource.DefaultPartitionName,
 				Namespace: resource.DefaultNamespaceName,
@@ -171,7 +171,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"namespaced type with empty partition and namespace": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
@@ -179,7 +179,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"namespaced type with wildcard partition and empty namespace": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "",
@@ -187,7 +187,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"namespaced type with empty partition and wildcard namespace": {
-			typ: demo.TypeV2Artist,
+			typ: pbdemov2.ArtistType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "*",
@@ -195,7 +195,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"partitioned type with empty partition": {
-			typ: demo.TypeV1RecordLabel,
+			typ: pbdemov1.RecordLabelType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
@@ -203,14 +203,14 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"partitioned type with wildcard partition": {
-			typ: demo.TypeV1RecordLabel,
+			typ: pbdemov1.RecordLabelType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				PeerName:  "local",
 			},
 		},
 		"partitioned type with wildcard partition and namespace": {
-			typ: demo.TypeV1RecordLabel,
+			typ: pbdemov1.RecordLabelType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "*",
@@ -218,7 +218,7 @@ func wildcardTenancyCases() map[string]struct {
 			},
 		},
 		"cluster type with empty partition and namespace": {
-			typ: demo.TypeV1Executive,
+			typ: pbdemov1.ExecutiveType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "",
 				Namespace: "",
@@ -227,7 +227,7 @@ func wildcardTenancyCases() map[string]struct {
 		},
 
 		"cluster type with wildcard partition and namespace": {
-			typ: demo.TypeV1Executive,
+			typ: pbdemov1.ExecutiveType,
 			tenancy: &pbresource.Tenancy{
 				Partition: "*",
 				Namespace: "*",

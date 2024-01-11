@@ -17,9 +17,7 @@ import (
 
 func RegisterDestinations(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbmesh.DestinationsType,
 		Proto:    &pbmesh.Destinations{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateDestinations,
 		Validate: ValidateDestinations,
 		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.Destinations](),

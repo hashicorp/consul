@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
-	"github.com/hashicorp/consul/internal/resource/demo"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v2"
@@ -17,7 +16,7 @@ import (
 )
 
 func TestDecodeAndValidate(t *testing.T) {
-	res := rtest.Resource(demo.TypeV2Artist, "babypants").
+	res := rtest.Resource(pbdemo.ArtistType, "babypants").
 		WithData(t, &pbdemo.Artist{Name: "caspar babypants"}).
 		Build()
 
@@ -55,7 +54,7 @@ func TestDecodeAndValidate(t *testing.T) {
 }
 
 func TestDecodeAndMutate(t *testing.T) {
-	res := rtest.Resource(demo.TypeV2Artist, "babypants").
+	res := rtest.Resource(pbdemo.ArtistType, "babypants").
 		WithData(t, &pbdemo.Artist{Name: "caspar babypants"}).
 		Build()
 
@@ -117,7 +116,7 @@ func TestDecodeAndMutate(t *testing.T) {
 }
 
 func TestDecodeAndAuthorizeWrite(t *testing.T) {
-	res := rtest.Resource(demo.TypeV2Artist, "babypants").
+	res := rtest.Resource(pbdemo.ArtistType, "babypants").
 		WithData(t, &pbdemo.Artist{Name: "caspar babypants"}).
 		Build()
 
@@ -156,7 +155,7 @@ func TestDecodeAndAuthorizeWrite(t *testing.T) {
 }
 
 func TestDecodeAndAuthorizeRead(t *testing.T) {
-	res := rtest.Resource(demo.TypeV2Artist, "babypants").
+	res := rtest.Resource(pbdemo.ArtistType, "babypants").
 		WithData(t, &pbdemo.Artist{Name: "caspar babypants"}).
 		Build()
 
@@ -205,7 +204,7 @@ func TestDecodeAndAuthorizeRead(t *testing.T) {
 }
 
 func TestAuthorizeReadWithResource(t *testing.T) {
-	res := rtest.Resource(demo.TypeV2Artist, "babypants").
+	res := rtest.Resource(pbdemo.ArtistType, "babypants").
 		WithData(t, &pbdemo.Artist{Name: "caspar babypants"}).
 		Build()
 

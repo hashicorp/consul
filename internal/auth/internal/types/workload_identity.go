@@ -14,9 +14,7 @@ type DecodedWorkloadIdentity = resource.DecodedResource[*pbauth.WorkloadIdentity
 
 func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:  pbauth.WorkloadIdentityType,
 		Proto: &pbauth.WorkloadIdentity{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkloadIdentity,
 			Write: aclWriteHookWorkloadIdentity,

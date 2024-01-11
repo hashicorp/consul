@@ -26,6 +26,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -244,7 +246,7 @@ func TestRead_GroupVersionMismatch(t *testing.T) {
 			require.NoError(t, err)
 
 			id := clone(artist.Id)
-			id.Type = demo.TypeV1Artist
+			id.Type = pbdemov1.ArtistType
 
 			_, err = client.Read(tc.ctx, &pbresource.ReadRequest{Id: id})
 			require.Error(t, err)
@@ -281,9 +283,9 @@ func TestRead_Success(t *testing.T) {
 					require.NoError(t, err)
 
 					switch {
-					case proto.Equal(rsp.Resource.Id.Type, demo.TypeV2Artist):
+					case proto.Equal(rsp.Resource.Id.Type, pbdemov2.ArtistType):
 						prototest.AssertDeepEqual(t, artist, rsp.Resource)
-					case proto.Equal(rsp.Resource.Id.Type, demo.TypeV1RecordLabel):
+					case proto.Equal(rsp.Resource.Id.Type, pbdemov1.RecordLabelType):
 						prototest.AssertDeepEqual(t, recordLabel, rsp.Resource)
 					default:
 						require.Fail(t, "unexpected resource type")

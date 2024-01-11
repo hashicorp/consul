@@ -58,7 +58,7 @@ func TestArtistReconciler(t *testing.T) {
 
 	// Check the albums were created.
 	listRsp, err := client.List(ctx, &pbresource.ListRequest{
-		Type:    TypeV2Album,
+		Type:    pbdemov2.AlbumType,
 		Tenancy: readRsp.Resource.Id.Tenancy,
 	})
 	require.NoError(t, err)
@@ -73,7 +73,7 @@ func TestArtistReconciler(t *testing.T) {
 
 	// Check the album was recreated.
 	listRsp, err = client.List(ctx, &pbresource.ListRequest{
-		Type:    TypeV2Album,
+		Type:    pbdemov2.AlbumType,
 		Tenancy: readRsp.Resource.Id.Tenancy,
 	})
 	require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestArtistReconciler(t *testing.T) {
 
 	// Check there are only 3 albums now.
 	listRsp, err = client.List(ctx, &pbresource.ListRequest{
-		Type:    TypeV2Album,
+		Type:    pbdemov2.AlbumType,
 		Tenancy: readRsp.Resource.Id.Tenancy,
 	})
 	require.NoError(t, err)

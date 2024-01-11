@@ -21,59 +21,6 @@ import (
 	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 )
 
-var (
-	// TypeV1Executive represents a a C-suite executive of the company.
-	// Used as a resource to test cluster scope.
-	TypeV1Executive = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Executive",
-	}
-
-	// TypeV1RecordLabel represents a record label which artists are signed to.
-	// Used as a resource to test partiion scope.
-	TypeV1RecordLabel = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "RecordLabel",
-	}
-
-	// TypeV1Artist represents a musician or group of musicians.
-	TypeV1Artist = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Artist",
-	}
-
-	// TypeV1Album represents a collection of an artist's songs.
-	TypeV1Album = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Album",
-	}
-
-	// TypeV1Concept represents an abstract concept that can be associated with any other resource.
-	TypeV1Concept = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v1",
-		Kind:         "Concept",
-	}
-
-	// TypeV2Artist represents a musician or group of musicians.
-	TypeV2Artist = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v2",
-		Kind:         "Artist",
-	}
-
-	// TypeV2Album represents a collection of an artist's songs.
-	TypeV2Album = &pbresource.Type{
-		Group:        "demo",
-		GroupVersion: "v2",
-		Kind:         "Album",
-	}
-)
-
 const (
 	ArtistV1ReadPolicy  = `key_prefix "resource/demo.v1.Artist/" { policy = "read" }`
 	ArtistV1WritePolicy = `key_prefix "resource/demo.v1.Artist/" { policy = "write" }`
@@ -95,7 +42,7 @@ const (
 // system can be more modularly extended (or support generic resource permissions).
 func RegisterTypes(r resource.Registry) {
 	readACL := func(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, res *pbresource.Resource) error {
-		if resource.EqualType(TypeV1RecordLabel, id.Type) {
+		if resource.EqualType(pbdemov1.RecordLabelType, id.Type) {
 			if res == nil {
 				return resource.ErrNeedResource
 			}
@@ -152,82 +99,68 @@ func RegisterTypes(r resource.Registry) {
 	}
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV1Executive,
 		Proto: &pbdemov1.Executive{},
-		Scope: pbresource.Scope_SCOPE_CLUSTER,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV1Executive),
+			List:  makeListACL(pbdemov1.ExecutiveType),
 		},
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV1RecordLabel,
 		Proto: &pbdemov1.RecordLabel{},
-		Scope: pbresource.Scope_SCOPE_PARTITION,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV1RecordLabel),
+			List:  makeListACL(pbdemov1.RecordLabelType),
 		},
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV1Artist),
+			List:  makeListACL(pbdemov1.ArtistType),
 		},
 		Validate: validateV1ArtistFn,
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV1Album),
+			List:  makeListACL(pbdemov1.AlbumType),
 		},
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV1Concept,
 		Proto: &pbdemov1.Concept{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV1Concept),
+			List:  makeListACL(pbdemov1.ConceptType),
 		},
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV2Artist),
+			List:  makeListACL(pbdemov2.ArtistType),
 		},
 		Validate: validateV2ArtistFn,
 		Mutate:   mutateV2ArtistFn,
 	})
 
 	r.Register(resource.RegisterRequest{
-		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  readACL,
 			Write: writeACL,
-			List:  makeListACL(TypeV2Album),
+			List:  makeListACL(pbdemov2.AlbumType),
 		},
 	})
 }
@@ -241,7 +174,7 @@ func GenerateV1Executive(name, position string) (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeV1Executive,
+			Type:    pbdemov1.ExecutiveType,
 			Tenancy: resource.DefaultClusteredTenancy(),
 			Name:    name,
 		},
@@ -261,7 +194,7 @@ func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeV1RecordLabel,
+			Type:    pbdemov1.RecordLabelType,
 			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name:    name,
 		},
@@ -276,7 +209,7 @@ func GenerateV1RecordLabel(name string) (*pbresource.Resource, error) {
 func GenerateV1Concept(name string) (*pbresource.Resource, error) {
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeV1Concept,
+			Type:    pbdemov1.ConceptType,
 			Tenancy: resource.DefaultPartitionedTenancy(),
 			Name:    name,
 		},
@@ -309,7 +242,7 @@ func GenerateV2Artist() (*pbresource.Resource, error) {
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeV2Artist,
+			Type:    pbdemov2.ArtistType,
 			Tenancy: resource.DefaultNamespacedTenancy(),
 			Name:    fmt.Sprintf("%s-%s", strings.ToLower(adjective), strings.ToLower(noun)),
 		},
@@ -352,7 +285,7 @@ func generateV2Album(artistID *pbresource.ID, rand *rand.Rand) (*pbresource.Reso
 
 	return &pbresource.Resource{
 		Id: &pbresource.ID{
-			Type:    TypeV2Album,
+			Type:    pbdemov2.AlbumType,
 			Tenancy: clone(artistID.Tenancy),
 			Name:    fmt.Sprintf("%s-%s-%s", artistID.Name, strings.ToLower(adjective), strings.ToLower(noun)),
 		},

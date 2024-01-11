@@ -24,6 +24,8 @@ import (
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/internal/storage"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
@@ -74,7 +76,7 @@ func TestList_InputValidation(t *testing.T) {
 		},
 		"partitioned resource provides non-empty namespace": {
 			modReqFn: func(req *pbresource.ListRequest) {
-				req.Type = demo.TypeV1RecordLabel
+				req.Type = pbdemov1.RecordLabelType
 				req.Tenancy.Namespace = "bad"
 			},
 			errContains: "cannot have a namespace",
@@ -83,7 +85,7 @@ func TestList_InputValidation(t *testing.T) {
 	for desc, tc := range testCases {
 		t.Run(desc, func(t *testing.T) {
 			req := &pbresource.ListRequest{
-				Type:    demo.TypeV2Album,
+				Type:    pbdemov2.AlbumType,
 				Tenancy: resource.DefaultNamespacedTenancy(),
 			}
 			tc.modReqFn(req)
@@ -100,7 +102,7 @@ func TestList_TypeNotFound(t *testing.T) {
 	client := svctest.NewResourceServiceBuilder().Run(t)
 
 	_, err := client.List(context.Background(), &pbresource.ListRequest{
-		Type:       demo.TypeV2Artist,
+		Type:       pbdemov2.ArtistType,
 		Tenancy:    resource.DefaultNamespacedTenancy(),
 		NamePrefix: "",
 	})
@@ -117,7 +119,7 @@ func TestList_Empty(t *testing.T) {
 				Run(t)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       demo.TypeV1Artist,
+				Type:       pbdemov1.ArtistType,
 				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
@@ -149,7 +151,7 @@ func TestList_Many(t *testing.T) {
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       demo.TypeV2Artist,
+				Type:       pbdemov2.ArtistType,
 				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: "",
 			})
@@ -188,7 +190,7 @@ func TestList_NamePrefix(t *testing.T) {
 			}
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       demo.TypeV2Artist,
+				Type:       pbdemov2.ArtistType,
 				Tenancy:    resource.DefaultNamespacedTenancy(),
 				NamePrefix: namePrefix,
 			})
@@ -234,11 +236,11 @@ func TestList_Tenancy_Defaults_And_Normalization(t *testing.T) {
 			require.NoError(t, err)
 			require.Len(t, listRsp.Resources, 1)
 			switch tc.typ {
-			case demo.TypeV1RecordLabel:
+			case pbdemov1.RecordLabelType:
 				prototest.AssertDeepEqual(t, recordLabelRsp.Resource, listRsp.Resources[0])
-			case demo.TypeV1Artist:
+			case pbdemov1.ArtistType:
 				prototest.AssertDeepEqual(t, artistRsp.Resource, listRsp.Resources[0])
-			case demo.TypeV1Executive:
+			case pbdemov1.ExecutiveType:
 				prototest.AssertDeepEqual(t, executiveRsp.Resource, listRsp.Resources[0])
 			}
 		})
@@ -259,7 +261,7 @@ func TestList_GroupVersionMismatch(t *testing.T) {
 			require.NoError(t, err)
 
 			rsp, err := client.List(tc.ctx, &pbresource.ListRequest{
-				Type:       demo.TypeV1Artist,
+				Type:       pbdemov1.ArtistType,
 				Tenancy:    artist.Id.Tenancy,
 				NamePrefix: "",
 			})

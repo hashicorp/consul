@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 	"github.com/hashicorp/consul/sdk/testutil"
 )
@@ -126,7 +127,7 @@ func TestReconcile_ResourceWithChildren(t *testing.T) {
 
 		// Verify 3 albums deleted
 		listRsp, err = client.List(ctx, &pbresource.ListRequest{
-			Type:    demo.TypeV2Album,
+			Type:    pbdemov2.AlbumType,
 			Tenancy: artist.Id.Tenancy,
 		})
 		require.NoError(t, err)

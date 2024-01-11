@@ -61,9 +61,6 @@ type ResourceType interface {
 }
 
 type RegisterRequest struct {
-	// Type is the GVK of the resource type.
-	Type *pbresource.Type
-
 	// Proto is the resource's protobuf message type.
 	Proto ResourceType
 
@@ -81,9 +78,6 @@ type RegisterRequest struct {
 	// Resource.ID is populated and has non-empty tenancy fields. This does
 	// not mean those tenancy fields actually exist.
 	Mutate MutationHook
-
-	// Scope describes the tenancy scope of a resource.
-	Scope pbresource.Scope
 }
 
 type Registration struct {
@@ -155,7 +149,6 @@ func NewRegistry() Registry {
 	// does not get routed through the resource service and bypasses ACLs
 	// as part of the Delete endpoint.
 	registry.Register(RegisterRequest{
-		Type:  pbinternalresource.TombstoneType,
 		Proto: &pbinternalresource.Tombstone{},
 	})
 	return registry
@@ -193,14 +186,14 @@ func (r *TypeRegistry) Register(request RegisterRequest) {
 		panic("Proto field is required.")
 	}
 
-	if request.Scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(typ) {
-		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, request.Scope))
+	if registration.Scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(typ) {
+		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
 	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	key := ToGVK(request.Type)
+	key := ToGVK(registration.Type)
 	if _, ok := r.registrations[key]; ok {
 		panic(fmt.Sprintf("resource type %s already registered", key))
 	}

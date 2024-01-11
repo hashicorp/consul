@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/consul/agent"
 	"github.com/hashicorp/consul/internal/resource/demo"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/sdk/testutil"
@@ -49,7 +50,7 @@ func TestResourceRead(t *testing.T) {
 
 		readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 		require.NoError(t, err)
-		require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
+		require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, pbdemov2.ArtistType), true)
 		prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
 	})
 }
@@ -140,7 +141,7 @@ func TestResourceReadInTLS(t *testing.T) {
 
 			readRsp, err := gRPCClient.Client.Read(context.Background(), &pbresource.ReadRequest{Id: v2Artist.Id})
 			require.NoError(t, err)
-			require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, demo.TypeV2Artist), true)
+			require.Equal(t, proto.Equal(readRsp.Resource.Id.Type, pbdemov2.ArtistType), true)
 			prototest.AssertDeepEqual(t, writeRsp.Resource, readRsp.Resource)
 		})
 	}

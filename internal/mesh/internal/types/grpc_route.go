@@ -11,14 +11,11 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbmesh.GRPCRouteType,
 		Proto:    &pbmesh.GRPCRoute{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateGRPCRoute,
 		Validate: ValidateGRPCRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.GRPCRoute](),

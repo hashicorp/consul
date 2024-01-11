@@ -18,9 +18,7 @@ type DecodedServiceEndpoints = resource.DecodedResource[*pbcatalog.ServiceEndpoi
 
 func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbcatalog.ServiceEndpointsType,
 		Proto:    &pbcatalog.ServiceEndpoints{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
 		ACLs: &resource.ACLHooks{

@@ -16,9 +16,7 @@ type DecodedNode = resource.DecodedResource[*pbcatalog.Node]
 
 func RegisterNode(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbcatalog.NodeType,
 		Proto:    &pbcatalog.Node{},
-		Scope:    pbresource.Scope_SCOPE_PARTITION,
 		Validate: ValidateNode,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNode,

@@ -81,7 +81,7 @@ func (ts *nsTestSuite) TestNamespaceController_HappyPath() {
 	ns1 = ts.client.RequireResourceMeta(ts.T(), ns1.Id, resource.FinalizerKey, namespace.StatusKey)
 
 	// Add a namespace scoped tenant to the namespace
-	artist1 := rtest.Resource(demo.TypeV1Artist, "moonchild").
+	artist1 := rtest.Resource(pbdemo.ArtistType, "moonchild").
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,
@@ -112,7 +112,7 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 	ts.waitForReconciliation(ns1.Id, common.ReasonAcceptedOK)
 
 	// Add artist to namespace
-	_ = rtest.Resource(demo.TypeV1Artist, "weezer").
+	_ = rtest.Resource(pbdemo.ArtistType, "weezer").
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,
@@ -122,7 +122,7 @@ func (ts *nsTestSuite) TestNamespaceController_DeleteBlockedByTenantsWithFinaliz
 		Write(ts.T(), ts.client)
 
 	// Add another artist to namespace with a finalizer so that is blocks namespace deletion.
-	artist2 := rtest.Resource(demo.TypeV1Artist, "foofighters").
+	artist2 := rtest.Resource(pbdemo.ArtistType, "foofighters").
 		WithTenancy(&pbresource.Tenancy{
 			Partition: resource.DefaultPartitionName,
 			Namespace: ns1.Id.Name,

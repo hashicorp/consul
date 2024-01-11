@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	demov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
@@ -25,14 +26,12 @@ func TestRegister(t *testing.T) {
 
 	// register success
 	reg := resource.RegisterRequest{
-		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	}
 	r.Register(reg)
-	actual, ok := r.Resolve(demo.TypeV2Artist)
+	actual, ok := r.Resolve(pbdemov2.ArtistType)
 	require.True(t, ok)
-	require.True(t, proto.Equal(demo.TypeV2Artist, actual.Type))
+	require.True(t, proto.Equal(pbdemov2.ArtistType, actual.Type))
 
 	// register existing should panic
 	require.PanicsWithValue(t, "resource type demo.v2.Artist already registered", func() {
@@ -46,14 +45,12 @@ func TestRegister(t *testing.T) {
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
 	r.Register(resource.RegisterRequest{
-		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
 
-	reg, ok := r.Resolve(demo.TypeV2Artist)
+	reg, ok := r.Resolve(pbdemov2.ArtistType)
 	require.True(t, ok)
 
 	// verify default read hook requires operator:read
@@ -87,18 +84,16 @@ func TestResolve(t *testing.T) {
 	r := resource.NewRegistry()
 
 	// not found
-	_, ok := r.Resolve(demo.TypeV1Album)
+	_, ok := r.Resolve(pbdemov1.AlbumType)
 	assert.False(t, ok)
 
 	// found
 	r.Register(resource.RegisterRequest{
-		Type:  demo.TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	})
-	registration, ok := r.Resolve(demo.TypeV1Album)
+	registration, ok := r.Resolve(pbdemov1.AlbumType)
 	assert.True(t, ok)
-	assert.Equal(t, registration.Type, demo.TypeV1Album)
+	assert.Equal(t, registration.Type, pbdemov1.AlbumType)
 }
 
 func TestRegister_TypeValidation(t *testing.T) {
@@ -174,11 +169,8 @@ func TestRegister_TypeValidation(t *testing.T) {
 					tc.fn(typ)
 				}
 				registry.Register(resource.RegisterRequest{
-					Type: typ,
 					// Just pass anything since proto is a required field.
-					Proto: &pbdemov1.Artist{},
-					// Scope is also required
-					Scope: pbresource.Scope_SCOPE_NAMESPACE,
+					Proto: &alttype{rtype: typ},
 				})
 			}
 
@@ -189,4 +181,13 @@ func TestRegister_TypeValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+type alttype struct {
+	*pbdemov1.Artist
+	rtype *pbresource.Type
+}
+
+func (a *alttype) GetResourceType() *pbresource.Type {
+	return a.rtype
 }

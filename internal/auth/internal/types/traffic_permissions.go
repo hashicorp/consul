@@ -16,7 +16,6 @@ type DecodedTrafficPermissions = resource.DecodedResource[*pbauth.TrafficPermiss
 
 func RegisterTrafficPermissions(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:  pbauth.TrafficPermissionsType,
 		Proto: &pbauth.TrafficPermissions{},
 		ACLs: &resource.ACLHooks{
 			Read:  resource.DecodeAndAuthorizeRead(aclReadHookTrafficPermissions),
@@ -25,7 +24,6 @@ func RegisterTrafficPermissions(r resource.Registry) {
 		},
 		Validate: ValidateTrafficPermissions,
 		Mutate:   MutateTrafficPermissions,
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 	})
 }
 

@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
@@ -160,7 +161,7 @@ func TestListByOwner_TypeNotRegistered(t *testing.T) {
 
 	_, err := client.ListByOwner(context.Background(), &pbresource.ListByOwnerRequest{
 		Owner: &pbresource.ID{
-			Type:    demo.TypeV2Artist,
+			Type:    pbdemov2.ArtistType,
 			Tenancy: resource.DefaultNamespacedTenancy(),
 			Uid:     "bogus",
 			Name:    "bogus",
@@ -252,12 +253,12 @@ func TestListByOwner_OwnerTenancyDoesNotExist(t *testing.T) {
 				WithRegisterFns(demo.RegisterTypes).
 				Run(t)
 
-			recordLabel := resourcetest.Resource(demo.TypeV1RecordLabel, "looney-tunes").
+			recordLabel := resourcetest.Resource(pbdemo.RecordLabelType, "looney-tunes").
 				WithTenancy(resource.DefaultPartitionedTenancy()).
 				WithData(t, &pbdemo.RecordLabel{Name: "Looney Tunes"}).
 				Write(t, client)
 
-			artist := resourcetest.Resource(demo.TypeV1Artist, "blur").
+			artist := resourcetest.Resource(pbdemo.ArtistType, "blur").
 				WithTenancy(resource.DefaultNamespacedTenancy()).
 				WithData(t, &pbdemo.Artist{Name: "Blur"}).
 				WithOwner(recordLabel.Id).
@@ -298,9 +299,9 @@ func TestListByOwner_Tenancy_Defaults_And_Normalization(t *testing.T) {
 
 			// Avoid using the modded id when linking owner to child.
 			switch {
-			case proto.Equal(moddedOwnerId.Type, demo.TypeV2Artist):
+			case proto.Equal(moddedOwnerId.Type, pbdemov2.ArtistType):
 				ownerId = artist.Id
-			case proto.Equal(moddedOwnerId.Type, demo.TypeV1RecordLabel):
+			case proto.Equal(moddedOwnerId.Type, pbdemo.RecordLabelType):
 				ownerId = recordLabel.Id
 			default:
 				require.Fail(t, "unexpected resource type")

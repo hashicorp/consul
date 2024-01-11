@@ -19,9 +19,7 @@ import (
 
 func RegisterProxyStateTemplate(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbmesh.ProxyStateTemplateType,
 		Proto:    &pbmesh.ProxyStateTemplate{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {

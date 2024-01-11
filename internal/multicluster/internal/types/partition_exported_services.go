@@ -12,9 +12,7 @@ import (
 
 func RegisterPartitionExportedServices(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbmulticluster.PartitionExportedServicesType,
 		Proto:    &pbmulticluster.PartitionExportedServices{},
-		Scope:    pbresource.Scope_SCOPE_PARTITION,
 		Validate: ValidatePartitionExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookPartitionExportedServices,

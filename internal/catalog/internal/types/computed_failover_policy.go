@@ -9,16 +9,13 @@ import (
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type DecodedComputedFailoverPolicy = resource.DecodedResource[*pbcatalog.ComputedFailoverPolicy]
 
 func RegisterComputedFailoverPolicy(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbcatalog.ComputedFailoverPolicyType,
 		Proto:    &pbcatalog.ComputedFailoverPolicy{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateComputedFailoverPolicy,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookFailoverPolicy,

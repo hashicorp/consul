@@ -10,14 +10,11 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
-	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterTCPRoute(r resource.Registry) {
 	r.Register(resource.RegisterRequest{
-		Type:     pbmesh.TCPRouteType,
 		Proto:    &pbmesh.TCPRoute{},
-		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateTCPRoute,
 		Validate: ValidateTCPRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.TCPRoute](),

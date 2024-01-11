@@ -23,7 +23,8 @@ import (
 	rtest "github.com/hashicorp/consul/internal/resource/resourcetest"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
-	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbdemov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
 	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
@@ -241,7 +242,7 @@ func TestDelete_Success(t *testing.T) {
 		// based on the tenancy test case.
 		deleteId := modFn(artist.Id, recordLabel.Id)
 		deleteReq := tc.deleteReqFn(recordLabel)
-		if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+		if proto.Equal(deleteId.Type, pbdemov2.ArtistType) {
 			deleteReq = tc.deleteReqFn(artist)
 		}
 
@@ -256,7 +257,7 @@ func TestDelete_Success(t *testing.T) {
 
 		// Derive tombstone name from resource that was deleted.
 		tname := svc.TombstoneNameFor(originalRecordLabelId)
-		if proto.Equal(deleteId.Type, demo.TypeV2Artist) {
+		if proto.Equal(deleteId.Type, pbdemov2.ArtistType) {
 			tname = svc.TombstoneNameFor(originalArtistId)
 		}
 
@@ -397,9 +398,9 @@ func TestDelete_MarkedForDeletionWhenFinalizersPresent(t *testing.T) {
 				Run(t)
 
 			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+			res := rtest.Resource(pbdemov1.ArtistType, "manwithnoname").
 				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+				WithData(t, &pbdemov1.Artist{Name: "Man With No Name"}).
 				WithMeta(resource.FinalizerKey, "finalizer1").
 				Write(t, client)
 
@@ -434,9 +435,9 @@ func TestDelete_ImmediatelyDeletedAfterFinalizersRemoved(t *testing.T) {
 				Run(t)
 
 			// Create a resource with a finalizer
-			res := rtest.Resource(demo.TypeV1Artist, "manwithnoname").
+			res := rtest.Resource(pbdemov1.ArtistType, "manwithnoname").
 				WithTenancy(resource.DefaultClusteredTenancy()).
-				WithData(t, &pbdemo.Artist{Name: "Man With No Name"}).
+				WithData(t, &pbdemov1.Artist{Name: "Man With No Name"}).
 				WithMeta(resource.FinalizerKey, "finalizer1").
 				Write(t, client)
 
