@@ -695,6 +695,7 @@ func (r *ServiceDumpRequest) CacheInfo() cache.RequestInfo {
 	v, err := hashstructure.Hash([]interface{}{
 		keyKind,
 		r.UseServiceKind,
+		r.NodesOnly,
 		r.Filter,
 		r.EnterpriseMeta,
 	}, nil)
