@@ -93,8 +93,8 @@ func (m *Manager) Run(ctx context.Context) error {
 		return err
 	}
 
-	// Update the telemetry provider to enable the HCP metrics sink
-	if err := m.updateTelemetryProvider(); err != nil {
+	// Update and start the telemetry provider to enable the HCP metrics sink
+	if err := m.startTelemetryProvider(ctx); err != nil {
 		m.logger.Error("failed to update telemetry config provider", "error", err)
 		return err
 	}
@@ -159,7 +159,7 @@ func (m *Manager) startSCADAProvider() error {
 	return nil
 }
 
-func (m *Manager) updateTelemetryProvider() error {
+func (m *Manager) startTelemetryProvider(ctx context.Context) error {
 	if m.cfg.TelemetryProvider == nil {
 		return nil
 	}
@@ -172,6 +172,8 @@ func (m *Manager) updateTelemetryProvider() error {
 		return err
 	}
 	m.logger.Debug("updated telemetry config provider with HCP configuration")
+
+	go m.cfg.TelemetryProvider.Run(ctx)
 
 	return nil
 }

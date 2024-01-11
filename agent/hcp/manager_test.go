@@ -41,7 +41,15 @@ func TestManager_Run(t *testing.T) {
 	telemetryProvider := &hcpProviderImpl{
 		httpCfg: &httpCfg{},
 		logger:  hclog.New(&hclog.LoggerOptions{Output: io.Discard}),
+		cfg:     defaultDisabledCfg(),
 	}
+
+	mockTelemetryCfg, err := testTelemetryCfg(&testConfig{
+		refreshInterval: 1 * time.Second,
+	})
+	require.NoError(t, err)
+	client.EXPECT().FetchTelemetryConfig(mock.Anything).Return(
+		mockTelemetryCfg, nil).Maybe()
 
 	mgr := NewManager(ManagerConfig{
 		Client:            client,

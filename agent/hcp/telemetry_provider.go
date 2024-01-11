@@ -110,13 +110,11 @@ func NewHCPProvider(ctx context.Context, c *HCPProviderCfg) (*hcpProviderImpl, e
 		}
 	}
 
-	go h.run(ctx)
-
 	return h, nil
 }
 
-// run continously checks for updates to the telemetry configuration by making a request to HCP.
-func (h *hcpProviderImpl) run(ctx context.Context) {
+// Run continously checks for updates to the telemetry configuration by making a request to HCP.
+func (h *hcpProviderImpl) Run(ctx context.Context) {
 	// Try to initialize config once before starting periodic fetch.
 	h.updateConfig(ctx)
 
@@ -149,6 +147,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	logger.Trace("fetching telemetry config")
 	telemetryCfg, err := hcpClient.FetchTelemetryConfig(ctx)
 	if err != nil {
 		// Only disable metrics on 404 or 401 to handle the case of an unlinked cluster.
@@ -164,6 +163,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 		metrics.IncrCounter(internalMetricRefreshFailure, 1)
 		return 0
 	}
+	logger.Trace("successfully fetched telemetry config")
 
 	// newRefreshInterval of 0 or less can cause ticker Reset() panic.
 	newRefreshInterval := telemetryCfg.RefreshConfig.RefreshInterval
