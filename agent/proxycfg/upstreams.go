@@ -363,15 +363,12 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 				continue
 			}
 		}
-
+		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
+			needGateways[gk.String()] = struct{}{}
+		}
 		// Register a local gateway watch if any targets are pointing to a peer and require a mode of local.
 		if target.Peer != "" && target.MeshGateway.Mode == structs.MeshGatewayModeLocal {
 			s.setupWatchForLocalGWEndpoints(ctx, snap)
-		} else {
-			// If it's not a peering use case, consider watching the gateways for remote targets in wan-fed
-			if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
-				needGateways[gk.String()] = struct{}{}
-			}
 		}
 	}
 
@@ -429,7 +426,6 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			cancel()
 			return err
 		}
-		snap.WatchedLocalGWEndpoints.InitWatch(gwKey.String(), nil)
 		snap.WatchedGateways[uid][key] = cancel
 
 	}
