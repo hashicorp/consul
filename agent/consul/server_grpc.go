@@ -198,6 +198,7 @@ func (s *Server) setupGRPCServices(config *Config, deps Deps) error {
 		deps.Registry,
 		s.ACLResolver,
 		s.secureSafeGRPCChan,
+		s.internalGRPCHandler,
 		s.externalGRPCServer,
 	)
 	if err != nil {
