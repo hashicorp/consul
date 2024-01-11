@@ -1073,8 +1073,8 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 				require.Equal(t, ixnMatch, snap.ConnectProxy.Intentions)
 				require.True(t, snap.ConnectProxy.MeshConfigSet)
 
-				// We only watched a single service which is peered
-				require.Equal(t, 1, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
+				// No event is expected as all services use default or remote mode
+				require.Equal(t, 0, snap.ConnectProxy.WatchedLocalGWEndpoints.Len())
 			},
 		}
 
