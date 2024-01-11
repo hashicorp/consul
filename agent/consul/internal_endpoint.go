@@ -230,9 +230,8 @@ func (m *Internal) ServiceDump(args *structs.ServiceDumpRequest, reply *structs.
 					if idx > maxIndex {
 						maxIndex = idx
 					}
-					reply.Index = maxIndex
 				}
-
+				reply.Index = maxIndex
 				raw, err := filter.Execute(reply.Nodes)
 				if err != nil {
 					return fmt.Errorf("could not filter local service dump: %w", err)
