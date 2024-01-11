@@ -59,19 +59,25 @@ jobs:
         name: Setup outputs
         run: ./.github/scripts/get_runner_classes.sh
 
+  get-go-version:
+    uses: ./.github/workflows/reusable-get-go-version.yml
+
   check-go-mod:
     needs:
       - setup
+      - get-go-version
     uses: ./.github/workflows/reusable-check-go-mod.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-small }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   check-generated-protobuf:
     needs:
       - setup
+      - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-medium) }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -81,7 +87,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: "go.mod"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: make proto-tools
         name: Install protobuf
       - run: make proto-format
@@ -100,6 +106,7 @@ jobs:
   check-generated-deep-copy:
     needs:
       - setup
+      - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -109,7 +116,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: "go.mod"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: make --always-make deep-copy
       - run: |
           if ! git diff --exit-code; then
@@ -123,6 +130,7 @@ jobs:
   lint-enums:
     needs:
       - setup
+      - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -132,7 +140,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: "go.mod"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go install github.com/reillywatson/enumcover/cmd/enumcover@master && enumcover ./...
       - name: Notify Slack
         if: ${{ failure() }}
@@ -141,6 +149,7 @@ jobs:
   lint-container-test-deps:
     needs:
       - setup
+      - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -149,7 +158,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: "go.mod"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: make lint-container-test-deps
       - name: Notify Slack
         if: ${{ failure() }}
@@ -158,6 +167,7 @@ jobs:
   lint-consul-retry:
     needs:
       - setup
+      - get-go-version
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-small) }}
     steps:
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
@@ -167,7 +177,7 @@ jobs:
         run: git config --global url."https://${{ secrets.ELEVATED_GITHUB_TOKEN }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: "go.mod"
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
       - run: go install github.com/hashicorp/lint-consul-retry@v1.3.0 && lint-consul-retry
       - name: Notify Slack
         if: ${{ failure() }}
@@ -176,21 +186,25 @@ jobs:
   lint:
     needs:
       - setup
+      - get-go-version
     uses: ./.github/workflows/reusable-lint.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
   lint-32bit:
     needs:
       - setup
+      - get-go-version
     uses: ./.github/workflows/reusable-lint.yml
     with:
       go-arch: "386"
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -198,10 +212,12 @@ jobs:
   dev-build:
     needs:
       - setup
+      - get-go-version
     uses: ./.github/workflows/reusable-dev-build.yml
     with:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     secrets:
       elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
 
@@ -209,11 +225,13 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-s390x'
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "s390x"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -223,11 +241,13 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   uses: ./.github/workflows/reusable-dev-build.yml
   #   with:
   #     uploaded-binary-name: 'consul-bin-arm64'
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     go-arch: "arm64"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -237,6 +257,7 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   - dev-build-arm64
   #   uses: ./.github/workflows/reusable-unit-split.yml
   #   with:
@@ -245,6 +266,7 @@ jobs:
   #     runner-count: 12
   #     runs-on: "['self-hosted', 'ondemand', 'os=macos-arm', 'arm64']"
   #     go-test-flags: 'if ! [[ "$GITHUB_REF_NAME" =~ ^main$|^release/ ]]; then export GO_TEST_FLAGS="-short"; fi'
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #     repository-name: ${{ github.repository }}
   #   secrets:
   #     elevated-github-token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
@@ -254,6 +276,7 @@ jobs:
   go-test-ce:
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -262,6 +285,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -274,6 +298,7 @@ jobs:
     if: ${{ endsWith(github.repository, '-enterprise') }}
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit-split.yml
     with:
@@ -282,6 +307,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -293,6 +319,7 @@ jobs:
   go-test-race:
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -302,6 +329,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -313,6 +341,7 @@ jobs:
   go-test-32bit:
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -322,6 +351,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -334,6 +364,7 @@ jobs:
   #   if: ${{ endsWith(github.repository, '-enterprise') }}
   #   needs:
   #   - setup
+  #   - get-go-version
   #   - dev-build-s390x
   #   uses: ./.github/workflows/reusable-unit.yml
   #   with:
@@ -343,6 +374,7 @@ jobs:
   #     runs-on: ${{ needs.setup.outputs.compute-large }}
   #     repository-name: ${{ github.repository }}
   #     go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+  #     go-version: ${{ needs.get-go-version.outputs.go-version }}
   #   permissions:
   #     id-token: write # NOTE: this permission is explicitly required for Vault auth.
   #     contents: read
@@ -354,6 +386,7 @@ jobs:
   go-test-envoyextensions:
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -361,6 +394,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
@@ -372,6 +406,7 @@ jobs:
   go-test-troubleshoot:
     needs:
       - setup
+      - get-go-version
       - dev-build
     uses: ./.github/workflows/reusable-unit.yml
     with:
@@ -379,6 +414,7 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consulprem consuldev' || '' }}"
+      go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
       contents: read
