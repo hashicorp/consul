@@ -932,7 +932,13 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	go s.updateMetrics()
 
 	// Now we are setup, configure the HCP manager
-	go s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+	go func() {
+		err := s.hcpManager.Run(&lib.StopChannelContext{StopCh: shutdownCh})
+		if err != nil {
+			logger.Error("error starting HCP manager, some HashiCorp Cloud Platform functionality has been disabled",
+				"error", err)
+		}
+	}()
 
 	err = s.runEnterpriseRateLimiterConfigEntryController()
 	if err != nil {
