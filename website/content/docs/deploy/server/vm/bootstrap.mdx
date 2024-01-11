@@ -23,14 +23,14 @@ Bootstrapping a Consul datacenter requires at least one node with a local [Consu
 
 You can bootstrap a datacenter by passing configurations through flags on the `consul agent` command. You can also define multiple servers using a single agent configuration file, and then start each agent using that file. When the Consul servers detect the expected number of servers, they hold an election and communicate according to the Raft protocol.
 
-1. Create a cluster with bootstrap-expect set
-1. Join the servers either automatically or manually
+Complete the following steps to bootstrap a cluster:
 
-### Initiate cluster
+1. Initiate the cluster and specify the number of server agents to start.
+1. Join the servers either automatically or manually.
 
-Use the [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when that many servers are available. To prevent inconsistencies and "split-brain" deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul assumes a default value of `1` for the number of expected servers.
+Use the [`-bootstrap-expect`](/consul/docs/agent/config/cli-flags#_bootstrap_expect) flag on the command line or configure `bootstrap_expect` in the agent configuration. This option declares the expected number of servers and automatically bootstraps them when the specified number of servers are available. To prevent inconsistencies and deployments where multiple servers consider themselves leader, you should either specify the same value for each server's `bootstrap_expect` parameter or specify no value at all on all the servers. When `-bootstrap-expect` is omitted, Consul defaults to `1` for the number of expected servers.
 
-The following command bootstraps a simple datacenter that consists of three Consul servers:
+The following command bootstraps a datacenter consisting of three Consul servers:
 
 ```shell-session
 $ consul agent -data-dir /tmp/consul -server -bootstrap-expect 3
@@ -38,7 +38,9 @@ $ consul agent -data-dir /tmp/consul -server -bootstrap-expect 3
 
 You can also create an agent configuration file to use when deploying multiple Consul servers. The following example demonstrates a basic agent configuration for bootstrapping a datacenter with three servers:
 
-```hcl filename="bootstrap.hcl"
+<CodeBlockConfig filename="bootstrap.hcl">
+
+```hcl 
 datacenter = "dc1"
 data_dir = "/tmp/consul"
 log_level = "INFO"
@@ -46,13 +48,15 @@ server = true
 bootstrap_expect = 3
 ```
 
+</CodeBlockConfig>
+
 To apply the agent configuration to each server, run the following command on each VM:
 
 ```shell-session
 $ consul agent -config-file=bootstrap.hcl
 ```
 
-Consul should produce a warning message in the service output when the number of servers in a cluster is less than the expected bootstrap number:
+Consul prints a warning message to the console when the number of servers in a cluster is less than the expected bootstrap number:
 
 ```log hideClipboard
 [WARN] raft: EnableSingleNode disabled, and no known peers. Aborting election.
