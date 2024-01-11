@@ -54,14 +54,14 @@ func Tenancy(s string) *pbresource.Tenancy {
 
 func DefaultTenancyForType(t *testing.T, reg resource.Registration) *pbresource.Tenancy {
 	switch reg.Scope {
-	case resource.ScopeNamespace:
+	case pbresource.Scope_SCOPE_NAMESPACE:
 		return resource.DefaultNamespacedTenancy()
-	case resource.ScopePartition:
+	case pbresource.Scope_SCOPE_PARTITION:
 		return resource.DefaultPartitionedTenancy()
-	case resource.ScopeCluster:
+	case pbresource.Scope_SCOPE_CLUSTER:
 		return resource.DefaultClusteredTenancy()
 	default:
-		t.Fatalf("unsupported resource scope: %v", reg.Scope)
+		t.Fatalf("unsupported pbresource.Scope: %v", reg.Scope)
 		return nil
 	}
 }

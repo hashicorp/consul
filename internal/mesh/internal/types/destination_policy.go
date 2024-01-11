@@ -19,7 +19,7 @@ func RegisterDestinationPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.DestinationPolicyType,
 		Proto:    &pbmesh.DestinationPolicy{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateDestinationPolicy,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookDestinationPolicy,

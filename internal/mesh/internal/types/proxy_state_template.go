@@ -5,6 +5,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/consul/internal/catalog"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/go-multierror"
@@ -20,7 +21,7 @@ func RegisterProxyStateTemplate(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.ProxyStateTemplateType,
 		Proto:    &pbmesh.ProxyStateTemplate{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateProxyStateTemplate,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {

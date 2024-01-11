@@ -221,7 +221,7 @@ func validateWildcardTenancy(tenancy *pbresource.Tenancy, namePrefix string) err
 
 // tenancyExists return an error with the passed in gRPC status code when tenancy partition or namespace do not exist.
 func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy, errCode codes.Code) error {
-	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
+	if reg.Scope == pbresource.Scope_SCOPE_PARTITION || reg.Scope == pbresource.Scope_SCOPE_NAMESPACE {
 		exists, err := tenancyBridge.PartitionExists(tenancy.Partition)
 		switch {
 		case err != nil:
@@ -231,7 +231,7 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 		}
 	}
 
-	if reg.Scope == resource.ScopeNamespace {
+	if reg.Scope == pbresource.Scope_SCOPE_NAMESPACE {
 		exists, err := tenancyBridge.NamespaceExists(tenancy.Partition, tenancy.Namespace)
 		switch {
 		case err != nil:
@@ -243,8 +243,8 @@ func tenancyExists(reg *resource.Registration, tenancyBridge TenancyBridge, tena
 	return nil
 }
 
-func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy, allowWildcards bool) error {
-	if scope == resource.ScopePartition && tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
+func validateScopedTenancy(scope pbresource.Scope, resourceType *pbresource.Type, tenancy *pbresource.Tenancy, allowWildcards bool) error {
+	if scope == pbresource.Scope_SCOPE_PARTITION && tenancy.Namespace != "" && (!allowWildcards || tenancy.Namespace != storage.Wildcard) {
 		return status.Errorf(
 			codes.InvalidArgument,
 			"partition scoped resource %s cannot have a namespace. got: %s",
@@ -253,7 +253,7 @@ func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, 
 		)
 	}
 
-	if scope == resource.ScopeCluster {
+	if scope == pbresource.Scope_SCOPE_CLUSTER {
 		if tenancy.Partition != "" && (!allowWildcards || tenancy.Partition != storage.Wildcard) {
 			return status.Errorf(
 				codes.InvalidArgument,
@@ -275,7 +275,7 @@ func validateScopedTenancy(scope resource.Scope, resourceType *pbresource.Type, 
 }
 
 func isTenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge TenancyBridge, tenancy *pbresource.Tenancy) (bool, error) {
-	if reg.Scope == resource.ScopePartition || reg.Scope == resource.ScopeNamespace {
+	if reg.Scope == pbresource.Scope_SCOPE_PARTITION || reg.Scope == pbresource.Scope_SCOPE_NAMESPACE {
 		marked, err := tenancyBridge.IsPartitionMarkedForDeletion(tenancy.Partition)
 		if err != nil {
 			return false, err
@@ -285,7 +285,7 @@ func isTenancyMarkedForDeletion(reg *resource.Registration, tenancyBridge Tenanc
 		}
 	}
 
-	if reg.Scope == resource.ScopeNamespace {
+	if reg.Scope == pbresource.Scope_SCOPE_NAMESPACE {
 		marked, err := tenancyBridge.IsNamespaceMarkedForDeletion(tenancy.Partition, tenancy.Namespace)
 		if err != nil {
 			return false, err

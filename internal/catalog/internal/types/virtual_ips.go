@@ -18,7 +18,7 @@ func RegisterVirtualIPs(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.VirtualIPsType,
 		Proto:    &pbcatalog.VirtualIPs{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateVirtualIPs,
 		ACLs: &resource.ACLHooks{
 			Read: func(authorizer acl.Authorizer, context *acl.AuthorizerContext, id *pbresource.ID, p *pbresource.Resource) error {

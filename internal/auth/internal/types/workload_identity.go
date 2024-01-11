@@ -16,7 +16,7 @@ func RegisterWorkloadIdentity(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbauth.WorkloadIdentityType,
 		Proto: &pbauth.WorkloadIdentity{},
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkloadIdentity,
 			Write: aclWriteHookWorkloadIdentity,

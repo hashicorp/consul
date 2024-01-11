@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbhcp "github.com/hashicorp/consul/proto-public/pbhcp/v2"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/go-multierror"
 )
 
@@ -21,7 +22,7 @@ func RegisterLink(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbhcp.LinkType,
 		Proto:    &pbhcp.Link{},
-		Scope:    resource.ScopeCluster,
+		Scope:    pbresource.Scope_SCOPE_CLUSTER,
 		Validate: ValidateLink,
 	})
 }

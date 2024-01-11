@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 const (
@@ -24,7 +25,7 @@ func RegisterComputedRoutes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.ComputedRoutesType,
 		Proto:    &pbmesh.ComputedRoutes{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateComputedRoutes,
 	})
 }

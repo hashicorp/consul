@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]
@@ -18,7 +19,7 @@ func RegisterDNSPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.DNSPolicyType,
 		Proto:    &pbcatalog.DNSPolicy{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateDNSPolicy,
 		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.DNSPolicy](),
 	})

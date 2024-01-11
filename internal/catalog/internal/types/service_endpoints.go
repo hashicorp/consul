@@ -20,7 +20,7 @@ func RegisterServiceEndpoints(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.ServiceEndpointsType,
 		Proto:    &pbcatalog.ServiceEndpoints{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateServiceEndpoints,
 		Mutate:   MutateServiceEndpoints,
 		ACLs: &resource.ACLHooks{

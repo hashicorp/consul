@@ -24,7 +24,7 @@ func RegisterComputedTrafficPermission(r resource.Registry) {
 			List:  resource.NoOpACLListHook,
 		},
 		Validate: ValidateComputedTrafficPermissions,
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 	})
 }
 

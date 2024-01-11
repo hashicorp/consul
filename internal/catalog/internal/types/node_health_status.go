@@ -18,7 +18,7 @@ func RegisterNodeHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.NodeHealthStatusType,
 		Proto:    &pbcatalog.NodeHealthStatus{},
-		Scope:    resource.ScopePartition,
+		Scope:    pbresource.Scope_SCOPE_PARTITION,
 		Validate: ValidateNodeHealthStatus,
 		ACLs: &resource.ACLHooks{
 			Read:  resource.AuthorizeReadWithResource(aclReadHookNodeHealthStatus),

@@ -13,13 +13,14 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterHTTPRoute(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.HTTPRouteType,
 		Proto:    &pbmesh.HTTPRoute{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateHTTPRoute,
 		Validate: ValidateHTTPRoute,
 		ACLs:     xRouteACLHooks[*pbmesh.HTTPRoute](),

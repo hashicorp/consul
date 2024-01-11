@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type DecodedService = resource.DecodedResource[*pbcatalog.Service]
@@ -18,7 +19,7 @@ func RegisterService(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.ServiceType,
 		Proto:    &pbcatalog.Service{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateService,
 		Mutate:   MutateService,
 		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.Service](),

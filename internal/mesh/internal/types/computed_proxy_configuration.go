@@ -6,12 +6,13 @@ package types
 import (
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterComputedProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbmesh.ComputedProxyConfigurationType,
 		Proto: &pbmesh.ComputedProxyConfiguration{},
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	})
 }

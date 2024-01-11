@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/sdk/iptables"
 )
 
@@ -19,7 +20,7 @@ func RegisterProxyConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.ProxyConfigurationType,
 		Proto:    &pbmesh.ProxyConfiguration{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateProxyConfiguration,
 		Validate: ValidateProxyConfiguration,
 		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.ProxyConfiguration](),

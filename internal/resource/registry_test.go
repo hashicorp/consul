@@ -26,7 +26,7 @@ func TestRegister(t *testing.T) {
 	reg := resource.Registration{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	}
 	r.Register(reg)
 	actual, ok := r.Resolve(demo.TypeV2Artist)
@@ -47,7 +47,7 @@ func TestRegister_Defaults(t *testing.T) {
 	r.Register(resource.Registration{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	})
 	artist, err := demo.GenerateV2Artist()
 	require.NoError(t, err)
@@ -93,7 +93,7 @@ func TestResolve(t *testing.T) {
 	r.Register(resource.Registration{
 		Type:  demo.TypeV1Album,
 		Proto: &pbdemov1.Album{},
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 	})
 	registration, ok := r.Resolve(demo.TypeV1Album)
 	assert.True(t, ok)
@@ -177,7 +177,7 @@ func TestRegister_TypeValidation(t *testing.T) {
 					// Just pass anything since proto is a required field.
 					Proto: &pbdemov1.Artist{},
 					// Scope is also required
-					Scope: resource.ScopeNamespace,
+					Scope: pbresource.Scope_SCOPE_NAMESPACE,
 				})
 			}
 

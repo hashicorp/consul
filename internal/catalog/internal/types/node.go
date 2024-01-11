@@ -18,7 +18,7 @@ func RegisterNode(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.NodeType,
 		Proto:    &pbcatalog.Node{},
-		Scope:    resource.ScopePartition,
+		Scope:    pbresource.Scope_SCOPE_PARTITION,
 		Validate: ValidateNode,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNode,

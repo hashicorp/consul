@@ -76,7 +76,7 @@ type Registration struct {
 	Mutate MutationHook
 
 	// Scope describes the tenancy scope of a resource.
-	Scope Scope
+	Scope pbresource.Scope
 }
 
 var ErrNeedResource = errors.New("authorization check requires the entire resource")
@@ -147,7 +147,7 @@ func (r *TypeRegistry) Register(registration Registration) {
 		panic("Proto field is required.")
 	}
 
-	if registration.Scope == ScopeUndefined && !isUndefinedScopeAllowed(typ) {
+	if registration.Scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(typ) {
 		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
 	}
 

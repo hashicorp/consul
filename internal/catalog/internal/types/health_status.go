@@ -18,7 +18,7 @@ func RegisterHealthStatus(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.HealthStatusType,
 		Proto:    &pbcatalog.HealthStatus{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateHealthStatus,
 		ACLs: &resource.ACLHooks{
 			Read:  resource.AuthorizeReadWithResource(aclReadHookHealthStatus),

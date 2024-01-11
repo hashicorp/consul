@@ -21,7 +21,7 @@ func RegisterFailoverPolicy(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.FailoverPolicyType,
 		Proto:    &pbcatalog.FailoverPolicy{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate:   MutateFailoverPolicy,
 		Validate: ValidateFailoverPolicy,
 		ACLs: &resource.ACLHooks{

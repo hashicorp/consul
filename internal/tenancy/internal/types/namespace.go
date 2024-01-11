@@ -19,7 +19,7 @@ func RegisterNamespace(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbtenancy.NamespaceType,
 		Proto:    &pbtenancy.Namespace{},
-		Scope:    resource.ScopePartition,
+		Scope:    pbresource.Scope_SCOPE_PARTITION,
 		Mutate:   MutateNamespace,
 		Validate: ValidateNamespace,
 		// ACLs: TODO

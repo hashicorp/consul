@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 type DecodedHealthChecks = resource.DecodedResource[*pbcatalog.HealthChecks]
@@ -16,7 +17,7 @@ func RegisterHealthChecks(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.HealthChecksType,
 		Proto:    &pbcatalog.HealthChecks{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateHealthChecks,
 		ACLs:     ACLHooksForWorkloadSelectingType[*pbcatalog.HealthChecks](),
 	})

@@ -21,7 +21,7 @@ func RegisterWorkload(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbcatalog.WorkloadType,
 		Proto:    &pbcatalog.Workload{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateWorkload,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookWorkload,

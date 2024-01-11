@@ -53,13 +53,13 @@ import (
 func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbv1alpha1.BarType, 
-		Scope: resource.ScopePartition,
+		Scope: pbresource.Scope_SCOPE_PARTITION,
 		Proto: &pbv1alpha1.Bar{},
 	})
 }
 ```
-Note that Scope reference the scope of the new resource, `resource.ScopePartition` 
-mean that resource will be at the partition level and have no namespace, while `resource.ScopeNamespace` mean it will have both a namespace 
+Note that Scope reference the scope of the new resource, `pbresource.Scope_SCOPE_PARTITION` 
+mean that resource will be at the partition level and have no namespace, while `pbresource.Scope_SCOPE_NAMESPACE` mean it will have both a namespace 
 and a partition.
 
 Update the `NewTypeRegistry` method in [`type_registry.go`] to call your
@@ -142,7 +142,7 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbv1alpha1.BarType,
 		Proto:    &pbv1alpha1.Bar{}, 
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: validateBar,
 	})
 }
@@ -175,7 +175,7 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:  pbv1alpha1.BarType,
 		Proto: &pbv1alpha1.Bar{}, 
-		Scope: resource.ScopeNamespace,
+		Scope: pbresource.Scope_SCOPE_NAMESPACE,
 		ACLs: &resource.ACLHooks{,
 			Read:  authzReadBar,
 			Write: authzWriteBar,
@@ -214,7 +214,7 @@ func RegisterTypes(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:   pbv1alpha1.BarType,
 		Proto:  &pbv1alpha1.Bar{}, 
-		Scope:  resource.ScopeNamespace,
+		Scope:  pbresource.Scope_SCOPE_NAMESPACE,
 		Mutate: mutateBar,
 	})
 }

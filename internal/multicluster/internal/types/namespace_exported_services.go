@@ -14,7 +14,7 @@ func RegisterNamespaceExportedServices(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmulticluster.NamespaceExportedServicesType,
 		Proto:    &pbmulticluster.NamespaceExportedServices{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateNamespaceExportedServices,
 		ACLs: &resource.ACLHooks{
 			Read:  aclReadHookNamespaceExportedServices,

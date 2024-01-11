@@ -10,13 +10,14 @@ import (
 
 	"github.com/hashicorp/consul/internal/resource"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
 func RegisterDestinationsConfiguration(r resource.Registry) {
 	r.Register(resource.Registration{
 		Type:     pbmesh.DestinationsConfigurationType,
 		Proto:    &pbmesh.DestinationsConfiguration{},
-		Scope:    resource.ScopeNamespace,
+		Scope:    pbresource.Scope_SCOPE_NAMESPACE,
 		Validate: ValidateDestinationsConfiguration,
 		ACLs:     catalog.ACLHooksForWorkloadSelectingType[*pbmesh.DestinationsConfiguration](),
 	})
