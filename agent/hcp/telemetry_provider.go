@@ -114,7 +114,14 @@ func NewHCPProvider(ctx context.Context, c *HCPProviderCfg) (*hcpProviderImpl, e
 }
 
 // Run continously checks for updates to the telemetry configuration by making a request to HCP.
-func (h *hcpProviderImpl) Run(ctx context.Context) {
+func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
+	// Update the provider with the HCP client and HCP configuration
+	h.UpdateHCPClient(c.HCPClient)
+	err := h.UpdateHCPConfig(c.HCPConfig)
+	if err != nil {
+		return fmt.Errorf("failed to initialize HCP telemetry provider: %v", err)
+	}
+
 	// Try to initialize config once before starting periodic fetch.
 	h.updateConfig(ctx)
 
@@ -127,7 +134,7 @@ func (h *hcpProviderImpl) Run(ctx context.Context) {
 				ticker.Reset(newRefreshInterval)
 			}
 		case <-ctx.Done():
-			return
+			return nil
 		}
 	}
 }
