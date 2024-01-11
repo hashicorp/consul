@@ -47,10 +47,12 @@ type hcpProviderImpl struct {
 	// httpCfg holds configuration for the HTTP client
 	httpCfg *httpCfg
 
-	// A reader-writer mutex is used as the provider is read heavy.
+	// Reader-writer mutexes are used as the provider is read heavy.
 	// OTEL components access telemetryConfig during metrics collection and export (read).
-	// Meanwhile, config is only updated when there are changes (write).
-	rw sync.RWMutex
+	// Meanwhile, configs are only updated when there are changes (write).
+	rw        sync.RWMutex
+	httpCfgRW sync.RWMutex
+
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
 
@@ -243,8 +245,8 @@ func (h *hcpProviderImpl) UpdateHCPClient(c client.Client) {
 
 // UpdateHCPConfig updates values that rely on the HCP configuration.
 func (h *hcpProviderImpl) UpdateHCPConfig(cfg config.CloudConfigurer) error {
-	h.rw.Lock()
-	defer h.rw.Unlock()
+	h.httpCfgRW.Lock()
+	defer h.httpCfgRW.Unlock()
 
 	if cfg == nil {
 		return errors.New("must provide valid HCP configuration")
@@ -277,8 +279,8 @@ func (h *hcpProviderImpl) UpdateHCPConfig(cfg config.CloudConfigurer) error {
 // GetHeader acquires a read lock to return the HTTP request headers needed
 // to export metrics.
 func (h *hcpProviderImpl) GetHeader() *http.Header {
-	h.rw.RLock()
-	defer h.rw.RUnlock()
+	h.httpCfgRW.RLock()
+	defer h.httpCfgRW.RUnlock()
 
 	return h.httpCfg.header
 }
@@ -286,8 +288,8 @@ func (h *hcpProviderImpl) GetHeader() *http.Header {
 // GetHTTPClient acquires a read lock to return the retryable HTTP client needed
 // to export metrics.
 func (h *hcpProviderImpl) GetHTTPClient() *retryablehttp.Client {
-	h.rw.RLock()
-	defer h.rw.RUnlock()
+	h.httpCfgRW.RLock()
+	defer h.httpCfgRW.RUnlock()
 
 	return h.httpCfg.client
 }
