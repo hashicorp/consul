@@ -7,6 +7,9 @@ on:
         required: false
         type: string
         default: ""
+      go-version:
+        required: true
+        type: string
       runs-on:
         description: An expression indicating which kind of runners to use.
         required: true
@@ -46,7 +49,7 @@ jobs:
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ inputs.go-version }}
       - run: go env
       - name: lint-${{ matrix.directory }}
         uses: golangci/golangci-lint-action@639cd343e1d3b897ff35927a75193d57cfcba299 # v3.6.0
