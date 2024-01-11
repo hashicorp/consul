@@ -58,6 +58,9 @@ type hcpProviderImpl struct {
 
 	// logger is the HCP logger for the provider
 	logger hclog.Logger
+
+	// testUpdateConfigCh is used by unit tests to signal when an update config has occurred
+	testUpdateConfigCh chan struct{}
 }
 
 // dynamicConfig is a set of configurable settings for metrics collection, processing and export.
@@ -136,6 +139,15 @@ func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
 // updateConfig makes a HTTP request to HCP to update metrics configuration held in the provider.
 func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	logger := h.logger.Named("telemetry_config_provider")
+
+	if h.testUpdateConfigCh != nil {
+		defer func() {
+			select {
+			case h.testUpdateConfigCh <- struct{}{}:
+			default:
+			}
+		}()
+	}
 
 	if h.hcpClient == nil || reflect.ValueOf(h.hcpClient).IsNil() {
 		// Disable metrics if HCP client is not configured
