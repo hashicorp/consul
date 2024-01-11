@@ -37,7 +37,7 @@ var (
 // Ensure hcpProviderImpl implements telemetry provider interfaces.
 var _ telemetry.ConfigProvider = &hcpProviderImpl{}
 var _ telemetry.EndpointProvider = &hcpProviderImpl{}
-var _ telemetry.ClientProvider = &hcpProviderImpl{}
+var _ client.MetricsClientProvider = &hcpProviderImpl{}
 
 // hcpProviderImpl holds telemetry configuration and settings for continuous fetch of new config from HCP.
 // it updates configuration, if changes are detected.

@@ -25,15 +25,22 @@ const (
 	defaultErrRespBodyLength = 100
 )
 
+// MetricsClientProvider provides the retryable HTTP client and headers to use for exporting metrics
+// by the metrics client.
+type MetricsClientProvider interface {
+	GetHTTPClient() *retryablehttp.Client
+	GetHeader() *http.Header
+}
+
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
 // It also holds default HTTP headers to add to export requests.
 type otlpClient struct {
-	provider telemetry.ClientProvider
+	provider MetricsClientProvider
 }
 
 // NewMetricsClient returns a configured MetricsClient.
 // The current implementation uses otlpClient to provide retry functionality.
-func NewMetricsClient(ctx context.Context, provider telemetry.ClientProvider) telemetry.MetricsClient {
+func NewMetricsClient(ctx context.Context, provider MetricsClientProvider) telemetry.MetricsClient {
 	return &otlpClient{
 		provider: provider,
 	}
