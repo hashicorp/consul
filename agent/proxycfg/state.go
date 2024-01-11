@@ -544,7 +544,7 @@ func watchMeshGateway(ctx context.Context, opts gatewayWatchOpts) error {
 		QueryOptions:   structs.QueryOptions{Token: opts.token},
 		ServiceKind:    structs.ServiceKindMeshGateway,
 		UseServiceKind: true,
-		NodesOnly:      true,
+		NodesOnly:      false,
 		Source:         opts.source,
 		EnterpriseMeta: *structs.DefaultEnterpriseMetaInPartition(opts.key.Partition),
 	}, correlationId, opts.notifyCh)
