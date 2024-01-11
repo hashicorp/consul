@@ -5,6 +5,7 @@ package expander_ce
 
 import (
 	"context"
+	"sort"
 
 	"github.com/hashicorp/consul/internal/controller"
 	expanderTypes "github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices/expander/types"
@@ -28,15 +29,17 @@ func (sg *SamenessGroupExpander) Expand(consumers []*pbmulticluster.ExportedServ
 	for _, c := range consumers {
 		switch c.ConsumerTenancy.(type) {
 		case *pbmulticluster.ExportedServicesConsumer_Peer:
-			_, ok := peersMap[c.GetPeer()]
-			if !ok {
-				peers = append(peers, c.GetPeer())
-				peersMap[c.GetPeer()] = struct{}{}
-			}
+			peersMap[c.GetPeer()] = struct{}{}
 		default:
 			panic("unexpected consumer tenancy type")
 		}
 	}
+
+	for peer := range peersMap {
+		peers = append(peers, peer)
+	}
+	sort.Strings(peers)
+
 	return &expanderTypes.ExpandedConsumers{
 		Peers: peers,
 	}, nil
