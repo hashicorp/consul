@@ -164,7 +164,7 @@ func (m *Manager) startTelemetryProvider(ctx context.Context) error {
 		return nil
 	}
 
-	go m.cfg.TelemetryProvider.Run(ctx, &HCPProviderCfg{
+	m.cfg.TelemetryProvider.Run(ctx, &HCPProviderCfg{
 		HCPClient: m.cfg.Client,
 		HCPConfig: &m.cfg.CloudConfig,
 	})

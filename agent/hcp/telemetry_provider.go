@@ -110,14 +110,21 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 
 // Run continously checks for updates to the telemetry configuration by making a request to HCP.
 func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
-	h.logger.Debug("starting telemetry config provider")
-
 	// Update the provider with the HCP configurations
 	h.hcpClient = c.HCPClient
 	err := h.updateHTTPConfig(c.HCPConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize HCP telemetry provider: %v", err)
 	}
+
+	go h.run(ctx)
+
+	return nil
+}
+
+// Run continously checks for updates to the telemetry configuration by making a request to HCP.
+func (h *hcpProviderImpl) run(ctx context.Context) error {
+	h.logger.Debug("starting telemetry config provider")
 
 	// Try to initialize config once before starting periodic fetch.
 	h.updateConfig(ctx)
