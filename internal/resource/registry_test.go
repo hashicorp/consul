@@ -24,7 +24,7 @@ func TestRegister(t *testing.T) {
 	r := resource.NewRegistry()
 
 	// register success
-	reg := resource.Registration{
+	reg := resource.RegisterRequest{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -45,7 +45,7 @@ func TestRegister(t *testing.T) {
 
 func TestRegister_Defaults(t *testing.T) {
 	r := resource.NewRegistry()
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  demo.TypeV2Artist,
 		Proto: &demov2.Artist{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -91,7 +91,7 @@ func TestResolve(t *testing.T) {
 	assert.False(t, ok)
 
 	// found
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  demo.TypeV1Album,
 		Proto: &pbdemov1.Album{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -173,7 +173,7 @@ func TestRegister_TypeValidation(t *testing.T) {
 				if tc.fn != nil {
 					tc.fn(typ)
 				}
-				registry.Register(resource.Registration{
+				registry.Register(resource.RegisterRequest{
 					Type: typ,
 					// Just pass anything since proto is a required field.
 					Proto: &pbdemov1.Artist{},

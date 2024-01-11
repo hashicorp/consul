@@ -14,7 +14,7 @@ import (
 )
 
 func RegisterTCPRoute(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.TCPRouteType,
 		Proto:    &pbmesh.TCPRoute{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

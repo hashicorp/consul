@@ -18,7 +18,7 @@ import (
 type DecodedWorkload = resource.DecodedResource[*pbcatalog.Workload]
 
 func RegisterWorkload(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbcatalog.WorkloadType,
 		Proto:    &pbcatalog.Workload{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

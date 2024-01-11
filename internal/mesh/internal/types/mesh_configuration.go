@@ -12,7 +12,7 @@ import (
 // RegisterMeshConfiguration takes the resource registry and registers
 // the MeshConfiguration resource to it.
 func RegisterMeshConfiguration(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.MeshConfigurationType,
 		Proto:    &pbmesh.MeshConfiguration{},
 		Scope:    pbresource.Scope_SCOPE_PARTITION,

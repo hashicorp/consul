@@ -10,7 +10,7 @@ import (
 )
 
 func RegisterMeshGateway(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.MeshGatewayType,
 		Proto:    &pbmesh.MeshGateway{},
 		Scope:    pbresource.Scope_SCOPE_PARTITION,

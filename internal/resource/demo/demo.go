@@ -151,7 +151,7 @@ func RegisterTypes(r resource.Registry) {
 		return nil
 	}
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV1Executive,
 		Proto: &pbdemov1.Executive{},
 		Scope: pbresource.Scope_SCOPE_CLUSTER,
@@ -162,7 +162,7 @@ func RegisterTypes(r resource.Registry) {
 		},
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV1RecordLabel,
 		Proto: &pbdemov1.RecordLabel{},
 		Scope: pbresource.Scope_SCOPE_PARTITION,
@@ -173,7 +173,7 @@ func RegisterTypes(r resource.Registry) {
 		},
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV1Artist,
 		Proto: &pbdemov1.Artist{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -185,7 +185,7 @@ func RegisterTypes(r resource.Registry) {
 		Validate: validateV1ArtistFn,
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV1Album,
 		Proto: &pbdemov1.Album{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -196,7 +196,7 @@ func RegisterTypes(r resource.Registry) {
 		},
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV1Concept,
 		Proto: &pbdemov1.Concept{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -207,7 +207,7 @@ func RegisterTypes(r resource.Registry) {
 		},
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV2Artist,
 		Proto: &pbdemov2.Artist{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,
@@ -220,7 +220,7 @@ func RegisterTypes(r resource.Registry) {
 		Mutate:   mutateV2ArtistFn,
 	})
 
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:  TypeV2Album,
 		Proto: &pbdemov2.Album{},
 		Scope: pbresource.Scope_SCOPE_NAMESPACE,

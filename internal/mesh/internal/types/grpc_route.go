@@ -15,7 +15,7 @@ import (
 )
 
 func RegisterGRPCRoute(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.GRPCRouteType,
 		Proto:    &pbmesh.GRPCRoute{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

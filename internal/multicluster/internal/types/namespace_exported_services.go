@@ -11,7 +11,7 @@ import (
 )
 
 func RegisterNamespaceExportedServices(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmulticluster.NamespaceExportedServicesType,
 		Proto:    &pbmulticluster.NamespaceExportedServices{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

@@ -16,7 +16,7 @@ import (
 type DecodedDNSPolicy = resource.DecodedResource[*pbcatalog.DNSPolicy]
 
 func RegisterDNSPolicy(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbcatalog.DNSPolicyType,
 		Proto:    &pbcatalog.DNSPolicy{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

@@ -15,7 +15,7 @@ import (
 type DecodedHealthStatus = resource.DecodedResource[*pbcatalog.HealthStatus]
 
 func RegisterHealthStatus(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbcatalog.HealthStatusType,
 		Proto:    &pbcatalog.HealthStatus{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

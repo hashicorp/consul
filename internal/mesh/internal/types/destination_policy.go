@@ -16,7 +16,7 @@ import (
 )
 
 func RegisterDestinationPolicy(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.DestinationPolicyType,
 		Proto:    &pbmesh.DestinationPolicy{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

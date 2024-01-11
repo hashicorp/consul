@@ -18,7 +18,7 @@ import (
 )
 
 func RegisterProxyStateTemplate(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.ProxyStateTemplateType,
 		Proto:    &pbmesh.ProxyStateTemplate{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

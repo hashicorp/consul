@@ -22,7 +22,7 @@ const (
 )
 
 func RegisterComputedRoutes(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmesh.ComputedRoutesType,
 		Proto:    &pbmesh.ComputedRoutes{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

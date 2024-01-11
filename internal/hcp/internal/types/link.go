@@ -19,7 +19,7 @@ var (
 )
 
 func RegisterLink(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbhcp.LinkType,
 		Proto:    &pbhcp.Link{},
 		Scope:    pbresource.Scope_SCOPE_CLUSTER,

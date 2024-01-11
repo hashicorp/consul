@@ -16,7 +16,7 @@ import (
 type DecodedService = resource.DecodedResource[*pbcatalog.Service]
 
 func RegisterService(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbcatalog.ServiceType,
 		Proto:    &pbcatalog.Service{},
 		Scope:    pbresource.Scope_SCOPE_NAMESPACE,

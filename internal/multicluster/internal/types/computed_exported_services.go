@@ -15,7 +15,7 @@ const (
 )
 
 func RegisterComputedExportedServices(r resource.Registry) {
-	r.Register(resource.Registration{
+	r.Register(resource.RegisterRequest{
 		Type:     pbmulticluster.ComputedExportedServicesType,
 		Proto:    &pbmulticluster.ComputedExportedServices{},
 		Scope:    pbresource.Scope_SCOPE_PARTITION,
