@@ -13,9 +13,9 @@ For more information about configurable options in the service mesh and the proc
 
 ## Enable mesh in server agent configuration
 
-Consul's service mesh features are not enabled by default. To enable the service mesh, you must change the configuration of your Consul servers. You do not need to change client agent configurations in order to use the service mesh.
+Consul's service mesh features are not enabled by default when running Consul on virtual machines. To enable the service mesh, you must change the configuration of your Consul servers. You do not need to change client agent configurations in order to use the service mesh.
 
-To enable Consul's service mesh, set `connect.enabled` to `true` in a new or existing [agent configuration file](/consul/docs/agent/config/config-files). On Kubernetes deployments, update the cluster's [Helm chart configuration](/consul/docs/k8s/helm) instead.
+To enable Consul's service mesh, set `connect.enabled` to `true` in a new or existing [agent configuration file](/consul/docs/agent/config/config-files). Service mesh is enabled by default on Kubernetes deployment. Refer to the [Helm chart configuration](/consul/docs/k8s/helm) to verify that service mesh is enabled.
 
 <CodeTabs>
 
