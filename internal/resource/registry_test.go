@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbdemov1 "github.com/hashicorp/consul/proto/private/pbdemo/v1"
 	demov2 "github.com/hashicorp/consul/proto/private/pbdemo/v2"
+	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
 func TestRegister(t *testing.T) {
@@ -78,7 +79,7 @@ func TestNewRegistry(t *testing.T) {
 	r := resource.NewRegistry()
 
 	// verify tombstone type registered implicitly
-	_, ok := r.Resolve(resource.TypeV1Tombstone)
+	_, ok := r.Resolve(pbinternalresource.TombstoneType)
 	require.True(t, ok)
 }
 

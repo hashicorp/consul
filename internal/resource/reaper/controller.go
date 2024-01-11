@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/hashicorp/consul/internal/controller"
-	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/proto-public/pbresource"
+	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
 const (
@@ -27,7 +27,7 @@ func RegisterControllers(mgr *controller.Manager) {
 }
 
 func reaperController() *controller.Controller {
-	return controller.NewController(statusKeyReaperController, resource.TypeV1Tombstone).
+	return controller.NewController(statusKeyReaperController, pbinternalresource.TombstoneType).
 		WithReconciler(newReconciler())
 }
 
@@ -60,7 +60,7 @@ func (r *tombstoneReconciler) Reconcile(ctx context.Context, rt controller.Runti
 	}
 	res := rsp.Resource
 
-	var tombstone pbresource.Tombstone
+	var tombstone pbinternalresource.Tombstone
 	if err := res.Data.UnmarshalTo(&tombstone); err != nil {
 		return err
 	}

@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	pbtenancy "github.com/hashicorp/consul/proto-public/pbtenancy/v2beta1"
 	pbdemo "github.com/hashicorp/consul/proto/private/pbdemo/v1"
+	pbinternalresource "github.com/hashicorp/consul/proto/private/pbresource/v1"
 )
 
 func TestDelete_InputValidation(t *testing.T) {
@@ -263,7 +264,7 @@ func TestDelete_Success(t *testing.T) {
 		_, err = client.Read(ctx, &pbresource.ReadRequest{
 			Id: &pbresource.ID{
 				Name:    tname,
-				Type:    resource.TypeV1Tombstone,
+				Type:    pbinternalresource.TombstoneType,
 				Tenancy: deleteReq.Id.Tenancy,
 			},
 		})
@@ -315,7 +316,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 			rsp2, err := client.Read(ctx, &pbresource.ReadRequest{
 				Id: &pbresource.ID{
 					Name:    svc.TombstoneNameFor(artist.Id),
-					Type:    resource.TypeV1Tombstone,
+					Type:    pbinternalresource.TombstoneType,
 					Tenancy: artist.Id.Tenancy,
 				},
 			})
@@ -327,7 +328,7 @@ func TestDelete_TombstoneDeletionDoesNotCreateNewTombstone(t *testing.T) {
 			require.NoError(t, err)
 
 			// verify no new tombstones created and artist's existing tombstone deleted
-			rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: resource.TypeV1Tombstone, Tenancy: artist.Id.Tenancy})
+			rsp3, err := client.List(ctx, &pbresource.ListRequest{Type: pbinternalresource.TombstoneType, Tenancy: artist.Id.Tenancy})
 			require.NoError(t, err)
 			require.Empty(t, rsp3.Resources)
 		})
