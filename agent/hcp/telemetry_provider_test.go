@@ -5,7 +5,6 @@ package hcp
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -53,15 +52,8 @@ func TestNewTelemetryConfigProvider_DefaultConfig(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize new provider, but fail all HCP fetches.
-	mc := client.NewMockClient(t)
-	mc.EXPECT().FetchTelemetryConfig(mock.Anything).Return(nil, errors.New("failed to fetch config"))
-
-	provider, err := NewHCPProvider(ctx, &HCPProviderCfg{mc, config.MockCloudCfg{}})
-	require.NoError(t, err)
-	require.NotNil(t, provider.httpCfg)
-	require.NotNil(t, provider.httpCfg.header)
-	require.NotNil(t, provider.httpCfg.client)
+	// Initialize new provider
+	provider := NewHCPProvider(ctx)
 	provider.updateConfig(ctx)
 
 	// Assert provider has default configuration and metrics processing is disabled.
@@ -320,10 +312,9 @@ func TestTelemetryConfigProvider_UpdateHCPConfig(t *testing.T) {
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
-			provider, err := NewHCPProvider(context.Background(), &HCPProviderCfg{})
-			require.NoError(t, err)
+			provider := NewHCPProvider(context.Background())
 
-			err = provider.UpdateHCPConfig(test.cfg)
+			err := provider.UpdateHCPConfig(test.cfg))
 
 			if test.wantErr != "" {
 				require.Error(t, err)
@@ -411,7 +402,8 @@ func TestTelemetryConfigProvider_Race(t *testing.T) {
 	}
 
 	// Start the provider goroutine, which fetches client TelemetryConfig every RefreshInterval.
-	provider, err := NewHCPProvider(ctx, &HCPProviderCfg{m, config.MockCloudCfg{}})
+	provider := NewHCPProvider(ctx)
+	err = provider.Run(context.Background(), &HCPProviderCfg{m, config.MockCloudCfg{}})
 	require.NoError(t, err)
 
 	for count := 0; count < testRaceWriteSampleCount; count++ {

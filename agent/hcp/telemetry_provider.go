@@ -94,23 +94,15 @@ type HCPProviderCfg struct {
 }
 
 // NewHCPProvider initializes and starts a HCP Telemetry provider.
-func NewHCPProvider(ctx context.Context, c *HCPProviderCfg) (*hcpProviderImpl, error) {
+func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 	h := &hcpProviderImpl{
 		// Initialize with default config values.
-		cfg:       defaultDisabledCfg(),
-		httpCfg:   &httpCfg{},
-		hcpClient: c.HCPClient,
-		logger:    hclog.FromContext(ctx),
+		cfg:     defaultDisabledCfg(),
+		httpCfg: &httpCfg{},
+		logger:  hclog.FromContext(ctx),
 	}
 
-	if c.HCPConfig != nil {
-		err := h.UpdateHCPConfig(c.HCPConfig)
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize HCP telemetry provider: %v", err)
-		}
-	}
-
-	return h, nil
+	return h
 }
 
 // Run continously checks for updates to the telemetry configuration by making a request to HCP.
