@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func TestGetResolvedExportedServices_ACL_Allow(t *testing.T) {
+func TestGetResolvedExportedServices(t *testing.T) {
 	authorizer := acl.MockAuthorizer{}
 	authorizer.On("MeshRead", mock.Anything).Return(acl.Allow)
 

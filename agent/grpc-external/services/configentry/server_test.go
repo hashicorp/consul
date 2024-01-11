@@ -63,6 +63,28 @@ func TestGetResolvedExportedServices_ACL_Deny(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestGetResolvedExportedServices_AC_Allow(t *testing.T) {
+	authorizer := acl.MockAuthorizer{}
+	authorizer.On("MeshRead", mock.Anything).Return(acl.Allow)
+
+	backend := &MockBackend{authorizer: &authorizer}
+	backend.On("EnterpriseCheckPartitions", mock.Anything).Return(nil)
+
+	fakeFSM := testutils.NewFakeBlockingFSM(t)
+
+	c := Config{
+		Backend:    backend,
+		Logger:     hclog.New(nil),
+		ForwardRPC: doForwardRPC,
+		FSMServer:  fakeFSM,
+	}
+	server := NewServer(c)
+
+	ctx := grpc.NewContextWithServerTransportStream(context.Background(), &testutils.MockServerTransportStream{})
+	_, err := server.GetResolvedExportedServices(ctx, &pbconfigentry.GetResolvedExportedServicesRequest{})
+	require.NoError(t, err)
+}
+
 func TestGetResolvedExportedServices_PartitionCheck(t *testing.T) {
 	authorizer := acl.MockAuthorizer{}
 	authorizer.On("MeshRead", mock.Anything).Return(acl.Allow)
