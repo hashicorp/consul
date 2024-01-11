@@ -27,7 +27,9 @@ An executable handler reads the JSON invocation info from stdin. Additionally, t
 
 Here is an example configuration, where `handler_type` is optionally set to `script`:
 
-<CodeTabs heading="Consul watch with script handler defined in agent configuration"> <CodeBlockConfig filename="agent-config.hcl">
+<CodeTabs heading="Consul watch with script handler defined in agent configuration"> 
+
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 watches = [
@@ -71,7 +73,9 @@ The HTTP handler can be configured by setting `handler_type` to `http`. Addition
 
 Here is an example configuration:
 
-<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration"> <CodeBlockConfig filename="agent-config.hcl">
+<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration"> 
+
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 watches = [
@@ -92,7 +96,9 @@ watches = [
 ]
 ```
 
-</CodeBlockConfig> <CodeBlockConfig filename="agent-config.json">
+</CodeBlockConfig> 
+
+<CodeBlockConfig filename="agent-config.json">
 
 ```json
 {
@@ -113,7 +119,9 @@ watches = [
 }
 ```
 
-</CodeBlockConfig> </CodeTabs>
+</CodeBlockConfig> 
+
+</CodeTabs>
 
 ## Global Parameters
 
@@ -146,6 +154,8 @@ Here is an example configuration:
 
 <CodeTabs heading="Example key watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "key"
@@ -154,6 +164,10 @@ Here is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "key",
@@ -161,6 +175,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -194,6 +210,8 @@ Here is an example configuration:
 
 <CodeTabs heading="Example keyprefix watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "keyprefix"
@@ -202,6 +220,10 @@ Here is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "keyprefix",
@@ -209,6 +231,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-prefix-handler.sh", "-redis"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -273,12 +297,16 @@ Below is an example configuration:
 
 </CodeBlockConfig>
 
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "services",
   "args": ["/usr/bin/my-services-handler.sh"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -308,6 +336,8 @@ Below is an example configuration:
 
 <CodeTabs heading="Example nodes watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "nodes"
@@ -315,9 +345,9 @@ Below is an example configuration:
 }
 ```
 
-<CodeBlockConfig heading="JSON">
-
 </CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -325,6 +355,8 @@ Below is an example configuration:
   "args": ["/usr/bin/my-nodes-handler.sh"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -380,6 +412,8 @@ Here is an example configuration with a single tag:
 
 <CodeTabs heading="Example service watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "service"
@@ -388,6 +422,7 @@ Here is an example configuration with a single tag:
   tag = "bar"
 }
 ```
+
 </CodeBlockConfig>
 
 <CodeBlockConfig heading="JSON">
@@ -401,11 +436,15 @@ Here is an example configuration with a single tag:
 }
 ```
 
+</CodeBlockConfig>
+
 </CodeTabs>
 
 Here is an example configuration with multiple tags:
 
 <CodeTabs heading="Example service watch type with multiple tags">
+
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 {
@@ -416,6 +455,10 @@ Here is an example configuration with multiple tags:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "service",
@@ -424,6 +467,8 @@ Here is an example configuration with multiple tags:
   "tag": ["bar", "foo"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -521,6 +566,8 @@ Here is an example configuration for monitoring by state:
 
 <CodeTabs heading="Example checks watch type for all services in the passing state">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "checks"
@@ -528,6 +575,10 @@ Here is an example configuration for monitoring by state:
   args = ["/usr/bin/my-check-handler.sh", "-passing"]
 }
 ```
+
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
 
 ```json
 {
@@ -537,11 +588,15 @@ Here is an example configuration for monitoring by state:
 }
 ```
 
+</CodeBlockConfig>
+
 </CodeTabs>
 
 Here is an example configuration for monitoring by service:
 
 <CodeTabs heading="Example checks watch type for a specific service">
+
+<CodeBlockConfig heading="HCL">
 
 ```hcl
 {
@@ -551,6 +606,10 @@ Here is an example configuration for monitoring by service:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "checks",
@@ -558,6 +617,8 @@ Here is an example configuration for monitoring by service:
   "args": ["/usr/bin/my-check-handler.sh", "-redis"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -602,6 +663,8 @@ Here is an example configuration:
 
 <CodeTabs heading="Example event watch type">
 
+<CodeBlockConfig heading="HCL">
+
 ```hcl
 {
   type = "event"
@@ -610,6 +673,10 @@ Here is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig heading="JSON">
+
 ```json
 {
   "type": "event",
@@ -617,6 +684,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-event-handler.sh", "-web-deploy"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
