@@ -107,9 +107,11 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 
 // Run continously checks for updates to the telemetry configuration by making a request to HCP.
 func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
-	// Update the provider with the HCP client and HCP configuration
-	h.UpdateHCPClient(c.HCPClient)
-	err := h.UpdateHCPConfig(c.HCPConfig)
+	h.logger.Debug("starting telemetry config provider")
+
+	// Update the provider with the HCP configurations
+	h.hcpClient = c.HCPClient
+	err := h.updateHTTPConfig(c.HCPConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize HCP telemetry provider: %v", err)
 	}
@@ -135,8 +137,7 @@ func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
 func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	logger := h.logger.Named("telemetry_config_provider")
 
-	hcpClient := h.GetHCPClient()
-	if hcpClient == nil || reflect.ValueOf(hcpClient).IsNil() {
+	if h.hcpClient == nil || reflect.ValueOf(h.hcpClient).IsNil() {
 		// Disable metrics if HCP client is not configured
 		disabledMetricsCfg := defaultDisabledCfg()
 		h.modifyDynamicCfg(disabledMetricsCfg)
@@ -147,7 +148,7 @@ func (h *hcpProviderImpl) updateConfig(ctx context.Context) time.Duration {
 	defer cancel()
 
 	logger.Trace("fetching telemetry config")
-	telemetryCfg, err := hcpClient.FetchTelemetryConfig(ctx)
+	telemetryCfg, err := h.hcpClient.FetchTelemetryConfig(ctx)
 	if err != nil {
 		// Only disable metrics on 404 or 401 to handle the case of an unlinked cluster.
 		// For other errors such as 5XX ones, we continue metrics collection, as these are potentially transient server-side errors.
@@ -226,24 +227,8 @@ func (h *hcpProviderImpl) IsDisabled() bool {
 	return h.cfg.disabled
 }
 
-// GetHCPClient acquires a read lock to return the HCP client.
-func (h *hcpProviderImpl) GetHCPClient() client.Client {
-	h.rw.RLock()
-	defer h.rw.RUnlock()
-
-	return h.hcpClient
-}
-
-// UpdateHCPClient acquires a write lock to set the HCP client.
-func (h *hcpProviderImpl) UpdateHCPClient(c client.Client) {
-	h.rw.Lock()
-	defer h.rw.Unlock()
-
-	h.hcpClient = c
-}
-
-// UpdateHCPConfig updates values that rely on the HCP configuration.
-func (h *hcpProviderImpl) UpdateHCPConfig(cfg config.CloudConfigurer) error {
+// updateHTTPConfig updates the HTTP configuration values that rely on the HCP configuration.
+func (h *hcpProviderImpl) updateHTTPConfig(cfg config.CloudConfigurer) error {
 	h.httpCfgRW.Lock()
 	defer h.httpCfgRW.Unlock()
 

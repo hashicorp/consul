@@ -313,8 +313,7 @@ func TestTelemetryConfigProvider_UpdateHCPConfig(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			provider := NewHCPProvider(context.Background())
-
-			err := provider.UpdateHCPConfig(test.cfg))
+			err := provider.updateHTTPConfig(test.cfg)
 
 			if test.wantErr != "" {
 				require.Error(t, err)
