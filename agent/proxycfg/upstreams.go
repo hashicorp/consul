@@ -351,18 +351,23 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 				Datacenter: s.source.Datacenter,
 			}
 		default:
-			// if target.MeshGateway.Mode is not set we don't want to set up watches for the gateway.
+			// if target.MeshGateway.Mode is not set and target is not peered we don't want to set up watches for the gateway.
 			// This is important specifically in wan-fed without mesh gateway use case, as for this case
 			//the source and target DC could be different but there is not  mesh-gateway so no need to watch
 			// a costly watch (Internal.ServiceDump)
-			continue
+			if target.Peer == "" {
+				continue
+			}
 		}
-		if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
-			needGateways[gk.String()] = struct{}{}
-		}
+
 		// Register a local gateway watch if any targets are pointing to a peer and require a mode of local.
 		if target.Peer != "" && target.MeshGateway.Mode == structs.MeshGatewayModeLocal {
 			s.setupWatchForLocalGWEndpoints(ctx, snap)
+		} else {
+			// If it's not a peering use case, consider watching the gateways for remote targets in wan-fed
+			if s.source.Datacenter != target.Datacenter || s.proxyID.PartitionOrDefault() != target.Partition {
+				needGateways[gk.String()] = struct{}{}
+			}
 		}
 	}
 
@@ -395,6 +400,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		if _, ok := snap.WatchedGateways[uid][key]; ok {
 			continue
 		}
+
 		gwKey := gatewayKeyFromString(key)
 
 		s.logger.Trace("initializing watch of mesh gateway",
@@ -413,6 +419,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 			key:                 gwKey,
 			upstreamID:          uid,
 		}
+
 		err := watchMeshGateway(ctx, opts)
 		if err != nil {
 			cancel()
@@ -420,6 +427,7 @@ func (s *handlerUpstreams) resetWatchesFromChain(
 		}
 		snap.WatchedLocalGWEndpoints.InitWatch(gwKey.String(), nil)
 		snap.WatchedGateways[uid][key] = cancel
+
 	}
 
 	for key, cancelFn := range snap.WatchedGateways[uid] {
