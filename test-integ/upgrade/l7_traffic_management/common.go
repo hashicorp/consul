@@ -5,7 +5,6 @@ package l7_traffic_management
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/require"
 	"testing"
 
 	"github.com/hashicorp/consul/api"
@@ -191,21 +190,18 @@ func (ct *commonTopo) ValidateWorkloads(t *testing.T) {
 	ct.Assert = topoutil.NewAsserter(ct.Sprawl)
 	cluster := ct.Sprawl.Topology().Clusters[dc1]
 
-	cl, err := ct.Sprawl.APIClientForCluster(cluster.Name, "")
-	require.NoError(t, err)
-
 	staticServerWorkload := cluster.WorkloadByID(
 		topology.NewNodeID("dc1-client1", defaultPartition),
 		ct.StaticServerSID,
 	)
 	ct.Assert.HTTPStatus(t, staticServerWorkload, staticServerWorkload.Port, 200)
-	ct.Assert.AssertServiceHealth(t, cl, ct.StaticServerSID.Name, true, 1)
+	ct.Assert.HealthServiceEntries(t, cluster.Name, ct.StaticServerSID.Name, true, &api.QueryOptions{}, 1)
 
 	staticClientWorkload := cluster.WorkloadByID(
 		topology.NewNodeID("dc1-client2", defaultPartition),
 		ct.StaticClientSID,
 	)
-	ct.Assert.AssertServiceHealth(t, cl, ct.StaticClientSID.Name, true, 1)
+	ct.Assert.HealthServiceEntries(t, cluster.Name, ct.StaticClientSID.Name, true, &api.QueryOptions{}, 1)
 
 	// check the service exists in catalog
 	svcs := cluster.WorkloadsByID(ct.StaticClientSID)
