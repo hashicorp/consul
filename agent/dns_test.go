@@ -31,8 +31,8 @@ import (
 
 	"github.com/hashicorp/consul/agent/config"
 	"github.com/hashicorp/consul/agent/consul"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
+	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/consul/testrpc"
@@ -3550,7 +3550,7 @@ func TestDNSInvalidRegex(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
-			if got, want := agentdns.InvalidNameRe.MatchString(test.in), test.invalid; got != want {
+			if got, want := libdns.InvalidNameRe.MatchString(test.in), test.invalid; got != want {
 				t.Fatalf("Expected %v to return %v", test.in, want)
 			}
 		})
@@ -3558,17 +3558,14 @@ func TestDNSInvalidRegex(t *testing.T) {
 	}
 }
 
-func TestDNS_ConfigReload(t *testing.T) {
+func TestDNS_V1ConfigReload(t *testing.T) {
 	if testing.Short() {
 		t.Skip("too slow for testing.Short")
 	}
 
 	t.Parallel()
 
-	for name, experimentsHCL := range versionHCL {
-		t.Run(name, func(t *testing.T) {
-
-			a := NewTestAgent(t, `
+	a := NewTestAgent(t, `
 		recursors = ["8.8.8.8:53"]
 		dns_config = {
 			allow_stale = false
@@ -3592,86 +3589,93 @@ func TestDNS_ConfigReload(t *testing.T) {
 				min_ttl = 4
 			}
 		}
-	`+experimentsHCL)
-			defer a.Shutdown()
-			testrpc.WaitForLeader(t, a.RPC, "dc1")
+	`)
+	defer a.Shutdown()
+	testrpc.WaitForLeader(t, a.RPC, "dc1")
 
-			for _, s := range a.dnsServers {
-				cfg := s.config.Load().(*dnsConfig)
-				require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
-				require.Equal(t, agentdns.RecursorStrategy("sequential"), cfg.RecursorStrategy)
-				require.False(t, cfg.AllowStale)
-				require.Equal(t, 20*time.Second, cfg.MaxStale)
-				require.Equal(t, 10*time.Second, cfg.NodeTTL)
-				ttl, _ := cfg.GetTTLForService("my_services_1")
-				require.Equal(t, 5*time.Second, ttl)
-				ttl, _ = cfg.GetTTLForService("my_specific_service")
-				require.Equal(t, 30*time.Second, ttl)
-				require.False(t, cfg.EnableTruncate)
-				require.False(t, cfg.OnlyPassing)
-				require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
-				require.False(t, cfg.DisableCompression)
-				require.Equal(t, 1, cfg.ARecordLimit)
-				require.False(t, cfg.NodeMetaTXT)
-				require.Equal(t, uint32(1), cfg.SOAConfig.Refresh)
-				require.Equal(t, uint32(2), cfg.SOAConfig.Retry)
-				require.Equal(t, uint32(3), cfg.SOAConfig.Expire)
-				require.Equal(t, uint32(4), cfg.SOAConfig.Minttl)
-			}
+	for _, s := range a.dnsServers {
+		server, ok := s.(*DNSServer)
+		require.True(t, ok)
 
-			newCfg := *a.Config
-			newCfg.DNSRecursors = []string{"1.1.1.1:53"}
-			newCfg.DNSAllowStale = true
-			newCfg.DNSMaxStale = 21 * time.Second
-			newCfg.DNSNodeTTL = 11 * time.Second
-			newCfg.DNSServiceTTL = map[string]time.Duration{
-				"2_my_services*":        6 * time.Second,
-				"2_my_specific_service": 31 * time.Second,
-			}
-			newCfg.DNSEnableTruncate = true
-			newCfg.DNSOnlyPassing = true
-			newCfg.DNSRecursorStrategy = "random"
-			newCfg.DNSRecursorTimeout = 16 * time.Second
-			newCfg.DNSDisableCompression = true
-			newCfg.DNSARecordLimit = 2
-			newCfg.DNSNodeMetaTXT = true
-			newCfg.DNSSOA.Refresh = 10
-			newCfg.DNSSOA.Retry = 20
-			newCfg.DNSSOA.Expire = 30
-			newCfg.DNSSOA.Minttl = 40
-
-			err := a.reloadConfigInternal(&newCfg)
-			require.NoError(t, err)
-
-			for _, s := range a.dnsServers {
-				cfg := s.config.Load().(*dnsConfig)
-				require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
-				require.Equal(t, agentdns.RecursorStrategy("random"), cfg.RecursorStrategy)
-				require.True(t, cfg.AllowStale)
-				require.Equal(t, 21*time.Second, cfg.MaxStale)
-				require.Equal(t, 11*time.Second, cfg.NodeTTL)
-				ttl, _ := cfg.GetTTLForService("my_services_1")
-				require.Equal(t, time.Duration(0), ttl)
-				ttl, _ = cfg.GetTTLForService("2_my_services_1")
-				require.Equal(t, 6*time.Second, ttl)
-				ttl, _ = cfg.GetTTLForService("my_specific_service")
-				require.Equal(t, time.Duration(0), ttl)
-				ttl, _ = cfg.GetTTLForService("2_my_specific_service")
-				require.Equal(t, 31*time.Second, ttl)
-				require.True(t, cfg.EnableTruncate)
-				require.True(t, cfg.OnlyPassing)
-				require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
-				require.True(t, cfg.DisableCompression)
-				require.Equal(t, 2, cfg.ARecordLimit)
-				require.True(t, cfg.NodeMetaTXT)
-				require.Equal(t, uint32(10), cfg.SOAConfig.Refresh)
-				require.Equal(t, uint32(20), cfg.SOAConfig.Retry)
-				require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
-				require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
-			}
-		})
+		cfg := server.config.Load().(*dnsConfig)
+		require.Equal(t, []string{"8.8.8.8:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("sequential"), cfg.RecursorStrategy)
+		require.False(t, cfg.AllowStale)
+		require.Equal(t, 20*time.Second, cfg.MaxStale)
+		require.Equal(t, 10*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, 5*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, 30*time.Second, ttl)
+		require.False(t, cfg.EnableTruncate)
+		require.False(t, cfg.OnlyPassing)
+		require.Equal(t, 15*time.Second, cfg.RecursorTimeout)
+		require.False(t, cfg.DisableCompression)
+		require.Equal(t, 1, cfg.ARecordLimit)
+		require.False(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(1), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(2), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(3), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(4), cfg.SOAConfig.Minttl)
 	}
+
+	newCfg := *a.Config
+	newCfg.DNSRecursors = []string{"1.1.1.1:53"}
+	newCfg.DNSAllowStale = true
+	newCfg.DNSMaxStale = 21 * time.Second
+	newCfg.DNSNodeTTL = 11 * time.Second
+	newCfg.DNSServiceTTL = map[string]time.Duration{
+		"2_my_services*":        6 * time.Second,
+		"2_my_specific_service": 31 * time.Second,
+	}
+	newCfg.DNSEnableTruncate = true
+	newCfg.DNSOnlyPassing = true
+	newCfg.DNSRecursorStrategy = "random"
+	newCfg.DNSRecursorTimeout = 16 * time.Second
+	newCfg.DNSDisableCompression = true
+	newCfg.DNSARecordLimit = 2
+	newCfg.DNSNodeMetaTXT = true
+	newCfg.DNSSOA.Refresh = 10
+	newCfg.DNSSOA.Retry = 20
+	newCfg.DNSSOA.Expire = 30
+	newCfg.DNSSOA.Minttl = 40
+
+	err := a.reloadConfigInternal(&newCfg)
+	require.NoError(t, err)
+
+	for _, s := range a.dnsServers {
+		server, ok := s.(*DNSServer)
+		require.True(t, ok)
+
+		cfg := server.config.Load().(*dnsConfig)
+		require.Equal(t, []string{"1.1.1.1:53"}, cfg.Recursors)
+		require.Equal(t, structs.RecursorStrategy("random"), cfg.RecursorStrategy)
+		require.True(t, cfg.AllowStale)
+		require.Equal(t, 21*time.Second, cfg.MaxStale)
+		require.Equal(t, 11*time.Second, cfg.NodeTTL)
+		ttl, _ := cfg.GetTTLForService("my_services_1")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_services_1")
+		require.Equal(t, 6*time.Second, ttl)
+		ttl, _ = cfg.GetTTLForService("my_specific_service")
+		require.Equal(t, time.Duration(0), ttl)
+		ttl, _ = cfg.GetTTLForService("2_my_specific_service")
+		require.Equal(t, 31*time.Second, ttl)
+		require.True(t, cfg.EnableTruncate)
+		require.True(t, cfg.OnlyPassing)
+		require.Equal(t, 16*time.Second, cfg.RecursorTimeout)
+		require.True(t, cfg.DisableCompression)
+		require.Equal(t, 2, cfg.ARecordLimit)
+		require.True(t, cfg.NodeMetaTXT)
+		require.Equal(t, uint32(10), cfg.SOAConfig.Refresh)
+		require.Equal(t, uint32(20), cfg.SOAConfig.Retry)
+		require.Equal(t, uint32(30), cfg.SOAConfig.Expire)
+		require.Equal(t, uint32(40), cfg.SOAConfig.Minttl)
+	}
+
 }
+
+// TODO (v2-dns) add a test for checking the V2 DNS Server reloads the config
 
 func TestDNS_ReloadConfig_DuringQuery(t *testing.T) {
 	if testing.Short() {

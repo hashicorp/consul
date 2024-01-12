@@ -19,5 +19,9 @@ message MeshGateway {
 
 message MeshGatewayListener {
   string name = 1;
+  // +kubebuilder:validation:Maximum=65535
+  // +kubebuilder:validation:Minimum=0
   uint32 port = 2;
+  // +kubebuilder:validation:Enum=TCP
+  string protocol = 3;
 }

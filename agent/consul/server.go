@@ -142,6 +142,7 @@ const (
 	LeaderTransferMinVersion = "1.6.0"
 
 	CatalogResourceExperimentName = "resource-apis"
+	V2DNSExperimentName           = "v2dns"
 	V2TenancyExperimentName       = "v2tenancy"
 	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )

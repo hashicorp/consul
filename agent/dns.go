@@ -25,9 +25,9 @@ import (
 	"github.com/hashicorp/consul/acl"
 	cachetype "github.com/hashicorp/consul/agent/cache-types"
 	"github.com/hashicorp/consul/agent/config"
-	agentdns "github.com/hashicorp/consul/agent/dns"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/api"
+	libdns "github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
@@ -90,7 +90,7 @@ type dnsConfig struct {
 	NodeName         string
 	NodeTTL          time.Duration
 	OnlyPassing      bool
-	RecursorStrategy agentdns.RecursorStrategy
+	RecursorStrategy structs.RecursorStrategy
 	RecursorTimeout  time.Duration
 	Recursors        []string
 	SegmentName      string
@@ -262,6 +262,28 @@ func (d *DNSServer) ListenAndServe(network, addr string, notif func()) error {
 		d.UDPSize = 65535
 	}
 	return d.Server.ListenAndServe()
+}
+
+func (d *DNSServer) Shutdown() {
+	if d.Server != nil {
+		d.logger.Info("Stopping server",
+			"protocol", "DNS",
+			"address", d.Server.Addr,
+			"network", d.Server.Net,
+		)
+		err := d.Server.Shutdown()
+		if err != nil {
+			d.logger.Error("Error stopping DNS server", "error", err)
+		}
+	}
+}
+
+// GetAddr is a function to return the server address if is not nil.
+func (d *DNSServer) GetAddr() string {
+	if d.Server != nil {
+		return d.Server.Addr
+	}
+	return ""
 }
 
 // toggleRecursorHandlerFromConfig enables or disables the recursor handler based on config idempotently
@@ -613,7 +635,7 @@ func (d *DNSServer) nameservers(questionName string, cfg *dnsConfig, maxRecursio
 	for _, o := range out.Nodes {
 		name, dc := o.Node.Node, o.Node.Datacenter
 
-		if agentdns.InvalidNameRe.MatchString(name) {
+		if libdns.InvalidNameRe.MatchString(name) {
 			d.logger.Warn("Skipping invalid node for NS records", "node", name)
 			continue
 		}

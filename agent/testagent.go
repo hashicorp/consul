@@ -74,7 +74,7 @@ type TestAgent struct {
 
 	// dns is a reference to the first started DNS endpoint.
 	// It is valid after Start().
-	dns *DNSServer
+	dns dnsServer
 
 	// srv is an HTTPHandlers that may be used to test http endpoints.
 	srv *HTTPHandlers
@@ -362,7 +362,7 @@ func (a *TestAgent) DNSAddr() string {
 	if a.dns == nil {
 		return ""
 	}
-	return a.dns.Addr
+	return a.dns.GetAddr()
 }
 
 func (a *TestAgent) HTTPAddr() string {

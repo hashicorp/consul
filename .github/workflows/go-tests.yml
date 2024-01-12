@@ -270,7 +270,6 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: ""
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -293,7 +292,6 @@ jobs:
       runs-on: ${{ needs.setup.outputs.compute-large }}
       repository-name: ${{ github.repository }}
       go-tags: "${{ github.event.repository.name == 'consul-enterprise' && 'consulent consuldev' || '' }}"
-      go-test-flags: "${{ (github.ref_name != 'main' && !startsWith(github.ref_name, 'release/')) && '-short' || '' }}"
       go-version: ${{ needs.get-go-version.outputs.go-version }}
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
