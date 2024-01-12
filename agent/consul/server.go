@@ -75,6 +75,7 @@ import (
 	"github.com/hashicorp/consul/internal/auth"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/controller"
+	hcpctl "github.com/hashicorp/consul/internal/hcp"
 	"github.com/hashicorp/consul/internal/mesh"
 	proxysnapshot "github.com/hashicorp/consul/internal/mesh/proxy-snapshot"
 	"github.com/hashicorp/consul/internal/multicluster"
@@ -141,7 +142,9 @@ const (
 	LeaderTransferMinVersion = "1.6.0"
 
 	CatalogResourceExperimentName = "resource-apis"
+	V2DNSExperimentName           = "v2dns"
 	V2TenancyExperimentName       = "v2tenancy"
+	HCPAllowV2ResourceAPIs        = "hcp-v2-resource-apis"
 )
 
 const (
@@ -414,6 +417,9 @@ type Server struct {
 	// Manager to handle starting/stopping go routines when establishing/revoking raft leadership
 	leaderRoutineManager *routine.Manager
 
+	// registrator is an implemenation that translates serf events of Consul servers into catalog events
+	registrator ConsulRegistrator
+
 	// publisher is the EventPublisher to be shared amongst various server components. Events from
 	// modifications to the FSM, autopilot and others will flow through here. If in the future we
 	// need Events generated outside of the Server and all its components, then we could move
@@ -474,6 +480,10 @@ type Server struct {
 
 	// useV2Tenancy is tied to the "v2tenancy" feature flag.
 	useV2Tenancy bool
+
+	// whether v2 resources are enabled for use with HCP
+	// TODO(CC-6389): Remove once resource-apis is no longer considered experimental and is supported by HCP
+	hcpAllowV2Resources bool
 }
 
 func (s *Server) DecrementBlockingQueries() uint64 {
@@ -564,6 +574,7 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 		registry:                flat.Registry,
 		useV2Resources:          flat.UseV2Resources(),
 		useV2Tenancy:            flat.UseV2Tenancy(),
+		hcpAllowV2Resources:     flat.HCPAllowV2Resources(),
 	}
 	incomingRPCLimiter.Register(s)
 
@@ -583,9 +594,11 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	})
 
 	s.hcpManager = hcp.NewManager(hcp.ManagerConfig{
-		Client:   flat.HCP.Client,
-		StatusFn: s.hcpServerStatus(flat),
-		Logger:   logger.Named("hcp_manager"),
+		CloudConfig:   s.config.Cloud,
+		Client:        flat.HCP.Client,
+		StatusFn:      s.hcpServerStatus(flat),
+		Logger:        logger.Named("hcp_manager"),
+		SCADAProvider: flat.HCP.Provider,
 	})
 
 	var recorder *middleware.RequestRecorder
@@ -883,6 +896,24 @@ func NewServer(config *Config, flat Deps, externalGRPCServer *grpc.Server,
 	// as establishing leadership could attempt to use autopilot and cause a panic.
 	s.initAutopilot(config)
 
+	// Construct the registrator that makes sense for the catalog version
+	if s.useV2Resources {
+		s.registrator = V2ConsulRegistrator{
+			Logger:   serverLogger,
+			NodeName: s.config.NodeName,
+			EntMeta:  s.config.AgentEnterpriseMeta(),
+			Client:   s.insecureResourceServiceClient,
+		}
+	} else {
+		s.registrator = V1ConsulRegistrator{
+			Datacenter:    s.config.Datacenter,
+			FSM:           s.fsm,
+			Logger:        serverLogger,
+			NodeName:      s.config.NodeName,
+			RaftApplyFunc: s.raftApplyMsgpack,
+		}
+	}
+
 	// Start monitoring leadership. This must happen after Serf is set up
 	// since it can fire events when leadership is obtained.
 	go s.monitorLeadership()
@@ -938,6 +969,11 @@ func isV1CatalogRequest(rpcName string) bool {
 }
 
 func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error {
+	hcpctl.RegisterControllers(s.controllerManager, hcpctl.ControllerDependencies{
+		ResourceApisEnabled:    s.useV2Resources,
+		HCPAllowV2ResourceApis: s.hcpAllowV2Resources,
+	})
+
 	// When not enabled, the v1 tenancy bridge is used by default.
 	if s.useV2Tenancy {
 		tenancy.RegisterControllers(
@@ -948,7 +984,7 @@ func (s *Server) registerControllers(deps Deps, proxyUpdater ProxyUpdater) error
 
 	if s.useV2Resources {
 		catalog.RegisterControllers(s.controllerManager, catalog.DefaultControllerDependencies())
-		multicluster.RegisterControllers(s.controllerManager)
+		multicluster.RegisterControllers(s.controllerManager, multicluster.DefaultControllerDependencies())
 		defaultAllow, err := s.config.ACLResolverSettings.IsDefaultAllow()
 		if err != nil {
 			return err

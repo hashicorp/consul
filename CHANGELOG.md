@@ -1,9 +1,60 @@
+## 1.17.1 (December 12, 2023)
+
+SECURITY:
+
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.0 to address [PRISMA-2022-0270](https://github.com/golang-jwt/jwt/issues/258). [[GH-19705](https://github.com/hashicorp/consul/issues/19705)]
+* Upgrade to use Go 1.20.12. This resolves CVEs
+  [CVE-2023-45283](https://nvd.nist.gov/vuln/detail/CVE-2023-45283): (`path/filepath`) recognize \??\ as a Root Local Device path prefix (Windows)
+  [CVE-2023-45284](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): recognize device names with trailing spaces and superscripts (Windows)
+  [CVE-2023-39326](https://nvd.nist.gov/vuln/detail/CVE-2023-39326): (`net/http`) limit chunked data overhead
+  [CVE-2023-45285](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): (`cmd/go`) go get may unexpectedly fallback to insecure git [[GH-19840](https://github.com/hashicorp/consul/issues/19840)]
+* connect: update supported envoy versions to 1.24.12, 1.25.11, 1.26.6, 1.27.2 to address [CVE-2023-44487](https://github.com/envoyproxy/envoy/security/advisories/GHSA-jhv4-f7mr-xx76) [[GH-19274](https://github.com/hashicorp/consul/issues/19274)]
+
+FEATURES:
+
+* acl: Adds nomad client templated policy [[GH-19827](https://github.com/hashicorp/consul/issues/19827)]
+* cli: Adds new subcommand `peering exported-services` to list services exported to a peer . Refer to the [CLI docs](https://developer.hashicorp.com/consul/commands/peering) for more information. [[GH-19821](https://github.com/hashicorp/consul/issues/19821)]
+
+IMPROVEMENTS:
+
+* mesh: parse the proxy-defaults protocol when write the config-entry to avoid parsing it when compiling the discovery chain. [[GH-19829](https://github.com/hashicorp/consul/issues/19829)]
+* wan-federation: use a hash to diff config entries when replicating in the secondary DC to avoid unnecessary writes.. [[GH-19795](https://github.com/hashicorp/consul/issues/19795)]
+* Replaces UI Side Nav with Helios Design System Side Nav. Adds dc/partition/namespace searching in Side Nav. [[GH-19342](https://github.com/hashicorp/consul/issues/19342)]
+* acl: add api-gateway templated policy [[GH-19728](https://github.com/hashicorp/consul/issues/19728)]
+* acl: add templated policy descriptions [[GH-19735](https://github.com/hashicorp/consul/issues/19735)]
+* api: Add support for listing ACL tokens by service name when using templated policies. [[GH-19666](https://github.com/hashicorp/consul/issues/19666)]
+* cli: stop simultaneous usage of -templated-policy and -templated-policy-file when creating a role or token. [[GH-19389](https://github.com/hashicorp/consul/issues/19389)]
+* cloud: push additional server TLS metadata to HCP [[GH-19682](https://github.com/hashicorp/consul/issues/19682)]
+* connect: Default `stats_flush_interval` to 60 seconds when using the Consul Telemetry Collector, unless custom stats sink are present or an explicit flush interval is configured. [[GH-19663](https://github.com/hashicorp/consul/issues/19663)]
+* metrics: increment consul.client.rpc.failed if RPC fails because no servers are accessible [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+* metrics: modify consul.client.rpc metric to exclude internal retries for consistency with consul.client.rpc.exceeded and consul.client.rpc.failed [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+* ui: move nspace and partitions requests into their selector menus [[GH-19594](https://github.com/hashicorp/consul/issues/19594)]
+
+BUG FIXES:
+
+* CLI: fix a panic when deleting a non existing policy by name. [[GH-19679](https://github.com/hashicorp/consul/issues/19679)]
+* Mesh Gateways: Fix a bug where replicated and peered mesh gateways with hostname-based WAN addresses fail to initialize. [[GH-19268](https://github.com/hashicorp/consul/issues/19268)]
+* ca: Fix bug with Vault CA provider where renewing a retracted token would cause retries in a tight loop, degrading performance. [[GH-19285](https://github.com/hashicorp/consul/issues/19285)]
+* ca: Fix bug with Vault CA provider where token renewal goroutines could leak if CA failed to initialize. [[GH-19285](https://github.com/hashicorp/consul/issues/19285)]
+* connect: Solves an issue where two upstream services with the same name in different namespaces were not getting routed to correctly by API Gateways. [[GH-19860](https://github.com/hashicorp/consul/issues/19860)]
+* federation: **(Enterprise Only)** Fixed an issue where namespace reconciliation could result into the secondary having dangling instances of namespaces marked for deletion
+* ui: clear peer on home logo link [[GH-19549](https://github.com/hashicorp/consul/issues/19549)]
+* ui: fix being able to view peered services from non-default namnespaces [[GH-19586](https://github.com/hashicorp/consul/issues/19586)]
+* ui: stop manually reconciling services if peering is enabled [[GH-19907](https://github.com/hashicorp/consul/issues/19907)]
+* wan-federation: Fix a bug where servers wan-federated through mesh-gateways could crash due to overlapping LAN IP addresses. [[GH-19503](https://github.com/hashicorp/consul/issues/19503)]
+* xds: Add configurable `xds_fetch_timeout_ms` option to proxy registrations that allows users to prevent endpoints from dropping when they have proxies with a large number of upstreams. [[GH-19871](https://github.com/hashicorp/consul/issues/19871)]
+* xds: ensure child resources are re-sent to Envoy when the parent is updated even if the child already has pending updates. [[GH-19866](https://github.com/hashicorp/consul/issues/19866)]
+
 ## 1.17.0 (October 31, 2023)
 
 BREAKING CHANGES:
 
 * api: RaftLeaderTransfer now requires an id string. An empty string can be specified to keep the old behavior. [[GH-17107](https://github.com/hashicorp/consul/issues/17107)]
 * audit-logging: **(Enterprise only)** allowing timestamp based filename only on rotation. initially the filename will be just file.json [[GH-18668](https://github.com/hashicorp/consul/issues/18668)]
+
+DEPRECATIONS:
+
+* cli: Deprecate the `-admin-access-log-path` flag from `consul connect envoy` command in favor of: `-admin-access-log-config`. [[GH-15946](https://github.com/hashicorp/consul/issues/15946)]
 
 SECURITY:
 
@@ -88,6 +139,38 @@ BUG FIXES:
 * telemetry: emit consul version metric on a regular interval. [[GH-6876](https://github.com/hashicorp/consul/issues/6876)]
 * tlsutil: Default setting of ServerName field in outgoing TLS configuration for checks now handled by crypto/tls. [[GH-17481](https://github.com/hashicorp/consul/issues/17481)]
 
+## 1.16.4 (December 12, 2023)
+
+SECURITY:
+
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.0 to address [PRISMA-2022-0270](https://github.com/golang-jwt/jwt/issues/258). [[GH-19705](https://github.com/hashicorp/consul/issues/19705)]
+* Upgrade to use Go 1.20.12. This resolves CVEs
+  [CVE-2023-45283](https://nvd.nist.gov/vuln/detail/CVE-2023-45283): (`path/filepath`) recognize \??\ as a Root Local Device path prefix (Windows)
+  [CVE-2023-45284](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): recognize device names with trailing spaces and superscripts (Windows)
+  [CVE-2023-39326](https://nvd.nist.gov/vuln/detail/CVE-2023-39326): (`net/http`) limit chunked data overhead
+  [CVE-2023-45285](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): (`cmd/go`) go get may unexpectedly fallback to insecure git [[GH-19840](https://github.com/hashicorp/consul/issues/19840)]
+
+IMPROVEMENTS:
+
+* mesh: parse the proxy-defaults protocol when write the config-entry to avoid parsing it when compiling the discovery chain. [[GH-19829](https://github.com/hashicorp/consul/issues/19829)]
+* wan-federation: use a hash to diff config entries when replicating in the secondary DC to avoid unnecessary writes.. [[GH-19795](https://github.com/hashicorp/consul/issues/19795)]
+* cli: Adds cli support for checking TCP connection for ports. If -ports flag is not given, it will check for
+  default ports of consul listed here - https://developer.hashicorp.com/consul/docs/install/ports [[GH-18329](https://github.com/hashicorp/consul/issues/18329)]
+* cloud: push additional server TLS metadata to HCP [[GH-19682](https://github.com/hashicorp/consul/issues/19682)]
+* connect: Default `stats_flush_interval` to 60 seconds when using the Consul Telemetry Collector, unless custom stats sink are present or an explicit flush interval is configured. [[GH-19663](https://github.com/hashicorp/consul/issues/19663)]
+* metrics: increment consul.client.rpc.failed if RPC fails because no servers are accessible [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+* metrics: modify consul.client.rpc metric to exclude internal retries for consistency with consul.client.rpc.exceeded and consul.client.rpc.failed [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+
+BUG FIXES:
+
+* CLI: fix a panic when deleting a non existing policy by name. [[GH-19679](https://github.com/hashicorp/consul/issues/19679)]
+* connect: Solves an issue where two upstream services with the same name in different namespaces were not getting routed to correctly by API Gateways. [[GH-19860](https://github.com/hashicorp/consul/issues/19860)]
+* federation: **(Enterprise Only)** Fixed an issue where namespace reconciliation could result into the secondary having dangling instances of namespaces marked for deletion
+* ui: only show hcp link if url is present [[GH-19443](https://github.com/hashicorp/consul/issues/19443)]
+* wan-federation: Fix a bug where servers wan-federated through mesh-gateways could crash due to overlapping LAN IP addresses. [[GH-19503](https://github.com/hashicorp/consul/issues/19503)]
+* xds: Add configurable `xds_fetch_timeout_ms` option to proxy registrations that allows users to prevent endpoints from dropping when they have proxies with a large number of upstreams. [[GH-19871](https://github.com/hashicorp/consul/issues/19871)]
+* xds: ensure child resources are re-sent to Envoy when the parent is updated even if the child already has pending updates. [[GH-19866](https://github.com/hashicorp/consul/issues/19866)]
+
 ## 1.16.3 (October 31, 2023)
 
 SECURITY:
@@ -115,6 +198,37 @@ BUG FIXES:
 * dns: **(Enterprise only)** Fix bug where sameness group queries did not correctly inherit the agent's partition.
 * gateways: Fix a bug where a service in a peered datacenter could not access an external node service through a terminating gateway [[GH-18959](https://github.com/hashicorp/consul/issues/18959)]
 * server: **(Enterprise Only)** Fixed an issue where snake case keys were rejected when configuring the control-plane-request-limit config entry
+
+## 1.15.8 (December 12, 2023)
+
+SECURITY:
+
+* Update `github.com/golang-jwt/jwt/v4` to v4.5.0 to address [PRISMA-2022-0270](https://github.com/golang-jwt/jwt/issues/258). [[GH-19705](https://github.com/hashicorp/consul/issues/19705)]
+* Upgrade to use Go 1.20.12. This resolves CVEs
+  [CVE-2023-45283](https://nvd.nist.gov/vuln/detail/CVE-2023-45283): (`path/filepath`) recognize \??\ as a Root Local Device path prefix (Windows)
+  [CVE-2023-45284](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): recognize device names with trailing spaces and superscripts (Windows)
+  [CVE-2023-39326](https://nvd.nist.gov/vuln/detail/CVE-2023-39326): (`net/http`) limit chunked data overhead
+  [CVE-2023-45285](https://nvd.nist.gov/vuln/detail/CVE-2023-45285): (`cmd/go`) go get may unexpectedly fallback to insecure git [[GH-19840](https://github.com/hashicorp/consul/issues/19840)]
+
+IMPROVEMENTS:
+
+* mesh: parse the proxy-defaults protocol when write the config-entry to avoid parsing it when compiling the discovery chain. [[GH-19829](https://github.com/hashicorp/consul/issues/19829)]
+* wan-federation: use a hash to diff config entries when replicating in the secondary DC to avoid unnecessary writes.. [[GH-19795](https://github.com/hashicorp/consul/issues/19795)]
+* cli: Adds cli support for checking TCP connection for ports. If -ports flag is not given, it will check for
+  default ports of consul listed here - https://developer.hashicorp.com/consul/docs/install/ports [[GH-18329](https://github.com/hashicorp/consul/issues/18329)]
+* connect: Default `stats_flush_interval` to 60 seconds when using the Consul Telemetry Collector, unless custom stats sink are present or an explicit flush interval is configured. [[GH-19663](https://github.com/hashicorp/consul/issues/19663)]
+* metrics: increment consul.client.rpc.failed if RPC fails because no servers are accessible [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+* metrics: modify consul.client.rpc metric to exclude internal retries for consistency with consul.client.rpc.exceeded and consul.client.rpc.failed [[GH-19721](https://github.com/hashicorp/consul/issues/19721)]
+
+BUG FIXES:
+
+* CLI: fix a panic when deleting a non existing policy by name. [[GH-19679](https://github.com/hashicorp/consul/issues/19679)]
+* connect: Solves an issue where two upstream services with the same name in different namespaces were not getting routed to correctly by API Gateways. [[GH-19860](https://github.com/hashicorp/consul/issues/19860)]
+* federation: **(Enterprise Only)** Fixed an issue where namespace reconciliation could result into the secondary having dangling instances of namespaces marked for deletion
+* ui: only show back-to-hcp link when url is present [[GH-19444](https://github.com/hashicorp/consul/issues/19444)]
+* wan-federation: Fix a bug where servers wan-federated through mesh-gateways could crash due to overlapping LAN IP addresses. [[GH-19503](https://github.com/hashicorp/consul/issues/19503)]
+* xds: Add configurable `xds_fetch_timeout_ms` option to proxy registrations that allows users to prevent endpoints from dropping when they have proxies with a large number of upstreams. [[GH-19871](https://github.com/hashicorp/consul/issues/19871)]
+* xds: ensure child resources are re-sent to Envoy when the parent is updated even if the child already has pending updates. [[GH-19866](https://github.com/hashicorp/consul/issues/19866)]
 
 ## 1.15.7 (October 31, 2023)
 

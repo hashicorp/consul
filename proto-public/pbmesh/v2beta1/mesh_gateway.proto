@@ -12,4 +12,16 @@ message MeshGateway {
 
   // GatewayClassName is the name of the GatewayClass used by the MeshGateway
   string gateway_class_name = 1;
+
+  // +kubebuilder:validation:MinItems=1
+  repeated MeshGatewayListener listeners = 2;
+}
+
+message MeshGatewayListener {
+  string name = 1;
+  // +kubebuilder:validation:Maximum=65535
+  // +kubebuilder:validation:Minimum=0
+  uint32 port = 2;
+  // +kubebuilder:validation:Enum=TCP
+  string protocol = 3;
 }

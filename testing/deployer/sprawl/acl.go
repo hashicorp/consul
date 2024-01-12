@@ -171,7 +171,7 @@ node_prefix "" {
 	policy = "write"
 }
 
-operator = "read"
+operator = "write"
 `
 	policy, _, err := acl.PolicyCreate(
 		&api.ACLPolicy{

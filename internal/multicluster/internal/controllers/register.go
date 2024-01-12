@@ -8,6 +8,10 @@ import (
 	"github.com/hashicorp/consul/internal/multicluster/internal/controllers/exportedservices"
 )
 
-func Register(mgr *controller.Manager) {
-	mgr.Register(exportedservices.Controller())
+type Dependencies struct {
+	ExportedServicesSamenessGroupsExpander exportedservices.ExportedServicesSamenessGroupExpander
+}
+
+func Register(mgr *controller.Manager, deps Dependencies) {
+	mgr.Register(exportedservices.Controller(deps.ExportedServicesSamenessGroupsExpander))
 }

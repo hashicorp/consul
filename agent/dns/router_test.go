@@ -1,8 +1,6 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package consul
+package dns
 
-type CloudConfig struct {
-	ManagementToken string
-}
+// TODO (v2-dns)

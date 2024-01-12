@@ -16,3 +16,13 @@ func (msg *MeshGateway) MarshalBinary() ([]byte, error) {
 func (msg *MeshGateway) UnmarshalBinary(b []byte) error {
 	return proto.Unmarshal(b, msg)
 }
+
+// MarshalBinary implements encoding.BinaryMarshaler
+func (msg *MeshGatewayListener) MarshalBinary() ([]byte, error) {
+	return proto.Marshal(msg)
+}
+
+// UnmarshalBinary implements encoding.BinaryUnmarshaler
+func (msg *MeshGatewayListener) UnmarshalBinary(b []byte) error {
+	return proto.Unmarshal(b, msg)
+}
