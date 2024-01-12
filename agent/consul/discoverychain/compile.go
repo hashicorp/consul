@@ -1066,7 +1066,7 @@ RESOLVE_AGAIN:
 		// Default mesh gateway settings
 		if serviceDefault := c.entries.GetService(targetID); serviceDefault != nil {
 			target.MeshGateway = serviceDefault.MeshGateway
-			if serviceDefault.TransparentProxy != nil {
+			if serviceDefault != nil && serviceDefault.TransparentProxy != nil {
 				target.TransparentProxy.DialedDirectly = serviceDefault.TransparentProxy.DialedDirectly
 			}
 		}
