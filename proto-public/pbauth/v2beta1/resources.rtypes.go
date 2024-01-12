@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.auth.v2beta1.ComputedTrafficPermissions
+ * auth.v2beta1.ComputedTrafficPermissions
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *ComputedTrafficPermissions) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.auth.v2beta1.NamespaceTrafficPermissions
+ * auth.v2beta1.NamespaceTrafficPermissions
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -62,7 +62,7 @@ func (_ *NamespaceTrafficPermissions) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.auth.v2beta1.PartitionTrafficPermissions
+ * auth.v2beta1.PartitionTrafficPermissions
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -87,7 +87,7 @@ func (_ *PartitionTrafficPermissions) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.auth.v2beta1.TrafficPermissions
+ * auth.v2beta1.TrafficPermissions
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -112,7 +112,7 @@ func (_ *TrafficPermissions) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.auth.v2beta1.WorkloadIdentity
+ * auth.v2beta1.WorkloadIdentity
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

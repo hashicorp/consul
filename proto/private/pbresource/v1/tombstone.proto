@@ -9,7 +9,14 @@ import "pbresource/annotations.proto";
 import "pbresource/resource.proto";
 
 message Tombstone {
-  option (hashicorp.consul.resource.spec) = {scope: SCOPE_UNDEFINED};
+  option (hashicorp.consul.resource.spec) = {
+    scope: SCOPE_UNDEFINED
+    override_type: {
+      group: "internal",
+      group_version: "v1",
+      kind: "Tombstone"
+    }
+  };
 
   // Owner resource identifier
   hashicorp.consul.resource.ID owner = 1;

@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.ComputedFailoverPolicy
+ * catalog.v2beta1.ComputedFailoverPolicy
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *ComputedFailoverPolicy) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.DNSPolicy
+ * catalog.v2beta1.DNSPolicy
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -62,7 +62,7 @@ func (_ *DNSPolicy) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.FailoverPolicy
+ * catalog.v2beta1.FailoverPolicy
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -87,7 +87,7 @@ func (_ *FailoverPolicy) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.HealthChecks
+ * catalog.v2beta1.HealthChecks
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -112,7 +112,7 @@ func (_ *HealthChecks) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.HealthStatus
+ * catalog.v2beta1.HealthStatus
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -137,7 +137,7 @@ func (_ *HealthStatus) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.Node
+ * catalog.v2beta1.Node
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -162,7 +162,7 @@ func (_ *Node) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.NodeHealthStatus
+ * catalog.v2beta1.NodeHealthStatus
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -187,7 +187,7 @@ func (_ *NodeHealthStatus) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.Service
+ * catalog.v2beta1.Service
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -212,7 +212,7 @@ func (_ *Service) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.ServiceEndpoints
+ * catalog.v2beta1.ServiceEndpoints
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -237,7 +237,7 @@ func (_ *ServiceEndpoints) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.VirtualIPs
+ * catalog.v2beta1.VirtualIPs
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -262,7 +262,7 @@ func (_ *VirtualIPs) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.catalog.v2beta1.Workload
+ * catalog.v2beta1.Workload
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

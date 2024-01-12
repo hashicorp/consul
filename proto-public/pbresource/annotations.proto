@@ -6,6 +6,7 @@ syntax = "proto3";
 package hashicorp.consul.resource;
 
 import "google/protobuf/descriptor.proto";
+import "pbresource/resource.proto";
 
 enum Scope {
   // buf:lint:ignore ENUM_ZERO_VALUE_SUFFIX
@@ -18,6 +19,7 @@ enum Scope {
 message ResourceTypeSpec {
   Scope scope = 1;
   bool dont_map_http = 2;
+  Type override_type = 3;
 }
 
 extend google.protobuf.MessageOptions {

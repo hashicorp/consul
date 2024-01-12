@@ -168,26 +168,16 @@ func (r *TypeRegistry) Register(request RegisterRequest) {
 		Mutate:   defaultMutateHook,
 	}
 
-	typ := registration.Type
-	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
-		panic("type field(s) cannot be empty")
-	}
-
-	switch {
-	case !groupRegexp.MatchString(typ.Group):
-		panic(fmt.Sprintf("Type.Group must be in snake_case. Got: %q", typ.Group))
-	case !groupVersionRegexp.MatchString(typ.GroupVersion):
-		panic(fmt.Sprintf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v2beta1`). Got: %q", typ.Group))
-	case !kindRegexp.MatchString(typ.Kind):
-		panic(fmt.Sprintf("Type.Kind must be in PascalCase. Got: %q", typ.Kind))
+	if err := ValidateType(registration.Type); err != nil {
+		panic(err)
 	}
 
 	if request.Proto == nil {
 		panic("Proto field is required.")
 	}
 
-	if registration.Scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(typ) {
-		panic(fmt.Sprintf("scope required for %s. Got: %q", typ, registration.Scope))
+	if registration.Scope == pbresource.Scope_SCOPE_UNDEFINED && !isUndefinedScopeAllowed(registration.Type) {
+		panic(fmt.Sprintf("scope required for %s. Got: %q", registration.Type, registration.Scope))
 	}
 
 	r.lock.Lock()
@@ -222,6 +212,23 @@ func (r *TypeRegistry) Register(request RegisterRequest) {
 	}
 
 	r.registrations[key] = registration
+}
+
+func ValidateType(typ *pbresource.Type) error {
+	if typ.Group == "" || typ.GroupVersion == "" || typ.Kind == "" {
+		return fmt.Errorf("type field(s) cannot be empty")
+	}
+
+	switch {
+	case !groupRegexp.MatchString(typ.Group):
+		return fmt.Errorf("Type.Group must be in snake_case. Got: %q", typ.Group)
+	case !groupVersionRegexp.MatchString(typ.GroupVersion):
+		return fmt.Errorf("Type.GroupVersion must be lowercase, start with `v`, and end with a number (e.g. `v2` or `v2beta1`). Got: %q", typ.Group)
+	case !kindRegexp.MatchString(typ.Kind):
+		return fmt.Errorf("Type.Kind must be in PascalCase. Got: %q", typ.Kind)
+	}
+
+	return nil
 }
 
 func defaultACLReadHook(authz acl.Authorizer, authzContext *acl.AuthorizerContext, id *pbresource.ID, _ *pbresource.Resource) error {

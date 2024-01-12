@@ -7,12 +7,12 @@ import (
 )
 
 const (
-	GroupName = "resource"
+	GroupName = "internal"
 	Version   = "v1"
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.resource.v1.Tombstone
+ * internal.v1.Tombstone
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

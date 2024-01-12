@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.multicluster.v2beta1.ComputedExportedServices
+ * multicluster.v2beta1.ComputedExportedServices
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *ComputedExportedServices) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.multicluster.v2beta1.ExportedServices
+ * multicluster.v2beta1.ExportedServices
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -62,7 +62,7 @@ func (_ *ExportedServices) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.multicluster.v2beta1.NamespaceExportedServices
+ * multicluster.v2beta1.NamespaceExportedServices
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -87,7 +87,7 @@ func (_ *NamespaceExportedServices) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.multicluster.v2beta1.PartitionExportedServices
+ * multicluster.v2beta1.PartitionExportedServices
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -112,7 +112,7 @@ func (_ *PartitionExportedServices) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.multicluster.v2beta1.SamenessGroup
+ * multicluster.v2beta1.SamenessGroup
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

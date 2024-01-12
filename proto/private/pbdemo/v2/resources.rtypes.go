@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.demo.v2.Album
+ * demo.v2.Album
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *Album) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.demo.v2.Artist
+ * demo.v2.Artist
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

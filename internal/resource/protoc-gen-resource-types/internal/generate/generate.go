@@ -43,7 +43,7 @@ type groupInfo struct {
 }
 
 type kind struct {
-	Name     string
+	Type     *pbresource.Type
 	Scope    string
 	Comments protogen.CommentSet
 }
@@ -58,22 +58,48 @@ func newGenerator() *generator {
 	}
 }
 
+func getKindFromMessageDescriptor(m *protogen.Message) (bool, kind, error) {
+	ext := proto.GetExtension(m.Desc.Options(), pbresource.E_Spec).(*pbresource.ResourceTypeSpec)
+	if ext == nil {
+		return false, kind{}, nil
+	}
+
+	var rtype = ext.OverrideType
+
+	if rtype == nil {
+		// All protobuf packages that resources are in are prefixed with hashicorp.consul so we can remove that.
+		// Some protobuf resources exist in proto-private (looking at you demo resources) and for those they also
+		// have an internal in the name that needs stripping.
+		gvkString := strings.TrimPrefix(strings.TrimPrefix(string(m.Desc.FullName()), "hashicorp.consul."), "internal.")
+		var err error
+		rtype, err = resource.ParseGVK(gvkString)
+		if err != nil {
+			return true, kind{}, err
+		}
+	}
+
+	if err := resource.ValidateType(rtype); err != nil {
+		return true, kind{}, err
+	}
+
+	_, valid := pbresource.Scope_name[int32(ext.Scope)]
+	if !valid {
+		return true, kind{}, fmt.Errorf("invalid resource scope %q", ext.Scope)
+	}
+
+	return true, kind{Type: rtype, Scope: ext.Scope.String(), Comments: m.Comments}, nil
+}
+
 func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 	if !f.Generate {
 		return nil
 	}
 
 	for _, m := range f.Messages {
-		ext := proto.GetExtension(m.Desc.Options(), pbresource.E_Spec).(*pbresource.ResourceTypeSpec)
-		if ext == nil {
+		isResource, msgKind, err := getKindFromMessageDescriptor(m)
+		if !isResource {
 			continue
 		}
-
-		// All protobuf packages that resources are in are prefixed with hashicorp.consul so we can remove that.
-		// Some protobuf resources exist in proto-private (looking at you demo resources) and for those they also
-		// have an internal in the name that needs stripping.
-		gvkString := strings.TrimPrefix(strings.TrimPrefix(string(m.Desc.FullName()), "hashicorp.consul."), "internal.")
-		rtype, err := resource.ParseGVK(gvkString)
 		if err != nil {
 			return err
 		}
@@ -81,8 +107,8 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 		apiGroupDir := filepath.Dir(f.Proto.GetName())
 
 		gv := apiGroupVersion{
-			Group:   rtype.Group,
-			Version: rtype.GroupVersion,
+			Group:   msgKind.Type.Group,
+			Version: msgKind.Type.GroupVersion,
 		}
 
 		grp, err := g.ensureAPIGroup(gv, f.GoImportPath, f.GoPackageName, apiGroupDir)
@@ -90,7 +116,7 @@ func (g *generator) addResourceKindsFromFile(f *protogen.File) error {
 			return err
 		}
 
-		grp.Kinds = append(grp.Kinds, kind{Name: rtype.Kind, Scope: ext.Scope.String(), Comments: m.Comments})
+		grp.Kinds = append(grp.Kinds, msgKind)
 	}
 
 	return nil
@@ -120,7 +146,7 @@ func (g *generator) generateTypes(gp *protogen.Plugin) error {
 		f := gp.NewGeneratedFile(filepath.Join(info.Directory, "resources.rtypes.go"), info.ImportPath)
 
 		sort.Slice(info.Kinds, func(a, b int) bool {
-			return info.Kinds[a].Name < info.Kinds[b].Name
+			return info.Kinds[a].Type.Kind < info.Kinds[b].Type.Kind
 		})
 
 		if err := typesTemplate.Execute(f, info); err != nil {
@@ -147,27 +173,27 @@ const (
 
 {{range $kind := .Kinds}}
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.{{$.Name}}.{{$.Version}}.{{$kind.Name}}
+ * {{$.Name}}.{{$.Version}}.{{$kind.Type.Kind}}
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
  * -------------------------------------------------------------------------*/ 
 const (
-   {{$kind.Name}}Kind = "{{$kind.Name}}"
-	{{$kind.Name}}Scope = pbresource.Scope_{{$kind.Scope}}
+   {{$kind.Type.Kind}}Kind = "{{$kind.Type.Kind}}"
+	{{$kind.Type.Kind}}Scope = pbresource.Scope_{{$kind.Scope}}
 )
-var {{$kind.Name}}Type = &pbresource.Type{
+var {{$kind.Type.Kind}}Type = &pbresource.Type{
    Group: GroupName,
    GroupVersion: Version,
-   Kind: {{$kind.Name}}Kind,
+   Kind: {{$kind.Type.Kind}}Kind,
 }
 
-func (_ *{{$kind.Name}}) GetResourceType() *pbresource.Type {
-   return {{$kind.Name}}Type
+func (_ *{{$kind.Type.Kind}}) GetResourceType() *pbresource.Type {
+   return {{$kind.Type.Kind}}Type
 }
 
-func (_ *{{$kind.Name}}) GetResourceScope() pbresource.Scope {
-   return {{$kind.Name}}Scope
+func (_ *{{$kind.Type.Kind}}) GetResourceScope() pbresource.Scope {
+   return {{$kind.Type.Kind}}Scope
 }
 {{- end}}
 `))

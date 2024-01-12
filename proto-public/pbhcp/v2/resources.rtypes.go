@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.hcp.v2.Link
+ * hcp.v2.Link
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.tenancy.v2beta1.Namespace
+ * tenancy.v2beta1.Namespace
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *Namespace) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.tenancy.v2beta1.Partition
+ * tenancy.v2beta1.Partition
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.

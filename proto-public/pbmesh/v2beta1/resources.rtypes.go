@@ -12,7 +12,7 @@ const (
 )
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.ComputedExplicitDestinations
+ * mesh.v2beta1.ComputedExplicitDestinations
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -37,7 +37,7 @@ func (_ *ComputedExplicitDestinations) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.ComputedProxyConfiguration
+ * mesh.v2beta1.ComputedProxyConfiguration
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -62,7 +62,7 @@ func (_ *ComputedProxyConfiguration) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.ComputedRoutes
+ * mesh.v2beta1.ComputedRoutes
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -87,7 +87,7 @@ func (_ *ComputedRoutes) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.DestinationPolicy
+ * mesh.v2beta1.DestinationPolicy
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -112,7 +112,7 @@ func (_ *DestinationPolicy) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.Destinations
+ * mesh.v2beta1.Destinations
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -137,7 +137,7 @@ func (_ *Destinations) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.DestinationsConfiguration
+ * mesh.v2beta1.DestinationsConfiguration
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -162,7 +162,7 @@ func (_ *DestinationsConfiguration) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.GRPCRoute
+ * mesh.v2beta1.GRPCRoute
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -187,7 +187,7 @@ func (_ *GRPCRoute) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.GatewayClass
+ * mesh.v2beta1.GatewayClass
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -212,7 +212,7 @@ func (_ *GatewayClass) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.GatewayClassConfig
+ * mesh.v2beta1.GatewayClassConfig
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -237,7 +237,7 @@ func (_ *GatewayClassConfig) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.HTTPRoute
+ * mesh.v2beta1.HTTPRoute
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -262,7 +262,7 @@ func (_ *HTTPRoute) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.MeshConfiguration
+ * mesh.v2beta1.MeshConfiguration
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -287,7 +287,7 @@ func (_ *MeshConfiguration) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.MeshGateway
+ * mesh.v2beta1.MeshGateway
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -312,7 +312,7 @@ func (_ *MeshGateway) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.ProxyConfiguration
+ * mesh.v2beta1.ProxyConfiguration
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -337,7 +337,7 @@ func (_ *ProxyConfiguration) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.ProxyStateTemplate
+ * mesh.v2beta1.ProxyStateTemplate
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
@@ -362,7 +362,7 @@ func (_ *ProxyStateTemplate) GetResourceScope() pbresource.Scope {
 }
 
 /* ---------------------------------------------------------------------------
- * hashicorp.consul.mesh.v2beta1.TCPRoute
+ * mesh.v2beta1.TCPRoute
  *
  * This following section contains constants variables and utility methods
  * for interacting with this kind of resource.
