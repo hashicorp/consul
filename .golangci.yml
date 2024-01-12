@@ -98,18 +98,14 @@ linters-settings:
               - google.golang.org/protobuf
 
   depguard:
-    list-type: denylist
-    include-go-root: true
-    # A list of packages for the list type specified.
-    # Default: []
-    packages:
-      - net/rpc
-    # A list of packages for the list type specified.
-    # Specify an error message to output when a denied package is used.
-    # Default: []
-    packages-with-error-message:
-      - net/rpc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
-      - github.com/golang/protobuf: "only use google.golang.org/protobuf"
+    rules:
+      main:
+        listMode: lax
+        deny:
+        - pkg: net/rpc
+          desc: "only use forked copy in github.com/hashicorp/consul-net-rpc/net/rpc"
+        - pkg: github.com/golang/protobuf
+          desc: "only use google.golang.org/protobuf"
 
 run:
   timeout: 10m
