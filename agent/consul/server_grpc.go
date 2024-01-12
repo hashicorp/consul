@@ -238,6 +238,7 @@ func (s *Server) setupGRPCServices(config *Config, deps Deps) error {
 	s.peerStreamServer, err = s.registerPeerStreamServer(
 		config,
 		s.externalGRPCServer,
+		s.internalGRPCHandler,
 	)
 	if err != nil {
 		return err
