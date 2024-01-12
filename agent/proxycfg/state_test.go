@@ -2400,7 +2400,7 @@ func TestState_WatchesAndUpdates(t *testing.T) {
 									discoChainSetWithEntries(&structs.ServiceConfigEntry{
 										Kind: structs.ServiceDefaults,
 										Name: "db",
-										TransparentProxy: structs.TransparentProxyConfig{
+										TransparentProxy: &structs.TransparentProxyConfig{
 											DialedDirectly: true,
 										},
 									}),
