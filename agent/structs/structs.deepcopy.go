@@ -910,6 +910,10 @@ func (o *PeeringServiceMeta) DeepCopy() *PeeringServiceMeta {
 // DeepCopy generates a deep copy of *ServiceConfigEntry
 func (o *ServiceConfigEntry) DeepCopy() *ServiceConfigEntry {
 	var cp ServiceConfigEntry = *o
+	if o.TransparentProxy != nil {
+		cp.TransparentProxy = new(TransparentProxyConfig)
+		*cp.TransparentProxy = *o.TransparentProxy
+	}
 	{
 		retV := o.Expose.DeepCopy()
 		cp.Expose = *retV
