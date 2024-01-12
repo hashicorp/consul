@@ -1941,7 +1941,9 @@ func ServiceDefaultsToStructs(s *ServiceDefaults, t *structs.ServiceConfigEntry)
 	t.Protocol = s.Protocol
 	t.Mode = proxyModeToStructs(s.Mode)
 	if s.TransparentProxy != nil {
-		TransparentProxyConfigToStructs(s.TransparentProxy, &t.TransparentProxy)
+		var x structs.TransparentProxyConfig
+		TransparentProxyConfigToStructs(s.TransparentProxy, &x)
+		t.TransparentProxy = &x
 	}
 	t.MutualTLSMode = mutualTLSModeToStructs(s.MutualTLSMode)
 	if s.MeshGateway != nil {
@@ -1980,9 +1982,9 @@ func ServiceDefaultsFromStructs(t *structs.ServiceConfigEntry, s *ServiceDefault
 	}
 	s.Protocol = t.Protocol
 	s.Mode = proxyModeFromStructs(t.Mode)
-	{
+	if t.TransparentProxy != nil {
 		var x TransparentProxyConfig
-		TransparentProxyConfigFromStructs(&t.TransparentProxy, &x)
+		TransparentProxyConfigFromStructs(t.TransparentProxy, &x)
 		s.TransparentProxy = &x
 	}
 	s.MutualTLSMode = mutualTLSModeFromStructs(t.MutualTLSMode)
