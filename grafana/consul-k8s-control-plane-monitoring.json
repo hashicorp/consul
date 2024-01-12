@@ -1655,101 +1655,6 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "description": "",
-                    "fieldConfig": {
-                        "defaults": {
-                            "color": {
-                                "mode": "palette-classic"
-                            },
-                            "custom": {
-                                "axisCenteredZero": false,
-                                "axisColorMode": "text",
-                                "axisLabel": "",
-                                "axisPlacement": "auto",
-                                "barAlignment": 0,
-                                "drawStyle": "line",
-                                "fillOpacity": 0,
-                                "gradientMode": "none",
-                                "hideFrom": {
-                                    "legend": false,
-                                    "tooltip": false,
-                                    "viz": false
-                                },
-                                "lineInterpolation": "linear",
-                                "lineWidth": 1,
-                                "pointSize": 5,
-                                "scaleDistribution": {
-                                    "type": "linear"
-                                },
-                                "showPoints": "auto",
-                                "spanNulls": false,
-                                "stacking": {
-                                    "group": "A",
-                                    "mode": "none"
-                                },
-                                "thresholdsStyle": {
-                                    "mode": "off"
-                                }
-                            },
-                            "mappings": [],
-                            "thresholds": {
-                                "mode": "absolute",
-                                "steps": [
-                                    {
-                                        "color": "green",
-                                        "value": null
-                                    },
-                                    {
-                                        "color": "red",
-                                        "value": 80
-                                    }
-                                ]
-                            },
-                            "unit": "bytes"
-                        },
-                        "overrides": []
-                    },
-                    "gridPos": {
-                        "h": 8,
-                        "w": 15,
-                        "x": 0,
-                        "y": 36
-                    },
-                    "id": 48,
-                    "options": {
-                        "legend": {
-                            "calcs": [],
-                            "displayMode": "list",
-                            "placement": "bottom",
-                            "showLegend": true
-                        },
-                        "tooltip": {
-                            "mode": "single",
-                            "sort": "none"
-                        }
-                    },
-                    "targets": [
-                        {
-                            "datasource": {
-                                "type": "prometheus",
-                                "uid": "PBFA97CFB590B2093"
-                            },
-                            "editorMode": "code",
-                            "expr": "sum(rate(container_network_receive_bytes_total{pod=~\"consul-server-.*\"}[5m])) by (pod)",
-                            "hide": false,
-                            "legendFormat": "__auto",
-                            "range": true,
-                            "refId": "A"
-                        }
-                    ],
-                    "title": "Received bytes total per 5 minutes (Consul servers)",
-                    "type": "timeseries"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "PBFA97CFB590B2093"
-                    },
                     "description": "Gives the filesystem storage used by the container",
                     "fieldConfig": {
                         "defaults": {
@@ -1802,7 +1707,7 @@
                             },
                             "editorMode": "code",
                             "exemplar": false,
-                            "expr": "sum(container_fs_usage_bytes)",
+                            "expr": "sum(container_fs_usage_bytes) by (instance)",
                             "instant": true,
                             "legendFormat": "__auto",
                             "range": false,
@@ -1875,7 +1780,7 @@
                         "h": 8,
                         "w": 15,
                         "x": 0,
-                        "y": 44
+                        "y": 36
                     },
                     "id": 101,
                     "options": {
@@ -1897,9 +1802,9 @@
                                 "uid": "PBFA97CFB590B2093"
                             },
                             "editorMode": "code",
-                            "expr": "sum(rate(container_fs_writes_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (container, device)",
+                            "expr": "sum(rate(container_fs_writes_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
                             "hide": false,
-                            "legendFormat": "writes, {container=\"{{container}}\", device=\"{{device}}\"}",
+                            "legendFormat": "writes, {pod=\"{{pod}}\", device=\"{{device}}\"}",
                             "range": true,
                             "refId": "A"
                         },
@@ -1909,14 +1814,109 @@
                                 "uid": "PBFA97CFB590B2093"
                             },
                             "editorMode": "code",
-                            "expr": "sum(rate(container_fs_reads_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (container, device)",
+                            "expr": "sum(rate(container_fs_reads_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
                             "hide": false,
-                            "legendFormat": "reads, {container=\"{{container}}\", device=\"{{device}}\"}",
+                            "legendFormat": "reads, {pod=\"{{pod}}\", device=\"{{device}}\"}",
                             "range": true,
                             "refId": "B"
                         }
                     ],
-                    "title": "Disk IO (Consul servers)",
+                    "title": "Disk Read/Write total per 5 minutes (Consul servers)",
+                    "type": "timeseries"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "PBFA97CFB590B2093"
+                    },
+                    "description": "",
+                    "fieldConfig": {
+                        "defaults": {
+                            "color": {
+                                "mode": "palette-classic"
+                            },
+                            "custom": {
+                                "axisCenteredZero": false,
+                                "axisColorMode": "text",
+                                "axisLabel": "",
+                                "axisPlacement": "auto",
+                                "barAlignment": 0,
+                                "drawStyle": "line",
+                                "fillOpacity": 0,
+                                "gradientMode": "none",
+                                "hideFrom": {
+                                    "legend": false,
+                                    "tooltip": false,
+                                    "viz": false
+                                },
+                                "lineInterpolation": "linear",
+                                "lineWidth": 1,
+                                "pointSize": 5,
+                                "scaleDistribution": {
+                                    "type": "linear"
+                                },
+                                "showPoints": "auto",
+                                "spanNulls": false,
+                                "stacking": {
+                                    "group": "A",
+                                    "mode": "none"
+                                },
+                                "thresholdsStyle": {
+                                    "mode": "off"
+                                }
+                            },
+                            "mappings": [],
+                            "thresholds": {
+                                "mode": "absolute",
+                                "steps": [
+                                    {
+                                        "color": "green",
+                                        "value": null
+                                    },
+                                    {
+                                        "color": "red",
+                                        "value": 80
+                                    }
+                                ]
+                            },
+                            "unit": "bytes"
+                        },
+                        "overrides": []
+                    },
+                    "gridPos": {
+                        "h": 8,
+                        "w": 15,
+                        "x": 0,
+                        "y": 44
+                    },
+                    "id": 48,
+                    "options": {
+                        "legend": {
+                            "calcs": [],
+                            "displayMode": "list",
+                            "placement": "bottom",
+                            "showLegend": true
+                        },
+                        "tooltip": {
+                            "mode": "single",
+                            "sort": "none"
+                        }
+                    },
+                    "targets": [
+                        {
+                            "datasource": {
+                                "type": "prometheus",
+                                "uid": "PBFA97CFB590B2093"
+                            },
+                            "editorMode": "code",
+                            "expr": "sum(rate(container_network_receive_bytes_total{pod=~\"consul-server-.*\"}[5m])) by (pod)",
+                            "hide": false,
+                            "legendFormat": "__auto",
+                            "range": true,
+                            "refId": "A"
+                        }
+                    ],
+                    "title": "Received bytes total per 5 minutes (Consul servers)",
                     "type": "timeseries"
                 }
             ],
