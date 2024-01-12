@@ -105,11 +105,13 @@ func ComputeResolvedServiceConfig(
 			thisReply.MeshGateway.Mode = serviceConf.MeshGateway.Mode
 			wildcardUpstreamDefaults["mesh_gateway"] = serviceConf.MeshGateway
 		}
-		if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
-			thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
-		}
-		if serviceConf.TransparentProxy.DialedDirectly {
-			thisReply.TransparentProxy.DialedDirectly = serviceConf.TransparentProxy.DialedDirectly
+		if serviceConf.TransparentProxy != nil {
+			if serviceConf.TransparentProxy.OutboundListenerPort != 0 {
+				thisReply.TransparentProxy.OutboundListenerPort = serviceConf.TransparentProxy.OutboundListenerPort
+			}
+			if serviceConf.TransparentProxy.DialedDirectly {
+				thisReply.TransparentProxy.DialedDirectly = serviceConf.TransparentProxy.DialedDirectly
+			}
 		}
 		if serviceConf.Mode != structs.ProxyModeDefault {
 			thisReply.Mode = serviceConf.Mode
