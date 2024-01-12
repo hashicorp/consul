@@ -11,7 +11,8 @@ import (
 	"net/url"
 )
 
-// RequestRegisterService registers a service at the given node address.
+// RequestRegisterService registers a service at the given node address
+// using consul http request.
 //
 // The service definition must be a JSON string.
 func RequestRegisterService(clusterHttpCli *http.Client, nodeAddress string, serviceDefinition string, token string) error {
