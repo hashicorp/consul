@@ -14,10 +14,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hashicorp/consul/sdk/testutil/retry"
 
 	libcluster "github.com/hashicorp/consul/test/integration/consul-container/libs/cluster"
 	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
@@ -354,6 +355,15 @@ func GetEnvoyOutputWithClient(client *http.Client, addr string, path string, que
 	}
 
 	return string(body), statusCode, nil
+}
+
+func ResetEnvoyCounters(client *http.Client, addr string) (int, error) {
+	var u url.URL
+	u.Host = addr
+	u.Scheme = "http"
+
+	res, err := client.Post(fmt.Sprintf("%s/reset_counters", u.String()), "application/json", nil)
+	return res.StatusCode, err
 }
 
 // sanitizeResult takes the value returned from config_dump json and cleans it up to remove special characters
