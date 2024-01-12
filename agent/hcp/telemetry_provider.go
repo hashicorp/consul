@@ -53,6 +53,9 @@ type hcpProviderImpl struct {
 	rw        sync.RWMutex
 	httpCfgRW sync.RWMutex
 
+	// running indicates if the HCP telemetry config provider has been started
+	running bool
+
 	// hcpClient is an authenticated client used to make HTTP requests to HCP.
 	hcpClient client.Client
 
@@ -108,8 +111,17 @@ func NewHCPProvider(ctx context.Context) *hcpProviderImpl {
 	return h
 }
 
-// Run continously checks for updates to the telemetry configuration by making a request to HCP.
+// Run starts a process that continuously checks for updates to the telemetry configuration
+// by making a request to HCP. It only starts running if it's not already running.
 func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
+	if h.isRunning() {
+		return nil
+	}
+
+	h.rw.Lock()
+	h.running = true
+	h.rw.Unlock()
+
 	// Update the provider with the HCP configurations
 	h.hcpClient = c.HCPClient
 	err := h.updateHTTPConfig(c.HCPConfig)
@@ -122,7 +134,7 @@ func (h *hcpProviderImpl) Run(ctx context.Context, c *HCPProviderCfg) error {
 	return nil
 }
 
-// Run continously checks for updates to the telemetry configuration by making a request to HCP.
+// run continuously checks for updates to the telemetry configuration by making a request to HCP.
 func (h *hcpProviderImpl) run(ctx context.Context) error {
 	h.logger.Debug("starting telemetry config provider")
 
@@ -299,4 +311,12 @@ func (h *hcpProviderImpl) GetHTTPClient() *retryablehttp.Client {
 	defer h.httpCfgRW.RUnlock()
 
 	return h.httpCfg.client
+}
+
+// isRunning acquires a read lock to return whether the provider is running.
+func (h *hcpProviderImpl) isRunning() bool {
+	h.rw.RLock()
+	defer h.rw.RUnlock()
+
+	return h.running
 }
