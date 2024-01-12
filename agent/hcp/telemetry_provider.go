@@ -281,11 +281,15 @@ func (h *hcpProviderImpl) updateHTTPConfig(cfg config.CloudConfigurer) error {
 
 // GetHeader acquires a read lock to return the HTTP request headers needed
 // to export metrics.
-func (h *hcpProviderImpl) GetHeader() *http.Header {
+func (h *hcpProviderImpl) GetHeader() http.Header {
 	h.httpCfgRW.RLock()
 	defer h.httpCfgRW.RUnlock()
 
-	return h.httpCfg.header
+	if h.httpCfg.header == nil {
+		return nil
+	}
+
+	return h.httpCfg.header.Clone()
 }
 
 // GetHTTPClient acquires a read lock to return the retryable HTTP client needed

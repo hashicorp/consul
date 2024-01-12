@@ -373,7 +373,7 @@ func TestTelemetryConfigProvider_updateHTTPConfig(t *testing.T) {
 			expectedHeader.Set("content-type", "application/x-protobuf")
 			expectedHeader.Set("x-hcp-resource-id", "organization/test-org/project/test-project/test-type/test-id")
 			expectedHeader.Set("x-channel", fmt.Sprintf("consul/%s", version.GetHumanVersion()))
-			require.Equal(t, &expectedHeader, provider.GetHeader())
+			require.Equal(t, expectedHeader, provider.GetHeader())
 		})
 	}
 }

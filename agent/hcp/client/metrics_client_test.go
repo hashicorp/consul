@@ -24,7 +24,7 @@ type mockClientProvider struct {
 }
 
 func (m *mockClientProvider) GetHTTPClient() *retryablehttp.Client { return m.client }
-func (m *mockClientProvider) GetHeader() *http.Header              { return m.header }
+func (m *mockClientProvider) GetHeader() http.Header               { return m.header.Clone() }
 
 func newMockClientProvider() *mockClientProvider {
 	header := make(http.Header)

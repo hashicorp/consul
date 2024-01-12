@@ -29,7 +29,7 @@ const (
 // by the metrics client.
 type MetricsClientProvider interface {
 	GetHTTPClient() *retryablehttp.Client
-	GetHeader() *http.Header
+	GetHeader() http.Header
 }
 
 // otlpClient is an implementation of MetricsClient with a retryable http client for retries and to honor throttle.
@@ -68,7 +68,7 @@ func (o *otlpClient) ExportMetrics(ctx context.Context, protoMetrics *metricpb.R
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header = *o.provider.GetHeader()
+	req.Header = o.provider.GetHeader()
 
 	resp, err := client.Do(req.WithContext(ctx))
 	if err != nil {
