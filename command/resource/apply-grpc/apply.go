@@ -83,15 +83,10 @@ func (c *cmd) Run(args []string) int {
 	}
 
 	// write resource
-	gvk := &resource.GVK{
-		Group:   parsedResource.Id.Type.GetGroup(),
-		Version: parsedResource.Id.Type.GetGroupVersion(),
-		Kind:    parsedResource.Id.Type.GetKind(),
-	}
 	res := resource.ResourceGRPC{C: resourceClient}
 	entry, err := res.Apply(parsedResource)
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", gvk, parsedResource.Id.GetName(), err))
+		c.UI.Error(fmt.Sprintf("Error writing resource %s/%s: %v", parsedResource.Id.Type, parsedResource.Id.GetName(), err))
 		return 1
 	}
 
@@ -101,7 +96,7 @@ func (c *cmd) Run(args []string) int {
 		c.UI.Error("Failed to encode output data")
 		return 1
 	}
-	c.UI.Info(fmt.Sprintf("%s.%s.%s '%s' created.", gvk.Group, gvk.Version, gvk.Kind, parsedResource.Id.GetName()))
+	c.UI.Info(fmt.Sprintf("%s.%s.%s '%s' created.", parsedResource.Id.Type.Group, parsedResource.Id.Type.GroupVersion, parsedResource.Id.Type.Kind, parsedResource.Id.GetName()))
 	c.UI.Info(string(b))
 
 	return 0

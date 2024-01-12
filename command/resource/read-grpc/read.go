@@ -11,7 +11,6 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/consul/api"
 	"github.com/hashicorp/consul/command/flags"
 	"github.com/hashicorp/consul/command/resource"
 	"github.com/hashicorp/consul/command/resource/client"
@@ -25,35 +24,36 @@ func New(ui cli.Ui) *cmd {
 }
 
 type cmd struct {
-	UI    cli.Ui
-	flags *flag.FlagSet
-	http  *flags.HTTPFlags
-	help  string
+	UI        cli.Ui
+	flags     *flag.FlagSet
+	grpcFlags *client.GRPCFlags
+	help      string
 
 	filePath string
 }
 
 func (c *cmd) init() {
 	c.flags = flag.NewFlagSet("", flag.ContinueOnError)
-	c.http = &flags.HTTPFlags{}
-	c.flags.StringVar(&c.filePath, "f", "", "File path with resource definition")
-	flags.Merge(c.flags, c.http.ClientFlags())
-	flags.Merge(c.flags, c.http.ServerFlags())
-	flags.Merge(c.flags, c.http.MultiTenancyFlags())
-	flags.Merge(c.flags, c.http.AddPeerName())
-	c.help = flags.Usage(help, c.flags)
+	c.flags.StringVar(&c.filePath, "f", "",
+		"File path with resource definition")
+
+	c.grpcFlags = &client.GRPCFlags{}
+	client.MergeFlags(c.flags, c.grpcFlags.ClientFlags())
+	c.help = client.Usage(help, c.flags)
 }
 
 func (c *cmd) Run(args []string) int {
-	var gvk *resource.GVK
+	var resourceType *pbresource.Type
+	var resourceTenancy *pbresource.Tenancy
 	var resourceName string
-	var opts *client.QueryOptions
 
 	if err := c.flags.Parse(args); err != nil {
 		if !errors.Is(err, flag.ErrHelp) {
 			c.UI.Error(fmt.Sprintf("Failed to parse args: %v", err))
 			return 1
 		}
+		c.UI.Error(fmt.Sprintf("Failed to run apply command: %v", err))
+		return 1
 	}
 
 	if c.flags.Lookup("f").Value.String() != "" {
@@ -69,32 +69,16 @@ func (c *cmd) Run(args []string) int {
 				return 1
 			}
 
-			gvk = &resource.GVK{
-				Group:   parsedResource.Id.Type.GetGroup(),
-				Version: parsedResource.Id.Type.GetGroupVersion(),
-				Kind:    parsedResource.Id.Type.GetKind(),
-			}
-			resourceName = parsedResource.Id.GetName()
-			opts = &client.QueryOptions{
-				Namespace:         parsedResource.Id.Tenancy.GetNamespace(),
-				Partition:         parsedResource.Id.Tenancy.GetPartition(),
-				Peer:              parsedResource.Id.Tenancy.GetPeerName(),
-				Token:             c.http.Token(),
-				RequireConsistent: !c.http.Stale(),
-			}
+			resourceType = parsedResource.Id.Type
+			resourceTenancy = parsedResource.Id.Tenancy
+			resourceName = parsedResource.Id.Name
 		} else {
 			c.UI.Error(fmt.Sprintf("Please provide an input file with resource definition"))
 			return 1
 		}
 	} else {
 		var err error
-		var resourceType *pbresource.Type
 		resourceType, resourceName, err = resource.GetTypeAndResourceName(args)
-		gvk = &resource.GVK{
-			Group:   resourceType.GetGroup(),
-			Version: resourceType.GetGroupVersion(),
-			Kind:    resourceType.GetKind(),
-		}
 		if err != nil {
 			c.UI.Error(fmt.Sprintf("Incorrect argument format: %s", err))
 			return 1
@@ -110,32 +94,35 @@ func (c *cmd) Run(args []string) int {
 			c.UI.Error("Incorrect argument format: File argument is not needed when resource information is provided with the command")
 			return 1
 		}
-		opts = &client.QueryOptions{
-			Namespace:         c.http.Namespace(),
-			Partition:         c.http.Partition(),
-			Peer:              c.http.PeerName(),
-			Token:             c.http.Token(),
-			RequireConsistent: !c.http.Stale(),
+		resourceTenancy = &pbresource.Tenancy{
+			Namespace: c.grpcFlags.Namespace(),
+			Partition: c.grpcFlags.Partition(),
+			PeerName:  c.grpcFlags.Peername(),
 		}
 	}
 
-	config := api.DefaultConfig()
-
-	c.http.MergeOntoConfig(config)
-	resourceClient, err := client.NewClient(config)
+	// initialize client
+	config, err := client.LoadGRPCConfig(nil)
+	if err != nil {
+		c.UI.Error(fmt.Sprintf("Error loading config: %s", err))
+		return 1
+	}
+	c.grpcFlags.MergeFlagsIntoGRPCConfig(config)
+	resourceClient, err := client.NewGRPCClient(config)
 	if err != nil {
 		c.UI.Error(fmt.Sprintf("Error connect to Consul agent: %s", err))
 		return 1
 	}
 
-	res := resource.Resource{C: resourceClient}
-
-	entry, err := res.Read(gvk, resourceName, opts)
+	// read resource
+	res := resource.ResourceGRPC{C: resourceClient}
+	entry, err := res.Read(resourceType, resourceTenancy, resourceName, c.grpcFlags.Stale())
 	if err != nil {
-		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", gvk, resourceName, err))
+		c.UI.Error(fmt.Sprintf("Error reading resource %s/%s: %v", resourceType, resourceName, err))
 		return 1
 	}
 
+	// display response
 	b, err := json.MarshalIndent(entry, "", "    ")
 	if err != nil {
 		c.UI.Error("Failed to encode output data")

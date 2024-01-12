@@ -17,6 +17,12 @@ type GRPCFlags struct {
 	caPath    TValue[string]
 	token     TValue[string]
 	tokenFile TValue[string]
+
+	// flags that are not merged into GRPCConfig
+	namespace TValue[string]
+	partition TValue[string]
+	peername  TValue[string]
+	stale     TValue[bool]
 }
 
 // MergeFlagsIntoGRPCConfig merges flag values into grpc config
@@ -74,6 +80,20 @@ func (f *GRPCFlags) ClientFlags() *flag.FlagSet {
 		"File containing the ACL token to use in the request instead of one specified "+
 			"via the -token-file argument or CONSUL_GRPC_TOKEN_FILE environment variable. "+
 			"Notice the tokenFile takes precedence over token flag and environment variables.")
+	fs.Var(&f.namespace, "namespace",
+		"Specifies the namespace to query. If not provided, the namespace will be inferred "+
+			"from the request's ACL token, or will default to the `default` namespace. "+
+			"Namespaces are a Consul Enterprise feature.")
+	fs.Var(&f.partition, "partition",
+		"Specifies the admin partition to query. If not provided, the admin partition will be inferred "+
+			"from the request's ACL token, or will default to the `default` admin partition. "+
+			"Admin Partitions are a Consul Enterprise feature.")
+	fs.Var(&f.peername, "peer", "Specifies the name of peer to query. By default, it is `local`.")
+	fs.Var(&f.stale, "stale",
+		"Permit any Consul server (non-leader) to respond to this request. This "+
+			"allows for lower latency and higher throughput, but can result in "+
+			"stale data. This option has no effect on non-read operations. The "+
+			"default value is false.")
 	return fs
 }
 
@@ -87,4 +107,24 @@ func MergeFlags(dst, src *flag.FlagSet) {
 	src.VisitAll(func(f *flag.Flag) {
 		dst.Var(f.Value, f.Name, f.Usage)
 	})
+}
+
+// read the unmerged flag values
+func (f *GRPCFlags) Namespace() string {
+	return f.namespace.String()
+}
+
+func (f *GRPCFlags) Partition() string {
+	return f.partition.String()
+}
+
+func (f *GRPCFlags) Peername() string {
+	return f.peername.String()
+}
+
+func (f *GRPCFlags) Stale() bool {
+	if f.stale.v == nil {
+		return false
+	}
+	return *f.stale.v
 }

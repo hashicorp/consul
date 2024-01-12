@@ -39,3 +39,32 @@ func (resource *ResourceGRPC) Apply(parsedResource *pbresource.Resource) (*pbres
 
 	return writeRsp.Resource, err
 }
+
+func (resource *ResourceGRPC) Read(resourceType *pbresource.Type, resourceTenancy *pbresource.Tenancy, resourceName string, stale bool) (*pbresource.Resource, error) {
+	token, err := resource.C.Config.GetToken()
+	if err != nil {
+		return nil, err
+	}
+	ctx := context.Background()
+	if !stale {
+		ctx = metadata.AppendToOutgoingContext(ctx, "x-consul-consistency-mode", "consistent")
+	}
+	if token != "" {
+		ctx = metadata.AppendToOutgoingContext(context.Background(), HeaderConsulToken, token)
+	}
+
+	defer resource.C.Conn.Close()
+	readRsp, err := resource.C.Client.Read(ctx, &pbresource.ReadRequest{
+		Id: &pbresource.ID{
+			Type:    resourceType,
+			Tenancy: resourceTenancy,
+			Name:    resourceName,
+		},
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("error writing resource: %+v", err)
+	}
+
+	return readRsp.Resource, err
+}
