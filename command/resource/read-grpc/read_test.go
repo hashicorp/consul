@@ -4,13 +4,15 @@ package read
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/mitchellh/cli"
 	"github.com/stretchr/testify/require"
 
 	"github.com/hashicorp/consul/agent"
-	"github.com/hashicorp/consul/command/resource/apply"
+	"github.com/hashicorp/consul/command/resource/apply-grpc"
+	"github.com/hashicorp/consul/sdk/freeport"
 	"github.com/hashicorp/consul/testrpc"
 )
 
@@ -84,12 +86,12 @@ func TestResourceReadInvalidArgs(t *testing.T) {
 	}
 }
 
-func createResource(t *testing.T, a *agent.TestAgent) {
+func createResource(t *testing.T, port int) {
 	applyUi := cli.NewMockUi()
 	applyCmd := apply.New(applyUi)
 
 	args := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", port),
 		"-token=root",
 	}
 
@@ -107,16 +109,19 @@ func TestResourceRead(t *testing.T) {
 
 	t.Parallel()
 
-	a := agent.NewTestAgent(t, ``)
-	defer a.Shutdown()
+	availablePort := freeport.GetOne(t)
+	a := agent.NewTestAgent(t, fmt.Sprintf("ports { grpc = %d }", availablePort))
 	testrpc.WaitForTestAgent(t, a.RPC, "dc1")
+	t.Cleanup(func() {
+		a.Shutdown()
+	})
 
 	defaultCmdArgs := []string{
-		"-http-addr=" + a.HTTPAddr(),
+		fmt.Sprintf("-grpc-addr=127.0.0.1:%d", availablePort),
 		"-token=root",
 	}
 
-	createResource(t, a)
+	createResource(t, availablePort)
 	cases := []struct {
 		name         string
 		args         []string
@@ -139,7 +144,7 @@ func TestResourceRead(t *testing.T) {
 			name:         "read resource that doesn't exist",
 			args:         []string{"demo.v2.Artist", "fake-korn", "-partition=default", "-namespace=default", "-peer=local"},
 			expectedCode: 1,
-			errMsg:       "Error reading resource demo.v2.Artist/fake-korn: Unexpected response code: 404 (rpc error: code = NotFound desc = resource not found)\n",
+			errMsg:       "Error reading resource group:\"demo\" group_version:\"v2\" kind:\"Artist\"/fake-korn: error reading resource: rpc error: code = NotFound desc = resource not found\n",
 		},
 	}
 

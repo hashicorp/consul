@@ -56,6 +56,7 @@ func (c *cmd) Run(args []string) int {
 		return 1
 	}
 
+	// collect resource type, name and tenancy
 	if c.flags.Lookup("f").Value.String() != "" {
 		if c.filePath != "" {
 			parsedResource, err := resource.ParseResourceFromFile(c.filePath)

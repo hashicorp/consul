@@ -63,7 +63,7 @@ func (resource *ResourceGRPC) Read(resourceType *pbresource.Type, resourceTenanc
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("error writing resource: %+v", err)
+		return nil, fmt.Errorf("error reading resource: %+v", err)
 	}
 
 	return readRsp.Resource, err
