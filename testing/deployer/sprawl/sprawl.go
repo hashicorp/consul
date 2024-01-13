@@ -100,6 +100,19 @@ func (s *Sprawl) HTTPClientForCluster(clusterName string) (*http.Client, error) 
 	return &http.Client{Transport: transport}, nil
 }
 
+// LocalAddressForNode returns the local address for the given node in the cluster
+func (s *Sprawl) LocalAddressForNode(clusterName string, nid topology.NodeID) (string, error) {
+	cluster, ok := s.topology.Clusters[clusterName]
+	if !ok {
+		return "", fmt.Errorf("no such cluster: %s", clusterName)
+	}
+	node := cluster.NodeByID(nid)
+	if !node.IsAgent() {
+		return "", fmt.Errorf("node is not an agent")
+	}
+	return node.LocalAddress(), nil
+}
+
 // APIClientForNode gets a pooled api.Client connected to the agent running on
 // the provided node.
 //
@@ -138,7 +151,7 @@ func (s *Sprawl) APIClientForNode(clusterName string, nid topology.NodeID, token
 func (s *Sprawl) APIClientForCluster(clusterName, token string) (*api.Client, error) {
 	clu := s.topology.Clusters[clusterName]
 	// TODO: this always goes to the first client, but we might want to balance this
-	firstAgent := clu.FirstClient()
+	firstAgent := clu.FirstClient("")
 	if firstAgent == nil {
 		firstAgent = clu.FirstServer()
 	}

@@ -28,9 +28,7 @@ var (
 )
 
 // NewHandler returns a gRPC server that accepts connections from Handle(conn).
-// The register function will be called with the grpc.Server to register
-// gRPC services with the server.
-func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server), metricsObj *metrics.Metrics, rateLimiter rate.RequestLimitsHandler) *Handler {
+func NewHandler(logger Logger, addr net.Addr, metricsObj *metrics.Metrics, rateLimiter rate.RequestLimitsHandler) *Handler {
 	if metricsObj == nil {
 		metricsObj = metrics.Default()
 	}
@@ -59,7 +57,6 @@ func NewHandler(logger Logger, addr net.Addr, register func(server *grpc.Server)
 	// We don't need to pass tls.Config to the server since it's multiplexed
 	// behind the RPC listener, which already has TLS configured.
 	srv := grpc.NewServer(opts...)
-	register(srv)
 
 	return &Handler{srv: srv, listener: NewListener(addr)}
 }
@@ -78,6 +75,12 @@ func (h *Handler) Handle(conn net.Conn) {
 
 func (h *Handler) Run() error {
 	return h.srv.Serve(h.listener)
+}
+
+// Implements the grpc.ServiceRegistrar interface to allow registering services
+// with the Handler.
+func (h *Handler) RegisterService(svc *grpc.ServiceDesc, impl any) {
+	h.srv.RegisterService(svc, impl)
 }
 
 func (h *Handler) Shutdown() error {

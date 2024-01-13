@@ -64,7 +64,7 @@ func Test_InitConsulService(t *testing.T) {
 
 	testrpc.WaitForRaftLeader(t, s.RPC, "dc1", testrpc.WithToken("root"))
 
-	client := s.insecureResourceServiceClient
+	client := pbresource.NewResourceServiceClient(s.insecureSafeGRPCChan)
 
 	consulServiceID := &pbresource.ID{
 		Name:    structs.ConsulServiceName,

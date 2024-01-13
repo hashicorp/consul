@@ -376,12 +376,21 @@ func (c *Cluster) FirstServer() *Node {
 	return nil
 }
 
-func (c *Cluster) FirstClient() *Node {
+// FirstClient returns the first client agent in the cluster.
+// If segment is non-empty, it will return the first client agent in that segment.
+func (c *Cluster) FirstClient(segment string) *Node {
 	for _, node := range c.Nodes {
 		if node.Kind != NodeKindClient || node.Disabled {
 			continue
 		}
-		return node
+		if segment == "" {
+			// return a client agent in default segment
+			return node
+		} else {
+			if node.Segment != nil && node.Segment.Name == segment {
+				return node
+			}
+		}
 	}
 	return nil
 }
