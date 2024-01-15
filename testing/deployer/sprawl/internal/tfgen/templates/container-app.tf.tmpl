@@ -1,5 +1,5 @@
-resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
-	name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+	name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
     image        = docker_image.{{.ImageResource}}.image_id
     restart  = "on-failure"
@@ -12,13 +12,13 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
 {{- end }}
 
   env = [
-{{- range .Service.Env }}
+{{- range .Workload.Env }}
       "{{.}}",
 {{- end}}
   ]
 
   command = [
-{{- range .Service.Command }}
+{{- range .Workload.Command }}
     "{{.}}",
 {{- end }}
   ]

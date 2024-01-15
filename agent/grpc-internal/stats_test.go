@@ -23,15 +23,13 @@ import (
 	"github.com/hashicorp/consul/proto/private/prototest"
 )
 
-func noopRegister(*grpc.Server) {}
-
 func TestHandler_EmitsStats(t *testing.T) {
 	sink, metricsObj := testutil.NewFakeSink(t)
 
 	addr := &net.IPAddr{IP: net.ParseIP("127.0.0.1")}
-	handler := NewHandler(hclog.Default(), addr, noopRegister, metricsObj, rate.NullRequestLimitsHandler())
+	handler := NewHandler(hclog.Default(), addr, metricsObj, rate.NullRequestLimitsHandler())
 
-	testservice.RegisterSimpleServer(handler.srv, &testservice.Simple{})
+	testservice.RegisterSimpleServer(handler, &testservice.Simple{})
 
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)

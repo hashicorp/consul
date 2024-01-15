@@ -136,7 +136,7 @@ func assertHTTPRequestToVirtualAddress(t *testing.T, clientService libservice.Se
 			`, virtualHostname),
 			},
 		)
-		t.Logf("curl request to upstream virtual address\nerr = %v\nout = %s", err, out)
+		r.Logf("curl request to upstream virtual address\nerr = %v\nout = %s", err, out)
 		require.NoError(r, err)
 		require.Regexp(r, `Virtual IP: 240.0.0.\d+`, out)
 		require.Contains(r, out, fmt.Sprintf("FORTIO_NAME=%s", serverName))
@@ -155,7 +155,7 @@ func assertHTTPRequestToServiceAddress(t *testing.T, client, server libcluster.A
 	upstreamURL := fmt.Sprintf("http://%s:8080/debug?env=dump", server.GetIP())
 	retry.RunWith(requestRetryTimer, t, func(r *retry.R) {
 		out, err := client.Exec(context.Background(), []string{"curl", "-s", upstreamURL})
-		t.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
+		r.Logf("curl request to upstream service address: url=%s\nerr = %v\nout = %s", upstreamURL, err, out)
 
 		if expSuccess {
 			require.NoError(r, err)

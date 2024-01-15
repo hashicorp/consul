@@ -6,8 +6,6 @@ package connect
 import (
 	"fmt"
 	"net/url"
-
-	"github.com/hashicorp/consul/acl"
 )
 
 // SpiffeIDWorkloadIdentity is the structure to represent the SPIFFE ID for a workload.
@@ -16,10 +14,6 @@ type SpiffeIDWorkloadIdentity struct {
 	Partition        string
 	Namespace        string
 	WorkloadIdentity string
-}
-
-func (id SpiffeIDWorkloadIdentity) NamespaceOrDefault() string {
-	return acl.NamespaceOrDefault(id.Namespace)
 }
 
 // URI returns the *url.URL for this SPIFFE ID.
@@ -37,8 +31,8 @@ func (id SpiffeIDWorkloadIdentity) uriPath() string {
 	// to generate the correct SpiffeID.
 	// We intentionally avoid using pbpartition.DefaultName here to be CE friendly.
 	path := fmt.Sprintf("/ap/%s/ns/%s/identity/%s",
-		id.PartitionOrDefault(),
-		id.NamespaceOrDefault(),
+		id.Partition,
+		id.Namespace,
 		id.WorkloadIdentity,
 	)
 

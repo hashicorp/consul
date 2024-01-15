@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/go-memdb"
 
 	"github.com/hashicorp/consul/agent/structs"
+	"github.com/hashicorp/consul/api"
 )
 
 const (
@@ -409,7 +410,7 @@ func indexExpiresFromACLToken(t *structs.ACLToken, local bool) ([]byte, error) {
 }
 
 func indexServiceNameFromACLToken(token *structs.ACLToken) ([][]byte, error) {
-	vals := make([][]byte, 0, len(token.ServiceIdentities))
+	vals := make([][]byte, 0, len(token.ServiceIdentities)+len(token.TemplatedPolicies))
 	for _, id := range token.ServiceIdentities {
 		if id != nil && id.ServiceName != "" {
 			var b indexBuilder
@@ -417,6 +418,15 @@ func indexServiceNameFromACLToken(token *structs.ACLToken) ([][]byte, error) {
 			vals = append(vals, b.Bytes())
 		}
 	}
+
+	for _, tp := range token.TemplatedPolicies {
+		if tp != nil && tp.TemplateName == api.ACLTemplatedPolicyServiceName && tp.TemplateVariables != nil && tp.TemplateVariables.Name != "" {
+			var b indexBuilder
+			b.String(strings.ToLower(tp.TemplateVariables.Name))
+			vals = append(vals, b.Bytes())
+		}
+	}
+
 	if len(vals) == 0 {
 		return nil, errMissingValueForIndex
 	}

@@ -1,4 +1,5 @@
 Name:            builtin/node
+Description:     Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container.
 Input variables:
 	Name: String - Required - The node name.
 Example usage:

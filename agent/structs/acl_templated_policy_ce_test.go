@@ -98,6 +98,28 @@ query_prefix "" {
 }`,
 			},
 		},
+		"api-gateway-template": {
+			templatedPolicy: &ACLTemplatedPolicy{
+				TemplateID:   ACLTemplatedPolicyAPIGatewayID,
+				TemplateName: api.ACLTemplatedPolicyAPIGatewayName,
+				TemplateVariables: &ACLTemplatedPolicyVariables{
+					Name: "api-gateway",
+				},
+			},
+			expectedPolicy: &ACLPolicy{
+				Description: "synthetic policy generated from templated policy: builtin/api-gateway",
+				Rules: `mesh = "read"
+node_prefix "" {
+	policy = "read"
+}
+service_prefix "" {
+	policy = "read"
+}
+service "api-gateway" {
+	policy = "write"
+}`,
+			},
+		},
 	}
 
 	for name, tcase := range testCases {

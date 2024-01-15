@@ -1,0 +1,3 @@
+```release-note:improvement
+cloud: push additional server TLS metadata to HCP
+```

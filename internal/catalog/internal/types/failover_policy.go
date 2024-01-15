@@ -156,14 +156,6 @@ func validateFailoverPolicy(res *DecodedFailoverPolicy) error {
 func validateFailoverConfig(config *pbcatalog.FailoverConfig, ported bool, wrapErr func(error) error) error {
 	var merr error
 
-	if config.SamenessGroup != "" {
-		// TODO(v2): handle other forms of failover
-		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
-			Name:    "sameness_group",
-			Wrapped: fmt.Errorf("not supported in this release"),
-		}))
-	}
-
 	if len(config.Regions) > 0 {
 		merr = multierror.Append(merr, wrapErr(resource.ErrInvalidField{
 			Name:    "regions",

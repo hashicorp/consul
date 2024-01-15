@@ -48,7 +48,7 @@ type commonTopo struct {
 	Assert *topoutil.Asserter
 
 	// track per-DC services to prevent duplicates
-	services map[string]map[topology.ServiceID]struct{}
+	services map[string]map[topology.ID]struct{}
 
 	// if zero, no DCs are agentless
 	agentlessDC string
@@ -107,9 +107,9 @@ func newCommonTopo(t *testing.T, agentlessDC string, includeDC3 bool, peerThroug
 	injectTenancies(dc2)
 	// dc3 doesn't get tenancies
 
-	ct.services = map[string]map[topology.ServiceID]struct{}{}
+	ct.services = map[string]map[topology.ID]struct{}{}
 	for _, dc := range clusters {
-		ct.services[dc.Datacenter] = map[topology.ServiceID]struct{}{}
+		ct.services[dc.Datacenter] = map[topology.ID]struct{}{}
 	}
 
 	peerings := addPeerings(dc1, dc2)
@@ -230,7 +230,7 @@ func LocalPeerName(clu *topology.Cluster, partition string) string {
 // TODO: move these to topology
 // TODO: alternatively, delete it: we only use it in one place, to bundle up args
 type serviceExt struct {
-	*topology.Service
+	*topology.Workload
 
 	Exports    []api.ServiceConsumer
 	Config     *api.ServiceConfigEntry
@@ -245,7 +245,7 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 	ct.services[clusterName][svc.ID] = struct{}{}
 
 	// TODO: inline
-	serviceHostnameString := func(dc string, id topology.ServiceID) string {
+	serviceHostnameString := func(dc string, id topology.ID) string {
 		n := id.Name
 		// prepend <namespace>- and <partition>- if they are not default/empty
 		// avoids hostname limit of 63 chars in most cases
@@ -279,8 +279,8 @@ func (ct *commonTopo) AddServiceNode(clu *topology.Cluster, svc serviceExt) *top
 		Addresses: []*topology.Address{
 			{Network: clu.Datacenter},
 		},
-		Services: []*topology.Service{
-			svc.Service,
+		Workloads: []*topology.Workload{
+			svc.Workload,
 		},
 		Cluster: clusterName,
 	}
@@ -327,8 +327,8 @@ func (ct *commonTopo) ExportService(clu *topology.Cluster, partition string, svc
 	if !found {
 		clu.InitialConfigEntries = append(clu.InitialConfigEntries,
 			&api.ExportedServicesConfigEntry{
-				Name:      partition, // this NEEDs to be "default" in CE
-				Partition: ConfigEntryPartition(partition),
+				Name:      topology.PartitionOrDefault(partition), // this NEEDs to be "default" in CE
+				Partition: topology.DefaultToEmpty(partition),
 				Services:  svcs,
 			},
 		)
@@ -506,9 +506,9 @@ func injectTenancies(clu *topology.Cluster) {
 // Deprecated: topoutil.NewFortioServiceWithDefaults
 func NewFortioServiceWithDefaults(
 	cluster string,
-	sid topology.ServiceID,
-	mut func(s *topology.Service),
-) *topology.Service {
+	sid topology.ID,
+	mut func(s *topology.Workload),
+) *topology.Workload {
 	return topoutil.NewFortioServiceWithDefaults(cluster, sid, topology.NodeVersionV1, mut)
 }
 
@@ -519,8 +519,8 @@ func newTopologyMeshGatewaySet(
 	num int,
 	networks []string,
 	mutateFn func(i int, node *topology.Node),
-) (topology.ServiceID, []*topology.Node) {
+) (topology.ID, []*topology.Node) {
 	nodes := topoutil.NewTopologyMeshGatewaySet(nodeKind, partition, namePrefix, num, networks, mutateFn)
-	sid := nodes[0].Services[0].ID
+	sid := nodes[0].Workloads[0].ID
 	return sid, nodes
 }

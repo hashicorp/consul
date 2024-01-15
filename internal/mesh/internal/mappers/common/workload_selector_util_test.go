@@ -21,7 +21,9 @@ import (
 )
 
 func TestMapSelector(t *testing.T) {
-	client := svctest.RunResourceService(t, types.Register, catalog.RegisterTypes)
+	client := svctest.NewResourceServiceBuilder().
+		WithRegisterFns(types.Register, catalog.RegisterTypes).
+		Run(t)
 
 	// Create some workloads.
 	// For this test, we don't care about the workload data, so we will re-use

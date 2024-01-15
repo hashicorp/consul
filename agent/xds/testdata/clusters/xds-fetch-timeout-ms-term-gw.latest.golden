@@ -1,0 +1,235 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "api.altdomain",
+                      "portValue": 8081
+                    }
+                  }
+                },
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "api.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsCertificates": [
+              {
+                "certificateChain": {
+                  "filename": "api.cert.pem"
+                },
+                "privateKey": {
+                  "filename": "api.key.pem"
+                }
+              }
+            ],
+            "tlsParams": {},
+            "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              }
+            }
+          }
+        }
+      },
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "cache.mydomain",
+                      "portValue": 8081
+                    }
+                  }
+                },
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "db.mydomain",
+                      "portValue": 8081
+                    }
+                  }
+                },
+                "healthStatus": "UNHEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "db.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "prod.cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "cache.mydomain",
+                      "portValue": 8081
+                    }
+                  }
+                },
+                "healthStatus": "UNHEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "prod.cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "initialFetchTimeout": "9.999s",
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsParams": {},
+            "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              }
+            }
+          }
+        }
+      },
+      "type": "EDS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "initialFetchTimeout": "9.999s",
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "v2.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsParams": {},
+            "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              }
+            }
+          }
+        }
+      },
+      "type": "EDS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "initialFetchTimeout": "9.999s",
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "transportSocket": {
+        "name": "tls",
+        "typedConfig": {
+          "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+          "commonTlsContext": {
+            "tlsParams": {},
+            "validationContext": {
+              "trustedCa": {
+                "filename": "ca.cert.pem"
+              }
+            }
+          }
+        }
+      },
+      "type": "EDS"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "versionInfo": "00000001"
+}

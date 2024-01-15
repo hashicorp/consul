@@ -5,21 +5,23 @@ package types
 
 import (
 	"errors"
-	"github.com/hashicorp/consul/agent/structs"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
-	"github.com/stretchr/testify/require"
-	"testing"
+	"github.com/hashicorp/consul/version/versiontest"
 )
 
 func computedExportedServicesWithPartition(partitionName string) *pbmulticluster.ComputedExportedServices {
-	consumers := []*pbmulticluster.ComputedExportedService{
+	services := []*pbmulticluster.ComputedExportedService{
 		{
-			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+			Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 				{
-					ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Partition{
+					Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Partition{
 						Partition: partitionName,
 					},
 				},
@@ -27,16 +29,16 @@ func computedExportedServicesWithPartition(partitionName string) *pbmulticluster
 		},
 	}
 	return &pbmulticluster.ComputedExportedServices{
-		Consumers: consumers,
+		Services: services,
 	}
 }
 
 func computedExportedServicesWithPeer(peerName string) *pbmulticluster.ComputedExportedServices {
-	consumers := []*pbmulticluster.ComputedExportedService{
+	services := []*pbmulticluster.ComputedExportedService{
 		{
-			Consumers: []*pbmulticluster.ComputedExportedServicesConsumer{
+			Consumers: []*pbmulticluster.ComputedExportedServiceConsumer{
 				{
-					ConsumerTenancy: &pbmulticluster.ComputedExportedServicesConsumer_Peer{
+					Tenancy: &pbmulticluster.ComputedExportedServiceConsumer_Peer{
 						Peer: peerName,
 					},
 				},
@@ -44,7 +46,7 @@ func computedExportedServicesWithPeer(peerName string) *pbmulticluster.ComputedE
 		},
 	}
 	return &pbmulticluster.ComputedExportedServices{
-		Consumers: consumers,
+		Services: services,
 	}
 }
 
@@ -123,7 +125,7 @@ func TestComputedExportedServicesValidations(t *testing.T) {
 		expectErrorENT []string
 	}
 
-	isEnterprise := structs.NodeEnterpriseMetaInDefaultPartition().PartitionOrEmpty() == "default"
+	isEnterprise := versiontest.IsEnterprise()
 
 	run := func(t *testing.T, tc testcase) {
 		expectError := tc.expectErrorCE

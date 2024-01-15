@@ -7,8 +7,9 @@ package controllers
 
 import (
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/tenancy/internal/controllers/namespace"
 )
 
-func Register(mgr *controller.Manager) {
-	//mgr.Register(namespace.NamespaceController())
+func Register(mgr *controller.Manager, deps Dependencies) {
+	mgr.Register(namespace.Controller(deps.Registry))
 }

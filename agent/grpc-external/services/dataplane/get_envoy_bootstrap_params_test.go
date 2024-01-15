@@ -7,29 +7,29 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hashicorp/go-hclog"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"github.com/hashicorp/go-hclog"
+
+	"github.com/hashicorp/consul/acl"
+	"github.com/hashicorp/consul/acl/resolver"
+	external "github.com/hashicorp/consul/agent/grpc-external"
 	svctest "github.com/hashicorp/consul/agent/grpc-external/services/resource/testing"
+	"github.com/hashicorp/consul/agent/grpc-external/testutils"
+	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/internal/catalog"
 	"github.com/hashicorp/consul/internal/mesh"
 	"github.com/hashicorp/consul/internal/resource"
 	"github.com/hashicorp/consul/internal/resource/resourcetest"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
+	"github.com/hashicorp/consul/proto-public/pbdataplane"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 	"github.com/hashicorp/consul/proto/private/prototest"
-
-	"github.com/hashicorp/consul/acl"
-	"github.com/hashicorp/consul/acl/resolver"
-	external "github.com/hashicorp/consul/agent/grpc-external"
-	"github.com/hashicorp/consul/agent/grpc-external/testutils"
-	"github.com/hashicorp/consul/agent/structs"
-	"github.com/hashicorp/consul/proto-public/pbdataplane"
 )
 
 const (
@@ -262,7 +262,9 @@ func TestGetEnvoyBootstrapParams_Success_EnableV2(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		resourceClient := svctest.RunResourceService(t, catalog.RegisterTypes, mesh.RegisterTypes)
+		resourceClient := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(catalog.RegisterTypes, mesh.RegisterTypes).
+			Run(t)
 
 		options := structs.QueryOptions{Token: testToken}
 		ctx, err := external.ContextWithQueryOptions(context.Background(), options)
@@ -490,7 +492,9 @@ func TestGetEnvoyBootstrapParams_Error_EnableV2(t *testing.T) {
 	}
 
 	run := func(t *testing.T, tc testCase) {
-		resourceClient := svctest.RunResourceService(t, catalog.RegisterTypes, mesh.RegisterTypes)
+		resourceClient := svctest.NewResourceServiceBuilder().
+			WithRegisterFns(catalog.RegisterTypes, mesh.RegisterTypes).
+			Run(t)
 
 		options := structs.QueryOptions{Token: testToken}
 		ctx, err := external.ContextWithQueryOptions(context.Background(), options)

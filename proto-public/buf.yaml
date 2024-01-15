@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: MPL-2.0
 
 version: v1
+deps:
+  - buf.build/k8s/api
 name: buf.build/hashicorp/consul
 lint:
   use:
@@ -19,3 +21,4 @@ lint:
 breaking:
   use:
     - FILE
+

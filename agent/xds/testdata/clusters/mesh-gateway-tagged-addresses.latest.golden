@@ -1,0 +1,106 @@
+{
+  "nonce": "00000001",
+  "resources": [
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "bar.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "dc2.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "123.us-west-2.elb.notaws.com",
+                      "portValue": 443
+                    }
+                  }
+                },
+                "healthStatus": "HEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "dc4.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "dnsLookupFamily": "V4_ONLY",
+      "dnsRefreshRate": "10s",
+      "loadAssignment": {
+        "clusterName": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+        "endpoints": [
+          {
+            "lbEndpoints": [
+              {
+                "endpoint": {
+                  "address": {
+                    "socketAddress": {
+                      "address": "123.us-east-1.elb.notaws.com",
+                      "portValue": 443
+                    }
+                  }
+                },
+                "healthStatus": "UNHEALTHY",
+                "loadBalancingWeight": 1
+              }
+            ]
+          }
+        ]
+      },
+      "name": "dc6.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "LOGICAL_DNS"
+    },
+    {
+      "@type": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+      "connectTimeout": "5s",
+      "edsClusterConfig": {
+        "edsConfig": {
+          "ads": {},
+          "resourceApiVersion": "V3"
+        }
+      },
+      "name": "foo.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+      "outlierDetection": {},
+      "type": "EDS"
+    }
+  ],
+  "typeUrl": "type.googleapis.com/envoy.config.cluster.v3.Cluster",
+  "versionInfo": "00000001"
+}

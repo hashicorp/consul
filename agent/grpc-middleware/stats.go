@@ -107,6 +107,13 @@ func (c *statsHandler) HandleConn(_ context.Context, s stats.ConnStats) {
 	c.metrics.SetGaugeWithLabels([]string{"grpc", label, "connections"}, float32(count), c.labels)
 }
 
+// Intercept matches the Unary interceptor function signature. This unary interceptor will count RPC requests
+// but does not handle any connection processing or perform RPC "tagging"
+func (c *statsHandler) Intercept(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
+	c.metrics.IncrCounterWithLabels([]string{"grpc", "server", "request", "count"}, 1, c.labels)
+	return handler(ctx, req)
+}
+
 type activeStreamCounter struct {
 	// count is used with sync/atomic and MUST be 64-bit aligned. To ensure
 	// alignment on 32-bit platforms this field must remain the first field in

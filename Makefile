@@ -10,16 +10,19 @@ GO_MODULES := $(shell find . -name go.mod -exec dirname {} \; | grep -v "proto-g
 # These version variables can either be a valid string for "go install <module>@<version>"
 # or the string @DEV to imply use what is currently installed locally.
 ###
-GOLANGCI_LINT_VERSION='v1.51.1'
-MOCKERY_VERSION='v2.20.0'
+GOLANGCI_LINT_VERSION='v1.55.2'
+MOCKERY_VERSION='v2.37.1'
 BUF_VERSION='v1.26.0'
 
-PROTOC_GEN_GO_GRPC_VERSION="v1.2.0"
+PROTOC_GEN_GO_GRPC_VERSION='v1.2.0'
 MOG_VERSION='v0.4.1'
 PROTOC_GO_INJECT_TAG_VERSION='v1.3.0'
-PROTOC_GEN_GO_BINARY_VERSION="v0.1.0"
+PROTOC_GEN_GO_BINARY_VERSION='v0.1.0'
 DEEP_COPY_VERSION='bc3f5aa5735d8a54961580a3a24422c308c831c2'
 COPYWRITE_TOOL_VERSION='v0.16.4'
+LINT_CONSUL_RETRY_VERSION='v1.4.0'
+# Go imports formatter
+GCI_VERSION='v0.11.2'
 
 MOCKED_PB_DIRS= pbdns
 
@@ -65,8 +68,12 @@ GO_BUILD_TAG?=consul-build-go
 UI_BUILD_TAG?=consul-build-ui
 BUILD_CONTAINER_NAME?=consul-builder
 CONSUL_IMAGE_VERSION?=latest
-ENVOY_VERSION?='1.25.4'
+# When changing the method of Go version detection, also update
+# version detection in CI workflows (reusable-get-go-version.yml).
+GOLANG_VERSION?=$(shell head -n 1 .go-version)
+ENVOY_VERSION?='1.28.0'
 CONSUL_DATAPLANE_IMAGE := $(or $(CONSUL_DATAPLANE_IMAGE),"docker.io/hashicorppreview/consul-dataplane:1.3-dev-ubi")
+DEPLOYER_CONSUL_DATAPLANE_IMAGE := $(or $(DEPLOYER_CONSUL_DATAPLANE_IMAGE), "docker.io/hashicorppreview/consul-dataplane:1.3-dev")
 
 CONSUL_VERSION?=$(shell cat version/VERSION)
 
@@ -254,6 +261,15 @@ lint/%:
 	@echo "--> Running enumcover ($*)"
 	@cd $* && GOWORK=off enumcover ./...
 
+.PHONY: lint-consul-retry
+lint-consul-retry: $(foreach mod,$(GO_MODULES),lint-consul-retry/$(mod))
+
+.PHONY: lint-consul-retry/%
+lint-consul-retry/%: lint-tools
+	@echo "--> Running lint-consul-retry ($*)"
+	@cd $* && GOWORK=off lint-consul-retry
+
+
 # check that the test-container module only imports allowlisted packages
 # from the root consul module. Generally we don't want to allow these imports.
 # In a few specific instances though it is okay to import test definitions and
@@ -339,20 +355,67 @@ other-consul: ## Checking for other consul instances
 # NOTE: Always uses amd64 images, even when running on M1 macs, to match CI/CD environment.
 #       You can also specify the envoy version (example: 1.27.0) setting the environment variable: ENVOY_VERSION=1.27.0
 .PHONY: test-envoy-integ
-test-envoy-integ: $(ENVOY_INTEG_DEPS) ## Run integration tests.
+test-envoy-integ: $(ENVOY_INTEG_DEPS) ## Run envoy integration tests.
 	@go test -v -timeout=30m -tags integration $(GO_TEST_FLAGS) ./test/integration/connect/envoy
 
 # NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
 .PHONY: test-compat-integ-setup
-test-compat-integ-setup: dev-docker
-	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
-	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+test-compat-integ-setup: test-deployer-setup
 	@#  'consul-envoy:target-version' is needed by compatibility integ test
 	@docker build -t consul-envoy:target-version --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg ENVOY_VERSION=${ENVOY_VERSION} -f ./test/integration/consul-container/assets/Dockerfile-consul-envoy ./test/integration/consul-container/assets
 	@docker build -t consul-dataplane:local --build-arg CONSUL_IMAGE=$(CONSUL_COMPAT_TEST_IMAGE):local --build-arg CONSUL_DATAPLANE_IMAGE=${CONSUL_DATAPLANE_IMAGE} -f ./test/integration/consul-container/assets/Dockerfile-consul-dataplane ./test/integration/consul-container/assets
 
+# NOTE: Use DOCKER_BUILDKIT=0, if docker build fails to resolve consul:local base image
+.PHONY: test-deployer-setup
+test-deployer-setup: dev-docker
+	@docker tag consul-dev:latest $(CONSUL_COMPAT_TEST_IMAGE):local
+	@docker run --rm -t $(CONSUL_COMPAT_TEST_IMAGE):local consul version
+
+.PHONY: test-deployer
+test-deployer: test-deployer-setup ## Run deployer-based integration tests (skipping peering_commontopo).
+	@cd ./test-integ && \
+		NOLOGBUFFER=1 \
+		TEST_LOG_LEVEL=debug \
+		DEPLOYER_CONSUL_DATAPLANE_IMAGE=$(DEPLOYER_CONSUL_DATAPLANE_IMAGE) \
+		gotestsum \
+		--raw-command \
+		--format=standard-verbose \
+		--debug \
+		-- \
+		go test \
+		-tags "$(GOTAGS)" \
+		-timeout=20m \
+		-json \
+		$(shell sh -c "cd test-integ ; go list -tags \"$(GOTAGS)\" ./... | grep -v peering_commontopo") \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
+
+.PHONY: test-deployer-peering
+test-deployer-peering: test-deployer-setup ## Run deployer-based integration tests (just peering_commontopo).
+	@cd ./test-integ/peering_commontopo && \
+		NOLOGBUFFER=1 \
+		TEST_LOG_LEVEL=debug \
+		DEPLOYER_CONSUL_DATAPLANE_IMAGE=$(DEPLOYER_CONSUL_DATAPLANE_IMAGE) \
+		gotestsum \
+		--raw-command \
+		--format=standard-verbose \
+		--debug \
+		-- \
+		go test \
+		-tags "$(GOTAGS)" \
+		-timeout=20m \
+		-json \
+		. \
+		--target-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--target-version local \
+		--latest-image $(CONSUL_COMPAT_TEST_IMAGE) \
+		--latest-version latest
+
+
 .PHONY: test-compat-integ
-test-compat-integ: test-compat-integ-setup ## Test compat integ
+test-compat-integ: test-compat-integ-setup ## Run consul-container based integration tests.
 ifeq ("$(GOTESTSUM_PATH)","")
 	@cd ./test/integration/consul-container && \
 	go test \
@@ -470,8 +533,8 @@ docker-images: go-build-image ui-build-image
 
 .PHONY: go-build-image
 go-build-image: ## Building Golang build container
-	@echo "Building Golang build container"
-	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) - < build-support/docker/Build-Go.dockerfile
+	@echo "Building Golang $(GOLANG_VERSION) build container"
+	@docker build $(NOCACHE) $(QUIET) -t $(GO_BUILD_TAG) --build-arg GOLANG_VERSION=$(GOLANG_VERSION) - < build-support/docker/Build-Go.dockerfile
 
 .PHONY: consul-docker
 consul-docker: go-build-image ## Builds consul in a docker container and then dumps executable into ./pkg/bin/...
@@ -502,11 +565,8 @@ proto-gen: proto-tools ## Regenerates all Go files from protobuf definitions
 
 .PHONY: proto-mocks
 proto-mocks: ## Proto mocks
-	for dir in $(MOCKED_PB_DIRS) ; do \
-		cd proto-public && \
-		rm -f $$dir/mock*.go && \
-		mockery --dir $$dir --inpackage --all --recursive --log-level trace ; \
-	done
+	@rm -rf grpcmocks/*
+	@mockery --config .grpcmocks.yaml
 
 .PHONY: proto-format
 proto-format: proto-tools ## Proto format

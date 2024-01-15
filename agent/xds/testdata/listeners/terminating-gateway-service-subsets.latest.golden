@@ -163,6 +163,56 @@
         {
           "filterChainMatch": {
             "serverNames": [
+              "prod.cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
+            ]
+          },
+          "filters": [
+            {
+              "name": "envoy.filters.network.rbac",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.rbac.v3.RBAC",
+                "rules": {},
+                "statPrefix": "connect_authz"
+              }
+            },
+            {
+              "name": "envoy.filters.network.tcp_proxy",
+              "typedConfig": {
+                "@type": "type.googleapis.com/envoy.extensions.filters.network.tcp_proxy.v3.TcpProxy",
+                "cluster": "prod.cache.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul",
+                "statPrefix": "upstream.cache.default.default.dc1"
+              }
+            }
+          ],
+          "transportSocket": {
+            "name": "tls",
+            "typedConfig": {
+              "@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext",
+              "commonTlsContext": {
+                "tlsCertificates": [
+                  {
+                    "certificateChain": {
+                      "inlineString": "-----BEGIN CERTIFICATE-----\nMIICmjCCAkGgAwIBAgIQe1ZmC0rzRwer6jaH1YIUIjAKBggqhkjOPQQDAjCBuDEL\nMAkGA1UEBhMCVVMxCzAJBgNVBAgTAkNBMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2Nv\nMRowGAYDVQQJExExMDEgU2Vjb25kIFN0cmVldDEOMAwGA1UEERMFOTQxMDUxFzAV\nBgNVBAoTDkhhc2hpQ29ycCBJbmMuMT8wPQYDVQQDEzZDb25zdWwgQWdlbnQgQ0Eg\nODE5ODAwNjg0MDM0MTM3ODkyNDYxNTA1MDk0NDU3OTU1MTQxNjEwHhcNMjAwNjE5\nMTU1MjAzWhcNMjEwNjE5MTU1MjAzWjAcMRowGAYDVQQDExFzZXJ2ZXIuZGMxLmNv\nbnN1bDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABH2aWaaa3fpQLBayheHiKlrH\n+z53m0frfGknKjOhOPVYDVHV8x0OE01negswVQbKHAtxPf1M8Zy+WbI9rK7Ua1mj\ngccwgcQwDgYDVR0PAQH/BAQDAgWgMB0GA1UdJQQWMBQGCCsGAQUFBwMBBggrBgEF\nBQcDAjAMBgNVHRMBAf8EAjAAMCkGA1UdDgQiBCDf9CPBSUwwZvpeW73oJLTmgQE2\ntW1NKpL5t1uq9WFcqDArBgNVHSMEJDAigCCPPd/NxgZB0tq2M8pdVpPj3Cr79iTv\ni4/T1ysodfMb7zAtBgNVHREEJjAkghFzZXJ2ZXIuZGMxLmNvbnN1bIIJbG9jYWxo\nb3N0hwR/AAABMAoGCCqGSM49BAMCA0cAMEQCIFCjFZAoXq0s2ied2eIBv0i1KoW5\nIhCylnKFt6iHkyDeAiBBCByTcjHRgEQmqyPojQKoO584EFiczTub9aWdnf9tEw==\n-----END CERTIFICATE-----\n"
+                    },
+                    "privateKey": {
+                      "inlineString": "-----BEGIN EC PRIVATE KEY-----\nMHcCAQEEINsen3S8xzxMrKcRZIvxXzhKDn43Tw9ttqWEFU9TqS5hoAoGCCqGSM49\nAwEHoUQDQgAEfZpZpprd+lAsFrKF4eIqWsf7PnebR+t8aScqM6E49VgNUdXzHQ4T\nTWd6CzBVBsocC3E9/UzxnL5Zsj2srtRrWQ==\n-----END EC PRIVATE KEY-----\n"
+                    }
+                  }
+                ],
+                "tlsParams": {},
+                "validationContext": {
+                  "trustedCa": {
+                    "inlineString": "-----BEGIN CERTIFICATE-----\nMIICXDCCAgKgAwIBAgIICpZq70Z9LyUwCgYIKoZIzj0EAwIwFDESMBAGA1UEAxMJ\nVGVzdCBDQSAyMB4XDTE5MDMyMjEzNTgyNloXDTI5MDMyMjEzNTgyNlowFDESMBAG\nA1UEAxMJVGVzdCBDQSAyMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIhywH1gx\nAsMwuF3ukAI5YL2jFxH6Usnma1HFSfVyxbXX1/uoZEYrj8yCAtdU2yoHETyd+Zx2\nThhRLP79pYegCaOCATwwggE4MA4GA1UdDwEB/wQEAwIBhjAPBgNVHRMBAf8EBTAD\nAQH/MGgGA1UdDgRhBF9kMToxMToxMTphYzoyYTpiYTo5NzpiMjozZjphYzo3Yjpi\nZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1ZTo0MTo2ZjpmMjo3\nMzo5NTo1ODowYzpkYjBqBgNVHSMEYzBhgF9kMToxMToxMTphYzoyYTpiYTo5Nzpi\nMjozZjphYzo3YjpiZDpkYTpiZTpiMTo4YTpmYzo5YTpiYTpiNTpiYzo4MzplNzo1\nZTo0MTo2ZjpmMjo3Mzo5NTo1ODowYzpkYjA/BgNVHREEODA2hjRzcGlmZmU6Ly8x\nMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUuY29uc3VsMAoGCCqG\nSM49BAMCA0gAMEUCICOY0i246rQHJt8o8Oya0D5PLL1FnmsQmQqIGCi31RwnAiEA\noR5f6Ku+cig2Il8T8LJujOp2/2A72QcHZA57B13y+8o=\n-----END CERTIFICATE-----\n"
+                  }
+                }
+              },
+              "requireClientCertificate": true
+            }
+          }
+        },
+        {
+          "filterChainMatch": {
+            "serverNames": [
               "v1.web.default.dc1.internal.11111111-2222-3333-4444-555555555555.consul"
             ]
           },

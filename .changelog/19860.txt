@@ -1,0 +1,3 @@
+```release-note:bug
+connect: Solves an issue where two upstream services with the same name in different namespaces were not getting routed to correctly by API Gateways.
+```
