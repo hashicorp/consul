@@ -638,11 +638,11 @@
     "routes": [
       {
         "title": "Overview",
-        "path": "manage"
+        "path": "manage-consul"
       },
       {
         "title": "Snapshot",
-        "path": "manage/snapshot"
+        "path": "manage-consul/snapshot"
       },
       {
         "title": "Automated backups",
@@ -651,7 +651,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage/automated-backup"
+        "path": "manage-consul/automated-backup"
       },
       {
         "title": "Redundancy zones",
@@ -660,7 +660,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage/redundancy-zone"
+        "path": "manage-consul/redundancy-zone"
       },
       {
         "title": "Read replicas",
@@ -669,26 +669,26 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "manage/read-replica"
+        "path": "manage-consul/read-replica"
       },
       {
         "title": "Agent rate limit",
         "routes": [
           {
             "title": "Overview",
-            "path": "manage/agent-rate-limit"
+            "path": "manage-consul/agent-rate-limit"
           },
           {
             "title": "Initialize rate limit settings",
-            "path": "manage/agent-rate-limit/initialize"
+            "path": "manage-consul/agent-rate-limit/initialize"
           },
           {
             "title": "Monitor traffic rate limits",
-            "path": "manage/agent-rate-limit/monitor"
+            "path": "manage-consul/agent-rate-limit/monitor"
           },
           {
             "title": "Set global traffic rate limit",
-            "path": "manage/agent-rate-limit/set-global"
+            "path": "manage-consul/agent-rate-limit/set-global"
           },
           {
             "title": "Limit traffic rates from source IP address",
@@ -697,7 +697,7 @@
               "type": "outlined",
               "color": "neutral"
             },
-            "path": "manage/agent-rate-limit/source-ip-address"
+            "path": "manage-consul/agent-rate-limit/source-ip-address"
           }
         ]
       }
@@ -717,7 +717,7 @@
           "type": "outlined",
           "color": "neutral"
         },
-        "path": "upgrade/automated-upgrade"
+        "path": "upgrade/automated"
       },
       {
         "title": "Compatibility promise",
@@ -725,34 +725,34 @@
       },
       {
         "title": "Specific version details",
-        "path": "upgrade/specific-version-details"
+        "path": "upgrade/version-specific"
       },
       {
         "title": "Upgrade instructions",
         "routes": [
           {
             "title": "Overview",
-            "path": "upgrade/instruction"
+            "path": "upgrade/instructions"
           },
           {
             "title": "General process",
-            "path": "upgrade/instruction/general-process"
+            "path": "upgrade/instructions/general"
           },
           {
             "title": "Upgrade to latest 1.10.x",
-            "path": "upgrade/instruction/1-10-x"
+            "path": "upgrade/instructions/1-10-x"
           },
           {
             "title": "Upgrade to latest 1.8.x",
-            "path": "upgrade/instruction/1-8-x"
+            "path": "upgrade/instructions/1-8-x"
           },
           {
             "title": "Upgrade to latest 1.6.x",
-            "path": "upgrade/instruction/1-6-x"
+            "path": "upgrade/instructions/1-6-x"
           },
           {
             "title": "Upgrade to latest 1.2.x",
-            "path": "upgrade/instruction/1-2-x"
+            "path": "upgrade/instructions/1-2-x"
           }
         ]
       },
@@ -762,6 +762,10 @@
           {
             "title": "Overview",
             "path": "upgrade/k8s"
+          },
+          {
+            "title": "Compatibility",
+            "path": "upgrade/k8s/compatibility"
           },
           {
             "title": "consul-k8s",
@@ -774,8 +778,17 @@
         ]
       },
       {
-        "title": "API gateway",
-        "path": "upgrade/api-gateway"
+        "title": "ECS",
+        "routes": [
+          {
+            "title": "Overview",
+            "path": "upgrade/ecs"
+          },
+          {
+            "title": "Upgrade to Consul dataplane",
+            "path": "upgrade/ecs/dataplane"
+          }
+        ]
       }
     ]
   },
@@ -865,23 +878,23 @@
         "routes": [
           {
             "title": "v0.5.x",
-            "path": "release-notes/consul-api-gateway/v0_5_x"
+            "path": "release-notes/api-gateway/v0_5_x"
           },
           {
             "title": "v0.4.x",
-            "path": "release-notes/consul-api-gateway/v0_4_x"
+            "path": "release-notes/api-gateway/v0_4_x"
           },
           {
             "title": "v0.3.x",
-            "path": "release-notes/consul-api-gateway/v0_3_x"
+            "path": "release-notes/api-gateway/v0_3_x"
           },
           {
             "title": "v0.2.x",
-            "path": "release-notes/consul-api-gateway/v0_2_x"
+            "path": "release-notes/api-gateway/v0_2_x"
           },
           {
             "title": "v0.1.x",
-            "path": "release-notes/consul-api-gateway/v0_1_x"
+            "path": "release-notes/api-gateway/v0_1_x"
           }
         ]
       },
@@ -890,23 +903,23 @@
         "routes": [
           {
             "title": "v0.7.x",
-            "path": "release-notes/consul-ecs/v0_7_x"
+            "path": "release-notes/ecs/v0_7_x"
           },
           {
             "title": "v0.5.x",
-            "path": "release-notes/consul-ecs/v0_5_x"
+            "path": "release-notes/ecs/v0_5_x"
           },
           {
             "title": "v0.4.x",
-            "path": "release-notes/consul-ecs/v0_4_x"
+            "path": "release-notes/ecs/v0_4_x"
           },
           {
             "title": "v0.3.x",
-            "path": "release-notes/consul-ecs/v0_3_x"
+            "path": "release-notes/ecs/v0_3_x"
           },
           {
             "title": "v0.2.x",
-            "path": "release-notes/consul-ecs/v0_2_x"
+            "path": "release-notes/ecs/v0_2_x"
           }
         ]
       },
