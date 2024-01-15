@@ -13,8 +13,8 @@ description: >-
 
 -> Looking for a step-by-step guide? Please follow our Learn tutorial: [Secure and Route Service Mesh Communication Across Kubernetes](https://learn.hashicorp.com/tutorials/consul/kubernetes-mesh-gateways).
 
-This page describes how to federate multiple Kubernetes clusters. See [Multi-Cluster Overview](/docs/k8s/installation/multi-cluster)
-for more information on use-cases and how it works.
+This page describes how to federate multiple Kubernetes clusters. Refer to [Multi-Cluster Overview](/consul/docs/k8s/deployment-configurations/multi-cluster)
+for more information, including [networking requirements](/consul/docs/k8s/deployment-configurations/multi-cluster#network-requirements).
 
 ## Primary Datacenter
 
@@ -84,8 +84,7 @@ Modifications:
 
 1. The Consul datacenter name is `dc1`. The datacenter name in each federated
    cluster **must be unique**.
-1. ACLs are enabled in the above config file. They can be disabled by setting:
-
+1. ACLs are enabled in the template configuration. When ACLs are enabled, primary clusters must be able to make requests to the Kubernetes API URLs of secondary clusters. To disable ACLs for testing purposes, change the following settings:
 
    ```yaml
    global:
@@ -93,9 +92,9 @@ Modifications:
        manageSystemACLs: false
        createReplicationToken: false
    ```
+
    ACLs secure Consul by requiring every API call to present an ACL token that
-   is validated to ensure it has the proper permissions. If you are only testing Consul,
-   this is not required.
+   is validated to ensure it has the proper permissions.
 1. Gossip encryption is enabled in the above config file. To disable it, comment
    out or delete the `gossipEncryption` key:
 
