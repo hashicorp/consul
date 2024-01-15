@@ -27,7 +27,9 @@ An executable handler reads the JSON invocation info from stdin. Additionally, t
 
 Here is an example configuration, where `handler_type` is optionally set to `script`:
 
-<CodeTabs heading="Consul watch with script handler defined in agent configuration"> <CodeBlockConfig filename="agent-config.hcl">
+<CodeTabs heading="Consul watch with script handler defined in agent configuration">
+  
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 watches = [
@@ -41,7 +43,6 @@ watches = [
 ```
 
 </CodeBlockConfig>
-
 <CodeBlockConfig filename="agent-config.json">
 
 ```json
@@ -58,7 +59,6 @@ watches = [
 ```
 
 </CodeBlockConfig>
-
 </CodeTabs>
 
 Prior to Consul 1.0, watches used a single `handler` field to define the command to run, and would always run in a shell. In Consul 1.0, the `args` array was added so that handlers can be run without a shell. The `handler` field is deprecated, and you should include the shell in the `args` to run under a shell, eg. `"args": ["sh", "-c", "..."]`.
@@ -71,7 +71,9 @@ The HTTP handler can be configured by setting `handler_type` to `http`. Addition
 
 Here is an example configuration:
 
-<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration"> <CodeBlockConfig filename="agent-config.hcl">
+<CodeTabs heading="Consul watch with HTTP handler defined in agent configuration">
+  
+<CodeBlockConfig filename="agent-config.hcl">
 
 ```hcl
 watches = [
@@ -92,7 +94,8 @@ watches = [
 ]
 ```
 
-</CodeBlockConfig> <CodeBlockConfig filename="agent-config.json">
+</CodeBlockConfig>
+<CodeBlockConfig filename="agent-config.json">
 
 ```json
 {
@@ -113,7 +116,8 @@ watches = [
 }
 ```
 
-</CodeBlockConfig> </CodeTabs>
+</CodeBlockConfig>
+</CodeTabs>
 
 ## Global Parameters
 
@@ -146,6 +150,8 @@ Here is an example configuration:
 
 <CodeTabs heading="Example key watch type">
 
+<CodeBlockConfig>
+
 ```hcl
 {
   type = "key"
@@ -154,6 +160,10 @@ Here is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+
+<CodeBlockConfig>
+
 ```json
 {
   "type": "key",
@@ -161,6 +171,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-service-handler.sh", "-redis"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -194,6 +206,8 @@ Here is an example configuration:
 
 <CodeTabs heading="Example keyprefix watch type">
 
+<CodeBlockConfig>
+
 ```hcl
 {
   type = "keyprefix"
@@ -202,6 +216,9 @@ Here is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+<CodeBlockConfig>
+
 ```json
 {
   "type": "keyprefix",
@@ -209,6 +226,8 @@ Here is an example configuration:
   "args": ["/usr/bin/my-prefix-handler.sh", "-redis"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -262,6 +281,8 @@ Below is an example configuration:
 
 <CodeTabs heading="Example services watch type">
 
+<CodeBlockConfig>
+
 ```hcl
 {
   type = "services"
@@ -269,12 +290,17 @@ Below is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+<CodeBlockConfig>
+
 ```json
 {
   "type": "services",
   "args": ["/usr/bin/my-services-handler.sh"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
@@ -304,6 +330,8 @@ Below is an example configuration:
 
 <CodeTabs heading="Example nodes watch type">
 
+<CodeBlockConfig>
+
 ```hcl
 {
   type = "nodes"
@@ -311,12 +339,17 @@ Below is an example configuration:
 }
 ```
 
+</CodeBlockConfig>
+<CodeBlockConfig>
+
 ```json
 {
   "type": "nodes",
   "args": ["/usr/bin/my-nodes-handler.sh"]
 }
 ```
+
+</CodeBlockConfig>
 
 </CodeTabs>
 
