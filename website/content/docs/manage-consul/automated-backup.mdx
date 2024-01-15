@@ -1,0 +1,27 @@
+---
+layout: docs
+page_title: Automated Backups (Enterprise)
+description: >-
+  Learn about launching the snapshot agent to automatically backup files to a cloud storage provider so that you can restore Consul servers. Supported providers include Amazon S3, Google Cloud Storage, and Azure Blob Storage. 
+---
+
+# Automated Backups
+
+<EnterpriseAlert>
+
+This feature requires HashiCorp Cloud Platform (HCP) or self-managed Consul Enterprise. Refer to the [enterprise feature matrix](/consul/docs/enterprise#consul-enterprise-feature-availability) for additional information.
+
+</EnterpriseAlert>
+
+Consul Enterprise enables you to run the snapshot agent within your environment as a service (Systemd as an example) or scheduled through other means. Once running, the snapshot agent service operates as a highly available process that integrates with the snapshot API to automatically manage taking snapshots, backup rotation, and sending backup files offsite to Amazon S3 (or another S3-compatible endpoint), Google Cloud Storage, or Azure Blob Storage.
+
+This capability provides an enterprise solution for backup and restoring the state of Consul servers within an environment in an automated manner. These snapshots are atomic and point-in-time. Consul datacenter backups include (but are not limited to):
+
+- Key/Value Store Entries
+- Service Catalog Registrations
+- Prepared Queries
+- Sessions
+- Access Control Lists (ACLs)
+- Namespaces
+
+For more experience leveraging Consul's snapshot functionality, complete the [Datacenter Backups in Consul](/consul/tutorials/production-deploy/backup-and-restore?utm_source=docs) tutorial. For detailed configuration information on configuring the Consul Enterprise's snapshot agent, review the [Consul Snapshot Agent documentation](/consul/commands/snapshot/agent).
