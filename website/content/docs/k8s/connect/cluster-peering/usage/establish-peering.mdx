@@ -436,18 +436,3 @@ Before you can call services from peered clusters, you must set service intentio
     ```
 
     </CodeBlockConfig>
-
-### Authorize service reads with ACLs
-
-If ACLs are enabled on a Consul cluster, sidecar proxies that access exported services as an upstream must have an ACL token that grants read access.
-
-Read access to all imported services is granted using either of the following rules associated with an ACL token:
-
-- `service:write` permissions for any service in the sidecar's partition.
-- `service:read` and `node:read` for all services and nodes, respectively, in sidecar's namespace and partition.
-  
-For Consul Enterprise, the permissions apply to all imported services in the service's partition. These permissions are satisfied when using a [service identity](/consul/docs/security/acl/acl-roles#service-identities).
-
-Refer to [Reading servers](/consul/docs/connect/config-entries/exported-services#reading-services) in the `exported-services` configuration entry documentation for example rules.
-
-For additional information about how to configure and use ACLs, refer to [ACLs system overview](/consul/docs/security/acl).

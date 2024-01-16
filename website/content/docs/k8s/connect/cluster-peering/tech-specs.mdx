@@ -169,12 +169,4 @@ Mesh gateways are required for cluster peering connections. Complete the followi
 
 The `exported-services` CRD is required in order for services to communicate across partitions with cluster peering connections.
 
-Refer to the [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) reference for more information.
-
-## ACL requirements
-
-If ACLs are enabled, you must add tokens to grant the following permissions:
-
-- Grant `service:write` permissions to services that define mesh gateways in their server definition.
-- Grant `service:read` permissions for all services on the partition.
-- Grant `mesh:write` permissions to the mesh gateways that participate in cluster peering connections. This permission allows a leaf certificate to be issued for mesh gateways to terminate TLS sessions for HTTP requests.
+Refer to [`exported-services` configuration entry](/consul/docs/connect/config-entries/exported-services) for more information.
