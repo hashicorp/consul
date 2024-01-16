@@ -11,16 +11,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-memdb"
-	"github.com/mitchellh/hashstructure"
-
-	"github.com/hashicorp/consul/envoyextensions/xdscommon"
-	"github.com/hashicorp/consul/version"
-
-	"github.com/hashicorp/go-bexpr"
 	"github.com/hashicorp/serf/coordinate"
 	"github.com/hashicorp/serf/serf"
+	"github.com/mitchellh/hashstructure"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -32,11 +28,13 @@ import (
 	"github.com/hashicorp/consul/agent/structs"
 	token_store "github.com/hashicorp/consul/agent/token"
 	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/envoyextensions/xdscommon"
 	"github.com/hashicorp/consul/ipaddr"
 	"github.com/hashicorp/consul/lib"
 	"github.com/hashicorp/consul/logging"
 	"github.com/hashicorp/consul/logging/monitor"
 	"github.com/hashicorp/consul/types"
+	"github.com/hashicorp/consul/version"
 )
 
 type Self struct {
@@ -90,6 +88,8 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		}
 	}
 
+	displayConfig := s.agent.getRuntimeConfigForDisplay()
+
 	var xds *XDSSelf
 	if s.agent.xdsServer != nil {
 		xds = &XDSSelf{
@@ -97,15 +97,15 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 				"envoy": xdscommon.EnvoyVersions,
 			},
 			// Prefer the TLS port. See comment on the XDSSelf struct for details.
-			Port: s.agent.config.GRPCTLSPort,
+			Port: displayConfig.GRPCTLSPort,
 			Ports: GRPCPorts{
-				Plaintext: s.agent.config.GRPCPort,
-				TLS:       s.agent.config.GRPCTLSPort,
+				Plaintext: displayConfig.GRPCPort,
+				TLS:       displayConfig.GRPCTLSPort,
 			},
 		}
 		// Fallback to standard port if TLS is not enabled.
-		if s.agent.config.GRPCTLSPort <= 0 {
-			xds.Port = s.agent.config.GRPCPort
+		if displayConfig.GRPCTLSPort <= 0 {
+			xds.Port = displayConfig.GRPCPort
 		}
 	}
 
@@ -120,22 +120,22 @@ func (s *HTTPHandlers) AgentSelf(resp http.ResponseWriter, req *http.Request) (i
 		Version           string
 		BuildDate         string
 	}{
-		Datacenter:        s.agent.config.Datacenter,
-		PrimaryDatacenter: s.agent.config.PrimaryDatacenter,
-		NodeName:          s.agent.config.NodeName,
-		NodeID:            string(s.agent.config.NodeID),
-		Partition:         s.agent.config.PartitionOrEmpty(),
-		Revision:          s.agent.config.Revision,
-		Server:            s.agent.config.ServerMode,
+		Datacenter:        displayConfig.Datacenter,
+		PrimaryDatacenter: displayConfig.PrimaryDatacenter,
+		NodeName:          displayConfig.NodeName,
+		NodeID:            string(displayConfig.NodeID),
+		Partition:         displayConfig.PartitionOrEmpty(),
+		Revision:          displayConfig.Revision,
+		Server:            displayConfig.ServerMode,
 		// We expect the ent version to be part of the reported version string, and that's now part of the metadata, not the actual version.
-		Version:   s.agent.config.VersionWithMetadata(),
-		BuildDate: s.agent.config.BuildDate.Format(time.RFC3339),
+		Version:   displayConfig.VersionWithMetadata(),
+		BuildDate: displayConfig.BuildDate.Format(time.RFC3339),
 	}
 
 	return Self{
 		Config:      config,
-		DebugConfig: s.agent.config.Sanitized(),
-		Coord:       cs[s.agent.config.SegmentName],
+		DebugConfig: displayConfig.Sanitized(),
+		Coord:       cs[displayConfig.SegmentName],
 		Member:      s.agent.AgentLocalMember(),
 		Stats:       s.agent.Stats(),
 		Meta:        s.agent.State.Metadata(),
