@@ -1655,7 +1655,7 @@
                         "type": "prometheus",
                         "uid": "PBFA97CFB590B2093"
                     },
-                    "description": "Gives the filesystem storage used by the container",
+                    "description": "Gives the filesystem storage used by consul servers",
                     "fieldConfig": {
                         "defaults": {
                             "color": {
@@ -1707,14 +1707,14 @@
                             },
                             "editorMode": "code",
                             "exemplar": false,
-                            "expr": "sum(container_fs_usage_bytes) by (instance)",
+                            "expr": "sum(container_fs_usage_bytes{consul_agent_type=\"server\"}) by (consul_agent_type)",
                             "instant": true,
-                            "legendFormat": "__auto",
+                            "legendFormat": "{{consul_agent_type}}",
                             "range": false,
                             "refId": "A"
                         }
                     ],
-                    "title": "Disk usage",
+                    "title": "Disk usage (Consul servers)",
                     "type": "gauge"
                 },
                 {
@@ -1804,7 +1804,7 @@
                             "editorMode": "code",
                             "expr": "sum(rate(container_fs_writes_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
                             "hide": false,
-                            "legendFormat": "writes, {pod=\"{{pod}}\", device=\"{{device}}\"}",
+                            "legendFormat": "writes, {pod=\"{{pod}}\"}",
                             "range": true,
                             "refId": "A"
                         },
@@ -1816,7 +1816,7 @@
                             "editorMode": "code",
                             "expr": "sum(rate(container_fs_reads_bytes_total{pod=~\"consul-server-.*\", container=\"consul\"}[5m])) by (pod, device)",
                             "hide": false,
-                            "legendFormat": "reads, {pod=\"{{pod}}\", device=\"{{device}}\"}",
+                            "legendFormat": "reads, {pod=\"{{pod}}\"}",
                             "range": true,
                             "refId": "B"
                         }
