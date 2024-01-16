@@ -121,8 +121,8 @@ func requireNotNil(v interface{}, name string) {
 
 var _ pbpeering.PeeringServiceServer = (*Server)(nil)
 
-func (s *Server) Register(grpcServer *grpc.Server) {
-	pbpeering.RegisterPeeringServiceServer(grpcServer, s)
+func (s *Server) Register(registrar grpc.ServiceRegistrar) {
+	pbpeering.RegisterPeeringServiceServer(registrar, s)
 }
 
 // Backend defines the core integrations the Peering endpoint depends on. A

@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 .PHONY: noop
-noop:
+noop: help
 
 ##@ Build
 

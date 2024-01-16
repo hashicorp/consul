@@ -37,7 +37,31 @@ import (
 // - default/nsa
 // - part1/nsa
 func TestBasicL4ExplicitDestinations(t *testing.T) {
-	cfg := testBasicL4ExplicitDestinationsCreator{}.NewConfig(t)
+
+	tenancies := []*pbresource.Tenancy{
+		{
+			Partition: "default",
+			Namespace: "default",
+		},
+	}
+	if utils.IsEnterprise() {
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "part1",
+			Namespace: "default",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "part1",
+			Namespace: "nsa",
+		})
+		tenancies = append(tenancies, &pbresource.Tenancy{
+			Partition: "default",
+			Namespace: "nsa",
+		})
+	}
+
+	cfg := testBasicL4ExplicitDestinationsCreator{
+		tenancies: tenancies,
+	}.NewConfig(t)
 
 	sp := sprawltest.Launch(t, cfg)
 
@@ -55,33 +79,37 @@ func TestBasicL4ExplicitDestinations(t *testing.T) {
 	t.Log(topology.RenderRelationships(ships))
 
 	// Make sure things are in v2.
-	for _, name := range []string{
-		"single-server",
-		"single-client",
-		"multi-server",
-		"multi-client",
-	} {
-		libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, name, nil, 1)
+	for _, ten := range tenancies {
+		for _, name := range []string{
+			"single-server",
+			"single-client",
+			"multi-server",
+			"multi-client",
+		} {
+			libassert.CatalogV2ServiceHasEndpointCount(t, clientV2, name, ten, 1)
+		}
 	}
 
 	// Check relationships
 	for _, ship := range ships {
 		t.Run("relationship: "+ship.String(), func(t *testing.T) {
 			var (
-				svc = ship.Caller
-				u   = ship.Upstream
+				wrk  = ship.Caller
+				dest = ship.Destination
 			)
 
-			clusterPrefix := clusterPrefixForUpstream(u)
+			clusterPrefix := clusterPrefixForDestination(dest)
 
-			asserter.UpstreamEndpointStatus(t, svc, clusterPrefix+".", "HEALTHY", 1)
-			asserter.HTTPServiceEchoes(t, svc, u.LocalPort, "")
-			asserter.FortioFetch2FortioName(t, svc, u, cluster.Name, u.ID)
+			asserter.DestinationEndpointStatus(t, wrk, clusterPrefix+".", "HEALTHY", 1)
+			asserter.HTTPServiceEchoes(t, wrk, dest.LocalPort, "")
+			asserter.FortioFetch2FortioName(t, wrk, dest, cluster.Name, dest.ID)
 		})
 	}
 }
 
-type testBasicL4ExplicitDestinationsCreator struct{}
+type testBasicL4ExplicitDestinationsCreator struct {
+	tenancies []*pbresource.Tenancy
+}
 
 func (c testBasicL4ExplicitDestinationsCreator) NewConfig(t *testing.T) *topology.Config {
 	const clusterName = "dc1"
@@ -100,15 +128,12 @@ func (c testBasicL4ExplicitDestinationsCreator) NewConfig(t *testing.T) *topolog
 		return fmt.Sprintf("%s-box%d", clusterName, lastNode)
 	}
 
-	c.topologyConfigAddNodes(t, cluster, nodeName, "default", "default")
-	if cluster.Enterprise {
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "default")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "part1", "nsa")
-		c.topologyConfigAddNodes(t, cluster, nodeName, "default", "nsa")
+	for _, ten := range c.tenancies {
+		c.topologyConfigAddNodes(t, cluster, nodeName, ten)
 	}
 
 	return &topology.Config{
-		Images: topoutil.TargetImages(),
+		Images: utils.TargetImages(),
 		Networks: []*topology.Network{
 			{Name: clusterName},
 			{Name: "wan", Type: "wan"},
@@ -123,61 +148,70 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 	t *testing.T,
 	cluster *topology.Cluster,
 	nodeName func() string,
-	partition,
-	namespace string,
+	tenancy *pbresource.Tenancy,
 ) {
 	clusterName := cluster.Name
+	tenancy.PeerName = "local"
 
-	newServiceID := func(name string) topology.ServiceID {
-		return topology.ServiceID{
-			Partition: partition,
-			Namespace: namespace,
+	newID := func(name string, tenancy *pbresource.Tenancy) topology.ID {
+		return topology.ID{
+			Partition: tenancy.Partition,
+			Namespace: tenancy.Namespace,
 			Name:      name,
 		}
-	}
-
-	tenancy := &pbresource.Tenancy{
-		Partition: partition,
-		Namespace: namespace,
-		PeerName:  "local",
 	}
 
 	singleportServerNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("single-server"),
+				newID("single-server", tenancy),
 				topology.NodeVersionV2,
-				nil,
+				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "single-server-identity"
+				},
 			),
 		},
+	}
+	var singleportDestinations []*topology.Destination
+	for i, ten := range c.tenancies {
+		singleportDestinations = append(singleportDestinations, &topology.Destination{
+			ID:           newID("single-server", ten),
+			PortName:     "http",
+			LocalAddress: "0.0.0.0", // needed for an assertion
+			LocalPort:    5000 + i,
+		})
 	}
 	singleportClientNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("single-client"),
+				newID("single-client", tenancy),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					delete(svc.Ports, "grpc")     // v2 mode turns this on, so turn it off
-					delete(svc.Ports, "http-alt") // v2 mode turns this on, so turn it off
-					svc.Upstreams = []*topology.Upstream{{
-						ID:           newServiceID("single-server"),
-						PortName:     "http",
-						LocalAddress: "0.0.0.0", // needed for an assertion
-						LocalPort:    5000,
-					}}
+				func(wrk *topology.Workload) {
+					delete(wrk.Ports, "grpc")  // v2 mode turns this on, so turn it off
+					delete(wrk.Ports, "http2") // v2 mode turns this on, so turn it off
+					wrk.WorkloadIdentity = "single-client-identity"
+					wrk.Destinations = singleportDestinations
 				},
 			),
 		},
+	}
+	var sources []*pbauth.Source
+	for _, ten := range c.tenancies {
+		sources = append(sources, &pbauth.Source{
+			IdentityName: "single-client-identity",
+			Namespace:    ten.Namespace,
+			Partition:    ten.Partition,
+		})
 	}
 	singleportTrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
@@ -187,59 +221,70 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		},
 	}, &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
-			IdentityName: "single-server",
+			IdentityName: "single-server-identity",
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "single-client",
-				Namespace:    namespace,
-			}},
+			Sources: sources,
 		}},
 	})
 
 	multiportServerNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("multi-server"),
+				newID("multi-server", tenancy),
 				topology.NodeVersionV2,
-				nil,
+				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "multi-server-identity"
+				},
 			),
 		},
+	}
+	var multiportDestinations []*topology.Destination
+	for i, ten := range c.tenancies {
+		multiportDestinations = append(multiportDestinations, &topology.Destination{
+			ID:           newID("multi-server", ten),
+			PortName:     "http",
+			LocalAddress: "0.0.0.0", // needed for an assertion
+			LocalPort:    5000 + 2*i,
+		})
+		multiportDestinations = append(multiportDestinations, &topology.Destination{
+			ID:           newID("multi-server", ten),
+			PortName:     "http2",
+			LocalAddress: "0.0.0.0", // needed for an assertion
+			LocalPort:    5000 + 2*i + 1,
+		})
 	}
 	multiportClientNode := &topology.Node{
 		Kind:      topology.NodeKindDataplane,
 		Version:   topology.NodeVersionV2,
-		Partition: partition,
+		Partition: tenancy.Partition,
 		Name:      nodeName(),
-		Services: []*topology.Service{
-			topoutil.NewFortioServiceWithDefaults(
+		Workloads: []*topology.Workload{
+			topoutil.NewFortioWorkloadWithDefaults(
 				clusterName,
-				newServiceID("multi-client"),
+				newID("multi-client", tenancy),
 				topology.NodeVersionV2,
-				func(svc *topology.Service) {
-					svc.Upstreams = []*topology.Upstream{
-						{
-							ID:           newServiceID("multi-server"),
-							PortName:     "http",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5000,
-						},
-						{
-							ID:           newServiceID("multi-server"),
-							PortName:     "http-alt",
-							LocalAddress: "0.0.0.0", // needed for an assertion
-							LocalPort:    5001,
-						},
-					}
+				func(wrk *topology.Workload) {
+					wrk.WorkloadIdentity = "multi-client-identity"
+					wrk.Destinations = multiportDestinations
 				},
 			),
 		},
+	}
+
+	var multiportSources []*pbauth.Source
+	for _, ten := range c.tenancies {
+		multiportSources = append(multiportSources, &pbauth.Source{
+			IdentityName: "multi-client-identity",
+			Namespace:    ten.Namespace,
+			Partition:    ten.Partition,
+		})
 	}
 	multiportTrafficPerms := sprawltest.MustSetResourceData(t, &pbresource.Resource{
 		Id: &pbresource.ID{
@@ -249,14 +294,11 @@ func (c testBasicL4ExplicitDestinationsCreator) topologyConfigAddNodes(
 		},
 	}, &pbauth.TrafficPermissions{
 		Destination: &pbauth.Destination{
-			IdentityName: "multi-server",
+			IdentityName: "multi-server-identity",
 		},
 		Action: pbauth.Action_ACTION_ALLOW,
 		Permissions: []*pbauth.Permission{{
-			Sources: []*pbauth.Source{{
-				IdentityName: "multi-client",
-				Namespace:    namespace,
-			}},
+			Sources: multiportSources,
 		}},
 	})
 

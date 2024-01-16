@@ -1,5 +1,5 @@
-resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
-    name = "{{.Node.DockerName}}-{{.Service.ID.TFString}}"
+resource "docker_container" "{{.Node.DockerName}}-{{.Workload.ID.TFString}}" {
+    name = "{{.Node.DockerName}}-{{.Workload.ID.TFString}}"
     network_mode = "container:${docker_container.{{.PodName}}.id}"
     image        = docker_image.{{.ImageResource}}.image_id
     restart  = "on-failure"
@@ -21,13 +21,13 @@ resource "docker_container" "{{.Node.DockerName}}-{{.Service.ID.TFString}}" {
     "consul", "connect", "envoy",
     "-register",
     "-mesh-gateway",
-    "-address={{`{{ GetInterfaceIP \"eth0\" }}`}}:{{.Service.Port}}",
-    "-wan-address={{`{{ GetInterfaceIP \"eth1\" }}`}}:{{.Service.Port}}",
+    "-address={{`{{ GetInterfaceIP \"eth0\" }}`}}:{{.Workload.Port}}",
+    "-wan-address={{`{{ GetInterfaceIP \"eth1\" }}`}}:{{.Workload.Port}}",
     "-grpc-addr=http://127.0.0.1:8502",
     // for demo purposes (TODO: huh?)
-    "-admin-bind=0.0.0.0:{{.Service.EnvoyAdminPort}}",
+    "-admin-bind=0.0.0.0:{{.Workload.EnvoyAdminPort}}",
   {{ if .Enterprise }} 
-    "-partition={{.Service.ID.Partition}}",
+    "-partition={{.Workload.ID.Partition}}",
   {{end}}
   {{ if .Token }}
     "-token={{.Token}}",

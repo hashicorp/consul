@@ -64,7 +64,7 @@ func validateHealthStatus(res *DecodedHealthStatus) error {
 			Name:    "owner",
 			Wrapped: resource.ErrMissing,
 		})
-	} else if !resource.EqualType(res.Owner.Type, pbcatalog.WorkloadType) && !resource.EqualType(res.Owner.Type, pbcatalog.NodeType) {
+	} else if !resource.EqualType(res.Owner.Type, pbcatalog.WorkloadType) {
 		err = multierror.Append(err, resource.ErrOwnerTypeInvalid{ResourceType: res.Id.Type, OwnerType: res.Owner.Type})
 	}
 
@@ -77,11 +77,6 @@ func aclReadHookHealthStatus(authorizer acl.Authorizer, authzContext *acl.Author
 		return authorizer.ToAllowAuthorizer().ServiceReadAllowed(res.GetOwner().GetName(), authzContext)
 	}
 
-	// For a health status of a node we need to check node:read perms.
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.NodeType) {
-		return authorizer.ToAllowAuthorizer().NodeReadAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
 	return acl.PermissionDenied("cannot read catalog.HealthStatus because there is no owner")
 }
 
@@ -89,11 +84,6 @@ func aclWriteHookHealthStatus(authorizer acl.Authorizer, authzContext *acl.Autho
 	// For a health status of a workload we need to check service:write perms.
 	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.WorkloadType) {
 		return authorizer.ToAllowAuthorizer().ServiceWriteAllowed(res.GetOwner().GetName(), authzContext)
-	}
-
-	// For a health status of a node we need to check node:write perms.
-	if res.GetOwner() != nil && resource.EqualType(res.GetOwner().GetType(), pbcatalog.NodeType) {
-		return authorizer.ToAllowAuthorizer().NodeWriteAllowed(res.GetOwner().GetName(), authzContext)
 	}
 
 	return acl.PermissionDenied("cannot write catalog.HealthStatus because there is no owner")

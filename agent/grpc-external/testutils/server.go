@@ -12,7 +12,7 @@ import (
 )
 
 type GRPCService interface {
-	Register(*grpc.Server)
+	Register(grpc.ServiceRegistrar)
 }
 
 func RunTestServer(t *testing.T, services ...GRPCService) net.Addr {

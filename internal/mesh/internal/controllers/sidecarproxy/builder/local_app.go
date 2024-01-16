@@ -138,6 +138,7 @@ func destinationRulesByPort(allPorts []string, destinationRules []*pbauth.Destin
 	return out
 }
 
+//nolint:unparam
 func convertDestinationRule(allPorts []string, dr *pbauth.DestinationRule) ([]string, DestinationRule) {
 	ports := make(map[string]struct{})
 	if len(dr.PortNames) > 0 {

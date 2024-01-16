@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/consul/internal/catalog/internal/controllers/nodehealth"
 	"github.com/hashicorp/consul/internal/controller"
+	"github.com/hashicorp/consul/internal/controller/dependency"
 	"github.com/hashicorp/consul/internal/resource"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	"github.com/hashicorp/consul/proto-public/pbresource"
@@ -45,13 +46,13 @@ type NodeMapper interface {
 	NodeIDFromWorkload(workload *pbresource.Resource, workloadData *pbcatalog.Workload) *pbresource.ID
 }
 
-func WorkloadHealthController(nodeMap NodeMapper) controller.Controller {
+func WorkloadHealthController(nodeMap NodeMapper) *controller.Controller {
 	if nodeMap == nil {
 		panic("No NodeMapper was provided to the WorkloadHealthController constructor")
 	}
 
-	return controller.ForType(pbcatalog.WorkloadType).
-		WithWatch(pbcatalog.HealthStatusType, controller.MapOwnerFiltered(pbcatalog.WorkloadType)).
+	return controller.NewController(StatusKey, pbcatalog.WorkloadType).
+		WithWatch(pbcatalog.HealthStatusType, dependency.MapOwnerFiltered(pbcatalog.WorkloadType)).
 		WithWatch(pbcatalog.NodeType, nodeMap.MapNodeToWorkloads).
 		WithReconciler(&workloadHealthReconciler{nodeMap: nodeMap})
 }

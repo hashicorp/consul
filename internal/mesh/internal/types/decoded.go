@@ -8,6 +8,7 @@ import (
 	pbauth "github.com/hashicorp/consul/proto-public/pbauth/v2beta1"
 	pbcatalog "github.com/hashicorp/consul/proto-public/pbcatalog/v2beta1"
 	pbmesh "github.com/hashicorp/consul/proto-public/pbmesh/v2beta1"
+	pbmulticluster "github.com/hashicorp/consul/proto-public/pbmulticluster/v2beta1"
 )
 
 type (
@@ -27,4 +28,6 @@ type (
 	DecodedDestinations               = resource.DecodedResource[*pbmesh.Destinations]
 	DecodedComputedDestinations       = resource.DecodedResource[*pbmesh.ComputedExplicitDestinations]
 	DecodedProxyStateTemplate         = resource.DecodedResource[*pbmesh.ProxyStateTemplate]
+	DecodedMeshGateway                = resource.DecodedResource[*pbmesh.MeshGateway]
+	DecodedComputedExportedServices   = resource.DecodedResource[*pbmulticluster.ComputedExportedServices]
 )

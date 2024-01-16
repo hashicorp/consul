@@ -31,8 +31,6 @@ func FillAuthorizerContext(authzContext *acl.AuthorizerContext) {
 
 // initTenancy create the base tenancy objects (default/default)
 func initTenancy(ctx context.Context, b *inmem.Backend) error {
-	//TODO(dhiaayachi): This is now called for testing purpose but at some point we need to add something similar
-	// when bootstrapping a server, probably in the tenancy controllers.
 	nsData, err := anypb.New(&pbtenancy.Namespace{Description: "default namespace in default partition"})
 	if err != nil {
 		return err
@@ -61,5 +59,4 @@ func initTenancy(ctx context.Context, b *inmem.Backend) error {
 		}
 	}
 	return nil
-
 }

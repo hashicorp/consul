@@ -8,15 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/consul/api"
+	"github.com/hashicorp/consul/sdk/testutil/retry"
+	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
+	"github.com/hashicorp/consul/testing/deployer/topology"
 	"github.com/mitchellh/copystructure"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/hashicorp/consul/test/integration/consul-container/libs/utils"
-	"github.com/hashicorp/consul/testing/deployer/topology"
-
-	"github.com/hashicorp/consul/api"
-	"github.com/hashicorp/consul/sdk/testutil/retry"
 )
 
 // TestAC7_2RotateLeader ensures that after a leader rotation, information continues to replicate to peers
@@ -25,13 +23,13 @@ type ac7_2RotateLeaderSuite struct {
 	DC   string
 	Peer string
 
-	sidServer  topology.ServiceID
+	sidServer  topology.ID
 	nodeServer topology.NodeID
 
-	sidClient  topology.ServiceID
+	sidClient  topology.ID
 	nodeClient topology.NodeID
 
-	upstream *topology.Upstream
+	upstream *topology.Destination
 }
 
 func TestAC7_2RotateLeader(t *testing.T) {
@@ -65,7 +63,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 
 	server := NewFortioServiceWithDefaults(
 		peerClu.Datacenter,
-		topology.ServiceID{
+		topology.ID{
 			Name:      prefix + "server-http",
 			Partition: partition,
 		},
@@ -73,8 +71,8 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 	)
 
 	// Make clients which have server upstreams
-	upstream := &topology.Upstream{
-		ID: topology.ServiceID{
+	upstream := &topology.Destination{
+		ID: topology.ID{
 			Name:      server.ID.Name,
 			Partition: partition,
 		},
@@ -84,17 +82,17 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 	// create client in us
 	client := NewFortioServiceWithDefaults(
 		clu.Datacenter,
-		topology.ServiceID{
+		topology.ID{
 			Name:      prefix + "client",
 			Partition: partition,
 		},
-		func(s *topology.Service) {
-			s.Upstreams = []*topology.Upstream{
+		func(s *topology.Workload) {
+			s.Destinations = []*topology.Destination{
 				upstream,
 			}
 		},
 	)
-	clientNode := ct.AddServiceNode(clu, serviceExt{Service: client,
+	clientNode := ct.AddServiceNode(clu, serviceExt{Workload: client,
 		Config: &api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      client.ID.Name,
@@ -111,7 +109,7 @@ func (s *ac7_2RotateLeaderSuite) setup(t *testing.T, ct *commonTopo) {
 	})
 	// actually to be used by the other pairing
 	serverNode := ct.AddServiceNode(peerClu, serviceExt{
-		Service: server,
+		Workload: server,
 		Config: &api.ServiceConfigEntry{
 			Kind:      api.ServiceDefaults,
 			Name:      server.ID.Name,
@@ -146,8 +144,8 @@ func (s *ac7_2RotateLeaderSuite) test(t *testing.T, ct *commonTopo) {
 	clDC := ct.APIClientForCluster(t, dc)
 	clPeer := ct.APIClientForCluster(t, peer)
 
-	svcServer := peer.ServiceByID(s.nodeServer, s.sidServer)
-	svcClient := dc.ServiceByID(s.nodeClient, s.sidClient)
+	svcServer := peer.WorkloadByID(s.nodeServer, s.sidServer)
+	svcClient := dc.WorkloadByID(s.nodeClient, s.sidClient)
 	ct.Assert.HealthyWithPeer(t, dc.Name, svcServer.ID, LocalPeerName(peer, "default"))
 
 	ct.Assert.FortioFetch2HeaderEcho(t, svcClient, s.upstream)

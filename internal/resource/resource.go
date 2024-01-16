@@ -9,7 +9,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 
-	"github.com/hashicorp/consul/agent/dns"
+	"github.com/hashicorp/consul/internal/dnsutil"
 	"github.com/hashicorp/consul/proto-public/pbresource"
 )
 
@@ -27,7 +27,7 @@ const FinalizerKey = "finalizers"
 // ValidateName returns an error a name is not a valid resource name.
 // The error will contain reference to what constitutes a valid resource name.
 func ValidateName(name string) error {
-	if !dns.IsValidLabel(name) || strings.ToLower(name) != name || len(name) > MaxNameLength {
+	if !dnsutil.IsValidLabel(name) || strings.ToLower(name) != name || len(name) > MaxNameLength {
 		return fmt.Errorf("a resource name must consist of lower case alphanumeric characters or '-', must start and end with an alphanumeric character and be less than %d characters, got: %q", MaxNameLength+1, name)
 	}
 	return nil
@@ -67,10 +67,21 @@ func AddFinalizer(res *pbresource.Resource, finalizer string) {
 func RemoveFinalizer(res *pbresource.Resource, finalizer string) {
 	finalizerSet := GetFinalizers(res)
 	finalizerSet.Remove(finalizer)
-	if res.Metadata == nil {
-		res.Metadata = map[string]string{}
+
+	if finalizerSet.Cardinality() == 0 {
+		// Remove key if no finalizers to prevent dual representations of
+		// the same state.
+		_, keyExists := res.Metadata[FinalizerKey]
+		if keyExists {
+			delete(res.Metadata, FinalizerKey)
+		}
+	} else {
+		// Add/update key
+		if res.Metadata == nil {
+			res.Metadata = map[string]string{}
+		}
+		res.Metadata[FinalizerKey] = strings.Join(finalizerSet.ToSlice(), " ")
 	}
-	res.Metadata[FinalizerKey] = strings.Join(finalizerSet.ToSlice(), " ")
 }
 
 // GetFinalizers returns the set of finalizers for the given resource.

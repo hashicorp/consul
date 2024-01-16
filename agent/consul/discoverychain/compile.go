@@ -8,14 +8,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mitchellh/hashstructure"
-	"github.com/mitchellh/mapstructure"
-
 	"github.com/hashicorp/consul/acl"
 	"github.com/hashicorp/consul/agent/configentry"
 	"github.com/hashicorp/consul/agent/connect"
 	"github.com/hashicorp/consul/agent/structs"
 	"github.com/hashicorp/consul/proto/private/pbpeering"
+	"github.com/mitchellh/hashstructure"
 )
 
 type CompileRequest struct {
@@ -244,19 +242,11 @@ func (c *compiler) recordServiceProtocol(sid structs.ServiceID) error {
 		return c.recordProtocol(sid, serviceDefault.Protocol)
 	}
 	if proxyDefault := c.entries.GetProxyDefaults(sid.PartitionOrDefault()); proxyDefault != nil {
-		var cfg proxyConfig
-		// Ignore errors and fallback on defaults if it does happen.
-		_ = mapstructure.WeakDecode(proxyDefault.Config, &cfg)
-		if cfg.Protocol != "" {
-			return c.recordProtocol(sid, cfg.Protocol)
+		if proxyDefault.Protocol != "" {
+			return c.recordProtocol(sid, proxyDefault.Protocol)
 		}
 	}
 	return c.recordProtocol(sid, "")
-}
-
-// proxyConfig is a snippet from agent/xds/config.go:ProxyConfig
-type proxyConfig struct {
-	Protocol string `mapstructure:"protocol"`
 }
 
 func (c *compiler) recordProtocol(fromService structs.ServiceID, protocol string) error {

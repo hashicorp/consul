@@ -1,5 +1,6 @@
 {
     "TemplateName": "builtin/node",
     "Schema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"name\": { \"type\": \"string\", \"$ref\": \"#/definitions/min-length-one\" }\n\t},\n\t\"required\": [\"name\"],\n\t\"definitions\": {\n\t\t\"min-length-one\": {\n\t\t\t\t\"type\": \"string\",\n\t\t\t\t\"minLength\": 1\n\t\t}\n\t}\n}",
-    "Template": "\nnode \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}"
+    "Template": "\nnode \"{{.Name}}\" {\n\tpolicy = \"write\"\n}\nservice_prefix \"\" {\n\tpolicy = \"read\"\n}",
+    "Description": "Gives the token or role permissions for a register an agent/node into the catalog. A node is typically a consul agent but can also be a physical server, cloud instance or a container."
 }

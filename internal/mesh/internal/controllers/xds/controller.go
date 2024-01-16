@@ -29,13 +29,13 @@ const ControllerName = "consul.io/xds-controller"
 
 const defaultTenancy = "default"
 
-func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher, leafCertManager *leafcert.Manager, leafMapper *LeafMapper, leafCancels *LeafCancels, datacenter string) controller.Controller {
+func Controller(endpointsMapper *bimapper.Mapper, updater ProxyUpdater, fetcher TrustBundleFetcher, leafCertManager *leafcert.Manager, leafMapper *LeafMapper, leafCancels *LeafCancels, datacenter string) *controller.Controller {
 	leafCertEvents := make(chan controller.Event, 1000)
 	if endpointsMapper == nil || fetcher == nil || leafCertManager == nil || leafMapper == nil || datacenter == "" {
 		panic("endpointsMapper, updater, fetcher, leafCertManager, leafMapper, and datacenter are required")
 	}
 
-	return controller.ForType(pbmesh.ProxyStateTemplateType).
+	return controller.NewController(ControllerName, pbmesh.ProxyStateTemplateType).
 		WithWatch(pbcatalog.ServiceEndpointsType, endpointsMapper.MapLink).
 		WithCustomWatch(proxySource(updater), proxyMapper).
 		WithCustomWatch(&controller.Source{Source: leafCertEvents}, leafMapper.EventMapLink).

@@ -5,7 +5,7 @@ These peering tests all use a `commonTopo` (read: "common topology") to enable s
 To run these tests, you will need to have docker installed. Next, make sure that you have all the required consul containers built:
 
 ```
-make test-compat-integ-setup
+make test-deployer-setup
 ```
 
 ## Non-Shared CommonTopo Tests

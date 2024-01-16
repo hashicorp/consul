@@ -1,4 +1,5 @@
 Name:            builtin/dns
+Description:     Gives the token or role permissions for the Consul DNS to query services in the network.
 Input variables: None
 Example usage:
 	consul acl token create -templated-policy builtin/dns

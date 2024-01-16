@@ -1142,8 +1142,9 @@ func testcase_PeerRedirect() compileTestCase {
 func testcase_PeerRedirectProxyDefHTTP() compileTestCase {
 	entries := newEntries()
 	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
-		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
+		Kind:     structs.ProxyDefaults,
+		Name:     structs.ProxyConfigGlobal,
+		Protocol: "http",
 		Config: map[string]interface{}{
 			"Protocol": "http",
 		},
@@ -1768,11 +1769,9 @@ func testcase_DefaultResolver_WithProxyDefaults() compileTestCase {
 	entries := newEntries()
 
 	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
-		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
-		Config: map[string]interface{}{
-			"protocol": "grpc",
-		},
+		Kind:     structs.ProxyDefaults,
+		Name:     structs.ProxyConfigGlobal,
+		Protocol: "grpc",
 		MeshGateway: structs.MeshGatewayConfig{
 			Mode: structs.MeshGatewayModeRemote,
 		},
@@ -3263,8 +3262,9 @@ func newSimpleRoute(name string, muts ...func(*structs.ServiceRoute)) structs.Se
 
 func setGlobalProxyProtocol(entries *configentry.DiscoveryChainSet, protocol string) {
 	entries.AddProxyDefaults(&structs.ProxyConfigEntry{
-		Kind: structs.ProxyDefaults,
-		Name: structs.ProxyConfigGlobal,
+		Kind:     structs.ProxyDefaults,
+		Name:     structs.ProxyConfigGlobal,
+		Protocol: protocol,
 		Config: map[string]interface{}{
 			"protocol": protocol,
 		},

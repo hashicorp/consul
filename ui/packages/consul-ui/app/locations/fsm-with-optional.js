@@ -149,7 +149,10 @@ export default class FSMWithOptionalLocation {
     url = this.getURLFrom(url)
       .split('/')
       .filter((item, i) => {
-        if (i < 3) {
+        // the max optional parameters we have is 3 (partition, namespace, peer). When we split the path
+        // by '/' it has a prefixed empty '' in the array. So we know we only have to check up to the 4th
+        // index for optional parameters.
+        if (i < 4) {
           let found = false;
           Object.entries(OPTIONAL).reduce((prev, [key, re]) => {
             const res = re.exec(item);

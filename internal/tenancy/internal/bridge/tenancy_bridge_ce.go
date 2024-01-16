@@ -5,8 +5,12 @@
 
 package bridge
 
+import "github.com/hashicorp/consul/internal/resource"
+
 func (b *V2TenancyBridge) PartitionExists(partition string) (bool, error) {
-	if partition == "default" {
+	if partition == resource.DefaultPartitionName {
+		// In CE partition resources are never actually created. However, conceptually
+		// the default partition always exists.
 		return true, nil
 	}
 	return false, nil

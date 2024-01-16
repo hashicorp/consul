@@ -8,10 +8,7 @@ package hashicorp.consul.catalog.v2beta1;
 import "pbresource/annotations.proto";
 
 message Node {
-  option (hashicorp.consul.resource.spec) = {
-    // TODO: This should eventually be SCOPE_PARTITION but that will require further changes to code
-    scope: SCOPE_NAMESPACE,
-  };
+  option (hashicorp.consul.resource.spec) = {scope: SCOPE_PARTITION};
 
   repeated NodeAddress addresses = 1;
 }

@@ -15,18 +15,18 @@ import (
 )
 
 func TestConfigSnapshotPeering(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, false)
+	return testConfigSnapshot(t, false, false, nil)
 }
 
 func TestConfigSnapshotPeeringWithEscapeOverrides(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, true, false)
+	return testConfigSnapshot(t, true, false, nil)
 }
 
-func TestConfigSnapshotPeeringWithHTTP2(t testing.T) *ConfigSnapshot {
-	return testConfigSnapshot(t, false, true)
+func TestConfigSnapshotPeeringWithHTTP2(t testing.T, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
+	return testConfigSnapshot(t, false, true, nsFn)
 }
 
-func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *ConfigSnapshot {
+func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool, nsFn func(ns *structs.NodeService)) *ConfigSnapshot {
 	var (
 		paymentsUpstream = structs.Upstream{
 			DestinationName: "payments",
@@ -72,7 +72,9 @@ func testConfigSnapshot(t testing.T, escapeOverride bool, useHTTP2 bool) *Config
 					Name: uid.EnvoyID() + ":custom-upstream",
 				})
 		}
-
+		if nsFn != nil {
+			nsFn(ns)
+		}
 	}, []UpdateEvent{
 		{
 			CorrelationID: peerTrustBundleIDPrefix + "cloud",

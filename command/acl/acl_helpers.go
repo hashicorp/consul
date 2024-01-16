@@ -105,6 +105,10 @@ func GetPolicyIDByName(client *api.Client, name string) (string, error) {
 		return "", err
 	}
 
+	if policy == nil {
+		return "", fmt.Errorf("No such policy with name: %s", name)
+	}
+
 	return policy.ID, nil
 }
 

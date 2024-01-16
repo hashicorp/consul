@@ -22,6 +22,9 @@ on:
         required: false
         type: string
         default: ""
+      go-version:
+        required: true
+        type: string
     secrets:
       elevated-github-token:
         required: true
@@ -44,7 +47,7 @@ jobs:
         run: git config --global url."https://${{ secrets.elevated-github-token }}:@github.com".insteadOf "https://github.com"
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
-          go-version-file: 'go.mod'
+          go-version: ${{ inputs.go-version }}
       - name: Build
         env:
           GOARCH: ${{ inputs.goarch }}
@@ -54,6 +57,3 @@ jobs:
         with:
           name: ${{inputs.uploaded-binary-name}}
           path: ./bin/consul
-      - name: Notify Slack
-        if: ${{ failure() }}
-        run: .github/scripts/notify_slack.sh
