@@ -1005,7 +1005,7 @@
               },
               {
                 "title": "Register tasks with Terraform",
-                "path": "register/service/ecs/automate-terraform"
+                "path": "register/service/ecs/automatic"
               },
               {
                 "title": "Register tasks manually",
@@ -1013,7 +1013,7 @@
               },
               {
                 "title": "Register existing tasks with Terraform",
-                "path": "register/service/ecs/migrate-terraform"
+                "path": "register/service/ecs/migrate"
               },
               {
                 "title": "Configure ECS task bind address",
@@ -1034,7 +1034,7 @@
               },
               {
                 "title": "Register functions with Terraform",
-                "path": "register/service/lambda/automate-terraform"
+                "path": "register/service/lambda/automatic"
               },
               {
                 "title": "Register functions manually",
