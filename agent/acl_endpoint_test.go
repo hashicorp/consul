@@ -2099,7 +2099,7 @@ func TestACL_Authorize(t *testing.T) {
 	}
 
 	t.Parallel()
-	a1 := NewTestAgent(t, TestACLConfigWithParams(nil))
+	a1 := NewTestAgent(t, TestACLConfigWithParams(nil), TestAgentOpts{DisableACLBootstrapCheck: true})
 	defer a1.Shutdown()
 
 	testrpc.WaitForTestAgent(t, a1.RPC, "dc1", testrpc.WithToken(TestDefaultInitialManagementToken))
@@ -2135,7 +2135,7 @@ func TestACL_Authorize(t *testing.T) {
 	secondaryParams.ReplicationToken = secondaryParams.InitialManagementToken
 	secondaryParams.EnableTokenReplication = true
 
-	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams))
+	a2 := NewTestAgent(t, `datacenter = "dc2" `+TestACLConfigWithParams(secondaryParams), TestAgentOpts{DisableACLBootstrapCheck: true})
 	defer a2.Shutdown()
 
 	addr := fmt.Sprintf("127.0.0.1:%d", a1.Config.SerfPortWAN)
