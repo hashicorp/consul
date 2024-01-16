@@ -160,6 +160,7 @@ jobs:
     runs-on: ${{ fromJSON(needs.setup.outputs.compute-large) }}
     needs:
       - setup
+      - get-go-version
       - dev-build
     permissions:
       id-token: write # NOTE: this permission is explicitly required for Vault auth.
@@ -179,8 +180,9 @@ jobs:
 
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
-          # Do not explicitly set Go version here, as it should depend on what Vault declares.
-          go-version-file: 'go.mod'
+          # We use the current Consul Go version here since Vault is installed as a binary
+          # and tests are run from the Consul repo.
+          go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Install Vault
         run: |
