@@ -251,6 +251,9 @@ The following Kubernetes resource annotations could be used on a pod to control 
 - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-port` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulPort`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulport)
 - `consul.hashicorp.com/sidecar-proxy-lifecycle-graceful-shutdown-path` - Override the default Helm value [`connectInject.sidecarProxy.lifecycle.defaultGracefulShutdownPath`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-lifecycle-defaultgracefulshutdownpath)
 
+- `consul.hashicorp.com/sidecar-proxy-startup-failure-seconds` - Override the default Helm value [`connectInject.sidecarProxy.defaultStartupFailureSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-defaultstartupfailureseconds)
+- `consul.hashicorp.com/sidecar-proxy-liveness-failure-seconds` - Override the default Helm value [`connectInject.sidecarProxy.defaultLivenessFailureSeconds`](/consul/docs/k8s/helm#v-connectinject-sidecarproxy-defaultlivenessfailureseconds)
+
 - `consul.hashicorp.com/enable-metrics` - Override the default Helm value [`connectInject.metrics.defaultEnabled`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenabled).
 - `consul.hashicorp.com/enable-metrics-merging` - Override the default Helm value [`connectInject.metrics.defaultEnableMerging`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultenablemerging).
 - `consul.hashicorp.com/merged-metrics-port` - Override the default Helm value [`connectInject.metrics.defaultMergedMetricsPort`](/consul/docs/k8s/helm#v-connectinject-metrics-defaultmergedmetricsport).
